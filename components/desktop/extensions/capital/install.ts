@@ -17,7 +17,7 @@ import { TrackerPage } from './pages';
 import { ProjectsVotingPage } from './pages';
 import { ProjectsResultsPage } from './pages';
 // import { ProjectsInvitesPage } from './pages';
-import { CapitalProfilePage, CapitalRegistrationPage, MasterCommitsPage, InvitationsPage } from './pages';
+import { CapitalProfilePage, CapitalRegistrationPage, MasterCommitsPage, InvitationsPage, MyContributionsPage } from './pages';
 import { ProjectDescriptionPage } from './pages/ProjectDescriptionPage';
 // import { ProjectInviteViewerPage } from './pages';
 // import { ProjectInviteEditorPage } from './pages/ProjectInviteEditorPage';
@@ -130,6 +130,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.profileRouteTitle'),
               icon: 'fa-solid fa-wallet',
+              requires: 'CapitalDesk:use',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            // Все паевые взносы пайщика в Благорост: деньгами, имуществом, РИД (решение владельца 30.10.2026)
+            path: 'contributions',
+            name: 'capital-contributions',
+            component: markRaw(MyContributionsPage),
+            meta: {
+              title: t('capital.install.contributionsRouteTitle'),
+              icon: 'savings',
               requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,

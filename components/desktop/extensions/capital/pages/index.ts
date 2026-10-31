@@ -15,6 +15,7 @@ export * from './ProjectsResultsPage';
 export * from './ProjectsInvitesPage';
 export * from './ProjectInviteViewerPage';
 export * from './CapitalProfilePage';
+export * from './MyContributionsPage';
 export * from './CapitalRegistrationPage';
 export * from './MasterCommitsPage';
 export * from './ProjectDescriptionPage';

@@ -25,6 +25,9 @@ sources:
     - components/controller/src/extensions/capital/infrastructure/repositories/program-property.kysely-repository.ts
     - components/controller/src/extensions/capital/domain/repositories/program-property.repository.ts
     - components/controller/src/extensions/capital/domain/interfaces/capital-blockchain.port.ts
+  ui:
+    - components/desktop/extensions/capital/features/ProgramProperty/**
+    - components/desktop/extensions/capital/widgets/ProgramPropertiesWidget/**
 
 cases:
   - id: cap.pgprp.happy.01
@@ -159,3 +162,27 @@ cases:
     external: unreachable
     external_reason: "итог пишется из обработчика действий цепи — снаружи виден только через прогон процесса"
     status: written
+
+  # ── Уровень UI ────────────────────────────────────────────────────────────
+
+  - id: cap.pgprp.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик нажимает «Внести имуществом», описывает одну позицию, указывает
+      оценку и подписывает заявление; после решения совета нажимает «Подписать
+      акт» на вкладке «Имущество».
+    expect: >
+      заявление появляется на вкладке «Имущество» со статусом «На одобрении
+      председателя»; после подписи акта статус «Акт у председателя»; после
+      подписи председателя — «Принято», взнос появляется в истории
+    test: ~
+    status: missing
+
+  - id: cap.pgprp.ui.02
+    level: ui
+    kind: side
+    scenario: Пайщик открывает форму взноса имуществом и оставляет поле пустым или вводит нулевую оценку.
+    expect: кнопка подачи заявления недоступна, под оценкой — пояснение
+    test: ~
+    status: missing

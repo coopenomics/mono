@@ -42,9 +42,7 @@ import { CapitalContract } from 'cooptypes';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { useSystemStore } from 'src/entities/System/model';
-import { useHeaderActions } from 'src/shared/hooks/useHeaderActions';
 import { EditAboutInput, EditHoursPerDayInput, EditRatePerHourInput } from 'app/extensions/capital/features/Contributor/EditContributor';
-import { CreateProgramInvestButton } from 'app/extensions/capital/features/ProgramInvest/CreateProgramInvest/ui';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseCard } from 'src/shared/ui/base';
 import { IdentityPanel, type Identity } from 'src/shared/ui/domain/IdentityPanel';
@@ -54,7 +52,6 @@ import { t } from '../../../i18n';
 const contributorStore = useContributorStore();
 const system = useSystemStore();
 const { username } = useSessionStore();
-const { registerAction } = useHeaderActions();
 
 // Вычисляемые свойства
 const governSymbol = computed(() => system.info?.symbols?.root_govern_symbol || 'GOV');
@@ -81,6 +78,12 @@ const formattedCreator = computed(() => {
 const formattedAuthor = computed(() => {
   if (!contributorStore.self) return '0.00';
   const value = contributorStore.self?.contributed_as_author || '0';
+  return formatAsset2Digits(`${value} ${governSymbol.value}`);
+});
+
+const formattedPropertor = computed(() => {
+  if (!contributorStore.self) return '0.00';
+  const value = contributorStore.self?.contributed_as_propertor || '0';
   return formatAsset2Digits(`${value} ${governSymbol.value}`);
 });
 
@@ -138,6 +141,12 @@ const roleContributions = computed(() => {
       value: formattedCoordinator.value,
       icon: 'campaign',
     },
+    {
+      key: 'propertor',
+      name: t('capital.capitalProfilePage.propertorRole'),
+      value: formattedPropertor.value,
+      icon: 'inventory_2',
+    },
   ];
 });
 
@@ -165,12 +174,7 @@ useLiveReload(
 );
 
 onMounted(async () => {
-  // Главное действие страницы — в правом верхнем углу топбара
-  registerAction({
-    id: 'capital-profile-invest',
-    component: CreateProgramInvestButton,
-    order: 1,
-  });
+  // Взносы деньгами и имуществом вносятся на странице «Мои взносы» (решение владельца 30.10.2026).
 
   // Загружаем данные текущего участника аналогично CapitalBase. Отказ не роняем
   // из onMounted — он уходил в обработчик ошибок приложения безымянным

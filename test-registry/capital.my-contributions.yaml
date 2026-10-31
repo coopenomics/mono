@@ -13,6 +13,10 @@ sources:
     - components/controller/src/extensions/capital/application/resolvers/contributions-history.resolver.ts
     - components/controller/src/extensions/capital/application/dto/contributions/**
     - components/controller/src/extensions/capital/domain/enums/contribution-kind.enum.ts
+  ui:
+    - components/desktop/extensions/capital/pages/MyContributionsPage/**
+    - components/desktop/extensions/capital/widgets/ContributionsHistoryWidget/**
+    - components/desktop/extensions/capital/entities/Contribution/**
 
 cases:
   - id: cap.mycontr.be.01
@@ -33,5 +37,26 @@ cases:
     kind: side
     scenario: Пайщик запрашивает историю взносов другого пайщика.
     expect: отказ по праву Contribution read:own — чужое имя в отборе не подтверждает охват «своё»; совет читает любую историю
+    test: ~
+    status: missing
+
+  - id: cap.mycontr.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик открывает «Мои взносы»: в шапке кнопки «Внести деньгами» и «Внести
+      имуществом», на вкладке «История» — внесённые взносы с видом, датой и
+      суммой; запись открывает правую панель.
+    expect: история показывает взносы деньгами, имуществом и результатами; после взноса лента обновляется без перезагрузки страницы
+    test: ~
+    status: missing
+
+  - id: cap.mycontr.ui.02
+    level: ui
+    kind: side
+    scenario: Пайщик открывает «Профиль» Благороста.
+    expect: >
+      кнопки взноса в шапке профиля нет — взносы вносятся на странице «Мои
+      взносы»; в «Взносах по ролям» есть строка «Имуществом»
     test: ~
     status: missing

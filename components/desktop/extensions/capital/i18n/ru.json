@@ -129,7 +129,8 @@
       "executorRole": "Исполнитель",
       "investorRole": "Инвестор",
       "participationParamsTitle": "Параметры участия",
-      "totalContributionsLabel": "Общая сумма взносов"
+      "totalContributionsLabel": "Общая сумма взносов",
+      "propertorRole": "Имуществом"
     },
     "capitalProgramDocFields": {
       "blagorostRegulationLabel": "Положение БЛАГОРОСТ",
@@ -512,11 +513,11 @@
     "createProgramInvestButton": {
       "amountLabel": "Сумма",
       "amountPositiveError": "Сумма должна быть положительной",
-      "ariaLabel": "Инвестировать в программу",
+      "ariaLabel": "Внести паевой взнос деньгами в программу «Благорост»",
       "cancel": "Отмена",
-      "dialogTitle": "Инвестирование в программу",
-      "label": "Инвестировать",
-      "success": "Инвестиция принята"
+      "dialogTitle": "Паевой взнос деньгами",
+      "label": "Внести деньгами",
+      "success": "Паевой взнос принят"
     },
     "createProjectButton": {
       "label": "Проект"
@@ -888,7 +889,8 @@
       "templateRouteTitle": "Шаблон",
       "trackerRouteTitle": "Время",
       "walletLabel": "Благорост",
-      "shareTransferRouteTitle": "Трансляции"
+      "shareTransferRouteTitle": "Трансляции",
+      "contributionsRouteTitle": "Мои взносы"
     },
     "invitationDetailsWidget": {
       "blagorostReceivedLabel": "Получено по Благоросту",
@@ -1909,6 +1911,79 @@
         "revokedMessage": "Доступ снят",
         "revokeConfirmTitle": "Снять доступ к трансляции?",
         "revokeConfirmMessage": "Страница трансляции у пайщика {name} пропадёт из меню. История его трансляций сохранится."
+      }
+    },
+    "createPropertyContributionButton": {
+      "label": "Внести имуществом",
+      "dialogTitle": "Паевой взнос имуществом",
+      "intro": "Опишите одну позицию имущества и укажите её оценку. Заявление рассматривают председатель и совет, затем вы подписываете акт приёма-передачи.",
+      "nameLabel": "Наименование",
+      "namePlaceholder": "Например, ноутбук Lenovo ThinkPad T14",
+      "descriptionLabel": "Описание, характеристики и состояние",
+      "descriptionHint": "Модель, серийный номер, год выпуска, комплектность, состояние",
+      "quantityLabel": "Количество",
+      "unitLabel": "Единица измерения",
+      "unitDefault": "шт.",
+      "amountLabel": "Оценочная стоимость",
+      "amountPositiveError": "Оценка должна быть больше нуля",
+      "submit": "Подписать и подать заявление",
+      "success": "Заявление подано"
+    },
+    "myContributionsPage": {
+      "ariaLabel": "Мои взносы",
+      "hint": "Паевые взносы в программу «Благорост» вносятся деньгами с главного кошелька или имуществом по акту приёма-передачи. В истории — взносы, которые принял кооператив. На вкладке «Имущество» — заявления о взносе имуществом и шаги их рассмотрения.",
+      "tabHistory": "История",
+      "tabProperty": "Имущество"
+    },
+    "contributionsHistoryWidget": {
+      "emptyTitle": "Взносов пока нет",
+      "emptyBody": "Внесите паевой взнос деньгами или имуществом кнопками в правом верхнем углу.",
+      "amountCaption": "Сумма взноса",
+      "details": "Подробнее",
+      "loadMore": "Показать ещё",
+      "dateLabel": "Дата",
+      "operationLabel": "Номер операции",
+      "memoLabel": "Основание",
+      "kind": {
+        "money": "Деньгами",
+        "property": "Имуществом",
+        "result": "Результатом интеллектуальной деятельности",
+        "import": "Перенесён из прежнего учёта"
+      }
+    },
+    "programPropertiesWidget": {
+      "emptyTitle": "Заявлений о взносе имуществом нет",
+      "emptyBody": "Нажмите «Внести имуществом» в правом верхнем углу и опишите имущество.",
+      "meta": "№ {number} · {date}",
+      "amountCaption": "Оценочная стоимость",
+      "details": "Подробнее",
+      "signAct": "Подписать акт",
+      "signed": "Акт подписан и направлен председателю",
+      "quantityLabel": "Количество",
+      "createdLabel": "Заявление подано",
+      "descriptionLabel": "Описание, характеристики и состояние",
+      "untitled": "Имущество",
+      "status": {
+        "created": "На одобрении председателя",
+        "approved": "На рассмотрении совета",
+        "authorized": "Решение совета принято",
+        "act1": "Акт у председателя",
+        "act2": "Принято",
+        "declined": "Отклонено",
+        "unknown": "Статус уточняется"
+      },
+      "note": {
+        "created": "Председатель рассматривает заявление",
+        "approved": "Совет голосует по заявлению",
+        "authorized": "Подпишите акт приёма-передачи",
+        "act1": "Председатель подписывает акт"
+      },
+      "step": {
+        "statement": "Заявление подано",
+        "chairman": "Председатель одобрил",
+        "council": "Совет принял решение",
+        "act1": "Пайщик подписал акт",
+        "act2": "Председатель принял имущество"
       }
     }
   }
