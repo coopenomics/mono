@@ -24,7 +24,7 @@ import { t } from '../../../i18n';
 
 const { registerAction } = useHeaderActions();
 
-const activeKey = ref<'history' | 'property'>('history');
+const activeKey = ref<string>('history');
 const tabs = computed<PageTab[]>(() => [
   { key: 'history', label: t('capital.myContributionsPage.tabHistory') },
   { key: 'property', label: t('capital.myContributionsPage.tabProperty') },
