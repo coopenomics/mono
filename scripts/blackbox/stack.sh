@@ -215,7 +215,10 @@ cmd_tests() {
   export TEST_EMAIL="${TEST_EMAIL:-ivanov@example.com}"
   cd components/boot
   # Файлы идут строго по очереди (vitest.config.ts): все пишут в одну цепь.
+  # Бак AXON (billing-tank) требует стенда reboot:extra с partner1 и провайдером —
+  # его гоняет свой сценарий scripts/blackbox/billing-e2e.sh, здесь его нет.
   pnpm exec vitest run \
+    --exclude 'src/tests/billing-tank.test.ts' \
     --reporter=default --reporter=junit \
     --outputFile.junit="$OUT/junit.xml" \
     ${BLACKBOX_TESTS:-}

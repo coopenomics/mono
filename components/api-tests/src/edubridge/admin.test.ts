@@ -342,8 +342,9 @@ describe('Образование: стол администратора, выд�
 
     // По фамилии пайщика и по имени обучающегося — находка одна и та же по смыслу: карточка ученика.
     expect(((await members(chairman, 'Очнопропускова')).hits as any[]).some(leadsToCard)).toBe(true)
-    const byLearner = (await members(chairman, 'Варвара сама')).hits as any[]
-    expect(byLearner.some(h => h.title === 'Варвара сама' && leadsToCard(h))).toBe(true)
+    // Имя обучающегося набор сменил на «Варвара» (edu.admin выше) — ищем по текущему.
+    const byLearner = (await members(chairman, 'Варвара')).hits as any[]
+    expect(byLearner.some(h => h.title === 'Варвара' && leadsToCard(h))).toBe(true)
     // Реестр учеников ученику закрыт — группы в его выдаче нет.
     expect(await members(token, 'Очнопропускова')).toBeUndefined()
   })

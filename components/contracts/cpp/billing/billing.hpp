@@ -76,6 +76,9 @@ public:
 
   [[eosio::action]] void migrate();
 
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
+
   // Конвертация паевого взноса в членский на биллинг-кошелёк пайщика.
   // convert_hash — детерминированный sha256 от (coopname, username, amount,
   // anchor) — служит process-якорем: используется как ключ операции ledger2

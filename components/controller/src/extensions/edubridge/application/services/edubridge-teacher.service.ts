@@ -649,24 +649,35 @@ export class EdubridgeTeacherService {
 
     const attempt = previous ? `|${previous.id}` : '';
     const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}${attempt}`).digest('hex');
+    const fields = {
+      assignment_id: a.id,
+      links: lesson.materials,
+      description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
+      // Сумму поставит контракт по итогу расчёта с участниками.
+      amount: `0.0000 ${symbol}`,
+      // Гарантийный срок — один на курс, от даты начала занятий: пока он
+      // идёт, результаты преподавателя в совет не уходят; срок вышел —
+      // заявления идут сразу. Окончательную дату ставит акт хранения.
+      hold_until: this.guaranteeEnd(course),
+      status: EduContributionStatus.DRAFT,
+    };
+    // Прошлый отчёт по занятию отклонён расчётом (оплативших занятие не было):
+    // черновик с этим хэшем остался отклонённым, а строка занятия в цепи снята.
+    // Повторный отчёт берёт тот же черновик — новая запись с тем же хэшем
+    // падала на уникальном индексе ответом 500 (blackbox 31.10.2026).
+    const declined = await this.teachers.findContributionByRidHash(ridHash);
+    const reusable = declined?.status === EduContributionStatus.DECLINED && declined.lesson_id === lesson.id ? declined : null;
     const contribution = await this.teachers.saveContribution(
-      this.teachers.createContribution({
-        coopname,
-        teacher_username: teacher,
-        assignment_id: a.id,
-        rid_hash: ridHash,
-        rid_type: EduRidType.LESSON_RECORDING,
-        links: lesson.materials,
-        description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
-        // Сумму поставит контракт по итогу расчёта с участниками.
-        amount: `0.0000 ${symbol}`,
-        lesson_id: lesson.id,
-        // Гарантийный срок — один на курс, от даты начала занятий: пока он
-        // идёт, результаты преподавателя в совет не уходят; срок вышел —
-        // заявления идут сразу. Окончательную дату ставит акт хранения.
-        hold_until: this.guaranteeEnd(course),
-        status: EduContributionStatus.DRAFT,
-      })
+      reusable
+        ? Object.assign(reusable, fields)
+        : this.teachers.createContribution({
+            coopname,
+            teacher_username: teacher,
+            rid_hash: ridHash,
+            rid_type: EduRidType.LESSON_RECORDING,
+            lesson_id: lesson.id,
+            ...fields,
+          })
     );
     lesson.contribution_id = contribution.id;
     await this.lessons.save(lesson);
@@ -1492,6 +1503,19 @@ export class EdubridgeTeacherService {
     const sameHash = String(returnMeta.payment_hash ?? '').toLowerCase() === data.payment_hash.toLowerCase();
     const sameAmount = Number.parseFloat(String(returnMeta.quantity ?? '')) === Number.parseFloat(asset);
     if (!sameHash || !sameAmount) throw DomainError.badRequest('EDUBRIDGE_SHARE_RETURN_STATEMENT_STALE');
+    // Пара заявлений подаётся один раз. Повтор той же пары переводил сумму
+    // второй раз (wthshare заявление не помнит), а заявка на возврат падала
+    // уже после перевода на занятом payment_hash (blackbox 01.11.2026,
+    // edu.teach.happy.wth-01: паевой по программе 500 → 100). Проверка — до
+    // перевода: уже поданное заявление считается устаревшим.
+    const transferHash = String((data.transfer_statement as { hash?: string } | undefined)?.hash ?? '').toLowerCase();
+    const submitted = await this.teachers.listShareReturns(coopname, teacher);
+    const replay = submitted.some(
+      (r) =>
+        r.payment_hash === data.payment_hash.toLowerCase() ||
+        (transferHash !== '' && String((r.transfer_statement_document as { hash?: string } | null)?.hash ?? '').toLowerCase() === transferHash)
+    );
+    if (replay) throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE');
 
     await this.chain.withdrawShare({ coopname, username: teacher, amount: asset, statement: data.transfer_statement } as never);
     this.logger.info(`[EDU.RID] паевой взнос ${asset} преподавателя ${teacher} транслирован в Цифровой Кошелёк`);

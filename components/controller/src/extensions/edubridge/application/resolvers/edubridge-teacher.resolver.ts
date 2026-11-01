@@ -65,7 +65,11 @@ export class EdubridgeTeacherResolver {
   @Mutation(() => EduTeacherProfileDTO, { name: 'edubridgeSaveTeacherProfile', description: 'Рассказать о себе и назвать ставку часа' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   edubridgeSaveTeacherProfile(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduTeacherProfileInputDTO): Promise<EduTeacherProfileDTO> {
-    return this.teachers.saveProfile(coop(), m.username as string, data);
+    // Профиль заводит пайщик. Вход без действующего членства (кандидат,
+    // заблокированный) членство Образования отдаёт без учётного имени — без
+    // проверки запись падала на NOT NULL teacher_username ответом 500.
+    if (!m.username) throw DomainError.forbidden('EDUBRIDGE_INSUFFICIENT_RIGHTS');
+    return this.teachers.saveProfile(coop(), m.username, data);
   }
 
   // Договор — часть подключения: его подписывают до того, как роль

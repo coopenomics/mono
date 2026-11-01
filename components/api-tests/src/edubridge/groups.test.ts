@@ -40,7 +40,7 @@ import {
   PLANNED_RATE,
 } from './edubridge.helpers'
 
-const GROUP_FIELDS = 'id course_id title status enrollment_open starts_at fee_month planned_hourly_rate pay_per_learner lessons_total guarantee_days learners_active lessons_held'
+const GROUP_FIELDS = 'id course_id title status enrollment_open starts_at fee_month planned_hourly_rate pay_per_learner lessons_total program_months minutes_total guarantee_days learners_active lessons_held'
 const COURSE_GROUPS = `query($id:ID!){ edubridgeCourseGroups(course_id:$id){ ${GROUP_FIELDS} } }`
 const OPEN_GROUPS = `query($id:ID!){ edubridgeOpenGroups(course_id:$id){ ${GROUP_FIELDS} } }`
 const CREATE_GROUP = `mutation($d:EduCreateGroupInput!){ edubridgeCreateGroup(data:$d){ ${GROUP_FIELDS} } }`

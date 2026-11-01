@@ -15,7 +15,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf, waitFor } from '../core'
 import { ensureCapitalInitialized, fundProgramPool } from '../capital/cap-metrics.helpers'
 import {
   CREATE_PROPOSAL,
@@ -310,9 +310,13 @@ describe('expenses: служебная записка на расход', () => 
     expect(await gqlError(council, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })).toBeNull()
   })
 
-  it(caseName('exp.adv.side.04', 'лимит сверх предела и неизвестная колонка сортировки список авансов не роняют'), async () => {
-    const d = await gql<any>(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } })
+  it(caseName('exp.adv.side.04', 'лимит сверх предела обрезается, строка вместо имени колонки сортировки — отказ проверки ввода, список не роняется'), async () => {
+    const d = await gql<any>(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 500, sortOrder: 'ASC' } })
     expect(d.expenseAdvancesByCooperative.items.length).toBeLessThanOrEqual(200)
+    // С 23.09.2026 (0bfed1531c8) sortBy пропускает только имя колонки: строка
+    // клиента в ORDER BY давала вычитать базу подзапросом.
+    const err = await gqlError(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 10, sortBy: 'drop table', sortOrder: 'ASC' } })
+    expect(String(err?.code)).toBe('422')
   })
 
   // ── Права на операции со строками ────────────────────────────────────────
@@ -514,7 +518,10 @@ describe('expenses: служебная записка на расход', () => 
     expect(itemStatus(p, memberItem)).toBe('PAID')
 
     // exp.adv.happy.01: выданный аванс стоит на кассе — получатель по ФИО, сумма, «ждёт отчёта».
-    const issued = await findAdvance(chairman, memberItem, 'AWAITING_REPORT')
+    // Реестр авансов читает строки записки из базы; оплата доходит до неё
+    // разбором блока, поэтому аванс ждём, а не читаем сразу.
+    const issued = await waitFor(() => findAdvance(chairman, memberItem, 'AWAITING_REPORT'),
+      { timeoutMs: 60_000, intervalMs: 1_000, label: 'выданный аванс в реестре авансов' })
     expect(issued).toMatchObject({ proposal_hash: draft.proposal_hash, recipient: recipient.account, advance_amount: '700.0000 RUB', spent_amount: null, state: 'AWAITING_REPORT' })
     expect(issued.recipient_name).not.toBe(recipient.account)
     // exp.adv.happy.02: отбор по состоянию — среди отчитанных его ещё нет; строка организации авансом не числится.
