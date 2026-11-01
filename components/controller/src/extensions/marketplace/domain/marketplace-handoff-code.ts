@@ -102,8 +102,11 @@ function parseBare(value: string, coopname: string): MarketplaceHandoffCode | nu
   if (CONTAINER_CODE_RE.test(value)) {
     return { kind: MarketplaceHandoffCodeKind.Container, coopname, ref: value.toUpperCase() };
   }
-  if (ACCOUNT_NAME_RE.test(value)) {
-    return { kind: 'login', coopname, ref: value };
+  // Логин оператор мог набрать прописными (включён Caps Lock, логин с
+  // визитки): учётная запись цепи всегда строчная, сверяем и отдаём её.
+  const login = value.toLowerCase();
+  if (ACCOUNT_NAME_RE.test(login)) {
+    return { kind: 'login', coopname, ref: login };
   }
   return null;
 }
