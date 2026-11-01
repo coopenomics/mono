@@ -443,7 +443,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::LOCK_FROM_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,
-    "Паевой резерв из свободного паевого «Стола заказов»" },
+    "Паевой резерв под стоимость имущества заказа" },
 
   // 12b. p.mkt.supply: Возврат резерва (TRANSFER w.mkt.order → w.mkt.share,
   //      без Dr/Cr — оба на 80). cancelorder / declineorder / expireorder;

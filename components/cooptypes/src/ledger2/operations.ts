@@ -180,7 +180,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.lockp',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.order',
     debit: null, credit: null,
-    human_name: 'Паевой резерв из свободного паевого «Стола заказов»' },
+    human_name: 'Паевой резерв под стоимость имущества заказа' },
 
   // Возврат резерва (отмена / недовыдача): средства остаются паевыми и
   // остаются в программе на свободном паевом «Стола заказов».
