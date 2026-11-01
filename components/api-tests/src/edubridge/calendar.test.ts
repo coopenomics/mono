@@ -251,7 +251,10 @@ describe('Образование: календарь группы и стол п
     })
 
     it(caseName('edu.teach.side.31', 'двухчасовое занятие календаря: длительность в отчёте не называется, уходит из календаря'), async () => {
-      const long = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: new Date(Date.now() - 8 * 3600_000).toISOString(), minutes: 120 })
+      // Восемь часов назад, но не раньше начала суток UTC: контракт считает занятие
+      // оплаченным с дня оплаты подписки, вчерашнее занятие ей не покрыто.
+      const startOfTodayUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
+      const long = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: new Date(Math.max(Date.now() - 8 * 3600_000, startOfTodayUtc + 60_000)).toISOString(), minutes: 120 })
       const reported = (await gql<any>(token, REPORT_LESSON, { d: { lesson_id: long.id, materials: ['https://example.org/long'], topic: 'Двухчасовое занятие' } })).edubridgeReportLesson
       expect(reported.duration_minutes).toBe(120)
     })

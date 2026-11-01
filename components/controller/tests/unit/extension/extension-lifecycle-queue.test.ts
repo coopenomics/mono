@@ -49,12 +49,17 @@ describe('Жизненный цикл расширения — операции 
 
   it('выключение во время запуска дожидается его и останавливает расширение', async () => {
     let enabled = true;
-    const { service, emitter } = createService(() => enabled);
+    const { service, emitter, module } = createService(() => enabled);
+    let stopping: Promise<void> | undefined;
+    // Выключение приходит, когда запуск уже прочитал «включено» и идёт initialize.
+    module.initialize.mockImplementationOnce(async () => {
+      enabled = false;
+      stopping = service.terminateApp(NAME);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
 
-    const starting = service.runApp(NAME);
-    enabled = false;
-    const stopping = service.terminateApp(NAME);
-    await Promise.all([starting, stopping]);
+    await service.runApp(NAME);
+    await stopping;
 
     expect(isActive(service)).toBe(false);
     expect(emitter.emit).toHaveBeenCalledWith(EXTENSION_APP_TERMINATE_EVENT, { appName: NAME });

@@ -34,8 +34,10 @@ describe('приглашение пайщика — пароль вместо к
         email,
         type: 'individual',
         created_at: new Date().toISOString().slice(0, 19),
-        initial: '0.0000 RUB',
-        minimum: '0.0000 RUB',
+        // Вступительный и минимальный взносы — положительные (registrator::adduser
+        // нулевые не принимает), те же суммы, что у admitCandidate.
+        initial: '100.0000 RUB',
+        minimum: '100.0000 RUB',
         spread_initial: false,
         individual_data: {
           first_name: 'Тест',

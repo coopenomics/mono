@@ -410,7 +410,9 @@ cases:
     expect: "Строка журнала та же, взнос новый с другим ключом."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    # Внешний тест выключен (it.skip) до решения владельца, blackbox 01.11.2026:
+    # openlesson того же номера после отказа совета — EDUBRIDGE_LESSON_NUMBER_TAKEN.
+    status: missing
   - id: edu.teach.happy.11
     level: backend
     kind: happy
@@ -730,3 +732,23 @@ cases:
     expect: "Очередь закрывает гарантийный срок и у истёкшей подписки; взнос преподавателя за занятия гарантийного срока оформляется, а не ждёт её вечно."
     test: ~
     status: missing   # отбор подписок — SQL шлюза; проверка — сквозной сценарий на стенде
+
+  # 01.11.2026 (C28-80): отчёт, отклонённый расчётом, оставлял черновик с тем же
+  # хэшем, и повторный отчёт падал на уникальном индексе rid_hash ответом 500.
+  - id: edu.teach.side.37
+    level: backend
+    kind: side
+    scenario: "Отчёт о занятии отклонён расчётом (оплативших занятие нет), затем ученик оплатил — преподаватель отчитывается по тому же занятию снова"
+    expect: "Повторный отчёт принимается: берётся тот же отклонённый черновик взноса (хэш прежний, строка занятия в цепи была снята), новой записи нет, 500 нет."
+    test: components/api-tests/src/edubridge/course-rules.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
+    status: written
+
+  - id: edu.teach.break.12
+    level: backend
+    kind: break
+    scenario: "Профиль преподавателя сохраняет вход без действующего членства (кандидат)"
+    expect: "Отказ EDUBRIDGE_INSUFFICIENT_RIGHTS; раньше учётное имя приходило пустым и запись падала на NOT NULL teacher_username ответом 500."
+    test: components/api-tests/src/rights/matrix.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

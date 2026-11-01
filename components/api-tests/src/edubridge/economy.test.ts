@@ -224,7 +224,9 @@ describe('Образование: экономика курса — взнос, 
 
       // Программа закончилась: взнос за курс не принимается.
       const finished = await course(-70, { program_months: 1 })
-      expectCode(await gqlError(token, QUOTE, COURSE_QUOTE(self.id, finished.id)), 'EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID')
+      // Набор в группу закрывается сам с дня начала занятий (d6678aef1b6): у
+      // закончившейся программы отказ — закрытый набор.
+      expectCode(await gqlError(token, QUOTE, COURSE_QUOTE(self.id, finished.id)), 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED')
 
       // Только помесячный взнос: взнос за курс закрыт, помесячный открыт.
       const monthly = await publishCourse(chairman, section, 30, BASE)

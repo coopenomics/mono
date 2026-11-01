@@ -415,3 +415,13 @@ cases:
       правило объёма одним абзацем, число AXON без «RUB», слова «членский взнос» и
       «приобретается» вместо «докупается»
     status: missing
+
+  # 01.11.2026 (C28-80): billing попал в mono после правила «у каждого
+  # прикладного контракта есть cleanup» (C28-78) и действия не имел.
+  - id: bill.side.21
+    level: contract
+    kind: side
+    scenario: billing::cleanup на чистой цепи — авторизация аккаунтом контракта
+    expect: действие есть и проходит; правил нет — контракт своих таблиц не ведёт; чужая подпись отклоняется
+    test: components/boot/src/tests/contracts-cleanup.test.ts
+    status: written

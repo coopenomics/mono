@@ -1503,6 +1503,19 @@ export class EdubridgeTeacherService {
     const sameHash = String(returnMeta.payment_hash ?? '').toLowerCase() === data.payment_hash.toLowerCase();
     const sameAmount = Number.parseFloat(String(returnMeta.quantity ?? '')) === Number.parseFloat(asset);
     if (!sameHash || !sameAmount) throw DomainError.badRequest('EDUBRIDGE_SHARE_RETURN_STATEMENT_STALE');
+    // Пара заявлений подаётся один раз. Повтор той же пары переводил сумму
+    // второй раз (wthshare заявление не помнит), а заявка на возврат падала
+    // уже после перевода на занятом payment_hash (blackbox 01.11.2026,
+    // edu.teach.happy.wth-01: паевой по программе 500 → 100). Проверка — до
+    // перевода: уже поданное заявление считается устаревшим.
+    const transferHash = String((data.transfer_statement as { hash?: string } | undefined)?.hash ?? '').toLowerCase();
+    const submitted = await this.teachers.listShareReturns(coopname, teacher);
+    const replay = submitted.some(
+      (r) =>
+        r.payment_hash === data.payment_hash.toLowerCase() ||
+        (transferHash !== '' && String((r.transfer_statement_document as { hash?: string } | null)?.hash ?? '').toLowerCase() === transferHash)
+    );
+    if (replay) throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE');
 
     await this.chain.withdrawShare({ coopname, username: teacher, amount: asset, statement: data.transfer_statement } as never);
     this.logger.info(`[EDU.RID] паевой взнос ${asset} преподавателя ${teacher} транслирован в Цифровой Кошелёк`);
