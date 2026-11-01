@@ -270,3 +270,19 @@ cases:
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing
+
+  # 01.11.2026 (367-3): у реквизитов СБП есть банк получателя. Список способов
+  # оплаты отдаётся через DTO: у реквизитов, сохранённых до появления поля,
+  # обязательное поле банка получает пустую строку. Без этого запрос реквизитов
+  # на столе падал «Cannot return null for non-nullable field SbpAccount.bank_name».
+  - id: pay.core.side.20
+    level: backend
+    kind: side
+    scenario: в списке способов оплаты пайщика реквизиты СБП без банка (сохранены до появления поля) и с банком
+    expect: >
+      без банка — пустая строка в поле банка, запрос списка не падает; с банком — банк как есть;
+      счётчики страницы прежние
+    test: components/controller/tests/unit/payment-method/payment-method-list.test.ts
+    external: unreachable
+    external_reason: "реквизиты без поля банка через API стенда не создать: добавление требует банк"
+    status: written   # прогон — CI на полигоне ci/tests
