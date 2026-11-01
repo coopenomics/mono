@@ -44,6 +44,7 @@ const FROZEN_IDS = [
   'predlozhenie-otkloneno-moderatsiey',
   'predlozhenie-proshlo-moderatsiyu',
   'priblizhaetsya-data-oplaty',
+  'priglashenie-ostavit-otzyv',
   'priglashenie-v-kooperativ',
   'probniy-period-zakanchivaetsya',
   'proekt-spisaniya-skoroporta-na-povestke-soveta',

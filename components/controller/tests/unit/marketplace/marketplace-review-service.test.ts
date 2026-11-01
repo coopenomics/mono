@@ -73,6 +73,8 @@ function build(order: Record<string, unknown> | null = makeOrder()) {
     list: jest.fn().mockResolvedValue({ items: [], totalCount: 0, totalPages: 1, currentPage: 1 }),
     ratingsByOffers: jest.fn().mockResolvedValue(new Map()),
     summary: jest.fn(),
+    listOrdersAwaitingInvite: jest.fn().mockResolvedValue([]),
+    claimInvite: jest.fn().mockResolvedValue(true),
   };
   const orders = { findById: jest.fn().mockResolvedValue(order) };
   const service = new MarketplaceReviewService(reviews, orders as any);
