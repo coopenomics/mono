@@ -9,7 +9,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
-import { AccountBadge, PageHint } from 'src/shared/ui/domain';
+import { AccountBadge, DataRow, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
@@ -461,11 +461,13 @@ function lineMeta(o: MarketplaceSupplierPickupOrderView): string {
 }
 
 const pickupLines = computed(() => [...declaredOrders.value, ...addonOrders.value]);
+/** ТТН в сводке — когда все задекларированные позиции пришли одной партией. */
+const pickupTtn = computed(() => {
+  const ttns = new Set(declaredOrders.value.map((o) => shipmentForOrder(o)?.ttn_number).filter(Boolean));
+  return ttns.size === 1 ? String([...ttns][0]) : '';
+});
 const activeLinesCount = computed(() => pickupLines.value.filter(isLineActive).length);
 const pickupTotal = computed(() => pickupLines.value.reduce((sum, o) => sum + lineSum(o), 0));
-const pickupMeta = computed(() =>
-  t('marketplace.operatorReception.positionsMeta', { count: pickupLines.value.length }),
-);
 
 // Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
 const pickupDialogTitle = computed(() =>
@@ -902,18 +904,20 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
 
   ScannerDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorReception.scanDialogTitle")', @scanned='onQrScanned')
 
-  //- Эпик 14: агрегирующая приёмка. Каркас — ActDialogLayout (как выдача и
-  //- подписи АПП). Зоны окна: шапка в колонке содержимого (процесс → поставщик →
-  //- сводка), подсказка, таблица позиций (что → сколько заказано → сколько
-  //- принять → по какой цене → на какую сумму), итог поставки, действия в подвале.
-  //- Заголовок в полосе окна не задан: он стоял бы у края экрана, а содержимое —
-  //- по центру; крестик остаётся в углу.
-  BaseDialog(v-model='pickupDialogOpen', maximized)
+  //- Эпик 14: агрегирующая приёмка — рабочая страница на холсте (ActDialogLayout
+  //- со сводкой справа). Зоны: шапка (поставщик, процесс, сколько позиций) →
+  //- позиции слева (что → заказано → принять → цена → сумма строки) → сводка
+  //- справа (сколько принимается, сумма поставки крупно, действия).
+  BaseDialog(v-model='pickupDialogOpen', maximized, canvas, hide-close-button)
     ActDialogLayout(
       v-if='pickupDialogOpen',
       :eyebrow='pickupDialogTitle',
       :title='pickupSupplierName || pickupAccount',
-      :meta='pickupMeta'
+      :meta='pickupSupplierName ? pickupAccount : ""',
+      :avatar-name='pickupSupplierName || pickupAccount',
+      :panel-title='$t("marketplace.operatorReception.positionsTitle")',
+      closable,
+      @close='pickupDialogOpen = false'
     )
       template(#lead)
         | {{ $t('marketplace.operatorReception.instructionLine1') }}
@@ -923,7 +927,7 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
           | {{ $t('marketplace.operatorReception.instructionLine4') }}
 
       .rx
-        //- Подписи колонок — один раз над таблицей, поля в строках без меток.
+        //- Подписи колонок — один раз полосой над строками, поля без меток.
         .rx__row.rx__row--head
           span
           span {{ $t('marketplace.operatorReception.columnPosition') }}
@@ -946,8 +950,12 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
             @update:model-value='(v) => toggleOrder(o.id, v)'
           )
           .rx__item
-            .rx__name {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
-            .rx__meta {{ lineMeta(o) }}
+            .rx__thumb
+              q-img(v-if='o.image_url', :src='o.image_url', ratio='1', fit='contain')
+              q-icon(v-else, name='inventory_2', size='20px')
+            .rx__item-text
+              .rx__name {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
+              .rx__meta {{ lineMeta(o) }}
           .rx__num.rx__ordered(:data-label='$t("marketplace.operatorReception.orderedLabel")')
             | {{ orderedSaleUnits(o) }} {{ saleUnitShort(o) }}
           .rx__field(:data-label='$t("marketplace.operatorReception.receiveQtyLabel")')
@@ -987,8 +995,12 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
           )
             span
             .rx__item
-              .rx__name {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
-              .rx__meta {{ lineMeta(o) }}
+              .rx__thumb
+                q-img(v-if='o.image_url', :src='o.image_url', ratio='1', fit='contain')
+                q-icon(v-else, name='inventory_2', size='20px')
+              .rx__item-text
+                .rx__name {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
+                .rx__meta {{ lineMeta(o) }}
             .rx__num.rx__ordered(:data-label='$t("marketplace.operatorReception.acceptedQtyLabel")')
               | {{ orderedSaleUnits(o) }} {{ saleUnitShort(o) }}
             .rx__field(:data-label='$t("marketplace.operatorReception.receiveQtyLabel")')
@@ -1012,25 +1024,38 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
               )
             .rx__num.rx__sum(:data-label='$t("marketplace.operatorReception.columnSum")') {{ rub(lineSum(o)) }}
 
-        //- Итог: сумма поставки — главное число окна, под ней сколько позиций принимается.
-        .rx__total
-          .rx__total-label
-            span {{ $t('marketplace.operatorReception.supplyTotalLabel') }}
-            span.rx__total-note {{ $t('marketplace.operatorReception.acceptedOfTotal', { active: activeLinesCount, total: pickupLines.length }) }}
-          .rx__total-amount {{ rub(pickupTotal) }}
-
-    template(#footer)
-      BaseButton(variant='ghost', @click='pickupDialogOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(
-        :variant='isRejectAllReception ? "negative" : "primary"',
-        :loading='acceptingPickup',
-        :disabled='!canSubmitPickup',
-        @click='acceptPickup'
-      )
-        template(#icon-left)
-          q-icon(:name='isRejectAllReception ? "block" : "how_to_reg"', size='18px')
-        span(v-if='isRejectAllReception') {{ $t('marketplace.operatorReception.declineReceptionButton') }}
-        span(v-else) {{ $t('marketplace.operatorReception.createActsButton', { count: plannedReceptionsCount }) }}
+      //- Сводка справа: что принимается, на какую сумму и главное действие.
+      template(#aside)
+        BaseCard.rx-aside
+          .rx-aside__eyebrow {{ $t('marketplace.operatorReception.asideTitle') }}
+          .rx-aside__facts
+            DataRow(
+              align='spread',
+              :label='$t("marketplace.operatorReception.asidePositionsLabel")',
+              :value='$t("marketplace.operatorReception.asidePositionsValue", { active: activeLinesCount, total: pickupLines.length })'
+            )
+            DataRow(
+              v-if='pickupTtn',
+              align='spread',
+              :label='$t("marketplace.operatorReception.asideTtnLabel")',
+              :value='pickupTtn'
+            )
+          .rx-aside__total
+            .rx-aside__total-label {{ $t('marketplace.operatorReception.supplyTotalLabel') }}
+            .rx-aside__total-amount {{ rub(pickupTotal) }}
+          .rx-aside__actions
+            BaseButton(
+              block,
+              :variant='isRejectAllReception ? "negative" : "primary"',
+              :loading='acceptingPickup',
+              :disabled='!canSubmitPickup',
+              @click='acceptPickup'
+            )
+              template(#icon-left)
+                q-icon(:name='isRejectAllReception ? "block" : "how_to_reg"', size='18px')
+              span(v-if='isRejectAllReception') {{ $t('marketplace.operatorReception.declineReceptionButton') }}
+              span(v-else) {{ $t('marketplace.operatorReception.createActsButton', { count: plannedReceptionsCount }) }}
+            BaseButton(block, variant='ghost', @click='pickupDialogOpen = false') {{ $t('common.action.cancel') }}
 </template>
 
 <style scoped lang="scss">
@@ -1151,15 +1176,20 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
 
   &__row {
     display: grid;
-    grid-template-columns: var(--p-6, 24px) minmax(0, 1fr) 96px 128px 128px 120px;
+    grid-template-columns: var(--p-6, 24px) minmax(0, 1fr) 88px 128px 128px 112px;
     column-gap: var(--p-4, 16px);
     align-items: center;
-    padding: var(--p-3, 12px) 0;
+    padding: var(--p-3, 12px) var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
 
+    // Полоса подписей колонок: мягкая заливка, скруглённая — отделяет шапку
+    // таблицы от строк без лишних линий.
     &--head {
-      padding-top: 0;
+      padding-top: var(--p-2, 8px);
+      padding-bottom: var(--p-2, 8px);
       border-top: 0;
+      border-radius: var(--p-r-sm, 8px);
+      background: var(--p-surface-2);
       font-size: var(--p-fs-eyebrow, 11px);
       font-weight: 600;
       letter-spacing: var(--p-ls-eyebrow, 0.08em);
@@ -1178,14 +1208,40 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
     align-items: center;
     justify-content: space-between;
     gap: var(--p-3, 12px);
-    padding: var(--p-4, 16px) 0 var(--p-2, 8px);
+    padding: var(--p-4, 16px) var(--p-3, 12px) var(--p-2, 8px);
     border-top: 1px solid var(--p-line);
     font-size: var(--p-fs-body-sm, 13px);
     font-weight: 600;
     color: var(--p-ink-2);
   }
 
+  // Позиция: миниатюра товара и название с единицей отпуска.
   &__item {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+  }
+
+  &__thumb {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--p-r-sm, 8px);
+    overflow: hidden;
+    background: var(--p-surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--p-ink-3);
+
+    .q-img {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &__item-text {
     min-width: 0;
   }
 
@@ -1234,40 +1290,58 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
     }
   }
 
-  // Итог отделён двойным воздухом и сплошной линией: это вывод таблицы.
-  &__total {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--p-4, 16px);
-    margin-top: var(--p-2, 8px);
-    padding-top: var(--p-4, 16px);
-    border-top: 1px solid var(--p-line-2);
-  }
+}
 
-  &__total-label {
+// Сводка справа: подпись карточки, факты, сумма поставки крупно, действия.
+.rx-aside {
+  :deep(.base-card__body) {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
-    color: var(--p-ink);
+    gap: var(--p-4, 16px);
   }
 
-  &__total-note {
-    font-size: var(--p-fs-body-sm, 13px);
-    font-weight: 400;
+  &__eyebrow {
+    font-size: var(--p-fs-eyebrow, 11px);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
     color: var(--p-ink-3);
   }
 
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
+  &__total {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    padding-top: var(--p-4, 16px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__total-label {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+  }
+
   &__total-amount {
-    font-size: var(--p-fs-h2, 18px);
+    font-size: var(--p-fs-h1, 24px);
     font-weight: 700;
-    letter-spacing: var(--p-ls-h2, -0.012em);
+    letter-spacing: var(--p-ls-h1, -0.018em);
     color: var(--p-ink);
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+
 }
 
 @media (max-width: 768px) {
