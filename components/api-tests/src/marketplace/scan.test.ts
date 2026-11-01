@@ -169,8 +169,11 @@ describe('Стол заказов — единый сканер: партия и
     const visit = await scan(operatorToken, KRG, `shipment:${COOP}:${shipmentId}`)
     expect(visit).toMatchObject({ target: 'SHIPMENT', shipment_id: shipmentId, account: null, matters: [] })
     expect(await scan(operatorToken, KRG, `blago:shipment:${COOP}:${shipmentId}`), 'старый формат с префиксом').toMatchObject({ shipment_id: shipmentId })
-    // Поставщик этой партии приходит на приёмку — его код даёт дело «принять поставку».
-    const supplierVisit = await scan(operatorToken, KRG, `blago:pickup:${COOP}:${sidorov.account}`)
+    // Поставщик этой партии приходит на приёмку — его временный код даёт дело
+    // «принять поставку». Прежний код с учётной записью внутри сервер не
+    // принимает (mkt.scan.side.01).
+    const pickup = (await gql<any>(supplierToken, CODE, { d: { kind: 'PICKUP' } })).marketplaceHandoffCode
+    const supplierVisit = await scan(operatorToken, KRG, pickup.code)
     expect(matter(supplierVisit, 'RECEPTION')?.ids ?? []).not.toHaveLength(0)
   })
 
