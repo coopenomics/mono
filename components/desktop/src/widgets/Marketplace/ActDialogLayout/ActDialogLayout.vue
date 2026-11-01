@@ -81,7 +81,7 @@ const props = withDefaults(
     closable?: boolean;
     /** Заголовок карточки с позициями в режиме рабочей страницы. */
     panelTitle?: string;
-    /** Без max-width — для широких таблиц сверки. */
+    /** Без max-width — во всю ширину окна, для широких таблиц сверки. */
     wide?: boolean;
     /** Рабочая страница без общей карточки: экран сам раскладывает задачи рядами. */
     bare?: boolean;
@@ -123,6 +123,13 @@ const workspace = computed(() => !!slots.aside || props.bare);
     max-width: 1180px;
     gap: var(--p-6, 24px);
     padding: var(--p-4, 16px) var(--p-2, 8px) var(--p-6, 24px);
+  }
+
+  // Рабочая страница во всю ширину окна — для актов, где в строке много
+  // полей правки (выдача пайщику).
+  &--workspace#{&}--wide {
+    max-width: none;
+    padding-inline: var(--p-4, 16px);
   }
 
   &__top {

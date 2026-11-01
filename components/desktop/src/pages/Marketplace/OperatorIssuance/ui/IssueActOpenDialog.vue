@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseButton, BaseBadge, BaseDialog } from 'src/shared/ui/base';
-import { ActDialogLayout, ActSummaryCard } from 'src/widgets/Marketplace/ActDialogLayout';
-import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
+import { BaseButton, BaseBadge, BaseCheckbox, BaseDialog, BaseInput, type BaseBadgeVariant } from 'src/shared/ui/base';
+import {
+  ActDialogLayout,
+  ActLineItem,
+  ActLinesTable,
+  ActSummaryCard,
+  type ActLinesColumn,
+} from 'src/widgets/Marketplace/ActDialogLayout';
 import {
   getMembershipFeePercent,
   applyMembershipFee,
@@ -11,7 +16,7 @@ import {
   marketplaceLineCost,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceSaleUnitLabel, marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getStockIssuancePayloads,
   createStockProposal,
@@ -101,13 +106,6 @@ function removeRestock(offer_id: string): void {
   restockLines.value = restockLines.value.filter((l) => l.offer_id !== offer_id);
 }
 
-// sku (короткий, отображается в таблице) → id заказа, для onChange-маппинга.
-const skuToId = computed<Record<string, string>>(() => {
-  const m: Record<string, string> = {};
-  for (const o of props.orders) m[o.id.slice(0, 8)] = o.id;
-  return m;
-});
-
 /**
  * Потолок выдачи по заказу — фактически принято на склад КУ и не выдано.
  * Выдать больше физического остатка нельзя (инцидент 2026-06-09: заказ 10,
@@ -160,37 +158,103 @@ const includedOrders = computed(() =>
  * отпуске, базовыми единицами по мере. Упаковку не вскрывают — если внутри
  * брак, выдают её целиком, но по сниженной цене (решение 2026-08-13).
  * Внутри формы факт хранится в базовой единице (как на цепи), поэтому здесь
- * он делится на фасовку, а обратно умножается в `onCorrectionChange`.
+ * он делится на фасовку, а обратно умножается в `onFactInput`.
  */
 function saleUnitsOf(o: MarketplaceOrderIssuanceView, baseQuantity: number): number {
   const size = o.package_size ?? 0;
   return size > 0 ? Math.round(baseQuantity / size) : baseQuantity;
 }
 
-const correctionRows = computed<CorrectionRow[]>(() =>
-  props.orders.map((o) => {
-    const f = facts.value[o.id];
-    const packaged = (o.package_size ?? 0) > 0;
-    return {
-      sku: o.id.slice(0, 8),
-      title: o.product_name || t('marketplace.issueActOpenDialog.productOfferFallback'),
-      unit: marketplaceSaleUnitLabel(o.unit_of_measure, o.package_size ?? null),
-      packaged,
-      expected: saleUnitsOf(o, o.quantity),
-      available: saleUnitsOf(o, availableOf(o)),
-      location: (o.warehouse_locations ?? []).join(', ') || undefined,
-      fact: saleUnitsOf(o, f?.qty ?? Math.min(o.quantity, availableOf(o))),
-      expectedPrice: Number.parseFloat(o.price_per_unit),
-      // Правку оператора показываем как есть, до неё — цену прибытия
-      // (см. defaultPriceOf).
-      factPrice: f?.price ?? defaultPriceOf(o),
-      // Цену при выдаче можно только снизить: потолок — цена, с которой
-      // открылась выдача (цена прибытия, у остатка — цена заказа).
-      maxPrice: defaultPriceOf(o),
-      included: f?.included ?? availableOf(o) > 0,
-    };
-  }),
+function isPackaged(o: MarketplaceOrderIssuanceView): boolean {
+  return (o.package_size ?? 0) > 0;
+}
+
+// Строка выдачи на общей таблице актов: галка · позиция · выдать · цена ·
+// сумма строки · сверка. Что заказано, сколько на складе и где лежит —
+// мета-строкой под названием: семь колонок фиксированной ширины не
+// помещались в карточку рядом со сводкой (слово владельца 01.11.2026).
+const issueColumns = computed<ActLinesColumn[]>(() => [
+  { key: 'check', label: '', width: 'var(--p-6, 24px)' },
+  { key: 'item', label: t('marketplace.issueActOpenDialog.columnItem'), wide: true, width: 'minmax(200px, 1fr)' },
+  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: '136px', align: 'right' },
+  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: '160px', align: 'right' },
+  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: '112px', align: 'right', strong: true },
+  // Самый длинный бейдж — «Больше принятого».
+  { key: 'status', label: t('marketplace.issueActOpenDialog.columnStatus'), width: '144px' },
+]);
+
+type IssueRow = { key: string; off: boolean; order: MarketplaceOrderIssuanceView };
+
+const issueRows = computed<IssueRow[]>(() =>
+  props.orders.map((o) => ({ key: o.id, off: !isIncluded(o), order: o })),
 );
+
+function isIncluded(o: MarketplaceOrderIssuanceView): boolean {
+  return (facts.value[o.id]?.included ?? availableOf(o) > 0) && availableOf(o) > 0;
+}
+
+/** Короткая единица отпуска для поля «Выдать»: «упак.», «шт», «кг». */
+function saleUnitShort(o: MarketplaceOrderIssuanceView): string {
+  return isPackaged(o) ? t('marketplace.issueActOpenDialog.packShort') : marketplaceUnitShort(o.unit_of_measure);
+}
+
+/** Мета-строка позиции: единица отпуска, заказано, на складе, место хранения. */
+function lineMeta(o: MarketplaceOrderIssuanceView): string {
+  const unit = marketplaceSaleUnitLabel(o.unit_of_measure, o.package_size ?? null);
+  const parts = [
+    unit,
+    t('marketplace.issueActOpenDialog.lineMetaText', {
+      ordered: saleUnitsOf(o, o.quantity),
+      available: saleUnitsOf(o, availableOf(o)),
+    }),
+  ];
+  const location = (o.warehouse_locations ?? []).join(', ');
+  if (location) parts.push(location);
+  return parts.join(' · ');
+}
+
+/** Выдаётся в единицах отпуска — то, что видит оператор в поле. */
+function factUnits(o: MarketplaceOrderIssuanceView): number {
+  return saleUnitsOf(o, facts.value[o.id]?.qty ?? Math.min(o.quantity, availableOf(o)));
+}
+
+function factPrice(o: MarketplaceOrderIssuanceView): number {
+  return facts.value[o.id]?.price ?? defaultPriceOf(o);
+}
+
+/** Сумма строки по факту и цене; снятая строка — ноль. */
+function lineSum(o: MarketplaceOrderIssuanceView): number {
+  if (!isIncluded(o)) return 0;
+  const f = facts.value[o.id];
+  return f ? marketplaceLineCost(f.qty, f.price, o.package_size ?? null) : 0;
+}
+
+// Шаг ввода количества: упаковка и штука неделимы (1), вес и объём — дробный
+// шаг 0.001, чтобы браузер не отвергал дробное значение.
+function stepFor(o: MarketplaceOrderIssuanceView): string {
+  if (isPackaged(o)) return '1';
+  const unit = marketplaceUnitShort(o.unit_of_measure);
+  // i18n-ignore: единица измерения из данных предложения, не надпись
+  return unit === 'шт' || unit === 'шт.' ? '1' : '0.001';
+}
+
+// Сверка строки: нет на складе / больше принятого / совпадает с заказом /
+// недостача / избыток. Сравнивается факт в единицах отпуска с заказом.
+function lineStatus(o: MarketplaceOrderIssuanceView): { label: string; variant: BaseBadgeVariant } {
+  const available = saleUnitsOf(o, availableOf(o));
+  const fact = factUnits(o);
+  const delta = fact - saleUnitsOf(o, o.quantity);
+  if (available <= 0) return { label: t('marketplace.issueActOpenDialog.statusOutOfStock'), variant: 'neg' };
+  if (fact > available) return { label: t('marketplace.issueActOpenDialog.statusOverStock'), variant: 'neg' };
+  if (delta === 0) return { label: t('marketplace.issueActOpenDialog.statusMatch'), variant: 'pos' };
+  if (delta < 0) return { label: t('marketplace.issueActOpenDialog.statusShort'), variant: 'warn' };
+  return { label: t('marketplace.issueActOpenDialog.statusOver'), variant: 'info' };
+}
+
+function toNumber(v: unknown): number {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 // Итоговая сумма к выдаче — только по выбранным к выдаче позициям.
 const totalFactCost = computed<string>(() => {
@@ -351,39 +415,38 @@ watch(
   { immediate: false },
 );
 
-function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: number }): void {
-  const id = skuToId.value[payload.sku];
-  if (!id) return;
-  const order = props.orders.find((o) => o.id === id);
-  const f = facts.value[id] ?? { qty: 0, price: 0, included: true };
-  // Корректируем форму к потолку склада сразу при вводе: выдать больше
-  // принятого нельзя, акт на большее не сформируется (двойная защита с
-  // backend-гардом). Таблица показывает откорректированное значение.
-  const ceiling = order ? availableOf(order) : Number.POSITIVE_INFINITY;
-  // Таблица отдаёт факт в единицах отпуска — возвращаем его в базовую
-  // единицу, в которой заказ живёт в БД и на цепи.
-  const packageSize = order?.package_size ?? 0;
-  const factBase = packageSize > 0 ? Math.max(0, payload.fact) * packageSize : payload.fact;
-  f.qty = Math.min(Math.max(0, factBase), ceiling);
-  // Цену поднять нельзя — бэкенд и контракт откажут; снижение уйдёт уценкой.
-  // Форма поправляет ввод к потолку сразу, как и количество к складу.
-  if (payload.factPrice !== undefined) {
-    const priceCeiling = order ? defaultPriceOf(order) : Number.POSITIVE_INFINITY;
-    f.price = Math.min(Math.max(0, payload.factPrice), priceCeiling);
-  }
-  facts.value = { ...facts.value, [id]: f };
-  // Акты зависят от факта — сбрасываем устаревший превью.
+/**
+ * Правка количества в единицах отпуска. Упаковку не дробим: полторы упаковки
+ * не существует ни физически, ни на цепи. Ввод сразу прижимается к потолку
+ * склада — выдать больше принятого нельзя, акт на большее не сформируется
+ * (двойная защита с backend-гардом). Внутри формы факт хранится в базовой
+ * единице, как в БД и на цепи.
+ */
+function onFactInput(o: MarketplaceOrderIssuanceView, raw: unknown): void {
+  let units = Math.max(0, toNumber(raw));
+  if (isPackaged(o)) units = Math.floor(units);
+  const size = o.package_size ?? 0;
+  const base = size > 0 ? units * size : units;
+  const f = facts.value[o.id] ?? { qty: 0, price: defaultPriceOf(o), included: true };
+  facts.value = { ...facts.value, [o.id]: { ...f, qty: Math.min(base, availableOf(o)) } };
 }
 
-function onCorrectionToggle(payload: { sku: string; included: boolean }): void {
-  const id = skuToId.value[payload.sku];
-  if (!id) return;
-  const order = props.orders.find((o) => o.id === id);
+/**
+ * Правка цены за единицу отпуска. Цену поднять нельзя — бэкенд и контракт
+ * откажут; снижение проводится уценкой. Ввод прижимается к цене, с которой
+ * открылась выдача.
+ */
+function onPriceInput(o: MarketplaceOrderIssuanceView, raw: unknown): void {
+  const f = facts.value[o.id] ?? { qty: Math.min(o.quantity, availableOf(o)), price: 0, included: true };
+  const price = Math.min(Math.max(0, toNumber(raw)), defaultPriceOf(o));
+  facts.value = { ...facts.value, [o.id]: { ...f, price } };
+}
+
+function onToggle(o: MarketplaceOrderIssuanceView, included: boolean): void {
   // Позицию без склада включить нельзя — выдавать нечего.
-  if (payload.included && order && availableOf(order) <= 0) return;
-  const f = facts.value[id] ?? { qty: 0, price: 0, included: false };
-  f.included = payload.included;
-  facts.value = { ...facts.value, [id]: f };
+  if (included && availableOf(o) <= 0) return;
+  const f = facts.value[o.id] ?? { qty: Math.min(o.quantity, availableOf(o)), price: defaultPriceOf(o), included };
+  facts.value = { ...facts.value, [o.id]: { ...f, included } };
 }
 
 async function confirm(): Promise<void> {
@@ -463,8 +526,11 @@ BaseDialog(
   hide-close-button,
   @update:model-value='(v: boolean) => emit("update:modelValue", v)'
 )
+  //- Во всю ширину окна: при выдаче в строке больше полей правки, чем у
+  //- приёмки, и в 1180px таблица рядом со сводкой не помещалась.
   ActDialogLayout(
     v-if='modelValue',
+    wide,
     :eyebrow='$t("marketplace.issueActOpenDialog.dialogTitle")',
     :title='recipientName',
     :meta='recipientMeta',
@@ -484,7 +550,46 @@ BaseDialog(
       | {{ $t('marketplace.issueActOpenDialog.instructionLine2') }}
       | {{ $t('marketplace.issueActOpenDialog.instructionLine3') }}
 
-    CorrectionTable(:rows='correctionRows', selectable, @change='onCorrectionChange', @toggle='onCorrectionToggle')
+    ActLinesTable(:columns='issueColumns', :rows='issueRows')
+      template(#cell-check='{ row }')
+        BaseCheckbox(
+          :model-value='isIncluded(row.order)',
+          :disabled='availableOf(row.order) <= 0',
+          :aria-label='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
+          @update:model-value='(v) => onToggle(row.order, !!v)'
+        )
+        q-tooltip(v-if='availableOf(row.order) <= 0') {{ $t('marketplace.issueActOpenDialog.outOfStockHint') }}
+      template(#cell-item='{ row }')
+        ActLineItem(
+          :title='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
+          :meta='lineMeta(row.order)'
+        )
+      template(#cell-issue='{ row }')
+        BaseInput(
+          :model-value='factUnits(row.order)',
+          type='number',
+          :min='0',
+          :max='saleUnitsOf(row.order, availableOf(row.order))',
+          :step='stepFor(row.order)',
+          :disabled='!isIncluded(row.order)',
+          :suffix='saleUnitShort(row.order)',
+          :aria-label='$t("marketplace.issueActOpenDialog.issueQuantityAriaLabel")',
+          @update:model-value='(v) => onFactInput(row.order, v)'
+        )
+      template(#cell-price='{ row }')
+        BaseInput(
+          :model-value='factPrice(row.order)',
+          type='number',
+          :min='0',
+          :max='defaultPriceOf(row.order)',
+          :disabled='!isIncluded(row.order)',
+          :suffix='isPackaged(row.order) ? $t("marketplace.issueActOpenDialog.pricePerPackage") : $t("marketplace.issueActOpenDialog.pricePerUnit")',
+          :aria-label='isPackaged(row.order) ? $t("marketplace.issueActOpenDialog.priceForPackage") : $t("marketplace.issueActOpenDialog.priceForUnit")',
+          @update:model-value='(v) => onPriceInput(row.order, v)'
+        )
+      template(#cell-sum='{ row }') {{ rub(lineSum(row.order)) }}
+      template(#cell-status='{ row }')
+        BaseBadge(:variant='lineStatus(row.order).variant') {{ lineStatus(row.order).label }}
 
     .issue-act__restock(v-if='restockLines.length')
       .issue-act__restock-head
