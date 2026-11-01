@@ -13,6 +13,7 @@ const rawInventorySelector = {
   braname: true,
   status: true,
   product_name_snapshot: true,
+  image_url: true,
   quantity_per_label: true,
   orderer_account_snapshot: true,
   orderer_name: true,

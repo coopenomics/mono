@@ -235,6 +235,24 @@ export class MarketplaceOrderDisplayService {
     return this.coverUrlsOf(await this.offerRepo.findByIds(ids));
   }
 
+  /**
+   * Обложки товаров по заказам: заказ → предложение → первое изображение.
+   * Нужны позициям склада (содержимое бокса): позиция знает заказ, а не
+   * предложение. Заказы без изображений в карте отсутствуют.
+   */
+  async coverImagesByOrderIds(orderIds: string[]): Promise<Map<string, string>> {
+    const ids = [...new Set(orderIds.filter((id) => id))];
+    if (ids.length === 0) return new Map();
+    const orders = await this.orderRepo.findByIds(ids);
+    const byOffer = await this.coverImagesByOfferIds(orders.map((o) => o.offer_id));
+    const out = new Map<string, string>();
+    for (const o of orders) {
+      const url = byOffer.get(o.offer_id);
+      if (url) out.set(o.id, url);
+    }
+    return out;
+  }
+
   private async coverUrlsOf(
     offers: ReadonlyArray<{ id: string; images?: ReadonlyArray<{ bucket_key: string }> | null }>
   ): Promise<Map<string, string>> {

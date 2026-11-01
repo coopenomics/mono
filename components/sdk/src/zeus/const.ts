@@ -7378,6 +7378,7 @@ export const ReturnTypes: Record<string,any> = {
 		kind:"MarketplaceHandoffCodeKind"
 	},
 	MarketplaceInventoryItem:{
+		image_url:"String",
 		arrival_price:"String",
 		barcode_format:"MarketplaceBarcodeFormat",
 		barcode_value:"String",

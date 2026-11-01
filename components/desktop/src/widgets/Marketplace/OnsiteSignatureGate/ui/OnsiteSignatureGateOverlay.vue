@@ -384,38 +384,40 @@ BaseDialog(
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
-  //- Идёт получение: шапка и одна карточка с ходом дела, без кнопок.
-  ActDialogLayout(
-    v-if='activeFlow',
-    bare,
-    :title='dialogTitle',
-    :lead='$t("marketplace.onsiteSignatureGateOverlay.leadTextActive")'
-  )
-    BaseCard.onsite-gate__flow
-      template(#head)
-        .onsite-gate__head
-          q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
-          q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
-          q-icon(v-else, name='inventory_2', size='28px')
-          .onsite-gate__ident
-            span.onsite-gate__name {{ flowTitle }}
-            span.onsite-gate__sub {{ flowSub }}
+  //- Идёт получение: шапка и одна карточка с ходом дела, без кнопок —
+  //- колонкой по центру экрана, как до перевода экрана на общие компоненты
+  //- актов: в рабочей странице карточка прижималась к левому верхнему углу.
+  .onsite-gate__center(v-if='activeFlow')
+    ActDialogLayout.onsite-gate__flow-layout(
+      bare,
+      :title='dialogTitle',
+      :lead='$t("marketplace.onsiteSignatureGateOverlay.leadTextActive")'
+    )
+      BaseCard.onsite-gate__flow
+        template(#head)
+          .onsite-gate__head
+            q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
+            q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
+            q-icon(v-else, name='inventory_2', size='28px')
+            .onsite-gate__ident
+              span.onsite-gate__name {{ flowTitle }}
+              span.onsite-gate__sub {{ flowSub }}
 
-      VerticalStepper(
-        :steps='FLOW_STEPS',
-        :active-key='flowActiveKey',
-        :completed='flowCompleted',
-        :errored='flowErrored'
-      )
-        template(#active)
-          q-linear-progress.onsite-gate__bar(
-            v-if='flowRunning',
-            indeterminate,
-            color='primary',
-            track-color='grey-9',
-            size='4px',
-            rounded
-          )
+        VerticalStepper(
+          :steps='FLOW_STEPS',
+          :active-key='flowActiveKey',
+          :completed='flowCompleted',
+          :errored='flowErrored'
+        )
+          template(#active)
+            q-linear-progress.onsite-gate__bar(
+              v-if='flowRunning',
+              indeterminate,
+              color='primary',
+              track-color='grey-9',
+              size='4px',
+              rounded
+            )
 
   ActDialogLayout(
     v-else,
@@ -553,9 +555,23 @@ BaseDialog(
 
 <style scoped lang="scss">
 .onsite-gate {
-  &__flow {
+  // Ход получения — колонкой по центру экрана и по высоте: пайщик смотрит
+  // на одну карточку, а не на пустую рабочую страницу с карточкой в углу.
+  &__center {
+    min-height: calc(100vh - var(--p-10, 72px));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // Двойной класс сильнее ширины рабочей страницы каркаса актов.
+  &__flow-layout.act-dialog {
     width: 100%;
     max-width: 720px;
+  }
+
+  &__flow {
+    width: 100%;
   }
 
   &__head {

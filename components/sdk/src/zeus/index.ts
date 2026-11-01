@@ -11614,6 +11614,8 @@ export type ValueTypes = {
 	/** Вид кода передачи: код заказчика на получение или код поставщика на приёмку. */
 ["MarketplaceHandoffCodeKind"]:MarketplaceHandoffCodeKind;
 	["MarketplaceInventoryItem"]: AliasType<{
+	/** Обложка товара по заказу позиции — первое изображение предложения; пусто, если изображений нет. */
+	image_url?:boolean | `@${string}`,
 	/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?:boolean | `@${string}`,
 	barcode_format?:boolean | `@${string}`,
@@ -29716,6 +29718,8 @@ export type ResolverInputTypes = {
 	/** Вид кода передачи: код заказчика на получение или код поставщика на приёмку. */
 ["MarketplaceHandoffCodeKind"]:MarketplaceHandoffCodeKind;
 	["MarketplaceInventoryItem"]: AliasType<{
+	/** Обложка товара по заказу позиции — первое изображение предложения; пусто, если изображений нет. */
+	image_url?:boolean | `@${string}`,
 	/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?:boolean | `@${string}`,
 	barcode_format?:boolean | `@${string}`,
@@ -47200,6 +47204,8 @@ export type ModelTypes = {
 };
 	["MarketplaceHandoffCodeKind"]:MarketplaceHandoffCodeKind;
 	["MarketplaceInventoryItem"]: {
+	/** Обложка товара по заказу позиции — первое изображение предложения; пусто, если изображений нет. */
+	image_url?: string | undefined | null,
 		/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?: string | undefined | null,
 	barcode_format?: ModelTypes["MarketplaceBarcodeFormat"] | undefined | null,
@@ -65647,6 +65653,8 @@ export type GraphQLTypes = {
 ["MarketplaceHandoffCodeKind"]: MarketplaceHandoffCodeKind;
 	["MarketplaceInventoryItem"]: {
 	__typename: "MarketplaceInventoryItem",
+	/** Обложка товара по заказу позиции — первое изображение предложения; пусто, если изображений нет. */
+	image_url?: string | undefined | null,
 	/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?: string | undefined | null,
 	barcode_format?: GraphQLTypes["MarketplaceBarcodeFormat"] | undefined | null,
