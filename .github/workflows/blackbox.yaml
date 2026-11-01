@@ -25,7 +25,10 @@ on:
     # только наборы src/cardcoop против подставной сети карт. В общий прогон
     # они не входят (решение владельца 02.10.2026): интеграции с сетью карт
     # нужен свой стенд, до него набор гоняется отдельно.
-    branches: [ci/blackbox, 'ci/blackbox-fast-*', ci/blackbox-cardcoop]
+    # ci/blackbox-nightly — ночной полный прогон dev: его пушит шаблон Semaphore
+    # (playbooks: mono/blackbox-nightly.yaml), ждёт исхода и падает вместе с ним,
+    # так падение приходит обычной тревогой Semaphore (решение владельца 01.11.2026).
+    branches: [ci/blackbox, 'ci/blackbox-fast-*', ci/blackbox-cardcoop, ci/blackbox-nightly]
   workflow_dispatch:
 
 # Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для

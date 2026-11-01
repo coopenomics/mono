@@ -14,6 +14,8 @@ import { CHAIRMAN, STUB_URL, caseName, gql, stubRequests, stubReset, stubRoute, 
 import { gqlOkFrom, uniqueIp } from '../coopid/coopid-b.helpers'
 
 const UPDATE = `mutation($d:ExtensionInput!){ updateExtension(data:$d){ name enabled } }`
+const INSTALL = `mutation($d:ExtensionInput!){ installExtension(data:$d){ name is_installed } }`
+const CATALOG = `query($d:GetExtensionsInput){ getExtensions(data:$d){ name is_installed } }`
 const COUNTRIES = `query{ getOrganizationLookupCountries }`
 const LOOKUP_ORG = `query($d:LookupOrganizationInput!){ lookupOrganization(data:$d){
   short_name full_name type city full_address
@@ -49,7 +51,22 @@ const IP = {
 
 const card = (data: unknown) => ({ status: 200, body: { suggestions: [{ data }] } })
 
+/**
+ * Стенд CI ставит DaData засевом только при ключах в окружении (DADATA_API_KEY),
+ * а их в CI нет: расширение лежит в каталоге неустановленным. Набор ставит его
+ * сам — выключенным, с ключом подставного узла; включает его configure.
+ */
+async function ensureInstalled() {
+  const chairman = await tokenOf(CHAIRMAN)
+  const row = ((await gql<any>(chairman, CATALOG, { d: {} })).getExtensions as any[]).find(e => e.name === 'dadata')
+  if (!row)
+    throw new Error('расширения dadata нет в каталоге приложений стенда')
+  if (!row.is_installed)
+    await gql(chairman, INSTALL, { d: { name: 'dadata', enabled: false, config: { api_key: STUB_KEY, secret_key: '', api_url: '' } } })
+}
+
 async function configure(enabled: boolean, apiUrl: string) {
+  await ensureInstalled()
   await gql(await tokenOf(CHAIRMAN), UPDATE, {
     d: { name: 'dadata', enabled, config: { api_key: enabled ? STUB_KEY : '', secret_key: '', api_url: apiUrl } },
   })
@@ -75,6 +92,7 @@ const lookupIp = async (inn: string) =>
 // поэтому коннектор не встаёт и стенду не мешает; общий набор ниже его включит сам.
 describe('настройки DaData из формы стола', () => {
   it(caseName('reg.orglookup.side.11', 'скрытый адрес сервиса пришёл null — настройки принимаются'), async () => {
+    await ensureInstalled()
     const saved = await gql<any>(await tokenOf(CHAIRMAN), UPDATE, {
       d: { name: 'dadata', enabled: false, config: { api_key: STUB_KEY, secret_key: '', api_url: null } },
     })

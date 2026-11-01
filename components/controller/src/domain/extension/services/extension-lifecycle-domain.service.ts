@@ -21,6 +21,34 @@ import {
 export class ExtensionLifecycleDomainService<TConfig = any> {
   private activeAppMap: { [key: string]: { appInstance: any } } = {};
 
+  /**
+   * Хвост очереди операций жизненного цикла по каждому расширению.
+   *
+   * Запуск расширения длится секунды (у Образования — запись условий всех
+   * групп в цепь), а `updateExtension` не ждёт его конца. Без очереди
+   * выключение, пришедшее во время запуска, не находило расширение среди
+   * работающих и ничего не останавливало; запуск затем завершался, и
+   * выключенное приложение работало с объявленными шаблонами и программами
+   * (blackbox 31.10.2026, «шаблоны выключенного Образования сняты с реестра»).
+   * Теперь запуск, остановка и перезапуск одного расширения идут строго по
+   * очереди: остановка дождётся запуска и снимет его. Разные расширения друг
+   * друга не ждут.
+   */
+  private readonly lifecycleQueue = new Map<string, Promise<unknown>>();
+
+  private serialize<T>(appName: string, operation: () => Promise<T>): Promise<T> {
+    const previous = this.lifecycleQueue.get(appName) ?? Promise.resolve();
+    // Отказ прежней операции следующую не отменяет: её исход видит свой вызывающий.
+    const current = previous.catch(() => undefined).then(operation);
+    this.lifecycleQueue.set(appName, current);
+    void current
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.lifecycleQueue.get(appName) === current) this.lifecycleQueue.delete(appName);
+      });
+    return current;
+  }
+
   constructor(
     private readonly extensionDomainService: ExtensionDomainService<TConfig>,
     private readonly migrationService: ExtensionSchemaMigrationService,
@@ -127,6 +155,23 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
   }
 
   async runApp(appName: string) {
+    return this.serialize(appName, () => this.runAppNow(appName));
+  }
+
+  async terminateApp(appName: string) {
+    return this.serialize(appName, () => this.terminateAppNow(appName));
+  }
+
+  /** Остановка и запуск одной операцией: между ними не встанет чужая. */
+  async restartApp(appName: string) {
+    return this.serialize(appName, async () => {
+      await this.terminateAppNow(appName);
+      await this.runAppNow(appName);
+      this.logger.info(`Расширение ${appName} перезапущено.`);
+    });
+  }
+
+  private async runAppNow(appName: string) {
     this.logger.info(`[RUN_APP] Начало запуска расширения ${appName}`);
 
     if (this.activeAppMap[appName]) {
@@ -180,7 +225,7 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     }
   }
 
-  async terminateApp(appName: string) {
+  private async terminateAppNow(appName: string) {
     const appData = this.activeAppMap[appName];
     if (appData) {
       this.eventEmitter.emit(EXTENSION_APP_TERMINATE_EVENT, { appName } satisfies ExtensionAppTerminatePayload);
@@ -189,12 +234,6 @@ export class ExtensionLifecycleDomainService<TConfig = any> {
     } else {
       this.logger.info(`Расширение ${appName} не найдено.`);
     }
-  }
-
-  async restartApp(appName: string) {
-    await this.terminateApp(appName);
-    await this.runApp(appName);
-    this.logger.info(`Расширение ${appName} перезапущено.`);
   }
 
   /**
