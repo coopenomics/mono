@@ -28,16 +28,22 @@
       template(#icon-left)
         q-icon(name='close', size='20px')
 
-  .act-dialog__grid(v-if='workspace')
-    .act-dialog__main
-      BaseCard.act-dialog__panel(:title='panelTitle || undefined')
-        .act-dialog__lead(v-if='lead || $slots.lead')
-          slot(name='lead') {{ lead }}
-        slot
-      .act-dialog__after(v-if='$slots.after')
-        slot(name='after')
-    aside.act-dialog__aside
+  ActWorkspaceRow(v-if='$slots.aside')
+    BaseCard.act-dialog__panel(:title='panelTitle || undefined')
+      .act-dialog__lead(v-if='lead || $slots.lead')
+        slot(name='lead') {{ lead }}
+      slot
+    .act-dialog__after(v-if='$slots.after')
+      slot(name='after')
+    template(#aside)
       slot(name='aside')
+
+  //- Без карточки: экран с несколькими задачами раскладывает их сам рядами
+  //- ActWorkspaceRow (экран подписи на пункте выдачи).
+  template(v-else-if='bare')
+    .act-dialog__lead(v-if='lead || $slots.lead')
+      slot(name='lead') {{ lead }}
+    slot
 
   template(v-else)
     .act-dialog__lead(v-if='lead || $slots.lead')
@@ -53,8 +59,9 @@
 <script setup lang="ts">
 import { computed, useSlots } from 'vue';
 import { Avatar, BaseButton, BaseCard } from 'src/shared/ui/base';
+import ActWorkspaceRow from './ActWorkspaceRow.vue';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** Подсказка под шапкой (или слот #lead). */
     lead?: string;
@@ -72,6 +79,8 @@ withDefaults(
     panelTitle?: string;
     /** Без max-width — для широких таблиц сверки. */
     wide?: boolean;
+    /** Рабочая страница без общей карточки: экран сам раскладывает задачи рядами. */
+    bare?: boolean;
   }>(),
   {
     lead: '',
@@ -82,14 +91,15 @@ withDefaults(
     closable: false,
     panelTitle: '',
     wide: false,
+    bare: false,
   },
 );
 
 const emit = defineEmits<{ close: [] }>();
 
 const slots = useSlots();
-/** Режим рабочей страницы включает слот сводки справа. */
-const workspace = computed(() => !!slots.aside);
+/** Рабочая страница: на холсте, шире, со сводкой справа либо без общей карточки. */
+const workspace = computed(() => !!slots.aside || props.bare);
 </script>
 
 <style scoped lang="scss">
@@ -163,27 +173,6 @@ const workspace = computed(() => !!slots.aside);
     color: var(--p-ink-3);
   }
 
-  // Позиции слева тянутся, сводка справа фиксированной ширины.
-  &__grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: var(--p-5, 20px);
-    align-items: start;
-  }
-
-  &__main {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-4, 16px);
-  }
-
-  // Сводка не уезжает при прокрутке длинного списка позиций.
-  &__aside {
-    position: sticky;
-    top: var(--p-4, 16px);
-  }
-
   &__panel {
     // Карточка-контейнер: hairline + surface, не «белый лист» диалога.
     :deep(.base-card__body) {
@@ -200,13 +189,4 @@ const workspace = computed(() => !!slots.aside);
   }
 }
 
-@media (max-width: 960px) {
-  .act-dialog__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .act-dialog__aside {
-    position: static;
-  }
-}
 </style>
