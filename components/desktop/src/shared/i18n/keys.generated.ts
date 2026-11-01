@@ -8439,7 +8439,6 @@ export type MessageKey =
   | 'soviet.install.meetsRegistryTitle'
   | 'soviet.install.participantTitle'
   | 'soviet.install.participantsRegistryTitle'
-  | 'soviet.install.paymentsRegistryTitle'
   | 'soviet.install.title'
   | 'support.supportTrigger.chatwootNote'
   | 'support.supportTrigger.testHint'

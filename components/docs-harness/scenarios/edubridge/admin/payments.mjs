@@ -40,7 +40,7 @@ export default async ({ page, context, shot, expect }) => {
 
   await loginAsChairman(page, context);
   await settleAfterLogin(page);
-  await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/soviet/payments`, 'Платеж');
+  await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/cashier/payments`, 'Платеж');
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await shot(page, '01-registry', 'Реестр платежей кооператива: исходящие платежи по решениям совета ждут кассира — возврат паевого взноса преподавателю и оплата расхода программы. Кассир переводит деньги по реквизитам и подтверждает платёж.');

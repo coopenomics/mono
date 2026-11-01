@@ -19,7 +19,6 @@ import { ParticipantDetailsPage } from 'src/pages/Cooperative/ParticipantDetails
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { DocumentTemplatesPage } from 'src/pages/Cooperative/DocumentTemplates';
-import { PaymentsPage } from 'src/pages/Cooperative/Payments';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
@@ -154,16 +153,8 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             ],
           },
-          {
-            path: 'payments/:username?',
-            name: 'payments',
-            component: markRaw(PaymentsPage),
-            meta: {
-              title: t('soviet.install.paymentsRegistryTitle'),
-              icon: 'fa-solid fa-file-invoice',
-              requires: 'Payment:read:all',
-            },
-          },
+          // Реестр платежей перенесён на стол кассира (`cashier-payments`), совет
+          // читает его там; на столе совета страницы нет (решение владельца 01.11.2026).
           {
             // Реестр расходов кооператива: единая таблица всех расходов по всем
             // пулам-кошелькам (без фильтра по кошельку — колонка «Кошелёк (пул)»
