@@ -630,7 +630,7 @@
     "issueActOpenDialog": {
       "addFromStockButton": "Добавить со склада",
       "asideTitle": "Акт выдачи",
-      "cameraButton": "Камера",
+      "cameraButton": "Сканировать камерой",
       "cameraTitle": "Подбор имущества",
       "columnIssue": "Выдать",
       "columnItem": "Позиция",

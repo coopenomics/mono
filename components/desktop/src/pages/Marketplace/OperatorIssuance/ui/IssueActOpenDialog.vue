@@ -711,10 +711,20 @@ BaseDialog(
       )
         template(#prepend)
           q-icon(name='qr_code_scanner', size='20px')
-      BaseButton(variant='secondary', type='button', @click='cameraOpen = true')
-        template(#icon-left)
-          q-icon(name='photo_camera', size='18px')
-        | {{ $t('marketplace.issueActOpenDialog.cameraButton') }}
+        //- Камера — запасной путь, поэтому значком внутри поля, а не
+        //- кнопкой рядом: основное — ручной сканер в этом же поле.
+        template(#append)
+          BaseButton(
+            variant='ghost',
+            size='sm',
+            icon-only,
+            type='button',
+            :aria-label='$t("marketplace.issueActOpenDialog.cameraButton")',
+            @click='cameraOpen = true'
+          )
+            template(#icon-left)
+              q-icon(name='photo_camera', size='20px')
+            q-tooltip {{ $t('marketplace.issueActOpenDialog.cameraButton') }}
     .issue-act__scan-result(v-if='scanMessage', :class='`issue-act__scan-result--${scanMessage.tone}`')
       q-icon(:name='scanMessage.tone === "neg" ? "error" : scanMessage.tone === "pos" ? "check_circle" : "inventory_2"', size='18px')
       span {{ scanMessage.text }}
@@ -881,19 +891,18 @@ BaseDialog(
     }
   }
 
-  // Полоса сканера над таблицей: поле тянется, камера справа.
-  &__scan {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
+  // Поле сканера над таблицей во всю ширину; камера — значком внутри поля.
+  // Резерв строки подсказки снят: поле стоит вплотную к ответу и таблице.
+  &__scan-input {
+    width: 100%;
 
-    &-input {
-      flex: 1 1 auto;
-      min-width: 0;
+    &:deep(.q-field--with-bottom),
+    :deep(.q-field--with-bottom) {
+      padding-bottom: 0;
+    }
 
-      :deep(.q-field--with-bottom) {
-        padding-bottom: 0;
-      }
+    :deep(.q-field__bottom) {
+      display: none;
     }
   }
 
