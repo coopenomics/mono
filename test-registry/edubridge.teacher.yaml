@@ -412,7 +412,7 @@ cases:
     api: components/api-tests/src/edubridge/lessons.test.ts
     # Внешний тест выключен (it.skip) до решения владельца, blackbox 01.11.2026:
     # openlesson того же номера после отказа совета — EDUBRIDGE_LESSON_NUMBER_TAKEN.
-    status: missing
+    status: written
   - id: edu.teach.happy.11
     level: backend
     kind: happy
