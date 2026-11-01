@@ -383,20 +383,6 @@ export interface MarketplaceReturnClaim {
   updated_at: Generated<Timestamp>;
 }
 
-export interface MarketplaceSecureDue {
-  braname: string;
-  charged_amount: Generated<Numeric>;
-  charged_at: Timestamp | null;
-  coopname: string;
-  created_at: Generated<Timestamp>;
-  due_amount: Generated<Numeric>;
-  due_from: Timestamp | null;
-  last_sequence: Generated<string>;
-  order_hash: string;
-  updated_at: Generated<Timestamp>;
-  username: string;
-}
-
 export interface MarketplaceReview {
   author_account: string;
   coopname: string;
@@ -412,6 +398,20 @@ export interface MarketplaceReview {
   supplier_account: string;
   text: Generated<string>;
   updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceSecureDue {
+  braname: string;
+  charged_amount: Generated<Numeric>;
+  charged_at: Timestamp | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  due_amount: Generated<Numeric>;
+  due_from: Timestamp | null;
+  last_sequence: Generated<string>;
+  order_hash: string;
+  updated_at: Generated<Timestamp>;
+  username: string;
 }
 
 export interface MarketplaceShipment {
@@ -608,8 +608,8 @@ export interface DB {
   marketplace_order: MarketplaceOrder;
   marketplace_outgoing_payment_request: MarketplaceOutgoingPaymentRequest;
   marketplace_return_claim: MarketplaceReturnClaim;
-  marketplace_secure_due: MarketplaceSecureDue;
   marketplace_review: MarketplaceReview;
+  marketplace_secure_due: MarketplaceSecureDue;
   marketplace_shipment: MarketplaceShipment;
   marketplace_stock_proposal: MarketplaceStockProposal;
   marketplace_storage_cell: MarketplaceStorageCell;
