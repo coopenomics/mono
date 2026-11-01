@@ -343,8 +343,11 @@ describe('Образование: занятия и взносы препода�
     // платят, взнос — та же сумма, материалы уходят на хранение reholdrid
     // (решение владельца 01.11.2026).
     it(caseName('edu.teach.side.14', 'совет отказал в приёме — занятие отчитывается заново: строка журнала та же, взнос новый'), async () => {
-      const lessonBefore = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.lesson_number === 2)
-      const again = await reportLesson(token, nowAssignment.id, 2, { topic: 'Занятие проведено заново' })
+      // Та же строка журнала: отчитанное занятие № 2. Календарь держит и
+      // запланированные занятия, поэтому отчёт идёт по id строки, а не по номеру.
+      const lessonBefore = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.lesson_number === 2 && l.status === 'HELD')
+      const reported = (await gql<any>(token, REPORT_LESSON, { d: { lesson_id: lessonBefore.id, materials: ['https://example.org/lesson-2-again'], topic: 'Занятие проведено заново' } })).edubridgeReportLesson
+      const again = { lesson: reported, contribution: await contributionOf(token, reported.contribution_id) }
       expect(again.lesson.id).toBe(lessonBefore.id)
       expect(again.lesson.topic).toBe('Занятие проведено заново')
       expect(again.contribution.id).not.toBe(second.id)
