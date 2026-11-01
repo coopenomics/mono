@@ -9838,6 +9838,7 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	SbpAccount:{
+		bank_name:"String",
 		phone:"String"
 	},
 	SearchResult:{

@@ -26,6 +26,7 @@
     DataRow(v-if='bankData?.card_number', :label='$t("ui.paymentDetails.cardNumberLabel")', :value='bankData.card_number', copyable, mono)
     DataRow(v-if='bankData?.currency', :label='$t("ui.paymentDetails.currencyLabel")', :value='bankData.currency')
     DataRow(v-if='sbpData?.phone', :label='$t("ui.paymentDetails.sbpPhoneLabel")', :value='sbpData.phone', copyable, mono)
+    DataRow(v-if='sbpData?.bank_name', :label='$t("ui.paymentDetails.sbpBankLabel")', :value='sbpData.bank_name', copyable)
     //- Оплата расхода: получатель-организация и её реквизиты приходят
     //- свободной строкой из снимка СЗ (не платёжным методом пайщика).
     DataRow(v-if='freeData?.recipient_name', :label='$t("ui.paymentDetails.recipientLabel")', :value='freeData.recipient_name', copyable)
@@ -85,8 +86,8 @@ const payment = props.payment;
 // Типизированные computed для различных типов данных платежных методов
 const bankData = computed(() => {
   const data = payment.payment_details?.data;
-  // Проверяем, является ли это банковским аккаунтом (есть поле bank_name)
-  if (data && typeof data === 'object' && 'bank_name' in data) {
+  // Банковский счёт узнаётся по номеру счёта: банк есть и у реквизитов СБП.
+  if (data && typeof data === 'object' && 'account_number' in data) {
     return data as IBankAccount;
   }
   return null;

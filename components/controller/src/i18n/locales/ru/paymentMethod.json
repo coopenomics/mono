@@ -49,6 +49,7 @@
       "phoneRequired": "Телефон обязателен для метода СБП"
     },
     "sbpAccountInput": {
+      "bankNameRequired": "Банк получателя обязателен для метода СБП",
       "phoneRequired": "Телефон обязателен для метода СБП"
     },
     "updateBankAccountInput": {
