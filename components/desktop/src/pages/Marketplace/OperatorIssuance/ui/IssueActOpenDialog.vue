@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseBadge, BaseDialog } from 'src/shared/ui/base';
-import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
+import { ActDialogLayout, ActSummaryCard } from 'src/widgets/Marketplace/ActDialogLayout';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
 import {
   getMembershipFeePercent,
@@ -204,14 +204,15 @@ const totalFactCost = computed<string>(() => {
   return sum.toFixed(4);
 });
 
-// Ставка членского взноса — для оценки возврата/доплаты при расхождении факта
-// и для показа состава суммы (себестоимость + взнос) оператору и пайщику.
+// Ставка обеспечительной части — для оценки возврата/доплаты при расхождении
+// факта и для показа состава суммы (стоимость имущества + обеспечительная
+// часть) оператору и пайщику.
 const feePercent = ref(0);
 
-// Себестоимость выдаваемого показываем отдельно от суммы к оплате — пайщик
-// платит взнос сверх себестоимости (та же формула, что в каталоге/корзине,
-// requirement b6); раньше на этом экране взнос не был виден вообще ни
-// оператору, ни пайщику на следующей подписи (жалоба 2026-08-02).
+// Стоимость выдаваемого имущества показываем отдельно от суммы к оплате —
+// обеспечительная часть идёт сверх неё (та же формула, что в каталоге и
+// корзине, requirement b6); раньше на этом экране её не видели ни оператор,
+// ни пайщик на следующей подписи (жалоба 2026-08-02).
 const totalFactCostWithFee = computed(() => applyMembershipFee(Number(totalFactCost.value), feePercent.value));
 const membershipFeeAmount = computed(() => totalFactCostWithFee.value - Number(totalFactCost.value));
 
@@ -241,6 +242,57 @@ const leftCount = computed(() => positionsCount.value - includedCount.value);
 const recipientName = computed(
   () => props.orders.find((o) => o.orderer_name)?.orderer_name || props.orders[0]?.orderer_account || '',
 );
+
+// Под именем — учётное имя, если имя пайщика известно (иначе оно уже в шапке).
+const recipientMeta = computed(() => {
+  const account = props.orders[0]?.orderer_account ?? '';
+  return account && account !== recipientName.value ? account : '';
+});
+
+function rub(value: number | string): string {
+  return `${formatAsset2Digits(Number(value).toFixed(4))} ₽`;
+}
+
+// Сводка справа: сначала сколько выдаётся и что остаётся на складе, затем
+// расчёт по пути денег — стоимость имущества, обеспечительная часть, возврат
+// или доплата по факту, докладка. Итог к оплате карточка ставит крупно.
+const summaryFacts = computed(() => {
+  const list = [
+    {
+      label: t('marketplace.issueActOpenDialog.selectedLabel'),
+      value: t('marketplace.issueActOpenDialog.selectedValue', { selected: includedCount.value, total: positionsCount.value }),
+    },
+  ];
+  if (leftCount.value > 0) {
+    list.push({
+      label: t('marketplace.issueActOpenDialog.leftOnStockLabel'),
+      value: t('marketplace.issueActOpenDialog.leftCountText', { count: leftCount.value }),
+    });
+  }
+  return list;
+});
+
+const summaryLines = computed(() => {
+  const lines: Array<{ label: string; value: string }> = [
+    { label: t('marketplace.issueActOpenDialog.costLabel'), value: rub(totalFactCost.value) },
+  ];
+  if (feePercent.value > 0) {
+    lines.push({
+      label: t('marketplace.issueActOpenDialog.targetFeeHeader', { percent: feePercent.value }),
+      value: rub(membershipFeeAmount.value),
+    });
+  }
+  if (issuanceDiff.value.refund > 0) {
+    lines.push({ label: t('marketplace.issueActOpenDialog.refundToWalletLabel'), value: rub(issuanceDiff.value.refund) });
+  }
+  if (issuanceDiff.value.surcharge > 0) {
+    lines.push({ label: t('marketplace.issueActOpenDialog.surchargeLabel'), value: rub(issuanceDiff.value.surcharge) });
+  }
+  if (restockLines.value.length) {
+    lines.push({ label: t('marketplace.issueActOpenDialog.restockLabel'), value: rub(restockTotal.value) });
+  }
+  return lines;
+});
 
 // Превышение склада среди выдаваемых: ввод выше принятого. Блокирует подпись.
 const anyOverStock = computed(() =>
@@ -401,148 +453,99 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
+//- Рабочая страница выдачи на холсте, как приёмка и подписи актов. Зоны:
+//- шапка (процесс, пайщик) → позиции слева (сверка и докладка со склада) →
+//- сводка справа (сколько выдаётся, расчёт, итог крупно, действия).
 BaseDialog(
-  :model-value="modelValue"
-  :title="$t('marketplace.issueActOpenDialog.dialogTitle')"
-  maximized
-  @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+  :model-value='modelValue',
+  maximized,
+  canvas,
+  hide-close-button,
+  @update:model-value='(v: boolean) => emit("update:modelValue", v)'
 )
-  //- Ширина под таблицу сверки: в 960px каркаса восемь колонок не помещаются,
-  //- а без предела (wide) поля факта уезжали от названий на весь монитор.
-  ActDialogLayout.issue-act__layout(wide)
-    template(#head)
-      .issue-act__who(v-if="recipientName")
-        span.issue-act__name {{ recipientName }}
-        span.issue-act__meta
-          | {{ $t('marketplace.issueActOpenDialog.selectedOfTotalText', { selected: includedCount, total: positionsCount }) }}
-          |  · {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
-          template(v-if="issuanceDiff.refund > 0")
-            |  {{ $t('marketplace.issueActOpenDialog.refundNote', { amount: formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }) }}
+  ActDialogLayout(
+    v-if='modelValue',
+    :eyebrow='$t("marketplace.issueActOpenDialog.dialogTitle")',
+    :title='recipientName',
+    :meta='recipientMeta',
+    :avatar-name='recipientName',
+    :panel-title='$t("marketplace.issueActOpenDialog.itemsHeader", { count: positionsCount })',
+    closable,
+    @close='cancel'
+  )
+    template(#panel-actions)
+      BaseButton(variant='secondary', size='sm', @click='stockPickOpen = true')
+        template(#icon-left)
+          q-icon(name='add_shopping_cart', size='18px')
+        | {{ $t('marketplace.issueActOpenDialog.addFromStockButton') }}
 
     template(#lead)
       | {{ $t('marketplace.issueActOpenDialog.instructionLine1') }}
       | {{ $t('marketplace.issueActOpenDialog.instructionLine2') }}
       | {{ $t('marketplace.issueActOpenDialog.instructionLine3') }}
 
-    //- Шапка панели: что в ней и сколько — слева, действие — справа. Одинокая
-    //- кнопка над таблицей оставляла всю строку пустой.
-    .issue-act__toolbar
-      span.issue-act__toolbar-title {{ $t('marketplace.issueActOpenDialog.itemsHeader', { count: positionsCount }) }}
-      BaseButton(variant="secondary", size="sm", @click="stockPickOpen = true")
-        template(#icon-left)
-          q-icon(name="add_shopping_cart", size="18px")
-        | {{ $t('marketplace.issueActOpenDialog.addFromStockButton') }}
-    CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
+    CorrectionTable(:rows='correctionRows', selectable, @change='onCorrectionChange', @toggle='onCorrectionToggle')
 
-    .issue-act__restock(v-if="restockLines.length")
+    .issue-act__restock(v-if='restockLines.length')
       .issue-act__restock-head
-        BaseBadge(variant="info") {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
-      .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
+        BaseBadge(variant='info') {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
+      .issue-act__restock-row(v-for='l in restockLines', :key='l.offer_id')
         .issue-act__restock-info
           span.issue-act__restock-name {{ l.product_name }}
           span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ restockLineQuantityLabel(l) }}
         .issue-act__restock-right
           span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
-          BaseButton(variant="ghost", @click="removeRestock(l.offer_id)")
-            q-icon(name="close", size="18px")
+          BaseButton(
+            variant='ghost',
+            icon-only,
+            :aria-label='$t("common.action.delete")',
+            @click='removeRestock(l.offer_id)'
+          )
+            template(#icon-left)
+              q-icon(name='close', size='18px')
 
-    template(#after)
-      .issue-act__totals
-        .issue-act__sum
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.costHeader', { included: includedCount, total: positionsCount }) }}
-          span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
-        .issue-act__sum(v-if="feePercent > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.targetFeeHeader', { percent: feePercent }) }}
-          span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
-        .issue-act__sum.issue-act__sum--total
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.totalToPayLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
-        .issue-act__sum(v-if="leftCount > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.leftOnStockLabel') }}
-          span.issue-act__sum-value {{ $t('marketplace.issueActOpenDialog.leftCountText', { count: leftCount }) }}
-        .issue-act__sum(v-if="issuanceDiff.refund > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.refundToWalletLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
-        .issue-act__sum(v-if="issuanceDiff.surcharge > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.surchargeLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
-        .issue-act__sum(v-if="restockLines.length")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(restockTotal) }} ₽
-
-      .issue-act__blocker(v-if="blockReason")
-        q-icon(name="info", size="18px")
-        span {{ blockReason }}
+    template(#aside)
+      ActSummaryCard(
+        :eyebrow='$t("marketplace.issueActOpenDialog.asideTitle")',
+        :facts='summaryFacts',
+        :lines='summaryLines',
+        :total-label='$t("marketplace.issueActOpenDialog.totalToPayLabel")',
+        :total='rub(totalFactCostWithFee)'
+      )
+        .issue-act__blocker(v-if='blockReason')
+          q-icon(name='info', size='18px')
+          span {{ blockReason }}
+        template(#actions)
+          BaseButton(
+            block,
+            variant='primary',
+            :loading='signing',
+            :disabled='!allValid || signing',
+            @click='confirm'
+          )
+            template(#icon-left)
+              q-icon(name='send', size='18px')
+            | {{ $t('marketplace.issueActOpenDialog.sendForSignatureButton') }}
+          BaseButton(block, variant='secondary', @click='cancel') {{ $t('common.action.close') }}
 
   StockPickDialog(
-    v-model="stockPickOpen"
-    :braname="issueBraname"
-    @add="onAddRestock"
+    v-model='stockPickOpen',
+    :braname='issueBraname',
+    @add='onAddRestock'
   )
-
-  template(#footer)
-    BaseButton(variant="ghost", @click="cancel") {{ $t('common.action.close') }}
-    BaseButton(
-      variant="primary"
-      :loading="signing"
-      :disabled="!allValid || signing"
-      @click="confirm"
-    )
-      template(#icon-left)
-        q-icon(name="send", size="18px")
-      | {{ $t('marketplace.issueActOpenDialog.sendForSignatureButton') }}
 </template>
 
 <style scoped lang="scss">
 .issue-act {
-  &__layout {
-    max-width: 1180px;
-    margin: 0 auto;
-  }
-
-  &__who {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__name {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-  }
-
-  &__toolbar-title {
-    font-size: var(--p-fs-meta, 12px);
-    letter-spacing: var(--p-ls-eyebrow, 0.08em);
-    text-transform: uppercase;
-    color: var(--p-ink-3);
-    font-variant-numeric: tabular-nums;
-  }
-
+  // Докладка со склада — раздел той же карточки позиций под таблицей сверки:
+  // линия сверху, без своей рамки (рамка в рамке канон запрещает), смысл
+  // раздела несёт бейдж в его шапке.
   &__restock {
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
-    padding: var(--p-3, 12px);
-    // Нейтральная рамка: цветные заливки карточек канон запрещает, смысл
-    // блока несёт бейдж в его шапке.
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-3, 12px) var(--p-3, 12px) 0;
+    border-top: 1px solid var(--p-line);
 
     &-head {
       display: flex;
@@ -585,56 +588,12 @@ BaseDialog(
       font-weight: 600;
       color: var(--p-ink);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
   }
 
-  // Итоги — колонкой у правого края той же ширины, что у сумм в актах:
-  // подписи слева, суммы справа по одной вертикали, итог отбит линией.
-  &__totals {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-    width: min(100%, 440px);
-    margin-left: auto;
-  }
-
-  &__sum {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-
-    &--total {
-      margin-top: var(--p-1, 4px);
-      padding-top: var(--p-2, 8px);
-      border-top: 1px solid var(--p-line);
-
-      .issue-act__sum-label {
-        color: var(--p-ink);
-        font-weight: 500;
-      }
-
-      .issue-act__sum-value {
-        font-size: var(--p-fs-h2, 18px);
-        font-weight: 700;
-      }
-    }
-  }
-
-  &__sum-label {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-  }
-
-  &__sum-value {
-    font-family: var(--p-mono);
-    font-weight: 600;
-    font-size: var(--p-fs-body, 14px);
-    color: var(--p-ink);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
+  // Причина, по которой отправка недоступна, — в сводке над итогом, рядом с
+  // кнопкой, которую она объясняет.
   &__blocker {
     display: flex;
     align-items: flex-start;
@@ -652,23 +611,5 @@ BaseDialog(
       margin-top: 1px;
     }
   }
-
-  &__preview {
-    max-height: 55vh;
-    overflow: auto;
-  }
-}
-
-:deep(.mp-issue-open-dialog__act-head) {
-  font-size: var(--p-fs-body, 14px);
-  font-weight: 600;
-  color: var(--p-ink);
-  margin: 0 0 var(--p-2, 8px);
-}
-
-:deep(.mp-issue-open-dialog__act-sep) {
-  border: none;
-  border-top: 1px solid var(--p-line);
-  margin: var(--p-4, 16px) 0;
 }
 </style>

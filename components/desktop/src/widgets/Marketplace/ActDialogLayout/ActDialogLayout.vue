@@ -30,6 +30,10 @@
 
   ActWorkspaceRow(v-if='$slots.aside')
     BaseCard.act-dialog__panel(:title='panelTitle || undefined')
+      //- Действие над позициями (докладка со склада) — в шапке карточки
+      //- справа от её заголовка, а не отдельной строкой над таблицей.
+      template(v-if='$slots["panel-actions"]', #actions)
+        slot(name='panel-actions')
       .act-dialog__lead(v-if='lead || $slots.lead')
         slot(name='lead') {{ lead }}
       slot

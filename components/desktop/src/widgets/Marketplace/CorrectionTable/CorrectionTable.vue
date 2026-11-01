@@ -205,23 +205,30 @@ const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overSto
     align-items: center;
   }
 
+  // Полоса подписей колонок — как у таблиц актов (ActLinesTable): мягкая
+  // заливка со скруглением, строки ниже разделены линией сверху.
   &__cols {
-    padding-bottom: var(--p-2, 8px);
-    border-bottom: 1px solid var(--p-line);
-    font-size: var(--p-fs-meta, 12px);
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    border-radius: var(--p-r-sm, 8px);
+    background: var(--p-surface-2);
+    font-size: var(--p-fs-eyebrow, 11px);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
     text-transform: uppercase;
     color: var(--p-ink-3);
   }
 
   &__row {
-    padding: var(--p-2, 8px) 0;
-    border-bottom: 1px solid var(--p-line);
+    padding: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
 
     &--off {
       opacity: 0.5;
     }
+  }
+
+  &__cols + &__row {
+    border-top: 0;
   }
 
   &__check {
@@ -256,7 +263,8 @@ const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overSto
     justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
-    padding-top: var(--p-3, 12px);
+    padding: var(--p-3, 12px) var(--p-3, 12px) 0;
+    border-top: 1px solid var(--p-line);
   }
 
   &__summary-count {
