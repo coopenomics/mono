@@ -413,7 +413,10 @@ describe('Образование: занятия и взносы препода�
     const ours = await planLesson(heldGroup.id, { assignment_id: heldAssignment.id })
     await gql(chairman, CLOSE_ASSIGNMENT, { id: early.id })
     await gql(chairman, CLOSE_ASSIGNMENT, { id: heldAssignment.id })
-    expectCode(await report(token, ours.id), 'EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE')
+    // Снятый допуск освобождает свои запланированные занятия: они переходят к
+    // оставшимся допускам курса (closeAssignment → syncCalendars). Действующего
+    // допуска у преподавателя к курсу нет — отчитываться не по чему.
+    expectCode(await report(token, ours.id), 'EDUBRIDGE_ASSIGNMENT_NOT_FOUND')
     // Пайщик без оферты преподавателя к отчётам не допущен вовсе.
     const plain = freshMember({ prefix: 'eduj' })
     expectCode(await report(await login(plain), ours.id), NO_RIGHTS)

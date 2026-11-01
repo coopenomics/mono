@@ -637,14 +637,26 @@ export async function groupOfAssignment(token: string, assignmentId: string, gro
  */
 export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
   const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
-  const planned = ((await gql<any>(token, GROUP_LESSONS, { id: group.id })).edubridgeGroupLessons as any[])
-    .find(l => l.lesson_number === lessonNumber && l.status !== 'CANCELLED')
-  if (planned)
-    return planned
   const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(Date.now() - 2 * 3600_000)
   // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
-  return planLesson(group.id, { assignment_id: assignment.id, held_at: new Date(Math.max(held_at.getTime(), floor)).toISOString() })
+  const target = new Date(Math.max(held_at.getTime(), floor)).toISOString()
+  const planned = ((await gql<any>(token, GROUP_LESSONS, { id: group.id })).edubridgeGroupLessons as any[])
+    .find(l => l.lesson_number === lessonNumber && l.status !== 'CANCELLED')
+  if (!planned)
+    return planLesson(group.id, { assignment_id: assignment.id, held_at: target })
+  // С 13.10.2026 календарь заводит занятия группы заранее, от дня начала курса.
+  // Такое занятие бывает раньше оплаты подписок набора (контракт честно не
+  // считает его оплаченным) или ещё впереди (отчёт рано). Под отчёт
+  // администратор переносит его на то же время, что и внеочередное занятие;
+  // номер занятия сохраняется. Явное время в over — тоже перенос.
+  const startOfTodayUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
+  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < startOfTodayUtc
+  if (planned.status === 'PLANNED' && (unusable || typeof over.held_at === 'string')) {
+    const chairman = await tokenOf(CHAIRMAN)
+    return (await gql<any>(chairman, MOVE_LESSON, { d: { lesson_id: planned.id, held_at: target } })).edubridgeMoveLesson
+  }
+  return planned
 }
 
 /** Отчёт преподавателя по занятию календаря с этим номером; занятия в календаре нет — оно назначается. */

@@ -649,24 +649,35 @@ export class EdubridgeTeacherService {
 
     const attempt = previous ? `|${previous.id}` : '';
     const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}${attempt}`).digest('hex');
+    const fields = {
+      assignment_id: a.id,
+      links: lesson.materials,
+      description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
+      // Сумму поставит контракт по итогу расчёта с участниками.
+      amount: `0.0000 ${symbol}`,
+      // Гарантийный срок — один на курс, от даты начала занятий: пока он
+      // идёт, результаты преподавателя в совет не уходят; срок вышел —
+      // заявления идут сразу. Окончательную дату ставит акт хранения.
+      hold_until: this.guaranteeEnd(course),
+      status: EduContributionStatus.DRAFT,
+    };
+    // Прошлый отчёт по занятию отклонён расчётом (оплативших занятие не было):
+    // черновик с этим хэшем остался отклонённым, а строка занятия в цепи снята.
+    // Повторный отчёт берёт тот же черновик — новая запись с тем же хэшем
+    // падала на уникальном индексе ответом 500 (blackbox 31.10.2026).
+    const declined = await this.teachers.findContributionByRidHash(ridHash);
+    const reusable = declined?.status === EduContributionStatus.DECLINED && declined.lesson_id === lesson.id ? declined : null;
     const contribution = await this.teachers.saveContribution(
-      this.teachers.createContribution({
-        coopname,
-        teacher_username: teacher,
-        assignment_id: a.id,
-        rid_hash: ridHash,
-        rid_type: EduRidType.LESSON_RECORDING,
-        links: lesson.materials,
-        description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
-        // Сумму поставит контракт по итогу расчёта с участниками.
-        amount: `0.0000 ${symbol}`,
-        lesson_id: lesson.id,
-        // Гарантийный срок — один на курс, от даты начала занятий: пока он
-        // идёт, результаты преподавателя в совет не уходят; срок вышел —
-        // заявления идут сразу. Окончательную дату ставит акт хранения.
-        hold_until: this.guaranteeEnd(course),
-        status: EduContributionStatus.DRAFT,
-      })
+      reusable
+        ? Object.assign(reusable, fields)
+        : this.teachers.createContribution({
+            coopname,
+            teacher_username: teacher,
+            rid_hash: ridHash,
+            rid_type: EduRidType.LESSON_RECORDING,
+            lesson_id: lesson.id,
+            ...fields,
+          })
     );
     lesson.contribution_id = contribution.id;
     await this.lessons.save(lesson);
