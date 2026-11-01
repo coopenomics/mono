@@ -650,7 +650,7 @@ export class EdubridgeTeacherService {
     // после срока, когда ясно, кто из обучающихся остался.
     if (isGuaranteeRunning(course, new Date())) return this.reportInGuarantee(coopname, teacher, lesson, a, course);
 
-    if (isCouncilRedo(previous, lesson)) return this.reportAfterCouncilDecline(coopname, teacher, lesson, a, course, previous, learnersBefore);
+    if (previous && isCouncilRedo(previous, lesson)) return this.reportAfterCouncilDecline(coopname, teacher, lesson, a, course, previous, learnersBefore);
 
     const attempt = previous ? `|${previous.id}` : '';
     const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}${attempt}`).digest('hex');
@@ -1789,6 +1789,6 @@ function paidAt(enrollment: Parameters<typeof isResumable>[0] & { paid_until?: D
  * нового расчёта с учениками. Пакет гарантийного срока (взнос на все занятия
  * периода, lesson_id пуст) этим путём не идёт.
  */
-function isCouncilRedo(previous: EdubridgeContributionRecord | null, lesson: EdubridgeLessonRecord): previous is EdubridgeContributionRecord {
-  return Boolean(previous?.council_outcome) && previous?.lesson_id === lesson.id;
+function isCouncilRedo(previous: EdubridgeContributionRecord, lesson: EdubridgeLessonRecord): boolean {
+  return Boolean(previous.council_outcome) && previous.lesson_id === lesson.id;
 }

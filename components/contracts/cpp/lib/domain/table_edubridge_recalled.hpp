@@ -46,3 +46,6 @@ typedef eosio::multi_index<
     edu_recalled_index;
 
 } // namespace Edubridge
+
+// Запись процесса p.edu.rid кооператива — та же сторона, что у edu_rid.
+RAM_PAYER_CLASS(Edubridge::edu_recalled, cooperative);
