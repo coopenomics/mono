@@ -13,7 +13,8 @@ import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
-import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel, marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceLineCost } from 'src/shared/lib/marketplace/line-cost';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -427,6 +428,43 @@ const declaredOrders = computed(() =>
 );
 const addonOrders = computed(() =>
   pickupOrders.value.filter((o) => o.status === 'ACCEPTED'),
+);
+
+// ── Окно приёмки: строка позиции, её сумма и итог ──
+// Строка участвует в приёмке: задекларированная — отмеченная галкой, добор —
+// при включённом «Принять добор».
+function isLineActive(o: MarketplaceSupplierPickupOrderView): boolean {
+  return o.status === 'ACCEPTED' ? takeAddon.value : isSelected(o.id);
+}
+
+/** Короткая единица в поле «Принять»: «упак.» при отпуске упаковкой, иначе «кг», «л», «шт». */
+function saleUnitShort(o: MarketplaceSupplierPickupOrderView): string {
+  return packageSizeOf(o) > 0 ? t('marketplace.operatorReception.packShort') : marketplaceUnitShort(o.unit_of_measure);
+}
+
+/** Сумма строки по факту и цене — общей формулой единицы отпуска; снятая строка — ноль. */
+function lineSum(o: MarketplaceSupplierPickupOrderView): number {
+  if (!isLineActive(o)) return 0;
+  return marketplaceLineCost(factBaseQuantity(o), pickupPrice.value[o.id], packageSizeOf(o));
+}
+
+/** Сумма в рублях для показа: два знака, разряды, знак рубля. */
+function rub(value: number): string {
+  return `${formatAsset2Digits(value.toFixed(4))} ₽`;
+}
+
+/** Мета-строка позиции: что такое единица отпуска и по какой ТТН пришла. */
+function lineMeta(o: MarketplaceSupplierPickupOrderView): string {
+  const ttn = o.status === 'ACCEPTED' ? null : shipmentForOrder(o)?.ttn_number;
+  const unit = saleUnitSuffix(o);
+  return ttn ? `${unit} · ${t('marketplace.operatorReception.ttnText', { ttn })}` : unit;
+}
+
+const pickupLines = computed(() => [...declaredOrders.value, ...addonOrders.value]);
+const activeLinesCount = computed(() => pickupLines.value.filter(isLineActive).length);
+const pickupTotal = computed(() => pickupLines.value.reduce((sum, o) => sum + lineSum(o), 0));
+const pickupMeta = computed(() =>
+  t('marketplace.operatorReception.positionsMeta', { count: pickupLines.value.length }),
 );
 
 // Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
@@ -865,11 +903,18 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
   ScannerDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorReception.scanDialogTitle")', @scanned='onQrScanned')
 
   //- Эпик 14: агрегирующая приёмка. Каркас — ActDialogLayout (как выдача и
-  //- подписи АПП): lead + карточка позиций + футер BaseDialog.
-  BaseDialog(v-model='pickupDialogOpen', :title='pickupDialogTitle', maximized)
-    ActDialogLayout(v-if='pickupDialogOpen')
-      template(#head)
-        .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
+  //- подписи АПП). Зоны окна: шапка в колонке содержимого (процесс → поставщик →
+  //- сводка), подсказка, таблица позиций (что → сколько заказано → сколько
+  //- принять → по какой цене → на какую сумму), итог поставки, действия в подвале.
+  //- Заголовок в полосе окна не задан: он стоял бы у края экрана, а содержимое —
+  //- по центру; крестик остаётся в углу.
+  BaseDialog(v-model='pickupDialogOpen', maximized)
+    ActDialogLayout(
+      v-if='pickupDialogOpen',
+      :eyebrow='pickupDialogTitle',
+      :title='pickupSupplierName || pickupAccount',
+      :meta='pickupMeta'
+    )
       template(#lead)
         | {{ $t('marketplace.operatorReception.instructionLine1') }}
         | {{ $t('marketplace.operatorReception.instructionLine2') }}
@@ -877,89 +922,102 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
           |  {{ $t('marketplace.operatorReception.instructionLine3') }}
           | {{ $t('marketplace.operatorReception.instructionLine4') }}
 
-      template(v-if='declaredOrders.length')
-        .reception__pickup-section {{ $t('marketplace.operatorReception.declaredInBatchLabel') }}
-        .reception__unit(
+      .rx
+        //- Подписи колонок — один раз над таблицей, поля в строках без меток.
+        .rx__row.rx__row--head
+          span
+          span {{ $t('marketplace.operatorReception.columnPosition') }}
+          span.rx__num {{ $t('marketplace.operatorReception.orderedLabel') }}
+          span.rx__num {{ $t('marketplace.operatorReception.receiveQtyLabel') }}
+          span.rx__num {{ $t('marketplace.operatorReception.columnPrice') }}
+          span.rx__num {{ $t('marketplace.operatorReception.columnSum') }}
+
+        //- Привезённое по ТТН. Подзаголовок раздела — только когда рядом есть добор.
+        .rx__section(v-if='declaredOrders.length && addonOrders.length')
+          | {{ $t('marketplace.operatorReception.declaredInBatchLabel') }}
+        .rx__row(
           v-for='o in declaredOrders',
           :key='o.id',
-          :class='{ "reception__unit--off": !isSelected(o.id) }'
+          :class='{ "rx__row--off": !isLineActive(o) }'
         )
           BaseCheckbox(
             :model-value='isSelected(o.id)',
+            :aria-label='o.product_name || $t("marketplace.operatorReception.productOfferFallback")',
             @update:model-value='(v) => toggleOrder(o.id, v)'
           )
-          .reception__unit-info
-            .reception__unit-title {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
-            .reception__unit-meta(v-if='shipmentForOrder(o)?.ttn_number')
-              | {{ $t('marketplace.operatorReception.ttnText', { ttn: shipmentForOrder(o)?.ttn_number }) }}
-          .reception__unit-fact
-            BaseInput(
-              :model-value='orderedSaleUnits(o)',
-              type='number',
-              :label='$t("marketplace.operatorReception.orderedLabel")',
-              readonly,
-              :suffix='saleUnitSuffix(o)'
-            )
+          .rx__item
+            .rx__name {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
+            .rx__meta {{ lineMeta(o) }}
+          .rx__num.rx__ordered(:data-label='$t("marketplace.operatorReception.orderedLabel")')
+            | {{ orderedSaleUnits(o) }} {{ saleUnitShort(o) }}
+          .rx__field(:data-label='$t("marketplace.operatorReception.receiveQtyLabel")')
             BaseInput(
               v-model.number='pickupFact[o.id]',
               type='number',
-              :label='$t("marketplace.operatorReception.receiveQtyLabel")',
               :min='0',
               :max='orderedSaleUnits(o)',
               :step='1',
-              :disabled='!isSelected(o.id)',
-              :suffix='saleUnitSuffix(o)',
+              :disabled='!isLineActive(o)',
+              :suffix='saleUnitShort(o)',
               @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
               @blur='clampFact(o.id, orderedSaleUnits(o))'
             )
+          .rx__field(:data-label='$t("marketplace.operatorReception.columnPrice")')
             BaseInput(
               v-model='pickupPrice[o.id]',
               type='number',
-              :label='packageSizeOf(o) > 0 ? $t("marketplace.operatorReception.packagePriceLabel") : $t("marketplace.operatorReception.unitPriceLabel")',
-              :disabled='!isSelected(o.id)'
+              :disabled='!isLineActive(o)',
+              suffix='₽'
             )
+          .rx__num.rx__sum(:data-label='$t("marketplace.operatorReception.columnSum")') {{ rub(lineSum(o)) }}
 
-      template(v-if='addonOrders.length')
-        template(v-if='declaredOrders.length')
-          .reception__pickup-divider
-          .reception__pickup-section-row
-            .reception__pickup-section {{ $t('marketplace.operatorReception.addonSectionLabel') }}
-            BaseCheckbox(v-model='takeAddon', :label='$t("marketplace.operatorReception.takeAddonLabel")')
-        .reception__pickup-section(v-else) {{ $t('marketplace.operatorReception.supplierPropertyLabel') }}
-        .reception__unit.reception__unit--addon(
-          v-for='o in addonOrders',
-          :key='o.id',
-          :class='{ "reception__unit--off": !takeAddon }'
-        )
-          q-icon.reception__unit-addon-icon(name='add_circle_outline', size='18px')
-          .reception__unit-info
-            .reception__unit-title {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
-          .reception__unit-fact
-            BaseInput(
-              :model-value='orderedSaleUnits(o)',
-              type='number',
-              :label='$t("marketplace.operatorReception.acceptedQtyLabel")',
-              readonly,
-              :suffix='saleUnitSuffix(o)'
+        //- Добор по акцепту: принимается целиком или не принимается вовсе.
+        template(v-if='addonOrders.length')
+          .rx__section.rx__section--toggle
+            span {{ declaredOrders.length ? $t('marketplace.operatorReception.addonSectionLabel') : $t('marketplace.operatorReception.supplierPropertyLabel') }}
+            BaseCheckbox(
+              v-if='declaredOrders.length',
+              v-model='takeAddon',
+              :label='$t("marketplace.operatorReception.takeAddonLabel")'
             )
-            BaseInput(
-              v-model.number='pickupFact[o.id]',
-              type='number',
-              :label='$t("marketplace.operatorReception.receiveQtyLabel")',
-              :min='0',
-              :max='orderedSaleUnits(o)',
-              :step='1',
-              :disabled='!takeAddon',
-              :suffix='saleUnitSuffix(o)',
-              @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
-              @blur='clampFact(o.id, orderedSaleUnits(o))'
-            )
-            BaseInput(
-              v-model='pickupPrice[o.id]',
-              type='number',
-              :label='packageSizeOf(o) > 0 ? $t("marketplace.operatorReception.packagePriceLabel") : $t("marketplace.operatorReception.unitPriceLabel")',
-              :disabled='!takeAddon'
-            )
+          .rx__row(
+            v-for='o in addonOrders',
+            :key='o.id',
+            :class='{ "rx__row--off": !isLineActive(o) }'
+          )
+            span
+            .rx__item
+              .rx__name {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
+              .rx__meta {{ lineMeta(o) }}
+            .rx__num.rx__ordered(:data-label='$t("marketplace.operatorReception.acceptedQtyLabel")')
+              | {{ orderedSaleUnits(o) }} {{ saleUnitShort(o) }}
+            .rx__field(:data-label='$t("marketplace.operatorReception.receiveQtyLabel")')
+              BaseInput(
+                v-model.number='pickupFact[o.id]',
+                type='number',
+                :min='0',
+                :max='orderedSaleUnits(o)',
+                :step='1',
+                :disabled='!isLineActive(o)',
+                :suffix='saleUnitShort(o)',
+                @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
+                @blur='clampFact(o.id, orderedSaleUnits(o))'
+              )
+            .rx__field(:data-label='$t("marketplace.operatorReception.columnPrice")')
+              BaseInput(
+                v-model='pickupPrice[o.id]',
+                type='number',
+                :disabled='!isLineActive(o)',
+                suffix='₽'
+              )
+            .rx__num.rx__sum(:data-label='$t("marketplace.operatorReception.columnSum")') {{ rub(lineSum(o)) }}
+
+        //- Итог: сумма поставки — главное число окна, под ней сколько позиций принимается.
+        .rx__total
+          .rx__total-label
+            span {{ $t('marketplace.operatorReception.supplyTotalLabel') }}
+            span.rx__total-note {{ $t('marketplace.operatorReception.acceptedOfTotal', { active: activeLinesCount, total: pickupLines.length }) }}
+          .rx__total-amount {{ rub(pickupTotal) }}
 
     template(#footer)
       BaseButton(variant='ghost', @click='pickupDialogOpen = false') {{ $t('common.action.cancel') }}
@@ -1081,85 +1139,134 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
     justify-content: flex-end;
   }
 
-  &__pickup-account {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
+}
+
+// ── Окно приёмки: таблица позиций ──
+// Колонки: галка · позиция · заказано · принять · цена · сумма. Числа и поля —
+// по правому краю; поле без резерва строки подсказки, чтобы строка не
+// раздувалась и поля стояли на одной линии с текстом.
+.rx {
+  display: flex;
+  flex-direction: column;
+
+  &__row {
+    display: grid;
+    grid-template-columns: var(--p-6, 24px) minmax(0, 1fr) 96px 128px 128px 120px;
+    column-gap: var(--p-4, 16px);
+    align-items: center;
+    padding: var(--p-3, 12px) 0;
+    border-top: 1px solid var(--p-line);
+
+    &--head {
+      padding-top: 0;
+      border-top: 0;
+      font-size: var(--p-fs-eyebrow, 11px);
+      font-weight: 600;
+      letter-spacing: var(--p-ls-eyebrow, 0.08em);
+      text-transform: uppercase;
+      color: var(--p-ink-3);
+    }
+
+    &--off .rx__item,
+    &--off .rx__num {
+      opacity: 0.45;
+    }
   }
 
-  &__pickup-section {
-    font-size: var(--p-fs-meta, 12px);
-    font-weight: 600;
-    color: var(--p-ink-2);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  &__pickup-section-row {
+  &__section {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--p-3, 12px);
-  }
-
-  &__pickup-divider {
-    height: 1px;
-    background: var(--p-line);
-    margin: var(--p-2, 8px) 0;
-  }
-
-  &__unit {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-    padding-top: var(--p-3, 12px);
+    padding: var(--p-4, 16px) 0 var(--p-2, 8px);
     border-top: 1px solid var(--p-line);
-
-    &:first-of-type {
-      border-top: 0;
-      padding-top: 0;
-    }
-
-    &--off {
-      opacity: 0.5;
-    }
-
-    &--addon .reception__unit-addon-icon {
-      color: var(--p-ink-3);
-      flex-shrink: 0;
-    }
+    font-size: var(--p-fs-body-sm, 13px);
+    font-weight: 600;
+    color: var(--p-ink-2);
   }
 
-  &__unit-info {
-    flex: 1 1 auto;
+  &__item {
     min-width: 0;
   }
 
-  &__unit-title {
+  &__name {
     font-size: var(--p-fs-body, 14px);
     font-weight: 600;
     color: var(--p-ink);
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
   }
 
-  &__unit-meta {
+  &__meta {
+    margin-top: 2px;
     font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
+    color: var(--p-ink-3);
+  }
+
+  &__num {
+    text-align: right;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
 
-  // Заказано (readonly) · Принять · Цена/ед. — один ряд, как сверка на выдаче.
-  &__unit-fact {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-2, 8px);
-    width: 420px;
+  &__ordered {
+    color: var(--p-ink-2);
+  }
 
-    :deep(.base-input) {
-      flex: 1 1 0;
-      min-width: 0;
+  &__sum {
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__field {
+    min-width: 0;
+
+    :deep(.q-field--with-bottom) {
+      padding-bottom: 0;
     }
+
+    :deep(.q-field__bottom) {
+      display: none;
+    }
+
+    :deep(input) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  // Итог отделён двойным воздухом и сплошной линией: это вывод таблицы.
+  &__total {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--p-4, 16px);
+    margin-top: var(--p-2, 8px);
+    padding-top: var(--p-4, 16px);
+    border-top: 1px solid var(--p-line-2);
+  }
+
+  &__total-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__total-note {
+    font-size: var(--p-fs-body-sm, 13px);
+    font-weight: 400;
+    color: var(--p-ink-3);
+  }
+
+  &__total-amount {
+    font-size: var(--p-fs-h2, 18px);
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2, -0.012em);
+    color: var(--p-ink);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -1171,12 +1278,44 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
       grid-template-columns: 1fr;
     }
 
-    &__unit {
-      flex-wrap: wrap;
+  }
+
+  // Узкий экран — та же разметка, два яруса: позиция и сумма сверху,
+  // заказано · принять · цена ниже с подписями над значениями.
+  .rx {
+    &__row {
+      grid-template-columns: var(--p-6, 24px) repeat(3, minmax(0, 1fr));
+      grid-template-areas:
+        'check item item sum'
+        '. ordered recv price';
+      row-gap: var(--p-2, 8px);
+
+      > :nth-child(1) { grid-area: check; }
+      > :nth-child(2) { grid-area: item; }
+      > :nth-child(3) { grid-area: ordered; }
+      > :nth-child(4) { grid-area: recv; }
+      > :nth-child(5) { grid-area: price; }
+      > :nth-child(6) { grid-area: sum; }
+
+      &--head {
+        display: none;
+      }
     }
 
-    &__unit-fact {
-      width: 100%;
+    &__ordered,
+    &__field {
+      text-align: left;
+
+      &::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 2px;
+        font-size: var(--p-fs-eyebrow, 11px);
+        font-weight: 600;
+        letter-spacing: var(--p-ls-eyebrow, 0.08em);
+        text-transform: uppercase;
+        color: var(--p-ink-3);
+      }
     }
   }
 }
