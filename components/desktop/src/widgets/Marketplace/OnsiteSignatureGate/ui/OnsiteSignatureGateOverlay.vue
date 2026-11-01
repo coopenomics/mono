@@ -21,7 +21,9 @@ import {
 } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import type { MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
+import { fetchSupplierSignablePayloads, type MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
+import { FailAlert } from 'src/shared/api';
+import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
 import { t } from 'src/shared/i18n';
 
@@ -233,7 +235,45 @@ const readColumns = computed<ActLinesColumn[]>(() => [
 type TaskRow = { key: string; title: string; meta?: string; imageUrl?: string | null; quantity: string; amount: string };
 
 function supplierRows(g: ReceptionGroup<MarketplaceAplReceptionView>): TaskRow[] {
-  return g.lines.map((l) => ({ key: l.key, title: l.productName, quantity: receptionLineQuantity(l), amount: rub(l.amount) }));
+  return g.lines.map((l) => ({
+    key: l.key,
+    title: l.productName,
+    imageUrl: l.imageUrl,
+    quantity: receptionLineQuantity(l),
+    amount: rub(l.amount),
+  }));
+}
+
+// ── Акты поставки документами: «Показать акты» вместо таблицы позиций ──
+// Поставщик подписывает акты приёма-передачи, поэтому видит их до подписи
+// теми же документами, что на своём столе (SignAplReceptionDialog). Документы
+// собираются по каждому акту группы; показ — вместо таблицы, итог и кнопки
+// подписи остаются справа.
+const actsHtml = ref<Record<string, string>>({});
+const actsShown = ref<Record<string, boolean>>({});
+const actsLoading = ref<string | null>(null);
+
+async function toggleSupplierActs(g: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
+  if (actsShown.value[g.key]) {
+    actsShown.value = { ...actsShown.value, [g.key]: false };
+    return;
+  }
+  if (!actsHtml.value[g.key]) {
+    actsLoading.value = g.key;
+    try {
+      const parts: string[] = [];
+      for (const r of g.receptions) {
+        const payloads = await fetchSupplierSignablePayloads(r.id);
+        parts.push(...payloads.map((p) => p.html));
+      }
+      actsHtml.value = { ...actsHtml.value, [g.key]: parts.join('<hr/>') };
+    } catch (e) {
+      FailAlert(e, t('marketplace.signAplReceptionDialog.buildActsFailedMessage'));
+    } finally {
+      actsLoading.value = null;
+    }
+  }
+  if (actsHtml.value[g.key]) actsShown.value = { ...actsShown.value, [g.key]: true };
 }
 
 function supplierFacts(g: ReceptionGroup<MarketplaceAplReceptionView>): Array<{ label: string; value: string }> {
@@ -391,9 +431,11 @@ BaseDialog(
                 q-icon(name='place', size='14px')
                 | {{ kuAddr(g.braname) }}
               span.onsite-gate__sub {{ $t('marketplace.onsiteSignatureGateOverlay.confirmReceptionHint') }}
-        ActLinesTable(:columns='readColumns', :rows='supplierRows(g)')
+        //- Акты документами вместо таблицы — по кнопке «Показать акты» справа.
+        .onsite-gate__acts(v-if='actsShown[g.key]', v-html='sanitizeDocumentHtml(actsHtml[g.key] ?? "")')
+        ActLinesTable(v-else, :columns='readColumns', :rows='supplierRows(g)')
           template(#cell-item='{ row }')
-            ActLineItem(:title='row.title')
+            ActLineItem(:title='row.title', :image-url='row.imageUrl')
       template(#aside)
         ActSummaryCard(
           :eyebrow='$t("marketplace.onsiteSignatureGateOverlay.receptionActTitle")',
@@ -412,6 +454,17 @@ BaseDialog(
               template(#icon-left)
                 q-icon(name='draw', size='18px')
               | {{ g.lines.some((l) => l.quantity > 0) ? $t('marketplace.onsiteSignatureGateOverlay.signSupplyButton') : $t('marketplace.onsiteSignatureGateOverlay.confirmCancelButton') }}
+            BaseButton(
+              v-if='g.lines.some((l) => l.quantity > 0)',
+              block,
+              variant='secondary',
+              :loading='actsLoading === g.key',
+              :disabled='anySigning',
+              @click='toggleSupplierActs(g)'
+            )
+              template(#icon-left)
+                q-icon(name='description', size='18px')
+              | {{ actsShown[g.key] ? $t('marketplace.onsiteSignatureGateOverlay.hideActsButton') : $t('marketplace.onsiteSignatureGateOverlay.showActsButton') }}
             BaseButton(
               block,
               variant='ghost',
@@ -543,6 +596,12 @@ BaseDialog(
   &__sub {
     font-size: var(--p-fs-meta, 12px);
     color: var(--p-ink-3);
+  }
+
+  // Акты документами: читаются в карточке, длинные — с прокруткой.
+  &__acts {
+    max-height: 65vh;
+    overflow: auto;
   }
 
   &__hint {

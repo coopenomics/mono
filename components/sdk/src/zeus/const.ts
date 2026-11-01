@@ -7091,6 +7091,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionFactEntry:{
 		fact_quantity:"Float",
 		fact_unit_price:"String",
+		image_url:"String",
 		order_id:"String",
 		orderer_account:"String",
 		orderer_name:"String",

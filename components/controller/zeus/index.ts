@@ -10747,6 +10747,8 @@ export type ValueTypes = {
 	fact_quantity?:boolean | `@${string}`,
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
+	/** Ссылка на снимок товара по этой позиции — миниатюра в таблицах приёмки и подписи. */
+	image_url?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
 	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
 	orderer_account?:boolean | `@${string}`,
@@ -28630,6 +28632,8 @@ export type ResolverInputTypes = {
 	fact_quantity?:boolean | `@${string}`,
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
+	/** Ссылка на снимок товара по этой позиции — миниатюра в таблицах приёмки и подписи. */
+	image_url?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
 	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
 	orderer_account?:boolean | `@${string}`,
@@ -45912,6 +45916,8 @@ export type ModelTypes = {
 	fact_quantity: number,
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
+	/** Ссылка на снимок товара по этой позиции — миниатюра в таблицах приёмки и подписи. */
+	image_url?: string | undefined | null,
 	order_id: string,
 	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
 	orderer_account?: string | undefined | null,
@@ -64059,6 +64065,8 @@ export type GraphQLTypes = {
 	fact_quantity: number,
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
+	/** Ссылка на снимок товара по этой позиции — миниатюра в таблицах приёмки и подписи. */
+	image_url?: string | undefined | null,
 	order_id: string,
 	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
 	orderer_account?: string | undefined | null,

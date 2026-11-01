@@ -33,6 +33,8 @@ export interface GroupableReception {
     /** Заказ, к которому относится строка факта. Нужен для оприходования (Эпик 19). */
     order_id: string;
     product_name?: string | null;
+    /** Снимок товара — миниатюра строки в таблицах приёмки и подписи. */
+    image_url?: string | null;
     fact_quantity: number | string;
     unit_of_measure?: string | null;
     /** Содержимое одной упаковки в базовой единице (Эпик 18); null/0 — отпуск по мере. */
@@ -46,6 +48,8 @@ export interface GroupableReception {
 export interface ReceptionGroupLine {
   key: string;
   productName: string;
+  /** Снимок товара; null — снимка нет, таблица показывает значок. */
+  imageUrl: string | null;
   unit: string;
   /** Содержимое упаковки в базовой единице; null — отпуск по мере. */
   packageSize: number | null;
@@ -134,10 +138,12 @@ export function groupAplReceptions<T extends GroupableReception>(
           ex.quantity += qty;
           ex.amount += lineAmount;
           if (!ex.orderIds.includes(f.order_id)) ex.orderIds.push(f.order_id);
+          ex.imageUrl = ex.imageUrl ?? f.image_url ?? null;
         } else {
           lineMap.set(lk, {
             key: lk,
             productName: f.product_name || t('marketplace.receptionGrouping.productByOfferLabel'),
+            imageUrl: f.image_url ?? null,
             unit: f.unit_of_measure ?? '',
             packageSize,
             quantity: qty,
