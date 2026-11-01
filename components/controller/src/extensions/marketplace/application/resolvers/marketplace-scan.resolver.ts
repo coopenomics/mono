@@ -17,11 +17,16 @@ import {
   MarketplaceScanVisitDTO,
 } from '../dto/marketplace-scan.dto';
 import { MarketplaceScanService } from '../services/marketplace-scan.service';
+import { MarketplaceIssuancePickScanDTO, MarketplaceIssuancePickScanInputDTO } from '../dto/marketplace-issuance-pick.dto';
+import { MarketplaceIssuancePickService } from '../services/marketplace-issuance-pick.service';
 
 @Resolver()
 @Injectable()
 export class MarketplaceScanResolver {
-  constructor(private readonly scan: MarketplaceScanService) {}
+  constructor(
+    private readonly scan: MarketplaceScanService,
+    private readonly pick: MarketplaceIssuancePickService
+  ) {}
 
   @Query(() => MarketplaceScanVisitDTO, {
     name: 'marketplaceResolveScan',
@@ -34,6 +39,19 @@ export class MarketplaceScanResolver {
     @Args('data') data: MarketplaceResolveScanInputDTO
   ): Promise<MarketplaceScanVisitDTO> {
     return this.scan.resolveVisit(platformSettings().coopname, data.braname, data.code);
+  }
+
+  @Query(() => MarketplaceIssuancePickScanDTO, {
+    name: 'marketplaceIssuancePickScan',
+    description:
+      'Подбор на выдаче: сверка отсканированного бокса или этикетки имущества с заказами, открытыми в окне выдачи пайщику. Только чтение склада.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Warehouse', 'read:own-KU', { ku: 'data.braname' })
+  async marketplaceIssuancePickScan(
+    @Args('data') data: MarketplaceIssuancePickScanInputDTO
+  ): Promise<MarketplaceIssuancePickScanDTO> {
+    return this.pick.scan(platformSettings().coopname, data.braname, data.order_ids, data.code);
   }
 
   @Query(() => MarketplaceHandoffCodeDTO, {

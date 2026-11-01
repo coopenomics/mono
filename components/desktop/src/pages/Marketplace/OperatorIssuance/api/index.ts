@@ -305,3 +305,17 @@ export function issuanceStageDisplay(saga: { stage: string; decision_mode: strin
       return { label: saga.stage, variant: 'neutral' };
   }
 }
+
+// ── Подбор на выдаче (99D-18): сверка отсканированного бокса или этикетки ──
+export type IssuancePickScanInput = Queries.Marketplace.IssuancePickScan.IInput['data'];
+export type IssuancePickScanView =
+  Queries.Marketplace.IssuancePickScan.IOutput['marketplaceIssuancePickScan'];
+
+/** Сервер сверяет код с заказами окна выдачи; склад не меняет. */
+export async function issuancePickScan(data: IssuancePickScanInput): Promise<IssuancePickScanView> {
+  const { [Queries.Marketplace.IssuancePickScan.name]: result } = await client.Query(
+    Queries.Marketplace.IssuancePickScan.query,
+    { variables: { data } },
+  );
+  return result;
+}

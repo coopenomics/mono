@@ -8,6 +8,7 @@ export {
 export { useMarketplaceHandoffSignal, type MarketplaceHandoffMatter } from './handoff-signal';
 export { randomEAN13, barcodeSvg, printBarcodeSheet } from './barcode-sheet'
 export { useActsPreview } from './useActsPreview';
+export { playScanTone } from './scan-tone';
 export {
   getMembershipFeePercent,
   applyMembershipFee,

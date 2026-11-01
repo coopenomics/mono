@@ -1471,6 +1471,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceResolveScanInput:{
 
 	},
+	MarketplaceIssuancePickScanInput:{
+
+	},
 	MarketplaceResolveStockProposalInput:{
 
 	},
@@ -1504,6 +1507,8 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSaleForm: "enum" as const,
 	MarketplaceScanMatterKind: "enum" as const,
 	MarketplaceScanTarget: "enum" as const,
+	MarketplaceIssuancePickTarget: "enum" as const,
+	MarketplaceIssuancePickVerdict: "enum" as const,
 	MarketplaceSetCartDeliveryPointInput:{
 
 	},
@@ -3756,6 +3761,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceResolveScan:{
 			data:"MarketplaceResolveScanInput"
+		},
+		marketplaceIssuancePickScan:{
+			data:"MarketplaceIssuancePickScanInput"
 		},
 		marketplaceReturnClaim:{
 
@@ -7727,6 +7735,16 @@ export const ReturnTypes: Record<string,any> = {
 		ids:"String",
 		kind:"MarketplaceScanMatterKind"
 	},
+	MarketplaceIssuancePickScan:{
+		container_code:"String",
+		inventory_id:"String",
+		order_id:"String",
+		order_ids:"String",
+		product_name:"String",
+		quantity:"Float",
+		target:"MarketplaceIssuancePickTarget",
+		verdict:"MarketplaceIssuancePickVerdict"
+	},
 	MarketplaceScanVisit:{
 		account:"String",
 		container_code:"String",
@@ -9536,6 +9554,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
 		marketplaceResolveScan:"MarketplaceScanVisit",
+		marketplaceIssuancePickScan:"MarketplaceIssuancePickScan",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
 		marketplaceReturnClaimChairmanSignablePayload:"MarketplaceReturnAcceptancePayload",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",

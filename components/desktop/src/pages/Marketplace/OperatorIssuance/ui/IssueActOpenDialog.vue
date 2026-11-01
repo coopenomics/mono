@@ -20,10 +20,16 @@ import { marketplaceSaleUnitLabel, marketplaceUnitShort } from 'src/shared/lib/c
 import {
   getStockIssuancePayloads,
   createStockProposal,
+  issuancePickScan,
+  type IssuancePickScanView,
   type CreateStockProposalInput,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 import { t } from 'src/shared/i18n';
+import { Zeus } from '@coopenomics/sdk';
+import { playScanTone } from 'src/shared/lib/marketplace/scan-tone';
+import { BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 
 // Строки бандла — тип берём прямо из SDK-входа.
 type StockBundleStockLine = NonNullable<CreateStockProposalInput['items']>[number];
@@ -185,8 +191,17 @@ const issueColumns = computed<ActLinesColumn[]>(() => [
 
 type IssueRow = { key: string; off: boolean; order: MarketplaceOrderIssuanceView };
 
+// Строки по месту хранения: оператор обходит склад один раз, от бокса к
+// боксу. Позиции без места — в конце.
 const issueRows = computed<IssueRow[]>(() =>
-  props.orders.map((o) => ({ key: o.id, off: !isIncluded(o), order: o })),
+  [...props.orders]
+    .sort((a, b) => {
+      const la = (a.warehouse_locations ?? []).join(', ');
+      const lb = (b.warehouse_locations ?? []).join(', ');
+      if (!la || !lb) return la ? -1 : lb ? 1 : 0;
+      return la.localeCompare(lb, 'ru', { numeric: true });
+    })
+    .map((o) => ({ key: o.id, off: !isIncluded(o), order: o })),
 );
 
 function isIncluded(o: MarketplaceOrderIssuanceView): boolean {
@@ -405,6 +420,9 @@ watch(
     if (visible && props.orders.length) {
       initFacts();
       restockLines.value = [];
+      pickedLabels.value = {};
+      scanMessage.value = null;
+      scanCode.value = '';
       if (!feePercent.value) {
         getMembershipFeePercent()
           .then((p) => (feePercent.value = p))
@@ -447,6 +465,137 @@ function onToggle(o: MarketplaceOrderIssuanceView, included: boolean): void {
   if (included && availableOf(o) <= 0) return;
   const f = facts.value[o.id] ?? { qty: Math.min(o.quantity, availableOf(o)), price: defaultPriceOf(o), included };
   facts.value = { ...facts.value, [o.id]: { ...f, included } };
+}
+
+// ── Подбор по сканеру (99D-18). Режим мягкий: скан бокса подсказывает, где
+// лежит имущество, скан этикетки подтверждает, что это оно, и сам ставит
+// галку и количество. Ручная правка остаётся, отправку на подпись скан не
+// блокирует. Строгий режим — после решения по этикеткам на упаковках. ──
+const scanCode = ref('');
+const scanBusy = ref(false);
+const cameraOpen = ref(false);
+const scanInput = ref<{ focus: () => void } | null>(null);
+/** Отсканированные этикетки: позиция склада → заказ и количество под этикеткой. */
+const pickedLabels = ref<Record<string, { order_id: string; quantity: number }>>({});
+const scanMessage = ref<{ tone: 'pos' | 'neg' | 'info'; text: string } | null>(null);
+
+const pickStarted = computed(() => Object.keys(pickedLabels.value).length > 0);
+
+/** Найдено сканом по заказу, в базовой единице. */
+function pickedBaseOf(orderId: string): number {
+  return Object.values(pickedLabels.value)
+    .filter((l) => l.order_id === orderId)
+    .reduce((sum, l) => sum + l.quantity, 0);
+}
+
+/** Строка подбора под бейджем сверки; пусто, пока оператор не начал сканировать. */
+function pickLine(o: MarketplaceOrderIssuanceView): { done: boolean; text: string } | null {
+  if (!pickStarted.value || availableOf(o) <= 0) return null;
+  const found = saleUnitsOf(o, pickedBaseOf(o.id));
+  const target = saleUnitsOf(o, Math.min(o.quantity, availableOf(o)));
+  if (found <= 0) return { done: false, text: t('marketplace.issueActOpenDialog.pickNotFound') };
+  if (found >= target) return { done: true, text: t('marketplace.issueActOpenDialog.pickFound') };
+  return { done: false, text: t('marketplace.issueActOpenDialog.pickPartial', { found, total: target }) };
+}
+
+function orderName(id: string): string {
+  const o = props.orders.find((x) => x.id === id);
+  return o?.product_name || t('marketplace.issueActOpenDialog.productOfferFallback');
+}
+
+/** Куда идти за ещё не найденным: места хранения заказов без скана. */
+function remainingLocations(): string {
+  const places = new Set<string>();
+  for (const o of props.orders) {
+    if (pickedBaseOf(o.id) > 0) continue;
+    for (const l of o.warehouse_locations ?? []) places.add(l);
+  }
+  return [...places].join(', ');
+}
+
+function say(tone: 'pos' | 'neg' | 'info', text: string): void {
+  scanMessage.value = { tone, text };
+  playScanTone(tone === 'neg' ? 'error' : 'ok');
+}
+
+function applyLabel(r: IssuancePickScanView): void {
+  const name = r.product_name || t('marketplace.issueActOpenDialog.productOfferFallback');
+  if (!r.inventory_id || !r.order_id) return;
+  if (pickedLabels.value[r.inventory_id]) {
+    say('info', t('marketplace.issueActOpenDialog.pickDuplicate', { name }));
+    return;
+  }
+  pickedLabels.value = { ...pickedLabels.value, [r.inventory_id]: { order_id: r.order_id, quantity: r.quantity ?? 0 } };
+  const order = props.orders.find((o) => o.id === r.order_id);
+  if (order) {
+    // Количество следует за сканом: сколько этикеток найдено, столько и
+    // выдаётся. Потолок — остаток склада; ручная правка остаётся.
+    const f = facts.value[order.id] ?? { qty: 0, price: defaultPriceOf(order), included: true };
+    facts.value = {
+      ...facts.value,
+      [order.id]: { ...f, included: true, qty: Math.min(pickedBaseOf(order.id), availableOf(order)) },
+    };
+  }
+  say('pos', t('marketplace.issueActOpenDialog.pickLabelMatch', { name }));
+}
+
+/** Тексты отказов по итогу сверки; совпадение разбирается отдельно. */
+const PICK_REJECTS: Partial<Record<Zeus.MarketplaceIssuancePickVerdict, (r: IssuancePickScanView, name: string, box: string) => string>> = {
+  [Zeus.MarketplaceIssuancePickVerdict.OTHER_ORDER]: (_r, name) => t('marketplace.issueActOpenDialog.pickOtherOrder', { name }),
+  [Zeus.MarketplaceIssuancePickVerdict.NOT_ON_WAREHOUSE]: (_r, name) => t('marketplace.issueActOpenDialog.pickNotOnWarehouse', { name }),
+  [Zeus.MarketplaceIssuancePickVerdict.OTHER_BRANCH]: (r, name, box) =>
+    r.target === Zeus.MarketplaceIssuancePickTarget.CONTAINER
+      ? t('marketplace.issueActOpenDialog.pickBoxOtherBranch', { box })
+      : t('marketplace.issueActOpenDialog.pickLabelOtherBranch', { name }),
+  [Zeus.MarketplaceIssuancePickVerdict.BOX_EMPTY]: (_r, _name, box) => {
+    // Бокс не тот — подсказываем, где лежит ещё не найденное.
+    const where = remainingLocations();
+    return where
+      ? t('marketplace.issueActOpenDialog.pickBoxEmptyWhere', { box, where })
+      : t('marketplace.issueActOpenDialog.pickBoxEmpty', { box });
+  },
+};
+
+function applyPick(r: IssuancePickScanView): void {
+  if (r.verdict === Zeus.MarketplaceIssuancePickVerdict.MATCH) {
+    if (r.target === Zeus.MarketplaceIssuancePickTarget.CONTAINER) {
+      const box = r.container_code ?? '';
+      say('info', t('marketplace.issueActOpenDialog.pickBoxMatch', { box, names: r.order_ids.map(orderName).join(', ') }));
+    } else {
+      applyLabel(r);
+    }
+    return;
+  }
+  const name = r.product_name || t('marketplace.issueActOpenDialog.productOfferFallback');
+  const reject = PICK_REJECTS[r.verdict];
+  say('neg', reject ? reject(r, name, r.container_code ?? '') : t('marketplace.issueActOpenDialog.pickUnknown'));
+}
+
+async function onScan(raw: string): Promise<void> {
+  const code = raw.trim();
+  if (!code || scanBusy.value || !issueBraname.value) return;
+  scanBusy.value = true;
+  try {
+    const result = await issuancePickScan({
+      braname: issueBraname.value,
+      order_ids: props.orders.map((o) => o.id),
+      code,
+    });
+    applyPick(result);
+  } catch (e) {
+    playScanTone('error');
+    FailAlert(e, t('marketplace.issueActOpenDialog.pickError'));
+  } finally {
+    scanBusy.value = false;
+    scanCode.value = '';
+    // Ручной сканер вводит следующий код в то же поле — фокус держим.
+    scanInput.value?.focus();
+  }
+}
+
+function onCameraScan(code: string): void {
+  cameraOpen.value = false;
+  void onScan(code);
 }
 
 async function confirm(): Promise<void> {
@@ -550,6 +699,26 @@ BaseDialog(
       | {{ $t('marketplace.issueActOpenDialog.instructionLine2') }}
       | {{ $t('marketplace.issueActOpenDialog.instructionLine3') }}
 
+    //- Подбор по сканеру: ручной сканер вводит код в поле и жмёт Enter,
+    //- камера — запасной путь. Ответ сервера — строкой под полем со звуком.
+    form.issue-act__scan(@submit.prevent='onScan(scanCode)')
+      BaseInput.issue-act__scan-input(
+        ref='scanInput',
+        v-model='scanCode',
+        :placeholder='$t("marketplace.issueActOpenDialog.scanPlaceholder")',
+        :disabled='scanBusy',
+        autocomplete='off'
+      )
+        template(#prepend)
+          q-icon(name='qr_code_scanner', size='20px')
+      BaseButton(variant='secondary', type='button', @click='cameraOpen = true')
+        template(#icon-left)
+          q-icon(name='photo_camera', size='18px')
+        | {{ $t('marketplace.issueActOpenDialog.cameraButton') }}
+    .issue-act__scan-result(v-if='scanMessage', :class='`issue-act__scan-result--${scanMessage.tone}`')
+      q-icon(:name='scanMessage.tone === "neg" ? "error" : scanMessage.tone === "pos" ? "check_circle" : "inventory_2"', size='18px')
+      span {{ scanMessage.text }}
+
     ActLinesTable(:columns='issueColumns', :rows='issueRows')
       template(#cell-check='{ row }')
         BaseCheckbox(
@@ -562,7 +731,8 @@ BaseDialog(
       template(#cell-item='{ row }')
         ActLineItem(
           :title='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
-          :meta='lineMeta(row.order)'
+          :meta='lineMeta(row.order)',
+          :image-url='row.order.image_url'
         )
       template(#cell-issue='{ row }')
         BaseInput(
@@ -589,7 +759,14 @@ BaseDialog(
         )
       template(#cell-sum='{ row }') {{ rub(lineSum(row.order)) }}
       template(#cell-status='{ row }')
-        BaseBadge(:variant='lineStatus(row.order).variant') {{ lineStatus(row.order).label }}
+        .issue-act__status
+          BaseBadge(:variant='lineStatus(row.order).variant') {{ lineStatus(row.order).label }}
+          .issue-act__pick(
+            v-if='pickLine(row.order)',
+            :class='{ "issue-act__pick--done": pickLine(row.order)?.done }'
+          )
+            q-icon(:name='pickLine(row.order)?.done ? "check_circle" : "radio_button_unchecked"', size='14px')
+            span {{ pickLine(row.order)?.text }}
 
     .issue-act__restock(v-if='restockLines.length')
       .issue-act__restock-head
@@ -632,6 +809,13 @@ BaseDialog(
               q-icon(name='send', size='18px')
             | {{ $t('marketplace.issueActOpenDialog.sendForSignatureButton') }}
           BaseButton(block, variant='secondary', @click='cancel') {{ $t('common.action.close') }}
+
+  ScannerDialog(
+    v-model='cameraOpen',
+    :title='$t("marketplace.issueActOpenDialog.cameraTitle")',
+    :formats='BARCODE_FORMATS',
+    @scanned='onCameraScan'
+  )
 
   StockPickDialog(
     v-model='stockPickOpen',
@@ -694,6 +878,75 @@ BaseDialog(
       color: var(--p-ink);
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+    }
+  }
+
+  // Полоса сканера над таблицей: поле тянется, камера справа.
+  &__scan {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+
+    &-input {
+      flex: 1 1 auto;
+      min-width: 0;
+
+      :deep(.q-field--with-bottom) {
+        padding-bottom: 0;
+      }
+    }
+  }
+
+  // Ответ сканера: цвет по итогу, текст крупнее подписи — его читают с
+  // полки, на ходу.
+  &__scan-result {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    border-radius: var(--p-r-sm, 8px);
+    font-size: var(--p-fs-body, 14px);
+    line-height: 1.4;
+
+    .q-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    &--pos {
+      background: var(--p-pos-soft);
+      color: var(--p-pos);
+    }
+
+    &--neg {
+      background: var(--p-neg-soft);
+      color: var(--p-neg);
+    }
+
+    &--info {
+      background: var(--p-info-soft);
+      color: var(--p-info);
+    }
+  }
+
+  &__status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--p-1, 4px);
+  }
+
+  // Ход подбора под бейджем сверки: новое о строке, а не повтор бейджа.
+  &__pick {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+    white-space: nowrap;
+
+    &--done {
+      color: var(--p-pos);
     }
   }
 

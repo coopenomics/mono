@@ -10,6 +10,8 @@ export * as ListContainerTypes from './listContainerTypes'
 export * as ResolveContainerByCode from './resolveContainerByCode'
 /** 598-62: визит на участок по отсканированному коду — кто пришёл и какие дела у него на участке */
 export * as ResolveScan from './resolveScan'
+/** 99D-18: подбор на выдаче — сверка отсканированного бокса или этикетки имущества с выдачей пайщику */
+export * as IssuancePickScan from './issuancePickScan'
 /** 598-62: код передачи пайщика для показа оператору участка */
 export * as HandoffCode from './handoffCode'
 /** Список marketplace-детализаций ПВЗ кооператива */

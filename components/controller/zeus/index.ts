@@ -12502,6 +12502,14 @@ export type ValueTypes = {
 	/** Код бокса с этикетки или из отсканированного QR. */
 	code: string | Variable<any, string>
 };
+	["MarketplaceIssuancePickScanInput"]: {
+	/** Участок, на котором идёт выдача. */
+	braname: string | Variable<any, string>,
+	/** Строка из сканера или из поля ручного ввода. */
+	code: string | Variable<any, string>,
+	/** Заказы, открытые в окне выдачи. */
+	order_ids: Array<string> | Variable<any, string>
+};
 	["MarketplaceResolveScanInput"]: {
 	/** Участок, на котором оператор сканирует код. */
 	braname: string | Variable<any, string>,
@@ -12838,6 +12846,22 @@ export type ValueTypes = {
 }>;
 	/** Дело пайщика на участке: выдача заказов, приёмка поставки, осмотр возврата. */
 ["MarketplaceScanMatterKind"]:MarketplaceScanMatterKind;
+	/** На что указал код при подборе на выдаче: этикетка имущества или бокс. */
+["MarketplaceIssuancePickTarget"]:MarketplaceIssuancePickTarget;
+	/** Итог сверки отсканированного кода с выдачей пайщику. */
+["MarketplaceIssuancePickVerdict"]:MarketplaceIssuancePickVerdict;
+	["MarketplaceIssuancePickScan"]: AliasType<{
+	container_code?:boolean | `@${string}`,
+	inventory_id?:boolean | `@${string}`,
+	order_id?:boolean | `@${string}`,
+	order_ids?:boolean | `@${string}`,
+	product_name?:boolean | `@${string}`,
+	quantity?:boolean | `@${string}`,
+	target?:boolean | `@${string}`,
+	verdict?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceIssuancePickScan']?: Omit<ValueTypes["MarketplaceIssuancePickScan"], "...on MarketplaceIssuancePickScan">
+}>;
 	/** На что указал отсканированный код: пайщик, партия или бокс. */
 ["MarketplaceScanTarget"]:MarketplaceScanTarget;
 	["MarketplaceScanVisit"]: AliasType<{
@@ -16775,6 +16799,7 @@ marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffP
 	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
 	marketplaceRegistrationOfferStatus?:ValueTypes["MarketplaceRegistrationOfferStatus"],
 marketplaceResolveContainerByCode?: [{	data: ValueTypes["MarketplaceResolveContainerByCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
+marketplaceIssuancePickScan?: [{	data: ValueTypes["MarketplaceIssuancePickScanInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuancePickScan"]],
 marketplaceResolveScan?: [{	data: ValueTypes["MarketplaceResolveScanInput"] | Variable<any, string>},ValueTypes["MarketplaceScanVisit"]],
 marketplaceReturnClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
 marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string | Variable<any, string>,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
@@ -30382,6 +30407,14 @@ export type ResolverInputTypes = {
 	/** Код бокса с этикетки или из отсканированного QR. */
 	code: string
 };
+	["MarketplaceIssuancePickScanInput"]: {
+	/** Участок, на котором идёт выдача. */
+	braname: string,
+	/** Строка из сканера или из поля ручного ввода. */
+	code: string,
+	/** Заказы, открытые в окне выдачи. */
+	order_ids: Array<string>
+};
 	["MarketplaceResolveScanInput"]: {
 	/** Участок, на котором оператор сканирует код. */
 	braname: string,
@@ -30710,6 +30743,21 @@ export type ResolverInputTypes = {
 }>;
 	/** Дело пайщика на участке: выдача заказов, приёмка поставки, осмотр возврата. */
 ["MarketplaceScanMatterKind"]:MarketplaceScanMatterKind;
+	/** На что указал код при подборе на выдаче: этикетка имущества или бокс. */
+["MarketplaceIssuancePickTarget"]:MarketplaceIssuancePickTarget;
+	/** Итог сверки отсканированного кода с выдачей пайщику. */
+["MarketplaceIssuancePickVerdict"]:MarketplaceIssuancePickVerdict;
+	["MarketplaceIssuancePickScan"]: AliasType<{
+	container_code?:boolean | `@${string}`,
+	inventory_id?:boolean | `@${string}`,
+	order_id?:boolean | `@${string}`,
+	order_ids?:boolean | `@${string}`,
+	product_name?:boolean | `@${string}`,
+	quantity?:boolean | `@${string}`,
+	target?:boolean | `@${string}`,
+	verdict?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** На что указал отсканированный код: пайщик, партия или бокс. */
 ["MarketplaceScanTarget"]:MarketplaceScanTarget;
 	["MarketplaceScanVisit"]: AliasType<{
@@ -34514,6 +34562,7 @@ marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListW
 	/** Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry) */
 	marketplaceRegistrationOfferStatus?:ResolverInputTypes["MarketplaceRegistrationOfferStatus"],
 marketplaceResolveContainerByCode?: [{	data: ResolverInputTypes["MarketplaceResolveContainerByCodeInput"]},ResolverInputTypes["MarketplaceContainer"]],
+marketplaceIssuancePickScan?: [{	data: ResolverInputTypes["MarketplaceIssuancePickScanInput"]},ResolverInputTypes["MarketplaceIssuancePickScan"]],
 marketplaceResolveScan?: [{	data: ResolverInputTypes["MarketplaceResolveScanInput"]},ResolverInputTypes["MarketplaceScanVisit"]],
 marketplaceReturnClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceReturnClaim"]],
 marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
@@ -47639,6 +47688,14 @@ export type ModelTypes = {
 	/** Код бокса с этикетки или из отсканированного QR. */
 	code: string
 };
+	["MarketplaceIssuancePickScanInput"]: {
+	/** Участок, на котором идёт выдача. */
+	braname: string,
+	/** Строка из сканера или из поля ручного ввода. */
+	code: string,
+	/** Заказы, открытые в окне выдачи. */
+	order_ids: Array<string>
+};
 	["MarketplaceResolveScanInput"]: {
 	/** Участок, на котором оператор сканирует код. */
 	braname: string,
@@ -47953,6 +48010,18 @@ export type ModelTypes = {
 	kind: ModelTypes["MarketplaceScanMatterKind"]
 };
 	["MarketplaceScanMatterKind"]:MarketplaceScanMatterKind;
+	["MarketplaceIssuancePickTarget"]:MarketplaceIssuancePickTarget;
+	["MarketplaceIssuancePickVerdict"]:MarketplaceIssuancePickVerdict;
+	["MarketplaceIssuancePickScan"]: {
+	container_code?: string | undefined | null,
+	inventory_id?: string | undefined | null,
+	order_id?: string | undefined | null,
+	order_ids: Array<string>,
+	product_name?: string | undefined | null,
+	quantity?: number | undefined | null,
+	target?: ModelTypes["MarketplaceIssuancePickTarget"] | undefined | null,
+	verdict: ModelTypes["MarketplaceIssuancePickVerdict"]
+};
 	["MarketplaceScanTarget"]:MarketplaceScanTarget;
 	["MarketplaceScanVisit"]: {
 		/** Учётная запись пайщика, если код указал на пайщика. */
@@ -52193,6 +52262,8 @@ export type ModelTypes = {
 	/** Бокс по коду с этикетки или отсканированного QR. */
 	marketplaceResolveContainerByCode: ModelTypes["MarketplaceContainer"],
 	/** Визит на участок по отсканированному коду: кто пришёл и какие дела у него на этом участке — выдача заказов, приёмка поставки, осмотр возврата. Код партии и код бокса ведут к предмету. */
+	/** Подбор на выдаче: сверка отсканированного бокса или этикетки имущества с заказами, открытыми в окне выдачи пайщику. Только чтение склада. */
+	marketplaceIssuancePickScan: ModelTypes["MarketplaceIssuancePickScan"],
 	marketplaceResolveScan: ModelTypes["MarketplaceScanVisit"],
 	/** Получить одно заявление на гарантийный возврат по идентификатору. */
 	marketplaceReturnClaim: ModelTypes["MarketplaceReturnClaim"],
@@ -65965,6 +66036,14 @@ export type GraphQLTypes = {
 		/** Код бокса с этикетки или из отсканированного QR. */
 	code: string
 };
+	["MarketplaceIssuancePickScanInput"]: {
+	/** Участок, на котором идёт выдача. */
+	braname: string,
+	/** Строка из сканера или из поля ручного ввода. */
+	code: string,
+	/** Заказы, открытые в окне выдачи. */
+	order_ids: Array<string>
+};
 	["MarketplaceResolveScanInput"]: {
 		/** Участок, на котором оператор сканирует код. */
 	braname: string,
@@ -66302,6 +66381,20 @@ export type GraphQLTypes = {
 	/** Дело пайщика на участке: выдача заказов, приёмка поставки, осмотр возврата. */
 ["MarketplaceScanMatterKind"]: MarketplaceScanMatterKind;
 	/** На что указал отсканированный код: пайщик, партия или бокс. */
+["MarketplaceIssuancePickTarget"]: MarketplaceIssuancePickTarget;
+["MarketplaceIssuancePickVerdict"]: MarketplaceIssuancePickVerdict;
+	["MarketplaceIssuancePickScan"]: {
+	__typename: "MarketplaceIssuancePickScan",
+	container_code?: string | undefined | null,
+	inventory_id?: string | undefined | null,
+	order_id?: string | undefined | null,
+	order_ids: Array<string>,
+	product_name?: string | undefined | null,
+	quantity?: number | undefined | null,
+	target?: GraphQLTypes["MarketplaceIssuancePickTarget"] | undefined | null,
+	verdict: GraphQLTypes["MarketplaceIssuancePickVerdict"],
+	['...on MarketplaceIssuancePickScan']: Omit<GraphQLTypes["MarketplaceIssuancePickScan"], "...on MarketplaceIssuancePickScan">
+};
 ["MarketplaceScanTarget"]: MarketplaceScanTarget;
 	["MarketplaceScanVisit"]: {
 	__typename: "MarketplaceScanVisit",
@@ -70859,6 +70952,8 @@ export type GraphQLTypes = {
 	/** Бокс по коду с этикетки или отсканированного QR. */
 	marketplaceResolveContainerByCode: GraphQLTypes["MarketplaceContainer"],
 	/** Визит на участок по отсканированному коду: кто пришёл и какие дела у него на этом участке — выдача заказов, приёмка поставки, осмотр возврата. Код партии и код бокса ведут к предмету. */
+	/** Подбор на выдаче: сверка отсканированного бокса или этикетки имущества с заказами, открытыми в окне выдачи пайщику. Только чтение склада. */
+	marketplaceIssuancePickScan: GraphQLTypes["MarketplaceIssuancePickScan"],
 	marketplaceResolveScan: GraphQLTypes["MarketplaceScanVisit"],
 	/** Получить одно заявление на гарантийный возврат по идентификатору. */
 	marketplaceReturnClaim: GraphQLTypes["MarketplaceReturnClaim"],
@@ -74170,6 +74265,20 @@ export enum MarketplaceScanMatterKind {
 	RECEPTION = "RECEPTION",
 	RETURN = "RETURN"
 }
+/** На что указал код при подборе на выдаче: этикетка имущества или бокс. */
+export enum MarketplaceIssuancePickTarget {
+	CONTAINER = "CONTAINER",
+	LABEL = "LABEL"
+}
+/** Итог сверки отсканированного кода с выдачей пайщику. */
+export enum MarketplaceIssuancePickVerdict {
+	BOX_EMPTY = "BOX_EMPTY",
+	MATCH = "MATCH",
+	NOT_ON_WAREHOUSE = "NOT_ON_WAREHOUSE",
+	OTHER_BRANCH = "OTHER_BRANCH",
+	OTHER_ORDER = "OTHER_ORDER",
+	UNKNOWN = "UNKNOWN"
+}
 /** На что указал отсканированный код: пайщик, партия или бокс. */
 export enum MarketplaceScanTarget {
 	CONTAINER = "CONTAINER",
@@ -75134,6 +75243,9 @@ type ZEUS_VARIABLES = {
 	["MarketplaceRepublishOfferInput"]: ValueTypes["MarketplaceRepublishOfferInput"];
 	["MarketplaceRequestSupplierInput"]: ValueTypes["MarketplaceRequestSupplierInput"];
 	["MarketplaceResolveContainerByCodeInput"]: ValueTypes["MarketplaceResolveContainerByCodeInput"];
+	["MarketplaceIssuancePickScanInput"]: ValueTypes["MarketplaceIssuancePickScanInput"];
+	["MarketplaceIssuancePickTarget"]: ValueTypes["MarketplaceIssuancePickTarget"];
+	["MarketplaceIssuancePickVerdict"]: ValueTypes["MarketplaceIssuancePickVerdict"];
 	["MarketplaceResolveScanInput"]: ValueTypes["MarketplaceResolveScanInput"];
 	["MarketplaceResolveStockProposalInput"]: ValueTypes["MarketplaceResolveStockProposalInput"];
 	["MarketplaceRetireStorageCellsInput"]: ValueTypes["MarketplaceRetireStorageCellsInput"];

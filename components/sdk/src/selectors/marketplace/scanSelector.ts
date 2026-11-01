@@ -35,3 +35,20 @@ const _validateHandoffCode: MakeAllFieldsRequired<ValueTypes['MarketplaceHandoff
   rawHandoffCodeSelector
 
 export const marketplaceHandoffCodeSelector = Selector('MarketplaceHandoffCode')(rawHandoffCodeSelector)
+
+/** Подбор на выдаче (99D-18): итог сверки бокса или этикетки с выдачей. */
+export const rawIssuancePickScanSelector = {
+  target: true,
+  verdict: true,
+  inventory_id: true,
+  order_id: true,
+  quantity: true,
+  product_name: true,
+  container_code: true,
+  order_ids: true,
+}
+
+const _validateIssuancePickScan: MakeAllFieldsRequired<ValueTypes['MarketplaceIssuancePickScan']> =
+  rawIssuancePickScanSelector
+
+export const marketplaceIssuancePickScanSelector = Selector('MarketplaceIssuancePickScan')(rawIssuancePickScanSelector)
