@@ -141,7 +141,12 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
     await councilGrants(await guaranteeAgenda(claim))
     await waitFor(async () => ((await claimOf(granted.id))?.status === 'APPROVED' ? true : null),
       { timeoutMs: 180_000, intervalMs: 2_000, label: 'заявление по гарантии удовлетворено' })
-    const closed = await enrollmentOf(token, granted.id)
+    // Заявление удовлетворено раньше, чем цепь закрыла подписку и вернула взнос:
+    // подписку ждём, а не читаем сразу (dev 01.11.2026 — читалась ещё ACTIVE).
+    const closed = await waitFor(async () => {
+      const e = await enrollmentOf(token, granted.id)
+      return e?.status === 'CANCELLED' ? e : null
+    }, { timeoutMs: 180_000, intervalMs: 2_000, label: 'подписка закрыта возвратом по гарантии' })
     expect(closed).toMatchObject({ status: 'CANCELLED', refund_reason: 'guarantee' })
     expect(amount(closed.refunded_amount)).toBeCloseTo(fee, 4)
     expect(await walletOf(token, learner.account, SHARE_WALLET)).toBeCloseTo(shareBefore + fee, 4)
