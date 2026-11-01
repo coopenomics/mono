@@ -783,8 +783,11 @@ BaseDialog(
         BaseBadge(variant='info') {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
       .issue-act__restock-row(v-for='l in restockLines', :key='l.offer_id')
         .issue-act__restock-info
-          span.issue-act__restock-name {{ l.product_name }}
-          span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ restockLineQuantityLabel(l) }}
+          ActLineItem(
+            :title='l.product_name',
+            :meta='`${formatAsset2Digits(l.price_per_unit)} ₽ × ${restockLineQuantityLabel(l)}`',
+            :image-url='l.image_url'
+          )
         .issue-act__restock-right
           span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
           BaseButton(
@@ -862,18 +865,6 @@ BaseDialog(
       flex-direction: column;
       gap: 1px;
       min-width: 0;
-    }
-
-    &-name {
-      font-size: var(--p-fs-body-sm, 13px);
-      color: var(--p-ink);
-      overflow-wrap: break-word;
-    }
-
-    &-meta {
-      font-size: var(--p-fs-meta, 12px);
-      color: var(--p-ink-3);
-      font-variant-numeric: tabular-nums;
     }
 
     &-right {

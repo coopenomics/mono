@@ -11715,6 +11715,10 @@ export type ValueTypes = {
 };
 	/** Ход выдачи имущества пайщику по одному заказу: этап, факт, документы и номер решения совета. Ведётся кооперативом; устройства только ставят подписи. */
 ["MarketplaceIssuanceSaga"]: AliasType<{
+	/** Название товара по заказу. */
+	product_name?:boolean | `@${string}`,
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?:boolean | `@${string}`,
 	/** Акт приёма-передачи с первой подписью заказчика. */
 	act1_document?:ValueTypes["SignedDigitalDocument"],
 	/** Акт приёма-передачи с обеими подписями. */
@@ -13240,6 +13244,8 @@ export type ValueTypes = {
 	['...on MarketplaceStockProposalAcceptResult']?: Omit<ValueTypes["MarketplaceStockProposalAcceptResult"], "...on MarketplaceStockProposalAcceptResult">
 }>;
 	["MarketplaceStockProposalItem"]: AliasType<{
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?:boolean | `@${string}`,
 	/** Предложение кооператива из остатка. */
 	offer_id?:boolean | `@${string}`,
 	/** order_hash заказа или будущего заказа из остатка. */
@@ -29642,6 +29648,10 @@ export type ResolverInputTypes = {
 };
 	/** Ход выдачи имущества пайщику по одному заказу: этап, факт, документы и номер решения совета. Ведётся кооперативом; устройства только ставят подписи. */
 ["MarketplaceIssuanceSaga"]: AliasType<{
+	/** Название товара по заказу. */
+	product_name?:boolean | `@${string}`,
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?:boolean | `@${string}`,
 	/** Акт приёма-передачи с первой подписью заказчика. */
 	act1_document?:ResolverInputTypes["SignedDigitalDocument"],
 	/** Акт приёма-передачи с обеими подписями. */
@@ -31125,6 +31135,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceStockProposalItem"]: AliasType<{
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?:boolean | `@${string}`,
 	/** Предложение кооператива из остатка. */
 	offer_id?:boolean | `@${string}`,
 	/** order_hash заказа или будущего заказа из остатка. */
@@ -46952,6 +46964,10 @@ export type ModelTypes = {
 };
 	/** Ход выдачи имущества пайщику по одному заказу: этап, факт, документы и номер решения совета. Ведётся кооперативом; устройства только ставят подписи. */
 ["MarketplaceIssuanceSaga"]: {
+	/** Название товара по заказу. */
+	product_name?: string | undefined | null,
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?: string | undefined | null,
 		/** Акт приёма-передачи с первой подписью заказчика. */
 	act1_document?: ModelTypes["SignedDigitalDocument"] | undefined | null,
 	/** Акт приёма-передачи с обеими подписями. */
@@ -48375,6 +48391,8 @@ export type ModelTypes = {
 	sagas: Array<ModelTypes["MarketplaceIssuanceSaga"]>
 };
 	["MarketplaceStockProposalItem"]: {
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?: string | undefined | null,
 		/** Предложение кооператива из остатка. */
 	offer_id: string,
 	/** order_hash заказа или будущего заказа из остатка. */
@@ -65244,6 +65262,10 @@ export type GraphQLTypes = {
 	/** Ход выдачи имущества пайщику по одному заказу: этап, факт, документы и номер решения совета. Ведётся кооперативом; устройства только ставят подписи. */
 ["MarketplaceIssuanceSaga"]: {
 	__typename: "MarketplaceIssuanceSaga",
+	/** Название товара по заказу. */
+	product_name?: string | undefined | null,
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?: string | undefined | null,
 	/** Акт приёма-передачи с первой подписью заказчика. */
 	act1_document?: GraphQLTypes["SignedDigitalDocument"] | undefined | null,
 	/** Акт приёма-передачи с обеими подписями. */
@@ -66767,6 +66789,8 @@ export type GraphQLTypes = {
 };
 	["MarketplaceStockProposalItem"]: {
 	__typename: "MarketplaceStockProposalItem",
+	/** Обложка товара — первое изображение предложения; пусто, если изображений нет. */
+	image_url?: string | undefined | null,
 	/** Предложение кооператива из остатка. */
 	offer_id: string,
 	/** order_hash заказа или будущего заказа из остатка. */

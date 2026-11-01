@@ -155,14 +155,7 @@ export class MarketplaceOrderDisplayService {
     // Обложка товара — первое изображение оффера (как в каталоге/корзине).
     // Резолвим по уникальным офферам, не по заказам — несколько заказов часто
     // ссылаются на один и тот же offer_id.
-    const imageUrlByOfferId = new Map<string, string>();
-    await Promise.all(
-      offers.map(async (offer) => {
-        const coverKey = offer.images?.[0]?.bucket_key;
-        if (!coverKey) return;
-        imageUrlByOfferId.set(offer.id, await this.imagesService.getReadUrl(coverKey));
-      })
-    );
+    const imageUrlByOfferId = await this.coverUrlsOf(offers);
     // Ключ (offer_id::braname) → накоплено всеми на этапе сбора.
     const accumulatedByKey = new Map<string, number>();
     for (const g of groupSums) {
@@ -228,6 +221,32 @@ export class MarketplaceOrderDisplayService {
       });
     }
     return result;
+  }
+
+  /**
+   * Обложки товаров по идентификаторам предложений — первое изображение, как
+   * в каталоге и корзине. Нужны строкам, где есть предложение, но нет заказа:
+   * предложение выдачи у стойки и его докладка со склада. Предложения без
+   * изображений в карте отсутствуют.
+   */
+  async coverImagesByOfferIds(offerIds: string[]): Promise<Map<string, string>> {
+    const ids = [...new Set(offerIds.filter((id) => id))];
+    if (ids.length === 0) return new Map();
+    return this.coverUrlsOf(await this.offerRepo.findByIds(ids));
+  }
+
+  private async coverUrlsOf(
+    offers: ReadonlyArray<{ id: string; images?: ReadonlyArray<{ bucket_key: string }> | null }>
+  ): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    await Promise.all(
+      offers.map(async (offer) => {
+        const coverKey = offer.images?.[0]?.bucket_key;
+        if (!coverKey) return;
+        out.set(offer.id, await this.imagesService.getReadUrl(coverKey));
+      })
+    );
+    return out;
   }
 
   /**

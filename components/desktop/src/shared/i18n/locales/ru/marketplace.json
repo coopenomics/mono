@@ -2159,6 +2159,7 @@
     "signAplReceptionDialog": {
       "acceptingLabel": "Принимается",
       "amountColumnLabel": "Сумма",
+      "asideTitle": "Акт приёмки",
       "buildActsFailedMessage": "Не удалось сформировать акты приёмки",
       "confirmCancelAction": "Подтвердить отмену",
       "deliveryToLabel": "Поставка на {kuName}",
@@ -2168,6 +2169,7 @@
       "itemsCountLabel": "{count} поз.",
       "productColumnLabel": "Товар",
       "qtyColumnLabel": "Кол-во",
+      "rejectedFactLabel": "Снято при приёмке",
       "rejectedHintIntro": "Эти позиции сняты при приёмке и не принимаются. Подтверждая, вы",
       "rejectedHintNoCharge": "обеспечительную часть паевого взноса, удержания с вас нет.",
       "rejectedHintRefund": "отменяете их поставку — заказчикам возвращается полная стоимость и",

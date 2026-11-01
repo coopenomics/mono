@@ -22,6 +22,7 @@ import type {
   ShipmentDetailsSummary,
 } from './ShipmentDetailsDrawer.types'
 import { t } from 'src/shared/i18n';
+import { ActLineItem } from 'src/widgets/Marketplace/ActDialogLayout';
 
 const props = defineProps<{
   modelValue: boolean
@@ -170,6 +171,8 @@ DetailsDrawer(
       :skeleton-rows='3',
       min-width='660px'
     )
+      template(#cell-product='{ row }')
+        ActLineItem(:title='row.product_name || "—"', :image-url='row.image_url')
       template(#cell-orderer='{ row }')
         | {{ ordererName(row) }}
       template(#cell-quantity='{ row }')

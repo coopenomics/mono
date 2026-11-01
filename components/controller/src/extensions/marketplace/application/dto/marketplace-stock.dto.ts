@@ -365,6 +365,9 @@ export class MarketplaceStockProposalItemDTO {
   @Field(() => String, { nullable: true, description: 'Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица.' })
   package_label!: string | null;
 
+  @Field(() => String, { nullable: true, description: 'Обложка товара — первое изображение предложения; пусто, если изображений нет.' })
+  image_url!: string | null;
+
   @Field(() => String, { nullable: true, description: 'Существующий заказ пайщика в бандле. Пусто — докладка со склада.' })
   order_id!: string | null;
 
@@ -446,36 +449,50 @@ export type MarketplaceStockProposalOrderedTotals = ReadonlyMap<
 
 export function toMarketplaceStockProposalDTO(
   e: MarketplaceStockProposalDomainEntity,
-  ordered?: MarketplaceStockProposalOrderedTotals
+  ordered?: MarketplaceStockProposalOrderedTotals,
+  /** Обложки товаров по предложению: offer_id → ссылка на изображение. */
+  images?: ReadonlyMap<string, string>
 ): MarketplaceStockProposalDTO {
   const dto = new MarketplaceStockProposalDTO();
   dto.id = e.id;
   dto.braname = e.braname;
   dto.member_account = e.member_account;
   dto.operator_account = e.operator_account;
-  dto.items = e.items.map((i) => {
-    const item = new MarketplaceStockProposalItemDTO();
-    item.offer_id = i.offer_id;
-    item.quantity = i.quantity;
-    item.unit_price = i.unit_price;
-    item.product_name = i.product_name;
-    item.unit_of_measure = i.unit_of_measure ?? null;
-    item.package_size = i.package_size ?? 0;
-    item.order_id = i.order_id ?? null;
-    item.order_hash = i.order_hash ?? null;
-    const orderedTotals = i.order_id ? ordered?.get(i.order_id) : undefined;
-    item.ordered_quantity = orderedTotals?.quantity ?? null;
-    item.ordered_total_cost = orderedTotals?.total_cost ?? null;
-    item.package_label =
-      i.package_size && i.unit_of_measure
-        ? t('marketplace.stockDto.packageLabel', { size: String(i.package_size).replace('.', ','), unit: marketplaceOrderUnitLabel(i.unit_of_measure) })
-        : null;
-    return item;
-  });
+  dto.items = e.items.map((i) => toProposalItemDTO(i, ordered, images));
   dto.status = e.status as MarketplaceStockProposalStatusEnum;
   dto.total_cost = e.total_cost.toFixed(4);
   dto.created_order_ids = e.created_order_ids;
   dto.resolved_at = e.resolved_at;
   dto.created_at = e.created_at;
   return dto;
+}
+
+/** Строка бандла в ответе: снапшот позиции, заказанное по заказу и обложка товара. */
+function toProposalItemDTO(
+  i: MarketplaceStockProposalDomainEntity['items'][number],
+  ordered?: MarketplaceStockProposalOrderedTotals,
+  images?: ReadonlyMap<string, string>
+): MarketplaceStockProposalItemDTO {
+  const item = new MarketplaceStockProposalItemDTO();
+  item.offer_id = i.offer_id;
+  item.quantity = i.quantity;
+  item.unit_price = i.unit_price;
+  item.product_name = i.product_name;
+  item.image_url = images?.get(i.offer_id) ?? null;
+  item.unit_of_measure = i.unit_of_measure ?? null;
+  item.package_size = i.package_size ?? 0;
+  item.order_id = i.order_id ?? null;
+  item.order_hash = i.order_hash ?? null;
+  const orderedTotals = i.order_id ? ordered?.get(i.order_id) : undefined;
+  item.ordered_quantity = orderedTotals?.quantity ?? null;
+  item.ordered_total_cost = orderedTotals?.total_cost ?? null;
+  item.package_label = packageLabelOf(i);
+  return item;
+}
+
+/** Подпись единицы отпуска («упак. 0,5 л»); пусто — отпуск по мере. */
+function packageLabelOf(i: MarketplaceStockProposalDomainEntity['items'][number]): string | null {
+  return i.package_size && i.unit_of_measure
+    ? t('marketplace.stockDto.packageLabel', { size: String(i.package_size).replace('.', ','), unit: marketplaceOrderUnitLabel(i.unit_of_measure) })
+    : null;
 }

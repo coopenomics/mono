@@ -8,6 +8,8 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts';
 import { t } from 'src/shared/i18n';
+import { marketplaceOfferImageUrls } from 'src/shared/lib/utils/marketplaceOfferImages';
+import { ActLineItem } from 'src/widgets/Marketplace/ActDialogLayout';
 
 /**
  * Выбор имущества со склада кооператива для докладки в выдачу («это не пришло —
@@ -29,6 +31,8 @@ export interface StockPickLine {
   package_id: string | null;
   /** Содержимое выбранной упаковки (Эпик 18); null — отпуск по мере. */
   stock_package_size: number | null;
+  /** Обложка товара — строка докладки в окне выдачи показывает снимок. */
+  image_url: string | null;
 }
 
 interface CoopStockPackage {
@@ -51,7 +55,13 @@ type CoopStockOffer = {
   unit_of_measure: string | null;
   stock_package_size: number | null;
   packages: CoopStockPackage[];
+  images?: Array<{ url: string; is_cover: boolean; sort_order: number }> | null;
 };
+
+/** Обложка остатка — первое изображение, как в каталоге. */
+function coverOf(o: CoopStockOffer): string | null {
+  return marketplaceOfferImageUrls(o.images)[0] ?? null;
+}
 
 const props = defineProps<{
   modelValue: boolean;
@@ -165,6 +175,7 @@ function confirmAdd(): void {
       unit_of_measure: l.offer.unit_of_measure,
       package_id: selectedPackage(l.offer)?.id ?? null,
       stock_package_size: selectedPackage(l.offer)?.size ?? null,
+      image_url: coverOf(l.offer),
     })),
   );
   quantities.value = {};
@@ -200,9 +211,11 @@ BaseDialog(
     .stock-pick__list(v-else)
       .stock-pick__row(v-for="o in offers", :key="o.id")
         .stock-pick__info
-          span.stock-pick__name {{ o.product_name }}
-          span.stock-pick__meta
-            | {{ formatAsset2Digits(unitPrice(o)) }} ₽ · {{ availableLabel(o) }}
+          ActLineItem(
+            :title="o.product_name",
+            :meta="`${formatAsset2Digits(unitPrice(o))} ₽ · ${availableLabel(o)}`",
+            :image-url="coverOf(o)"
+          )
           BaseSelect(
             v-if="o.packages.length > 1"
             :model-value="selectedPackageId[o.id] ?? null"
@@ -276,20 +289,8 @@ BaseDialog(
   &__info {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: var(--p-2, 8px);
     min-width: 0;
-  }
-
-  &__name {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__meta {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-3);
-    font-variant-numeric: tabular-nums;
   }
 
   &__qty {

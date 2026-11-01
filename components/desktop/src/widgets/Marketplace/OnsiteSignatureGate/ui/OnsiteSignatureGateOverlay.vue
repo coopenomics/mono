@@ -288,6 +288,7 @@ function proposalRows(p: ProposalTask): TaskRow[] {
   return p.items.map((i) => ({
     key: i.offer_id,
     title: i.product_name,
+    imageUrl: i.image_url,
     quantity: proposalItemQuantity(i),
     amount: rub(proposalLineCost(i)),
   }));
@@ -312,9 +313,13 @@ function proposalLines(p: ProposalTask): Array<{ label: string; value: string }>
 type SagaTask = (typeof sagaTasks.value)[number];
 
 function sagaRows(s: SagaTask): TaskRow[] {
+  // Товар с названием и снимком; номер заказа — мета-строкой под ним.
+  const orderLabel = t('marketplace.onsiteSignatureGateOverlay.orderNumberLabel', { orderId: s.order_id.slice(0, 8) });
   return [{
     key: String(s.id),
-    title: t('marketplace.onsiteSignatureGateOverlay.orderNumberLabel', { orderId: s.order_id.slice(0, 8) }),
+    title: s.product_name || orderLabel,
+    meta: s.product_name ? orderLabel : undefined,
+    imageUrl: s.image_url,
     quantity: String(s.fact.actual_quantity),
     amount: rub(s.fact.fact_cost),
   }];
@@ -488,7 +493,7 @@ BaseDialog(
           |  {{ $t('marketplace.onsiteSignatureGateOverlay.reservedFundsHintLine2') }}
         ActLinesTable(:columns='readColumns', :rows='proposalRows(p)')
           template(#cell-item='{ row }')
-            ActLineItem(:title='row.title')
+            ActLineItem(:title='row.title', :image-url='row.imageUrl')
       template(#aside)
         ActSummaryCard(
           :eyebrow='$t("marketplace.onsiteSignatureGateOverlay.issueActTitle")',
@@ -526,7 +531,7 @@ BaseDialog(
               span.onsite-gate__sub {{ sagaTaskSub(s) }}
         ActLinesTable(:columns='readColumns', :rows='sagaRows(s)')
           template(#cell-item='{ row }')
-            ActLineItem(:title='row.title', icon='receipt_long')
+            ActLineItem(:title='row.title', :meta='row.meta', :image-url='row.imageUrl')
       template(#aside)
         ActSummaryCard(
           :eyebrow='sagaTaskTitle(s)',

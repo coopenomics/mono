@@ -7375,6 +7375,8 @@ export const ReturnTypes: Record<string,any> = {
 		fact_cost:"String"
 	},
 	MarketplaceIssuanceSaga:{
+		product_name:"String",
+		image_url:"String",
 		act1_document:"SignedDigitalDocument",
 		act2_document:"SignedDigitalDocument",
 		awaits_council:"Boolean",
@@ -7817,6 +7819,7 @@ export const ReturnTypes: Record<string,any> = {
 		sagas:"MarketplaceIssuanceSaga"
 	},
 	MarketplaceStockProposalItem:{
+		image_url:"String",
 		offer_id:"String",
 		order_hash:"String",
 		order_id:"String",
