@@ -339,12 +339,10 @@ describe('Образование: занятия и взносы препода�
       expect(declined.decline_reason, 'основание — причина совета').toBeTruthy()
     }, 480_000)
 
-    // Выключен до решения владельца (blackbox 01.11.2026): после отказа совета
-    // recallrid стирает взнос, но занятие с номером и расчётом по ученикам
-    // остаётся в условиях группы, и openlesson того же номера отвечает
-    // EDUBRIDGE_LESSON_NUMBER_TAKEN. Повторный отчёт — это повторный расчёт с
-    // учениками за то же занятие; правило денег решает владелец, не тест.
-    it.skip(caseName('edu.teach.side.14', 'совет отказал в приёме — занятие отчитывается заново: строка журнала та же, взнос новый'), async () => {
+    // После отказа совета занятие проводится заново: ученики второй раз не
+    // платят, взнос — та же сумма, материалы уходят на хранение reholdrid
+    // (решение владельца 01.11.2026).
+    it(caseName('edu.teach.side.14', 'совет отказал в приёме — занятие отчитывается заново: строка журнала та же, взнос новый'), async () => {
       const lessonBefore = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.lesson_number === 2)
       const again = await reportLesson(token, nowAssignment.id, 2, { topic: 'Занятие проведено заново' })
       expect(again.lesson.id).toBe(lessonBefore.id)
@@ -393,10 +391,6 @@ describe('Образование: занятия и взносы препода�
     })
 
     it(caseName('edu.teach.side.17', 'материалы на хранении без подписанного заявления держат выход преподавателя'), async () => {
-      // По курсу без гарантии материалы на хранении без заявления заводит сам случай:
-      // прежде их оставлял edu.teach.side.14 (выключен до решения владельца).
-      const pending = (await reportLesson(token, nowAssignment.id, 5)).contribution
-      await holdMaterials(teacher, token, pending.id)
       const blockers = (await exitReturnPreview(token, teacher.account)).blockers as string[]
       // Два курса ведёт, по одному занятию материалы на хранении без заявления.
       expect(blockers.length).toBeGreaterThanOrEqual(3)

@@ -54,6 +54,8 @@ export interface EdubridgeChainPort {
   closeCharge(data: EdubridgeContract.Actions.Closecharge.IClosecharge): Promise<InnerTransactResult>;
   /** Приём материалов занятия на ответственное хранение; сумму и срок берёт контракт из записи занятия. */
   holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult>;
+  /** Повторная передача снятых с хранения материалов (после отказа совета) — без нового расчёта с учениками. */
+  reholdRid(data: EdubridgeContract.Actions.Reholdrid.IReholdrid): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
   /** Акт приёма-передачи РИД с подписью преподавателя — уходит председателю на одобрение вместе с протоколом совета. */

@@ -92,6 +92,7 @@
 #include "table_edubridge_terms.hpp"
 #include "table_edubridge_expenses.hpp"
 #include "table_edubridge_rids.hpp"
+#include "table_edubridge_recalled.hpp"
 #include "table_edubridge_contracts.hpp"
 
 // apps (каталог приложений)

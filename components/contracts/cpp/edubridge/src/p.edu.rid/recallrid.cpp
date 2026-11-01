@@ -33,6 +33,22 @@ void edubridge::recallrid(eosio::name coopname,
   const eosio::asset amount  = rid->amount;
   const uint64_t rid_id      = rid->id;
 
+  // Снятые материалы запоминаются: преподаватель вправе провести занятие
+  // заново и передать их ещё раз (`reholdrid`) — без повторного расчёта с
+  // учениками, той же суммой (решение владельца 01.11.2026).
+  edu_recalled_index recalled(_edubridge, coopname.value);
+  recalled.emplace(RamPayer::of(recalled, coopname), [&](auto& r) {
+    r.id            = get_global_id_in_scope(_edubridge, coopname, "edurecalled"_n);
+    r.rid_hash      = rid->rid_hash;
+    r.username      = username;
+    r.assignment_id = rid->assignment_id;
+    r.amount        = amount;
+    r.rid_type      = rid->rid_type;
+    r.hold_until    = rid->hold_until;
+    r.course_id     = rid->course_id;
+    r.recalled_at   = eosio::time_point_sec(eosio::current_time_point());
+  });
+
   // ── o.edu.retrid: BURN с w.edu.hold (Дт 76 / Кт 08) ───────────────────
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::RELEASE_EDU_RID,

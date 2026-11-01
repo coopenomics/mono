@@ -78,6 +78,11 @@ export * as Declinerid from './declinerid'
 export * as Recallrid from './recallrid'
 
 /**
+ * Повторная передача материалов на хранение после отказа совета: o.edu.hold без нового расчёта с учениками.
+ */
+export * as Reholdrid from './reholdrid'
+
+/**
  * Трансляция паевого взноса преподавателя в «Цифровой Кошелёк»: o.edu.wthshr.
  */
 export * as Wthshare from './wthshare'

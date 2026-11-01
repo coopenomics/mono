@@ -14,6 +14,7 @@
 #include "../../domain/table_edubridge_courses.hpp"
 #include "../../domain/table_edubridge_terms.hpp"
 #include "../../domain/table_edubridge_rids.hpp"
+#include "../../domain/table_edubridge_recalled.hpp"
 #include "../../domain/table_edubridge_contracts.hpp"
 #include "../ledger2/ledger2.hpp"
 #include "../utils.hpp"

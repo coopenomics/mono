@@ -261,6 +261,15 @@ export interface IRecallrid {
   reason: string
 }
 
+/** Повторная передача снятых с хранения материалов занятия — новым актом и новым хэшем. */
+export interface IReholdrid {
+  coopname: IName
+  username: IName
+  prev_rid_hash: IChecksum256
+  rid_hash: IChecksum256
+  act: IDocument2
+}
+
 export interface IOnRidAuth {
   coopname: IName
   hash: IChecksum256

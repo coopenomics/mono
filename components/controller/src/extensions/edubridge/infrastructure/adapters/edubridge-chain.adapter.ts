@@ -195,6 +195,13 @@ async declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline)
     );
   }
 
+  async reholdRid(data: EdubridgeContract.Actions.Reholdrid.IReholdrid): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Reholdrid.actionName, { ...data, act: this.chainDoc(data.act) }, data.coopname)
+    );
+  }
+
   async withdrawShare(data: EdubridgeContract.Actions.Wthshare.IWthshare): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(

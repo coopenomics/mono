@@ -410,8 +410,8 @@ cases:
     expect: "Строка журнала та же, взнос новый с другим ключом."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    # Внешний тест выключен (it.skip) до решения владельца, blackbox 01.11.2026:
-    # openlesson того же номера после отказа совета — EDUBRIDGE_LESSON_NUMBER_TAKEN.
+    # С 01.11.2026 (решение владельца): ученики второй раз не платят — взнос той же
+    # суммой, материалы на хранение действием reholdrid по снятым (edurecalled).
     status: written
   - id: edu.teach.happy.11
     level: backend
@@ -751,4 +751,12 @@ cases:
     expect: "Отказ EDUBRIDGE_INSUFFICIENT_RIGHTS; раньше учётное имя приходило пустым и запись падала на NOT NULL teacher_username ответом 500."
     test: components/api-tests/src/rights/matrix.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: edu.teach.side.38
+    level: contract
+    kind: side
+    scenario: "recallrid запоминает снятые материалы; reholdrid принимает их на хранение заново под новым хэшем по новому акту"
+    expect: "Сумма, допуск, курс и срок хранения — из снятых материалов; o.edu.hold на ту же сумму; запись снятых стирается; чужой преподаватель и неизвестный хэш — отказ; повторный расчёт с учениками не идёт."
+    test: components/api-tests/src/edubridge/lessons.test.ts
     status: written

@@ -631,6 +631,9 @@ export class EdubridgeTeacherService {
   async reportLesson(coopname: string, teacher: string, input: EduLessonReportInputDTO): Promise<EdubridgeLessonRecord> {
     const { assignment: a, course, lesson, previous } = await this.lessonContext(coopname, teacher, input);
     const symbol = course.planned_hourly_rate.split(' ')[1] ?? '';
+    // Совет отказал в приёме, материалы сняты с хранения — занятие проводится
+    // заново без нового расчёта с учениками (решение владельца 01.11.2026).
+    const learnersBefore = lesson.learners_count;
 
     Object.assign(lesson, {
       teacher_username: teacher,
@@ -646,6 +649,9 @@ export class EdubridgeTeacherService {
     // Документов с суммой нет — сумма за занятия периода станет окончательной
     // после срока, когда ясно, кто из обучающихся остался.
     if (isGuaranteeRunning(course, new Date())) return this.reportInGuarantee(coopname, teacher, lesson, a, course);
+
+    // Пакет гарантийного срока (взнос на все занятия периода, lesson_id пуст) этим путём не идёт.
+    if (previous?.council_outcome && previous.lesson_id === lesson.id) return this.reportAfterCouncilDecline(coopname, teacher, lesson, a, course, previous, learnersBefore);
 
     const attempt = previous ? `|${previous.id}` : '';
     const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}${attempt}`).digest('hex');
@@ -687,6 +693,49 @@ export class EdubridgeTeacherService {
       `[EDU.LESSON] ${teacher}: занятие № ${lesson.lesson_number} курса ${course.id}, участников ${settled.learners_count}, взнос ${contribution.amount}`
     );
     return settled;
+  }
+
+  /**
+   * Повторный отчёт по занятию после отказа совета. Занятие уже рассчитано с
+   * учениками: оплата за него осталась в резерве преподавателям курса, номер
+   * в цепи занят, второй расчёт подписки контракт отклоняет. Поэтому цепь
+   * здесь не трогается: новый взнос заводится той же суммой, что прежний, а
+   * материалы при передаче на хранение уходят действием `reholdrid` вместо
+   * `holdrid` — со ссылкой на снятые (решение владельца 01.11.2026: ученики
+   * второй раз не платят).
+   */
+  private async reportAfterCouncilDecline(
+    coopname: string,
+    teacher: string,
+    lesson: EdubridgeLessonRecord,
+    a: EdubridgeTeacherAssignmentRecord,
+    course: EdubridgeCourseRecord,
+    previous: EdubridgeContributionRecord,
+    learnersBefore: number | null
+  ): Promise<EdubridgeLessonRecord> {
+    const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}|${previous.id}`).digest('hex');
+    const contribution = await this.teachers.saveContribution(
+      this.teachers.createContribution({
+        coopname,
+        teacher_username: teacher,
+        assignment_id: a.id,
+        rid_hash: ridHash,
+        rid_type: previous.rid_type,
+        links: lesson.materials,
+        description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
+        amount: previous.amount,
+        lesson_id: lesson.id,
+        hold_until: previous.hold_until ?? this.guaranteeEnd(course),
+        status: EduContributionStatus.DRAFT,
+      })
+    );
+    lesson.contribution_id = contribution.id;
+    lesson.learners_count = learnersBefore;
+    const saved = await this.lessons.save(this.markHeld(lesson));
+    this.logger.info(
+      `[EDU.LESSON] ${teacher}: занятие № ${lesson.lesson_number} курса ${course.id} проведено заново после отказа совета по ${previous.rid_hash}, взнос ${contribution.amount}`
+    );
+    return saved;
   }
 
   /**
@@ -1063,16 +1112,22 @@ export class EdubridgeTeacherService {
       throw DomainError.badRequest('EDUBRIDGE_TRANSFER_ACT_STALE');
     }
 
-    // Сумму и срок хранения контракт берёт из записи занятия.
-    await this.chain.holdRid({
-      coopname,
-      username: teacher,
-      rid_hash: c.rid_hash,
-      rid_type: c.rid_type,
-      // Занятия гарантийного срока принимаются одним актом — названы все; занятие после срока — одно.
-      pack: pack ? lessons.map((l) => lessonChainHash(coopname, teacher, l.id)) : [],
-      act: document as never,
-    });
+    const recalled = pack ? null : await this.recalledBefore(coopname, teacher, c);
+    if (recalled) {
+      // Повторная передача после отказа совета: сумма, допуск и курс — из снятых материалов.
+      await this.chain.reholdRid({ coopname, username: teacher, prev_rid_hash: recalled.rid_hash, rid_hash: c.rid_hash, act: document as never });
+    } else {
+      // Сумму и срок хранения контракт берёт из записи занятия.
+      await this.chain.holdRid({
+        coopname,
+        username: teacher,
+        rid_hash: c.rid_hash,
+        rid_type: c.rid_type,
+        // Занятия гарантийного срока принимаются одним актом — названы все; занятие после срока — одно.
+        pack: pack ? lessons.map((l) => lessonChainHash(coopname, teacher, l.id)) : [],
+        act: document as never,
+      });
+    }
 
     c.storage_act_hash = document.hash.toLowerCase();
     c.storage_act_document = document as unknown as Record<string, unknown>;
@@ -1080,6 +1135,19 @@ export class EdubridgeTeacherService {
     const saved = await this.teachers.saveContribution(c);
     this.logger.info(`[EDU.RID] материалы ${c.rid_hash} приняты на ответственное хранение до ${holdUntil.toISOString()}`);
     return saved;
+  }
+
+  /**
+   * Взнос того же занятия, по которому совет отказал и материалы сняты с
+   * хранения, — последний по дате решения. Его хэш называет `reholdrid`:
+   * контракт хранит снятые материалы под ним.
+   */
+  private async recalledBefore(coopname: string, teacher: string, c: EdubridgeContributionRecord): Promise<EdubridgeContributionRecord | null> {
+    if (!c.lesson_id) return null;
+    const declined = (await this.teachers.listContributions(coopname, { teacher, statuses: [EduContributionStatus.DECLINED] }))
+      .filter((x) => x.lesson_id === c.lesson_id && x.id !== c.id && x.council_outcome)
+      .sort((x, y) => new Date(y.decided_at ?? 0).getTime() - new Date(x.decided_at ?? 0).getTime());
+    return declined[0] ?? null;
   }
 
   /**
