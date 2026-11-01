@@ -614,3 +614,7 @@ cases:
     test: ~
     status: missing
 
+# 01.11.2026 (7DD-25): адаптер цепи образования (edubridge-chain.adapter.ts) получил
+# reholdRid — повторную передачу материалов после отказа совета. Подписок и
+# взносов участника правка не касается; случаи — edu.contract.side.06 и
+# edu.teach.side.14.

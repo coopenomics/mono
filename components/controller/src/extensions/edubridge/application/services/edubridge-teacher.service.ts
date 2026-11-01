@@ -650,8 +650,7 @@ export class EdubridgeTeacherService {
     // после срока, когда ясно, кто из обучающихся остался.
     if (isGuaranteeRunning(course, new Date())) return this.reportInGuarantee(coopname, teacher, lesson, a, course);
 
-    // Пакет гарантийного срока (взнос на все занятия периода, lesson_id пуст) этим путём не идёт.
-    if (previous?.council_outcome && previous.lesson_id === lesson.id) return this.reportAfterCouncilDecline(coopname, teacher, lesson, a, course, previous, learnersBefore);
+    if (isCouncilRedo(previous, lesson)) return this.reportAfterCouncilDecline(coopname, teacher, lesson, a, course, previous, learnersBefore);
 
     const attempt = previous ? `|${previous.id}` : '';
     const ridHash = createHash('sha256').update(`${coopname}|${teacher}|${lesson.id}${attempt}`).digest('hex');
@@ -671,20 +670,7 @@ export class EdubridgeTeacherService {
     // черновик с этим хэшем остался отклонённым, а строка занятия в цепи снята.
     // Повторный отчёт берёт тот же черновик — новая запись с тем же хэшем
     // падала на уникальном индексе ответом 500 (blackbox 31.10.2026).
-    const declined = await this.teachers.findContributionByRidHash(ridHash);
-    const reusable = declined?.status === EduContributionStatus.DECLINED && declined.lesson_id === lesson.id ? declined : null;
-    const contribution = await this.teachers.saveContribution(
-      reusable
-        ? Object.assign(reusable, fields)
-        : this.teachers.createContribution({
-            coopname,
-            teacher_username: teacher,
-            rid_hash: ridHash,
-            rid_type: EduRidType.LESSON_RECORDING,
-            lesson_id: lesson.id,
-            ...fields,
-          })
-    );
+    const contribution = await this.lessonDraft(coopname, teacher, lesson.id, ridHash, fields);
     lesson.contribution_id = contribution.id;
     await this.lessons.save(lesson);
 
@@ -693,6 +679,33 @@ export class EdubridgeTeacherService {
       `[EDU.LESSON] ${teacher}: занятие № ${lesson.lesson_number} курса ${course.id}, участников ${settled.learners_count}, взнос ${contribution.amount}`
     );
     return settled;
+  }
+
+  /**
+   * Черновик взноса по занятию. Отчёт, отклонённый расчётом, оставил черновик
+   * с этим же хэшем — он берётся снова (строка занятия в цепи снята).
+   */
+  private async lessonDraft(
+    coopname: string,
+    teacher: string,
+    lessonId: string,
+    ridHash: string,
+    fields: Partial<EdubridgeContributionRecord>
+  ): Promise<EdubridgeContributionRecord> {
+    const declined = await this.teachers.findContributionByRidHash(ridHash);
+    const reusable = declined?.status === EduContributionStatus.DECLINED && declined.lesson_id === lessonId ? declined : null;
+    return this.teachers.saveContribution(
+      reusable
+        ? Object.assign(reusable, fields)
+        : this.teachers.createContribution({
+            coopname,
+            teacher_username: teacher,
+            rid_hash: ridHash,
+            rid_type: EduRidType.LESSON_RECORDING,
+            lesson_id: lessonId,
+            ...fields,
+          })
+    );
   }
 
   /**
@@ -1112,22 +1125,7 @@ export class EdubridgeTeacherService {
       throw DomainError.badRequest('EDUBRIDGE_TRANSFER_ACT_STALE');
     }
 
-    const recalled = pack ? null : await this.recalledBefore(coopname, teacher, c);
-    if (recalled) {
-      // Повторная передача после отказа совета: сумма, допуск и курс — из снятых материалов.
-      await this.chain.reholdRid({ coopname, username: teacher, prev_rid_hash: recalled.rid_hash, rid_hash: c.rid_hash, act: document as never });
-    } else {
-      // Сумму и срок хранения контракт берёт из записи занятия.
-      await this.chain.holdRid({
-        coopname,
-        username: teacher,
-        rid_hash: c.rid_hash,
-        rid_type: c.rid_type,
-        // Занятия гарантийного срока принимаются одним актом — названы все; занятие после срока — одно.
-        pack: pack ? lessons.map((l) => lessonChainHash(coopname, teacher, l.id)) : [],
-        act: document as never,
-      });
-    }
+    await this.holdOnChain(coopname, teacher, c, pack ? lessons : null, document);
 
     c.storage_act_hash = document.hash.toLowerCase();
     c.storage_act_document = document as unknown as Record<string, unknown>;
@@ -1135,6 +1133,34 @@ export class EdubridgeTeacherService {
     const saved = await this.teachers.saveContribution(c);
     this.logger.info(`[EDU.RID] материалы ${c.rid_hash} приняты на ответственное хранение до ${holdUntil.toISOString()}`);
     return saved;
+  }
+
+  /**
+   * Материалы — в цепь. Занятия гарантийного срока принимаются одним актом
+   * (названы все), занятие после срока — одно; сумму и срок хранения контракт
+   * берёт из записи занятия. Повторная передача после отказа совета идёт
+   * `reholdrid`: сумма, допуск и курс — из снятых материалов.
+   */
+  private async holdOnChain(
+    coopname: string,
+    teacher: string,
+    c: EdubridgeContributionRecord,
+    pack: EdubridgeLessonRecord[] | null,
+    document: ISignedDocument
+  ): Promise<void> {
+    const recalled = pack ? null : await this.recalledBefore(coopname, teacher, c);
+    if (recalled) {
+      await this.chain.reholdRid({ coopname, username: teacher, prev_rid_hash: recalled.rid_hash, rid_hash: c.rid_hash, act: document as never });
+      return;
+    }
+    await this.chain.holdRid({
+      coopname,
+      username: teacher,
+      rid_hash: c.rid_hash,
+      rid_type: c.rid_type,
+      pack: (pack ?? []).map((l) => lessonChainHash(coopname, teacher, l.id)),
+      act: document as never,
+    });
   }
 
   /**
@@ -1756,4 +1782,13 @@ function lessonAmountOf(l: EdubridgeLessonRecord, group: EdubridgeGroupRecord | 
 function paidAt(enrollment: Parameters<typeof isResumable>[0] & { paid_until?: Date | string | null }, heldAt: Date): boolean {
   const chargeable = enrollment.status === EduEnrollmentStatus.ACTIVE || isResumable(enrollment);
   return chargeable && Boolean(enrollment.paid_until) && new Date(enrollment.paid_until as string) > heldAt;
+}
+
+/**
+ * Прежний отчёт по занятию отклонил совет: занятие проводится заново без
+ * нового расчёта с учениками. Пакет гарантийного срока (взнос на все занятия
+ * периода, lesson_id пуст) этим путём не идёт.
+ */
+function isCouncilRedo(previous: EdubridgeContributionRecord | null, lesson: EdubridgeLessonRecord): previous is EdubridgeContributionRecord {
+  return Boolean(previous?.council_outcome) && previous?.lesson_id === lesson.id;
 }

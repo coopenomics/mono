@@ -753,10 +753,3 @@ cases:
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
 
-  - id: edu.teach.side.38
-    level: contract
-    kind: side
-    scenario: "recallrid запоминает снятые материалы; reholdrid принимает их на хранение заново под новым хэшем по новому акту"
-    expect: "Сумма, допуск, курс и срок хранения — из снятых материалов; o.edu.hold на ту же сумму; запись снятых стирается; чужой преподаватель и неизвестный хэш — отказ; повторный расчёт с учениками не идёт."
-    test: components/api-tests/src/edubridge/lessons.test.ts
-    status: written

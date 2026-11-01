@@ -99,3 +99,13 @@ cases:
     test: C9S/docs-factory:test/education-program.test.ts
     api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
+
+  # 01.11.2026 (7DD-25): после отказа совета материалы занятия передаются заново
+  # без повторного расчёта с учениками — решение владельца.
+  - id: edu.contract.side.06
+    level: contract
+    kind: side
+    scenario: "recallrid запоминает снятые материалы; reholdrid принимает их на хранение заново под новым хэшем по новому акту"
+    expect: "Сумма, допуск, курс и срок хранения — из снятых материалов; o.edu.hold на ту же сумму; запись снятых стирается; чужой преподаватель и неизвестный хэш — отказ; повторный расчёт с учениками не идёт."
+    test: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
