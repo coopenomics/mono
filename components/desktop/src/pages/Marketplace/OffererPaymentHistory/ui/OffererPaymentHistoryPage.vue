@@ -5,7 +5,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
@@ -22,6 +22,8 @@ import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDate
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 import { t } from 'src/shared/i18n';
+import { useHeaderActions } from 'src/shared/hooks';
+import AddRequisitesButton from './AddRequisitesButton.vue';
 
 /**
  * Стол поставщика «Выплаты»: настройка «выплаты получаю на…» + история выплат.
@@ -34,6 +36,7 @@ import { t } from 'src/shared/i18n';
  */
 
 const router = useRouter();
+const { registerAction } = useHeaderActions();
 const { info } = useSystemStore();
 const session = useSessionStore();
 const wallet = useWalletStore();
@@ -144,6 +147,14 @@ const reloadLive = debounce(() => {
 useLiveReload(marketLiveTables('payment', 'reception'), () => reloadLive());
 
 onMounted(() => {
+  // Добавление реквизитов — главное действие страницы, поэтому живёт в шапке
+  // (канон, решение владельца 01.11.2026): в карточке кнопка была мелкой и незаметной.
+  registerAction({
+    id: 'mp-offerer-payments-add-requisites',
+    component: AddRequisitesButton,
+    props: { onClick: goToRequisites },
+    order: 1,
+  });
   void load();
   void loadSettings();
   void wallet.loadUserWallet({ coopname: info.coopname, username: session.username });
@@ -157,12 +168,8 @@ q-page.offerer-payments
     | {{ $t('marketplace.offererPaymentHistoryPage.bannerHintProcessing') }}
 
   //- ───────── Куда получаю выплаты ─────────
+  //- Кнопка «Добавить реквизиты» — главное действие страницы, живёт в шапке (канон).
   BaseCard(:title='$t("marketplace.offererPaymentHistoryPage.payoutDestinationTitle")')
-    template(#actions)
-      BaseButton(variant='ghost', size='sm', @click='goToRequisites')
-        q-icon(name='add_card', size='16px')
-        span.q-ml-sm {{ $t('marketplace.offererPaymentHistoryPage.addDetailsAction') }}
-
     .payout-method(v-if='hasMethods')
       BaseSelect.payout-method__select(
         :model-value='selectedMethodId',
