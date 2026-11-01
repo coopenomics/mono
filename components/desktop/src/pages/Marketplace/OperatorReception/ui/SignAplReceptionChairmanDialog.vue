@@ -6,8 +6,6 @@ import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import {
-  Avatar,
-  BaseBadge,
   BaseBanner,
   BaseButton,
   BaseDialog,
@@ -15,8 +13,13 @@ import {
   BaseSelect,
 } from 'src/shared/ui/base';
 import type { BaseSelectOption } from 'src/shared/ui/base';
-import { AccountBadge } from 'src/shared/ui/domain';
-import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
+import {
+  ActDialogLayout,
+  ActLineItem,
+  ActLinesTable,
+  ActSummaryCard,
+  type ActLinesColumn,
+} from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch';
@@ -140,6 +143,38 @@ const steps = computed(() => [
   { key: 'posting' as const, label: t('marketplace.signAplReceptionChairman.stepPostingLabel') },
 ]);
 
+// ── Рабочая страница акта (общие компоненты): позиции, мета шапки, сводка ──
+const checkColumns = computed<ActLinesColumn[]>(() => [
+  { key: 'item', label: t('marketplace.signAplReceptionChairman.tableProductHeader'), wide: true },
+  { key: 'quantity', label: t('marketplace.signAplReceptionChairman.tableQtyHeader'), width: '160px', align: 'right' },
+  { key: 'amount', label: t('marketplace.signAplReceptionChairman.tableAmountHeader'), width: '120px', align: 'right', strong: true },
+]);
+
+type CheckRow = { key: string; title: string; imageUrl: string | null; quantity: string; amount: string };
+
+const checkRows = computed<CheckRow[]>(() =>
+  (props.group?.lines ?? []).map((l) => ({
+    key: l.key,
+    title: l.productName,
+    imageUrl: l.imageUrl,
+    quantity: lineQuantityLabel(l),
+    amount: `${formatAsset2Digits(l.amount.toFixed(4))} ₽`,
+  })),
+);
+
+/** Мета под именем поставщика: аккаунт · способ приёмки · участок · ТТН. */
+const headMeta = computed(() => {
+  if (!props.group) return '';
+  const parts = [props.group.offererAccount, variantLabel.value, t('marketplace.signAplReceptionChairman.kuNameText', { ku: kuName.value })];
+  if (props.group.ttnNumbers.length) parts.push(t('marketplace.signAplReceptionChairman.ttnListText', { ttn: props.group.ttnNumbers.join(', ') }).trim());
+  return parts.filter(Boolean).join(' · ');
+});
+
+/** Факты сводки: сколько позиций. Сколько разложено, показывает счётчик над таблицей раскладки. */
+const summaryFacts = computed(() => [
+  { label: t('marketplace.signAplReceptionChairman.positionsFactLabel'), value: String(props.group?.lines.length ?? 0) },
+]);
+
 function stepState(key: ReceptionStep): 'done' | 'active' | 'todo' {
   const order: ReceptionStep[] = ['check', 'posting'];
   const at = order.indexOf(step.value);
@@ -179,6 +214,8 @@ async function loadStorage(): Promise<void> {
 interface PostingUnit {
   orderId: string;
   productName: string;
+  /** Снимок товара — миниатюра у позиции раскладки. */
+  imageUrl: string | null;
   orderer: string;
   quantity: number;
   unit: string;
@@ -191,6 +228,7 @@ const units = computed<PostingUnit[]>(() =>
     .map((f) => ({
       orderId: f.order_id,
       productName: f.product_name || t('marketplace.signAplReceptionChairman.productOfferFallback'),
+      imageUrl: f.image_url ?? null,
       orderer: f.orderer_name?.trim() || f.orderer_account || t('marketplace.signAplReceptionChairman.ordererFallback'),
       quantity: Number(f.fact_quantity),
       unit: f.unit_of_measure ?? '',
@@ -278,15 +316,21 @@ function clearDraft(): void {
 
 watch(placementsByOrder, saveDraft, { deep: true });
 
-/** Открытие/смена поставки: начинаем со сверки и поднимаем прошлый черновик. */
+/**
+ * Открытие/смена поставки: начинаем со сверки и поднимаем прошлый черновик.
+ * Настройки склада перечитываются при каждом открытии: председатель мог
+ * включить адресное хранение, пока поставка ждала подписи, и без свежих
+ * флагов окно не показало бы шаг оприходования, а сервер отверг бы подпись.
+ */
 watch(
   () => [props.modelValue, props.group?.key],
-  () => {
+  async () => {
     resetActs();
     step.value = 'check';
     placementsByOrder.value = {};
     if (props.modelValue && props.group) {
       restoreDraft();
+      await branchStore.refreshSettings();
       if (placementEnabled.value) void loadStorage();
     }
   },
@@ -737,55 +781,31 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
+//- Рабочая страница акта на холсте, как окно приёмки и экран подписи на
+//- пункте: шапка (шаг → поставщик → аккаунт, способ, участок, ТТН), слева
+//- позиции либо раскладка по боксам, справа сводка с шагами, итогом и кнопками.
 BaseDialog(
   :model-value="modelValue"
-  :title="dialogTitle"
   maximized
+  canvas
+  hide-close-button
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  ActDialogLayout(v-if="group")
-    template(#head)
-      .sign-apl__top
-        .sign-apl__who
-          Avatar(:name="group.offererName", size="md", tone="primary")
-          .sign-apl__ident
-            span.sign-apl__name {{ group.offererName }}
-            AccountBadge(:account-name="group.offererAccount", size="sm")
-        .sign-apl__meta
-          BaseBadge(variant="neutral") {{ variantLabel }}
-          span.sign-apl__sub
-            | {{ $t('marketplace.signAplReceptionChairman.kuNameText', { ku: kuName }) }}
-            template(v-if="group.ttnNumbers.length")  {{ $t('marketplace.signAplReceptionChairman.ttnListText', { ttn: group.ttnNumbers.join(', ') }) }}
-
-      //- Шаги видны только там, где они есть: без адресного хранения
-      //- оприходование это одна подпись, и полоска шагов врала бы.
-      .sign-apl__steps(v-if="placementEnabled")
-        .sign-apl__step(
-          v-for="(s, i) in steps",
-          :key="s.key",
-          :class="`is-${stepState(s.key)}`"
-        )
-          span.sign-apl__step-num {{ i + 1 }}
-          span.sign-apl__step-label {{ s.label }}
-
+  ActDialogLayout(
+    v-if="group",
+    :eyebrow="dialogTitle",
+    :title="group.offererName",
+    :meta="headMeta",
+    :avatar-name="group.offererName",
+    :panel-title="step === 'check' ? $t('marketplace.signAplReceptionChairman.positionsPanelTitle') : $t('marketplace.signAplReceptionChairman.stepPostingLabel')",
+    closable,
+    @close="cancel"
+  )
     //- ─────────────── Шаг 1: сверка ───────────────
     template(v-if="step === 'check'")
-      table.act-table(v-if="!showActs")
-        thead
-          tr
-            th {{ $t('marketplace.signAplReceptionChairman.tableProductHeader') }}
-            th.num {{ $t('marketplace.signAplReceptionChairman.tableQtyHeader') }}
-            th.num {{ $t('marketplace.signAplReceptionChairman.tableAmountHeader') }}
-        tbody
-          tr(v-for="l in group.lines", :key="l.key")
-            td {{ l.productName }}
-            td.num {{ lineQuantityLabel(l) }}
-            td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
-        tfoot
-          tr
-            td {{ $t('marketplace.signAplReceptionChairman.totalToReceiveLabel') }}
-            td.num
-            td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
+      ActLinesTable(v-if="!showActs", :columns="checkColumns", :rows="checkRows")
+        template(#cell-item="{ row }")
+          ActLineItem(:title="row.title", :image-url="row.imageUrl")
 
       //- Канон загрузки: скелетон, а не спиннер поверх контента. Повторное
       //- открытие актов обновляет их молча — уже показанный документ не мигает.
@@ -866,10 +886,14 @@ BaseDialog(
               span
 
           .sign-apl__unit(v-for="u in units", :key="u.orderId")
+            //- Позиция — та же, что в таблице сверки: миниатюра, название,
+            //- количество и заказчик одной мета-строкой.
             .sign-apl__unit-info
-              .sign-apl__unit-name {{ u.productName }}
-              .sign-apl__unit-meta {{ unitQuantityLabel(u) }}
-              .sign-apl__unit-meta {{ u.orderer }}
+              ActLineItem(
+                :title="u.productName",
+                :meta="`${unitQuantityLabel(u)} · ${u.orderer}`",
+                :image-url="u.imageUrl"
+              )
               .sign-apl__unit-rest(v-if="rowsOf(u.orderId).length > 1 && !isFullyPlaced(u)")
                 | {{ $t('marketplace.signAplReceptionChairman.restQuantityText', { qty: restQuantityOf(u) }) }}
 
@@ -964,41 +988,61 @@ BaseDialog(
                   q-icon(name="add", size="16px")
                 | {{ $t('marketplace.signAplReceptionChairman.addPlaceButton') }}
 
-  template(#footer)
-    //- Шаг 1: сверка. Дальше идём, если есть куда: при выключенном адресном
-    //- хранении маркировать и раскладывать нечего, и подпись ставится сразу.
-    template(v-if="step === 'check'")
-      BaseButton(variant="ghost", :disabled="signing", @click="cancel") {{ $t('common.action.cancel') }}
-      BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
-        template(#icon-left)
-          q-icon(name="description", size="18px")
-        | {{ showActs ? $t('marketplace.signAplReceptionChairman.hideActsButton') : $t('marketplace.signAplReceptionChairman.showActsButton') }}
-      BaseButton(v-if="placementEnabled", variant="primary", :disabled="!group", @click="goNext")
-        template(#icon-right)
-          q-icon(name="arrow_forward", size="18px")
-        | {{ $t('marketplace.signAplReceptionChairman.continueButton') }}
-      BaseButton(v-else, variant="primary", :loading="signing", :disabled="!group", @click="confirm")
-        template(#icon-left)
-          q-icon(name="draw", size="18px")
-        span(v-if="signing && group") {{ $t('marketplace.signAplReceptionChairman.signingProgressText', { done, total: deliveriesCount }) }}
-        span(v-else) {{ $t('marketplace.signAplReceptionChairman.signAndPostButton') }}
-
-    //- Шаг 2: подпись. Здесь же держится требование указать место — до подписи,
-    //- потому что после неё поставка уходит из ленты ожидаемых.
-    template(v-else)
-      BaseButton(variant="ghost", :disabled="signing", @click="goBack") {{ $t('common.action.back') }}
-      BaseButton(
-        variant="primary",
-        :loading="signing",
-        :disabled="!group || signBlocked",
-        @click="confirm"
+    //- Сводка справа: шаги (при адресном хранении), факты, итог и кнопки шага.
+    template(#aside)
+      ActSummaryCard(
+        :eyebrow="$t('marketplace.signAplReceptionChairman.summaryTitle')",
+        :facts="summaryFacts",
+        :total-label="$t('marketplace.signAplReceptionChairman.totalToReceiveLabel')",
+        :total="`${formatAsset2Digits(group.totalAmount)} ₽`"
       )
-        template(#icon-left)
-          q-icon(name="draw", size="18px")
-        span(v-if="signing && group") {{ $t('marketplace.signAplReceptionChairman.signingProgressText', { done, total: deliveriesCount }) }}
-        span(v-else-if="placementImpossible") {{ $t('marketplace.signAplReceptionChairman.needBoxFirstLabel') }}
-        span(v-else-if="signBlocked") {{ $t('marketplace.signAplReceptionChairman.needPlaceLabel') }}
-        span(v-else) {{ $t('marketplace.signAplReceptionChairman.signAndPostButton') }}
+        //- Шаги видны только там, где они есть: без адресного хранения
+        //- оприходование это одна подпись, и полоска шагов врала бы.
+        .sign-apl__steps(v-if="placementEnabled")
+          .sign-apl__step(
+            v-for="(s, i) in steps",
+            :key="s.key",
+            :class="`is-${stepState(s.key)}`"
+          )
+            span.sign-apl__step-num {{ i + 1 }}
+            span.sign-apl__step-label {{ s.label }}
+
+        template(#actions)
+          //- Шаг 1: сверка. Дальше идём, если есть куда: при выключенном адресном
+          //- хранении маркировать и раскладывать нечего, и подпись ставится сразу.
+          template(v-if="step === 'check'")
+            BaseButton(v-if="placementEnabled", block, variant="primary", @click="goNext")
+              template(#icon-right)
+                q-icon(name="arrow_forward", size="18px")
+              | {{ $t('marketplace.signAplReceptionChairman.continueButton') }}
+            BaseButton(v-else, block, variant="primary", :loading="signing", @click="confirm")
+              template(#icon-left)
+                q-icon(name="draw", size="18px")
+              span(v-if="signing") {{ $t('marketplace.signAplReceptionChairman.signingProgressText', { done, total: deliveriesCount }) }}
+              span(v-else) {{ $t('marketplace.signAplReceptionChairman.signAndPostButton') }}
+            BaseButton(block, variant="secondary", :loading="previewLoading", @click="toggleActs")
+              template(#icon-left)
+                q-icon(name="description", size="18px")
+              | {{ showActs ? $t('marketplace.signAplReceptionChairman.hideActsButton') : $t('marketplace.signAplReceptionChairman.showActsButton') }}
+            BaseButton(block, variant="ghost", :disabled="signing", @click="cancel") {{ $t('common.action.cancel') }}
+
+          //- Шаг 2: подпись. Здесь же держится требование указать место — до
+          //- подписи, потому что после неё поставка пропадает из ленты ожидаемых.
+          template(v-else)
+            BaseButton(
+              block,
+              variant="primary",
+              :loading="signing",
+              :disabled="signBlocked",
+              @click="confirm"
+            )
+              template(#icon-left)
+                q-icon(name="draw", size="18px")
+              span(v-if="signing") {{ $t('marketplace.signAplReceptionChairman.signingProgressText', { done, total: deliveriesCount }) }}
+              span(v-else-if="placementImpossible") {{ $t('marketplace.signAplReceptionChairman.needBoxFirstLabel') }}
+              span(v-else-if="signBlocked") {{ $t('marketplace.signAplReceptionChairman.needPlaceLabel') }}
+              span(v-else) {{ $t('marketplace.signAplReceptionChairman.signAndPostButton') }}
+            BaseButton(block, variant="ghost", :disabled="signing", @click="goBack") {{ $t('common.action.back') }}
 
   ScannerDialog(
     v-model="boxScannerOpen",
@@ -1026,54 +1070,12 @@ BaseDialog(
 
 <style scoped lang="scss">
 .sign-apl {
-  &__top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-  }
-
-  &__who {
-    display: flex;
-    align-items: center;
-    gap: var(--p-3, 12px);
-    min-width: 0;
-  }
-
-  &__ident {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  &__name {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-    overflow-wrap: break-word;
-  }
-
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--p-2, 8px);
-  }
-
-  &__sub {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-  }
-
   // ─── Полоска шагов ───
+  // В сводке справа шаги идут столбиком: номер, подпись.
   &__steps {
     display: flex;
-    align-items: center;
-    gap: var(--p-4, 16px);
-    flex-wrap: wrap;
-    margin-top: var(--p-3, 12px);
+    flex-direction: column;
+    gap: var(--p-2, 8px);
   }
 
   &__step {
@@ -1161,7 +1163,7 @@ BaseDialog(
   // Высота всех контролов строки — как у плотного поля Quasar (40px): кнопки,
   // чип этикетки, поле количества. Ширины колонок фиксированы, кроме места.
   $row-h: 40px;
-  $col-info: 208px;
+  $col-info: 260px;
   $col-label: 176px;
   $col-qty: 88px;
   $col-remove: 36px;
@@ -1206,11 +1208,12 @@ BaseDialog(
     display: grid;
     grid-template-columns: $col-info $col-label minmax(220px, 1fr);
     gap: $gap;
-    padding-bottom: var(--p-2, 8px);
-    border-bottom: 1px solid var(--p-line);
-    font-size: var(--p-fs-meta, 12px);
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    border-radius: var(--p-r-sm, 8px);
+    background: var(--p-surface-2);
+    font-size: var(--p-fs-eyebrow, 11px);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
     text-transform: uppercase;
     color: var(--p-ink-3);
   }
@@ -1224,7 +1227,7 @@ BaseDialog(
     grid-template-columns: $col-info minmax(0, 1fr);
     gap: $gap;
     align-items: start;
-    padding: var(--p-3, 12px) 0;
+    padding: var(--p-3, 12px);
     border-bottom: 1px solid var(--p-line);
 
     &:last-child {
@@ -1241,20 +1244,6 @@ BaseDialog(
     flex-direction: column;
     justify-content: center;
     gap: 2px;
-  }
-
-  &__unit-name {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 500;
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__unit-meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
   }
 
   &__unit-rest {
