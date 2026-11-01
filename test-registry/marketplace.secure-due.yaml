@@ -13,6 +13,7 @@ title: Обеспечительная часть паевого взноса —
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-secure-due.service.ts
+    - components/extension-kit/src/config/stand-time.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity.ts
     - components/controller/src/extensions/marketplace/migrations/database/1793440000000-secure-due.ts
   contract:
@@ -108,3 +109,21 @@ cases:
     external: unreachable
     external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
     status: passing
+
+  # 01.11.2026: общая шкала времени стенда (extension-kit). На стенде разработки
+  # сутки гарантии и «первое число» списания сжимаются переменными окружения,
+  # чтобы весь путь проходился за минуты; в работе время всегда настоящее.
+  - id: mkt.secure.due.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Стенд со сжатым временем (STAND_DAY_SECONDS, STAND_MONTH_SECONDS, STAND_WORKER_PACE_SECONDS)
+      и боевой узел с теми же переменными
+    expect: >
+      на стенде сутки и месяц из окружения, расчётный период — отрезок длины месяца, крон
+      списания ходит с шагом стенда; без переменных и в работе (NODE_ENV=production) время
+      настоящее, период — календарный месяц в часовом поясе кооператива
+    test: components/controller/tests/unit/extension-kit/stand-time.test.ts
+    external: unreachable
+    external_reason: "шкала времени задаётся окружением узла, через API стенда её не переключить"
+    status: written   # прогон — CI на полигоне ci/tests

@@ -12,7 +12,7 @@ import {
   type INotificationPort,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
-import { TableStore, chainErrorCode, isNull, lessOrEqual, platformSettings } from '@coopenomics/extension-kit';
+import { TableStore, chainErrorCode, isNull, lessOrEqual, platformSettings, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
 import { MARKETPLACE_SECURE_DUE_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceSecureDueEntity } from '../../infrastructure/entities/marketplace-secure-due.entity';
 import {
@@ -44,6 +44,9 @@ export enum MarketplaceSecureDueOperation {
   EXIT = 'o.mkt.exfee',
 }
 
+/** Шаг крона списания в работе — час. */
+const CHARGE_PACE_SECONDS = 60 * 60;
+
 /** Сколько строк крон списывает за прогон — защита от лавины транзакций. */
 const CHARGE_BATCH_LIMIT = 200;
 
@@ -69,12 +72,13 @@ function laterOf(a: Date | null | undefined, b: Date): Date {
   return a && a > b ? a : b;
 }
 
-/** Номер месяца в часовом поясе кооператива: год × 12 + месяц. */
+/**
+ * Номер расчётного месяца: в работе — календарный месяц в часовом поясе
+ * кооператива (год × 12 + месяц), на стенде со сжатым временем — отрезок
+ * длиной `STAND_MONTH_SECONDS` (шкала времени стенда в `extension-kit`).
+ */
 export function monthKey(date: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit' }).formatToParts(date);
-  const year = Number(parts.find((p) => p.type === 'year')?.value ?? 0);
-  const month = Number(parts.find((p) => p.type === 'month')?.value ?? 0);
-  return year * 12 + month;
+  return standPeriodKey(date, timeZone);
 }
 
 /**
@@ -264,12 +268,15 @@ export class MarketplaceSecureDueService {
   // ── Списание первого числа ──────────────────────────────────────────
 
   /**
-   * Раз в час: строки, созревшие до начала текущего месяца по часовому поясу
-   * кооператива, списываются. Первый прогон месяца — в первый час первого
-   * числа; остальные прогоны дописывают то, что не прошло.
+   * Раз в час (на стенде со сжатым временем — с шагом стенда): строки,
+   * созревшие до начала текущего месяца по часовому поясу кооператива,
+   * списываются. Первый прогон месяца — в первый час первого числа; остальные
+   * прогоны дописывают то, что не прошло. Крон просыпается каждую минуту, а
+   * работает в свой черёд — так шаг стенда меняется без правки расписания.
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async tick(): Promise<void> {
+    if (!isStandWorkerTurn(CHARGE_PACE_SECONDS)) return;
     if (this.running) return;
     const coopname = platformSettings().coopname;
     if (!coopname) return;

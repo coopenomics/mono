@@ -1,4 +1,4 @@
-import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { rethrowChainError, DomainError, standDaySeconds } from '@coopenomics/extension-kit';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
@@ -239,7 +239,9 @@ export class MarketplaceOrderCreateService {
     const total_cost_amount = this.computeTotalCostAmount(resolved, offer.unit_of_measure);
     const unit_price_asset = this.formatAsset(resolved.unitPrice);
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
-    const warranty_period_secs = offer.warranty_days * 86_400;
+    // Сутки — по шкале времени стенда: в работе настоящие, на стенде разработки
+    // сжатые, чтобы гарантия и списание обеспечительной части проходились за минуты.
+    const warranty_period_secs = offer.warranty_days * standDaySeconds();
 
     // ── 3. Optimistic counter (синхронно ДО chain submit) ──────────
     const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity, packageDelta);

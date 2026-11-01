@@ -251,3 +251,8 @@ cases:
 # (recipientName), и реестр с кассой видят организацию по названию вместо
 # прочерка. Поведение фичи проверяют случаи exp.prop.side.recipient-org в
 # expenses.proposals.yaml; сценарии этой фичи не менялись.
+
+# 01.11.2026: шкала времени образования читает общую шкалу стенда
+# (extension-kit, STAND_DAY_SECONDS / STAND_MONTH_SECONDS / STAND_WORKER_PACE_SECONDS),
+# если она задана; прежние переменные EDUBRIDGE_* и сжатие по NODE_ENV=development
+# остаются запасными. Сценарии фичи не менялись.
