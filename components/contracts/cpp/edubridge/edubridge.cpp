@@ -19,7 +19,7 @@
 #include "src/p.edu.spend/onexpdone.cpp"
 #include "src/p.edu.access/expiresub.cpp"
 
-// ── p.edu.rid (15 actions) ───── паевой взнос РИД преподавателя ────────
+// ── p.edu.rid (16 actions) ───── паевой взнос РИД преподавателя ────────
 #include "src/p.edu.rid/openlesson.cpp"
 #include "src/p.edu.rid/chargelesson.cpp"
 #include "src/p.edu.rid/holdrid.cpp"
@@ -33,6 +33,7 @@
 #include "src/p.edu.rid/acceptrid.cpp"
 #include "src/p.edu.rid/declinerid.cpp"
 #include "src/p.edu.rid/recallrid.cpp"
+#include "src/p.edu.rid/declinelesson.cpp"
 #include "src/p.edu.rid/wthshare.cpp"
 
 // ── p.edu.teach (6 actions) ──── договор УХД через одобрение, допуски ──

@@ -37,9 +37,9 @@ using namespace Edubridge;
  *    курс — рабочее состояние в RAM, стирается по истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (15 actions): openlesson, chargelesson, closecharge, droplesson,
+ *  - **p.edu.rid** (16 actions): openlesson, chargelesson, closecharge, droplesson,
  *    holdrid, submitrid, onridauth, onriddecl, signridact, apprvridact,
- *    dclridact, acceptrid, declinerid, recallrid,
+ *    dclridact, acceptrid, declinerid, recallrid, declinelesson,
  *    wthshare — преподаватель отчитывается по занятию, контракт по одной
  *    подписке за действие считает его взнос (оплата занятия уходит из
  *    резерва подписки), и преподаватель передаёт материалы на
@@ -426,6 +426,17 @@ public:
   [[eosio::action]] void recallrid(eosio::name coopname,
                                    checksum256 rid_hash,
                                    std::string reason);
+
+  /**
+   * @brief Отказ совета по взносу результатом занятия: оплата занятия
+   * возвращается в названные подписки, где оно рассчитано (o.edu.allot для
+   * части в кошельке программы), номер занятия освобождается. Вызывается до
+   * `recallrid`; ученики при повторном отчёте платят за занятие один раз.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void declinelesson(eosio::name coopname,
+                                       checksum256 rid_hash,
+                                       std::vector<checksum256> subs);
 
   /**
    * @brief Трансляция паевого взноса преподавателя из ЦПП «Образование» в

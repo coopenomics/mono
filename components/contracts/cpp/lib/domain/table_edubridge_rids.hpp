@@ -4,6 +4,7 @@
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
+#include <eosio/binary_extension.hpp>
 
 #include "../consts.hpp"
 #include "../core/ram_payer.hpp"
@@ -30,6 +31,25 @@ using namespace eosio;
  * протоколу) и `recallrid` (рекламация) стирают запись, история остаётся
  * у парсера.
  */
+/**
+ * @brief Занятие, по которому приняты материалы, — для возврата оплаты
+ * ученикам при отказе совета (`declinelesson`).
+ *
+ * Запись занятия `holdrid` стирает, а отказ совета должен вернуть ученикам
+ * оплату этого занятия и освободить его номер: тогда повторный отчёт идёт
+ * обычным расчётом, и ученики платят за занятие один раз (решение владельца
+ * 02.11.2026). Живёт внутри записи материалов и исчезает вместе с ней.
+ */
+struct edu_rid_lesson {
+  uint32_t number = 0;     ///< номер занятия в программе группы
+  uint32_t minutes = 0;    ///< минуты занятия
+  eosio::asset cost;       ///< оплата занятия одним участником по окну расписания
+  eosio::asset charge;     ///< взнос преподавателя с одной подписки (курс с расчётом за каждого участника)
+  bool unwound = false;    ///< оплата ученикам возвращена (declinelesson уже прошёл)
+
+  EOSLIB_SERIALIZE(edu_rid_lesson, (number)(minutes)(cost)(charge)(unwound))
+};
+
 struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_rid {
   uint64_t id;                       ///< внутренний ID
   checksum256 rid_hash;              ///< process_hash для p.edu.rid
@@ -42,6 +62,9 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_rid {
   eosio::time_point_sec hold_until;  ///< до какой даты материалы числятся на ответственном хранении (гарантийный срок курса)
   eosio::time_point_sec created_at;  ///< приём материалов на хранение
   uint64_t course_id;                ///< курс (off-chain id приложения), из резерва которого оплачивается результат; тот же, что в edu_subscription.course_id
+  // Добавлено в ХВОСТ и обёрнуто в binary_extension: записи, принятые до
+  // появления поля, читаются как прежде (у них возврата оплаты нет).
+  eosio::binary_extension<edu_rid_lesson> lesson; ///< занятие одиночной передачи материалов; у пакета гарантийного срока пусто
 
   uint64_t primary_key()  const { return id; }
   checksum256 by_hash()   const { return rid_hash; }

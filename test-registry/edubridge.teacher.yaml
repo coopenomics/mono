@@ -410,8 +410,9 @@ cases:
     expect: "Строка журнала та же, взнос новый с другим ключом."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    # Внешний тест выключен (it.skip) до решения владельца, blackbox 01.11.2026:
-    # openlesson того же номера после отказа совета — EDUBRIDGE_LESSON_NUMBER_TAKEN.
+    # 02.11.2026 (решение владельца): отказ совета возвращает ученикам оплату
+    # занятия и освобождает номер (declinelesson) — повторный отчёт обычным
+    # расчётом, ученики платят за занятие один раз.
     status: written
   - id: edu.teach.happy.11
     level: backend

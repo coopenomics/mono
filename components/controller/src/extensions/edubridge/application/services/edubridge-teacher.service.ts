@@ -1290,6 +1290,7 @@ export class EdubridgeTeacherService {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
     if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.SUBMITTED) return;
     const basis = reason.trim() || t('edubridge.teacher.councilDeclinedReason');
+    await this.returnLessonPayment(coopname, c);
     await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: basis }) } as never);
     c.council_outcome = c.council_outcome ?? EduCouncilOutcome.DECLINED;
     c.decline_reason = basis;
@@ -1298,6 +1299,27 @@ export class EdubridgeTeacherService {
     const saved = await this.teachers.saveContribution(c);
     this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
     this.logger.info(`[EDU.RID] совет отказал в приёме взноса ${c.rid_hash} — материалы сняты с хранения: ${basis}`);
+  }
+
+  /**
+   * Отказ совета по взносу занятия: ученикам — оплата занятия назад, номер
+   * занятия свободен (`declinelesson`, до снятия материалов). Повторный отчёт
+   * тогда идёт обычным расчётом, и за занятие ученики платят один раз
+   * (решение владельца 02.11.2026). Контракт возвращает оплату только тем
+   * подпискам группы, где занятие рассчитано, поэтому названы все.
+   * Материалы, принятые до появления действия, записи занятия не несут —
+   * возврата у них нет, отказ идёт прежним путём.
+   */
+  private async returnLessonPayment(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
+    if (!c.lesson_id) return;
+    try {
+      const lesson = await this.lessons.findById(coopname, c.lesson_id);
+      if (!lesson?.group_id) return;
+      const subs = (await this.enrollments.findByGroup(coopname, lesson.group_id)).map((e) => e.sub_hash).filter(Boolean);
+      await this.chain.declineLesson({ coopname, rid_hash: c.rid_hash, subs });
+    } catch (e) {
+      this.logger.warn(`[EDU.RID] оплата занятия по ${c.rid_hash} ученикам не возвращена: ${(e as Error)?.message ?? e}`);
+    }
   }
 
   /**
