@@ -294,19 +294,27 @@ function proposalRows(p: ProposalTask): TaskRow[] {
   }));
 }
 
-/** Строки расчёта выдачи над итогом: стоимость, обеспечительная часть, возврат или доплата, трансляция. */
+/**
+ * Строки сводки получения (тексты согласованы владельцем 02.11.2026):
+ * стоимость имущества и обеспечительная часть — всегда; возврат на свободный
+ * паевой — если выдали меньше или дешевле заказа; «сверх внесённого при
+ * заказе» — если больше или дороже; перевод с главного паевого по заявлению —
+ * только если он нужен и сумма больше нуля. Нулевых строк нет.
+ */
 function proposalLines(p: ProposalTask): Array<{ label: string; value: string }> {
-  const lines: Array<{ label: string; value: string }> = [];
+  const lines: Array<{ label: string; value: string }> = [
+    { label: t('marketplace.onsiteSignatureGateOverlay.receivedCostLabel'), value: rub(p.total_cost) },
+  ];
   if (feePercent.value > 0) {
-    lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.receivedCostLabel'), value: rub(p.total_cost) });
     lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.membershipFeeLabel', { percent: feePercent.value }), value: rub(proposalFeeAmount(p)) });
   }
   const diff = proposalDiffs.value[p.id];
-  if (diff?.refund) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.refundToWalletLabel'), value: rub(diff.refund) });
-  if (diff?.surcharge) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel'), value: rub(diff.surcharge) });
-  const convert = proposalConverts.value[p.id];
-  if (convert) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.translateFromWalletLabel'), value: rub(convert.amount) });
-  else lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.feeCoveredByWalletLabel'), value: rub(proposalFeeAmount(p)) });
+  if (diff?.refund > 0) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.refundToWalletLabel'), value: rub(diff.refund) });
+  if (diff?.surcharge > 0) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel'), value: rub(diff.surcharge) });
+  const translated = Number.parseFloat(String(proposalConverts.value[p.id]?.amount ?? '0'));
+  if (translated > 0) {
+    lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.translateFromWalletLabel'), value: rub(translated) });
+  }
   return lines;
 }
 

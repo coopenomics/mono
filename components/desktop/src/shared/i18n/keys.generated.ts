@@ -5485,7 +5485,6 @@ export type MessageKey =
   | 'marketplace.onsiteSignatureGateOverlay.confirmReceptionHint'
   | 'marketplace.onsiteSignatureGateOverlay.dialogTitleActive'
   | 'marketplace.onsiteSignatureGateOverlay.dialogTitleIdle'
-  | 'marketplace.onsiteSignatureGateOverlay.feeCoveredByWalletLabel'
   | 'marketplace.onsiteSignatureGateOverlay.flowSubtitle.actProgress'
   | 'marketplace.onsiteSignatureGateOverlay.flowSubtitle.actSingle'
   | 'marketplace.onsiteSignatureGateOverlay.flowSubtitle.council'
