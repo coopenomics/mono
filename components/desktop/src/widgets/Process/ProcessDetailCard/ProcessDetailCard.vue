@@ -69,8 +69,7 @@
                   EntityIdBadge(v-else :rawId='cp.row.globalSequence' copy-on-click)
               template(#body-cell-label='cp')
                 q-td(:props='cp')
-                  q-chip(
-                    dense square
+                  BaseChip(
                     :color='processChipBg(processType)'
                     :text-color='processChipText(processType)'
                   ) {{ operationLabel(cp.row) }}
@@ -113,9 +112,8 @@
               //- пара счетов в разное время ничего не говорит о процессе.
               template(#body-cell-operation='cp')
                 q-td(:props='cp')
-                  q-chip(
+                  BaseChip(
                     v-if='cp.row.operationCode'
-                    dense square
                     :color='processChipBg(processType)'
                     :text-color='processChipText(processType)'
                   ) {{ operationLabel(cp.row) }}
@@ -148,7 +146,7 @@ import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
-import { BaseCard, CardListSkeleton, TableSkeleton } from 'src/shared/ui/base'
+import { BaseCard, BaseChip, CardListSkeleton, TableSkeleton } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow'
 import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog'
