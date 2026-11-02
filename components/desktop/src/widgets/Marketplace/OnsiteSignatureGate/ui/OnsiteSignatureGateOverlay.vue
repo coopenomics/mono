@@ -377,53 +377,54 @@ watch(
 </script>
 
 <template lang="pug">
-//- Экран подписи на пункте выдачи — рабочая страница на холсте, как окно
-//- приёмки у оператора: шапка, затем по ряду на задачу — позиции слева,
-//- сводка с итогом и подписью справа (общие компоненты актов).
+//- Идёт получение: обычное окно посередине экрана, а не полноэкранный холст —
+//- ход дела одной карточкой, без кнопок (слово владельца 02.11.2026).
 BaseDialog(
-  :model-value='isVisible',
+  :model-value='!!activeFlow',
+  size='lg',
+  :title='dialogTitle',
+  :hide-close-button='true',
+  :close-on-backdrop='false',
+  :close-on-escape='false'
+)
+  .onsite-gate__flow
+    p.onsite-gate__lead {{ $t('marketplace.onsiteSignatureGateOverlay.leadTextActive') }}
+    .onsite-gate__head
+      q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
+      q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
+      q-icon(v-else, name='inventory_2', size='28px')
+      .onsite-gate__ident
+        span.onsite-gate__name {{ flowTitle }}
+        span.onsite-gate__sub {{ flowSub }}
+
+    VerticalStepper(
+      :steps='FLOW_STEPS',
+      :active-key='flowActiveKey',
+      :completed='flowCompleted',
+      :errored='flowErrored'
+    )
+      template(#active)
+        q-linear-progress.onsite-gate__bar(
+          v-if='flowRunning',
+          indeterminate,
+          color='primary',
+          track-color='grey-9',
+          size='4px',
+          rounded
+        )
+
+//- Задачи на подпись — рабочая страница на холсте, как окно приёмки у
+//- оператора: шапка, затем по ряду на задачу — позиции слева, сводка с
+//- итогом и подписью справа (общие компоненты актов).
+BaseDialog(
+  :model-value='isVisible && !activeFlow',
   :maximized='true',
   :canvas='true',
   :hide-close-button='true',
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
-  //- Идёт получение: шапка и одна карточка с ходом дела, без кнопок —
-  //- колонкой по центру экрана у его верха.
-  .onsite-gate__center(v-if='activeFlow')
-    ActDialogLayout.onsite-gate__flow-layout(
-      bare,
-      :title='dialogTitle',
-      :lead='$t("marketplace.onsiteSignatureGateOverlay.leadTextActive")'
-    )
-      BaseCard.onsite-gate__flow
-        template(#head)
-          .onsite-gate__head
-            q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
-            q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
-            q-icon(v-else, name='inventory_2', size='28px')
-            .onsite-gate__ident
-              span.onsite-gate__name {{ flowTitle }}
-              span.onsite-gate__sub {{ flowSub }}
-
-        VerticalStepper(
-          :steps='FLOW_STEPS',
-          :active-key='flowActiveKey',
-          :completed='flowCompleted',
-          :errored='flowErrored'
-        )
-          template(#active)
-            q-linear-progress.onsite-gate__bar(
-              v-if='flowRunning',
-              indeterminate,
-              color='primary',
-              track-color='grey-9',
-              size='4px',
-              rounded
-            )
-
   ActDialogLayout(
-    v-else,
     bare,
     :title='dialogTitle',
     :lead='`${$t("marketplace.onsiteSignatureGateOverlay.leadTextIdleLine1")} ${$t("marketplace.onsiteSignatureGateOverlay.leadTextIdleLine2")}`'
@@ -558,22 +559,18 @@ BaseDialog(
 
 <style scoped lang="scss">
 .onsite-gate {
-  // Ход получения — колонкой по центру экрана, прижатой к верху: пайщик
-  // смотрит на одну карточку. Вертикально по центру карточка висела посреди
-  // пустоты (слово владельца 02.11.2026).
-  &__center {
-    display: flex;
-    justify-content: center;
-  }
-
-  // Двойной класс сильнее ширины рабочей страницы каркаса актов.
-  &__flow-layout.act-dialog {
-    width: 100%;
-    max-width: 720px;
-  }
-
+  // Ход получения в обычном окне: подсказка, шапка дела и шаги столбиком.
   &__flow {
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-4, 16px);
+  }
+
+  &__lead {
+    margin: 0;
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: 1.45;
+    color: var(--p-ink-3);
   }
 
   &__head {
