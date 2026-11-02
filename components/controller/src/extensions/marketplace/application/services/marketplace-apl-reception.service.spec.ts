@@ -82,6 +82,9 @@ function buildMocks() {
     findByShipmentId: jest.fn(),
     create: jest.fn(),
     applySignatures: jest.fn(),
+    // Захват подписи (99D-18): в этих случаях стол один, подпись всегда свободна.
+    claimStep: jest.fn().mockResolvedValue(true),
+    releaseStep: jest.fn(),
   } as unknown as jest.Mocked<MarketplaceAplReceptionDomainRepository>;
 
   const counters = {
