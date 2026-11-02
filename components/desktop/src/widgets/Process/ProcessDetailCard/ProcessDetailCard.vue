@@ -109,6 +109,17 @@
                     copy-on-click
                   )
                   span.text-grey-6(v-else) —
+              //- Суть проводки: та же операция, что в реестре проводок. Без неё
+              //- пара счетов в разное время ничего не говорит о процессе.
+              template(#body-cell-operation='cp')
+                q-td(:props='cp')
+                  q-chip(
+                    v-if='cp.row.operationCode'
+                    dense square
+                    :color='processChipBg(processType)'
+                    :text-color='processChipText(processType)'
+                  ) {{ operationLabel(cp.row) }}
+                  span.text-grey-6(v-else) —
               template(#body-cell-debit='cp')
                 q-td.text-center(:props='cp')
                   AccountCodeBadge(:account-code='accountCodeFromId(cp.row.debitAccountId)')
@@ -202,6 +213,7 @@ const opColumns = [
 const pstColumns = [
   { name: 'date', align: 'left' as const, label: t('process.processDetailCard.dateColumn'), field: 'createdAt' },
   { name: 'posting', align: 'left' as const, label: t('process.processDetailCard.postingNumberColumn'), field: 'debitGlobalSequence' },
+  { name: 'operation', align: 'left' as const, label: t('process.processDetailCard.operationColumn'), field: 'operationCode' },
   { name: 'debit', align: 'center' as const, label: t('process.processDetailCard.debitColumn'), field: 'debitAccountId' },
   { name: 'credit', align: 'center' as const, label: t('process.processDetailCard.creditColumn'), field: 'creditAccountId' },
   { name: 'amount', align: 'right' as const, label: t('process.processDetailCard.amountColumn'), field: 'quantity' },
@@ -219,6 +231,7 @@ const OP_SKELETON_COLUMNS: TableSkeletonColumn[] = [
 const PST_SKELETON_COLUMNS: TableSkeletonColumn[] = [
   { label: t('process.processDetailCard.dateColumn'), width: '150px' },
   { label: t('process.processDetailCard.postingNumberColumn'), width: '120px', cell: 'badge' },
+  { label: t('process.processDetailCard.operationColumn'), cell: 'badge' },
   { label: t('process.processDetailCard.debitColumn'), width: '90px', cell: 'badge' },
   { label: t('process.processDetailCard.creditColumn'), width: '90px', cell: 'badge' },
   { label: t('process.processDetailCard.amountColumn'), width: '120px', class: 'col-num' },

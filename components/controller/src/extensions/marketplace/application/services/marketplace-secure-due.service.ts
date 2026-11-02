@@ -12,7 +12,7 @@ import {
   type INotificationPort,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
-import { TableStore, chainErrorCode, isNull, lessOrEqual, platformSettings, standNextPeriodStart, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
+import { AmountFormatterUtils, TableStore, chainErrorCode, isNull, lessOrEqual, platformSettings, standNextPeriodStart, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
 import { MARKETPLACE_SECURE_DUE_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceSecureDueEntity } from '../../infrastructure/entities/marketplace-secure-due.entity';
 import {
@@ -422,7 +422,8 @@ export class MarketplaceSecureDueService {
       try {
         const payload: Workflows.MarketplaceSecurePartCharged.IPayload = {
           userName: await this.accountPort.getDisplayName(username),
-          amount: this.economyService.unitsToAsset(units),
+          // Пайщик читает сумму в два знака, как во всех уведомлениях; цепь хранит четыре.
+          amount: AmountFormatterUtils.formatAmountSafe(this.economyService.unitsToAsset(units)),
           ordersCount: String(orders),
           coopname,
           deepLinkUrl: `${platformSettings().frontendUrl}/${coopname}/market/my-orders`,

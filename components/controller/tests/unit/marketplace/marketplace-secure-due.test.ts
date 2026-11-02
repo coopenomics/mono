@@ -240,7 +240,7 @@ describe('mkt.secure.due.side.9 — письмо пайщику: одно за �
     expect(notifications.notifyUser).toHaveBeenCalledWith(
       'orderer1',
       'obespechitelnaya-chast-spisana',
-      expect.objectContaining({ amount: '50.0000 RUB', ordersCount: '2' })
+      expect.objectContaining({ amount: '50,00 RUB', ordersCount: '2' })
     );
   });
 

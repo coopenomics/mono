@@ -289,12 +289,12 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // 1. Вступительный взнос: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
   { operations::registrator::PAY_ENTRANCE, processes::registrator::ACCEPT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
-    "Вступительный взнос пайщика" },
+    "Внесение вступительного взноса пайщиком" },
 
   // 2. Минимальный паевой взнос (при регистрации): Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
   { operations::registrator::PUT_MINSHARE, processes::registrator::ACCEPT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MIN_SHARE_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Минимальный паевой взнос пайщика при регистрации" },
+    "Внесение минимального паевого взноса при регистрации" },
 
   // 2a. Приём регистрационного взноса кассой (поток через совет): Dr 51 / Cr 76, ISSUE REGISTRATION_PENDING.
   // Деньги получены, но взнос ещё не признан — висит на расчётах с пайщиком (76)
@@ -351,13 +351,13 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // Денежные взносы в Благорост идут через `o.cap.invest` (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND).
   { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос по целевой потребительской программе «Благорост» (офлайн-импорт)" },
+    "Перенос паевого взноса по ЦПП «Благорост» из офлайн-учёта" },
 
   // 6. Инвестиция из Цифрового Кошелька в Благорост: TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND (без Dr/Cr — оба счёта 80)
   { operations::capital::INVEST, processes::capital::INVEST, WalletOp::TRANSFER,
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
-    "Инвестиция в ЦПП «Благорост»" },
+    "Внесение инвестиции в ЦПП «Благорост»" },
 
   // 7. Коммит РИД на ответственное хранение: Dr 08 / Cr 76, ISSUE GENERATOR_FUND
   // (ADR-009: единый кошелёк программы Генератор).
@@ -370,7 +370,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // (o.cap.ridshr, Dr 76 / Cr 80) — той же схемой, что и в ЦПП «Образование».
   { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::GENERATOR_FUND,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::OTHER_SETTLEMENTS,
-    "Коммит результата интеллектуальной деятельности по программе «Генератор»" },
+    "Приём коммита РИД на ответственное хранение по программе «Генератор»" },
 
   // 8. Приём РИД в НМА: Dr 04 / Cr 08, NONE — кошелёк остаётся на GENERATOR_FUND.
   // Семантика: подписан акт-2, РИД принят как НМА (закрылся 08-й). Перемещение
@@ -389,14 +389,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::SETTLE_RID, processes::capital::RID, WalletOp::NONE,
     eosio::name{}, eosio::name{},
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос результатом интеллектуальной деятельности по программе «Генератор»" },
+    "Внесение паевого взноса результатом интеллектуальной деятельности по программе «Генератор»" },
 
   // 9. Акт-2 имущественный паевой взнос: Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
   // Имущественный (РИД) — Dr 04 (НМА), не Dr 51 (банк). Денежный паевой —
   // через o.wal.depcpl или o.cap.invest.
   { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос (не денежный) по программе «Благорост»" },
+    "Внесение имущественного паевого взноса по программе «Благорост»" },
 
   // 9a. Первичный учёт РИД-взноса: Dr 04 / Cr 80, ISSUE PREIMP_FUND.
   // Пайщик внёс РИД-имущество ДО перехода кооператива на электронный учёт.
@@ -405,7 +405,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // переоткрыть на полный объём через `o.cap.import` под единый Благорост-фонд.
   { operations::capital::PREIMP, processes::capital::PREIMP, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::PREIMP_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Первичный учёт РИД-взноса до перехода на электронный учёт" },
+    "Постановка на учёт РИД-взноса до перехода на электронный учёт" },
 
   // 9b. Закрытие пред-импорт-учёта: Dr 80 / Cr 04, BURN PREIMP_FUND.
   // Вызывается из `capital::importcontr` ДО `o.cap.import`, если у пайщика
@@ -435,7 +435,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::LOCK_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,
-    "Паевой резерв под заказ" },
+    "Блокировка паевого взноса под заказ" },
 
   // 12a². p.mkt.supply: Паевой резерв из свободного паевого «Стола заказов»
   //       (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80).
@@ -443,7 +443,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::LOCK_FROM_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,
-    "Паевой резерв под стоимость имущества заказа" },
+    "Блокировка паевого взноса под стоимость имущества заказа" },
 
   // 12b. p.mkt.supply: Возврат резерва (TRANSFER w.mkt.order → w.mkt.share,
   //      без Dr/Cr — оба на 80). cancelorder / declineorder / expireorder;
@@ -460,7 +460,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::REFUSAL_PENALTY, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::MARKETPLACE_SECURE_DUE,
     0, 0,
-    "Удержание при отказе пайщика от получения после акцепта поставщиком — к списанию" },
+    "Удержание части стоимости заказа при отказе пайщика от получения после акцепта поставщиком" },
 
   // 12c. p.mkt.supply: Приёмка имущества кооперативом по АПП приёмки
   //      (Dr 10 / Cr 76, ISSUE ∅ → w.mkt.topay по поставщику). Кооператив получил
@@ -500,7 +500,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::RETURN_BY_MEMBER, processes::marketplace::RETURN, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     ledger2_accounts::MATERIALS, ledger2_accounts::SHARE_FUND,
-    "Отмена сделки по гарантийному возврату — имущество на склад, паевой взнос восстановлен" },
+    "Отмена сделки по гарантийному возврату с возвратом имущества на склад и восстановлением паевого взноса" },
 
   // 12g. p.mkt.wroff: Утилизация скоропорта со склада (NONE Dr 91 / Cr 10).
   //      По протоколу совета. Порча запаса — прочий расход, как уценка
@@ -515,14 +515,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::CLAIM_SUPPLIER, processes::marketplace::CLAIM, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::MARKETPLACE_CLAIM_PENDING,
     0, 0,
-    "Гарантийная претензия поставщику по отменённой советом сделке (не признана)" },
+    "Предъявление поставщику гарантийной претензии после отмены сделки советом" },
 
   // 12n. p.mkt.claim: Поставщик признал претензию
   //      (TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — TBD-Standardization).
   { operations::marketplace::ADMIT_CLAIM, processes::marketplace::CLAIM, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_CLAIM_PENDING, ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT,
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::OTHER_INCOME_EXPENSES,
-    "Претензия признана поставщиком — долг к удержанию из выплат" },
+    "Признание поставщиком претензии и постановка долга к удержанию из выплат" },
 
   // 12p. p.mkt.supply: Удержание признанного гарантийного долга из выплаты
   //      поставщику (BURN с w.mkt.debt, без проводки — обе стороны на 76).
@@ -551,7 +551,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::SECURE_PART_LOCK, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
     0, 0,
-    "Обеспечительная часть паевого взноса под заказ" },
+    "Блокировка обеспечительной части паевого взноса под заказ" },
 
   // 12j. p.mkt.supply: Возврат неиспользованной обеспечительной части на
   //      свободный паевой (TRANSFER w.mkt.fee → w.mkt.share, без Dr/Cr — оба на 80).
@@ -566,7 +566,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::SECURE_TO_DUE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SECURE_DUE,
     0, 0,
-    "Обеспечительная часть паевого взноса к списанию" },
+    "Постановка обеспечительной части паевого взноса на списание" },
 
   // 12j³. p.mkt.supply: Списание обеспечительной части по условиям ЦПП — первая
   //       нога chargedue (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr); проводку
@@ -598,7 +598,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::EXIT_DUE_TO_POOL, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_FEE_POOL,
     0, 0,
-    "Обеспечительная часть к списанию при выходе пайщика из кооператива" },
+    "Списание обеспечительной части в членский взнос при выходе пайщика из кооператива" },
 
   // 12e. p.edu.access: Конвертация паевого в членский взнос ЦПП «Образование»
   //      (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало 12a²
@@ -616,7 +616,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::edubridge::COLLECT_EDU_FEE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
     ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::EDU_PROGRAM_FUND,
     0, 0,
-    "Членский взнос за курс в фонд ЦПП «Образование»" },
+    "Зачисление членского взноса за курс в фонд ЦПП «Образование»" },
 
   // 12e⁵. p.edu.access: Удержание взноса до конца гарантийного срока курса
   //      (TRANSFER w.edu.fund → w.edu.escrow, без Dr/Cr — оба на 86).
@@ -639,7 +639,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::edubridge::ALLOT_TEACHER_RESERVE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
     ledger2_wallets::EDU_PROGRAM_FUND, ledger2_wallets::EDU_TEACHER_RESERVE,
     0, 0,
-    "Резерв выплат преподавателям из членского взноса по ЦПП «Образование»" },
+    "Резервирование выплат преподавателям из членского взноса по ЦПП «Образование»" },
 
   // 12e⁴. p.edu.access: Высвобождение резерва обратно в фонд при отмене
   //      подписки (TRANSFER w.edu.teach → w.edu.fund, без Dr/Cr — оба на 86).
@@ -746,7 +746,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::edubridge::SETTLE_EDU_RID, processes::edubridge::RID, WalletOp::TRANSFER,
     ledger2_wallets::EDU_RID_HOLD, ledger2_wallets::EDU_SHARE_FUND,
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос преподавателя результатом интеллектуальной деятельности" },
+    "Внесение преподавателем паевого взноса результатом интеллектуальной деятельности" },
 
   // 12f⁶. p.edu.rid: Трансляция паевого взноса преподавателя из ЦПП
   //      «Образование» в ЦПП «Цифровой Кошелёк» по его заявлению (TRANSFER
@@ -785,7 +785,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::branch::DISTRIBUTE_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::BRANCH_COMMON,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
-    "Списание обеспечительной части в членский взнос — в общий кошелёк кооперативного участка" },
+    "Зачисление членского взноса в общий кошелёк кооперативного участка" },
 
   // 13a². p.brn.fees: Сторно зачисления — из общего кошелька КУ обратно в пул
   //      обеспечительной части (TRANSFER w.brn.common → w.mkt.fee, Дт 86 / Кт 80;
@@ -884,7 +884,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::branch::FINANCIAL_AID, processes::branch::AID, WalletOp::BURN,
     ledger2_wallets::BRANCH_PERSONAL, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
-    "Материальная помощь доверенному кооперативного участка" },
+    "Выплата материальной помощи доверенному кооперативного участка" },
 
   // 13c-bis. p.brn.aid: Удержание НДФЛ из материальной помощи
   //      (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив —
@@ -941,7 +941,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::CONVERT_TO_SHARE, processes::capital::RID, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
-    "Конвертация сегмента: РИД → главный кошелёк" },
+    "Конвертация сегмента РИД в главный кошелёк" },
 
   // 19. Конвертация сегмента (часть в Благорост): TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr.
   // Финальная фаза процесса p.cap.rid (после signact2). Бухпроводка
@@ -950,7 +950,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::CONVERT_TO_BLAGO, processes::capital::RID, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
-    "Конвертация сегмента: РИД → ЦПП «Благорост»" },
+    "Конвертация сегмента РИД в ЦПП «Благорост»" },
 
   // 19a. Пополнение пула программных расходов: ISSUE PROGRAM_EXPENSE_POOL, без Dr/Cr.
   // Совет выделяет часть свободных инвестиций программы под целевые расходы:
@@ -1016,7 +1016,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::expense::OVERSPEND, processes::expense::PROPOSAL, WalletOp::TRANSFER,
     ledger2_wallets::PROGRAM_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::BANK_ACCOUNT,
-    "Доплата сверх подотчёта (перерасход)" },
+    "Доплата сверх подотчёта при перерасходе" },
 
   // 25. Биллинг — пополнение биллинг-кошелька: Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → BILLING_FUND_PAY.
   // Зеркало o.sov.axncnv (трансляция паевого в членский), но назначение —
@@ -1057,17 +1057,17 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // 15. Миграция: минимальный паевой: Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
   { operations::migration::MIN_SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MIN_SHARE_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: минимальные паевые взносы при миграции" },
+    "Перенос минимальных паевых взносов из прежнего учёта" },
 
   // 16. Миграция: остаток паевых деньгами: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
   { operations::migration::SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: остаток паевых взносов деньгами при миграции" },
+    "Перенос остатка паевых взносов деньгами из прежнего учёта" },
 
   // 17. Миграция: вступительные: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
   { operations::migration::ENTRY, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
-    "Транзитный перенос: вступительные взносы при миграции" },
+    "Перенос вступительных взносов из прежнего учёта" },
 
   // 18. Миграция: открытые обязательства перед поставщиками на кошелёк к оплате
   //     (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый

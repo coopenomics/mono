@@ -67,9 +67,9 @@ export interface OperationMeta {
 
 export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // registrator
-  { code: 'o.reg.payent', process_type: 'p.reg.accept', contract: 'registrator', name: 'PAY_ENTRANCE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Вступительный взнос пайщика' },
+  { code: 'o.reg.payent', process_type: 'p.reg.accept', contract: 'registrator', name: 'PAY_ENTRANCE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Внесение вступительного взноса пайщиком' },
 
-  { code: 'o.reg.putmin', process_type: 'p.reg.accept', contract: 'registrator', name: 'PUT_MINSHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.minshr', debit: 51, credit: 80, human_name: 'Минимальный паевой взнос пайщика при регистрации' },
+  { code: 'o.reg.putmin', process_type: 'p.reg.accept', contract: 'registrator', name: 'PUT_MINSHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.minshr', debit: 51, credit: 80, human_name: 'Внесение минимального паевого взноса при регистрации' },
 
   // Двухфазный путь через совет (reguser → confirmpay → confirmreg/declinereg)
   { code: 'o.reg.inpay', process_type: 'p.reg.accept', contract: 'registrator', name: 'RECEIVE_PAYMENT', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.pend', debit: 51, credit: 76, human_name: 'Приём регистрационного взноса в ожидание решения совета' },
@@ -94,23 +94,23 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // capital (ADR-009: единые программные кошельки `w.cap.blago`/`w.cap.gen`)
   // IMPORT и ACCEPT_PROPERTY — Dr 04 (НМА), не Dr 51: импорт/акт-2 фиксируют
   // имущественный вклад как РИД, не деньги. Денежные взносы в Благорост — INVEST.
-  { code: 'o.cap.import', process_type: 'p.cap.import', contract: 'capital', name: 'IMPORT', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Паевой взнос по ЦПП «Благорост» (офлайн-импорт)' },
+  { code: 'o.cap.import', process_type: 'p.cap.import', contract: 'capital', name: 'IMPORT', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Перенос паевого взноса по ЦПП «Благорост» из офлайн-учёта' },
 
-  { code: 'o.cap.invest', process_type: 'p.cap.invest', contract: 'capital', name: 'INVEST', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Инвестиция в ЦПП «Благорост»' },
+  { code: 'o.cap.invest', process_type: 'p.cap.invest', contract: 'capital', name: 'INVEST', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Внесение инвестиции в ЦПП «Благорост»' },
 
   // Коммит принимается на ответственное хранение (Дт 08 / Кт 76): паевым
   // взносом результат становится по заявлению пайщика и решению совета, и
   // тогда обязательство перед владельцем коммита гасится паевым фондом
   // (o.cap.ridshr).
-  { code: 'o.cap.commit', process_type: 'p.cap.rid', contract: 'capital', name: 'COMMIT_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.gen', debit: 8, credit: 76, human_name: 'Коммит РИД по программе «Генератор»' },
+  { code: 'o.cap.commit', process_type: 'p.cap.rid', contract: 'capital', name: 'COMMIT_RID', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.gen', debit: 8, credit: 76, human_name: 'Приём коммита РИД на ответственное хранение по программе «Генератор»' },
 
   { code: 'o.cap.accept', process_type: 'p.cap.rid', contract: 'capital', name: 'ACCEPT_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null, debit: 4, credit: 8, human_name: 'Приём РИД в паевой фонд' },
 
-  { code: 'o.cap.ridshr', process_type: 'p.cap.rid', contract: 'capital', name: 'SETTLE_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null, debit: 76, credit: 80, human_name: 'Паевой взнос пайщика результатом интеллектуальной деятельности по программе «Генератор»' },
+  { code: 'o.cap.ridshr', process_type: 'p.cap.rid', contract: 'capital', name: 'SETTLE_RID', wallet_op: 'NONE', wallet_from: null, wallet_to: null, debit: 76, credit: 80, human_name: 'Внесение паевого взноса результатом интеллектуальной деятельности по программе «Генератор»' },
 
-  { code: 'o.cap.actprp', process_type: 'p.cap.prop', contract: 'capital', name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Паевой взнос (имущественный) по программе «Благорост»' },
+  { code: 'o.cap.actprp', process_type: 'p.cap.prop', contract: 'capital', name: 'ACCEPT_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.blago', debit: 4, credit: 80, human_name: 'Внесение имущественного паевого взноса по программе «Благорост»' },
 
-  { code: 'o.cap.preimp', process_type: 'p.cap.preimp', contract: 'capital', name: 'PREIMP', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.preimp', debit: 4, credit: 80, human_name: 'Первичный учёт РИД-взноса до перехода на электронный учёт' },
+  { code: 'o.cap.preimp', process_type: 'p.cap.preimp', contract: 'capital', name: 'PREIMP', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.preimp', debit: 4, credit: 80, human_name: 'Постановка на учёт РИД-взноса до перехода на электронный учёт' },
 
   { code: 'o.cap.drppre', process_type: 'p.cap.import', contract: 'capital', name: 'DROP_PREIMP', wallet_op: 'BURN', wallet_from: 'w.cap.preimp', wallet_to: null, debit: 80, credit: 4, human_name: 'Закрытие пред-импорт-учёта РИД-взноса при переходе на электронный учёт' },
 
@@ -120,9 +120,9 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.cap.wthcap', process_type: 'p.cap.wthcap', contract: 'capital', name: 'WITHDRAW_FROM_CAPITAL', wallet_op: 'TRANSFER', wallet_from: 'w.cap.blago', wallet_to: 'w.wal.share', debit: null, credit: null, human_name: 'Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк' },
 
-  { code: 'o.cap.cnvshr', process_type: 'p.cap.rid', contract: 'capital', name: 'CONVERT_TO_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.wal.share', debit: null, credit: null, human_name: 'Конвертация сегмента: РИД → главный кошелёк' },
+  { code: 'o.cap.cnvshr', process_type: 'p.cap.rid', contract: 'capital', name: 'CONVERT_TO_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.wal.share', debit: null, credit: null, human_name: 'Конвертация сегмента РИД в главный кошелёк' },
 
-  { code: 'o.cap.cnvbl', process_type: 'p.cap.rid', contract: 'capital', name: 'CONVERT_TO_BLAGO', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Конвертация сегмента: РИД → ЦПП «Благорост»' },
+  { code: 'o.cap.cnvbl', process_type: 'p.cap.rid', contract: 'capital', name: 'CONVERT_TO_BLAGO', wallet_op: 'TRANSFER', wallet_from: 'w.cap.gen', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Конвертация сегмента РИД в ЦПП «Благорост»' },
 
   { code: 'o.cap.pgtop', process_type: 'p.cap.pgexp',   contract: 'capital',
     name: 'PROGRAM_EXPENSE_TOPUP', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.pgexp',
@@ -153,7 +153,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.exp.over',    process_type: 'p.exp.expns', contract: 'expense',
     name: 'OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.cap.pgexp', wallet_to: 'w.exp.adv',
     debit: 8, credit: 51,
-    human_name: 'Доплата сверх подотчёта (перерасход)' },
+    human_name: 'Доплата сверх подотчёта при перерасходе' },
 
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение
   // 06.09.2026; синхронно с operations.hpp `OPERATION_REGISTRY`, namespace
@@ -172,7 +172,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',
     debit: null, credit: null,
-    human_name: 'Паевой резерв под заказ' },
+    human_name: 'Блокировка паевого взноса под заказ' },
 
   // Тело любого заказа и доплата по факту берутся только со свободного паевого
   // «Стола заказов»: на него возвращаются паевые средства при отменах и
@@ -180,7 +180,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.lockp',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'LOCK_FROM_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.order',
     debit: null, credit: null,
-    human_name: 'Паевой резерв под стоимость имущества заказа' },
+    human_name: 'Блокировка паевого взноса под стоимость имущества заказа' },
 
   // Возврат резерва (отмена / недовыдача): средства остаются паевыми и
   // остаются в программе на свободном паевом «Стола заказов».
@@ -195,7 +195,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.penal',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'REFUSAL_PENALTY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.due',
     debit: null, credit: null,
-    human_name: 'Удержание при отказе пайщика от получения после акцепта поставщиком — к списанию' },
+    human_name: 'Удержание части стоимости заказа при отказе пайщика от получения после акцепта поставщиком' },
 
   // Закупка через счёт расчётов с разными дебиторами и кредиторами (76;
   // решение владельца 08.09.2026 — счёт 60 из плана снят).
@@ -228,7 +228,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.return',  process_type: 'p.mkt.return',  contract: 'marketplace',
     name: 'RETURN_BY_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.share',
     debit: 10, credit: 80,
-    human_name: 'Отмена сделки по гарантийному возврату — имущество на склад, паевой взнос восстановлен' },
+    human_name: 'Отмена сделки по гарантийному возврату с возвратом имущества на склад и восстановлением паевого взноса' },
 
   // Порча запаса выбывает в прочие расходы тем же путём, что уценка
   // (решение владельца 10.09.2026): счёт 86 двигают только операции с
@@ -250,7 +250,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'SECURE_PART_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.fee',
     debit: null, credit: null,
-    human_name: 'Обеспечительная часть паевого взноса под заказ' },
+    human_name: 'Блокировка обеспечительной части паевого взноса под заказ' },
 
   // Возврат неиспользованной обеспечительной части на свободный паевой:
   // отмена — полностью, недовыдача — пропорционально факту, отказ — половина.
@@ -264,7 +264,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.todue',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'SECURE_TO_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.due',
     debit: null, credit: null,
-    human_name: 'Обеспечительная часть паевого взноса к списанию' },
+    human_name: 'Постановка обеспечительной части паевого взноса на списание' },
 
   // Списание по условиям ЦПП — первая нога chargedue; проводку Дт 80 / Кт 86
   // делает вторая нога o.brn.common в той же транзакции.
@@ -295,18 +295,18 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.exfee',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'EXIT_DUE_TO_POOL', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.fee',
     debit: null, credit: null,
-    human_name: 'Обеспечительная часть к списанию при выходе пайщика из кооператива' },
+    human_name: 'Списание обеспечительной части в членский взнос при выходе пайщика из кооператива' },
 
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'CLAIM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.claim',
     debit: null, credit: null,
-    human_name: 'Гарантийная претензия поставщику по отменённой советом сделке (не признана)' },
+    human_name: 'Предъявление поставщику гарантийной претензии после отмены сделки советом' },
 
   { code: 'o.mkt.admit',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'ADMIT_CLAIM',    wallet_op: 'TRANSFER', wallet_from: 'w.mkt.claim', wallet_to: 'w.mkt.debt',
     debit: 76, credit: 91,
-    human_name: 'Претензия признана поставщиком — долг к удержанию из выплат' },
+    human_name: 'Признание поставщиком претензии и постановка долга к удержанию из выплат' },
 
   { code: 'o.mkt.deduct',  process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'DEDUCT_DEBT',    wallet_op: 'BURN', wallet_from: 'w.mkt.debt', wallet_to: null,
@@ -325,7 +325,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.edu.fee',     process_type: 'p.edu.access',  contract: 'edubridge',
     name: 'COLLECT_EDU_FEE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.member', wallet_to: 'w.edu.fund',
     debit: null, credit: null,
-    human_name: 'Членский взнос за курс в фонд ЦПП «Образование»' },
+    human_name: 'Зачисление членского взноса за курс в фонд ЦПП «Образование»' },
 
   { code: 'o.edu.lock',    process_type: 'p.edu.access',  contract: 'edubridge',
     name: 'LOCK_FEE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.escrow',
@@ -340,7 +340,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.edu.allot',   process_type: 'p.edu.access',  contract: 'edubridge',
     name: 'ALLOT_TEACHER_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.fund', wallet_to: 'w.edu.teach',
     debit: null, credit: null,
-    human_name: 'Резерв выплат преподавателям из членского взноса по ЦПП «Образование»' },
+    human_name: 'Резервирование выплат преподавателям из членского взноса по ЦПП «Образование»' },
 
   { code: 'o.edu.free',    process_type: 'p.edu.access',  contract: 'edubridge',
     name: 'FREE_TEACHER_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.teach', wallet_to: 'w.edu.fund',
@@ -408,7 +408,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.edu.ridshr',  process_type: 'p.edu.rid',     contract: 'edubridge',
     name: 'SETTLE_EDU_RID', wallet_op: 'TRANSFER', wallet_from: 'w.edu.hold', wallet_to: 'w.edu.share',
     debit: 76, credit: 80,
-    human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },
+    human_name: 'Внесение преподавателем паевого взноса результатом интеллектуальной деятельности' },
 
   // Паевой взнос с кошелька программы преподаватель переводит в «Цифровой
   // Кошелёк» своим заявлением; возврат паевого взноса идёт уже оттуда.
@@ -433,7 +433,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',
     debit: 80, credit: 86,
-    human_name: 'Списание обеспечительной части в членский взнос — в общий кошелёк кооперативного участка' },
+    human_name: 'Зачисление членского взноса в общий кошелёк кооперативного участка' },
 
   // Сторно зачисления — точная инверсия o.brn.common. С задачи 99D-18 Стол
   // заказов её не вызывает: гарантийный возврат идёт до списания.
@@ -490,7 +490,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
     name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.brn.person', wallet_to: null,
     debit: 86, credit: 51,
-    human_name: 'Материальная помощь доверенному кооперативного участка' },
+    human_name: 'Выплата материальной помощи доверенному кооперативного участка' },
 
   { code: 'o.brn.aidtax',  process_type: 'p.brn.aid',     contract: 'branch',
     name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.sov.ndfl',
@@ -522,11 +522,11 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Перечисление удержанного налога на доходы физических лиц в бюджет' },
 
   // migration
-  { code: 'o.mig.minshr', process_type: 'p.mig.trans', contract: 'migration', name: 'MIN_SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.minshr', debit: 51, credit: 80, human_name: 'Транзит: минимальные паевые взносы' },
+  { code: 'o.mig.minshr', process_type: 'p.mig.trans', contract: 'migration', name: 'MIN_SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.minshr', debit: 51, credit: 80, human_name: 'Перенос минимальных паевых взносов из прежнего учёта' },
 
-  { code: 'o.mig.share', process_type: 'p.mig.trans', contract: 'migration', name: 'SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share', debit: 51, credit: 80, human_name: 'Транзит: остаток паевых взносов деньгами' },
+  { code: 'o.mig.share', process_type: 'p.mig.trans', contract: 'migration', name: 'SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share', debit: 51, credit: 80, human_name: 'Перенос остатка паевых взносов деньгами из прежнего учёта' },
 
-  { code: 'o.mig.entry', process_type: 'p.mig.trans', contract: 'migration', name: 'ENTRY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Транзит: вступительные взносы' },
+  { code: 'o.mig.entry', process_type: 'p.mig.trans', contract: 'migration', name: 'ENTRY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Перенос вступительных взносов из прежнего учёта' },
 
   { code: 'o.mig.topay', process_type: 'p.mig.trans', contract: 'migration', name: 'SUPPLIER_PAYABLE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.topay', debit: null, credit: null, human_name: 'Перенос открытых обязательств перед поставщиками на кошелёк к оплате' },
 

@@ -370,7 +370,7 @@ operations:
     triggered_by: registrator::completexit
 
   - ledger_code: o.mkt.exfee
-    human_name: Обеспечительная часть «Стола заказов» к списанию — в членский взнос при выходе
+    human_name: Списание обеспечительной части в членский взнос при выходе пайщика из кооператива
     wallet_op: TRANSFER
     wallet_from: w.mkt.due
     wallet_to: w.mkt.fee
