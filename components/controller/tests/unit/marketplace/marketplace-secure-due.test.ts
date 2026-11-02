@@ -261,3 +261,63 @@ describe('monthKey — месяц в часовом поясе кооперат�
     expect(monthKey(instant, 'UTC')).toBe(2026 * 12 + 10);
   });
 });
+
+describe('mkt.secure.due.side.11 — обеспечительная часть в карточке заказа', () => {
+  // Заказ из ответа карточки; статус строкой, как его отдаёт база.
+  const order = (over: Record<string, unknown> = {}): any => ({
+    id: 'order-1',
+    coopname: COOP,
+    order_hash: ORDER.toUpperCase(),
+    membership_fee: '30.0000',
+    status: 'ACCEPTED',
+    ...over,
+  });
+
+  function withClaims(open: boolean) {
+    const built = build({ warrantyUntil: new Date('2026-10-24T10:00:00.000Z') });
+    (built.claimRepo as any).findActiveByOrderId = jest.fn(async () => (open ? { id: 'claim-1' } : null));
+    return built;
+  }
+
+  it('до получения — в резерве на сумму обеспечительной части заказа', async () => {
+    const { service } = withClaims(false);
+    expect(await service.securePartOf(order())).toMatchObject({ state: 'RESERVED', amount: '30.0000', charge_at: null });
+  });
+
+  it('отменённый заказ — возвращена; заказ прежней модели без строки учёта — блока нет', async () => {
+    const { service } = withClaims(false);
+    expect(await service.securePartOf(order({ status: 'CANCELLED_BY_SUPPLIER' }))).toMatchObject({ state: 'RETURNED' });
+    expect(await service.securePartOf(order({ status: 'RECEIVED' }))).toBeNull();
+    expect(await service.securePartOf(order({ membership_fee: '0.0000' }))).toBeNull();
+  });
+
+  it('после выдачи — ждёт списания с датой: полночь первого числа месяца после гарантии по часовому поясу кооператива', async () => {
+    const { service } = withClaims(false);
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
+    const part = await service.securePartOf(order({ status: 'RECEIVED' }));
+    expect(part).toMatchObject({ state: 'DUE', amount: '30.0000', due_amount: '30.0000', charged_amount: '0.0000' });
+    expect(part?.charge_at).toEqual(new Date('2026-10-31T21:00:00.000Z'));
+  });
+
+  it('открытый гарантийный возврат приостанавливает списание, даты нет', async () => {
+    const { service } = withClaims(true);
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
+    expect(await service.securePartOf(order({ status: 'RECEIVED' }))).toMatchObject({ state: 'SUSPENDED', charge_at: null });
+  });
+
+  it('после списания — списана с моментом списания; после гарантийного возврата — возвращена', async () => {
+    const charged = withClaims(false);
+    await charged.service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
+    await charged.service.applyOperation(apply(MarketplaceSecureDueOperation.CHARGE, '30.0000', 2, {}, '2026-11-01T00:05:00.000Z'));
+    expect(await charged.service.securePartOf(order({ status: 'RECEIVED' }))).toMatchObject({
+      state: 'CHARGED',
+      charged_amount: '30.0000',
+      settled_at: new Date('2026-11-01T00:05:00.000Z'),
+    });
+
+    const returned = withClaims(false);
+    await returned.service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
+    await returned.service.applyOperation(apply(MarketplaceSecureDueOperation.UNDUE, '30.0000', 2, { process_hash: 'C'.repeat(64) }));
+    expect(await returned.service.securePartOf(order({ status: 'RECEIVED' }))).toMatchObject({ state: 'RETURNED', charged_amount: '0.0000' });
+  });
+});

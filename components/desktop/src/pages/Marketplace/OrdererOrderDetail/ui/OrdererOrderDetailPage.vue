@@ -38,6 +38,7 @@ import {
   type MarketplaceReturnClaimView,
 } from '../../OrdererReturnClaims';
 import { t, t as i18nT } from 'src/shared/i18n';
+import { OrderSecurePartCard } from 'src/widgets/Marketplace/OrderSecurePartCard';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -511,6 +512,11 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
               template(#icon-left)
                 q-icon(name="assignment", size="16px")
               | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
+
+      //- Обеспечительная часть: пайщик видит, когда его паевой взнос станет
+      //- членским взносом участка, и что гарантийный возврат до этой даты
+      //- вернёт её на свободный паевой.
+      OrderSecurePartCard.order-detail__card(v-if="order.secure_part", :part="order.secure_part")
 
       BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
         template(#head)

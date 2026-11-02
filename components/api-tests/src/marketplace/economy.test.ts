@@ -55,6 +55,18 @@ let chairmanToken = ''
 /** Плановые расходы, заведённые набором, — снимаются в конце. */
 const plans: { token: string, id: number }[] = []
 
+// Обеспечительная часть в карточке заказа (mkt.secure.due.side.11): до и после списания.
+const SECURE_PART = 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ secure_part{ state amount due_amount charged_amount charge_at settled_at } } }'
+let partBeforeCharge: any = null
+let partAfterCharge: any = null
+
+async function securePartWhen(orderId: string, state: string): Promise<any> {
+  return waitFor(async () => {
+    const part = (await gql<any>(memberToken, SECURE_PART, { i: { order_id: orderId } })).marketplaceGetOrder.secure_part
+    return part?.state === state ? part : null
+  }, { timeoutMs: 120_000 })
+}
+
 function days(n: number): string {
   return new Date(Date.now() + n * 86_400_000).toISOString()
 }
@@ -94,13 +106,24 @@ describe('экономика участка: общий кошелёк, сетк
     const issued = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
     const onIssue = amount((await branchEconomy(krgToken, KRG)).common_balance)
     expect(onIssue, 'на выдаче членского взноса участку ещё нет').toBeCloseTo(before, 2)
+    partBeforeCharge = await securePartWhen(issued.orderId, 'DUE')
     await chargeSecurePart({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
+    partAfterCharge = await securePartWhen(issued.orderId, 'CHARGED')
     const after = amount((await branchEconomy(krgToken, KRG)).common_balance)
     expect(after, 'списанная обеспечительная часть обязана попасть в общий кошелёк участка').toBeGreaterThan(before)
   }, 900_000)
 
   afterAll(async () => {
     for (const p of [...plans]) await deletePlan(p.token, p.id).catch(() => {})
+  })
+
+  it(caseName('mkt.secure.due.side.11', 'карточка заказа показывает обеспечительную часть: ждёт списания с датой, затем списана'), () => {
+    expect(amount(partBeforeCharge.amount)).toBeGreaterThan(0)
+    expect(partBeforeCharge.charge_at, 'дата списания — первое число месяца после гарантии').toBeTruthy()
+    expect(new Date(partBeforeCharge.charge_at).getTime()).toBeGreaterThan(Date.now() - 24 * 60 * 60 * 1000)
+    expect(partAfterCharge).toMatchObject({ due_amount: '0.0000', charge_at: null })
+    expect(amount(partAfterCharge.charged_amount)).toBeCloseTo(amount(partBeforeCharge.amount), 2)
+    expect(partAfterCharge.settled_at).toBeTruthy()
   })
 
   it(caseName('mkt.eco.side.07', 'без своей ставки действует умолчание 30%, ставка вне 0…100 на цепь не уходит'), async () => {

@@ -12,7 +12,7 @@ import {
   type INotificationPort,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
-import { TableStore, chainErrorCode, isNull, lessOrEqual, platformSettings, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
+import { TableStore, chainErrorCode, isNull, lessOrEqual, platformSettings, standNextPeriodStart, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
 import { MARKETPLACE_SECURE_DUE_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceSecureDueEntity } from '../../infrastructure/entities/marketplace-secure-due.entity';
 import {
@@ -29,6 +29,15 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
+import { MarketplaceSecurePartState, type MarketplaceSecurePartDTO } from '../dto/marketplace-secure-part.dto';
+import { MarketplaceOrderStatuses, type MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
+
+/** Заказ закрыт без получения: обеспечительная часть вернулась на свободный паевой. */
+const ORDER_CLOSED_WITHOUT_ISSUE: ReadonlySet<MarketplaceOrderStatus> = new Set<MarketplaceOrderStatus>([
+  MarketplaceOrderStatuses.CANCELLED_BY_ORDERER,
+  MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER,
+  MarketplaceOrderStatuses.RETURNED,
+]);
 
 /** Операции ledger2, которые двигают кошелёк обеспечительной части к списанию `w.mkt.due`. */
 export enum MarketplaceSecureDueOperation {
@@ -263,6 +272,55 @@ export class MarketplaceSecureDueService {
     } catch {
       return false;
     }
+  }
+
+  // ── Обеспечительная часть в карточке заказа ─────────────────────────
+
+  /**
+   * Сколько, в каком состоянии и когда спишется — по строке учёта узла.
+   * Строки нет: до получения обеспечительная часть в резерве, у отменённого
+   * заказа — возвращена. У полученного заказа прежней модели (с членским
+   * взносом при заказе) строки нет и блока нет — `null`.
+   */
+  async securePartOf(order: {
+    id: string;
+    coopname: string;
+    order_hash: string;
+    membership_fee: string | null;
+    status: MarketplaceOrderStatus;
+  }): Promise<MarketplaceSecurePartDTO | null> {
+    const row = await this.dueStore.findOne({ order_hash: order.order_hash.toLowerCase() });
+    if (row) return this.securePartFromRow(order, row);
+    const fee = this.fromDecimal(order.membership_fee);
+    if (fee <= 0n) return null;
+    const zero = this.toDecimal(0n);
+    if (ORDER_CLOSED_WITHOUT_ISSUE.has(order.status)) {
+      return { state: MarketplaceSecurePartState.RETURNED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, charge_at: null, settled_at: null };
+    }
+    if (order.status === MarketplaceOrderStatuses.RECEIVED) return null;
+    return { state: MarketplaceSecurePartState.RESERVED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, charge_at: null, settled_at: null };
+  }
+
+  private async securePartFromRow(
+    order: { id: string; coopname: string },
+    row: MarketplaceSecureDueEntity
+  ): Promise<MarketplaceSecurePartDTO> {
+    const due = this.fromDecimal(row.due_amount);
+    const charged = this.fromDecimal(row.charged_amount);
+    const base = {
+      amount: this.toDecimal(due + charged),
+      due_amount: row.due_amount,
+      charged_amount: row.charged_amount,
+    };
+    if (due > 0n && !row.charged_at) {
+      const claim = await this.claimRepo.findActiveByOrderId(order.coopname, order.id);
+      if (claim) return { ...base, state: MarketplaceSecurePartState.SUSPENDED, charge_at: null, settled_at: null };
+      const timeZone = platformSettings().timezone || 'UTC';
+      const charge_at = row.due_from ? standNextPeriodStart(row.due_from, timeZone) : null;
+      return { ...base, state: MarketplaceSecurePartState.DUE, charge_at, settled_at: null };
+    }
+    const state = charged > 0n ? MarketplaceSecurePartState.CHARGED : MarketplaceSecurePartState.RETURNED;
+    return { ...base, state, charge_at: null, settled_at: row.charged_at };
   }
 
   // ── Списание первого числа ──────────────────────────────────────────

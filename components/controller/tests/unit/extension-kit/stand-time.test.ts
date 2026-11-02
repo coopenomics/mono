@@ -5,6 +5,7 @@ import {
   isStandWorkerTurn,
   standDaySeconds,
   standMonthSeconds,
+  standNextPeriodStart,
   standPeriodKey,
   standWorkerPaceSeconds,
 } from '@coopenomics/extension-kit';
@@ -85,5 +86,13 @@ describe('шкала времени стенда', () => {
 
     env({ NODE_ENV: 'development', STAND_DAY_SECONDS: '60', STAND_WORKER_PACE_SECONDS: '120' });
     expect(standWorkerPaceSeconds(3600)).toBe(120);
+  });
+
+  it('начало следующего месяца: полночь первого числа по поясу кооператива; на стенде — начало следующего отрезка', () => {
+    env({ NODE_ENV: 'development' });
+    expect(standNextPeriodStart(new Date('2026-11-02T05:40:19Z'), 'Europe/Moscow')).toEqual(new Date('2026-11-30T21:00:00Z'));
+    expect(standNextPeriodStart(new Date('2026-12-31T22:30:00Z'), 'Europe/Moscow')).toEqual(new Date('2027-01-31T21:00:00Z'));
+    env({ NODE_ENV: 'development', STAND_DAY_SECONDS: '60', STAND_MONTH_SECONDS: '600' });
+    expect(standNextPeriodStart(new Date('2026-11-02T05:40:19Z'), 'Europe/Moscow')).toEqual(new Date('2026-11-02T05:50:00Z'));
   });
 });

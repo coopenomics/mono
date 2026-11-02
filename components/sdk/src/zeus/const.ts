@@ -1517,6 +1517,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSaleForm: "enum" as const,
 	MarketplaceScanMatterKind: "enum" as const,
 	MarketplaceScanTarget: "enum" as const,
+	MarketplaceSecurePartState: "enum" as const,
 	MarketplaceIssuancePickTarget: "enum" as const,
 	MarketplaceIssuancePickVerdict: "enum" as const,
 	MarketplaceSetCartDeliveryPointInput:{
@@ -7576,6 +7577,7 @@ export const ReturnTypes: Record<string,any> = {
 		template_registry_id:"Int"
 	},
 	MarketplaceOrder:{
+		secure_part:"MarketplaceSecurePart",
 		accepted_at:"DateTime",
 		accepted_cost:"String",
 		blocked_at:"DateTime",
@@ -7799,6 +7801,14 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"Float",
 		target:"MarketplaceIssuancePickTarget",
 		verdict:"MarketplaceIssuancePickVerdict"
+	},
+	MarketplaceSecurePart:{
+		state:"MarketplaceSecurePartState",
+		amount:"String",
+		due_amount:"String",
+		charged_amount:"String",
+		charge_at:"DateTime",
+		settled_at:"DateTime"
 	},
 	MarketplaceScanVisit:{
 		account:"String",

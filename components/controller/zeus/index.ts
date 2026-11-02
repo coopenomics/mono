@@ -12199,6 +12199,8 @@ export type ValueTypes = {
 }>;
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: AliasType<{
+	/** Обеспечительная часть паевого взноса по заказу: сумма, состояние и дата списания в членский взнос. Пусто у заказов прежней модели. */
+	secure_part?:ValueTypes["MarketplaceSecurePart"],
 	/** Когда поставщик принял заказ. */
 	accepted_at?:boolean | `@${string}`,
 	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
@@ -12965,6 +12967,24 @@ export type ValueTypes = {
 	verdict?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceIssuancePickScan']?: Omit<ValueTypes["MarketplaceIssuancePickScan"], "...on MarketplaceIssuancePickScan">
+}>;
+	/** Состояние обеспечительной части паевого взноса по заказу. */
+["MarketplaceSecurePartState"]:MarketplaceSecurePartState;
+	["MarketplaceSecurePart"]: AliasType<{
+	/** Состояние. */
+	state?:boolean | `@${string}`,
+	/** Сумма обеспечительной части по заказу. */
+	amount?:boolean | `@${string}`,
+	/** Сколько ждёт списания. */
+	due_amount?:boolean | `@${string}`,
+	/** Сколько уже списано в членский взнос. */
+	charged_amount?:boolean | `@${string}`,
+	/** Когда спишется: первое число месяца после гарантийного срока. */
+	charge_at?:boolean | `@${string}`,
+	/** Когда списана или возвращена. */
+	settled_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSecurePart']?: Omit<ValueTypes["MarketplaceSecurePart"], "...on MarketplaceSecurePart">
 }>;
 	/** На что указал отсканированный код: пайщик, партия или бокс. */
 ["MarketplaceScanTarget"]:MarketplaceScanTarget;
@@ -30288,6 +30308,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: AliasType<{
+	/** Обеспечительная часть паевого взноса по заказу: сумма, состояние и дата списания в членский взнос. Пусто у заказов прежней модели. */
+	secure_part?:ResolverInputTypes["MarketplaceSecurePart"],
 	/** Когда поставщик принял заказ. */
 	accepted_at?:boolean | `@${string}`,
 	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
@@ -31029,6 +31051,23 @@ export type ResolverInputTypes = {
 	quantity?:boolean | `@${string}`,
 	target?:boolean | `@${string}`,
 	verdict?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние обеспечительной части паевого взноса по заказу. */
+["MarketplaceSecurePartState"]:MarketplaceSecurePartState;
+	["MarketplaceSecurePart"]: AliasType<{
+	/** Состояние. */
+	state?:boolean | `@${string}`,
+	/** Сумма обеспечительной части по заказу. */
+	amount?:boolean | `@${string}`,
+	/** Сколько ждёт списания. */
+	due_amount?:boolean | `@${string}`,
+	/** Сколько уже списано в членский взнос. */
+	charged_amount?:boolean | `@${string}`,
+	/** Когда спишется: первое число месяца после гарантийного срока. */
+	charge_at?:boolean | `@${string}`,
+	/** Когда списана или возвращена. */
+	settled_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** На что указал отсканированный код: пайщик, партия или бокс. */
@@ -47751,6 +47790,8 @@ export type ModelTypes = {
 };
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: {
+	/** Обеспечительная часть паевого взноса по заказу: сумма, состояние и дата списания в членский взнос. Пусто у заказов прежней модели. */
+	secure_part?: ModelTypes["MarketplaceSecurePart"] | undefined | null,
 		/** Когда поставщик принял заказ. */
 	accepted_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
@@ -48457,6 +48498,21 @@ export type ModelTypes = {
 	quantity?: number | undefined | null,
 	target?: ModelTypes["MarketplaceIssuancePickTarget"] | undefined | null,
 	verdict: ModelTypes["MarketplaceIssuancePickVerdict"]
+};
+	["MarketplaceSecurePartState"]:MarketplaceSecurePartState;
+	["MarketplaceSecurePart"]: {
+	/** Состояние. */
+	state: ModelTypes["MarketplaceSecurePartState"],
+	/** Сумма обеспечительной части по заказу. */
+	amount: string,
+	/** Сколько ждёт списания. */
+	due_amount: string,
+	/** Сколько уже списано в членский взнос. */
+	charged_amount: string,
+	/** Когда спишется: первое число месяца после гарантийного срока. */
+	charge_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Когда списана или возвращена. */
+	settled_at?: ModelTypes["DateTime"] | undefined | null
 };
 	["MarketplaceScanTarget"]:MarketplaceScanTarget;
 	["MarketplaceScanVisit"]: {
@@ -66244,6 +66300,8 @@ export type GraphQLTypes = {
 	/** Заказ пайщика по предложению поставщика. */
 ["MarketplaceOrder"]: {
 	__typename: "MarketplaceOrder",
+	/** Обеспечительная часть паевого взноса по заказу: сумма, состояние и дата списания в членский взнос. Пусто у заказов прежней модели. */
+	secure_part?: GraphQLTypes["MarketplaceSecurePart"] | undefined | null,
 	/** Когда поставщик принял заказ. */
 	accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Принятая стоимость по акту приёмки: сколько кооператив должен поставщику за этот заказ. Пусто — имущество ещё не принято. */
@@ -67008,6 +67066,23 @@ export type GraphQLTypes = {
 	target?: GraphQLTypes["MarketplaceIssuancePickTarget"] | undefined | null,
 	verdict: GraphQLTypes["MarketplaceIssuancePickVerdict"],
 	['...on MarketplaceIssuancePickScan']: Omit<GraphQLTypes["MarketplaceIssuancePickScan"], "...on MarketplaceIssuancePickScan">
+};
+["MarketplaceSecurePartState"]: MarketplaceSecurePartState;
+	["MarketplaceSecurePart"]: {
+	__typename: "MarketplaceSecurePart",
+	/** Состояние. */
+	state: GraphQLTypes["MarketplaceSecurePartState"],
+	/** Сумма обеспечительной части по заказу. */
+	amount: string,
+	/** Сколько ждёт списания. */
+	due_amount: string,
+	/** Сколько уже списано в членский взнос. */
+	charged_amount: string,
+	/** Когда спишется: первое число месяца после гарантийного срока. */
+	charge_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Когда списана или возвращена. */
+	settled_at?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on MarketplaceSecurePart']: Omit<GraphQLTypes["MarketplaceSecurePart"], "...on MarketplaceSecurePart">
 };
 ["MarketplaceScanTarget"]: MarketplaceScanTarget;
 	["MarketplaceScanVisit"]: {
@@ -74974,6 +75049,14 @@ export enum MarketplaceIssuancePickVerdict {
 	OTHER_ORDER = "OTHER_ORDER",
 	UNKNOWN = "UNKNOWN"
 }
+/** Состояние обеспечительной части паевого взноса по заказу. */
+export enum MarketplaceSecurePartState {
+	CHARGED = "CHARGED",
+	DUE = "DUE",
+	RESERVED = "RESERVED",
+	RETURNED = "RETURNED",
+	SUSPENDED = "SUSPENDED"
+}
 /** На что указал отсканированный код: пайщик, партия или бокс. */
 export enum MarketplaceScanTarget {
 	CONTAINER = "CONTAINER",
@@ -75961,6 +76044,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSaleForm"]: ValueTypes["MarketplaceSaleForm"];
 	["MarketplaceScanMatterKind"]: ValueTypes["MarketplaceScanMatterKind"];
 	["MarketplaceScanTarget"]: ValueTypes["MarketplaceScanTarget"];
+	["MarketplaceSecurePartState"]: ValueTypes["MarketplaceSecurePartState"];
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceSetMembershipFeeInput"]: ValueTypes["MarketplaceSetMembershipFeeInput"];

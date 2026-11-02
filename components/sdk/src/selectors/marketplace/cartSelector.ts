@@ -60,7 +60,10 @@ const rawCheckoutResultSelector = {
   cart: rawCartSelector,
 }
 
-const _validateCheckoutResult: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutResult']> =
+// Созданные заказы — тот же rawOrderSelector: его полноту проверяет
+// orderSelector.ts, без обеспечительной части, которую просит только
+// карточка одного заказа.
+const _validateCheckoutResult: MakeAllFieldsRequired<Omit<ValueTypes['MarketplaceCheckoutResult'], 'created_orders'>> =
   rawCheckoutResultSelector
 
 export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutResult')(

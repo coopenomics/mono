@@ -96,6 +96,7 @@ import { MarketplaceContainerService } from './services/marketplace-container.se
 import { MarketplaceScanResolver } from './resolvers/marketplace-scan.resolver';
 import { MarketplaceIssuanceSagaFieldsResolver } from './resolvers/marketplace-issuance-saga-fields.resolver';
 import { MarketplaceInventoryItemFieldsResolver } from './resolvers/marketplace-inventory-item-fields.resolver';
+import { MarketplaceOrderSecurePartResolver } from './resolvers/marketplace-order-secure-part.resolver';
 import { MarketplaceScanService } from './services/marketplace-scan.service';
 import { MarketplaceIssuancePickService } from './services/marketplace-issuance-pick.service';
 import { MarketplaceExtensionConfigService } from './services/marketplace-extension-config.service';
@@ -264,6 +265,7 @@ import {
     MarketplaceScanResolver,
     MarketplaceIssuanceSagaFieldsResolver,
     MarketplaceInventoryItemFieldsResolver,
+    MarketplaceOrderSecurePartResolver,
     MarketplaceScanService,
     MarketplaceIssuancePickService,
     MarketplaceExtensionConfigService,
@@ -558,6 +560,7 @@ import {
     MarketplaceScanResolver,
     MarketplaceIssuanceSagaFieldsResolver,
     MarketplaceInventoryItemFieldsResolver,
+    MarketplaceOrderSecurePartResolver,
     MarketplaceScanService,
     MarketplaceIssuancePickService,
     MarketplaceExtensionConfigService,

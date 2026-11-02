@@ -16,6 +16,10 @@ sources:
     - components/extension-kit/src/config/stand-time.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity.ts
     - components/controller/src/extensions/marketplace/migrations/database/1793440000000-secure-due.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-order-secure-part.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-secure-part.dto.ts
+  ui:
+    - components/desktop/src/widgets/Marketplace/OrderSecurePartCard/**
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/chargedue.cpp
 
@@ -126,4 +130,22 @@ cases:
     test: components/controller/tests/unit/extension-kit/stand-time.test.ts
     external: unreachable
     external_reason: "шкала времени задаётся окружением узла, через API стенда её не переключить"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  # 02.11.2026: обеспечительная часть в карточке заказа — у пайщика, в реестре
+  # заказов администратора и участка (решение владельца: без отдельной
+  # страницы учёта, обеспечительная часть принадлежит заказу).
+  - id: mkt.secure.due.side.11
+    level: backend
+    kind: side
+    scenario: >
+      Карточка заказа на каждом этапе: до получения, после выдачи, при открытом
+      гарантийном возврате, после списания, после возврата и у отменённого заказа
+    expect: >
+      в резерве — сумма заказа; после выдачи — ждёт списания с датой первого числа
+      месяца после гарантии (на стенде — начало следующего отрезка); при открытом
+      возврате — приостановлена без даты; списана — с моментом списания; возвращена —
+      у отменённого и возвращённого; у заказа прежней модели блока нет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    api: components/api-tests/src/marketplace/economy.test.ts
     status: written   # прогон — CI на полигоне ci/tests

@@ -106,6 +106,43 @@ export function standPeriodKey(date: Date, timeZone: string): number {
   return year * 12 + month;
 }
 
+/**
+ * Начало расчётного месяца, следующего за моментом: «первое число», с
+ * которого строка созревает к списанию. В работе — 00:00 первого числа
+ * следующего календарного месяца в часовом поясе кооператива, при заданной
+ * длине месяца стенда — начало следующего отрезка этой длины.
+ */
+export function standNextPeriodStart(date: Date, timeZone: string): Date {
+  const monthSeconds = standMonthSeconds();
+  if (monthSeconds > 0) {
+    return new Date((Math.floor(date.getTime() / 1000 / monthSeconds) + 1) * monthSeconds * 1000);
+  }
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit' }).formatToParts(date);
+  const year = Number(parts.find((p) => p.type === 'year')?.value ?? 0);
+  const month = Number(parts.find((p) => p.type === 'month')?.value ?? 1);
+  // Полночь первого числа в часовом поясе кооператива: берём ту же дату в UTC
+  // и сдвигаем на смещение пояса в этот момент.
+  const utcMidnight = Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1);
+  return new Date(utcMidnight - timeZoneOffsetMs(new Date(utcMidnight), timeZone));
+}
+
+/** Смещение часового пояса от UTC в момент, миллисекунд (Москва — +3 ч). */
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(date);
+  const get = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  return asUtc - Math.floor(date.getTime() / 1000) * 1000;
+}
+
 /** Строка для журнала при запуске: какая шкала действует. */
 export function describeStandTime(): string {
   if (!isStandTimeCompressed()) return 'время настоящее'; // i18n-ignore: строка журнала узла, не текст интерфейса

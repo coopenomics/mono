@@ -85,9 +85,29 @@ export const rawOrderSelector = {
   updated_at: true,
 }
 
-const _validateOrder: MakeAllFieldsRequired<ValueTypes['MarketplaceOrder']> = rawOrderSelector
+// `secure_part` в общий селектор не входит: его просит только карточка одного
+// заказа (`orderDetailSelector`), в лентах каждая строка стоила бы чтения учёта.
+const _validateOrder: MakeAllFieldsRequired<Omit<ValueTypes['MarketplaceOrder'], 'secure_part'>> = rawOrderSelector
 
 export const marketplaceOrderSelector = Selector('MarketplaceOrder')(rawOrderSelector)
+
+/** Обеспечительная часть паевого взноса по заказу (99D-18). */
+export const rawSecurePartSelector = {
+  state: true,
+  amount: true,
+  due_amount: true,
+  charged_amount: true,
+  charge_at: true,
+  settled_at: true,
+}
+
+const _validateSecurePart: MakeAllFieldsRequired<ValueTypes['MarketplaceSecurePart']> = rawSecurePartSelector
+
+/** Карточка одного заказа: всё из ленты и обеспечительная часть. */
+export const marketplaceOrderDetailSelector = Selector('MarketplaceOrder')({
+  ...rawOrderSelector,
+  secure_part: rawSecurePartSelector,
+})
 
 export const marketplaceCancelOrderResultSelector = Selector('MarketplaceCancelOrderResult')({
   order: rawOrderSelector,
