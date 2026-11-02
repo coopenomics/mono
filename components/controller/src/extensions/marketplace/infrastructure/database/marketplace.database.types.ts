@@ -66,6 +66,8 @@ export interface MarketplaceAplReception {
   offerer_account: string;
   shipment_id: string;
   status: string;
+  step_claimed_at: Timestamp | null;
+  step_claimed_by: string | null;
   supplier_signed_at: Timestamp | null;
   supplier_signed_documents: Json | null;
   supplier_signsupp_tx_hash: string | null;
@@ -196,6 +198,7 @@ export interface MarketplaceIssuanceSaga {
   act2_document: Json | null;
   attempts: Generated<number>;
   braname: string;
+  close_reminded_at: Timestamp | null;
   closed_at: Timestamp | null;
   coopname: string;
   created_at: Generated<Timestamp>;
@@ -213,6 +216,8 @@ export interface MarketplaceIssuanceSaga {
   protocol_document: Json | null;
   stage: string;
   statement_document: Json | null;
+  step_claimed_at: Timestamp | null;
+  step_claimed_by: string | null;
   tx_hashes: Generated<Json>;
   updated_at: Generated<Timestamp>;
 }

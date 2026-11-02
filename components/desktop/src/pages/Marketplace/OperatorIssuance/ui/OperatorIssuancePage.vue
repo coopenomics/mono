@@ -19,14 +19,11 @@ import {
   useMarketplaceHandoffSignal,
   marketLiveTables,
 } from 'src/shared/lib/marketplace';
-import { useGlobalStore } from 'src/shared/store';
-import { ensureSigningUnlocked, signDocument } from 'src/shared/lib/document';
+import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import {
   readyIssue,
   listIssuancesByBraname,
   listIssuanceSagas,
-  getIssuanceClosePayload,
-  closeIssuance,
   cancelIssuance,
   issuanceStageDisplay,
   type MarketplaceOrderIssuanceView,
@@ -34,6 +31,7 @@ import {
 } from '../api';
 import IssueActOpenDialog from './IssueActOpenDialog.vue';
 import { t } from 'src/shared/i18n';
+import { useIssuanceCloser } from 'src/features/Marketplace/IssuanceCloser';
 
 /**
  * Operator-стол выдачи имущества пайщику, СГРУППИРОВАННЫЙ ПО ЗАКАЗЧИКУ: одна
@@ -52,7 +50,6 @@ import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const store = useOperatorBranchStore();
-const globalStore = useGlobalStore();
 const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
@@ -297,7 +294,6 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false;
   }
-  void autoCloseIssuances();
 }
 
 function startOpen(orders: MarketplaceOrderIssuanceView[]): void {
@@ -328,52 +324,19 @@ async function announceGroup(g: IssuanceGroup): Promise<void> {
   }
 }
 
-// ── Автозакрытие: закрывающая подпись оператора ставится сама ────────────
-// Как только по саге появился акт с подписью пайщика (совет согласовал), стол
-// оператора берёт ключ из сессии, ставит вторую подпись и закрывает выдачу —
-// имущество выдано, деньги проведены. Оператор ничего не нажимает. Если ключ
-// заперт (PIN) — спросим один раз; при отказе останется кнопка «Закрыть».
-const closingOrders = ref<Set<string>>(new Set());
-let autoClosing = false;
-async function autoCloseIssuances(): Promise<void> {
-  if (autoClosing) return;
-  const pending = sagas.value.filter((s) => s.awaits_operator_close && !closingOrders.value.has(s.order_id));
-  if (!pending.length) return;
-  autoClosing = true;
-  try {
-    // Серия закрытий — ключ отпираем один раз до цикла.
-    if (!(await ensureSigningUnlocked(t('marketplace.operatorIssuance.missingOperatorKeyError')))) return;
-    for (const saga of pending) {
-      await closeOne(saga);
-    }
-  } finally {
-    autoClosing = false;
-  }
-}
-
-async function closeOne(saga: MarketplaceIssuanceSagaView): Promise<void> {
-  closingOrders.value = new Set([...closingOrders.value, saga.order_id]);
-  try {
-    const payload = await getIssuanceClosePayload(saga.order_id);
-    const raw = payload.act_aggregate.rawDocument;
-    if (!raw) throw new Error(t('marketplace.error.issuanceSourceActNotFound'));
-    const signed_act = (await signDocument(raw, globalStore.username, 2, [payload.act_aggregate.document])) as Parameters<
-      typeof closeIssuance
-    >[0]['signed_act'];
-    await closeIssuance({ order_id: saga.order_id, signed_act });
-    SuccessAlert(t('marketplace.operatorIssuance.closedMessage', { orderShort: saga.order_id.slice(0, 8) }));
-  } catch (e) {
-    FailAlert(e, t('marketplace.operatorIssuance.closeError'));
-  } finally {
-    const next = new Set(closingOrders.value);
-    next.delete(saga.order_id);
-    closingOrders.value = next;
-    await load();
-  }
-}
+// ── Закрывающая подпись оператора ─────────────────────────────────────
+// Ставит фоновый хост макета (IssuanceCloserHost) на любом столе приложения,
+// страница его не дублирует. Кнопка «Закрыть» — ручное действие: перехватывает
+// шаг, если другой стол держит его дольше двадцати секунд.
+const closer = useIssuanceCloser();
+const closingOrders = closer.closing;
 
 async function closeManually(saga: MarketplaceIssuanceSagaView): Promise<void> {
-  await closeOne(saga);
+  if (!(await ensureSigningUnlocked(t('marketplace.operatorIssuance.missingOperatorKeyError')))) return;
+  if (await closer.closeOne(saga, { manual: true })) {
+    SuccessAlert(t('marketplace.operatorIssuance.closedMessage', { orderShort: saga.order_id.slice(0, 8) }));
+  }
+  await load();
 }
 
 // Снять выдачу до акта: паевой взнос пайщика остаётся на месте, заказ
@@ -596,6 +559,8 @@ q-page.issuance(role='region', :aria-label='$t("marketplace.operatorIssuance.ari
           template(#line-extra='{ line }')
             .issuance__card-stage(v-for='x in stageRowsOf(g, line.key)', :key='x.order.id')
               BaseBadge(:variant='stageOf(x.saga).variant') {{ stageOf(x.saga).label }}
+              //- Вручную закрыть может любой оператор участка; фоновую подпись
+              //- ставит только оператор, начавший выдачу.
               BaseButton(
                 v-if='x.saga.awaits_operator_close',
                 variant='primary',

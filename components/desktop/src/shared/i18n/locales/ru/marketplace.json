@@ -631,6 +631,11 @@
         "statementSigned": "Заявление подано в совет"
       }
     },
+    "issuanceCloser": {
+      "awaitingButton": "Закрыть выдачи · {count}",
+      "awaitingHint": "Пайщики подписали акты выдачи. Введите PIN-код — закрывающая подпись встанет на все выдачи сразу.",
+      "closedMessage": "Выдача закрыта: {count}"
+    },
     "issuancePoints": {
       "activateAriaLabel": "Активировать",
       "activatedSuccess": "Пункт выдачи активирован",

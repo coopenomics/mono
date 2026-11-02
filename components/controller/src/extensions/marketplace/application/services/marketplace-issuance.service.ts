@@ -120,6 +120,8 @@ export interface MarketplaceIssuanceSignAct1Input {
   member_account: string;
   order_id: string;
   signed_act: MarketplaceShareReturnActSignedInputDTO;
+  /** Ручная подпись кнопкой: перехватывает шаг у другого стола. */
+  manual?: boolean;
 }
 
 export interface MarketplaceIssuanceCloseInput {
@@ -127,10 +129,29 @@ export interface MarketplaceIssuanceCloseInput {
   operator_account: string;
   order_id: string;
   signed_act: MarketplaceShareReturnActSignedInputDTO;
+  /** Ручная подпись кнопкой: перехватывает шаг у другого стола. */
+  manual?: boolean;
 }
 
 /** Сколько ждать робота решений совета у стойки, прежде чем отпустить мутацию в режим ожидания. */
 const ROBOT_WAIT_MS = 12_000;
+
+/**
+ * Сколько держится захват шага выдачи. Подпись и отправка в цепь занимают
+ * секунды; захват старше двух минут считается брошенным — стол закрыли посреди
+ * подписи, и шаг снова свободен.
+ */
+const STEP_CLAIM_LEASE_MS = 2 * 60 * 1000;
+
+/**
+ * Ручная подпись кнопкой перехватывает шаг, если прежнему захвату больше
+ * двадцати секунд: зависший стол не держит шаг, а нажатие на двух устройствах
+ * в одну секунду не отправит две транзакции (слово владельца 02.11.2026).
+ */
+const STEP_CLAIM_MANUAL_LEASE_MS = 20 * 1000;
+
+/** Этапы подписи по порядку: по ним видно, что шаг уже сделан другим столом. */
+const STEP_ORDER: readonly string[] = ['DECISION_AUTHORIZED', 'ACT1_SIGNED', 'CLOSED'];
 
 /**
  * Выдача имущества в паевой модели (компонент 68, задачи 99D-6/99D-7).
@@ -661,13 +682,18 @@ export class MarketplaceIssuanceService {
       throw new ConflictException(saga.awaits_council ? t('marketplace.issuance.councilPendingNote') : t('marketplace.issuance.actSignForbiddenAtStage', { stage: saga.stage }));
     }
     this.assertActMatchesSaga(input.signed_act, order, saga);
+    const claimed = await this.claimStep(saga, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, input.member_account, input.manual);
+    if (claimed) return claimed;
     const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct1.IIssueAct1['act'];
     let tx;
     try {
       tx = await this.chainPort.issueAct1({ coopname: order.coopname, orderer: order.orderer_account, order_hash: order.order_hash, act });
     } catch (err) {
+      // Акт мог подписать другой стол: тогда отказ цепи — не ошибка.
+      const advanced = await this.advancedPast(input.coopname, order.order_hash, MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED);
+      if (advanced) return advanced;
       const message = this.errMessage(err);
-      await this.sagaRepo.update(saga.id, { last_error: message });
+      await this.sagaRepo.update(saga.id, { last_error: message, step_claimed_at: null, step_claimed_by: null });
       throw DomainError.conflict('MARKETPLACE_ACT_SIGN_CHAIN_FAILED', { message });
     }
     const txHash = this.extractTxHash(tx);
@@ -676,6 +702,8 @@ export class MarketplaceIssuanceService {
       act1_document: input.signed_act as unknown as ISignedDocument,
       tx_hashes: { ...saga.tx_hashes, issueact1: txHash },
       last_error: null,
+      step_claimed_at: null,
+      step_claimed_by: null,
     });
     const result = moved ?? (await this.requireSaga(input.coopname, order.id));
     await this.orderRepo.applyIssuanceAct1(order.id);
@@ -724,23 +752,81 @@ export class MarketplaceIssuanceService {
    * заказа из остатка), сага CLOSED, заказ RECEIVED. Имущество передаётся
    * заказчику после этого ответа.
    */
+  /**
+   * Захват шага перед отправкой в цепь. Подпись ставят столы сами, в фоне, а
+   * открытых столов бывает несколько: два оператора участка, один человек на
+   * телефоне и компьютере. Шаг берёт один стол; остальные получают
+   * `MARKETPLACE_ISSUANCE_STEP_IN_PROGRESS` и молча обновляют экран.
+   *
+   * Ручная подпись кнопкой перехватывает шаг, захваченный больше двадцати
+   * секунд назад: захват не значит, что шаг продвинулся, — стол мог зависнуть
+   * посреди подписи.
+   *
+   * Возвращает сагу, если шаг уже сделан другим столом, иначе `null` — шаг
+   * взят этим столом.
+   */
+  private async claimStep(
+    saga: MarketplaceIssuanceSagaDomainEntity,
+    stage: MarketplaceIssuanceSagaStage,
+    by: string,
+    manual = false
+  ): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - (manual ? STEP_CLAIM_MANUAL_LEASE_MS : STEP_CLAIM_LEASE_MS));
+    if (await this.sagaRepo.claimStep(saga.id, stage, by, now, staleBefore)) return null;
+    const advanced = await this.advancedPast(saga.coopname, saga.order_hash, stage);
+    if (advanced) return advanced;
+    throw DomainError.conflict('MARKETPLACE_ISSUANCE_STEP_IN_PROGRESS');
+  }
+
+  /** Сага продвинулась дальше этапа — шаг сделан другим столом; иначе `null`. */
+  private async advancedPast(
+    coopname: string,
+    order_hash: string,
+    stage: MarketplaceIssuanceSagaStage
+  ): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
+    const current = await this.sagaRepo.findByOrderHash(coopname, order_hash);
+    if (!current) return null;
+    return STEP_ORDER.indexOf(current.stage) > STEP_ORDER.indexOf(stage) ? current : null;
+  }
+
+  /**
+   * Можно ли закрывать: акт пайщика подписан, а фоновую закрывающую подпись
+   * ставит только оператор, начавший выдачу у стойки, — не первый
+   * откликнувшийся стол участка. Вручную, кнопкой, закрыть может любой
+   * оператор участка: смена сменилась, а выдачу надо довести (слово владельца
+   * 02.11.2026). Возвращает акт с подписью пайщика.
+   */
+  private assertCanClose(saga: MarketplaceIssuanceSagaDomainEntity, input: MarketplaceIssuanceCloseInput): ISignedDocument {
+    if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_CLOSE_ACT_NOT_SIGNED');
+    }
+    if (!input.manual && input.operator_account !== saga.operator_account) {
+      throw DomainError.forbidden('MARKETPLACE_ISSUANCE_CLOSE_NOT_INITIATOR', { operator: saga.operator_account });
+    }
+    return saga.act1_document;
+  }
+
   async closeIssuance(input: MarketplaceIssuanceCloseInput): Promise<MarketplaceIssuanceSagaDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
     const saga = await this.requireSagaOrClosed(input.coopname, order);
     if (saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
-    if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
-      throw DomainError.conflict('MARKETPLACE_ISSUANCE_CLOSE_ACT_NOT_SIGNED');
-    }
+    const memberAct = this.assertCanClose(saga, input);
     const sub = input.signed_act as unknown as ISignedDocument;
-    this.assertClosingActMatches(sub, saga.act1_document, input);
+    this.assertClosingActMatches(sub, memberAct, input);
+    const claimed = await this.claimStep(saga, MarketplaceIssuanceSagaStages.ACT1_SIGNED, input.operator_account, input.manual);
+    if (claimed) return claimed;
 
     const act = new SignedDigitalDocumentInputDTO(input.signed_act).toDocument() as MarketContract.Actions.IssueAct2.IIssueAct2['act'];
     let tx;
     try {
       tx = await this.chainPort.issueAct2({ coopname: order.coopname, delivery_signer: input.operator_account, order_hash: order.order_hash, act });
     } catch (err) {
+      // Выдачу мог закрыть другой стол: тогда отказ цепи — не ошибка.
+      const advanced = await this.advancedPast(input.coopname, order.order_hash, MarketplaceIssuanceSagaStages.ACT1_SIGNED);
+      if (advanced) return advanced;
       const message = this.errMessage(err);
-      await this.sagaRepo.update(saga.id, { last_error: message });
+      await this.sagaRepo.update(saga.id, { last_error: message, step_claimed_at: null, step_claimed_by: null });
       throw DomainError.conflict('MARKETPLACE_ISSUANCE_CLOSE_CHAIN_FAILED', { message });
     }
     const txHash = this.extractTxHash(tx);
@@ -758,6 +844,8 @@ export class MarketplaceIssuanceService {
       tx_hashes: { ...saga.tx_hashes, issueact2: txHash },
       closed_at: new Date(),
       last_error: null,
+      step_claimed_at: null,
+      step_claimed_by: null,
     });
     const result = moved ?? (await this.requireSaga(input.coopname, order.id));
     await this.settleWarehouse(order, saga.fact);

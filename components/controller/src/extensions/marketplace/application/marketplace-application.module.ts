@@ -175,6 +175,7 @@ import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.re
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
 import { MarketplaceSecureDueService } from './services/marketplace-secure-due.service';
+import { MarketplaceIssuanceCloseReminderService } from './services/marketplace-issuance-close-reminder.service';
 // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
 import { MarketplaceChainRetryCronService } from './services/marketplace-chain-retry-cron.service';
 // Задача 99D-16: закрытие заказов, не привезённых за 48 часов после принятия
@@ -484,6 +485,7 @@ import {
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,
     MarketplaceSecureDueService,
+    MarketplaceIssuanceCloseReminderService,
     // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
     MarketplaceChainRetryCronService,
     // Задача 99D-16: закрытие непоставленных заказов по сроку

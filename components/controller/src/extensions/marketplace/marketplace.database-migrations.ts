@@ -2,6 +2,7 @@ import { MarketplaceBaseline1790197276758 } from './migrations/database/17901972
 import { MarketplaceDropFirstVersionCatalog1791028868299 } from './migrations/database/1791028868299-drop-first-version-catalog';
 import { MarketplaceHandoffCode1791736800000 } from './migrations/database/1791736800000-handoff-code';
 import { MarketplaceSecureDue1793440000000 } from './migrations/database/1793440000000-secure-due';
+import { MarketplaceIssuanceStepClaim1793480000000 } from './migrations/database/1793480000000-issuance-step-claim';
 import { MarketplaceSupplierProfileAndReview1791619859005 } from './migrations/database/1791619859005-supplier-profile-and-review';
 import { MarketplaceOrderReviewInvite1791723152953 } from './migrations/database/1791723152953-order-review-invite';
 
@@ -16,6 +17,7 @@ export const marketplaceDatabaseMigrations = [
   MarketplaceDropFirstVersionCatalog1791028868299,
   MarketplaceHandoffCode1791736800000,
   MarketplaceSecureDue1793440000000,
+  MarketplaceIssuanceStepClaim1793480000000,
   MarketplaceSupplierProfileAndReview1791619859005,
   MarketplaceOrderReviewInvite1791723152953,
 ];

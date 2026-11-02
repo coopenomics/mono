@@ -238,6 +238,15 @@ export class MarketplaceSignIssuanceActInputDTO {
   @ValidateNested()
   @Type(() => MarketplaceShareReturnActSignedInputDTO)
   signed_act!: MarketplaceShareReturnActSignedInputDTO;
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description:
+      'Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  manual?: boolean;
 }
 
 @InputType('MarketplaceListIssuanceSagasInput')

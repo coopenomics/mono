@@ -75,6 +75,11 @@ export function buildSaga(overrides: Partial<MarketplaceIssuanceSagaProps> = {})
 /** In-memory репозиторий саг: хранит одну-две саги, честно применяет переходы «из этапа». */
 export function buildSagaRepo(initial: MarketplaceIssuanceSagaDomainEntity[] = []) {
   const store = new Map(initial.map((s) => [s.id, s]));
+  // Захват шага (99D-18): кто и когда взял шаг; смена этапа его снимает.
+  const claims = new Map<string, Date>();
+  const dropClaim = (id: string, patch: Record<string, unknown>) => {
+    if ('step_claimed_at' in patch && patch.step_claimed_at === null) claims.delete(id);
+  };
   const active = (s: MarketplaceIssuanceSagaDomainEntity) => s.is_active;
   const patchOf = (s: MarketplaceIssuanceSagaDomainEntity, patch: Record<string, unknown>) =>
     buildSaga({ ...(s as unknown as MarketplaceIssuanceSagaProps), ...patch, updated_at: new Date() } as MarketplaceIssuanceSagaProps);
@@ -98,23 +103,40 @@ export function buildSagaRepo(initial: MarketplaceIssuanceSagaDomainEntity[] = [
       if (!allowed.includes(cur.stage)) return null;
       const next = patchOf(cur, patch);
       store.set(id, next);
+      dropClaim(id, patch);
       return next;
     }),
+    claimStep: jest.fn(async (id: string, stage: MarketplaceIssuanceSagaStage, _by: string, now: Date, staleBefore: Date) => {
+      const cur = store.get(id);
+      if (!cur || cur.stage !== stage) return false;
+      const held = claims.get(id);
+      if (held && held >= staleBefore) return false;
+      claims.set(id, now);
+      return true;
+    }),
+    releaseStep: jest.fn(async (id: string) => {
+      claims.delete(id);
+    }),
+    listAwaitingCloseReminder: jest.fn(async () => []),
+    markCloseReminded: jest.fn(async () => true),
     update: jest.fn(async (id: string, patch: Record<string, unknown>) => {
       const cur = store.get(id);
       if (!cur) throw new Error('saga not found');
       const next = patchOf(cur, patch);
       store.set(id, next);
+      dropClaim(id, patch);
       return next;
     }),
   } as unknown as jest.Mocked<MarketplaceIssuanceSagaDomainRepository>;
-  return { repo, store };
+  return { repo, store, claims };
 }
 
 export interface IssuanceMocks {
   orderRepo: any;
   sagaRepo: jest.Mocked<MarketplaceIssuanceSagaDomainRepository>;
   sagaStore: Map<string, MarketplaceIssuanceSagaDomainEntity>;
+  /** Захваты шага: id саги → момент захвата. */
+  claims: Map<string, Date>;
   inventoryRepo: any;
   offerRepo: any;
   /** Счётчики предложения: на выдаче заблокированное становится выданным. */
@@ -156,7 +178,7 @@ export function buildMocks(opts: {
 } = {}): IssuanceMocks {
   const order = opts.order ?? buildOrder();
   const warehouse = opts.warehouse ?? 10;
-  const { repo: sagaRepo, store: sagaStore } = buildSagaRepo(opts.sagas ?? []);
+  const { repo: sagaRepo, store: sagaStore, claims } = buildSagaRepo(opts.sagas ?? []);
   const orderRepo = {
     findById: jest.fn(async (id: string) => (id === order.id ? order : null)),
     applyReadyIssue: jest.fn(async () => buildOrder({ ...order, status: 'READY_TO_RECEIVE' })),
@@ -232,6 +254,7 @@ export function buildMocks(opts: {
     orderRepo,
     sagaRepo,
     sagaStore,
+    claims,
     inventoryRepo,
     offerRepo,
     offerCounters,

@@ -35,6 +35,12 @@ export class MarketplaceAplReceptionEntity {
 
   public status!: MarketplaceAplReceptionStatus;
 
+  /** Когда стол захватил текущую подпись; NULL — подпись свободна. */
+  public step_claimed_at!: Date | null;
+
+  /** Кто захватил подпись: поставщик или председатель участка. */
+  public step_claimed_by!: string | null;
+
   public fact_quantity_per_order!: MarketplaceAplReceptionFactQuantityEntry[];
 
   // length=64 — копируется из shipment.ttn_number (см. marketplace-shipment.entity).

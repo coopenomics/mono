@@ -13270,7 +13270,9 @@ export type ValueTypes = {
 	["MarketplaceSignIssuanceActInput"]: {
 	order_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Акт приёма-передачи с подписью (первой — заказчика, закрывающей — оператора поверх подписи заказчика). */
-	signed_act: ValueTypes["MarketplaceShareReturnActSignedInput"] | Variable<any, string>
+	signed_act: ValueTypes["MarketplaceShareReturnActSignedInput"] | Variable<any, string>,
+	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
+	manual?: boolean | undefined | null | Variable<any, string>
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 	order_id: ValueTypes["ID"] | Variable<any, string>,
@@ -31348,7 +31350,9 @@ export type ResolverInputTypes = {
 	["MarketplaceSignIssuanceActInput"]: {
 	order_id: ResolverInputTypes["ID"],
 	/** Акт приёма-передачи с подписью (первой — заказчика, закрывающей — оператора поверх подписи заказчика). */
-	signed_act: ResolverInputTypes["MarketplaceShareReturnActSignedInput"]
+	signed_act: ResolverInputTypes["MarketplaceShareReturnActSignedInput"],
+	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
+	manual?: boolean | undefined | null
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 	order_id: ResolverInputTypes["ID"],
@@ -48783,7 +48787,9 @@ export type ModelTypes = {
 	["MarketplaceSignIssuanceActInput"]: {
 	order_id: ModelTypes["ID"],
 	/** Акт приёма-передачи с подписью (первой — заказчика, закрывающей — оператора поверх подписи заказчика). */
-	signed_act: ModelTypes["MarketplaceShareReturnActSignedInput"]
+	signed_act: ModelTypes["MarketplaceShareReturnActSignedInput"],
+	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
+	manual?: boolean | undefined | null
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 	order_id: ModelTypes["ID"],
@@ -67361,7 +67367,9 @@ export type GraphQLTypes = {
 	["MarketplaceSignIssuanceActInput"]: {
 		order_id: GraphQLTypes["ID"],
 	/** Акт приёма-передачи с подписью (первой — заказчика, закрывающей — оператора поверх подписи заказчика). */
-	signed_act: GraphQLTypes["MarketplaceShareReturnActSignedInput"]
+	signed_act: GraphQLTypes["MarketplaceShareReturnActSignedInput"],
+	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
+	manual?: boolean | undefined | null
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 		order_id: GraphQLTypes["ID"],

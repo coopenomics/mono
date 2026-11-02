@@ -77,6 +77,7 @@ const FROZEN_IDS = [
   'vkhodyaschiy-perevod',
   'vosstanovlenie-dostupa',
   'vydacha-dostupa-trebuet-vmeshatelstva',
+  'vydacha-zhdyot-zakryvayuschey-podpisi',
   'vyplata-postavschiku-podtverzhdena-kassirom',
   'vyshla-novaya-redaktsiya-dokumenta-kooperativa',
   'zakaz-gotov-k-polucheniyu',

@@ -65,4 +65,12 @@ export interface MarketplaceAplReceptionDomainRepository {
     id: string,
     patch: MarketplaceAplReceptionUpdateSignaturesInput
   ): Promise<MarketplaceAplReceptionDomainEntity>;
+  /**
+   * Захватить подпись приёмки перед отправкой в цепь: `true` — подпись взята
+   * этим столом. Захват позже `staleBefore` держит подпись, более ранний
+   * считается брошенным. Смена статуса снимает захват.
+   */
+  claimStep(id: string, status: MarketplaceAplReceptionStatus, by: string, now: Date, staleBefore: Date): Promise<boolean>;
+  /** Снять захват: подпись не удалась, её можно повторить. */
+  releaseStep(id: string): Promise<void>;
 }

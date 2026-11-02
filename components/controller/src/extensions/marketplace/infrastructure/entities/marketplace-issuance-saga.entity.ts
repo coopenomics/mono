@@ -53,6 +53,15 @@ export class MarketplaceIssuanceSagaEntity {
 
   public last_error!: string | null;
 
+  /** Когда стол захватил текущий шаг (подпись акта или закрытие); NULL — шаг свободен. */
+  public step_claimed_at!: Date | null;
+
+  /** Кто захватил шаг: учётная запись пайщика или оператора. */
+  public step_claimed_by!: string | null;
+
+  /** Когда оператору направлено напоминание о закрывающей подписи. */
+  public close_reminded_at!: Date | null;
+
   public attempts!: number;
 
   public decided_at!: Date | null;

@@ -1,4 +1,4 @@
-import { TableStore, notEqual, oneOf } from '@coopenomics/extension-kit';
+import { TableStore, isNull, lessThan, notEqual, oneOf } from '@coopenomics/extension-kit';
 import { MARKETPLACE_APL_RECEPTION_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
@@ -97,11 +97,29 @@ private readonly repo: TableStore<MarketplaceAplReceptionEntity>,
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async claimStep(id: string, status: MarketplaceAplReceptionStatus, by: string, now: Date, staleBefore: Date): Promise<boolean> {
+    // Два условных обновления, каждое атомарно: подпись свободна либо прежний
+    // захват устарел. Из двух столов, пришедших одновременно, строку
+    // изменит только один.
+    const claim = { step_claimed_at: now, step_claimed_by: by };
+    if (await this.repo.update({ id, status, step_claimed_at: isNull() }, claim)) return true;
+    return !!(await this.repo.update({ id, status, step_claimed_at: lessThan(staleBefore) }, claim));
+  }
+
+  async releaseStep(id: string): Promise<void> {
+    await this.repo.update({ id }, { step_claimed_at: null, step_claimed_by: null });
+  }
+
   async applySignatures(
     id: string,
     patch: MarketplaceAplReceptionUpdateSignaturesInput
   ): Promise<MarketplaceAplReceptionDomainEntity> {
     const data: Partial<MarketplaceAplReceptionEntity> = {};
+    // Подпись сделана — захват снимается вместе со сменой статуса.
+    if (patch.status !== undefined) {
+      data.step_claimed_at = null;
+      data.step_claimed_by = null;
+    }
     if (patch.supplier_signed_at !== undefined) data.supplier_signed_at = patch.supplier_signed_at;
     if (patch.supplier_signsupp_tx_hash !== undefined) {
       data.supplier_signsupp_tx_hash = patch.supplier_signsupp_tx_hash;

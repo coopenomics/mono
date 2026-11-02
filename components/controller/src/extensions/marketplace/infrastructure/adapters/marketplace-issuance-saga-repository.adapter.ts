@@ -1,4 +1,4 @@
-import { TableStore, lessThan, oneOf } from '@coopenomics/extension-kit';
+import { TableStore, isNull, lessThan, oneOf } from '@coopenomics/extension-kit';
 import { MARKETPLACE_ISSUANCE_SAGA_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
@@ -97,6 +97,34 @@ private readonly repo: TableStore<MarketplaceIssuanceSagaEntity>,
     const res = await this.repo.update({ id, stage: oneOf(fromStages) }, patch as Record<string, unknown>);
     if (!res) return null;
     return this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
+  }
+
+  async claimStep(id: string, stage: MarketplaceIssuanceSagaStage, by: string, now: Date, staleBefore: Date): Promise<boolean> {
+    // Два условных обновления, каждое атомарно: шаг свободен либо прежний
+    // захват устарел. Из двух столов, пришедших одновременно, строку
+    // изменит только один.
+    const claim = { step_claimed_at: now, step_claimed_by: by };
+    const free = await this.repo.update({ id, stage, step_claimed_at: isNull() }, claim);
+    if (free) return true;
+    const stale = await this.repo.update({ id, stage, step_claimed_at: lessThan(staleBefore) }, claim);
+    return !!stale;
+  }
+
+  async releaseStep(id: string): Promise<void> {
+    await this.repo.update({ id }, { step_claimed_at: null, step_claimed_by: null });
+  }
+
+  async listAwaitingCloseReminder(coopname: string, actSignedBefore: Date, limit: number): Promise<MarketplaceIssuanceSagaDomainEntity[]> {
+    const rows = await this.repo.find(
+      { coopname, stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED, close_reminded_at: isNull(), updated_at: lessThan(actSignedBefore) },
+      { order: { updated_at: 'ASC' }, limit }
+    );
+    return rows.map((row) => this.mapper.toDomain(row));
+  }
+
+  async markCloseReminded(id: string, at: Date): Promise<boolean> {
+    const res = await this.repo.update({ id, close_reminded_at: isNull() }, { close_reminded_at: at });
+    return !!res;
   }
 
   async update(id: string, patch: MarketplaceIssuanceSagaPatch): Promise<MarketplaceIssuanceSagaDomainEntity> {
