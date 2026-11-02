@@ -14,6 +14,7 @@ import {
   applyMembershipFee,
   computeIssuanceDiff,
   marketplaceLineCost,
+  SHOW_MONEY_FLOW_LINES,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceSaleUnitLabel, marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
@@ -361,10 +362,11 @@ const summaryLines = computed(() => {
       value: rub(membershipFeeAmount.value),
     });
   }
-  if (issuanceDiff.value.refund > 0) {
+  // Строки о движении денег скрыты переключателем, описание — в money-flow-lines.ts.
+  if (SHOW_MONEY_FLOW_LINES && issuanceDiff.value.refund > 0) {
     lines.push({ label: t('marketplace.issueActOpenDialog.refundToWalletLabel'), value: rub(issuanceDiff.value.refund) });
   }
-  if (issuanceDiff.value.surcharge > 0) {
+  if (SHOW_MONEY_FLOW_LINES && issuanceDiff.value.surcharge > 0) {
     lines.push({ label: t('marketplace.issueActOpenDialog.surchargeLabel'), value: rub(issuanceDiff.value.surcharge) });
   }
   if (restockLines.value.length) {

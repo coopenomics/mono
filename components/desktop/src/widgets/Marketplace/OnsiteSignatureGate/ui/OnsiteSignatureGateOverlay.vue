@@ -18,6 +18,7 @@ import {
   getMembershipFeePercent,
   applyMembershipFee,
   computeIssuanceDiff,
+  SHOW_MONEY_FLOW_LINES,
 } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -296,10 +297,11 @@ function proposalRows(p: ProposalTask): TaskRow[] {
 /**
  * Строки сводки получения (тексты согласованы владельцем 02.11.2026):
  * стоимость имущества и обеспечительная часть — всегда; возврат на свободный
- * паевой — если выдали меньше или дешевле заказа; «сверх внесённого при
- * заказе» — если больше или дороже. Источник денег (перевод с главного
- * паевого по заявлению) в сводке не показывается: он не складывается в
- * итог и путает (слово владельца 02.11.2026). Нулевых строк нет.
+ * паевой и «сверх внесённого при заказе» — только при включённом
+ * SHOW_MONEY_FLOW_LINES (сейчас выключен, см. money-flow-lines.ts). Источник
+ * денег (перевод с главного паевого по заявлению) в сводке не показывается:
+ * он не складывается в итог и путает (слово владельца 02.11.2026). Нулевых
+ * строк нет.
  */
 function proposalLines(p: ProposalTask): Array<{ label: string; value: string }> {
   const lines: Array<{ label: string; value: string }> = [
@@ -308,6 +310,8 @@ function proposalLines(p: ProposalTask): Array<{ label: string; value: string }>
   if (feePercent.value > 0) {
     lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.membershipFeeLabel', { percent: feePercent.value }), value: rub(proposalFeeAmount(p)) });
   }
+  // Строки о движении денег скрыты переключателем, описание — в money-flow-lines.ts.
+  if (!SHOW_MONEY_FLOW_LINES) return lines;
   const diff = proposalDiffs.value[p.id];
   if (diff?.refund > 0) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.refundToWalletLabel'), value: rub(diff.refund) });
   if (diff?.surcharge > 0) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel'), value: rub(diff.surcharge) });
@@ -494,7 +498,9 @@ BaseDialog(
             .onsite-gate__ident
               span.onsite-gate__name {{ $t('marketplace.onsiteSignatureGateOverlay.pickupPointLabel') }}
               span.onsite-gate__sub {{ $t('marketplace.onsiteSignatureGateOverlay.pickupPointHint') }}
-        p.onsite-gate__hint
+        //- Подсказка о зарезервированных деньгах скрыта вместе со строками о
+        //- движении денег (money-flow-lines.ts).
+        p.onsite-gate__hint(v-if='SHOW_MONEY_FLOW_LINES')
           | {{ $t('marketplace.onsiteSignatureGateOverlay.reservedFundsHintLine1') }}
           |  {{ $t('marketplace.onsiteSignatureGateOverlay.reservedFundsHintLine2') }}
         ActLinesTable(:columns='readColumns', :rows='proposalRows(p)')
