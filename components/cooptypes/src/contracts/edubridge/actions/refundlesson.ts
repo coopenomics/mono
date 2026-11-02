@@ -10,9 +10,9 @@ import { Actors } from '../../../common'
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 
-export const actionName = 'declinelesson'
+export const actionName = 'refundlesson'
 
 /**
  * @interface
  */
-export type IDeclinelesson = Edubridge.IDeclinelesson
+export type IRefundlesson = Edubridge.IRefundlesson

@@ -33,7 +33,7 @@ using namespace eosio;
  */
 /**
  * @brief Занятие, по которому приняты материалы, — для возврата оплаты
- * ученикам при отказе совета (`declinelesson`).
+ * ученикам при отказе совета (`refundlesson`).
  *
  * Запись занятия `holdrid` стирает, а отказ совета должен вернуть ученикам
  * оплату этого занятия и освободить его номер: тогда повторный отчёт идёт
@@ -45,7 +45,7 @@ struct edu_rid_lesson {
   uint32_t minutes = 0;    ///< минуты занятия
   eosio::asset cost;       ///< оплата занятия одним участником по окну расписания
   eosio::asset charge;     ///< взнос преподавателя с одной подписки (курс с расчётом за каждого участника)
-  bool unwound = false;    ///< оплата ученикам возвращена (declinelesson уже прошёл)
+  bool unwound = false;    ///< оплата ученикам возвращена (refundlesson уже прошёл)
 
   EOSLIB_SERIALIZE(edu_rid_lesson, (number)(minutes)(cost)(charge)(unwound))
 };

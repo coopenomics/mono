@@ -39,7 +39,7 @@ using namespace Edubridge;
  *    фонда через общее шасси расходов.
  *  - **p.edu.rid** (16 actions): openlesson, chargelesson, closecharge, droplesson,
  *    holdrid, submitrid, onridauth, onriddecl, signridact, apprvridact,
- *    dclridact, acceptrid, declinerid, recallrid, declinelesson,
+ *    dclridact, acceptrid, declinerid, recallrid, refundlesson,
  *    wthshare — преподаватель отчитывается по занятию, контракт по одной
  *    подписке за действие считает его взнос (оплата занятия уходит из
  *    резерва подписки), и преподаватель передаёт материалы на
@@ -434,7 +434,7 @@ public:
    * `recallrid`; ученики при повторном отчёте платят за занятие один раз.
    * @ingroup public_edubridge_actions
    */
-  [[eosio::action]] void declinelesson(eosio::name coopname,
+  [[eosio::action]] void refundlesson(eosio::name coopname,
                                        checksum256 rid_hash,
                                        std::vector<checksum256> subs);
 

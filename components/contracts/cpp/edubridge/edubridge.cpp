@@ -33,7 +33,7 @@
 #include "src/p.edu.rid/acceptrid.cpp"
 #include "src/p.edu.rid/declinerid.cpp"
 #include "src/p.edu.rid/recallrid.cpp"
-#include "src/p.edu.rid/declinelesson.cpp"
+#include "src/p.edu.rid/refundlesson.cpp"
 #include "src/p.edu.rid/wthshare.cpp"
 
 // ── p.edu.teach (6 actions) ──── договор УХД через одобрение, допуски ──

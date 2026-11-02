@@ -29,7 +29,7 @@
  *
  * @ingroup public_edubridge_actions
  */
-void edubridge::declinelesson(eosio::name coopname,
+void edubridge::refundlesson(eosio::name coopname,
                               checksum256 rid_hash,
                               std::vector<checksum256> subs) {
   require_auth(coopname);

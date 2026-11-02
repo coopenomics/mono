@@ -411,7 +411,7 @@ cases:
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     # 02.11.2026 (решение владельца): отказ совета возвращает ученикам оплату
-    # занятия и освобождает номер (declinelesson) — повторный отчёт обычным
+    # занятия и освобождает номер (refundlesson) — повторный отчёт обычным
     # расчётом, ученики платят за занятие один раз.
     status: written
   - id: edu.teach.happy.11

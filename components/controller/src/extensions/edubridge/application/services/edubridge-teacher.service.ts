@@ -1303,7 +1303,7 @@ export class EdubridgeTeacherService {
 
   /**
    * Отказ совета по взносу занятия: ученикам — оплата занятия назад, номер
-   * занятия свободен (`declinelesson`, до снятия материалов). Повторный отчёт
+   * занятия свободен (`refundlesson`, до снятия материалов). Повторный отчёт
    * тогда идёт обычным расчётом, и за занятие ученики платят один раз
    * (решение владельца 02.11.2026). Контракт возвращает оплату только тем
    * подпискам группы, где занятие рассчитано, поэтому названы все.
@@ -1316,7 +1316,7 @@ export class EdubridgeTeacherService {
       const lesson = await this.lessons.findById(coopname, c.lesson_id);
       if (!lesson?.group_id) return;
       const subs = (await this.enrollments.findByGroup(coopname, lesson.group_id)).map((e) => e.sub_hash).filter(Boolean);
-      await this.chain.declineLesson({ coopname, rid_hash: c.rid_hash, subs });
+      await this.chain.refundLesson({ coopname, rid_hash: c.rid_hash, subs });
     } catch (e) {
       this.logger.warn(`[EDU.RID] оплата занятия по ${c.rid_hash} ученикам не возвращена: ${(e as Error)?.message ?? e}`);
     }
