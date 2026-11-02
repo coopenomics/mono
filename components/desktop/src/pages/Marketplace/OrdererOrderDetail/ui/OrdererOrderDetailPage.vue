@@ -25,7 +25,7 @@ import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import { fetchOrder } from '../../MyOrders/api';
-import type { MarketplaceOrderView } from '../../MyOrders/types';
+import type { MarketplaceOrderDetailView } from 'src/entities/MarketplaceOrder';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
 import {
   SubmitReturnClaimDialog,
@@ -63,7 +63,8 @@ const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const orderId = computed(() => String(route.params.orderId ?? ''));
 
-const order = ref<MarketplaceOrderView | null>(null);
+// Карточка одного заказа: поля ленты и обеспечительная часть (secure_part).
+const order = ref<MarketplaceOrderDetailView | null>(null);
 const offerImages = ref<string[]>([]);
 const loading = ref(false);
 
