@@ -769,3 +769,13 @@ cases:
     status: missing
     decision_needed: true
 
+  # 02.11.2026 (99D-18, слово владельца): цену при приёмке можно снизить
+  # (уценка за качество), но не поднять выше цены заказа — как на выдаче.
+  - id: mkt.supply.side.54
+    level: backend
+    kind: side
+    scenario: Оператор принимает имущество по цене выше цены заказа
+    expect: отказ MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED, акт не создаётся; цена ниже или равная цене заказа принимается
+    test: components/controller/tests/unit/marketplace/express-reception-fact-precheck.test.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
+    status: written   # прогон — CI на полигоне ci/tests

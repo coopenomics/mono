@@ -540,6 +540,18 @@ function toggleOrder(id: string, value: boolean): void {
 // Потолок факта = заказано (акцепт): сверх акцепта не принимаем (R5).
 // Значение — целое число единиц отпуска: половины упаковки не бывает, а
 // контракт требует кратности количества размеру упаковки.
+/**
+ * Цену приёмки можно снизить (привезли хуже — уценка), но не поднять выше
+ * цены заказа: поставщик привёз по заказу пайщика (слово владельца
+ * 02.11.2026). Ввод прижимается к цене заказа сразу; сервер держит тот же
+ * потолок.
+ */
+function clampPrice(o: MarketplaceSupplierPickupOrderView): void {
+  const ceiling = Number.parseFloat(o.price_per_unit);
+  const v = Number.parseFloat(String(pickupPrice.value[o.id] ?? ''));
+  if (Number.isFinite(v) && Number.isFinite(ceiling) && v > ceiling) pickupPrice.value[o.id] = o.price_per_unit;
+}
+
 function clampFact(orderId: string, orderedUnits: number): void {
   const v = Number(pickupFact.value[orderId]);
   if (!Number.isFinite(v) || v < 0) pickupFact.value[orderId] = 0;
@@ -978,8 +990,12 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
             v-if='row.order',
             v-model='pickupPrice[row.order.id]',
             type='number',
+            :min='0',
+            :max='row.order.price_per_unit',
             :disabled='!isLineActive(row.order)',
-            suffix='₽'
+            suffix='₽',
+            @update:model-value='() => row.order && clampPrice(row.order)',
+            @blur='row.order && clampPrice(row.order)'
           )
         template(#cell-sum='{ row }')
           template(v-if='row.order') {{ rub(lineSum(row.order)) }}

@@ -105,6 +105,13 @@ describe('приёмка на участке: права, одна приёмк�
     expect(await receptionsOfOrder(orderId)).toEqual([])
   })
 
+  it(caseName('mkt.supply.side.54', 'принять дороже заказанного нельзя — акт не создаётся'), async () => {
+    const dearer = [{ order_id: orderId, fact_quantity: QTY, fact_unit_price: (price * 1.05).toFixed(4) }]
+    const express = await refusal(operatorToken, EXPRESS, { d: { braname: KRG, offerer_account: sidorov.account, fact_quantity_per_order: dearer } })
+    expect(express?.codeText, express?.message).toBe('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED')
+    expect(await receptionsOfOrder(orderId), 'акт не создан').toEqual([])
+  })
+
   let shipmentId = ''
 
   it(caseName('mkt.supply.side.02', 'принять больше заказанного нельзя — акт не создаётся'), async () => {

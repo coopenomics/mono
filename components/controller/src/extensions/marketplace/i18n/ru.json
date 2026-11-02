@@ -165,6 +165,7 @@
     "MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED": "Нельзя принять сверх акцепта по Order {orderId}: факт {factQuantity} > заказано {orderedQuantity}.",
     "MARKETPLACE_ORDER_FACT_QUANTITY_INVALID": "Некорректное fact_quantity для Order {orderId}: {factQuantity}.",
     "MARKETPLACE_ORDER_FACT_UNIT_PRICE_INVALID": "Некорректная цена за единицу для Order {orderId}: {factUnitPrice}.",
+    "MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED": "Цена приёмки {factUnitPrice} выше цены заказа {orderedUnitPrice}. Принять дороже заказанного нельзя, дешевле — можно.",
     "MARKETPLACE_ORDER_FOREIGN_COOP": "Заказ принадлежит другому кооперативу.",
     "MARKETPLACE_ORDER_FOREIGN_MEMBER": "Заказ принадлежит другому пайщику.",
     "MARKETPLACE_ORDER_ID_REQUIRED": "Не указан order_id.",

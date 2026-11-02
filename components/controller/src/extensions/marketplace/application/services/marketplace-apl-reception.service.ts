@@ -1815,8 +1815,11 @@ export class MarketplaceAplReceptionService {
         if (fact > o.quantity) {
           throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED', { orderId: o.id, factQuantity: fact, orderedQuantity: o.quantity });
         }
-        // Цена за единицу: оператор может скорректировать (привезли хуже —
-        // принимаем со скидкой). По умолчанию — цена заказа.
+        // Цена за единицу: оператор может снизить её (привезли хуже —
+        // принимаем со скидкой), но не поднять выше цены заказа: поставщик
+        // привёз по заказу пайщика, и основания платить ему больше нет (слово
+        // владельца 02.11.2026). Тот же потолок стоит на выдаче. По умолчанию —
+        // цена заказа.
         let fact_unit_price = o.price_per_unit;
         if (entry.fact_unit_price !== undefined) {
           const priceNum = Number.parseFloat(entry.fact_unit_price);
@@ -1824,6 +1827,13 @@ export class MarketplaceAplReceptionService {
             throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_INVALID', { orderId: o.id, factUnitPrice: entry.fact_unit_price });
           }
           fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
+          if (Number.parseFloat(fact_unit_price) > Number.parseFloat(o.price_per_unit)) {
+            throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED', {
+              orderId: o.id,
+              factUnitPrice: fact_unit_price,
+              orderedUnitPrice: o.price_per_unit,
+            });
+          }
         }
         out.push({ order_id: o.id, fact_quantity: fact, fact_unit_price });
       } else {
