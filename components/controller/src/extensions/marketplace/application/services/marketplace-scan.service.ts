@@ -1,8 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { DomainError } from '@coopenomics/extension-kit';
+import { DomainError, nextLocalMidnight, platformSettings } from '@coopenomics/extension-kit';
 import {
-  HANDOFF_CODE_TTL_HOURS,
   isAccountName,
   MarketplaceHandoffCodeKind,
   parseMarketplaceHandoffCode,
@@ -89,8 +88,8 @@ export class MarketplaceScanService {
   }
 
   /**
-   * Код, который пайщик показывает оператору: случайный, живёт сутки, один на
-   * учётную запись. Пока код действует, сервер отдаёт его же; по истечении
+   * Код, который пайщик показывает оператору: случайный, живёт до конца
+   * текущего дня, один на учётную запись. Пока код действует, сервер отдаёт его же; по истечении
    * выдаёт новый. Вид (получение / приёмка) на содержимое не влияет — дела на
    * участке сервер собирает по учётной записи.
    */
@@ -106,7 +105,9 @@ export class MarketplaceScanService {
       coopname,
       account,
       token: tokenFromBytes(randomBytes(TOKEN_LENGTH)),
-      expires_at: new Date(now.getTime() + HANDOFF_CODE_TTL_HOURS * 60 * 60 * 1000),
+      // До конца текущего дня по часовому поясу кооператива: пайщик понимает
+      // «код на сегодня», а не скользящие сутки (слово владельца 02.11.2026).
+      expires_at: nextLocalMidnight(now, platformSettings().timezone || 'UTC'),
     });
     return { kind, code: created.token, expires_at: created.expires_at };
   }

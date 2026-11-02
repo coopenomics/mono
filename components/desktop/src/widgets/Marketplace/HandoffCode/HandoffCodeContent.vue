@@ -9,6 +9,8 @@ import { FailAlert } from 'src/shared/api';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import { participantVerificationView } from 'src/shared/lib/verification';
 import { HANDOFF_CODE_COPY, type AccountHandoffKind } from './copy';
+import { t } from 'src/shared/i18n';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 
 /**
  * Содержимое экрана кода передачи пайщика — QR-код плюс пояснение. Единый
@@ -94,6 +96,22 @@ async function load(): Promise<void> {
   }
 }
 
+/**
+ * Срок кода словами. Код действует до конца текущего дня по поясу
+ * кооператива: «сегодня, до 23:59» и обещание нового кода завтра. Код,
+ * выданный по прежнему правилу на сутки, называет точную дату и время.
+ */
+const validText = computed(() => {
+  if (!expiresAt.value) return '';
+  const lastMinute = new Date(expiresAt.value.getTime() - 60_000);
+  const day = formatDateToLocalTimezone(lastMinute, 'DD.MM.YYYY');
+  const time = formatDateToLocalTimezone(lastMinute, 'HH:mm');
+  if (day === formatDateToLocalTimezone(new Date(), 'DD.MM.YYYY')) {
+    return t('marketplace.handoffCodeContent.validToday', { time });
+  }
+  return t('marketplace.handoffCodeContent.validUntil', { date: `${day} ${time}` });
+});
+
 // realtime: нет источника — код выдаёт сервер по запросу; новый код запрашивается по истечении срока действия
 watch(() => [props.kind, session.username], () => void load());
 onMounted(load);
@@ -109,7 +127,7 @@ onBeforeUnmount(clearRenew);
     | {{ $t('marketplace.handoffCodeContent.passportHint2') }}
     | {{ $t('marketplace.handoffCodeContent.passportHint3') }}
   HandoffQr(:value="code", :size="size", :caption="copy.caption")
-  .handoff-code__until(v-if="expiresAt") {{ $t('marketplace.handoffCodeContent.validUntil') }}
+  .handoff-code__until(v-if="validText") {{ validText }}
 EmptyState(
   v-else,
   :title="$t('marketplace.handoffCodeContent.codeUnavailableTitle')",

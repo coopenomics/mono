@@ -94,13 +94,18 @@ describe('Стол заказов — единый сканер: разбор к
     }
   })
 
-  it(caseName('mkt.scan.happy.06', 'пайщик получает случайный код на сутки; повторный запрос отдаёт тот же код; сервер ведёт по нему к пайщику'), async () => {
+  it(caseName('mkt.scan.happy.06', 'пайщик получает случайный код до конца текущего дня; повторный запрос отдаёт тот же код; сервер ведёт по нему к пайщику'), async () => {
     const receive = (await gql<any>(memberToken, CODE, { d: { kind: 'RECEIVE' } })).marketplaceHandoffCode
     expect(receive.kind).toBe('RECEIVE')
     expect(receive.code).toMatch(/^[A-HJ-NP-Z2-9]{10}$/)
-    const ttlMs = new Date(receive.expires_at).getTime() - Date.now()
-    expect(ttlMs).toBeGreaterThan(23 * 60 * 60 * 1000)
+    // Код действует до конца текущего дня по поясу кооператива: истекает в
+    // местную полночь (минуты пояса кратны 15) и не позже чем через сутки.
+    const expires = new Date(receive.expires_at)
+    const ttlMs = expires.getTime() - Date.now()
+    expect(ttlMs).toBeGreaterThan(0)
     expect(ttlMs).toBeLessThanOrEqual(24 * 60 * 60 * 1000)
+    expect(expires.getUTCSeconds()).toBe(0)
+    expect(expires.getUTCMinutes() % 15).toBe(0)
     const again = (await gql<any>(memberToken, CODE, { d: { kind: 'PICKUP' } })).marketplaceHandoffCode
     expect(again.code, 'пока код действует, он один').toBe(receive.code)
     const pickup = (await gql<any>(supplierToken, CODE, { d: { kind: 'PICKUP' } })).marketplaceHandoffCode

@@ -4,9 +4,13 @@
  * Проверяются разбор строки, порядок дел, код заявления, партия, бокс,
  * чужой кооператив и нераспознанная строка.
  */
+jest.mock('@coopenomics/extension-kit', () => {
+  const actual = jest.requireActual('@coopenomics/extension-kit');
+  return { ...actual, platformSettings: () => ({ coopname: 'voskhod', timezone: 'Europe/Moscow' }) };
+});
+
 import {
   encodeMarketplaceHandoffCode,
-  HANDOFF_CODE_TTL_HOURS,
   MarketplaceHandoffCodeKind,
   normalizeToken,
   parseMarketplaceHandoffCode,
@@ -177,12 +181,13 @@ describe('визит по коду', () => {
   });
 
   // mkt.scan.happy.06
-  it('код пайщику выдаёт сервер: случайный, на сутки; пока действует — тот же самый', async () => {
+  it('код пайщику выдаёт сервер: случайный, до конца текущего дня; пока действует — тот же самый', async () => {
     const { service, codes } = build();
     const issued = await service.handoffCodeFor(COOP, 'ant', MarketplaceHandoffCodeKindDTO.RECEIVE, NOW);
     expect(issued.kind).toBe(MarketplaceHandoffCodeKindDTO.RECEIVE);
     expect(normalizeToken(issued.code)).toBe(issued.code);
-    expect(issued.expires_at).toEqual(new Date(NOW.getTime() + HANDOFF_CODE_TTL_HOURS * HOUR_MS));
+    // До конца дня по поясу кооператива: 12:00 UTC — 15:00 в Москве, код живёт до полуночи по Москве.
+    expect(issued.expires_at).toEqual(new Date('2026-10-11T21:00:00.000Z'));
     expect(codes.create).toHaveBeenCalledWith({ coopname: COOP, account: 'ant', token: issued.code, expires_at: issued.expires_at });
 
     codes.findLiveByAccount.mockResolvedValue({ token: TOKEN, account: 'ant', expires_at: new Date(NOW.getTime() + HOUR_MS) });

@@ -4980,6 +4980,7 @@ export type MessageKey =
   | 'marketplace.handoffCodeContent.passportHint1'
   | 'marketplace.handoffCodeContent.passportHint2'
   | 'marketplace.handoffCodeContent.passportHint3'
+  | 'marketplace.handoffCodeContent.validToday'
   | 'marketplace.handoffCodeContent.validUntil'
   | 'marketplace.handoffCopy.deliveryHint'
   | 'marketplace.handoffCopy.deliveryLoginHint'

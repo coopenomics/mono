@@ -22,6 +22,8 @@
  * читает само «Образование» как запасные — ради стендов, где они уже стоят.
  */
 
+import { timeZoneOffsetMs } from './local-day';
+
 const SECONDS_IN_DAY = 24 * 60 * 60;
 /** Суток в месяце сжатого времени, если длина месяца не задана. */
 const DAYS_IN_COMPRESSED_MONTH = 10;
@@ -124,23 +126,6 @@ export function standNextPeriodStart(date: Date, timeZone: string): Date {
   // и сдвигаем на смещение пояса в этот момент.
   const utcMidnight = Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1);
   return new Date(utcMidnight - timeZoneOffsetMs(new Date(utcMidnight), timeZone));
-}
-
-/** Смещение часового пояса от UTC в момент, миллисекунд (Москва — +3 ч). */
-function timeZoneOffsetMs(date: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(date);
-  const get = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? 0);
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
-  return asUtc - Math.floor(date.getTime() / 1000) * 1000;
 }
 
 /** Строка для журнала при запуске: какая шкала действует. */

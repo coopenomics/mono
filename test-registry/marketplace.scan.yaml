@@ -17,6 +17,10 @@ title: Единый сканер стола ПВЗ — визит пайщика
 # заявления сервер не принимает (слово владельца: «зачем принимать»); голый
 # логин остаётся ручным вводом оператора без камеры.
 
+# Правка 02.11.2026 (99D-18, слово владельца): код пайщика действует до конца
+# текущего дня по часовому поясу кооператива, а не скользящие сутки — пайщик
+# понимает «код на сегодня»; ночью экран сам запрашивает новый.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/domain/marketplace-handoff-code.ts
@@ -100,7 +104,7 @@ cases:
     level: backend
     kind: happy
     scenario: пайщик запрашивает свой код; запрашивает повторно, пока код действует
-    expect: сервер выдаёт случайный код из 10 знаков на сутки; повторный запрос отдаёт тот же код; по коду сервер ведёт к пайщику
+    expect: сервер выдаёт случайный код из 10 знаков до конца текущего дня по поясу кооператива; повторный запрос отдаёт тот же код; по коду сервер ведёт к пайщику
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     api: components/api-tests/src/marketplace/scan.test.ts
     status: written
@@ -121,7 +125,7 @@ cases:
     expect: отказ MARKETPLACE_SCAN_CODE_EXPIRED, не «не распознан»
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     external: unreachable
-    external_reason: "срок кода — сутки, снаружи время стенда не сдвинуть; выдача и разбор действующего кода проверены случаями happy.06 и happy.07"
+    external_reason: "срок кода — до конца дня, снаружи время стенда не сдвинуть; выдача и разбор действующего кода проверены случаями happy.06 и happy.07"
     status: written
 
   - id: mkt.scan.side.04
