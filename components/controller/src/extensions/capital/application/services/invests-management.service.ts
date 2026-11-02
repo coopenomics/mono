@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
@@ -71,7 +72,11 @@ export class InvestsManagementService {
       [{ field: 'amount', expected: data.amount, mode: 'currency_amount' }],
     );
 
-    const invest_hash = generateRandomHash();
+    // Хэш взноса выводится из подписанного заявления, а не выпускается заново:
+    // повтор того же заявления (двойной клик, повтор запроса) получает тот же
+    // хэш и отсекается интерактором до цепи (решение владельца 02.11.2026 —
+    // контракт истории взносов не хранит).
+    const invest_hash = createHash('sha256').update(`capital-pinv|${data.statement.hash.toLowerCase()}`).digest('hex');
 
     const tx = await this.investsManagementInteractor.createProgramInvest(
       {

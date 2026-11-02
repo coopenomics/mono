@@ -10,7 +10,7 @@ import { InvestDomainEntity } from '../../domain/entities/invest.entity';
 import type { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { InvestSyncService } from '../syncers/invest-sync.service';
-import { LOGGER_PORT, type ILoggerPort,
+import { LOGGER_PORT, LEDGER2_HISTORY_PORT, type ILoggerPort, type ILedger2HistoryPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
@@ -24,6 +24,9 @@ import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { DomainToBlockchainUtils, CurrencyValidationUtil, DomainError } from '@coopenomics/extension-kit';
 import { t } from '../../i18n';
+
+/** Сколько помнить отправленное заявление: с запасом на разбор блока парсером. */
+const RECENT_INVEST_TTL_MS = 5 * 60_000;
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -46,10 +49,23 @@ export class InvestsManagementInteractor {
     private readonly segmentRepository: SegmentRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly investSyncService: InvestSyncService,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledgerHistory: ILedger2HistoryPort
   ) {
     this.logger.setContext(InvestsManagementInteractor.name);
   }
+
+  /**
+   * Заявления о взносе в программу, отправленные в цепь за последние минуты.
+   *
+   * Контракт истории принятых взносов не хранит (RAM цепи экономится — решение
+   * владельца 02.11.2026), и повтор того же заявления цепь проводит вторым
+   * взносом. Повтор отсекается здесь: проведённое видно по журналу ledger2
+   * (операция с process_hash = invest_hash), а случайный дубль — двойной клик,
+   * повтор запроса — приходит раньше, чем парсер запишет первый взнос, и его
+   * держит этот список.
+   */
+  private readonly recentProgramInvests = new Map<string, number>();
 
   /**
    * Подготавливает данные для генерации заявления об инвестировании в генерацию
@@ -146,6 +162,9 @@ export class InvestsManagementInteractor {
     data: CreateProgramInvestDomainInput,
     _currentUser: IMonoAccount
   ): Promise<InnerTransactResult> {
+    const investHash = data.invest_hash.toLowerCase();
+    await this.assertProgramInvestNotRepeated(data.coopname, investHash);
+    this.recentProgramInvests.set(investHash, Date.now() + RECENT_INVEST_TTL_MS);
     const blockchainData = {
       coopname: data.coopname,
       username: data.username,
@@ -154,7 +173,22 @@ export class InvestsManagementInteractor {
       statement: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.statement),
     };
 
-    return await this.capitalBlockchainPort.createProgramInvest(blockchainData);
+    try {
+      return await this.capitalBlockchainPort.createProgramInvest(blockchainData);
+    } catch (error) {
+      // Цепь взнос не приняла — заявление можно отправить снова.
+      this.recentProgramInvests.delete(investHash);
+      throw error;
+    }
+  }
+
+  /** Заявление с этим invest_hash уже отправлено недавно либо проведено по журналу ledger2 — отказ. */
+  private async assertProgramInvestNotRepeated(coopname: string, investHash: string): Promise<void> {
+    const now = Date.now();
+    for (const [hash, until] of this.recentProgramInvests) if (until <= now) this.recentProgramInvests.delete(hash);
+    if (this.recentProgramInvests.has(investHash)) throw DomainError.badRequest('CAPITAL_PROGRAM_INVEST_DUPLICATE');
+    const seen = await this.ledgerHistory.getHistory({ coopname, processHash: investHash, limit: 1 });
+    if (seen.totalCount > 0) throw DomainError.badRequest('CAPITAL_PROGRAM_INVEST_DUPLICATE');
   }
 
   /**

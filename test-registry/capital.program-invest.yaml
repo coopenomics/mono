@@ -151,9 +151,12 @@ cases:
     kind: break
     scenario: >
       Повторная отправка того же заявления (двойной клик, повтор запроса).
-    expect: второй взнос не проходит — контроллер отклоняет уже проведённое заявление до отправки в цепь
-    test: ~
-    status: missing
+    expect: >
+      второй взнос не проходит — CAPITAL_PROGRAM_INVEST_DUPLICATE до цепи: хэш взноса выводится
+      из подписанного заявления, недавно отправленное держит контроллер, проведённое видно по журналу ledger2
+    test: components/api-tests/src/capital/program-invest.test.ts
+    api: components/api-tests/src/capital/program-invest.test.ts
+    status: written
 
   # ── Уровень бэкенда ───────────────────────────────────────────────────────
 
