@@ -50,7 +50,6 @@ const {
   cancelSupplier,
   signProposal,
   signSaga,
-  proposalConverts,
   declineProposal,
   activeFlow,
 } = useOnsiteSignatureGate();
@@ -298,8 +297,9 @@ function proposalRows(p: ProposalTask): TaskRow[] {
  * Строки сводки получения (тексты согласованы владельцем 02.11.2026):
  * стоимость имущества и обеспечительная часть — всегда; возврат на свободный
  * паевой — если выдали меньше или дешевле заказа; «сверх внесённого при
- * заказе» — если больше или дороже; перевод с главного паевого по заявлению —
- * только если он нужен и сумма больше нуля. Нулевых строк нет.
+ * заказе» — если больше или дороже. Источник денег (перевод с главного
+ * паевого по заявлению) в сводке не показывается: он не складывается в
+ * итог и путает (слово владельца 02.11.2026). Нулевых строк нет.
  */
 function proposalLines(p: ProposalTask): Array<{ label: string; value: string }> {
   const lines: Array<{ label: string; value: string }> = [
@@ -311,10 +311,6 @@ function proposalLines(p: ProposalTask): Array<{ label: string; value: string }>
   const diff = proposalDiffs.value[p.id];
   if (diff?.refund > 0) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.refundToWalletLabel'), value: rub(diff.refund) });
   if (diff?.surcharge > 0) lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel'), value: rub(diff.surcharge) });
-  const translated = Number.parseFloat(String(proposalConverts.value[p.id]?.amount ?? '0'));
-  if (translated > 0) {
-    lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.translateFromWalletLabel'), value: rub(translated) });
-  }
   return lines;
 }
 

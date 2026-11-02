@@ -5526,7 +5526,6 @@ export type MessageKey =
   | 'marketplace.onsiteSignatureGateOverlay.surchargeFromShareLabel'
   | 'marketplace.onsiteSignatureGateOverlay.totalReceivedLabel'
   | 'marketplace.onsiteSignatureGateOverlay.totalToReceiveLabel'
-  | 'marketplace.onsiteSignatureGateOverlay.translateFromWalletLabel'
   | 'marketplace.onsiteSignatureGateOverlay.ttnFactLabel'
   | 'marketplace.onsiteSignatureGateOverlay.ttnLabel'
   | 'marketplace.operatorBranchEconomyPage.accruedLabel'
