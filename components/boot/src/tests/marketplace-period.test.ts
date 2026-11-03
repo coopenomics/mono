@@ -188,18 +188,21 @@ describe('стол заказов — итог месяца участка и с
     expect(units(periodRow.expenses)).toBe(expensesExpected)
     expect(reserve).toBe(300n * UNITS)
 
-    const cap = units(periodRow.expenses) * H / (H - p)
-    const membership = cap < dueUnits ? cap : dueUnits
-    const funds = membership * p / H
-    const branch = membership - funds
-    const economy = dueUnits - membership
+    // Порядок по решению владельца 03.11.2026: расходы участка первыми, из
+    // остатка — проценты фондов, остаток — экономия инициатора и пайщиков.
+    const expenses = units(periodRow.expenses)
+    const branch = expenses < dueUnits ? expenses : dueUnits
+    const afterExpenses = dueUnits - branch
+    const funds = afterExpenses * p / H
+    const membership = branch + funds
+    const economy = afterExpenses - funds
     const initiator = economy * 618_000n / H
     expect(units(periodRow.membership)).toBe(membership)
     expect(units(periodRow.funds_amount)).toBe(funds)
     expect(units(periodRow.branch_amount)).toBe(branch)
     expect(units(periodRow.initiator_amount)).toBe(initiator)
     expect(units(periodRow.return_amount)).toBe(economy - initiator)
-    expect(units(periodRow.deficit)).toBe(units(periodRow.expenses) > branch ? units(periodRow.expenses) - branch : 0n)
+    expect(units(periodRow.deficit)).toBe(expenses - branch)
     expect(BigInt(periodRow.rate_branch)).toBe(branch * H / baseUnits)
     expect(BigInt(periodRow.rate_funds)).toBe(funds * H / baseUnits)
     expect(BigInt(periodRow.rate_initiator)).toBe(initiator * H / baseUnits)

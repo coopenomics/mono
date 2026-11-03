@@ -12,12 +12,12 @@
  *   Р_пр = резерв прошлого прогона участка (его строка kuperiods); нет строки — 0
  *   Н    = max(0, Р_пр − МП)                 невыплаченная часть прошлого резерва
  *   РК   = max(0, ПР + СЗ + Р − Н)           расходы участка за прогон
+ *   У    = min(C, РК)                        участку на расходы — первыми (решение владельца 03.11.2026)
+ *   Д    = РК − У                            дефицит
  *   p    = Σ процентов фондов накопления (fund::accfunds)
- *   М    = min(C, РК × H / (H − p))          членский взнос участка; фонды удерживаются первыми
- *   Ф    = М × p / H                         в фонды накопления
- *   У    = М − Ф                             участку на расходы
- *   Д    = max(0, РК − У)                    дефицит
- *   Э    = C − М                             экономия
+ *   Ф    = (C − У) × p / H                   в фонды накопления — из остатка после расходов
+ *   М    = У + Ф                             членский взнос участка
+ *   Э    = C − У − Ф                         экономия
  *   И    = Э × φи / H                        инициатору
  *   В    = Э − И                             пайщикам обратно
  *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T   ставки прогона
@@ -92,17 +92,18 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     accfunds_index accfunds(_fund, coopname.value);
     for (auto it = accfunds.begin(); it != accfunds.end(); ++it) funds_percent += it->percent;
   }
-  eosio::check(funds_percent < HUNDR_PERCENTS,
-               "MARKETPLACE_PERIOD_FUNDS_INVALID: Сумма процентов фондов накопления не может быть 100% и выше");
+  eosio::check(funds_percent <= HUNDR_PERCENTS,
+               "MARKETPLACE_PERIOD_FUNDS_INVALID: Сумма процентов фондов накопления не может быть выше 100%");
 
+  // Порядок по решению владельца 03.11.2026: сначала расходы участка, из
+  // остатка — проценты фондов накопления, остаток — экономия инициатора и пайщиков.
   const uint128_t H = HUNDR_PERCENTS;
-  const uint128_t cap = static_cast<uint128_t>(expenses.amount) * H / (H - funds_percent);
-  const int64_t membership_amount = cap < static_cast<uint128_t>(secured.amount)
-    ? static_cast<int64_t>(cap) : secured.amount;
-  const int64_t funds_amount = static_cast<int64_t>(static_cast<uint128_t>(membership_amount) * funds_percent / H);
-  const int64_t branch_amount = membership_amount - funds_amount;
-  const int64_t deficit_amount = expenses.amount > branch_amount ? expenses.amount - branch_amount : 0;
-  const int64_t economy_amount = secured.amount - membership_amount;
+  const int64_t branch_amount = expenses.amount < secured.amount ? expenses.amount : secured.amount;
+  const int64_t deficit_amount = expenses.amount - branch_amount;
+  const int64_t after_expenses = secured.amount - branch_amount;
+  const int64_t funds_amount = static_cast<int64_t>(static_cast<uint128_t>(after_expenses) * funds_percent / H);
+  const int64_t membership_amount = branch_amount + funds_amount;
+  const int64_t economy_amount = after_expenses - funds_amount;
   const uint64_t initiator_percent = Marketplace::get_initiator_share_percent(coopname);
   const int64_t initiator_amount = static_cast<int64_t>(static_cast<uint128_t>(economy_amount) * initiator_percent / H);
   const int64_t return_amount = economy_amount - initiator_amount;
