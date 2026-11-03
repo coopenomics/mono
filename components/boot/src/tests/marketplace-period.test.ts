@@ -62,10 +62,14 @@ let baseUnits = 0n
 let period = 0
 let periodRow: any = null
 
+let pushSeq = 0
+
 async function push(account: string, name: string, data: Record<string, unknown>) {
   return bc.api.transact(
     { actions: [{ account, name, authorization: [{ actor: COOP, permission: 'active' }], data }] },
-    { blocksBehind: 3, expireSeconds: 30 },
+    // Срок жизни у каждой транзакции свой: повтор одинакового действия в том же блоке
+    // nodeos иначе отбросит как duplicate transaction, не дав контракту ответить кодом.
+    { blocksBehind: 3, expireSeconds: 30 + (pushSeq++ % 600) },
   )
 }
 

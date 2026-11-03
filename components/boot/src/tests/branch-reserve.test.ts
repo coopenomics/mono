@@ -42,10 +42,14 @@ const ekaterina = fromState('ekaterina')
 
 const BRANCH = BranchContract.contractName.production
 
+let pushSeq = 0
+
 async function push(name: string, data: Record<string, unknown>) {
   return bc.api.transact(
     { actions: [{ account: BRANCH, name, authorization: [{ actor: COOP, permission: 'active' }], data }] },
-    { blocksBehind: 3, expireSeconds: 30 },
+    // Срок жизни у каждой транзакции свой: повтор одинакового действия в том же блоке
+    // nodeos иначе отбросит как duplicate transaction, не дав контракту ответить кодом.
+    { blocksBehind: 3, expireSeconds: 30 + (pushSeq++ % 600) },
   )
 }
 
@@ -68,6 +72,7 @@ function statementBy(who: { wif: string, account: string }, hash: string) {
       public_key: ecc.privateToPublic(who.wif),
       signature: ecc.signHash(hash, who.wif),
       signed_at: new Date().toISOString().slice(0, 19),
+      meta: '{}',
     }],
   }
 }
