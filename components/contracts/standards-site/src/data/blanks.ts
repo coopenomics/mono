@@ -2,13 +2,17 @@
  * Бланки документов стандарта.
  *
  * Документ собирается тем же движком бланка, что и в фабрике документов
- * (`BlankTemplateEngine`): текст шаблона и переводы — из реестра cooptypes,
- * все поля без данных печатаются прочерком. Цепь и база не нужны. Шаблоны
- * здесь не меняются — сайт только показывает текущую редакцию из репозитория.
+ * (`BlankTemplateEngine`): текст шаблона и переводы — из реестра
+ * `@coopenomics/docs-templates`, все поля без данных печатаются прочерком.
+ * Цепь и база не нужны. Шаблоны здесь не меняются — сайт только показывает
+ * текущую редакцию из пакета.
+ *
+ * Движок берётся из входа `@coopenomics/docs-factory/templator`: корень пакета
+ * фабрики тянет pg и node:* и в браузерную сборку не годится.
  */
 
 import { Registry } from '@coopenomics/docs-templates';
-import { BLANK_PLACEHOLDER, BlankTemplateEngine } from '@factory-templator';
+import { BLANK_PLACEHOLDER, BlankTemplateEngine } from '@coopenomics/docs-factory/templator';
 
 /** Тип пайщика, под который собирается форма с ветвлением по типу. */
 export type SubjectType = 'individual' | 'entrepreneur' | 'organization';

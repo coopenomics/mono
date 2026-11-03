@@ -326,6 +326,9 @@ importers:
 
   components/contracts/standards-site:
     dependencies:
+      '@coopenomics/docs-factory':
+        specifier: 1.5.4
+        version: 1.5.4(chokidar@3.6.0)(cooptypes@components+cooptypes)
       '@coopenomics/docs-templates':
         specifier: 1.5.4
         version: 1.5.4
