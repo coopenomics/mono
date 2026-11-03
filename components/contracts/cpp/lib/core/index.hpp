@@ -16,6 +16,7 @@
 #include "registrator/registrator.hpp"
 #include "loan/loan.hpp"
 #include "branch/branch.hpp"
+#include "fund/fund.hpp"
 #include "marketplace/marketplace.hpp"
 // Проверки, собирающие программы: подключаются после заголовков программ,
 // чтобы контракт звал один общий метод и не читал чужих таблиц (99D-16).

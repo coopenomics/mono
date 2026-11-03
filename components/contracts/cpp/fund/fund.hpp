@@ -105,6 +105,13 @@ class [[eosio::contract(FUND)]] fund : public coop_contract {
   
   // добавить членский взнос на накопительный счет кооператива для дальнейшего управления
   [[eosio::action]] void accumfee(eosio::name coopname, eosio::asset quantity);
+
+  // отчисление в фонды накопления по их процентам на кошельки ledger2
+  // (w.fnd.accum по фонду, o.fnd.accrue); зовёт контракт-источник инлайн
+  // в нитке своего процесса (задача 99D-19)
+  [[eosio::action]] void accrue(eosio::name coopname, eosio::name source_contract,
+                                eosio::asset amount, eosio::name process_type,
+                                eosio::checksum256 process_hash, std::string memo);
   
   //счет вступительных взносов
   [[eosio::action]] void addinitial(eosio::name coopname,

@@ -31,6 +31,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.mkt.claim", human_name: "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику", kind: "USER_SHARED" },
   { name: "w.mkt.debt", human_name: "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию", kind: "USER_SHARED" },
   { name: "w.mkt.topay", human_name: "ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество", kind: "USER_SHARED" },
+  { name: "w.mkt.invest", human_name: "ЦПП «Стол Заказов» — паевой кошелёк инициатора участка", kind: "USER_SHARED" },
   { name: "w.brn.person", human_name: "Персональный кошелёк доверенного кооперативного участка", kind: "USER_SHARED" },
   { name: "w.brn.common", human_name: "Общий кошелёк членских взносов кооперативного участка", kind: "USER_SHARED" },
   { name: "w.exp.adv", human_name: "Подотчётные средства пайщика", kind: "USER_SHARED" },
@@ -42,6 +43,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
   { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED" },
   { name: "w.edu.share", human_name: "ЦПП «Образование» — паевой взнос преподавателя по договору", kind: "USER_SHARED" },
+  { name: "w.fnd.accum", human_name: "Фонды накопления кооператива (разрез по фонду)", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
@@ -86,6 +88,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.mkt.claim", required_program_id: 0, program_label: null },
   { wallet_name: "w.mkt.debt", required_program_id: 0, program_label: null },
   { wallet_name: "w.mkt.topay", required_program_id: 0, program_label: null },
+  { wallet_name: "w.mkt.invest", required_program_id: 0, program_label: null },
   { wallet_name: "w.brn.person", required_program_id: 0, program_label: null },
   { wallet_name: "w.brn.common", required_program_id: 0, program_label: null },
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
@@ -93,6 +96,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
   { wallet_name: "w.edu.hold", required_program_id: 6, program_label: "Образование-преподавание" },
   { wallet_name: "w.edu.share", required_program_id: 6, program_label: "Образование-преподавание" },
+  { wallet_name: "w.fnd.accum", required_program_id: 0, program_label: null },
 ] as const
 
 /** Что выход из кооператива делает с кошельком пайщика. */
@@ -124,6 +128,7 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.edu.member", policy: "RETURN_TO_MAIN", transfer_op: "o.edu.retshr", note: "Членский взнос ЦПП «Образование» (п. 4.2.5 Положения)" },
   { wallet_name: "w.mkt.due", policy: "FORFEIT", transfer_op: null, note: "Обеспечительная часть паевого взноса ЦПП «Стол заказов» — при выходе списывается в членский взнос" },
   { wallet_name: "w.mkt.order", policy: "BLOCKER", transfer_op: null, note: "под заказы Стола заказов зарезервирован паевой взнос — завершите или отмените заказы" },
+  { wallet_name: "w.mkt.invest", policy: "BLOCKER", transfer_op: null, note: "на паевом кошельке инициатора участка есть остаток — его судьба решается договором участия в хозяйственной деятельности на инвестиционном этапе" },
   { wallet_name: "w.exp.adv", policy: "BLOCKER", transfer_op: null, note: "не закрыт подотчёт по служебной записке — отчитайтесь или верните аванс" },
   { wallet_name: "w.edu.hold", policy: "BLOCKER", transfer_op: null, note: "идёт гарантийный срок по переданным материалам занятий — дождитесь его окончания" },
   { wallet_name: "w.wal.member", policy: "UNTOUCHED", transfer_op: null, note: "Членская часть Цифрового кошелька — политика выхода не определена" },
@@ -134,6 +139,7 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.mkt.topay", policy: "UNTOUCHED", transfer_op: null, note: "Обязательство кооператива перед поставщиком" },
   { wallet_name: "w.brn.person", policy: "UNTOUCHED", transfer_op: null, note: "Распределение кооперативного участка — назначает председатель участка" },
   { wallet_name: "w.brn.common", policy: "UNTOUCHED", transfer_op: null, note: "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
+  { wallet_name: "w.fnd.accum", policy: "UNTOUCHED", transfer_op: null, note: "Фонды накопления кооператива: L3-разрез по фонду, пайщика не касается" },
   { wallet_name: "w.reg.pend", policy: "UNTOUCHED", transfer_op: null, note: "Взнос кандидата до вступления — выходить ещё неоткуда" },
 ] as const
 

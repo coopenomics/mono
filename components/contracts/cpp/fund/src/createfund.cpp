@@ -61,6 +61,10 @@
       a.percent = percent;
       a.available = asset(0, cooperative.initial.symbol);
       a.withdrawed = asset(0, cooperative.initial.symbol);
+      // Имя разреза кошелька w.fnd.accum у дополнительного фонда совета строится
+      // из идентификатора (задача 99D-19); сигнатура действия не меняется —
+      // прежний ИСТОК зовёт его без нового аргумента.
+      a.wallet_name.emplace(Fund::wallet_name_for_id(a.id));
     });
   } else if (type == "expend"_n) {
     eosio::check(

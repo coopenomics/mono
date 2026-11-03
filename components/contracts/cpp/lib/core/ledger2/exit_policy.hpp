@@ -80,6 +80,8 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
   // --- Незавершённые обязательства: держат выход --------------------------
   { ledger2_wallets::MARKETPLACE_ORDER_LOCK, ExitWalletPolicy::BLOCKER, eosio::name{},
     "под заказы Стола заказов зарезервирован паевой взнос — завершите или отмените заказы" },
+  { ledger2_wallets::MARKETPLACE_INITIATOR, ExitWalletPolicy::BLOCKER, eosio::name{},
+    "на паевом кошельке инициатора участка есть остаток — его судьба решается договором участия в хозяйственной деятельности на инвестиционном этапе" },
   { ledger2_wallets::ADVANCE_HOLD, ExitWalletPolicy::BLOCKER, eosio::name{},
     "не закрыт подотчёт по служебной записке — отчитайтесь или верните аванс" },
   // Материалы занятий на ответственном хранении: гарантийный срок идёт, судьба
@@ -111,6 +113,8 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
     "Распределение кооперативного участка — назначает председатель участка" },
   { ledger2_wallets::BRANCH_COMMON, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
+  { ledger2_wallets::FUND_ACCUMULATION, ExitWalletPolicy::UNTOUCHED, eosio::name{},
+    "Фонды накопления кооператива: L3-разрез по фонду, пайщика не касается" },
   { ledger2_wallets::REGISTRATION_PENDING, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Взнос кандидата до вступления — выходить ещё неоткуда" },
 };

@@ -18,6 +18,17 @@ export interface IAccfund {
   percent: IUint64
   available: IAsset
   withdrawed: IAsset
+  /** Имя разреза кошелька фонда `w.fnd.accum` в ledger2 (binary_extension; у строк до задачи 99D-19 отсутствует). */
+  wallet_name?: IName
+}
+
+export interface IAccrue {
+  coopname: IName
+  source_contract: IName
+  amount: IAsset
+  process_type: IName
+  process_hash: IChecksum256
+  memo: string
 }
 
 export interface IAddaccum {

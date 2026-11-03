@@ -48,6 +48,8 @@
       a.percent = 1 * ONE_PERCENT;
       a.available = asset(0, initial.symbol);
       a.withdrawed = asset(0, initial.symbol);
+      // Постоянное имя разреза кошелька w.fnd.accum у стандартного фонда (задача 99D-19).
+      a.wallet_name.emplace("indivisible"_n);
     });
 
     // резервный
@@ -60,6 +62,7 @@
       a.percent = 15 * ONE_PERCENT;
       a.available = asset(0, initial.symbol);
       a.withdrawed = asset(0, initial.symbol);
+      a.wallet_name.emplace("reserve"_n);
     });
 
     // развития
@@ -72,6 +75,7 @@
       a.percent = 5 * ONE_PERCENT;
       a.available = asset(0, initial.symbol);
       a.withdrawed = asset(0, initial.symbol);
+      a.wallet_name.emplace("develop"_n);
     });
 
     // хозяйственный

@@ -7,6 +7,7 @@
 #include "src/addcirculate.cpp"
 #include "src/addexpense.cpp"
 #include "src/accumfee.cpp"
+#include "src/accrue.cpp"
 #include "src/addinitial.cpp"
 #include "src/authorize.cpp"
 #include "src/delfund.cpp"

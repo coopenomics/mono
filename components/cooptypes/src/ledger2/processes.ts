@@ -52,6 +52,9 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.brn.aid',      contract: 'branch',       name: 'AID',         human_name: 'Материальная помощь доверенного кооперативного участка' },
   { type: 'p.brn.spend',    contract: 'branch',       name: 'SPEND',       human_name: 'Оплата расхода кооперативного участка' },
 
+  // fund — фонды накопления кооператива (задача 99D-19)
+  { type: 'p.fnd.accum',    contract: 'fund',         name: 'ACCUM',       human_name: 'Отчисления в фонды накопления кооператива' },
+
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
   { type: 'p.edu.access',   contract: 'edubridge',    name: 'ACCESS',      human_name: 'Доступ к курсу по ЦПП «Образование»' },
   { type: 'p.edu.rid',      contract: 'edubridge',    name: 'RID',         human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },

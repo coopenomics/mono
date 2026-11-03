@@ -297,6 +297,19 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Списание обеспечительной части в членский взнос при выходе пайщика из кооператива' },
 
+  // Списание по итогу месяца участка (задача 99D-21): o.mkt.charge на сумму
+  // участку + фонды + инициатору, затем три ноги из пула — o.brn.common,
+  // o.fnd.accrue, o.mkt.initr; остаток пайщику — o.mkt.retdue.
+  { code: 'o.mkt.initr',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INITIATOR_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.invest',
+    debit: null, credit: null,
+    human_name: 'Вознаграждение инициатора кооперативного участка из экономии месяца' },
+
+  { code: 'o.mkt.retdue',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'RETURN_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.share',
+    debit: null, credit: null,
+    human_name: 'Возврат части обеспечительной части паевого взноса по итогу месяца участка' },
+
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'CLAIM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.claim',
@@ -441,6 +454,15 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'RETURN_FEE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.mkt.fee',
     debit: 86, credit: 80,
     human_name: 'Возврат членского взноса из общего кошелька кооперативного участка' },
+
+  // fund — фонды накопления кооператива (задача 99D-19). Вторая из трёх ног
+  // списания обеспечительной части участка: по одной операции на каждый фонд
+  // по его проценту, делит контракт fund (fund::accrue инлайн); имя нитки —
+  // процесса источника (поставка по хэшу заказа).
+  { code: 'o.fnd.accrue',  process_type: 'p.fnd.accum',   contract: 'fund',
+    name: 'ACCRUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.accum',
+    debit: 80, credit: 86,
+    human_name: 'Отчисление в фонд накопления из членского взноса кооперативного участка' },
 
   { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
     name: 'RELEASE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.pool',

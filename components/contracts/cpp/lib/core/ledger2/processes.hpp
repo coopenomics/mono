@@ -85,6 +85,11 @@ namespace processes {
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
   }
 
+  // fund — фонды накопления кооператива (задача 99D-19)
+  namespace fund {
+    inline constexpr eosio::name ACCUM = "p.fnd.accum"_n; ///< Отчисления в фонды накопления (o.fnd.accrue). Имя стандарта процесса; сами отчисления идут в нитке процесса-источника (списание обеспечительной части участка — p.mkt.supply), поэтому как имя нитки в apply не передаётся.
+  }
+
   // expense — шасси расходов (СЗ → авторизация → платёж → отчёт → закрытие)
   namespace expense {
     inline constexpr eosio::name PROPOSAL  = "p.exp.expns"_n;    ///< Цикл расхода по СЗ: o.exp.blgadv|blgdir (платёж) + опц. o.exp.over (перерасход) + o.exp.advrpt (отчёт ADVANCE) + опц. o.exp.advret (возврат). Анкер процесса — proposal_hash.
@@ -148,6 +153,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::WTHCAP,       capital::PGEXP,
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
   branch::FEES,          branch::AID,          branch::SPEND,
+  fund::ACCUM,
   expense::PROPOSAL,
   billing::CONVERT,      billing::PAY,
   edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
