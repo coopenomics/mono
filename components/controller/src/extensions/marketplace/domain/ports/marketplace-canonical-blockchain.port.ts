@@ -385,8 +385,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   listReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
   /** Потолок резерва на получателя в месяц (branch::brnconfig); null — не задан. */
   getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
-  /** Фонды накопления кооператива с процентами (fund::accfunds). */
-  listAccumulationFunds(coopname: string): Promise<FundContract.Tables.AccumulatedFunds.IAccumulatedFund[]>;
+  /** Фонды накопления кооператива с процентами и кошельками (fund::funds, вид `accum`). */
+  listAccumulationFunds(coopname: string): Promise<FundContract.Tables.Funds.IFund[]>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

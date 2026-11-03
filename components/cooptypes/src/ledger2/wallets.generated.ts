@@ -13,52 +13,58 @@ export interface WalletMeta {
   human_name: string
   /** Тип кошелька: USER_SHARED — L3-разрез по пайщику; COOPERATIVE — единый баланс. */
   kind: WalletKind
+  /** Счёт плана ledger2 (id ×1000), субсчётом которого служит кошелёк; 0 — учётный кошелёк без счёта. */
+  account: number
 }
 
 /**
  * Реестр кошельков ledger2 — точная копия `LEDGER2_WALLET_REGISTRY` из C++.
+ * Кошелёк и есть субсчёт своего счёта: разбивка счёта по кошелькам строится по полю `account`.
  */
 export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
-  { name: "w.reg.minshr", human_name: "Минимальный паевой взнос", kind: "USER_SHARED" },
-  { name: "w.wal.share", human_name: "Паевой взнос пайщика", kind: "USER_SHARED" },
-  { name: "w.wal.member", human_name: "ЦК — членская часть пайщика", kind: "USER_SHARED" },
-  { name: "w.wal.bill", human_name: "ЦК — биллинг пайщика (в леджере оператора)", kind: "USER_SHARED" },
-  { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED" },
-  { name: "w.cap.preimp", human_name: "Первичный учёт РИД-взносов до перехода на электронный учёт", kind: "USER_SHARED" },
-  { name: "w.mkt.order", human_name: "ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика", kind: "USER_SHARED" },
-  { name: "w.mkt.share", human_name: "ЦПП «Стол Заказов» — свободный паевой пайщика в программе", kind: "USER_SHARED" },
-  { name: "w.mkt.due", human_name: "ЦПП «Стол Заказов» — обеспечительная часть паевого взноса к списанию", kind: "USER_SHARED" },
-  { name: "w.mkt.claim", human_name: "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику", kind: "USER_SHARED" },
-  { name: "w.mkt.debt", human_name: "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию", kind: "USER_SHARED" },
-  { name: "w.mkt.topay", human_name: "ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество", kind: "USER_SHARED" },
-  { name: "w.mkt.invest", human_name: "ЦПП «Стол Заказов» — паевой кошелёк инициатора участка", kind: "USER_SHARED" },
-  { name: "w.brn.person", human_name: "Персональный кошелёк доверенного кооперативного участка", kind: "USER_SHARED" },
-  { name: "w.brn.common", human_name: "Общий кошелёк членских взносов кооперативного участка", kind: "USER_SHARED" },
-  { name: "w.exp.adv", human_name: "Подотчётные средства пайщика", kind: "USER_SHARED" },
-  { name: "w.reg.pend", human_name: "Регистрационный взнос в ожидании решения совета", kind: "USER_SHARED" },
-  { name: "w.edu.expns", human_name: "Пул расходов ЦПП «Образование»", kind: "COOPERATIVE" },
-  { name: "w.edu.fund", human_name: "Фонд ЦПП «Образование»", kind: "COOPERATIVE" },
-  { name: "w.edu.escrow", human_name: "Взносы ЦПП «Образование», удержанные до конца гарантийного срока", kind: "COOPERATIVE" },
-  { name: "w.edu.teach", human_name: "Резерв выплат преподавателям ЦПП «Образование»", kind: "COOPERATIVE" },
-  { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
-  { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED" },
-  { name: "w.edu.share", human_name: "ЦПП «Образование» — паевой взнос преподавателя по договору", kind: "USER_SHARED" },
-  { name: "w.fnd.accum", human_name: "Фонды накопления кооператива (разрез по фонду)", kind: "USER_SHARED" },
-  { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
-  { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
-  { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
-  { name: "w.wal.wpend", human_name: "Резерв паевого под заявку на возврат", kind: "COOPERATIVE" },
-  { name: "w.sov.infra", human_name: "Членские взносы за инфраструктуру кооп. платформы", kind: "COOPERATIVE" },
-  { name: "w.sov.delgte", human_name: "Делегатские членские взносы", kind: "COOPERATIVE" },
-  { name: "w.sov.expns", human_name: "Хозяйственные расходы из числа целевого финансирования", kind: "COOPERATIVE" },
-  { name: "w.sov.mnused", human_name: "Использованные минимальные паевые взносы", kind: "COOPERATIVE" },
-  { name: "w.cap.loan", human_name: "Выданные пайщикам беспроцентные займы", kind: "COOPERATIVE" },
-  { name: "w.mkt.payout", human_name: "Выплаты поставщикам", kind: "COOPERATIVE" },
-  { name: "w.mkt.fee", human_name: "Обеспечительная часть паевых взносов «Стола заказов» под заказы", kind: "COOPERATIVE" },
-  { name: "w.brn.pool", human_name: "Транзитный пул ручного распределения кооперативного участка", kind: "COOPERATIVE" },
-  { name: "w.brn.expns", human_name: "Пул расходов кооперативного участка", kind: "COOPERATIVE" },
-  { name: "w.cap.pgexp", human_name: "Пул программных расходов ЦПП «Благорост»", kind: "COOPERATIVE" },
-  { name: "w.sov.ndfl", human_name: "Удержанный НДФЛ к перечислению", kind: "COOPERATIVE" },
+  { name: "w.reg.minshr", human_name: "Минимальный паевой взнос", kind: "USER_SHARED", account: 80000 },
+  { name: "w.wal.share", human_name: "Паевой взнос пайщика", kind: "USER_SHARED", account: 80000 },
+  { name: "w.wal.member", human_name: "ЦК — членская часть пайщика", kind: "USER_SHARED", account: 86000 },
+  { name: "w.wal.bill", human_name: "ЦК — биллинг пайщика (в леджере оператора)", kind: "USER_SHARED", account: 86000 },
+  { name: "w.cap.blago", human_name: "ЦПП «Благорост» — единый кошелёк программы у пайщика", kind: "USER_SHARED", account: 80000 },
+  { name: "w.cap.preimp", human_name: "Первичный учёт РИД-взносов до перехода на электронный учёт", kind: "USER_SHARED", account: 80000 },
+  { name: "w.mkt.order", human_name: "ЦПП «Стол Заказов» — паевой резерв под заказ у пайщика", kind: "USER_SHARED", account: 80000 },
+  { name: "w.mkt.share", human_name: "ЦПП «Стол Заказов» — свободный паевой пайщика в программе", kind: "USER_SHARED", account: 80000 },
+  { name: "w.mkt.due", human_name: "ЦПП «Стол Заказов» — обеспечительная часть паевого взноса к списанию", kind: "USER_SHARED", account: 80000 },
+  { name: "w.mkt.claim", human_name: "ЦПП «Стол Заказов» — непризнанные гарантийные претензии поставщику", kind: "USER_SHARED", account: 76000 },
+  { name: "w.mkt.debt", human_name: "ЦПП «Стол Заказов» — признанный гарантийный долг поставщика к удержанию", kind: "USER_SHARED", account: 91000 },
+  { name: "w.mkt.topay", human_name: "ЦПП «Стол Заказов» — к оплате поставщику за принятое имущество", kind: "USER_SHARED", account: 76000 },
+  { name: "w.mkt.invest", human_name: "ЦПП «Стол Заказов» — паевой кошелёк инициатора участка", kind: "USER_SHARED", account: 80000 },
+  { name: "w.brn.person", human_name: "Персональный кошелёк доверенного кооперативного участка", kind: "USER_SHARED", account: 86000 },
+  { name: "w.brn.common", human_name: "Общий кошелёк членских взносов кооперативного участка", kind: "USER_SHARED", account: 86000 },
+  { name: "w.exp.adv", human_name: "Подотчётные средства пайщика", kind: "USER_SHARED", account: 0 },
+  { name: "w.reg.pend", human_name: "Регистрационный взнос в ожидании решения совета", kind: "USER_SHARED", account: 76000 },
+  { name: "w.edu.expns", human_name: "Пул расходов ЦПП «Образование»", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.edu.fund", human_name: "Фонд ЦПП «Образование»", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.edu.escrow", human_name: "Взносы ЦПП «Образование», удержанные до конца гарантийного срока", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.edu.teach", human_name: "Резерв выплат преподавателям ЦПП «Образование»", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED", account: 86000 },
+  { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED", account: 76000 },
+  { name: "w.edu.share", human_name: "ЦПП «Образование» — паевой взнос преподавателя по договору", kind: "USER_SHARED", account: 80000 },
+  { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE", account: 76000 },
+  { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE", account: 80000 },
+  { name: "w.wal.wpend", human_name: "Резерв паевого под заявку на возврат", kind: "COOPERATIVE", account: 80000 },
+  { name: "w.sov.infra", human_name: "Членские взносы за инфраструктуру кооп. платформы", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.sov.delgte", human_name: "Делегатские членские взносы", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.sov.expns", human_name: "Фонд обеспечения хозяйственной деятельности", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.sov.mnused", human_name: "Использованные минимальные паевые взносы", kind: "COOPERATIVE", account: 80000 },
+  { name: "w.cap.loan", human_name: "Выданные пайщикам беспроцентные займы", kind: "COOPERATIVE", account: 58000 },
+  { name: "w.mkt.payout", human_name: "Выплаты поставщикам", kind: "COOPERATIVE", account: 76000 },
+  { name: "w.mkt.fee", human_name: "Обеспечительная часть паевых взносов «Стола заказов» под заказы", kind: "COOPERATIVE", account: 80000 },
+  { name: "w.brn.pool", human_name: "Транзитный пул ручного распределения кооперативного участка", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.brn.expns", human_name: "Пул расходов кооперативного участка", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.cap.pgexp", human_name: "Пул программных расходов ЦПП «Благорост»", kind: "COOPERATIVE", account: 0 },
+  { name: "w.sov.ndfl", human_name: "Удержанный НДФЛ к перечислению", kind: "COOPERATIVE", account: 68000 },
+  { name: "w.fnd.indiv", human_name: "Неделимый фонд", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.fnd.resrv", human_name: "Резервный фонд", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.fnd.devel", human_name: "Фонд развития кооперации", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.fnd.mutual", human_name: "Фонд взаимного обеспечения", kind: "COOPERATIVE", account: 86000 },
 ] as const
 
 export interface ProgramWalletMapping {
@@ -96,7 +102,6 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
   { wallet_name: "w.edu.hold", required_program_id: 6, program_label: "Образование-преподавание" },
   { wallet_name: "w.edu.share", required_program_id: 6, program_label: "Образование-преподавание" },
-  { wallet_name: "w.fnd.accum", required_program_id: 0, program_label: null },
 ] as const
 
 /** Что выход из кооператива делает с кошельком пайщика. */
@@ -139,7 +144,6 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.mkt.topay", policy: "UNTOUCHED", transfer_op: null, note: "Обязательство кооператива перед поставщиком" },
   { wallet_name: "w.brn.person", policy: "UNTOUCHED", transfer_op: null, note: "Распределение кооперативного участка — назначает председатель участка" },
   { wallet_name: "w.brn.common", policy: "UNTOUCHED", transfer_op: null, note: "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
-  { wallet_name: "w.fnd.accum", policy: "UNTOUCHED", transfer_op: null, note: "Фонды накопления кооператива: L3-разрез по фонду, пайщика не касается" },
   { wallet_name: "w.reg.pend", policy: "UNTOUCHED", transfer_op: null, note: "Взнос кандидата до вступления — выходить ещё неоткуда" },
 ] as const
 

@@ -996,7 +996,9 @@ transitions:
     operations:
       - o.mkt.charge
       - o.brn.common
-      - o.fnd.accrue
+      - o.fnd.indiv
+      - o.fnd.resrv
+      - o.fnd.devel
       - o.mkt.initr
       - o.mkt.retdue
     guards:

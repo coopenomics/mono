@@ -19,9 +19,20 @@ const EXIT_HPP_PATH = resolve(__dirname, '../../contracts/cpp/lib/core/ledger2/e
 const OPS_HPP_PATH = resolve(__dirname, '../../contracts/cpp/lib/core/ledger2/operations.hpp')
 const OUT_PATH = resolve(__dirname, '../src/ledger2/wallets.generated.ts')
 
+const ACCOUNTS_HPP_PATH = resolve(__dirname, '../../contracts/cpp/lib/core/ledger2/accounts.hpp')
+
 const hpp = readFileSync(HPP_PATH, 'utf8')
 const exitHpp = readFileSync(EXIT_HPP_PATH, 'utf8')
 const opsHpp = readFileSync(OPS_HPP_PATH, 'utf8')
+const accountsHpp = readFileSync(ACCOUNTS_HPP_PATH, 'utf8')
+
+// ── 0. ledger2_accounts:: NAME = N * 1000; — счета плана, субсчётом которых служит кошелёк (99D-25)
+const accountMap = new Map<string, number>()
+{
+  const re = /static\s+constexpr\s+uint64_t\s+(\w+)\s*=\s*(\d+)\s*\*\s*1000\s*;/g
+  for (const m of accountsHpp.matchAll(re)) accountMap.set(m[1]!, Number.parseInt(m[2]!, 10) * 1000)
+  if (accountMap.size === 0) throw new Error('gen-from-cpp: не найдены ledger2_accounts:: счета')
+}
 
 // ── 1. ledger2_wallets:: NAME = "w.x.y"_n; ─────────────────────────────
 const nameMap = new Map<string, string>()
@@ -56,18 +67,25 @@ function extractArrayBody(varName: string): string {
 }
 
 // ── 4. LEDGER2_WALLET_REGISTRY ───────────────────────────────────────────
-interface WalletEntry { name: string, human_name: string, kind: 'USER_SHARED' | 'COOPERATIVE' }
+interface WalletEntry { name: string, human_name: string, kind: 'USER_SHARED' | 'COOPERATIVE', account: number }
 const walletRegistry: WalletEntry[] = []
 {
   const body = extractArrayBody('LEDGER2_WALLET_REGISTRY')
-  const re = /\{\s*ledger2_wallets::(\w+)\s*,\s*"((?:[^"\\]|\\.)*)"\s*,\s*WalletKind::(\w+)\s*\}/g
+  // Четвёртое поле — счёт плана (`ledger2_accounts::X`) либо 0 у учётного кошелька без счёта.
+  const re = /\{\s*ledger2_wallets::(\w+)\s*,\s*"((?:[^"\\]|\\.)*)"\s*,\s*WalletKind::(\w+)\s*,\s*(ledger2_accounts::(\w+)|0)\s*\}/g
   for (const m of body.matchAll(re)) {
-    const [, ident, human, kind] = m
+    const [, ident, human, kind, accountExpr, accountIdent] = m
     const name = nameMap.get(ident!)
     if (!name) throw new Error(`gen-from-cpp: ledger2_wallets::${ident} не найден среди имён`)
     if (kind !== 'USER_SHARED' && kind !== 'COOPERATIVE')
       throw new Error(`gen-from-cpp: неизвестный WalletKind::${kind}`)
-    walletRegistry.push({ name, human_name: human!, kind })
+    let account = 0
+    if (accountExpr !== '0') {
+      const found = accountMap.get(accountIdent!)
+      if (found === undefined) throw new Error(`gen-from-cpp: ledger2_accounts::${accountIdent} не найден в accounts.hpp`)
+      account = found
+    }
+    walletRegistry.push({ name, human_name: human!, kind, account })
   }
   if (walletRegistry.length === 0) throw new Error('gen-from-cpp: LEDGER2_WALLET_REGISTRY пуст')
   // Проверяем декларированный размер `std::array<…, N>`.
@@ -178,14 +196,17 @@ lines.push('  /** Человекочитаемое название для UI. *
 lines.push('  human_name: string')
 lines.push('  /** Тип кошелька: USER_SHARED — L3-разрез по пайщику; COOPERATIVE — единый баланс. */')
 lines.push('  kind: WalletKind')
+lines.push('  /** Счёт плана ledger2 (id ×1000), субсчётом которого служит кошелёк; 0 — учётный кошелёк без счёта. */')
+lines.push('  account: number')
 lines.push('}')
 lines.push('')
 lines.push('/**')
 lines.push(' * Реестр кошельков ledger2 — точная копия `LEDGER2_WALLET_REGISTRY` из C++.')
+lines.push(' * Кошелёк и есть субсчёт своего счёта: разбивка счёта по кошелькам строится по полю `account`.')
 lines.push(' */')
 lines.push('export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [')
 for (const w of walletRegistry) {
-  lines.push(`  { name: ${JSON.stringify(w.name)}, human_name: ${JSON.stringify(w.human_name)}, kind: ${JSON.stringify(w.kind)} },`)
+  lines.push(`  { name: ${JSON.stringify(w.name)}, human_name: ${JSON.stringify(w.human_name)}, kind: ${JSON.stringify(w.kind)}, account: ${w.account} },`)
 }
 lines.push('] as const')
 lines.push('')

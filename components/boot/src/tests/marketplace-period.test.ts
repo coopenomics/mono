@@ -12,8 +12,9 @@
  *     проверяются по её собственным полям (резерв прошлого прогона на стенде
  *     зависит от прежних прогонов, поэтому ожидания не зашиты числами);
  *   • chargeperiod — четыре части одного заказа одной транзакцией: участку
- *     (o.brn.common), в фонды накопления по их процентам (o.fnd.accrue × число
- *     фондов), инициатору (o.mkt.initr), пайщице обратно (o.mkt.retdue);
+ *     (o.brn.common), в фонды накопления по их процентам (o.fnd.indiv /
+ *     o.fnd.resrv / o.fnd.devel — кошелёк на каждый фонд, задача 99D-25),
+ *     инициатору (o.mkt.initr), пайщице обратно (o.mkt.retdue);
  *     кошелёк к списанию обнуляется, остатки кошельков растут ровно на части;
  *   • повтор chargeperiod — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку,
  *     после чего chargeperiod отвечает MARKETPLACE_PERIOD_NOT_CLOSED.
@@ -90,9 +91,16 @@ async function userWallet(wallet: string, username: string): Promise<bigint> {
   return units(row?.available)
 }
 
+/** Остатки кошельков фондов накопления (кошелёк = субсчёт 86, задача 99D-25): кошелёк → сумма. */
 async function fundBalances(): Promise<Map<string, bigint>> {
-  const rows: any[] = await bc.getTableRows(LEDGER2, COOP, 'userwallets', 2000)
-  return new Map(rows.filter(r => r.wallet_name === 'w.fnd.accum').map(r => [r.username, units(r.available)]))
+  const rows: any[] = await bc.getTableRows(LEDGER2, COOP, 'wallets', 200)
+  return new Map(rows.filter(r => String(r.id).startsWith('w.fnd.')).map(r => [r.id, units(r.available)]))
+}
+
+/** Реестр фондов накопления кооператива из `funds` контракта fund, по порядку номеров. */
+async function accumulationFunds(): Promise<any[]> {
+  const rows: any[] = await bc.getTableRows(FUND, COOP, 'funds', 20)
+  return rows.filter(f => f.kind === 'accum').sort((a, b) => Number(a.id) - Number(b.id))
 }
 
 async function periodRows(): Promise<any[]> {
@@ -182,7 +190,7 @@ describe('стол заказов — итог месяца участка и с
     periodRow = (await periodRows()).find(r => Number(r.period) === period)
     expect(periodRow, 'строка прогона записана').toBeDefined()
 
-    const accfunds: any[] = await bc.getTableRows(FUND, COOP, 'accfunds', 100)
+    const accfunds = await accumulationFunds()
     const p = accfunds.reduce((s, f) => s + BigInt(f.percent), 0n)
     expect(p > 0n && p < H, 'у кооператива есть фонды накопления с процентами').toBe(true)
 
@@ -242,13 +250,14 @@ describe('стол заказов — итог месяца участка и с
 
     const expected = ['o.mkt.charge']
     if (toBranch > 0n) expected.push('o.brn.common')
-    if (toFunds > 0n) expected.push('o.fnd.accrue')
+    if (toFunds > 0n) expected.push('o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel')
     if (toInitiator > 0n) expected.push('o.mkt.initr')
     if (toReturn > 0n) expected.push('o.mkt.retdue')
     const ops: LedgerRow[] = await waitForOps(chairmanToken, orderHash, expected)
     expect(units(sumOf(ops, 'o.mkt.charge').toFixed(4))).toBe(toBranch + toFunds + toInitiator)
     expect(units(sumOf(ops, 'o.brn.common').toFixed(4)) - units(sumOf(ops, 'o.brn.retfee').toFixed(4))).toBeGreaterThanOrEqual(toBranch)
-    expect(units(sumOf(ops, 'o.fnd.accrue').toFixed(4))).toBe(toFunds)
+    const fundOpsSum = sumOf(ops, 'o.fnd.indiv') + sumOf(ops, 'o.fnd.resrv') + sumOf(ops, 'o.fnd.devel')
+    expect(units(fundOpsSum.toFixed(4))).toBe(toFunds)
     expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4))).toBe(toInitiator)
     expect(units(sumOf(ops, 'o.mkt.retdue').toFixed(4))).toBe(toReturn)
 
@@ -265,22 +274,22 @@ describe('стол заказов — итог месяца участка и с
     expect(await userWallet('w.mkt.invest', chairkrg.account)).toBe(investBefore + toInitiator)
 
     // Фонды: сумма долей равна части в фонды; доля каждого фонда — по его проценту,
-    // остаток округления у последнего по идентификатору.
+    // остаток округления у последнего по номеру. У каждого фонда свой кошелёк
+    // ledger2 — кошелёк и есть субсчёт фонда (задача 99D-25).
     const fundsAfter = await fundBalances()
-    const accfunds: any[] = await bc.getTableRows(FUND, COOP, 'accfunds', 100)
+    const accfunds = await accumulationFunds()
     const p = accfunds.reduce((s, f) => s + BigInt(f.percent), 0n)
     let total = 0n
-    accfunds.sort((a, b) => Number(a.id) - Number(b.id))
     accfunds.forEach((f, i) => {
-      const wallet = f.wallet_name && f.wallet_name !== '' ? f.wallet_name : null
-      expect(wallet, 'после отчисления у каждого фонда закреплено имя разреза').toBeTruthy()
+      const wallet = String(f.wallet)
       const delta = (fundsAfter.get(wallet) ?? 0n) - (fundsBefore.get(wallet) ?? 0n)
       const share = i === accfunds.length - 1 ? toFunds - total : toFunds * BigInt(f.percent) / p
       total += share
       expect(delta, `доля фонда ${f.name}`).toBe(share)
     })
-    const standard = accfunds.filter(f => ['indivisible', 'reserve', 'develop'].includes(f.wallet_name))
-    expect(standard.length, 'три стандартных фонда носят постоянные имена разрезов').toBe(3)
+    expect(accfunds.map(f => f.wallet), 'три стандартных фонда накопления на своих кошельках')
+      .toEqual(['w.fnd.indiv', 'w.fnd.resrv', 'w.fnd.devel'])
+    expect(fundsAfter.has('w.fnd.accum'), 'общего кошелька фондов с разрезом больше нет').toBe(false)
   }, 180_000)
 
   it('повтор списания — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку; списание без строки — MARKETPLACE_PERIOD_NOT_CLOSED', async () => {

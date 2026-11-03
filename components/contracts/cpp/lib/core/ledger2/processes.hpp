@@ -87,7 +87,7 @@ namespace processes {
 
   // fund — фонды накопления кооператива (задача 99D-19)
   namespace fund {
-    inline constexpr eosio::name ACCUM = "p.fnd.accum"_n; ///< Отчисления в фонды накопления (o.fnd.accrue). Имя стандарта процесса; сами отчисления идут в нитке процесса-источника (списание обеспечительной части участка — p.mkt.supply), поэтому как имя нитки в apply не передаётся.
+    inline constexpr eosio::name ACCUM = "p.fnd.accum"_n; ///< Отчисления в фонды накопления (o.fnd.indiv, o.fnd.resrv, o.fnd.devel — по кошельку на фонд, задача 99D-25). Имя стандарта процесса; сами отчисления идут в нитке процесса-источника (списание обеспечительной части участка — p.mkt.supply), поэтому как имя нитки в apply не передаётся.
   }
 
   // expense — шасси расходов (СЗ → авторизация → платёж → отчёт → закрытие)
@@ -109,6 +109,7 @@ namespace processes {
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
     inline constexpr eosio::name TAX         = "p.sov.tax"_n;    ///< Перечисление удержанного налога в бюджет (заявка бухгалтера → платёж кассира → закрытие обязательства). Собственная нитка, а не продолжение выплаты: платёж гасит удержания всех программ сразу, и привязать его к одной выплате нельзя.
+    inline constexpr eosio::name SPEND       = "p.sov.spend"_n;  ///< Расход кооператива из фонда обеспечения хозяйственной деятельности (служебная записка → решение совета → платёж кассира → отчёт). Шасси расходов на кошельке w.sov.expns: пул и фонд — один кошелёк (задача 99D-25).
   }
 
   // billing (Epic 12 — контракт billing)
@@ -158,7 +159,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   billing::CONVERT,      billing::PAY,
   edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
   edubridge::RETURN_SHARE, edubridge::WITHDRAW_SHARE,
-  soviet::AXN_CONVERT,   soviet::TAX,
+  soviet::AXN_CONVERT,   soviet::TAX,          soviet::SPEND,
   migration::TRANSIT,
   adjustment::CORRECTION,
 };

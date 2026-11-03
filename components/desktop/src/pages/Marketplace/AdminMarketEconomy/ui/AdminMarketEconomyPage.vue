@@ -205,8 +205,8 @@ onMounted(() => {
 })
 
 // Настройки модели живут в цепи (marketplace::config, branch::brnconfig,
-// fund::accfunds), свод оборота — в базе стола: приёмки склада и исполненные
-// заказы.
+// реестр фондов fund::funds), свод оборота — в базе стола: приёмки склада и
+// исполненные заказы.
 useLiveReload(marketLiveTables('economy'), load)
 useLiveReload(marketLiveTables('order', 'warehouse'), () => loadTurnover(true))
 </script>

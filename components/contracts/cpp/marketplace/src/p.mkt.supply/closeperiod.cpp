@@ -14,7 +14,7 @@
  *   РК   = max(0, ПР + СЗ + Р − Н)           расходы участка за прогон
  *   У    = min(C, РК)                        участку на расходы — первыми (решение владельца 03.11.2026)
  *   Д    = РК − У                            дефицит
- *   p    = Σ процентов фондов накопления (fund::accfunds)
+ *   p    = Σ процентов фондов накопления (реестр фондов fund::funds)
  *   Ф    = (C − У) × p / H                   в фонды накопления — из остатка после расходов
  *   М    = У + Ф                             членский взнос участка
  *   Э    = C − У − Ф                         экономия
@@ -86,12 +86,9 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
   if (expenses_amount < 0) expenses_amount = 0;
   const eosio::asset expenses(expenses_amount, _root_govern_symbol);
 
-  // Проценты фондов накопления кооператива — из контракта фондов.
-  uint64_t funds_percent = 0;
-  {
-    accfunds_index accfunds(_fund, coopname.value);
-    for (auto it = accfunds.begin(); it != accfunds.end(); ++it) funds_percent += it->percent;
-  }
+  // Проценты фондов накопления кооператива — из реестра фондов (`funds`
+  // контракта fund), единственной точкой чтения в shared lib (задача 99D-25).
+  const uint64_t funds_percent = Fund::accumulation_percent_sum(coopname);
   eosio::check(funds_percent <= HUNDR_PERCENTS,
                "MARKETPLACE_PERIOD_FUNDS_INVALID: Сумма процентов фондов накопления не может быть выше 100%");
 

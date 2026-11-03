@@ -49,6 +49,7 @@ import systemDictionary from './locales/ru/system.json';
 import userDictionary from './locales/ru/user.json';
 import walletDictionary from './locales/ru/wallet.json';
 import billingDictionary from './locales/ru/billing.json';
+import fundDictionary from './locales/ru/fund.json';
 
 export {
   currentLocale,
@@ -65,6 +66,7 @@ export type DomainErrorParamsLike = Record<string, string | number | boolean | n
 // гейт `pnpm check:i18n` напомнит, если словарь не подключён.
 const CORE_DICTIONARIES: Array<[string, Record<string, any>]> = [
   ['billing', billingDictionary],
+  ['fund', fundDictionary],
   ['wallet', walletDictionary],
   ['user', userDictionary],
   ['system', systemDictionary],

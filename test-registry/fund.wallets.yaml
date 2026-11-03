@@ -1,0 +1,177 @@
+feature: fund.wallets
+title: Фонды кооператива на кошельках ledger2 — кошелёк как субсчёт, транзит выплат через фонд
+
+# Задача 99D-25, решение владельца 03.11.2026. Пять стандартных фондов
+# кооператива живут на кошельках ledger2 счёта 86: кошелёк и есть субсчёт
+# фонда, остаток и движения — только в учётной книге. Контракт fund хранит
+# настройки фондов (таблица funds: вид, название, описание, процент, кошелёк);
+# прежний учёт остатков (coopwallet, accfunds, expfunds, fwithdraws) отключён
+# кодом FUND_DEPRECATED, строки стирает cleanup на деплое. У каждого кошелька
+# реестра указан счёт плана; сборка контрактов проверяет, что операция с
+# проводкой двигает кошелёк только по его счёту.
+#
+# Транзит: любая выплата из кооператива, кроме возврата паевого, проходит через
+# кошелёк своего фонда одной транзакцией — расходы участка и программы через
+# фонд обеспечения хозяйственной деятельности (w.sov.expns), материальная
+# помощь через фонд взаимного обеспечения (w.fnd.mutual). Остаток фонда не
+# меняется, оборот фонда — выплаты по факту. Расходы Благороста (вложения на
+# счёте 08) и путь удержанного налога не меняются до ответа бухгалтера
+# (задачи BB1-2, BB1-3).
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/ledger2/wallets.hpp
+    - components/contracts/cpp/lib/core/ledger2/operations.hpp
+    - components/contracts/cpp/lib/core/fund/fund.hpp
+    - components/contracts/cpp/lib/domain/table_fund_funds.hpp
+    - components/contracts/cpp/fund/**
+    - components/contracts/cpp/expense/expense.cpp
+    - components/contracts/cpp/branch/src/aidconfirm.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/closeperiod.cpp
+  backend:
+    - components/cooptypes/scripts/gen-from-cpp.ts
+    - components/cooptypes/src/ledger2/wallets.generated.ts
+    - components/cooptypes/src/contracts/fund/tables/funds.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-canonical-blockchain.adapter.ts
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: fnd.wal.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Кооператив заведён: контракт фондов хранит пять стандартных фондов —
+      три накопления с процентами 1 / 15 / 5 и два списания без процента, у
+      каждого свой кошелёк учётной книги на счёте 86.
+    expect: >
+      в реестре funds пять строк с кошельками w.fnd.indiv, w.fnd.resrv,
+      w.fnd.devel, w.sov.expns, w.fnd.mutual; таблицы прежнего учёта остатков
+      пусты; в реестре кошельков ledger2 у пяти кошельков счёт 86 и нет
+      общего кошелька с разрезом w.fnd.accum
+    test: components/boot/src/tests/fund-wallets.test.ts
+    status: written   # прогон — живая цепь стенда 4 после выкладки
+
+  - id: fnd.wal.happy.02
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель совета меняет описание и процент резервного фонда и
+      описание фонда взаимного обеспечения.
+    expect: >
+      строка реестра обновлена; название и кошелёк не меняются
+    test: components/boot/src/tests/fund-wallets.test.ts
+    status: written
+
+  - id: fnd.wal.break.01
+    level: contract
+    kind: break
+    scenario: >
+      Правка фонда с нарушением правил: сумма процентов фондов накопления выше
+      100 %, нулевой процент, процент у фонда списания, чужое название, вид не
+      тот, несуществующий номер, подпись не председателя.
+    expect: >
+      отказы с кодами FUND_PERCENT_SUM_EXCEEDED, FUND_PERCENT_INVALID,
+      FUND_NAME_FIXED, FUND_KIND_MISMATCH, FUND_NOT_FOUND, FUND_NOT_CHAIRMAN;
+      реестр не меняется
+    test: components/boot/src/tests/fund-wallets.test.ts
+    status: written
+
+  - id: fnd.wal.break.02
+    level: contract
+    kind: break
+    scenario: Председатель заводит новый фонд или удаляет стандартный.
+    expect: отказ FUND_FUNDS_FIXED — набор фондов фиксирован, фондов по-прежнему пять
+    test: components/boot/src/tests/fund-wallets.test.ts
+    status: written
+
+  - id: fnd.wal.break.03
+    level: contract
+    kind: break
+    scenario: >
+      Вызов действия прежнего учёта остатков (пополнение паевого фонда,
+      распределение по фондам, заявка на вывод, завершение вывода).
+    expect: отказ FUND_DEPRECATED — остатки фондов ведёт ledger2 на кошельках фондов
+    status: missing   # действия требуют подписи контрактов fund / soviet — не воспроизводится из теста стенда
+
+  - id: fnd.wal.side.01
+    level: contract
+    kind: side
+    scenario: >
+      Списание обеспечительной части по итогу месяца участка: часть в фонды
+      накопления делится по процентам фондов.
+    expect: >
+      три операции o.fnd.indiv / o.fnd.resrv / o.fnd.devel с w.mkt.fee на
+      кошельки фондов, Дт 80 / Кт 86; сумма долей равна части в фонды копейка
+      в копейку, остаток округления у фонда развития; остатки кошельков
+      фондов растут ровно на доли
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written   # прогон — стенд 4 после выкладки контрактов
+
+  - id: fnd.wal.side.02
+    level: contract
+    kind: side
+    scenario: >
+      Кассир оплачивает расход участка или программы «Образование»: прямую
+      оплату, аванс под отчёт, доплату сверх аванса.
+    expect: >
+      одной транзакцией сумма направляется с пула расходов на кошелёк фонда
+      обеспечения хозяйственной деятельности (o.brn.tofund / o.edu.tofund, без
+      проводки) и списывается с фонда (Дт 86 / Кт 51); остаток w.sov.expns не
+      меняется, счёт 86 уменьшается один раз
+    status: missing   # сценарий на живой цепи требует служебной записки с решением совета — заводится в 99D-24 вместе с историей фонда
+
+  - id: fnd.wal.side.03
+    level: contract
+    kind: side
+    scenario: Получатель аванса возвращает неиспользованную часть.
+    expect: >
+      возврат зачисляется на кошелёк фонда (Дт 51 / Кт 86) и той же транзакцией
+      возвращается в пул расходов участка или программы (o.brn.fmfund / o.edu.fmfund)
+    status: missing   # вместе с fnd.wal.side.02
+
+  - id: fnd.wal.side.04
+    level: contract
+    kind: side
+    scenario: Кассир подтверждает выплату материальной помощи получателю.
+    expect: >
+      сумма на руки направляется с персонального кошелька получателя на
+      w.fnd.mutual (o.brn.aidfnd, без проводки) и списывается с фонда
+      (o.brn.aid, Дт 86 / Кт 51) одной транзакцией; удержанный налог идёт
+      напрямую с кошелька получателя на w.sov.ndfl, как прежде
+    status: missing   # на стенде нет выплаченной материальной помощи; сценарий — вместе с историей фонда в 99D-24
+
+  - id: fnd.wal.side.05
+    level: contract
+    kind: side
+    scenario: >
+      Сборка контрактов с операцией, которая двигает кошелёк по чужому счёту
+      (например, кошелёк счёта 86 в проводке без 86).
+    expect: >
+      сборка падает на проверке «кошелёк = субсчёт»; исключения — только
+      перечисленные с причиной (o.cap.repay, o.cap.cnvshr, o.cap.cnvbl)
+    test: components/contracts/cpp/lib/core/ledger2/operations.hpp
+    status: passing   # проверка на этапе сборки — контракты собраны 03.11.2026
+
+  # ── Уровень бэкенда ───────────────────────────────────────────────────────
+
+  - id: fnd.wal.happy.03
+    level: backend
+    kind: happy
+    scenario: Генератор cooptypes читает реестр кошельков из C++.
+    expect: >
+      у каждого кошелька поле account (id счёта ×1000, 0 у учётных кошельков без
+      счёта); снимок реестра совпадает с C++
+    test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+    external: unreachable
+    external_reason: реестр кошельков — константа пакета cooptypes, через API кооператива он не вызывается; снаружи его проверяет сборка контрактов и снимок пакета
+
+  - id: fnd.wal.side.06
+    level: backend
+    kind: side
+    scenario: Настройки экономики Стола заказов отдают фонды накопления.
+    expect: >
+      строки читаются из реестра funds (вид accum), в ответе — название,
+      процент и кошелёк фонда
+    status: missing   # модульный тест адаптера — вместе с ИСТОКом фондов в 99D-24

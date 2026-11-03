@@ -657,12 +657,15 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return (rows[0] as BranchContract.Tables.BranchConfig.IBranchConfig | undefined) ?? null;
   }
 
-  async listAccumulationFunds(coopname: string): Promise<FundContract.Tables.AccumulatedFunds.IAccumulatedFund[]> {
-    return this.blockchainService.getAllRows(
+  async listAccumulationFunds(coopname: string): Promise<FundContract.Tables.Funds.IFund[]> {
+    // Реестр фондов `funds` (задача 99D-25): пять строк настроек, остатки — в
+    // ledger2 по кошельку фонда. Отдаём только фонды накопления: у них процент.
+    const rows: FundContract.Tables.Funds.IFund[] = await this.blockchainService.getAllRows(
       FundContract.contractName.production,
       coopname,
-      FundContract.Tables.AccumulatedFunds.tableName
+      FundContract.Tables.Funds.tableName
     );
+    return rows.filter((row) => row.kind === FundContract.Tables.Funds.KIND_ACCUMULATION);
   }
 
   async listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]> {

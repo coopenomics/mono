@@ -59,7 +59,7 @@ export interface MarketplaceAccumulationFundView {
   name: string;
   /** Процент отчисления, проценты. */
   percent: number;
-  /** Имя разреза кошелька фондов `w.fnd.accum`; пусто до первого отчисления. */
+  /** Кошелёк ledger2 фонда на счёте 86 — кошелёк и есть субсчёт фонда (задача 99D-25). */
   wallet_name: string;
 }
 
@@ -107,7 +107,7 @@ export class MarketplaceBranchReserveService {
       funds: funds.map((f) => ({
         name: String(f.name),
         percent: this.toHumanPercent(Number(f.percent)),
-        wallet_name: String(f.wallet_name ?? ''),
+        wallet_name: String(f.wallet),
       })),
     };
   }

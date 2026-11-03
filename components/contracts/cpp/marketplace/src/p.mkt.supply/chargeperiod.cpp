@@ -18,7 +18,8 @@
  * Движения одной транзакцией под хэшем заказа, процесс p.mkt.supply:
  *  - o.mkt.charge — w.mkt.due → w.mkt.fee на сумму участку + фонды + инициатору;
  *  - o.brn.common — w.mkt.fee → w.brn.common участка, Дт 80 / Кт 86 (branch::accrue);
- *  - o.fnd.accrue — w.mkt.fee → w.fnd.accum по каждому фонду, Дт 80 / Кт 86 (fund::accrue);
+ *  - o.fnd.indiv / o.fnd.resrv / o.fnd.devel — w.mkt.fee → кошелёк каждого фонда накопления,
+ *    Дт 80 / Кт 86 (fund::accrue; кошелёк и есть субсчёт фонда, задача 99D-25);
  *  - o.mkt.initr  — w.mkt.fee → w.mkt.invest инициатора из строки прогона, без проводки;
  *  - o.mkt.retdue — w.mkt.due → w.mkt.share пайщика, без проводки.
  * Части с нулевой суммой не проводятся.

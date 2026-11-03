@@ -3,92 +3,62 @@
 #include <ctime>
 #include <eosio/transaction.hpp>
 
-#include "src/addaccum.cpp"
-#include "src/addcirculate.cpp"
-#include "src/addexpense.cpp"
-#include "src/accumfee.cpp"
 #include "src/accrue.cpp"
-#include "src/addinitial.cpp"
-#include "src/authorize.cpp"
-#include "src/delfund.cpp"
-#include "src/complete.cpp"
-#include "src/createfund.cpp"
+#include "src/deprecated.cpp"
 #include "src/editfund.cpp"
-#include "src/fundwithdraw.cpp"
 #include "src/init.cpp"
-#include "src/spreadamount.cpp"
-#include "src/subaccum.cpp"
-#include "src/subcirculate.cpp"
-#include "src/subinitial.cpp"
-
 
 using namespace eosio;
 
 /**
- * @brief Миграция контракта управления фондами.
- * Выполняет миграцию контракта на новую версию.
+ * @brief Доводит действующие кооперативы до пяти стандартных фондов в `funds`
+ * (задача 99D-25).
+ *
+ * У кооперативов, заведённых до переноса фондов на кошельки, таблицы `funds`
+ * нет — её заполняет этот прогон с процентами по умолчанию 1 / 15 / 5: на проде
+ * проценты именно такие, поэтому прежние строки `accfunds` не читаются. Строки,
+ * которые уже есть, не трогаются — председатель мог изменить процент.
+ * Идемпотентно: повторный прогон ничего не пишет.
+ *
  * @ingroup public_actions
  * @ingroup public_fund_actions
-
  * @note Авторизация требуется от аккаунта: @p _fund
  */
 [[eosio::action]] void fund::migrate() {
   require_auth(_fund);
+  for (const auto &coopname : Core::Registrator::get_cooperative_names()) {
+    Fund::ensure_standard_funds(coopname);
+  }
 }
-
-/**
- * @brief Регистрация нового фонда в системе.
- * Создает новый идентификатор для фонда в указанном кооперативе.
- * @param coopname Наименование кооператива
- * @param type Тип фонда (accumulation или expend)
- * @param id Идентификатор фонда
- * @ingroup public_actions
- * @ingroup public_fund_actions
-
- * @note Авторизация требуется от аккаунта: @p _fund
- */
-[[eosio::action]] void fund::newfund(eosio::name coopname, eosio::name type,
-                                     uint64_t id) {
-  require_auth(_fund);
-};
-
-/**
- * @brief Регистрация нового запроса на вывод средств.
- * Создает новый идентификатор для запроса на вывод средств.
- * @param coopname Наименование кооператива
- * @param type Тип запроса
- * @param id Идентификатор запроса
- * @ingroup public_actions
- * @ingroup public_fund_actions
-
- * @note Авторизация требуется от аккаунта: @p _fund
- */
-[[eosio::action]] void fund::newwithdraw(eosio::name coopname, eosio::name type,
-                                         uint64_t id) {
-  require_auth(_fund);
-};
 
 /**
  * @brief Очистка отработавших записей фондов (lib/core/cleanup.hpp).
  *
- * Правило: завершённый вывод из фонда после срока хранения (`expired_at`,
- * месяц от завершения). Решение совета по нему уже исполнено и удалено, а
- * повторно провести завершённый вывод контракт не должен.
+ * Правило: таблицы прежнего учёта остатков — `coopwallet`, `accfunds`,
+ * `expfunds`, `fwithdraws` — код больше не читает: остатки фондов ведёт ledger2
+ * на кошельках фондов (задача 99D-25). Суммы в этих строках уже учтены в
+ * ledger2 и в прежнем виде только путают учёт, поэтому стираются целиком.
  *
  * @note Авторизация требуется от аккаунта: @p fund
  */
 void fund::cleanup() {
   require_auth(_fund);
   Cleanup::budget budget;
-  const eosio::time_point_sec now(eosio::current_time_point());
 
   for (const auto &coopname : Core::Registrator::get_cooperative_names()) {
     if (budget.exhausted()) break;
 
+    coopwallet_index coopwallet(_fund, coopname.value);
+    Cleanup::erase_all(coopwallet, budget);
+
+    accfunds_index accfunds(_fund, coopname.value);
+    Cleanup::erase_all(accfunds, budget);
+
+    expfunds_index expfunds(_fund, coopname.value);
+    Cleanup::erase_all(expfunds, budget);
+
     fundwithdraws_index withdraws(_fund, coopname.value);
-    Cleanup::erase_where(withdraws, budget, [&](const auto &withdraw) {
-      return withdraw.status == "completed"_n && withdraw.expired_at <= now;
-    });
+    Cleanup::erase_all(withdraws, budget);
   }
 
   Cleanup::report(_fund, budget);

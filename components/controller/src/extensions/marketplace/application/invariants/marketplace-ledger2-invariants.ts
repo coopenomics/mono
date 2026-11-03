@@ -333,7 +333,7 @@ const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
   debit: { codes: [], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
   // Задача 99D-22: при списании по итогу месяца в кредит 86 ложится и
   // отчисление в фонды накопления (o.fnd.accrue) — вторая нога chargeperiod.
-  credit: { codes: ['o.brn.common', 'o.fnd.accrue'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
+  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {

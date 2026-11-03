@@ -231,7 +231,6 @@ public:
 
 
   //fund.cpp
-  void subaccum_effect(eosio::name executer, eosio::name coopname, uint64_t decision_id, uint64_t program_id);
   [[eosio::action]] void fundwithdraw(eosio::name coopname, eosio::name username, eosio::name type, uint64_t withdraw_id, document2 document);
   
   //participants.cpp

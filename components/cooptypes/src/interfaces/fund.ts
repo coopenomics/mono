@@ -9,6 +9,7 @@ export type ITimePointSec = string
 export type IUint32 = number
 export type IUint64 = number | string
 
+/** @deprecated Прежний учёт остатков фондов накопления; таблица стирается на деплое (99D-25). Читать `IFundrow`. */
 export interface IAccfund {
   id: IUint64
   coopname: IName
@@ -18,8 +19,22 @@ export interface IAccfund {
   percent: IUint64
   available: IAsset
   withdrawed: IAsset
-  /** Имя разреза кошелька фонда `w.fnd.accum` в ledger2 (binary_extension; у строк до задачи 99D-19 отсутствует). */
   wallet_name?: IName
+}
+
+/**
+ * Строка реестра фондов `funds` (задача 99D-25): настройки фонда без остатков.
+ * `kind` — `accum` (накопления) или `expend` (списания); `percent` ×10 000, у
+ * фондов списания 0; `wallet` — кошелёк ledger2 фонда на счёте 86.
+ */
+export interface IFundrow {
+  id: IUint64
+  coopname: IName
+  kind: IName
+  name: string
+  description: string
+  percent: IUint64
+  wallet: IName
 }
 
 export interface IAccrue {

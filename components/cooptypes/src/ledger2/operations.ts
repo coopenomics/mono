@@ -380,13 +380,25 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Возврат неизрасходованных средств в фонд ЦПП «Образование»' },
 
+  // Транзит через фонд обеспечения хозяйственной деятельности (задача 99D-25):
+  // расход выходит из кооператива только с кошелька фонда w.sov.expns.
+  { code: 'o.edu.tofund',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_TO_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.edu.expns', wallet_to: 'w.sov.expns',
+    debit: null, credit: null,
+    human_name: 'Направление расхода ЦПП «Образование» в фонд обеспечения хозяйственной деятельности' },
+
+  { code: 'o.edu.fmfund',  process_type: 'p.edu.spend',   contract: 'edubridge',
+    name: 'EXPENSE_FROM_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.edu.expns',
+    debit: null, credit: null,
+    human_name: 'Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов ЦПП «Образование»' },
+
   { code: 'o.edu.spend',   process_type: 'p.edu.spend',   contract: 'edubridge',
-    name: 'EXPENSE_SPEND', wallet_op: 'BURN', wallet_from: 'w.edu.expns', wallet_to: null,
+    name: 'EXPENSE_SPEND', wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null,
     debit: 86, credit: 51,
     human_name: 'Прямая оплата расхода ЦПП «Образование» по реквизитам' },
 
   { code: 'o.edu.expadv',  process_type: 'p.edu.spend',   contract: 'edubridge',
-    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.expns', wallet_to: 'w.exp.adv',
+    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.exp.adv',
     debit: 86, credit: 51,
     human_name: 'Выдача аванса под отчёт по расходу ЦПП «Образование»' },
 
@@ -396,12 +408,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Закрытие подотчёта по расходу ЦПП «Образование»' },
 
   { code: 'o.edu.expret',  process_type: 'p.edu.spend',   contract: 'edubridge',
-    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.edu.expns',
+    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.sov.expns',
     debit: 51, credit: 86,
     human_name: 'Возврат неиспользованного аванса по расходу ЦПП «Образование»' },
 
   { code: 'o.edu.expovr',  process_type: 'p.edu.spend',   contract: 'edubridge',
-    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.edu.expns', wallet_to: 'w.exp.adv',
+    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.exp.adv',
     debit: 86, credit: 51,
     human_name: 'Доплата сверх аванса по расходу ЦПП «Образование»' },
 
@@ -455,14 +467,24 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 80,
     human_name: 'Возврат членского взноса из общего кошелька кооперативного участка' },
 
-  // fund — фонды накопления кооператива (задача 99D-19). Вторая из трёх ног
-  // списания обеспечительной части участка: по одной операции на каждый фонд
-  // по его проценту, делит контракт fund (fund::accrue инлайн); имя нитки —
-  // процесса источника (поставка по хэшу заказа).
-  { code: 'o.fnd.accrue',  process_type: 'p.fnd.accum',   contract: 'fund',
-    name: 'ACCRUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.accum',
+  // fund — фонды накопления кооператива (задачи 99D-19 и 99D-25). Вторая из трёх
+  // ног списания обеспечительной части участка: по одной операции на каждый фонд
+  // по его проценту, у каждого фонда свой кошелёк (кошелёк = субсчёт 86); делит
+  // контракт fund (fund::accrue инлайн); имя нитки — процесса источника.
+  { code: 'o.fnd.indiv',   process_type: 'p.fnd.accum',   contract: 'fund',
+    name: 'ACCRUE_INDIVISIBLE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.indiv',
     debit: 80, credit: 86,
-    human_name: 'Отчисление в фонд накопления из членского взноса кооперативного участка' },
+    human_name: 'Отчисление в неделимый фонд из членского взноса кооперативного участка' },
+
+  { code: 'o.fnd.resrv',   process_type: 'p.fnd.accum',   contract: 'fund',
+    name: 'ACCRUE_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.resrv',
+    debit: 80, credit: 86,
+    human_name: 'Отчисление в резервный фонд из членского взноса кооперативного участка' },
+
+  { code: 'o.fnd.devel',   process_type: 'p.fnd.accum',   contract: 'fund',
+    name: 'ACCRUE_DEVELOPMENT', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.devel',
+    debit: 80, credit: 86,
+    human_name: 'Отчисление в фонд развития кооперации из членского взноса кооперативного участка' },
 
   { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
     name: 'RELEASE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.pool',
@@ -484,13 +506,24 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Возврат неизрасходованных средств в общий кошелёк кооперативного участка' },
 
+  // Транзит через фонд обеспечения хозяйственной деятельности (задача 99D-25).
+  { code: 'o.brn.tofund',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_TO_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.sov.expns',
+    debit: null, credit: null,
+    human_name: 'Направление расхода кооперативного участка в фонд обеспечения хозяйственной деятельности' },
+
+  { code: 'o.brn.fmfund',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_FROM_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.brn.expns',
+    debit: null, credit: null,
+    human_name: 'Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооперативного участка' },
+
   { code: 'o.brn.spend',   process_type: 'p.brn.spend',   contract: 'branch',
-    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.brn.expns', wallet_to: null,
+    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null,
     debit: 86, credit: 51,
     human_name: 'Прямая оплата расхода кооперативного участка по реквизитам' },
 
   { code: 'o.brn.expadv',  process_type: 'p.brn.spend',   contract: 'branch',
-    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.exp.adv',
+    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.exp.adv',
     debit: 86, credit: 51,
     human_name: 'Выдача аванса под отчёт по расходу кооперативного участка' },
 
@@ -500,17 +533,24 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Закрытие подотчёта по расходу кооперативного участка' },
 
   { code: 'o.brn.expret',  process_type: 'p.brn.spend',   contract: 'branch',
-    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.brn.expns',
+    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.sov.expns',
     debit: 51, credit: 86,
     human_name: 'Возврат неиспользованного аванса по расходу кооперативного участка' },
 
   { code: 'o.brn.expovr',  process_type: 'p.brn.spend',   contract: 'branch',
-    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.exp.adv',
+    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.exp.adv',
     debit: 86, credit: 51,
     human_name: 'Доплата сверх аванса по расходу кооперативного участка' },
 
+  // Транзит материальной помощи через фонд взаимного обеспечения (задача 99D-25):
+  // разрез по получателю остаётся на w.brn.person, выплата идёт с кошелька фонда.
+  { code: 'o.brn.aidfnd',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'AID_TO_FUND',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.fnd.mutual',
+    debit: null, credit: null,
+    human_name: 'Направление материальной помощи в фонд взаимного обеспечения' },
+
   { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
-    name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.brn.person', wallet_to: null,
+    name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.fnd.mutual', wallet_to: null,
     debit: 86, credit: 51,
     human_name: 'Выплата материальной помощи доверенному кооперативного участка' },
 
@@ -542,6 +582,33 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'TAX_PAYMENT',    wallet_op: 'BURN', wallet_from: 'w.sov.ndfl', wallet_to: null,
     debit: 68, credit: 51,
     human_name: 'Перечисление удержанного налога на доходы физических лиц в бюджет' },
+
+  // Расходы кооператива — шасси расходов на кошельке фонда обеспечения
+  // хозяйственной деятельности w.sov.expns: пул и фонд один кошелёк (99D-25).
+  { code: 'o.sov.spend',   process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_SPEND',  wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Прямая оплата расхода кооператива по реквизитам' },
+
+  { code: 'o.sov.expadv',  process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Выдача аванса под отчёт по расходу кооператива' },
+
+  { code: 'o.sov.exprpt',  process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта по расходу кооператива' },
+
+  { code: 'o.sov.expret',  process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.sov.expns',
+    debit: 51, credit: 86,
+    human_name: 'Возврат неиспользованного аванса по расходу кооператива' },
+
+  { code: 'o.sov.expovr',  process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Доплата сверх аванса по расходу кооператива' },
 
   // migration
   { code: 'o.mig.minshr', process_type: 'p.mig.trans', contract: 'migration', name: 'MIN_SHARE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.minshr', debit: 51, credit: 80, human_name: 'Перенос минимальных паевых взносов из прежнего учёта' },
