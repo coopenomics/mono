@@ -72,8 +72,8 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     }
   })
 
-  it('выход держат резерв под заказы, незакрытый подотчёт и материалы на хранении', () => {
-    expect(EXIT_BLOCKER_WALLET_RULES.map(r => r.wallet_name).sort()).toEqual(['w.edu.hold', 'w.exp.adv', 'w.mkt.order'])
+  it('выход держат резерв под заказы, незакрытый подотчёт, материалы на хранении и остаток инициатора участка', () => {
+    expect(EXIT_BLOCKER_WALLET_RULES.map(r => r.wallet_name).sort()).toEqual(['w.edu.hold', 'w.exp.adv', 'w.mkt.invest', 'w.mkt.order'])
     for (const r of EXIT_BLOCKER_WALLET_RULES) expect(r.note.length).toBeGreaterThan(0)
   })
 

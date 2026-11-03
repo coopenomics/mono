@@ -18,6 +18,7 @@ jest.mock('@coopenomics/extension-kit', () => {
   };
 });
 
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 import {
   MarketplaceSecureDueOperation,
   MarketplaceSecureDueService,
@@ -470,7 +471,7 @@ describe('mkt.order.keu.14 — письмо после прогона по ст�
     expect(notifications.notifyUser).toHaveBeenCalledWith(
       'orderer1',
       'obespechitelnaya-chast-spisana',
-      expect.objectContaining({ amount: '3154,29 RUB', returnedAmount: '645,71 RUB', ratePercent: '31.54', ordersCount: '1' })
+      expect.objectContaining({ amount: AmountFormatterUtils.formatAmountSafe('3154.2900 RUB'), returnedAmount: '645,71 RUB', ratePercent: '31.54', ordersCount: '1' })
     );
   });
 

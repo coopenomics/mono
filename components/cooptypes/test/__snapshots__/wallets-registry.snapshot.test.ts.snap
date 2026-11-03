@@ -70,6 +70,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": null,
     "required_program_id": 0,
+    "wallet_name": "w.mkt.invest",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
     "wallet_name": "w.brn.person",
   },
   {
@@ -101,6 +106,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "program_label": "Образование-преподавание",
     "required_program_id": 6,
     "wallet_name": "w.edu.share",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.fnd.accum",
   },
 ]
 `;
@@ -168,6 +178,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.mkt.topay",
   },
   {
+    "human_name": "ЦПП «Стол Заказов» — паевой кошелёк инициатора участка",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.invest",
+  },
+  {
     "human_name": "Персональный кошелёк доверенного кооперативного участка",
     "kind": "USER_SHARED",
     "name": "w.brn.person",
@@ -221,6 +236,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "ЦПП «Образование» — паевой взнос преподавателя по договору",
     "kind": "USER_SHARED",
     "name": "w.edu.share",
+  },
+  {
+    "human_name": "Фонды накопления кооператива (разрез по фонду)",
+    "kind": "USER_SHARED",
+    "name": "w.fnd.accum",
   },
   {
     "human_name": "ЦПП «Генератор» — единый кошелёк программы",

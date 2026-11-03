@@ -322,10 +322,10 @@ describe('Правка сетки весов', () => {
 });
 
 describe('Ставка членского взноса', () => {
-  it('кооператив ставку не задавал — действует умолчание 30%', async () => {
+  it('кооператив ставку не задавал — действует умолчание 38 % (решение владельца 02.11.2026)', async () => {
     const { service } = buildService({ feePercent: null });
 
-    expect(await service.getMembershipFeePercent(COOP)).toBe(30);
+    expect(await service.getMembershipFeePercent(COOP)).toBe(38);
   });
 
   it('заданная ставка переводится из контрактной шкалы в проценты', async () => {
