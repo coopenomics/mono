@@ -73,6 +73,18 @@ interface ChargedSummary {
   rate: string;
 }
 
+/** Накопитель списанного по пайщикам за прогон: одно письмо на пайщика. */
+class ChargedCollector {
+  charged = 0;
+  readonly byUser = new Map<string, ChargedSummary>();
+
+  note(row: MarketplaceSecureDueEntity, units: bigint, returned: bigint, rate: string): void {
+    this.charged++;
+    const acc = this.byUser.get(row.username) ?? { units: 0n, returned: 0n, orders: 0, rate };
+    this.byUser.set(row.username, { units: acc.units + units, returned: acc.returned + returned, orders: acc.orders + 1, rate: acc.rate });
+  }
+}
+
 /** Ставка списания удержаний и остатков без итога месяца: вся сумма участку. */
 const FULL_RATE_PERCENT = '100.00';
 
@@ -429,15 +441,7 @@ export class MarketplaceSecureDueService {
     // Итог считается за закончившийся месяц: его номер на единицу меньше текущего.
     const period = monthKey(now, platformSettings().timezone || 'UTC') - 1;
 
-    const chargedByUser = new Map<string, ChargedSummary>();
-    let charged = 0;
-    let failed = 0;
-    const note = (row: MarketplaceSecureDueEntity, units: bigint, returned: bigint, rate: string) => {
-      charged++;
-      const acc = chargedByUser.get(row.username) ?? { units: 0n, returned: 0n, orders: 0, rate };
-      chargedByUser.set(row.username, { units: acc.units + units, returned: acc.returned + returned, orders: acc.orders + 1, rate: acc.rate });
-    };
-
+    const summary = new ChargedCollector();
     // Итог месяца считается на участок: строки прогона группируются по участку выдачи.
     const byBranch = new Map<string, MarketplaceSecureDueEntity[]>();
     for (const row of rows) {
@@ -445,49 +449,70 @@ export class MarketplaceSecureDueService {
       list.push(row);
       byBranch.set(row.braname, list);
     }
-
+    let failed = 0;
     for (const [braname, branchRows] of byBranch) {
-      // Заказы со стоимостью идут по ставкам итога месяца; удержания при
-      // отказе (стоимости нет) — целиком участку, как и прежде.
-      const withBase = branchRows.filter((r) => this.fromDecimal(r.base_amount) > 0n);
-      const withoutBase = branchRows.filter((r) => this.fromDecimal(r.base_amount) <= 0n);
-
-      let periodRow: MarketplaceBranchPeriodEntity | null = null;
-      if (withBase.length > 0 && braname) {
-        try {
-          await this.periodService.pruneOld(coopname, braname, period);
-          const turnover = withBase.reduce((s, r) => s + this.fromDecimal(r.base_amount), 0n);
-          const secured = withBase.reduce((s, r) => s + this.fromDecimal(r.due_amount), 0n);
-          periodRow = await this.periodService.ensureClosed(coopname, braname, period, turnover, secured, withBase.length);
-        } catch (err: any) {
-          this.logger.error(`Итог месяца ${period} участка ${braname} не рассчитан: ${err.message}`);
-        }
-      }
-      for (const row of withBase) {
-        if (!periodRow) {
-          failed++;
-          continue;
-        }
-        const result = await this.chargePeriodRow(coopname, row, period);
-        if (result === null) {
-          failed++;
-          continue;
-        }
-        note(row, result.charged, result.returned, this.periodService.ratePercentOf(periodRow));
-      }
-      for (const row of withoutBase) {
-        const units = await this.chargeRow(coopname, row);
-        if (units === null) {
-          failed++;
-          continue;
-        }
-        note(row, units, 0n, FULL_RATE_PERCENT);
-      }
+      failed += await this.chargeBranch(coopname, braname, branchRows, period, summary);
     }
+    const charged = summary.charged;
+    const chargedByUser = summary.byUser;
 
     this.logger.info(`Списание обеспечительной части: списано ${charged}, не прошло ${failed} (coopname=${coopname})`);
     await this.notifyCharged(coopname, chargedByUser);
     return { charged, failed };
+  }
+
+  /**
+   * Прогон одного участка. Заказы со стоимостью идут по ставкам итога месяца;
+   * удержания при отказе (стоимости нет) — целиком участку, как и прежде.
+   * Возвращает число строк, которые не прошли.
+   */
+  private async chargeBranch(
+    coopname: string,
+    braname: string,
+    branchRows: MarketplaceSecureDueEntity[],
+    period: number,
+    summary: ChargedCollector
+  ): Promise<number> {
+    const withBase = branchRows.filter((r) => this.fromDecimal(r.base_amount) > 0n);
+    const withoutBase = branchRows.filter((r) => this.fromDecimal(r.base_amount) <= 0n);
+    let failed = 0;
+
+    const periodRow = withBase.length > 0 && braname ? await this.closeBranchPeriod(coopname, braname, withBase, period) : null;
+    for (const row of withBase) {
+      const result = periodRow ? await this.chargePeriodRow(coopname, row, period) : null;
+      if (result === null || !periodRow) {
+        failed++;
+        continue;
+      }
+      summary.note(row, result.charged, result.returned, this.periodService.ratePercentOf(periodRow));
+    }
+    for (const row of withoutBase) {
+      const units = await this.chargeRow(coopname, row);
+      if (units === null) {
+        failed++;
+        continue;
+      }
+      summary.note(row, units, 0n, FULL_RATE_PERCENT);
+    }
+    return failed;
+  }
+
+  /** Итог месяца участка по строкам прогона со стоимостью; при отказе цепи — null и запись в журнал. */
+  private async closeBranchPeriod(
+    coopname: string,
+    braname: string,
+    withBase: MarketplaceSecureDueEntity[],
+    period: number
+  ): Promise<MarketplaceBranchPeriodEntity | null> {
+    try {
+      await this.periodService.pruneOld(coopname, braname, period);
+      const turnover = withBase.reduce((s, r) => s + this.fromDecimal(r.base_amount), 0n);
+      const secured = withBase.reduce((s, r) => s + this.fromDecimal(r.due_amount), 0n);
+      return await this.periodService.ensureClosed(coopname, braname, period, turnover, secured, withBase.length);
+    } catch (err: any) {
+      this.logger.error(`Итог месяца ${period} участка ${braname} не рассчитан: ${err.message}`);
+      return null;
+    }
   }
 
   /** Строки, созревшие до начала текущего месяца по часовому поясу кооператива. */

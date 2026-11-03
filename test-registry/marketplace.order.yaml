@@ -83,6 +83,25 @@ sources:
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-display.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-close-cron.service.ts
+    # Коэффициент экономического участия (99D-22): факты месяца, зеркало итогов, резерв, прогон по ставкам
+    - components/controller/src/extensions/marketplace/application/services/marketplace-period.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-branch-aid-mirror.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-branch-reserve.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-keu.resolver.ts
+    - components/controller/src/extensions/marketplace/application/shared/period-bounds.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-period.entity.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-aid.entity.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1793520000000-keu-period.ts
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/closeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/chargeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/delperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/setshares.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/setinitiator.cpp
+    - components/contracts/cpp/branch/src/setreserve.cpp
+    - components/contracts/cpp/branch/src/delreserve.cpp
+    - components/contracts/cpp/branch/src/setaidlimit.cpp
+    - components/contracts/cpp/fund/src/accrue.cpp
   ui:
     - components/desktop/src/pages/Marketplace/Cart/**
     - components/desktop/src/pages/Marketplace/OrderConfirmation/**
@@ -629,9 +648,10 @@ cases:
       служебные записки, выплаченную материальную помощь.
     expect: >
       строка итога месяца записана один раз: расходы = планы + записки + резерв
-      обеспечения − невыплаченная часть прошлого резерва; членский взнос участка
-      = min(собрано, расходы ÷ (1 − проценты фондов)); фонды, участку, инициатору,
-      возврат и три ставки сходятся по формулам документа; повтор — отказ
+      обеспечения − невыплаченная часть прошлого резерва; участку = min(собрано,
+      расходы), дефицит = расходы − участку; фонды = (собрано − участку) × проценты
+      фондов; экономия = собрано − участку − фонды делится между инициатором и
+      пайщиками; три ставки сходятся по формулам документа; повтор — отказ
       MARKETPLACE_PERIOD_EXISTS, нулевая стоимость — MARKETPLACE_PERIOD_AMOUNT_INVALID
     test: components/boot/src/tests/marketplace-period.test.ts
     status: written
@@ -713,4 +733,125 @@ cases:
       при первом отчислении имя закрепляется в строке фонда; доли фондов
       пропорциональны процентам, сумма долей равна переданной сумме
     test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.08
+    level: backend
+    kind: side
+    scenario: >
+      Границы закончившегося месяца по часовому поясу кооператива для сбора
+      фактов прогона.
+    expect: >
+      начало и конец месяца в UTC по поясу кооператива; декабрь переходит в
+      январь; номер месяца момента совпадает с ключом строк учёта; пояса с
+      переходом на летнее время и без него дают разные границы
+    test: components/controller/tests/unit/marketplace/period-bounds.test.ts
+    external: unreachable
+    external_reason: "чистая функция узла, через API не выведена"
+    status: written
+
+  - id: mkt.order.keu.09
+    level: backend
+    kind: side
+    scenario: >
+      Зеркало заявлений на материальную помощь по действиям контракта branch:
+      создание, одобрение, выплата, отказ; суммы за отрезок времени.
+    expect: >
+      createaid заводит строку «подано» с хэшем в нижнем регистре, повтор строку не
+      трогает; onaidauth → одобрено, aidconfirm → выплачено с моментом блока,
+      onaiddecl → отклонено, выплатить отклонённое нельзя; неизвестный хэш —
+      предупреждение без падения; paidWithin — только выплаченное по участку внутри
+      отрезка, конец не входит; submittedWithin — поданные, одобренные и выплаченные,
+      отклонённые нет
+    test: components/controller/tests/unit/marketplace/marketplace-branch-aid-mirror.test.ts
+    external: unreachable
+    external_reason: "зеркало строится по событиям цепи, через API не выведено"
+    status: written
+
+  - id: mkt.order.keu.10
+    level: backend
+    kind: side
+    scenario: >
+      Настройки модели для администратора и резерв участка для председателя:
+      чтение, запись, предел материальной помощи до обращения в цепь.
+    expect: >
+      ставка, доля инициатора, потолок и проценты фондов — в человеческих единицах,
+      доля по умолчанию 61,8 %; setInitiatorShare вне 0–100 — отказ; setAidLimit
+      отрицательный — отказ; инициатор участка — назначенный, иначе председатель;
+      строки резерва с остатком на месяц, чужой участок не входит; получатель вне
+      участка или сумма ноль — отказ до цепи; предел: потолок ноль — предела нет,
+      без строки резерва — MARKETPLACE_AID_NO_RESERVE, сверх — MARKETPLACE_AID_OVER_RESERVE
+    test: components/controller/tests/unit/marketplace/marketplace-branch-reserve.service.test.ts
+    external: unreachable
+    external_reason: "API стенда проверяется сценарием КЭУ-5 после экранов"
+    status: written
+
+  - id: mkt.order.keu.11
+    level: backend
+    kind: happy
+    scenario: >
+      Факты закончившегося месяца, расчёт контрактом, зеркало строки итога,
+      стирание старых строк.
+    expect: >
+      плановые расходы — записи участка со сроком внутри месяца; служебные записки —
+      выделено минус возвращено без удвоения планов; материальная помощь — из
+      зеркала заявлений; ensureClosed передаёт пять фактов активами и зеркалирует
+      строку цепи; повтор в месяце контракт не зовёт; MARKETPLACE_PERIOD_EXISTS —
+      строка читается из цепи, другой отказ — наверх; нет строки после расчёта —
+      MARKETPLACE_PERIOD_NOT_IN_CHAIN; pruneOld стирает строки старше прошлого
+      месяца; listForBranch — новые месяцы первыми
+    test: components/controller/tests/unit/marketplace/marketplace-period.service.test.ts
+    external: unreachable
+    external_reason: "прогон крона, через API не выведен"
+    status: written
+
+  - id: mkt.order.keu.12
+    level: backend
+    kind: side
+    scenario: Стоимость заказа и возвращённая часть в строке учёта к списанию.
+    expect: >
+      o.mkt.consum пишет стоимость заказа в строку; o.mkt.retdue увеличивает
+      возвращённое и уменьшает остаток; удержание при отказе стоимости не имеет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла"
+    status: written
+
+  - id: mkt.order.keu.13
+    level: backend
+    kind: happy
+    scenario: Прогон первого числа по ставкам итога месяца участка.
+    expect: >
+      строки группируются по участку; до первого списания участка вызывается
+      ensureClosed за прошлый месяц; строка со стоимостью — chargeperiod, без
+      стоимости — chargedue; списанное и возвращённое читаются из строки после
+      транзакции; отказ одного участка не останавливает другие
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "прогон крона, через API не выведен"
+    status: written
+
+  - id: mkt.order.keu.14
+    level: backend
+    kind: side
+    scenario: Письмо пайщику после прогона по ставкам.
+    expect: >
+      одно письмо за прогон со списанной суммой, возвращённой суммой и ставкой
+      месяца в процентах; без списания письма нет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "почта стенда проверяется вручную"
+    status: written
+
+  - id: mkt.order.keu.15
+    level: backend
+    kind: side
+    scenario: Инвариант I8 — части итога месяца участка сходятся.
+    expect: >
+      участку + фонды = членский взнос; членский взнос + инициатору + возврат =
+      собрано; расходы − участку = дефицит; расхождение — нарушение с именем участка
+      и периода; I2 признаёт o.fnd.accrue операцией фондов
+    test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    external: unreachable
+    external_reason: "инвариант проверяется по базе узла"
     status: written

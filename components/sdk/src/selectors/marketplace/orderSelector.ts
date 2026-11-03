@@ -97,6 +97,7 @@ export const rawSecurePartSelector = {
   amount: true,
   due_amount: true,
   charged_amount: true,
+  returned_amount: true,
   charge_at: true,
   settled_at: true,
 }

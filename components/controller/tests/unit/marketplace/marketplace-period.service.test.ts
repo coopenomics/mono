@@ -216,7 +216,10 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('строки в цепи нет после расчёта — ошибка с именем участка и периода', async () => {
     const { service } = build({ chainRows: [] });
-    await expect(service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1)).rejects.toThrow(/krg.*24323/);
+    await expect(service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1)).rejects.toMatchObject({
+      code: 'MARKETPLACE_PERIOD_NOT_IN_CHAIN',
+      params: { braname: BRANAME, period: NOVEMBER },
+    });
   });
 
   it('noteCharged увеличивает число списанных строк', async () => {

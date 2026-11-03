@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 336.
+Всего экспортов: 337.
 
 ## ACCOUNT_PORT
 
@@ -484,6 +484,7 @@
 - `overspendItem(coopname: string, proposalHash: string, itemHash: string, overspendAmount: string): Promise<void>`
 - `reportItem(coopname: string, proposalHash: string, itemHash: string): Promise<void>`
 - `getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve>`
+- `listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]>`
 - `attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void>`
 
 ## IExtensionConfigPort
@@ -1185,6 +1186,18 @@
 - `offset?: number`
 - `sortBy?: 'createdAt' | 'updatedAt'`
 - `sortOrder?: 'ASC' | 'DESC'`
+
+## InnerExpensePlan
+
+`interface` · cross-plugin-ports
+
+- `id: number`
+- `branchName: string | null`
+- `title: string`
+- `amount: string`
+- `dueDate: Date | null`
+- `proposalHash: string | null`
+- `paidAt: Date | null`
 
 ## InnerExpensePlannedReserve
 

@@ -102,7 +102,7 @@ import { MarketplaceHandoffCodeRepositoryAdapter } from './adapters/marketplace-
 import { MARKETPLACE_SUPPLIER_PROFILE_REPOSITORY } from '../domain/repositories/marketplace-supplier-profile.repository';
 import { MARKETPLACE_REVIEW_REPOSITORY } from '../domain/repositories/marketplace-review.repository';
 import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
-import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECURE_DUE_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
+import { MARKETPLACE_BRANCH_AID_STORE, MARKETPLACE_BRANCH_PERIOD_STORE, MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECURE_DUE_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
 @Module({
   providers: [
@@ -290,6 +290,9 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECUR
     MARKETPLACE_ORDER_STORE,
     // Учёт обеспечительной части к списанию (задача 99D-18): сервис списания в слое приложения.
     MARKETPLACE_SECURE_DUE_STORE,
+    // Итоги месяцев участка и зеркало материальной помощи (задача 99D-22).
+    MARKETPLACE_BRANCH_PERIOD_STORE,
+    MARKETPLACE_BRANCH_AID_STORE,
     CATEGORY_DOMAIN_REPOSITORY,
     TYPE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,

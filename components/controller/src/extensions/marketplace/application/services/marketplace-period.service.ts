@@ -8,7 +8,7 @@ import {
   type ILedger2HistoryPort,
   type ILoggerPort,
 } from '@coopenomics/innercoop';
-import { TableStore, chainErrorCode, isNull, platformSettings, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
+import { DomainError, TableStore, chainErrorCode, isNull, platformSettings, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_PERIOD_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
 import {
@@ -168,7 +168,7 @@ export class MarketplacePeriodService {
       (r) => r.braname === braname && Number(r.period) === period
     );
     if (!chainRow) {
-      throw new Error(`Итог месяца участка ${braname} за период ${period} не найден в цепи после расчёта`);
+      throw DomainError.internal('MARKETPLACE_PERIOD_NOT_IN_CHAIN', { braname, period });
     }
     return this.mirror(coopname, chainRow, rowsTotal);
   }
