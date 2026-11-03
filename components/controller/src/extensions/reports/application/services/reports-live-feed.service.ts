@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
-import { SovietContract } from 'cooptypes';
+import { FundContract, SovietContract } from 'cooptypes';
 
 /** Код расширения «Стол бухгалтера» в ленте изменений. */
 const CODE = 'reports';
@@ -28,6 +28,13 @@ export class ReportsLiveFeedService implements OnModuleInit {
       {
         code: SovietContract.contractName.production,
         table: SovietContract.Tables.Taxes.tableName,
+        staff_only: true,
+      },
+      // Реестр фондов кооператива: проценты и описания правит председатель,
+      // страница «Фонды» перечитывает их по ленте (задача 99D-24).
+      {
+        code: FundContract.contractName.production,
+        table: FundContract.Tables.Funds.tableName,
         staff_only: true,
       },
     ]);

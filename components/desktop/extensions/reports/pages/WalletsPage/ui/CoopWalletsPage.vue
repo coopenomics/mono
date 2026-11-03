@@ -25,6 +25,10 @@ div.coop-wallets-page
           q-td
             WalletIdCell(:wallet-name='props.row.id')
           q-td {{ props.row.name }}
+          //- Кошелёк и есть субсчёт: счёт плана из реестра кошельков (задача 99D-24).
+          q-td
+            AccountIdCell(v-if='getWalletAccount(props.row.id)' :account-code='Math.round(getWalletAccount(props.row.id) / 1000)')
+            span.t-faint(v-else) —
           q-td.text-right {{ formatAsset2Digits(props.row.available) }}
           q-td.text-right(auto-width)
             q-btn(
@@ -139,7 +143,8 @@ import type { ILedger2Wallet, ILedger2Operation } from 'src/entities/Ledger2'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
-import { DirectionCell, WalletIdCell } from '../../../shared/ui'
+import { getWalletAccount } from 'src/shared/lib/ledger2'
+import { AccountIdCell, DirectionCell, WalletIdCell } from '../../../shared/ui'
 import WalletTransferDialog from './WalletTransferDialog.vue'
 import TransferWalletsButton from './TransferWalletsButton.vue'
 import { t } from '../../../i18n';
@@ -219,6 +224,7 @@ const columns = computed<any[]>(() => {
     { name: 'expand', align: 'left', label: '', field: 'expand', sortable: false },
     { name: 'id', align: 'left', label: 'ID', field: 'id', sortable: true },
     { name: 'name', align: 'left', label: t('reports.coopWalletsPage.column.name'), field: 'name', sortable: true },
+    { name: 'account', align: 'left', label: t('reports.coopWalletsPage.column.account'), field: (row: ILedger2Wallet) => getWalletAccount(row.id), sortable: true },
     { name: 'available', align: 'right', label: t('reports.coopWalletsPage.availableLabel'), field: 'available', sortable: true },
   ]
   if (isChairman.value && transferEnabled) {

@@ -34,7 +34,13 @@
                                       uint64_t fund_id, eosio::name contract,
                                       std::string name, std::string description,
                                       uint64_t percent) {
-  require_auth(username);
+  // Подписывает либо председатель сам, либо кооператив от его имени: ИСТОК
+  // проверяет право председателя до отправки и передаёт его имя в `username`
+  // (как у setreserve участка, решение владельца 03.11.2026). В обоих случаях
+  // `username` обязан быть председателем совета — проверка ниже.
+  if (!has_auth(coopname)) {
+    require_auth(username);
+  }
 
   eosio::check(type == "accumulation"_n || type == "expend"_n,
                "FUND_KIND_INVALID: Вид фонда — накопления (accumulation) или списания (expend)");

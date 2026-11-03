@@ -25,6 +25,7 @@
       "emptyLabel": "План счетов не найден",
       "postingsEmptyLabel": "Проводок нет",
       "postingsHistoryTitle": "История проводок",
+      "walletsTitle": "Кошельки счёта",
       "status": {
         "active": "Активный",
         "passive": "Пассивный"
@@ -106,6 +107,7 @@
     "coopWalletsPage": {
       "availableLabel": "Доступно",
       "column": {
+        "account": "Счёт",
         "amount": "Сумма",
         "date": "Дата",
         "memo": "Примечание",
@@ -122,6 +124,61 @@
       "toOperationLabel": "К операции",
       "toOperationsLabel": "К операциям",
       "transferFromLabel": "Перевести с этого кошелька"
+    },
+    "fundsPage": {
+      "accountLabel": "Счёт",
+      "availableLabel": "Остаток фонда",
+      "cancelLabel": "Отмена",
+      "column": {
+        "available": "Остаток",
+        "fund": "Фонд",
+        "income": "Поступления",
+        "kind": "Вид",
+        "outcome": "Списания",
+        "percent": "Процент",
+        "wallet": "Кошелёк"
+      },
+      "descriptionField": "Описание",
+      "descriptionLabel": "Описание",
+      "editLabel": "Изменить",
+      "editTitle": "Изменить фонд",
+      "history": {
+        "amount": "Сумма",
+        "counterparty": "Кошелёк другой стороны",
+        "date": "Дата",
+        "operation": "Операция"
+      },
+      "historyEmptyBody": "Движения по фонду появятся после отчислений из членских взносов участков и выплат через фонд.",
+      "historyEmptyTitle": "Движений за период нет",
+      "incomeLabel": "Поступления за период",
+      "investmentsHint": "Пул расходов программы на счёте 08 «Вложения во внеоборотные активы». Это вложения, не фонд.",
+      "investmentsTitle": "Вложения в программу «Благорост»",
+      "kind": {
+        "accum": "Накопления",
+        "expend": "Списания"
+      },
+      "noDescription": "Описание не задано",
+      "outcomeLabel": "Списания за период",
+      "percentField": "Процент отчислений, %",
+      "percentFieldHint": "Остальные фонды накопления: {others}. Сумма процентов не выше 100 %.",
+      "percentHint": "Процент берётся с остатка обеспечительной части участка после расходов участка.",
+      "percentInvalidError": "Процент — больше нуля и не выше 100.",
+      "percentLabel": "Процент отчислений",
+      "percentSumError": "Сумма процентов фондов накопления выше 100 %.",
+      "percentSumLine": "Сумма процентов фондов накопления: {sum}",
+      "periodFromLabel": "Период с",
+      "periodToLabel": "Период по",
+      "saveLabel": "Сохранить",
+      "savedMessage": "Фонд обновлён",
+      "showMoreLabel": "Показать ещё",
+      "tabs": {
+        "about": "О фонде",
+        "history": "История"
+      },
+      "toProcessLabel": "К операциям",
+      "turnoverLine": "поступления {income} · списания {outcome}",
+      "walletLabel": "Кошелёк",
+      "walletLine": "Кошелёк {wallet} · счёт {account}"
     },
     "directionCell": {
       "direction": {
@@ -200,6 +257,7 @@
         "documentsCalendarTitle": "Календарь",
         "documentsFormsTitle": "Список форм",
         "documentsTitle": "Отчётность",
+        "fundsTitle": "Фонды",
         "ndflTitle": "НДФЛ",
         "operationsTitle": "Реестр операций",
         "postingsTitle": "Реестр проводок",

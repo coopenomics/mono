@@ -36,10 +36,11 @@ function build(opts: {
   const chainPort = {
     getEconomyConfig: jest.fn(async () => opts.config === undefined ? { membership_fee_percent: 380_000 } : opts.config),
     getBranchConfig: jest.fn(async () => (opts.limit === null ? null : { aid_month_limit: opts.limit ?? '200000.0000 RUB' })),
+    // Реестр фондов `funds` (задача 99D-25): у каждого фонда накопления свой кошелёк ledger2.
     listAccumulationFunds: jest.fn(async () => [
-      { name: 'Неделимый фонд', percent: 10_000, wallet_name: 'indivisible' },
-      { name: 'Резервный фонд', percent: 150_000, wallet_name: 'reserve' },
-      { name: 'Фонд развития', percent: 50_000 },
+      { id: 1, kind: 'accum', name: 'Неделимый фонд', percent: 10_000, wallet: 'w.fnd.indiv' },
+      { id: 2, kind: 'accum', name: 'Резервный фонд', percent: 150_000, wallet: 'w.fnd.resrv' },
+      { id: 3, kind: 'accum', name: 'Фонд развития', percent: 50_000, wallet: 'w.fnd.devel' },
     ]),
     listReserves: jest.fn(async () => (opts.reserves ?? []).map((r, i) => ({ id: i + 1, ...r }))),
     listInitiators: jest.fn(async () => opts.initiators ?? []),
@@ -78,9 +79,9 @@ describe('mkt.order.keu.10 — настройки экономики для ад
       aid_month_limit: '200000.0000 RUB',
       funds_percent: 21,
       funds: [
-        { name: 'Неделимый фонд', percent: 1, wallet_name: 'indivisible' },
-        { name: 'Резервный фонд', percent: 15, wallet_name: 'reserve' },
-        { name: 'Фонд развития', percent: 5, wallet_name: '' },
+        { name: 'Неделимый фонд', percent: 1, wallet_name: 'w.fnd.indiv' },
+        { name: 'Резервный фонд', percent: 15, wallet_name: 'w.fnd.resrv' },
+        { name: 'Фонд развития', percent: 5, wallet_name: 'w.fnd.devel' },
       ],
     });
   });

@@ -275,6 +275,19 @@ cases:
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+  - id: access.roles.side.20
+    level: backend
+    kind: side
+    scenario: >
+      Страница «Фонды» стола бухгалтера (задача 99D-24): бухгалтер и член совета
+      читают реестр и историю фондов; процент и описание фонда правит только
+      председатель совета.
+    expect: >
+      чтение — под правом реестров стола; правка — под правом FundSettings:manage,
+      которое в таблице прав стола есть только у председателя; контракт fund
+      дополнительно сверяет имя председателя
+    status: missing   # API-проба прав страницы фондов — вместе с внешним слоем стола бухгалтера
+
   - id: access.roles.break.06
     level: backend
     kind: break

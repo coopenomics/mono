@@ -3,6 +3,7 @@ export { PostingsPage } from './PostingsPage'
 export { ProcessesPage } from './ProcessesPage'
 export { WalletsPage, CoopWalletsPage, ParticipantWalletsPage } from './WalletsPage'
 export { AccountsPage } from './AccountsPage'
+export { FundsPage } from './FundsPage'
 export {
   DocumentsPage,
   DocumentsCalendarPage,

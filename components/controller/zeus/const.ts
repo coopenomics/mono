@@ -2852,6 +2852,9 @@ export const AllTypesProps: Record<string,any> = {
 		reportNotMe:{
 			data:"ReportNotMeInput"
 		},
+		reportsEditFund:{
+			input:"ReportsEditFundInput"
+		},
 		requestCooperativeEndorsement:{
 			data:"RequestCooperativeEndorsementInput"
 		},
@@ -3910,6 +3913,13 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
 		},
+		reportsFundHistory:{
+			input:"ReportsFundHistoryInput",
+			options:"PaginationInput"
+		},
+		reportsFunds:{
+			input:"ReportsFundsInput"
+		},
 		reportsLedgerAccounts:{
 
 		},
@@ -4023,6 +4033,19 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ReportSubmissionMark: "enum" as const,
 	ReportType: "enum" as const,
+	ReportsEditFundInput:{
+
+	},
+	ReportsFundHistoryInput:{
+		date_from:"DateTime",
+		date_to:"DateTime"
+	},
+	ReportsFundKind: "enum" as const,
+	ReportsFundMovementDirection: "enum" as const,
+	ReportsFundsInput:{
+		date_from:"DateTime",
+		date_to:"DateTime"
+	},
 	RepresentedByInput:{
 
 	},
@@ -8756,6 +8779,7 @@ export const ReturnTypes: Record<string,any> = {
 		removeAvatar:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
+		reportsEditFund:"ReportsFund",
 		requestCooperativeEndorsement:"Boolean",
 		requestEmailVerification:"EmailVerificationRequestDTO",
 		requestForceRecoveryConsent:"Boolean",
@@ -9819,6 +9843,8 @@ export const ReturnTypes: Record<string,any> = {
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
+		reportsFundHistory:"ReportsFundHistoryPaginationResult",
+		reportsFunds:"ReportsFundsRegistry",
 		reportsLedgerAccounts:"Ledger2Account",
 		reportsLedgerHistory:"Ledger2HistoryResponse",
 		reportsLedgerPostings:"Ledger2PostingsResponse",
@@ -9984,6 +10010,45 @@ export const ReturnTypes: Record<string,any> = {
 		signerRepDoc:"RequisiteFieldView",
 		signerSnils:"RequisiteFieldView",
 		signerType:"String"
+	},
+	ReportsFund:{
+		account:"Int",
+		available:"String",
+		description:"String",
+		id:"Int",
+		income:"String",
+		kind:"ReportsFundKind",
+		name:"String",
+		outcome:"String",
+		percent:"Float",
+		wallet:"String",
+		wallet_name:"String"
+	},
+	ReportsFundHistoryPaginationResult:{
+		currentPage:"Int",
+		items:"ReportsFundMovement",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	ReportsFundMovement:{
+		amount:"String",
+		block_num:"Int",
+		counterparty_name:"String",
+		counterparty_wallet:"String",
+		created_at:"DateTime",
+		direction:"ReportsFundMovementDirection",
+		global_sequence:"String",
+		memo:"String",
+		operation_code:"String",
+		operation_name:"String",
+		process_hash:"String",
+		process_type:"String",
+		username:"String"
+	},
+	ReportsFundsRegistry:{
+		funds:"ReportsFund",
+		investments:"ReportsFund",
+		percent_sum:"Float"
 	},
 	ReportsParticipant:{
 		name:"String",

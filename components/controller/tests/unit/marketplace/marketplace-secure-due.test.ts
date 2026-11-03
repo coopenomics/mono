@@ -80,6 +80,8 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
   const claimRepo = {
     findByRequestHash: jest.fn(async (_c: string, hash: string) => (hash === 'c'.repeat(64) ? { order_hash: ORDER.toUpperCase() } : null)),
     listByStatus: jest.fn(async () => (opts.openClaimOrders ?? []).map((order_hash) => ({ order_hash }))),
+    // Открытой претензии по заказу нет: карточка заказа читает ставку списания без гарантийного спора.
+    findActiveByOrderId: jest.fn(async () => null),
   };
   const economy = { assetToUnits: (v: string) => toUnits(v), unitsToAsset: (u: bigint) => toAsset(u) };
   // Итог месяца и ставки (задача 99D-22): ставки участка Б из документа модели.

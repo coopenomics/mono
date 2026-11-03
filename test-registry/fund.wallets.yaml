@@ -31,8 +31,19 @@ sources:
   backend:
     - components/cooptypes/scripts/gen-from-cpp.ts
     - components/cooptypes/src/ledger2/wallets.generated.ts
+    - components/cooptypes/src/ledger2/wallets.ts
     - components/cooptypes/src/contracts/fund/tables/funds.ts
     - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-canonical-blockchain.adapter.ts
+    - components/controller/src/extensions/reports/application/services/funds.service.ts
+    - components/controller/src/extensions/reports/application/resolvers/funds.resolver.ts
+    - components/controller/src/extensions/reports/application/dto/funds.dto.ts
+    - components/controller/src/extensions/reports/infrastructure/adapters/fund-registry-blockchain.adapter.ts
+    - components/sdk/src/selectors/reports/fundSelector.ts
+  ui:
+    - components/desktop/extensions/reports/pages/FundsPage/**
+    - components/desktop/extensions/reports/shared/lib/registries.ts
+    - components/desktop/extensions/reports/pages/AccountsPage/**
+    - components/desktop/extensions/reports/pages/WalletsPage/ui/CoopWalletsPage.vue
 
 cases:
   # ── Уровень контракта ─────────────────────────────────────────────────────
@@ -174,4 +185,87 @@ cases:
     expect: >
       строки читаются из реестра funds (вид accum), в ответе — название,
       процент и кошелёк фонда
-    status: missing   # модульный тест адаптера — вместе с ИСТОКом фондов в 99D-24
+    test: components/controller/tests/unit/marketplace/marketplace-branch-reserve.service.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+    external: unreachable
+    external_reason: строка процентов фондов в настройках экономики проверяется набором period-cycle внешнего слоя на стенде со сжатым временем (реестр marketplace.order, keu.*), отдельной API-пробы нет
+
+  # ── Стол бухгалтера: страница «Фонды» (задача 99D-24) ────────────────────
+
+  - id: fnd.wal.backend.01
+    level: backend
+    kind: happy
+    scenario: >
+      Бухгалтер открывает реестр фондов за период: пять фондов с кошельками,
+      остатки из кошельков учётной книги, обороты по операциям, у которых
+      кошелёк фонда — источник или получатель; справкой — вложения «Благороста».
+    expect: >
+      пять строк по порядку номеров со счётом 86; остаток — из кошелька, фонд
+      без движений — нули; поступления и списания считаются по направлению
+      операции, транзитные переводы через фонд не считаются; сумма процентов
+      фондов накопления; строка вложений — кошелёк w.cap.pgexp на счёте 08
+    test: components/controller/tests/unit/reports/funds.service.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+    external: unreachable
+    external_reason: внешний слой реестра фондов — набор fund-wallets на живой цепи и сценарий docs-harness reports/funds; API-пробы в external-слое для стола бухгалтера не заведены
+
+  - id: fnd.wal.backend.02
+    level: backend
+    kind: side
+    scenario: История фонда по страницам за период.
+    expect: >
+      списание со знаком минус, поступление — плюс; кошелёк другой стороны
+      и имя процесса из реестра операций; транзитные коды в запрос не входят;
+      несуществующий номер фонда — отказ REPORTS_FUND_NOT_FOUND
+    test: components/controller/tests/unit/reports/funds.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: как у fnd.wal.backend.01
+
+  - id: fnd.wal.backend.03
+    level: backend
+    kind: break
+    scenario: Председатель правит фонд с нарушением правил контракта.
+    expect: >
+      сумма процентов фондов накопления выше 100 % — REPORTS_FUND_PERCENT_SUM_EXCEEDED
+      до цепи; нулевой процент фонда накопления — REPORTS_FUND_PERCENT_INVALID;
+      процент у фонда списания — REPORTS_FUND_PERCENT_NOT_ALLOWED; в цепь
+      ничего не отправляется; верная правка идёт от имени председателя в
+      шкале контракта (16,5 % → 165000)
+    test: components/controller/tests/unit/reports/funds.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: как у fnd.wal.backend.01; отказы цепи проверяет набор fund-wallets
+
+  # ── Уровень интерфейса ────────────────────────────────────────────────────
+
+  - id: fnd.wal.ui.01
+    level: ui
+    kind: happy
+    scenario: Председатель открывает «Фонды» на столе бухгалтера и раскрывает фонд.
+    expect: >
+      таблица пяти фондов с видом, кошельком, процентом, остатком и оборотами;
+      строка суммы процентов с пояснением; справка о вложениях «Благороста»;
+      панель фонда с остатком крупно, вкладками «История» и «О фонде» и кнопкой
+      «Изменить» у председателя
+    test: components/docs-harness/scenarios/reports/funds.mjs
+    status: written   # прогон — стенд CI ui-docs
+
+  - id: fnd.wal.ui.02
+    level: ui
+    kind: side
+    scenario: Председатель меняет процент фонда накопления так, что сумма выше 100 %.
+    expect: >
+      поле подсвечено ошибкой, кнопка «Сохранить» заблокирована — отказ виден
+      до обращения в цепь
+    status: missing   # сценарий правки процента в harness не заведён; правило проверено модульным тестом fnd.wal.backend.03
+
+  - id: fnd.wal.ui.03
+    level: ui
+    kind: side
+    scenario: Бухгалтер раскрывает счёт 86 на странице «Счета» и смотрит «Кошельки».
+    expect: >
+      под счётом перечислены кошельки, у которых в реестре указан этот счёт, с
+      остатками; на странице кошельков у каждого кошелька колонка «Счёт»
+    test: components/docs-harness/scenarios/reports/accounts.mjs
+    status: written   # прогон — стенд CI ui-docs; кадр раскрытой строки снимает сценарий

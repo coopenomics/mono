@@ -46,6 +46,24 @@ const walletHumanByName = new Map<string, string>(
 const walletKindByName = new Map<string, WalletKind>(
   LEDGER2_WALLET_REGISTRY.map(w => [w.name, w.kind]),
 )
+const walletAccountByName = new Map<string, number>(
+  LEDGER2_WALLET_REGISTRY.map(w => [w.name, w.account]),
+)
+
+/**
+ * Счёт плана ledger2 (id ×1000), субсчётом которого служит кошелёк; 0 — учётный
+ * кошелёк без счёта либо имя не из реестра. Кошелёк и есть субсчёт своего счёта
+ * (задача 99D-25): по этому полю стол бухгалтера раскладывает счёт по кошелькам.
+ */
+export function getWalletAccount(walletName: string | null | undefined): number {
+  if (!walletName) return 0
+  return walletAccountByName.get(walletName) ?? 0
+}
+
+/** Кошельки реестра, относящиеся к счёту плана (id ×1000). */
+export function walletNamesForAccount(accountId: number): string[] {
+  return LEDGER2_WALLET_REGISTRY.filter(w => w.account === accountId).map(w => w.name)
+}
 
 const programIdByWalletName = new Map<string, number>(
   LEDGER2_USER_SHARED_PROGRAM_MAPPING

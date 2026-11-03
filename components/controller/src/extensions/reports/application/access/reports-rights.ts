@@ -56,7 +56,9 @@ const READ_DESK: Record<string, string[]> = {
  */
 export const reportsRightsTable: RightsTable<ReportsRole, never> = {
   council: [{ when: [], rights: READ_DESK }],
-  chairman: [{ when: [], rights: FULL_DESK }],
+  // Проценты и описания фондов кооператива (страница «Фонды», задача 99D-24)
+  // правит только председатель совета: контракт fund сверяет его имя.
+  chairman: [{ when: [], rights: { ...FULL_DESK, FundSettings: ['manage'] } }],
   accountant: [{ when: [], rights: FULL_DESK }],
   auditor: [{ when: [], rights: READ_DESK }],
 };

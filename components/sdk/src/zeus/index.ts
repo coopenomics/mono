@@ -14873,6 +14873,7 @@ removeAppsPublisher?: [{	data: ValueTypes["AppsPublisherAssignmentInputDTO"] | V
 	removeAvatar?:boolean | `@${string}`,
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
+reportsEditFund?: [{	input: ValueTypes["ReportsEditFundInput"] | Variable<any, string>},ValueTypes["ReportsFund"]],
 requestCooperativeEndorsement?: [{	data: ValueTypes["RequestCooperativeEndorsementInput"] | Variable<any, string>},boolean | `@${string}`],
 requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO"] | Variable<any, string>},ValueTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -17222,6 +17223,8 @@ paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
+reportsFundHistory?: [{	input: ValueTypes["ReportsFundHistoryInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportsFundHistoryPaginationResult"]],
+reportsFunds?: [{	input: ValueTypes["ReportsFundsInput"] | Variable<any, string>},ValueTypes["ReportsFundsRegistry"]],
 reportsLedgerAccounts?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Account"]],
 reportsLedgerHistory?: [{	input: ValueTypes["GetLedger2HistoryInput"] | Variable<any, string>},ValueTypes["Ledger2HistoryResponse"]],
 reportsLedgerPostings?: [{	input: ValueTypes["GetLedger2PostingsInput"] | Variable<any, string>},ValueTypes["Ledger2PostingsResponse"]],
@@ -17645,6 +17648,122 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Правка описания и процента фонда председателем совета */
+["ReportsEditFundInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Описание фонда */
+	description: string | Variable<any, string>,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number | Variable<any, string>,
+	/** Процент отчислений, проценты; у фонда списания 0 */
+	percent: number | Variable<any, string>
+};
+	/** Фонд кооператива на кошельке учётной книги: настройки, остаток и обороты за период */
+["ReportsFund"]: AliasType<{
+	/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
+	account?:boolean | `@${string}`,
+	/** Остаток кошелька фонда */
+	available?:boolean | `@${string}`,
+	/** Описание фонда */
+	description?:boolean | `@${string}`,
+	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
+	id?:boolean | `@${string}`,
+	/** Поступления в фонд за период */
+	income?:boolean | `@${string}`,
+	/** Вид фонда */
+	kind?:boolean | `@${string}`,
+	/** Название фонда по Положению о фондах */
+	name?:boolean | `@${string}`,
+	/** Списания с фонда за период */
+	outcome?:boolean | `@${string}`,
+	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	percent?:boolean | `@${string}`,
+	/** Кошелёк учётной книги — субсчёт фонда */
+	wallet?:boolean | `@${string}`,
+	/** Название кошелька в реестре учётной книги */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsFund']?: Omit<ValueTypes["ReportsFund"], "...on ReportsFund">
+}>;
+	/** Запрос истории движений одного фонда */
+["ReportsFundHistoryInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Начало периода */
+	date_from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Конец периода */
+	date_to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number | Variable<any, string>
+};
+	["ReportsFundHistoryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["ReportsFundMovement"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsFundHistoryPaginationResult']?: Omit<ValueTypes["ReportsFundHistoryPaginationResult"], "...on ReportsFundHistoryPaginationResult">
+}>;
+	/** Вид фонда кооператива: накопления или списания */
+["ReportsFundKind"]:ReportsFundKind;
+	/** Движение по фонду: одна операция учётной книги */
+["ReportsFundMovement"]: AliasType<{
+	/** Сумма со знаком относительно фонда */
+	amount?:boolean | `@${string}`,
+	/** Блок цепи */
+	block_num?:boolean | `@${string}`,
+	/** Название кошелька другой стороны */
+	counterparty_name?:boolean | `@${string}`,
+	/** Кошелёк другой стороны движения; пусто у выплат за пределы кооператива */
+	counterparty_wallet?:boolean | `@${string}`,
+	/** Дата и время операции */
+	created_at?:boolean | `@${string}`,
+	/** Поступление в фонд или списание с фонда */
+	direction?:boolean | `@${string}`,
+	/** Номер операции в цепи */
+	global_sequence?:boolean | `@${string}`,
+	/** Примечание операции */
+	memo?:boolean | `@${string}`,
+	/** Код операции учётной книги */
+	operation_code?:boolean | `@${string}`,
+	/** Название операции */
+	operation_name?:boolean | `@${string}`,
+	/** Хэш процесса: заказ, служебная записка, заявление на помощь */
+	process_hash?:boolean | `@${string}`,
+	/** Имя процесса, в нитке которого прошла операция */
+	process_type?:boolean | `@${string}`,
+	/** Пайщик или участок, с которым связана операция */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsFundMovement']?: Omit<ValueTypes["ReportsFundMovement"], "...on ReportsFundMovement">
+}>;
+	/** Направление движения по фонду: поступление или списание */
+["ReportsFundMovementDirection"]:ReportsFundMovementDirection;
+	/** Запрос реестра фондов за период */
+["ReportsFundsInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Начало периода оборотов */
+	date_from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Конец периода оборотов */
+	date_to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
+};
+	/** Реестр фондов кооператива с остатками и оборотами за период */
+["ReportsFundsRegistry"]: AliasType<{
+	/** Пять стандартных фондов по порядку номеров */
+	funds?:ValueTypes["ReportsFund"],
+	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
+	investments?:ValueTypes["ReportsFund"],
+	/** Сумма процентов фондов накопления, проценты */
+	percent_sum?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsFundsRegistry']?: Omit<ValueTypes["ReportsFundsRegistry"], "...on ReportsFundsRegistry">
+}>;
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
 ["ReportsParticipant"]: AliasType<{
 	/** ФИО пайщика или название организации */
@@ -33105,6 +33224,7 @@ removeAppsPublisher?: [{	data: ResolverInputTypes["AppsPublisherAssignmentInputD
 	removeAvatar?:boolean | `@${string}`,
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
+reportsEditFund?: [{	input: ResolverInputTypes["ReportsEditFundInput"]},ResolverInputTypes["ReportsFund"]],
 requestCooperativeEndorsement?: [{	data: ResolverInputTypes["RequestCooperativeEndorsementInput"]},boolean | `@${string}`],
 requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerificationInputDTO"]},ResolverInputTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
@@ -35364,6 +35484,8 @@ paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
+reportsFundHistory?: [{	input: ResolverInputTypes["ReportsFundHistoryInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ReportsFundHistoryPaginationResult"]],
+reportsFunds?: [{	input: ResolverInputTypes["ReportsFundsInput"]},ResolverInputTypes["ReportsFundsRegistry"]],
 reportsLedgerAccounts?: [{	coopname: string},ResolverInputTypes["Ledger2Account"]],
 reportsLedgerHistory?: [{	input: ResolverInputTypes["GetLedger2HistoryInput"]},ResolverInputTypes["Ledger2HistoryResponse"]],
 reportsLedgerPostings?: [{	input: ResolverInputTypes["GetLedger2PostingsInput"]},ResolverInputTypes["Ledger2PostingsResponse"]],
@@ -35768,6 +35890,118 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Правка описания и процента фонда председателем совета */
+["ReportsEditFundInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Описание фонда */
+	description: string,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number,
+	/** Процент отчислений, проценты; у фонда списания 0 */
+	percent: number
+};
+	/** Фонд кооператива на кошельке учётной книги: настройки, остаток и обороты за период */
+["ReportsFund"]: AliasType<{
+	/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
+	account?:boolean | `@${string}`,
+	/** Остаток кошелька фонда */
+	available?:boolean | `@${string}`,
+	/** Описание фонда */
+	description?:boolean | `@${string}`,
+	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
+	id?:boolean | `@${string}`,
+	/** Поступления в фонд за период */
+	income?:boolean | `@${string}`,
+	/** Вид фонда */
+	kind?:boolean | `@${string}`,
+	/** Название фонда по Положению о фондах */
+	name?:boolean | `@${string}`,
+	/** Списания с фонда за период */
+	outcome?:boolean | `@${string}`,
+	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	percent?:boolean | `@${string}`,
+	/** Кошелёк учётной книги — субсчёт фонда */
+	wallet?:boolean | `@${string}`,
+	/** Название кошелька в реестре учётной книги */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запрос истории движений одного фонда */
+["ReportsFundHistoryInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Начало периода */
+	date_from?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Конец периода */
+	date_to?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number
+};
+	["ReportsFundHistoryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["ReportsFundMovement"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид фонда кооператива: накопления или списания */
+["ReportsFundKind"]:ReportsFundKind;
+	/** Движение по фонду: одна операция учётной книги */
+["ReportsFundMovement"]: AliasType<{
+	/** Сумма со знаком относительно фонда */
+	amount?:boolean | `@${string}`,
+	/** Блок цепи */
+	block_num?:boolean | `@${string}`,
+	/** Название кошелька другой стороны */
+	counterparty_name?:boolean | `@${string}`,
+	/** Кошелёк другой стороны движения; пусто у выплат за пределы кооператива */
+	counterparty_wallet?:boolean | `@${string}`,
+	/** Дата и время операции */
+	created_at?:boolean | `@${string}`,
+	/** Поступление в фонд или списание с фонда */
+	direction?:boolean | `@${string}`,
+	/** Номер операции в цепи */
+	global_sequence?:boolean | `@${string}`,
+	/** Примечание операции */
+	memo?:boolean | `@${string}`,
+	/** Код операции учётной книги */
+	operation_code?:boolean | `@${string}`,
+	/** Название операции */
+	operation_name?:boolean | `@${string}`,
+	/** Хэш процесса: заказ, служебная записка, заявление на помощь */
+	process_hash?:boolean | `@${string}`,
+	/** Имя процесса, в нитке которого прошла операция */
+	process_type?:boolean | `@${string}`,
+	/** Пайщик или участок, с которым связана операция */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Направление движения по фонду: поступление или списание */
+["ReportsFundMovementDirection"]:ReportsFundMovementDirection;
+	/** Запрос реестра фондов за период */
+["ReportsFundsInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Начало периода оборотов */
+	date_from?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Конец периода оборотов */
+	date_to?: ResolverInputTypes["DateTime"] | undefined | null
+};
+	/** Реестр фондов кооператива с остатками и оборотами за период */
+["ReportsFundsRegistry"]: AliasType<{
+	/** Пять стандартных фондов по порядку номеров */
+	funds?:ResolverInputTypes["ReportsFund"],
+	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
+	investments?:ResolverInputTypes["ReportsFund"],
+	/** Сумма процентов фондов накопления, проценты */
+	percent_sum?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
 ["ReportsParticipant"]: AliasType<{
 	/** ФИО пайщика или название организации */
@@ -51041,6 +51275,8 @@ export type ModelTypes = {
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
 	reportNotMe: ModelTypes["RevokedSessionsResult"],
+	/** Председатель совета меняет описание и процент отчислений фонда; правила проверяются до обращения в цепь */
+	reportsEditFund: ModelTypes["ReportsFund"],
 	/** Заверить ключ заверения обслуживаемого кооператива сразу после его публикации */
 	requestCooperativeEndorsement: boolean,
 	/** Выслать код подтверждения на электронную почту */
@@ -53460,6 +53696,10 @@ export type ModelTypes = {
 	process: ModelTypes["ProcessView"],
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: ModelTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: движения по фонду за период, по страницам */
+	reportsFundHistory: ModelTypes["ReportsFundHistoryPaginationResult"],
+	/** Стол бухгалтера: фонды кооператива с остатками кошельков и оборотами за период */
+	reportsFunds: ModelTypes["ReportsFundsRegistry"],
 	/** Стол бухгалтера: счета плана счетов с остатками */
 	reportsLedgerAccounts: Array<ModelTypes["Ledger2Account"]>,
 	/** Стол бухгалтера: реестр операций */
@@ -53854,6 +54094,112 @@ export type ModelTypes = {
 };
 	["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Правка описания и процента фонда председателем совета */
+["ReportsEditFundInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Описание фонда */
+	description: string,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number,
+	/** Процент отчислений, проценты; у фонда списания 0 */
+	percent: number
+};
+	/** Фонд кооператива на кошельке учётной книги: настройки, остаток и обороты за период */
+["ReportsFund"]: {
+		/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
+	account: number,
+	/** Остаток кошелька фонда */
+	available: string,
+	/** Описание фонда */
+	description: string,
+	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
+	id: number,
+	/** Поступления в фонд за период */
+	income: string,
+	/** Вид фонда */
+	kind: ModelTypes["ReportsFundKind"],
+	/** Название фонда по Положению о фондах */
+	name: string,
+	/** Списания с фонда за период */
+	outcome: string,
+	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	percent: number,
+	/** Кошелёк учётной книги — субсчёт фонда */
+	wallet: string,
+	/** Название кошелька в реестре учётной книги */
+	wallet_name: string
+};
+	/** Запрос истории движений одного фонда */
+["ReportsFundHistoryInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Начало периода */
+	date_from?: ModelTypes["DateTime"] | undefined | null,
+	/** Конец периода */
+	date_to?: ModelTypes["DateTime"] | undefined | null,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number
+};
+	["ReportsFundHistoryPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["ReportsFundMovement"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["ReportsFundKind"]:ReportsFundKind;
+	/** Движение по фонду: одна операция учётной книги */
+["ReportsFundMovement"]: {
+		/** Сумма со знаком относительно фонда */
+	amount: string,
+	/** Блок цепи */
+	block_num: number,
+	/** Название кошелька другой стороны */
+	counterparty_name?: string | undefined | null,
+	/** Кошелёк другой стороны движения; пусто у выплат за пределы кооператива */
+	counterparty_wallet?: string | undefined | null,
+	/** Дата и время операции */
+	created_at: ModelTypes["DateTime"],
+	/** Поступление в фонд или списание с фонда */
+	direction: ModelTypes["ReportsFundMovementDirection"],
+	/** Номер операции в цепи */
+	global_sequence: string,
+	/** Примечание операции */
+	memo?: string | undefined | null,
+	/** Код операции учётной книги */
+	operation_code: string,
+	/** Название операции */
+	operation_name: string,
+	/** Хэш процесса: заказ, служебная записка, заявление на помощь */
+	process_hash?: string | undefined | null,
+	/** Имя процесса, в нитке которого прошла операция */
+	process_type?: string | undefined | null,
+	/** Пайщик или участок, с которым связана операция */
+	username?: string | undefined | null
+};
+	["ReportsFundMovementDirection"]:ReportsFundMovementDirection;
+	/** Запрос реестра фондов за период */
+["ReportsFundsInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Начало периода оборотов */
+	date_from?: ModelTypes["DateTime"] | undefined | null,
+	/** Конец периода оборотов */
+	date_to?: ModelTypes["DateTime"] | undefined | null
+};
+	/** Реестр фондов кооператива с остатками и оборотами за период */
+["ReportsFundsRegistry"]: {
+		/** Пять стандартных фондов по порядку номеров */
+	funds: Array<ModelTypes["ReportsFund"]>,
+	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
+	investments?: ModelTypes["ReportsFund"] | undefined | null,
+	/** Сумма процентов фондов накопления, проценты */
+	percent_sum: number
+};
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
 ["ReportsParticipant"]: {
 		/** ФИО пайщика или название организации */
@@ -69927,6 +70273,8 @@ export type GraphQLTypes = {
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
 	reportNotMe: GraphQLTypes["RevokedSessionsResult"],
+	/** Председатель совета меняет описание и процент отчислений фонда; правила проверяются до обращения в цепь */
+	reportsEditFund: GraphQLTypes["ReportsFund"],
 	/** Заверить ключ заверения обслуживаемого кооператива сразу после его публикации */
 	requestCooperativeEndorsement: boolean,
 	/** Выслать код подтверждения на электронную почту */
@@ -72561,6 +72909,10 @@ export type GraphQLTypes = {
 	process: GraphQLTypes["ProcessView"],
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: GraphQLTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: движения по фонду за период, по страницам */
+	reportsFundHistory: GraphQLTypes["ReportsFundHistoryPaginationResult"],
+	/** Стол бухгалтера: фонды кооператива с остатками кошельков и оборотами за период */
+	reportsFunds: GraphQLTypes["ReportsFundsRegistry"],
 	/** Стол бухгалтера: счета плана счетов с остатками */
 	reportsLedgerAccounts: Array<GraphQLTypes["Ledger2Account"]>,
 	/** Стол бухгалтера: реестр операций */
@@ -72997,6 +73349,122 @@ export type GraphQLTypes = {
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]: ReportSubmissionMark;
 	["ReportType"]: ReportType;
+	/** Правка описания и процента фонда председателем совета */
+["ReportsEditFundInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Описание фонда */
+	description: string,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number,
+	/** Процент отчислений, проценты; у фонда списания 0 */
+	percent: number
+};
+	/** Фонд кооператива на кошельке учётной книги: настройки, остаток и обороты за период */
+["ReportsFund"]: {
+	__typename: "ReportsFund",
+	/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
+	account: number,
+	/** Остаток кошелька фонда */
+	available: string,
+	/** Описание фонда */
+	description: string,
+	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
+	id: number,
+	/** Поступления в фонд за период */
+	income: string,
+	/** Вид фонда */
+	kind: GraphQLTypes["ReportsFundKind"],
+	/** Название фонда по Положению о фондах */
+	name: string,
+	/** Списания с фонда за период */
+	outcome: string,
+	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	percent: number,
+	/** Кошелёк учётной книги — субсчёт фонда */
+	wallet: string,
+	/** Название кошелька в реестре учётной книги */
+	wallet_name: string,
+	['...on ReportsFund']: Omit<GraphQLTypes["ReportsFund"], "...on ReportsFund">
+};
+	/** Запрос истории движений одного фонда */
+["ReportsFundHistoryInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Начало периода */
+	date_from?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Конец периода */
+	date_to?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Номер фонда в реестре (1…5) */
+	fund_id: number
+};
+	["ReportsFundHistoryPaginationResult"]: {
+	__typename: "ReportsFundHistoryPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["ReportsFundMovement"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on ReportsFundHistoryPaginationResult']: Omit<GraphQLTypes["ReportsFundHistoryPaginationResult"], "...on ReportsFundHistoryPaginationResult">
+};
+	/** Вид фонда кооператива: накопления или списания */
+["ReportsFundKind"]: ReportsFundKind;
+	/** Движение по фонду: одна операция учётной книги */
+["ReportsFundMovement"]: {
+	__typename: "ReportsFundMovement",
+	/** Сумма со знаком относительно фонда */
+	amount: string,
+	/** Блок цепи */
+	block_num: number,
+	/** Название кошелька другой стороны */
+	counterparty_name?: string | undefined | null,
+	/** Кошелёк другой стороны движения; пусто у выплат за пределы кооператива */
+	counterparty_wallet?: string | undefined | null,
+	/** Дата и время операции */
+	created_at: GraphQLTypes["DateTime"],
+	/** Поступление в фонд или списание с фонда */
+	direction: GraphQLTypes["ReportsFundMovementDirection"],
+	/** Номер операции в цепи */
+	global_sequence: string,
+	/** Примечание операции */
+	memo?: string | undefined | null,
+	/** Код операции учётной книги */
+	operation_code: string,
+	/** Название операции */
+	operation_name: string,
+	/** Хэш процесса: заказ, служебная записка, заявление на помощь */
+	process_hash?: string | undefined | null,
+	/** Имя процесса, в нитке которого прошла операция */
+	process_type?: string | undefined | null,
+	/** Пайщик или участок, с которым связана операция */
+	username?: string | undefined | null,
+	['...on ReportsFundMovement']: Omit<GraphQLTypes["ReportsFundMovement"], "...on ReportsFundMovement">
+};
+	/** Направление движения по фонду: поступление или списание */
+["ReportsFundMovementDirection"]: ReportsFundMovementDirection;
+	/** Запрос реестра фондов за период */
+["ReportsFundsInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Начало периода оборотов */
+	date_from?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Конец периода оборотов */
+	date_to?: GraphQLTypes["DateTime"] | undefined | null
+};
+	/** Реестр фондов кооператива с остатками и оборотами за период */
+["ReportsFundsRegistry"]: {
+	__typename: "ReportsFundsRegistry",
+	/** Пять стандартных фондов по порядку номеров */
+	funds: Array<GraphQLTypes["ReportsFund"]>,
+	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
+	investments?: GraphQLTypes["ReportsFund"] | undefined | null,
+	/** Сумма процентов фондов накопления, проценты */
+	percent_sum: number,
+	['...on ReportsFundsRegistry']: Omit<GraphQLTypes["ReportsFundsRegistry"], "...on ReportsFundsRegistry">
+};
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
 ["ReportsParticipant"]: {
 	__typename: "ReportsParticipant",
@@ -76166,6 +76634,16 @@ export enum ReportType {
 	UV_NDFL = "UV_NDFL",
 	UV_VZNOSY = "UV_VZNOSY"
 }
+/** Вид фонда кооператива: накопления или списания */
+export enum ReportsFundKind {
+	ACCUMULATION = "ACCUMULATION",
+	EXPENDITURE = "EXPENDITURE"
+}
+/** Направление движения по фонду: поступление или списание */
+export enum ReportsFundMovementDirection {
+	IN = "IN",
+	OUT = "OUT"
+}
 export enum RequisiteSource {
 	DATABASE = "DATABASE",
 	EMPTY = "EMPTY",
@@ -76992,6 +77470,11 @@ type ZEUS_VARIABLES = {
 	["ReportPreviewInput"]: ValueTypes["ReportPreviewInput"];
 	["ReportSubmissionMark"]: ValueTypes["ReportSubmissionMark"];
 	["ReportType"]: ValueTypes["ReportType"];
+	["ReportsEditFundInput"]: ValueTypes["ReportsEditFundInput"];
+	["ReportsFundHistoryInput"]: ValueTypes["ReportsFundHistoryInput"];
+	["ReportsFundKind"]: ValueTypes["ReportsFundKind"];
+	["ReportsFundMovementDirection"]: ValueTypes["ReportsFundMovementDirection"];
+	["ReportsFundsInput"]: ValueTypes["ReportsFundsInput"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
 	["RequestCooperativeEndorsementInput"]: ValueTypes["RequestCooperativeEndorsementInput"];
 	["RequestEmailVerificationInputDTO"]: ValueTypes["RequestEmailVerificationInputDTO"];
