@@ -169,6 +169,27 @@ public:
 
 
   /**
+   * @brief Потолок резерва социально-экономического обеспечения на одного
+   * получателя в месяц — один на все участки кооператива; ноль — резерв
+   * выключен (задача 99D-20).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void setaidlimit(eosio::name coopname, eosio::asset limit);
+  /**
+   * @brief Резерв социально-экономического обеспечения получателя на участке:
+   * сумма материальной помощи в месяц, записанная председателем участка; предел
+   * заявлений получателя за месяц и слагаемое расходов участка (задача 99D-20).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void setreserve(eosio::name coopname, eosio::name braname,
+                                     eosio::name username, eosio::asset amount);
+  /**
+   * @brief Снять резерв получателя на участке (задача 99D-20).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void delreserve(eosio::name coopname, eosio::name braname,
+                                     eosio::name username);
+  /**
    * @brief Заявление на материальную помощь доверенного из его персонального
    * кошелька: подписанное заявление вносится на повестку совета (type=brnaid).
    * Исходящий платёж кассиру создаётся только после решения совета — в

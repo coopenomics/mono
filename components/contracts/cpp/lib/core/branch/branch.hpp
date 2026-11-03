@@ -96,4 +96,75 @@ inline void retfee(eosio::name actor, eosio::name coopname, eosio::name braname,
   ).send();
 }
 
+// ── Резерв социально-экономического обеспечения пайщиков (задача 99D-20, КЭУ-2) ──
+
+/**
+ * @brief Номер календарного месяца по UTC для времени блока: год × 12 + месяц.
+ *
+ * Считается из числа дней от эпохи по гражданскому календарю (алгоритм
+ * Хиннанта), без таблиц и без часового пояса: контракт не знает пояс
+ * кооператива, предел материальной помощи ведётся по UTC. Номер сравним с
+ * `monthKey` ИСТОКА только по смыслу, не по значению.
+ */
+inline uint32_t utc_month_period(eosio::time_point_sec at) {
+  const int64_t days = static_cast<int64_t>(at.sec_since_epoch()) / 86400;
+  const int64_t z = days + 719468;
+  const int64_t era = (z >= 0 ? z : z - 146096) / 146097;
+  const int64_t doe = z - era * 146097;
+  const int64_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+  const int64_t y = yoe + era * 400;
+  const int64_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+  const int64_t mp = (5 * doy + 2) / 153;
+  const int64_t m = mp < 10 ? mp + 3 : mp - 9;
+  const int64_t year = m <= 2 ? y + 1 : y;
+  return static_cast<uint32_t>(year * 12 + m);
+}
+
+/// Потолок резерва на получателя в месяц; ноль — резерв выключен.
+inline eosio::asset aid_month_limit(eosio::name coopname) {
+  brnconfig_singleton cfg(_branch, coopname.value);
+  return cfg.exists() ? cfg.get().aid_month_limit : eosio::asset(0, _root_govern_symbol);
+}
+
+/// Строка резерва получателя на участке; `found` — есть ли она.
+inline eosio::asset reserve_of(eosio::name coopname, eosio::name braname,
+                               eosio::name username, bool &found) {
+  branch_reserves_index reserves(_branch, coopname.value);
+  auto idx = reserves.get_index<"bybruser"_n>();
+  auto it = idx.find(combine_ids(braname.value, username.value));
+  found = it != idx.end();
+  return found ? it->amount : eosio::asset(0, _root_govern_symbol);
+}
+
+/**
+ * @brief Сумма резерва социально-экономического обеспечения пайщиков участка —
+ * слагаемое расходов участка в расчёте итога месяца Стола заказов. Строк у
+ * участка единицы (председатель и доверенные), перебор по индексу участка.
+ */
+inline eosio::asset sum_reserves(eosio::name coopname, eosio::name braname) {
+  branch_reserves_index reserves(_branch, coopname.value);
+  auto idx = reserves.get_index<"bybranch"_n>();
+  eosio::asset total(0, _root_govern_symbol);
+  for (auto it = idx.lower_bound(braname.value);
+       it != idx.end() && it->braname == braname; ++it) {
+    total += it->amount;
+  }
+  return total;
+}
+
+/**
+ * @brief Стереть строки резерва участка: одного получателя либо все
+ * (`username` пустой). Зовётся при снятии доверенного лица, удалении участка
+ * и действием `delreserve`.
+ */
+inline void erase_reserves(eosio::name coopname, eosio::name braname, eosio::name username) {
+  branch_reserves_index reserves(_branch, coopname.value);
+  auto idx = reserves.get_index<"bybranch"_n>();
+  auto it = idx.lower_bound(braname.value);
+  while (it != idx.end() && it->braname == braname) {
+    if (username.value != 0 && it->username != username) { ++it; continue; }
+    it = idx.erase(it);
+  }
+}
+
 } // namespace Branch
