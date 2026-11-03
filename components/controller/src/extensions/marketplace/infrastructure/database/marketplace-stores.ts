@@ -19,6 +19,8 @@ import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from '../entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceReturnClaimEntity } from '../entities/marketplace-return-claim.entity';
 import { MarketplaceSecureDueEntity } from '../entities/marketplace-secure-due.entity';
+import { MarketplaceBranchPeriodEntity } from '../entities/marketplace-branch-period.entity';
+import { MarketplaceBranchAidEntity } from '../entities/marketplace-branch-aid.entity';
 import { MarketplaceReviewEntity } from '../entities/marketplace-review.entity';
 import { MarketplaceShipmentEntity } from '../entities/marketplace-shipment.entity';
 import { MarketplaceStockProposalEntity } from '../entities/marketplace-stock-proposal.entity';
@@ -46,6 +48,8 @@ export const MARKETPLACE_CART_STORE = Symbol('Marketplace.MARKETPLACE_CART_STORE
 export const MARKETPLACE_CATEGORY_STORE = Symbol('Marketplace.MARKETPLACE_CATEGORY_STORE');
 export const MARKETPLACE_CONSOLIDATED_REQUEST_STORE = Symbol('Marketplace.MARKETPLACE_CONSOLIDATED_REQUEST_STORE');
 export const MARKETPLACE_HANDOFF_CODE_STORE = Symbol('Marketplace.MARKETPLACE_HANDOFF_CODE_STORE');
+export const MARKETPLACE_BRANCH_PERIOD_STORE = Symbol('Marketplace.MARKETPLACE_BRANCH_PERIOD_STORE');
+export const MARKETPLACE_BRANCH_AID_STORE = Symbol('Marketplace.MARKETPLACE_BRANCH_AID_STORE');
 export const MARKETPLACE_CONTAINER_TYPE_STORE = Symbol('Marketplace.MARKETPLACE_CONTAINER_TYPE_STORE');
 export const MARKETPLACE_CONTAINER_STORE = Symbol('Marketplace.MARKETPLACE_CONTAINER_STORE');
 export const MARKETPLACE_INVENTORY_STORE = Symbol('Marketplace.MARKETPLACE_INVENTORY_STORE');
@@ -299,6 +303,31 @@ export const marketplaceStoreProviders: Provider[] = [
       new TableStore<MarketplaceSecureDueEntity>(db, {
         table: 'marketplace_secure_due',
         primaryKey: ['order_hash'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
+    provide: MARKETPLACE_BRANCH_PERIOD_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<MarketplaceBranchPeriodEntity>(db, {
+        table: 'marketplace_branch_period',
+        primaryKey: ['coopname', 'braname', 'period'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+        numbers: ['period', 'rows_total', 'rows_charged'],
+      }),
+  },
+  {
+    provide: MARKETPLACE_BRANCH_AID_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<MarketplaceBranchAidEntity>(db, {
+        table: 'marketplace_branch_aid',
+        primaryKey: ['aid_hash'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

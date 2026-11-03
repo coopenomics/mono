@@ -15,6 +15,11 @@
     "MARKETPLACE_AGREEMENT_WALLET_MISSING": "Соглашение '{agreementType}' в кооперативе '{coopname}' не имеет программного wallet'а (program_id={programId}): подписание через wallet::signagree невозможно",
     "MARKETPLACE_AID_AMOUNT_MUST_BE_POSITIVE": "Сумма материальной помощи должна быть больше нуля",
     "MARKETPLACE_AID_FORBIDDEN": "Материальная помощь доступна председателю и доверенным этого кооперативного участка",
+    "MARKETPLACE_AID_LIMIT_INVALID": "Потолок резерва социально-экономического обеспечения должен быть не меньше нуля",
+    "MARKETPLACE_AID_NO_RESERVE": "У получателя нет резерва социально-экономического обеспечения на этом участке. Председатель участка задаёт резерв на вкладке материальной помощи.",
+    "MARKETPLACE_AID_OVER_RESERVE": "Материальная помощь за месяц превысит резерв получателя: заявлено {requested}, уже подано {submitted}, резерв {reserve}",
+    "MARKETPLACE_RESERVE_AMOUNT_INVALID": "Резерв социально-экономического обеспечения должен быть больше нуля",
+    "MARKETPLACE_RESERVE_RECIPIENT_NOT_TRUSTED": "Резерв можно задать только председателю или доверенному лицу этого кооперативного участка",
     "MARKETPLACE_AID_PAYMENT_REGISTRATION_FAILED": "Не удалось зарегистрировать выплату в реестре платежей: {errorMessage}. Заявление не подано, повторите попытку.",
     "MARKETPLACE_AID_STATEMENT_NOT_SIGNED": "Заявление не подписано",
     "MARKETPLACE_AID_STATEMENT_SIGNATURE_INVALID": "Недействительная подпись Заявления",
@@ -531,7 +536,8 @@
       "distributionReserveDetail": "в общем кошельке {commonBalance}, резерв {reserveAmount}, ",
       "distributionReserveViolationIntro": "Распределение нарушает плановый резерв расходов на {horizonDays} дней: ",
       "distributionTitle": "Распределение членских взносов кооперативного участка",
-      "targetMembershipFeeLabel": "Ставка обеспечительной части паевого взноса"
+      "targetMembershipFeeLabel": "Ставка обеспечительной части паевого взноса",
+      "initiatorShareLabel": "Доля инициатора участка в экономии месяца"
     },
     "extensionModule": {
       "agreementTitle": "Целевая потребительская программа «Стол заказов»"
@@ -552,7 +558,7 @@
       "reasonNotSpecified": "причина не указана"
     },
     "ledgerInvariants": {
-      "account86CreditMissing": "без списания обеспечительной части в членский взнос участка (o.brn.common)",
+      "account86CreditMissing": "без списания обеспечительной части в членский взнос участка (o.brn.common) и отчисления в фонды накопления (o.fnd.accrue)",
       "account86DebitMissing": "— у Стола заказов дебета 86 нет",
       "account91CreditMissing": "без признанной претензии (o.mkt.admit)",
       "account91DebitMissing": "без уценки (o.mkt.loss) и списания скоропорта (o.mkt.wroff)",
@@ -562,7 +568,12 @@
       "doubleReserveCloseIssue": "возврат и списание резерва вместе больше внесённого — двойное закрытие резерва.",
       "i1Expected": "по каждому заказу выплата и удержание закрывают принятую стоимость",
       "i1Violation": "I1: расчёт с поставщиком по заказу закрыт не на принятую сумму либо проведён дважды.",
-      "i2Expected": "дебета 86 нет, кредит 86 только списанием обеспечительной части в членский взнос участка",
+      "i2Expected": "дебета 86 нет, кредит 86 только списанием обеспечительной части в членский взнос участка и отчислением в фонды накопления",
+      "i8Expected": "итог месяца участка сходится: фонды + участку = членский взнос, инициатору + пайщикам = собрано − членский взнос, списано строк не больше строк прогона",
+      "i8Violation": "итог месяца участка не сходится",
+      "i8MembershipSplit": "фонды {funds} + участку {branch} ≠ членский взнос {membership}",
+      "i8EconomySplit": "инициатору {initiator} + пайщикам {returned} ≠ собрано {secured} − членский взнос {membership}",
+      "i8RowsOverflow": "списано строк {charged} больше, чем строк в прогоне {total}",
       "i2Violation": "I2: на счёте 86 есть marketplace-проводки вне списания обеспечительной части в членский взнос участка.",
       "i3Violation": "I3: баланс счёта 10 не совпадает с marketplace-вкладом (purch+return2 − consum−wroff). ",
       "i3ViolationHint": "Возможный источник: пропущенный consum/wroff или дублирующий purch.",

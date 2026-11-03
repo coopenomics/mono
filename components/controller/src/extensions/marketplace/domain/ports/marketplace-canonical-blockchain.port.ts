@@ -1,4 +1,4 @@
-import type { BranchContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
+import type { BranchContract, FundContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
@@ -313,6 +313,24 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   chargeDue(data: MarketContract.Actions.ChargeDue.IChargeDue): Promise<InnerTransactResult>;
 
+  // ── Коэффициент экономического участия (задача 99D-22) ──
+  /** Расчёт итога месяца участка по пяти фактам ИСТОКА (marketplace::closeperiod). */
+  closePeriod(data: MarketContract.Actions.ClosePeriod.IClosePeriod): Promise<InnerTransactResult>;
+  /** Стирание строки итога месяца из цепи (marketplace::delperiod). */
+  deletePeriod(data: MarketContract.Actions.DelPeriod.IDelPeriod): Promise<InnerTransactResult>;
+  /** Списание обеспечительной части заказа по ставкам итога месяца (marketplace::chargeperiod). */
+  chargePeriod(data: MarketContract.Actions.ChargePeriod.IChargePeriod): Promise<InnerTransactResult>;
+  /** Доля инициатора участка в экономии месяца (marketplace::setshares). */
+  setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult>;
+  /** Инициатор участка; пустое имя снимает назначение (marketplace::setinitiator). */
+  setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
+  /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */
+  setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult>;
+  /** Резерв получателя на участке (branch::setreserve). */
+  setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult>;
+  /** Снятие резерва получателя (branch::delreserve). */
+  deleteReserve(data: BranchContract.Actions.DelReserve.IDelreserve): Promise<InnerTransactResult>;
+
   // ── p.mkt.claim — гарантийная претензия поставщику (99D-13) ──
   /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. Несогласие в цепь не пишется. */
   admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult>;
@@ -357,6 +375,18 @@ export interface MarketplaceCanonicalBlockchainPort {
 
   /** L3-балансы кошельков экономики КУ (w.brn.person / w.brn.common) из ledger2. */
   listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]>;
+
+  // ── Чтение таблиц коэффициента экономического участия (задача 99D-22) ──
+  /** Итоги месяцев участков, которые ещё лежат в цепи (marketplace::kuperiods). */
+  listPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]>;
+  /** Инициаторы участков (marketplace::initiators). */
+  listInitiators(coopname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator[]>;
+  /** Резерв социально-экономического обеспечения по получателям (branch::reserves). */
+  listReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
+  /** Потолок резерва на получателя в месяц (branch::brnconfig); null — не задан. */
+  getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
+  /** Фонды накопления кооператива с процентами (fund::accfunds). */
+  listAccumulationFunds(coopname: string): Promise<FundContract.Tables.AccumulatedFunds.IAccumulatedFund[]>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

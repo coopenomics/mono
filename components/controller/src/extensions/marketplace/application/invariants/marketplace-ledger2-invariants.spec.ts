@@ -26,6 +26,7 @@ import {
   checkInvariantI5ReserveConsistency,
   checkInvariantI6NoOrphanedReserves,
   checkInvariantI7SupplierSettlements,
+  checkInvariantI8PeriodConsistency,
   checkAllMarketplaceLedger2Invariants,
   type MarketplaceOpenSettlementRow,
   parseAssetToBigInt,
@@ -925,5 +926,62 @@ describe('I2 — счёт 86: только списание обеспечите
       { globalSequence: nextSeq(), action: 'credit', processHash, accountId: 86, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
     ]
     expect(checkInvariantI2Account86Usage(rows).ok).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// I8 — итог месяца участка сходится (задача 99D-22, случаи mkt.order.keu.*)
+// ---------------------------------------------------------------------------
+describe('I8 — итог месяца участка: части членского взноса и экономии сходятся', () => {
+  const period = (over: Record<string, unknown> = {}) => ({
+    braname: 'krg',
+    period: 24323,
+    secured: '1140000.0000 RUB',
+    membership: '632911.3924 RUB',
+    funds_amount: '132911.3924 RUB',
+    branch_amount: '500000.0000 RUB',
+    initiator_amount: '313380.7594 RUB',
+    return_amount: '193707.8482 RUB',
+    rows_total: 2,
+    rows_charged: 2,
+    ...over,
+  })
+
+  it('пример участка Б из документа модели — сходится', () => {
+    const res = checkInvariantI8PeriodConsistency([period()])
+    expect(res.ok).toBe(true)
+    expect(res.invariant).toBe('I8')
+  })
+
+  it('фонды + участку ≠ членский взнос — нарушение с указанием строки', () => {
+    const res = checkInvariantI8PeriodConsistency([period({ funds_amount: '132911.3925 RUB' })])
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.processHash).toBe('krg/24323')
+    expect(res.details?.[0]?.message).toContain('членский взнос')
+  })
+
+  it('инициатору + пайщикам ≠ экономия — нарушение', () => {
+    const res = checkInvariantI8PeriodConsistency([period({ return_amount: '193707.8481 RUB' })])
+    expect(res.ok).toBe(false)
+    expect(res.details?.length).toBe(1)
+  })
+
+  it('списано строк больше, чем в прогоне — нарушение; пустой перечень — порядок', () => {
+    expect(checkInvariantI8PeriodConsistency([period({ rows_charged: 3 })]).ok).toBe(false)
+    expect(checkInvariantI8PeriodConsistency([]).ok).toBe(true)
+  })
+
+  it('дефицит: членский взнос равен собранному, экономии нет — сходится', () => {
+    const res = checkInvariantI8PeriodConsistency([
+      period({
+        secured: '380000.0000 RUB',
+        membership: '380000.0000 RUB',
+        funds_amount: '79800.0000 RUB',
+        branch_amount: '300200.0000 RUB',
+        initiator_amount: '0.0000 RUB',
+        return_amount: '0.0000 RUB',
+      }),
+    ])
+    expect(res.ok).toBe(true)
   })
 })

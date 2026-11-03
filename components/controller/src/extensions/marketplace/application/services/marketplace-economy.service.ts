@@ -59,7 +59,7 @@ const HUNDR_PERCENTS = 1_000_000;
  * один и тот же дефолт — иначе сумма в чекауте разойдётся с фактическим
  * списанием on-chain.
  */
-const DEFAULT_MEMBERSHIP_FEE_PERCENT = 300_000;
+const DEFAULT_MEMBERSHIP_FEE_PERCENT = 380_000;
 
 /** Контракт-источник распределения в реестре весов branch::weights. */
 const MARKETPLACE_SOURCE_CONTRACT = 'marketplace';

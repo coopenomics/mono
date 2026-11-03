@@ -18,6 +18,10 @@ export const marketplaceSecurePartChargedPayloadSchema = z.object({
   amount: z.string(),
   /** Число заказов, по которым прошло списание. */
   ordersCount: z.string(),
+  /** Возвращено пайщику на свободный паевой по итогу месяца участка, с валютой (задача 99D-22). */
+  returnedAmount: z.string(),
+  /** Ставка списания участка за месяц, проценты с двумя знаками (задача 99D-22). */
+  ratePercent: z.string(),
   coopname: z.string(),
   deepLinkUrl: z.string().optional(),
 });

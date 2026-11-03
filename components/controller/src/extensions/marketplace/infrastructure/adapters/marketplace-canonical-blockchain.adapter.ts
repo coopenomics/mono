@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BranchContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
+import { BranchContract, FundContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
 import {
   MarketplaceCheckoutOrderActionKind,
@@ -471,6 +471,40 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ChargeDue.actionName, data, 'chargedue');
   }
 
+  // ── Коэффициент экономического участия (задача 99D-22) ──
+
+  async closePeriod(data: MarketContract.Actions.ClosePeriod.IClosePeriod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ClosePeriod.actionName, data, 'closeperiod');
+  }
+
+  async deletePeriod(data: MarketContract.Actions.DelPeriod.IDelPeriod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.DelPeriod.actionName, data, 'delperiod');
+  }
+
+  async chargePeriod(data: MarketContract.Actions.ChargePeriod.IChargePeriod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ChargePeriod.actionName, data, 'chargeperiod');
+  }
+
+  async setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SetShares.actionName, data, 'setshares');
+  }
+
+  async setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SetInitiator.actionName, data, 'setinitiator');
+  }
+
+  async setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetAidLimit.actionName, data, 'setaidlimit');
+  }
+
+  async setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetReserve.actionName, data, 'setreserve');
+  }
+
+  async deleteReserve(data: BranchContract.Actions.DelReserve.IDelreserve): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.DelReserve.actionName, data, 'delreserve');
+  }
+
   async admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.AdmitClaim.actionName, data, 'admitclaim');
   }
@@ -586,6 +620,51 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
+  // ── Чтение таблиц коэффициента экономического участия (задача 99D-22) ──
+  // Строк единицы: у участка не больше двух итогов, инициатор — один на участок,
+  // резервы — по числу доверенных, фонды — единицы. Полный скан области допустим.
+
+  async listPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
+    return this.blockchainService.getAllRows(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.Periods.tableName
+    );
+  }
+
+  async listInitiators(coopname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator[]> {
+    return this.blockchainService.getAllRows(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.Initiators.tableName
+    );
+  }
+
+  async listReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {
+    return this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.Reserves.tableName
+    );
+  }
+
+  async getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null> {
+    const rows = await this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.BranchConfig.tableName
+    );
+    return (rows[0] as BranchContract.Tables.BranchConfig.IBranchConfig | undefined) ?? null;
+  }
+
+  async listAccumulationFunds(coopname: string): Promise<FundContract.Tables.AccumulatedFunds.IAccumulatedFund[]> {
+    return this.blockchainService.getAllRows(
+      FundContract.contractName.production,
+      coopname,
+      FundContract.Tables.AccumulatedFunds.tableName
+    );
+  }
+
   async listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]> {
     // Полный скан userwallets кооператива с фильтром по кошелькам экономики КУ.
     // Объём = пайщики × кошельки — приемлем для MVP; при росте перевести на
@@ -597,7 +676,9 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
         Ledger2Contract.Tables.UserWallets.tableName
       );
     return rows.filter(
-      (r) => r.wallet_name === 'w.brn.person' || r.wallet_name === 'w.brn.common'
+      // w.mkt.invest — паевой кошелёк инициатора участка (задача 99D-22): его
+      // остаток показывает экономика участка рядом с общим кошельком.
+      (r) => r.wallet_name === 'w.brn.person' || r.wallet_name === 'w.brn.common' || r.wallet_name === 'w.mkt.invest'
     );
   }
 

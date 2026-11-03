@@ -331,7 +331,9 @@ export function checkInvariantI1SupplierThreads(rows: readonly MarketplaceLedger
 // ---------------------------------------------------------------------------
 const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
   debit: { codes: [], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
-  credit: { codes: ['o.brn.common'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
+  // Задача 99D-22: при списании по итогу месяца в кредит 86 ложится и
+  // отчисление в фонды накопления (o.fnd.accrue) — вторая нога chargeperiod.
+  credit: { codes: ['o.brn.common', 'o.fnd.accrue'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {
@@ -630,6 +632,56 @@ export function checkAllMarketplaceLedger2Invariants(
     checkInvariantI6NoOrphanedReserves(rows),
     checkInvariantI7SupplierSettlements(rows, wallets, settlements),
   ]
+}
+
+// ---------------------------------------------------------------------------
+// I8 — Итог месяца участка сходится (задача 99D-22): по каждой строке зеркала
+//   фонды + участку = членский взнос участка,
+//   инициатору + пайщикам обратно = собрано − членский взнос,
+//   списано строк не больше, чем строк в прогоне.
+// Источник — зеркало `marketplace_branch_period`: суммы в нём — те, что
+// рассчитал контракт в closeperiod; расхождение означает повреждённое зеркало
+// либо ошибку формулы контракта.
+// ---------------------------------------------------------------------------
+
+/** Срез строки итога месяца участка — поля, которые проверяет I8. */
+export interface MarketplaceBranchPeriodRow {
+  braname: string
+  period: number
+  secured: string
+  membership: string
+  funds_amount: string
+  branch_amount: string
+  initiator_amount: string
+  return_amount: string
+  rows_total: number
+  rows_charged: number
+}
+
+export function checkInvariantI8PeriodConsistency(periods: readonly MarketplaceBranchPeriodRow[]): InvariantResult {
+  const details: Array<{ processHash: string; message: string }> = []
+  for (const p of periods) {
+    const key = `${p.braname}/${p.period}`
+    const secured = parseAssetToBigInt(p.secured)
+    const membership = parseAssetToBigInt(p.membership)
+    const funds = parseAssetToBigInt(p.funds_amount)
+    const branch = parseAssetToBigInt(p.branch_amount)
+    const initiator = parseAssetToBigInt(p.initiator_amount)
+    const returned = parseAssetToBigInt(p.return_amount)
+    if (funds + branch !== membership) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8MembershipSplit', { funds: p.funds_amount, branch: p.branch_amount, membership: p.membership }) })
+    }
+    if (initiator + returned !== secured - membership) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8EconomySplit', { initiator: p.initiator_amount, returned: p.return_amount, secured: p.secured, membership: p.membership }) })
+    }
+    if (p.rows_charged > p.rows_total) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8RowsOverflow', { charged: String(p.rows_charged), total: String(p.rows_total) }) })
+    }
+  }
+  if (details.length > 0) {
+    return { ok: false, invariant: 'I8', expected: i18nT('marketplace.ledgerInvariants.i8Expected'), violation: i18nT('marketplace.ledgerInvariants.i8Violation'), details }
+  }
+  return { ok: true, invariant: 'I8', expected: i18nT('marketplace.ledgerInvariants.i8Expected') }
 }
 
 /** Internal: для интеграции с другими тестами / админ-вью. */

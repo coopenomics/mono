@@ -36,6 +36,9 @@ export class MarketplaceSecurePartDTO {
   @Field(() => String, { description: 'Сколько уже списано в членский взнос.' })
   charged_amount!: string;
 
+  @Field(() => String, { description: 'Сколько возвращено пайщику на свободный паевой Стола заказов по итогу месяца участка.' })
+  returned_amount!: string;
+
   @Field(() => Date, { nullable: true, description: 'Когда спишется: первое число месяца после гарантийного срока.' })
   charge_at!: Date | null;
 

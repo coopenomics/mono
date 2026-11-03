@@ -3,6 +3,8 @@ export default [
   'available_categories',
   'categories',
   'marketplace_apl_reception',
+  'marketplace_branch_aid',
+  'marketplace_branch_period',
   'marketplace_cart',
   'marketplace_cart_item',
   'marketplace_category',

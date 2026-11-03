@@ -80,8 +80,41 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[] }
     findByRequestHash: jest.fn(async (_c: string, hash: string) => (hash === 'c'.repeat(64) ? { order_hash: ORDER.toUpperCase() } : null)),
     listByStatus: jest.fn(async () => (opts.openClaimOrders ?? []).map((order_hash) => ({ order_hash }))),
   };
-  const chainPort = { chargeDue: jest.fn(async () => ({})) };
   const economy = { assetToUnits: (v: string) => toUnits(v), unitsToAsset: (u: bigint) => toAsset(u) };
+  // Итог месяца и ставки (задача 99D-22): ставки участка Б из документа модели.
+  const periodRow = {
+    coopname: COOP, braname: 'branch1', period: 0,
+    rate_branch: '166666', rate_funds: '44303', rate_initiator: '104460',
+    rows_total: 0, rows_charged: 0, deleted_at: null,
+  };
+  const periodService = {
+    pruneOld: jest.fn(async () => undefined),
+    ensureClosed: jest.fn(async (_c: string, _b: string, period: number, _t: bigint, _s: bigint, rows: number) => ({ ...periodRow, period, rows_total: rows })),
+    noteCharged: jest.fn(async () => undefined),
+    ratePercentOf: jest.fn(() => '31.54'),
+  };
+  const chainPort = {
+    chargeDue: jest.fn(async () => ({})),
+    // Списание по ставкам: как на стенде, строка учёта обновляется слушателем
+    // до возврата транзакции — здесь это делает заглушка цепи по тем же ставкам.
+    chargePeriod: jest.fn(async (data: { order_hash: string; amount: string; base: string }) => {
+      const row = store.rows.get(data.order_hash);
+      if (!row) return {};
+      const base = toUnits(data.base);
+      const amount = toUnits(data.amount);
+      const part = (rate: string) => (base * BigInt(rate)) / 1_000_000n;
+      const charged = part(periodRow.rate_branch) + part(periodRow.rate_funds) + part(periodRow.rate_initiator);
+      const returned = amount - charged;
+      store.rows.set(data.order_hash, {
+        ...row,
+        due_amount: '0.0000',
+        charged_amount: toAsset(toUnits(row.charged_amount) + charged).split(' ')[0],
+        returned_amount: toAsset(toUnits(row.returned_amount ?? '0') + returned).split(' ')[0],
+        charged_at: new Date(),
+      });
+      return {};
+    }),
+  };
   const accountPort = { getDisplayName: jest.fn(async (u: string) => `Имя ${u}`) };
   const notifications = { notifyUser: jest.fn(async () => undefined) };
   const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn(), log: jest.fn(), debug: jest.fn() };
@@ -93,9 +126,10 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[] }
     economy as never,
     accountPort as never,
     notifications as never,
-    logger as never
+    logger as never,
+    periodService as never
   );
-  return { service, store, chainPort, notifications, logger, claimRepo };
+  return { service, store, chainPort, notifications, logger, claimRepo, periodService };
 }
 
 function apply(code: MarketplaceSecureDueOperation, amount: string, seq: number, extra: Record<string, unknown> = {}, blockTime = '2026-10-10T10:00:00.000Z') {
@@ -319,5 +353,134 @@ describe('mkt.secure.due.side.11 — обеспечительная часть �
     await returned.service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
     await returned.service.applyOperation(apply(MarketplaceSecureDueOperation.UNDUE, '30.0000', 2, { process_hash: 'C'.repeat(64) }));
     expect(await returned.service.securePartOf(order({ status: 'RECEIVED' }))).toMatchObject({ state: 'RETURNED', charged_amount: '0.0000' });
+  });
+});
+
+// ── Коэффициент экономического участия (задача 99D-22, случаи mkt.order.keu.12–14) ──
+
+describe('mkt.order.keu.12 — стоимость заказа в строке учёта', () => {
+  it('o.mkt.consum пишет стоимость заказа; порядок с o.mkt.todue в одной транзакции не важен', async () => {
+    const first = build({ warrantyUntil: new Date('2026-10-24T10:00:00.000Z') });
+    await first.service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, '10000.0000', 1));
+    await first.service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '3800.0000', 2));
+    expect(first.store.rows.get(ORDER)).toMatchObject({ base_amount: '10000.0000', due_amount: '3800.0000', charged_at: null });
+
+    const second = build({ warrantyUntil: new Date('2026-10-24T10:00:00.000Z') });
+    await second.service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '3800.0000', 1));
+    await second.service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, '10000.0000', 2));
+    expect(second.store.rows.get(ORDER)).toMatchObject({ base_amount: '10000.0000', due_amount: '3800.0000' });
+  });
+
+  it('повтор o.mkt.consum стоимость не удваивает; у удержания при отказе стоимость ноль', async () => {
+    const { service, store } = build();
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, '10000.0000', 3));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, '10000.0000', 3));
+    expect(store.rows.get(ORDER)?.base_amount).toBe('10000.0000');
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.PENALTY, '50.0000', 4, { process_hash: ORDER_2 }));
+    expect(store.rows.get(ORDER_2)?.base_amount).toBe('0.0000');
+  });
+
+  it('o.mkt.retdue уменьшает остаток и копит возвращённое, в списанное не идёт', async () => {
+    const { service, store } = build();
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '3800.0000', 1));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CHARGE, '3234.8900', 2));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.RETURN_DUE, '565.1100', 3));
+    expect(store.rows.get(ORDER)).toMatchObject({ due_amount: '0.0000', charged_amount: '3234.8900', returned_amount: '565.1100' });
+    expect(store.rows.get(ORDER)?.charged_at).not.toBeNull();
+  });
+});
+
+describe('mkt.order.keu.13 — прогон первого числа по ставкам итога месяца', () => {
+  const warranty = new Date('2026-10-24T10:00:00.000Z');
+  const firstOfDecember = new Date('2026-11-30T21:30:00.000Z'); // 1 декабря 00:30 по Москве
+
+  async function issued(service: MarketplaceSecureDueService, hash: string, base: string, due: string, seq: number) {
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, base, seq, { process_hash: hash }));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, due, seq + 1, { process_hash: hash }));
+  }
+
+  it('строки со стоимостью: стирание старого итога, расчёт по сумме стоимостей и собранного, списание по ставкам, число строк', async () => {
+    const { service, store, chainPort, periodService } = build({ warrantyUntil: warranty });
+    await issued(service, ORDER, '10000.0000', '3800.0000', 1);
+    await issued(service, ORDER_2, '20000.0000', '7600.0000', 3);
+
+    const res = await service.chargeDue(COOP, firstOfDecember);
+    expect(res).toEqual({ charged: 2, failed: 0 });
+    const november = 2026 * 12 + 11;
+    expect(periodService.pruneOld).toHaveBeenCalledWith(COOP, 'branch1', november);
+    expect(periodService.ensureClosed).toHaveBeenCalledWith(COOP, 'branch1', november, toUnits('30000.0000'), toUnits('11400.0000'), 2);
+    expect(chainPort.chargePeriod).toHaveBeenCalledWith({ coopname: COOP, username: 'orderer1', braname: 'branch1', order_hash: ORDER, amount: '3800.0000 RUB', base: '10000.0000 RUB', period: november });
+    expect(chainPort.chargeDue).not.toHaveBeenCalled();
+    expect(periodService.noteCharged).toHaveBeenCalledTimes(2);
+    // Заглушка цепи обновила строки по ставкам участка Б: 1 666,66 + 443,03 + 1 044,60 списано, 645,71 обратно.
+    expect(store.rows.get(ORDER)).toMatchObject({ due_amount: '0.0000', charged_amount: '3154.2900', returned_amount: '645.7100' });
+  });
+
+  it('удержание при отказе без стоимости списывается прежним действием целиком участку', async () => {
+    const { service, chainPort, periodService } = build({ warrantyUntil: warranty });
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.PENALTY, '50.0000', 1));
+    await service.chargeDue(COOP, firstOfDecember);
+    expect(chainPort.chargeDue).toHaveBeenCalledWith({ coopname: COOP, username: 'orderer1', braname: 'branch1', order_hash: ORDER, amount: '50.0000 RUB' });
+    expect(chainPort.chargePeriod).not.toHaveBeenCalled();
+    expect(periodService.ensureClosed).not.toHaveBeenCalled();
+  });
+
+  it('итог месяца не рассчитан — строки со стоимостью ждут следующего прохода, удержания списываются', async () => {
+    const { service, chainPort, periodService } = build({ warrantyUntil: warranty });
+    periodService.ensureClosed.mockRejectedValueOnce(new Error('MARKETPLACE_PERIOD_AMOUNT_INVALID: ноль'));
+    await issued(service, ORDER, '10000.0000', '3800.0000', 1);
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.PENALTY, '50.0000', 5, { process_hash: ORDER_2 }));
+    const res = await service.chargeDue(COOP, firstOfDecember);
+    expect(res).toEqual({ charged: 1, failed: 1 });
+    expect(chainPort.chargePeriod).not.toHaveBeenCalled();
+    expect(chainPort.chargeDue).toHaveBeenCalledTimes(1);
+  });
+
+  it('отказ контракта по строке — строка остаётся, остальные идут; MARKETPLACE_DUE_EXCEEDS — тревога в журнал', async () => {
+    const { service, chainPort, logger } = build({ warrantyUntil: warranty });
+    chainPort.chargePeriod.mockRejectedValueOnce(new Error('MARKETPLACE_DUE_EXCEEDS: больше остатка'));
+    await issued(service, ORDER, '10000.0000', '3800.0000', 1);
+    await issued(service, ORDER_2, '20000.0000', '7600.0000', 3);
+    const res = await service.chargeDue(COOP, firstOfDecember);
+    expect(res).toEqual({ charged: 1, failed: 1 });
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('учёт разошёлся'));
+  });
+
+  it('два участка — два итога месяца, каждый по своим строкам', async () => {
+    const { service, periodService } = build({ warrantyUntil: warranty });
+    await issued(service, ORDER, '10000.0000', '3800.0000', 1);
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, '5000.0000', 3, { process_hash: ORDER_2 }));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '1900.0000', 4, { process_hash: ORDER_2 }));
+    // Второй заказ — на другом участке: подменяем участок строки прямо в учёте.
+    const row = (service as any).dueStore.rows.get(ORDER_2);
+    (service as any).dueStore.rows.set(ORDER_2, { ...row, braname: 'branch2' });
+    await service.chargeDue(COOP, firstOfDecember);
+    const branches = periodService.ensureClosed.mock.calls.map((c: any[]) => c[1]).sort();
+    expect(branches).toEqual(['branch1', 'branch2']);
+  });
+});
+
+describe('mkt.order.keu.14 — письмо после прогона по ставкам: списано, возвращено, ставка', () => {
+  it('одно письмо на пайщика с суммами по итогу месяца', async () => {
+    const { service, notifications } = build({ warrantyUntil: new Date('2026-10-24T10:00:00.000Z') });
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CONSUM, '10000.0000', 1));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '3800.0000', 2));
+    await service.chargeDue(COOP, new Date('2026-11-30T21:30:00.000Z'));
+    expect(notifications.notifyUser).toHaveBeenCalledTimes(1);
+    expect(notifications.notifyUser).toHaveBeenCalledWith(
+      'orderer1',
+      'obespechitelnaya-chast-spisana',
+      expect.objectContaining({ amount: '3154,29 RUB', returnedAmount: '645,71 RUB', ratePercent: '31.54', ordersCount: '1' })
+    );
+  });
+
+  it('карточка заказа после списания по ставкам: списано и возвращено, сумма — вся обеспечительная часть', async () => {
+    const { service } = build({ warrantyUntil: new Date('2026-10-24T10:00:00.000Z') });
+    (service as any).claimRepo.findActiveByOrderId = jest.fn(async () => null);
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '3800.0000', 1));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.CHARGE, '3234.8900', 2, {}, '2026-12-01T00:05:00.000Z'));
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.RETURN_DUE, '565.1100', 3, {}, '2026-12-01T00:05:00.000Z'));
+    const part = await service.securePartOf({ id: 'o', coopname: COOP, order_hash: ORDER.toUpperCase(), membership_fee: '3800.0000', status: 'RECEIVED' as never });
+    expect(part).toMatchObject({ state: 'CHARGED', amount: '3800.0000', charged_amount: '3234.8900', returned_amount: '565.1100' });
   });
 });

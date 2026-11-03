@@ -405,7 +405,50 @@ export interface MarketplaceReview {
   updated_at: Generated<Timestamp>;
 }
 
+export interface MarketplaceBranchAid {
+  aid_hash: string;
+  amount: Generated<Numeric>;
+  braname: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  paid_at: Timestamp | null;
+  status: string;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
+export interface MarketplaceBranchPeriod {
+  aid_paid: Generated<Numeric>;
+  aid_reserve: Generated<Numeric>;
+  aid_unpaid: Generated<Numeric>;
+  braname: string;
+  branch_amount: Generated<Numeric>;
+  closed_at: Generated<Timestamp>;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  deficit: Generated<Numeric>;
+  deleted_at: Timestamp | null;
+  expenses: Generated<Numeric>;
+  funds_amount: Generated<Numeric>;
+  initiator: Generated<string>;
+  initiator_amount: Generated<Numeric>;
+  membership: Generated<Numeric>;
+  memos: Generated<Numeric>;
+  period: number;
+  planned: Generated<Numeric>;
+  rate_branch: Generated<Int8>;
+  rate_funds: Generated<Int8>;
+  rate_initiator: Generated<Int8>;
+  return_amount: Generated<Numeric>;
+  rows_charged: Generated<number>;
+  rows_total: Generated<number>;
+  secured: Generated<Numeric>;
+  turnover: Generated<Numeric>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface MarketplaceSecureDue {
+  base_amount: Generated<Numeric>;
   braname: string;
   charged_amount: Generated<Numeric>;
   charged_at: Timestamp | null;
@@ -415,6 +458,7 @@ export interface MarketplaceSecureDue {
   due_from: Timestamp | null;
   last_sequence: Generated<string>;
   order_hash: string;
+  returned_amount: Generated<Numeric>;
   updated_at: Generated<Timestamp>;
   username: string;
 }
@@ -614,6 +658,8 @@ export interface DB {
   marketplace_outgoing_payment_request: MarketplaceOutgoingPaymentRequest;
   marketplace_return_claim: MarketplaceReturnClaim;
   marketplace_review: MarketplaceReview;
+  marketplace_branch_aid: MarketplaceBranchAid;
+  marketplace_branch_period: MarketplaceBranchPeriod;
   marketplace_secure_due: MarketplaceSecureDue;
   marketplace_shipment: MarketplaceShipment;
   marketplace_stock_proposal: MarketplaceStockProposal;

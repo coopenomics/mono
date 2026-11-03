@@ -29,6 +29,8 @@ import {
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
+import { MarketplacePeriodService } from './marketplace-period.service';
+import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
 import { MarketplaceSecurePartState, type MarketplaceSecurePartDTO } from '../dto/marketplace-secure-part.dto';
 import { MarketplaceOrderStatuses, type MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 
@@ -51,7 +53,28 @@ export enum MarketplaceSecureDueOperation {
   CHARGE = 'o.mkt.charge',
   /** Выход пайщика: остаток списывается немедленно. */
   EXIT = 'o.mkt.exfee',
+  /** Факт выдачи — стоимость заказа, основание деления списания по ставкам итога месяца (задача 99D-22). */
+  CONSUM = 'o.mkt.consum',
+  /** Возврат части обеспечительной части пайщику по итогу месяца участка (задача 99D-22). */
+  RETURN_DUE = 'o.mkt.retdue',
 }
+
+/** Что делает операция с остатком строки: списывает, возвращает пайщику либо просто уменьшает. */
+type ReduceKind = 'charged' | 'returned' | 'none';
+
+/** Сводка списаний одного пайщика за прогон — для письма. */
+interface ChargedSummary {
+  /** Списано в членский взнос: участку, в фонды и инициатору вместе. */
+  units: bigint;
+  /** Возвращено пайщику на свободный паевой. */
+  returned: bigint;
+  orders: number;
+  /** Ставка списания участка за месяц, проценты с двумя знаками. */
+  rate: string;
+}
+
+/** Ставка списания удержаний и остатков без итога месяца: вся сумма участку. */
+const FULL_RATE_PERCENT = '100.00';
 
 /** Шаг крона списания в работе — час. */
 const CHARGE_PACE_SECONDS = 60 * 60;
@@ -130,7 +153,8 @@ export class MarketplaceSecureDueService {
     private readonly economyService: MarketplaceEconomyService,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    private readonly periodService: MarketplacePeriodService
   ) {
     this.logger.setContext(MarketplaceSecureDueService.name);
   }
@@ -165,9 +189,11 @@ export class MarketplaceSecureDueService {
   private readonly handlers: Record<MarketplaceSecureDueOperation, (op: AppliedOperation) => Promise<void>> = {
     [MarketplaceSecureDueOperation.TO_DUE]: (op) => this.accrue(op),
     [MarketplaceSecureDueOperation.PENALTY]: (op) => this.accrue(op),
-    [MarketplaceSecureDueOperation.CHARGE]: (op) => this.reduce(op.hash, op, true),
+    [MarketplaceSecureDueOperation.CHARGE]: (op) => this.reduce(op.hash, op, 'charged'),
     [MarketplaceSecureDueOperation.UNDUE]: (op) => this.reduceByClaim(op),
     [MarketplaceSecureDueOperation.EXIT]: (op) => this.settleOnExit(op),
+    [MarketplaceSecureDueOperation.CONSUM]: (op) => this.setBase(op),
+    [MarketplaceSecureDueOperation.RETURN_DUE]: (op) => this.reduce(op.hash, op, 'returned'),
   };
 
   /**
@@ -187,6 +213,8 @@ export class MarketplaceSecureDueService {
         braname,
         due_amount: this.toDecimal(op.units),
         charged_amount: this.toDecimal(0n),
+        base_amount: this.toDecimal(0n),
+        returned_amount: this.toDecimal(0n),
         due_from,
         charged_at: null,
         last_sequence: op.sequence,
@@ -202,6 +230,40 @@ export class MarketplaceSecureDueService {
         charged_at: null,
         last_sequence: op.sequence,
       }
+    );
+  }
+
+  /**
+   * Стоимость заказа — факт выдачи по операции o.mkt.consum (задача 99D-22):
+   * основание деления списания по ставкам итога месяца. Выдача и постановка
+   * к списанию идут одной транзакцией в любом порядке: строка заводится тем,
+   * что пришло первым. У удержания при отказе выдачи нет — стоимость ноль, и
+   * оно списывается целиком участку.
+   */
+  private async setBase(op: AppliedOperation): Promise<void> {
+    const order_hash = op.hash;
+    const row = await this.dueStore.findOne({ order_hash });
+    if (row && this.alreadyApplied(row, op.sequence)) return;
+    if (!row) {
+      const { braname, due_from } = await this.orderTerms(op);
+      await this.dueStore.insert({
+        order_hash,
+        coopname: op.coopname,
+        username: op.username,
+        braname,
+        due_amount: this.toDecimal(0n),
+        charged_amount: this.toDecimal(0n),
+        base_amount: this.toDecimal(op.units),
+        returned_amount: this.toDecimal(0n),
+        due_from,
+        charged_at: null,
+        last_sequence: op.sequence,
+      });
+      return;
+    }
+    await this.dueStore.update(
+      { order_hash },
+      { base_amount: this.toDecimal(this.fromDecimal(row.base_amount) + op.units), last_sequence: op.sequence }
     );
   }
 
@@ -222,11 +284,14 @@ export class MarketplaceSecureDueService {
       this.logger.error(`Учёт обеспечительной части: заявление на возврат ${op.hash} не найдено — возврат ${this.toDecimal(op.units)} не учтён.`);
       return;
     }
-    await this.reduce(claim.order_hash.toLowerCase(), op, false);
+    await this.reduce(claim.order_hash.toLowerCase(), op, 'none');
   }
 
-  /** Списание или гарантийный возврат уменьшают остаток к списанию. */
-  private async reduce(order_hash: string, op: AppliedOperation, charged: boolean): Promise<void> {
+  /**
+   * Списание, возврат пайщику по итогу месяца и гарантийный возврат уменьшают
+   * остаток к списанию; списанное и возвращённое копятся в своих полях.
+   */
+  private async reduce(order_hash: string, op: AppliedOperation, kind: ReduceKind): Promise<void> {
     const row = await this.dueStore.findOne({ order_hash });
     if (!row) {
       this.logger.error(`Учёт обеспечительной части: по заказу ${order_hash} строки нет — операция на ${this.toDecimal(op.units)} не учтена.`);
@@ -242,7 +307,8 @@ export class MarketplaceSecureDueService {
       { order_hash },
       {
         due_amount: this.toDecimal(due),
-        charged_amount: charged ? this.toDecimal(this.fromDecimal(row.charged_amount) + op.units) : row.charged_amount,
+        charged_amount: kind === 'charged' ? this.toDecimal(this.fromDecimal(row.charged_amount) + op.units) : row.charged_amount,
+        returned_amount: kind === 'returned' ? this.toDecimal(this.fromDecimal(row.returned_amount) + op.units) : row.returned_amount,
         charged_at: due === 0n ? op.blockTime : null,
         last_sequence: op.sequence,
       }
@@ -295,10 +361,10 @@ export class MarketplaceSecureDueService {
     if (fee <= 0n) return null;
     const zero = this.toDecimal(0n);
     if (ORDER_CLOSED_WITHOUT_ISSUE.has(order.status)) {
-      return { state: MarketplaceSecurePartState.RETURNED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, charge_at: null, settled_at: null };
+      return { state: MarketplaceSecurePartState.RETURNED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, returned_amount: zero, charge_at: null, settled_at: null };
     }
     if (order.status === MarketplaceOrderStatuses.RECEIVED) return null;
-    return { state: MarketplaceSecurePartState.RESERVED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, charge_at: null, settled_at: null };
+    return { state: MarketplaceSecurePartState.RESERVED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, returned_amount: zero, charge_at: null, settled_at: null };
   }
 
   private async securePartFromRow(
@@ -307,10 +373,12 @@ export class MarketplaceSecureDueService {
   ): Promise<MarketplaceSecurePartDTO> {
     const due = this.fromDecimal(row.due_amount);
     const charged = this.fromDecimal(row.charged_amount);
+    const returned = this.fromDecimal(row.returned_amount);
     const base = {
-      amount: this.toDecimal(due + charged),
+      amount: this.toDecimal(due + charged + returned),
       due_amount: row.due_amount,
       charged_amount: row.charged_amount,
+      returned_amount: this.toDecimal(returned),
     };
     if (due > 0n && !row.charged_at) {
       const claim = await this.claimRepo.findActiveByOrderId(order.coopname, order.id);
@@ -357,19 +425,66 @@ export class MarketplaceSecureDueService {
     const openClaims = await this.claimRepo.listByStatus(coopname, [...MARKETPLACE_RETURN_CLAIM_ACTIVE_STATUSES], OPEN_CLAIMS_LIMIT);
     const blocked = new Set(openClaims.map((c) => c.order_hash.toLowerCase()));
 
-    const chargedByUser = new Map<string, { units: bigint; orders: number }>();
+    const rows = ripe.filter((r) => !blocked.has(r.order_hash));
+    // Итог считается за закончившийся месяц: его номер на единицу меньше текущего.
+    const period = monthKey(now, platformSettings().timezone || 'UTC') - 1;
+
+    const chargedByUser = new Map<string, ChargedSummary>();
     let charged = 0;
     let failed = 0;
-    for (const row of ripe.filter((r) => !blocked.has(r.order_hash))) {
-      const units = await this.chargeRow(coopname, row);
-      if (units === null) {
-        failed++;
-        continue;
-      }
+    const note = (row: MarketplaceSecureDueEntity, units: bigint, returned: bigint, rate: string) => {
       charged++;
-      const acc = chargedByUser.get(row.username) ?? { units: 0n, orders: 0 };
-      chargedByUser.set(row.username, { units: acc.units + units, orders: acc.orders + 1 });
+      const acc = chargedByUser.get(row.username) ?? { units: 0n, returned: 0n, orders: 0, rate };
+      chargedByUser.set(row.username, { units: acc.units + units, returned: acc.returned + returned, orders: acc.orders + 1, rate: acc.rate });
+    };
+
+    // Итог месяца считается на участок: строки прогона группируются по участку выдачи.
+    const byBranch = new Map<string, MarketplaceSecureDueEntity[]>();
+    for (const row of rows) {
+      const list = byBranch.get(row.braname) ?? [];
+      list.push(row);
+      byBranch.set(row.braname, list);
     }
+
+    for (const [braname, branchRows] of byBranch) {
+      // Заказы со стоимостью идут по ставкам итога месяца; удержания при
+      // отказе (стоимости нет) — целиком участку, как и прежде.
+      const withBase = branchRows.filter((r) => this.fromDecimal(r.base_amount) > 0n);
+      const withoutBase = branchRows.filter((r) => this.fromDecimal(r.base_amount) <= 0n);
+
+      let periodRow: MarketplaceBranchPeriodEntity | null = null;
+      if (withBase.length > 0 && braname) {
+        try {
+          await this.periodService.pruneOld(coopname, braname, period);
+          const turnover = withBase.reduce((s, r) => s + this.fromDecimal(r.base_amount), 0n);
+          const secured = withBase.reduce((s, r) => s + this.fromDecimal(r.due_amount), 0n);
+          periodRow = await this.periodService.ensureClosed(coopname, braname, period, turnover, secured, withBase.length);
+        } catch (err: any) {
+          this.logger.error(`Итог месяца ${period} участка ${braname} не рассчитан: ${err.message}`);
+        }
+      }
+      for (const row of withBase) {
+        if (!periodRow) {
+          failed++;
+          continue;
+        }
+        const result = await this.chargePeriodRow(coopname, row, period);
+        if (result === null) {
+          failed++;
+          continue;
+        }
+        note(row, result.charged, result.returned, this.periodService.ratePercentOf(periodRow));
+      }
+      for (const row of withoutBase) {
+        const units = await this.chargeRow(coopname, row);
+        if (units === null) {
+          failed++;
+          continue;
+        }
+        note(row, units, 0n, FULL_RATE_PERCENT);
+      }
+    }
+
     this.logger.info(`Списание обеспечительной части: списано ${charged}, не прошло ${failed} (coopname=${coopname})`);
     await this.notifyCharged(coopname, chargedByUser);
     return { charged, failed };
@@ -415,16 +530,61 @@ export class MarketplaceSecureDueService {
     }
   }
 
+  /**
+   * Одна строка прогона — одна транзакция `chargeperiod` (задача 99D-22):
+   * контракт делит остаток по ставкам итога месяца. Транзакция возвращается
+   * после разбора блока, поэтому строка учёта уже обновлена слушателем:
+   * списанное и возвращённое читаются из неё, а не считаются здесь.
+   */
+  private async chargePeriodRow(
+    coopname: string,
+    row: MarketplaceSecureDueEntity,
+    period: number
+  ): Promise<{ charged: bigint; returned: bigint } | null> {
+    const amount = this.fromDecimal(row.due_amount);
+    try {
+      await this.chainPort.chargePeriod({
+        coopname,
+        username: row.username,
+        braname: row.braname,
+        order_hash: row.order_hash,
+        amount: this.economyService.unitsToAsset(amount),
+        base: this.economyService.unitsToAsset(this.fromDecimal(row.base_amount)),
+        period,
+      });
+    } catch (err: any) {
+      if (chainErrorCode(err) === DUE_EXCEEDS) {
+        this.logger.error(`Списание по итогу месяца по заказу ${row.order_hash}: учёт разошёлся с кошельком (${err.message})`);
+      } else {
+        this.logger.warn(`Списание по итогу месяца по заказу ${row.order_hash} не прошло: ${err.message}`);
+      }
+      return null;
+    }
+    await this.periodService.noteCharged(coopname, row.braname, period, 1);
+    const after = await this.dueStore.findOne({ order_hash: row.order_hash });
+    if (!after || this.fromDecimal(after.due_amount) === amount) {
+      // Слушатель ещё не донёс операции — письмо получит сумму списания без деления.
+      this.logger.warn(`Списание по итогу месяца по заказу ${row.order_hash}: учёт не успел обновиться к письму.`);
+      return { charged: amount, returned: 0n };
+    }
+    return {
+      charged: this.fromDecimal(after.charged_amount) - this.fromDecimal(row.charged_amount),
+      returned: this.fromDecimal(after.returned_amount) - this.fromDecimal(row.returned_amount),
+    };
+  }
+
   /** Письмо пайщику — одно за прогон и только если по нему что-то списано. */
-  private async notifyCharged(coopname: string, chargedByUser: Map<string, { units: bigint; orders: number }>): Promise<void> {
-    for (const [username, { units, orders }] of chargedByUser) {
-      if (units <= 0n) continue;
+  private async notifyCharged(coopname: string, chargedByUser: Map<string, ChargedSummary>): Promise<void> {
+    for (const [username, { units, returned, orders, rate }] of chargedByUser) {
+      if (units <= 0n && returned <= 0n) continue;
       try {
         const payload: Workflows.MarketplaceSecurePartCharged.IPayload = {
           userName: await this.accountPort.getDisplayName(username),
           // Пайщик читает сумму в два знака, как во всех уведомлениях; цепь хранит четыре.
           amount: AmountFormatterUtils.formatAmountSafe(this.economyService.unitsToAsset(units)),
           ordersCount: String(orders),
+          returnedAmount: AmountFormatterUtils.formatAmountSafe(this.economyService.unitsToAsset(returned)),
+          ratePercent: rate,
           coopname,
           deepLinkUrl: `${platformSettings().frontendUrl}/${coopname}/market/my-orders`,
         };

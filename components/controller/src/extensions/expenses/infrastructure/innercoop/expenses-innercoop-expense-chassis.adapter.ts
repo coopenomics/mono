@@ -7,6 +7,7 @@ import type {
   InnerExpenseItem,
   InnerExpensePagination,
   InnerExpensePaginatedResult,
+  InnerExpensePlan,
   InnerExpensePlannedReserve,
   InnerExpenseProposalRead,
   InnerExpenseProposalStatus,
@@ -101,6 +102,20 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
 
   async attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void> {
     await this.plans.attachProposal(coopname, planId, proposalHash);
+  }
+
+  /** Записи реестра плановых расходов участка — для итога месяца участка Стола заказов (задача 99D-22). */
+  async listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]> {
+    const rows = await this.plans.listPlans(coopname, branchName);
+    return rows.map((r) => ({
+      id: r.id,
+      branchName: r.braname,
+      title: r.title,
+      amount: r.amount,
+      dueDate: r.due_date,
+      proposalHash: r.proposal_hash,
+      paidAt: r.paid_at,
+    }));
   }
 
   async validateRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
