@@ -103,6 +103,10 @@ sources:
     - components/contracts/cpp/branch/src/setaidlimit.cpp
     - components/contracts/cpp/fund/src/accrue.cpp
   ui:
+    - components/desktop/src/pages/Marketplace/AdminMarketEconomy/**
+    - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/**
+    - components/desktop/src/pages/Marketplace/AdminIssuancePoints/**
+    - components/desktop/src/widgets/Marketplace/OrderSecurePartCard/**
     - components/desktop/src/pages/Marketplace/Cart/**
     - components/desktop/src/pages/Marketplace/OrderConfirmation/**
     - components/desktop/src/pages/Marketplace/MyOrders/**
@@ -855,3 +859,68 @@ cases:
     external: unreachable
     external_reason: "инвариант проверяется по базе узла"
     status: written
+
+  # ── Коэффициент экономического участия: экраны и внешний слой (КЭУ-5, 99D-23) ──
+  - id: mkt.order.keu.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор на «Экономике» видит три настройки модели — ставку
+      обеспечительной части, долю инициатора, потолок резерва — и проценты
+      фондов накопления строкой; правит долю инициатора в окне.
+    expect: >
+      три карточки «подпись — число — пояснение»; окно правки с подсказкой, что
+      прошедшие месяцы не пересчитываются; фонды — для чтения
+    test: components/docs-harness/scenarios/marketplace/chairman/economy.mjs
+    status: written
+
+  - id: mkt.order.keu.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка на «Моих средствах» ведёт резерв социально-экономического
+      обеспечения пайщиков: таблица по получателям, потолок кооператива, окно строки.
+    expect: >
+      получатель, резерв в месяц, подано в текущем месяце, остаток; кнопки
+      добавить/изменить/убрать у председателя; при потолке ноль — баннер о
+      выплате без предела; в окне заявления — остаток резерва и отказ до отправки
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/economy-reserve-periods.mjs
+    status: written
+
+  - id: mkt.order.keu.ui.03
+    level: ui
+    kind: happy
+    scenario: Вкладка «Итоги месяцев» экономики участка и карточка паевого кошелька инициатора.
+    expect: >
+      текущий месяц «идёт» с расходами на сегодня, резервом и заказами к первому
+      числу; строка на прогон с десятью колонками; состав расходов и распределения
+      в правой панели; на «Кошельке участка» — карточка инициатора с остатком
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/economy-reserve-periods.mjs
+    status: written
+
+  - id: mkt.order.keu.ui.04
+    level: ui
+    kind: side
+    scenario: Карточка заказа пайщика после списания обеспечительной части.
+    expect: >
+      три строки — списано в членский взнос участка, возвращено на свободный
+      паевой Стола заказов, ставка списания участка за месяц; до списания — как
+      прежде
+    test: components/docs-harness/scenarios/marketplace/orderer/order-secure-part-charged.mjs
+    status: written
+
+  - id: mkt.order.keu.api.01
+    level: backend
+    kind: happy
+    scenario: >
+      Полный цикл снаружи на стенде со сжатым временем: настройки администратора,
+      резерв участка, два заказа, прогон первого числа, списание по ставкам,
+      карточки заказов, строки прогонов в цепи.
+    expect: >
+      итог месяца сходится по формулам контракта (У = min(C, РК), Ф = (C − У) × p,
+      Э = C − У − Ф, И = Э × φ, В = Э − И); строки учёта заказов закрыты по ставке
+      итога, списано + возвращено = обеспечительная часть; в цепи не больше двух
+      строк прогонов участка; без BLACKBOX_STAND_MONTH_SECONDS набор пропускается
+    test: components/api-tests/src/marketplace/period-cycle.test.ts
+    status: written
+

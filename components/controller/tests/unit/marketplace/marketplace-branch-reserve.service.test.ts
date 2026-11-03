@@ -36,9 +36,17 @@ function build(opts: {
   const chainPort = {
     getEconomyConfig: jest.fn(async () => opts.config === undefined ? { membership_fee_percent: 380_000 } : opts.config),
     getBranchConfig: jest.fn(async () => (opts.limit === null ? null : { aid_month_limit: opts.limit ?? '200000.0000 RUB' })),
-    listAccumulationFunds: jest.fn(async () => [{ percent: 10_000 }, { percent: 150_000 }, { percent: 50_000 }]),
+    listAccumulationFunds: jest.fn(async () => [
+      { name: 'Неделимый фонд', percent: 10_000, wallet_name: 'indivisible' },
+      { name: 'Резервный фонд', percent: 150_000, wallet_name: 'reserve' },
+      { name: 'Фонд развития', percent: 50_000 },
+    ]),
     listReserves: jest.fn(async () => (opts.reserves ?? []).map((r, i) => ({ id: i + 1, ...r }))),
     listInitiators: jest.fn(async () => opts.initiators ?? []),
+    listBranchWalletBalances: jest.fn(async () => [
+      { username: 'investor', wallet_name: 'w.mkt.invest', available: '31447.5900 RUB' },
+      { username: 'chairkrg', wallet_name: 'w.brn.person', available: '5.0000 RUB' },
+    ]),
     setShares: jest.fn(async () => ({})),
     setAidLimit: jest.fn(async () => ({})),
     setInitiator: jest.fn(async () => ({})),
@@ -69,6 +77,11 @@ describe('mkt.order.keu.10 — настройки экономики для ад
       initiator_share_percent: 61.8,
       aid_month_limit: '200000.0000 RUB',
       funds_percent: 21,
+      funds: [
+        { name: 'Неделимый фонд', percent: 1, wallet_name: 'indivisible' },
+        { name: 'Резервный фонд', percent: 15, wallet_name: 'reserve' },
+        { name: 'Фонд развития', percent: 5, wallet_name: '' },
+      ],
     });
   });
 
@@ -95,9 +108,9 @@ describe('mkt.order.keu.10 — настройки экономики для ад
 
   it('инициатор участка: назначенный, иначе председатель; снятие — пустым именем', async () => {
     const assigned = build({ initiators: [{ braname: 'krg', username: 'investor' }] });
-    expect(await assigned.service.getBranchInitiator(COOP, 'krg')).toEqual({ username: 'investor', assigned: true });
+    expect(await assigned.service.getBranchInitiator(COOP, 'krg')).toEqual({ username: 'investor', assigned: true, invest_balance: '31447.5900 RUB' });
     const byChair = build();
-    expect(await byChair.service.getBranchInitiator(COOP, 'krg')).toEqual({ username: 'chairkrg', assigned: false });
+    expect(await byChair.service.getBranchInitiator(COOP, 'krg')).toEqual({ username: 'chairkrg', assigned: false, invest_balance: '0.0000 RUB' });
     await byChair.service.setBranchInitiator(COOP, 'krg', null);
     expect(byChair.chainPort.setInitiator).toHaveBeenCalledWith({ coopname: COOP, braname: 'krg', username: '' });
   });

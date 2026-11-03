@@ -181,6 +181,7 @@ BaseDialog(v-model="dialogOpen", :title="$t('marketplace.walletHeaderButton.wall
       | {{ $t('marketplace.walletHeaderButton.explainPart4') }}
       | {{ $t('marketplace.walletHeaderButton.explainPart5') }}
       | {{ $t('marketplace.walletHeaderButton.explainPart6') }}
+      | {{ $t('marketplace.walletHeaderButton.explainPart7') }}
   template(#footer)
     DepositButton
 </template>

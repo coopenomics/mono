@@ -6,4 +6,10 @@ export interface OrderSecurePart {
   amount: string;
   charge_at?: unknown;
   settled_at?: unknown;
+  /** Списано в членский взнос участка (после прогона первого числа). */
+  charged_amount?: string;
+  /** Возвращено пайщику на свободный паевой Стола заказов по итогу месяца. */
+  returned_amount?: string;
+  /** Ставка списания участка за месяц, проценты; пусто до списания. */
+  rate_percent?: string | null;
 }

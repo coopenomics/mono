@@ -68,7 +68,7 @@ function memoryStore() {
   };
 }
 
-function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[] } = {}) {
+function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; mirroredPeriod?: number } = {}) {
   const store = memoryStore();
   const orderRepo = {
     findByOrderHash: jest.fn(async (_c: string, hash: string) => ({
@@ -93,6 +93,8 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[] }
     ensureClosed: jest.fn(async (_c: string, _b: string, period: number, _t: bigint, _s: bigint, rows: number) => ({ ...periodRow, period, rows_total: rows })),
     noteCharged: jest.fn(async () => undefined),
     ratePercentOf: jest.fn(() => '31.54'),
+    // Зеркало итога месяца для ставки в карточке заказа: есть только у периода из build().
+    findOne: jest.fn(async (_c: string, _b: string, period: number) => (opts.mirroredPeriod === period ? { ...periodRow, period } : null)),
   };
   const chainPort = {
     chargeDue: jest.fn(async () => ({})),
@@ -485,3 +487,63 @@ describe('mkt.order.keu.14 — письмо после прогона по ст�
     expect(part).toMatchObject({ state: 'CHARGED', amount: '3800.0000', charged_amount: '3234.8900', returned_amount: '565.1100' });
   });
 });
+
+describe('mkt.order.keu.15 — ставка списания в карточке заказа и заказы, которые созреют к первому числу', () => {
+  const NOVEMBER = 2026 * 12 + 11;
+  const chargedAt = new Date('2026-11-30T21:30:00.000Z'); // 1 декабря 00:30 по Москве — списание за ноябрь
+
+  it('списанный заказ со стоимостью — ставка итога месяца перед списанием; удержание без стоимости — 100 %', async () => {
+    const { service, store } = build({ mirroredPeriod: NOVEMBER });
+    store.rows.set(ORDER, {
+      order_hash: ORDER, coopname: COOP, username: 'orderer1', braname: 'branch1',
+      due_amount: '0.0000', charged_amount: '3154.2900', base_amount: '10000.0000', returned_amount: '645.7100',
+      due_from: new Date('2026-11-10T00:00:00.000Z'), charged_at: chargedAt, last_sequence: '1',
+    } as never);
+    const part = await service.securePartOf({ id: 'o1', coopname: COOP, order_hash: ORDER, membership_fee: '3800.0000', status: 'RECEIVED' as never });
+    expect(part).toMatchObject({ state: 'CHARGED', charged_amount: '3154.2900', returned_amount: '645.7100', rate_percent: '31.54' });
+
+    const penalty = 'b'.repeat(64);
+    store.rows.set(penalty, {
+      order_hash: penalty, coopname: COOP, username: 'orderer1', braname: 'branch1',
+      due_amount: '0.0000', charged_amount: '50.0000', base_amount: '0.0000', returned_amount: '0.0000',
+      due_from: new Date('2026-11-10T00:00:00.000Z'), charged_at: chargedAt, last_sequence: '2',
+    } as never);
+    const penaltyPart = await service.securePartOf({ id: 'o2', coopname: COOP, order_hash: penalty, membership_fee: '50.0000', status: 'CANCELLED_BY_ORDERER' as never });
+    expect(penaltyPart).toMatchObject({ state: 'CHARGED', rate_percent: '100.00' });
+  });
+
+  it('зеркала итога нет (списано до модели) — ставки нет; до списания ставки нет', async () => {
+    const { service, store } = build();
+    store.rows.set(ORDER, {
+      order_hash: ORDER, coopname: COOP, username: 'orderer1', braname: 'branch1',
+      due_amount: '0.0000', charged_amount: '3800.0000', base_amount: '10000.0000', returned_amount: '0.0000',
+      due_from: new Date('2026-11-10T00:00:00.000Z'), charged_at: chargedAt, last_sequence: '1',
+    } as never);
+    expect(await service.securePartOf({ id: 'o1', coopname: COOP, order_hash: ORDER, membership_fee: '3800.0000', status: 'RECEIVED' as never }))
+      .toMatchObject({ state: 'CHARGED', rate_percent: null });
+    store.rows.set(ORDER, { ...store.rows.get(ORDER)!, due_amount: '3800.0000', charged_amount: '0.0000', charged_at: null } as never);
+    expect(await service.securePartOf({ id: 'o1', coopname: COOP, order_hash: ORDER, membership_fee: '3800.0000', status: 'RECEIVED' as never }))
+      .toMatchObject({ state: 'DUE', rate_percent: null });
+  });
+
+  it('созреют к первому числу: выданные строки участка с гарантией до конца месяца; чужой участок, списанные и пустые не входят', async () => {
+    const { service, store } = build();
+    const row = (hash: string, braname: string, dueFrom: string, due: string, base: string, chargedAt: Date | null = null) => {
+      store.rows.set(hash, {
+        order_hash: hash, coopname: COOP, username: 'orderer1', braname,
+        due_amount: due, charged_amount: '0.0000', base_amount: base, returned_amount: '0.0000',
+        due_from: new Date(dueFrom), charged_at: chargedAt, last_sequence: '1',
+      } as never);
+    };
+    row('1'.repeat(64), 'branch1', '2026-11-05T00:00:00.000Z', '3800.0000', '10000.0000');
+    row('2'.repeat(64), 'branch1', '2026-11-20T00:00:00.000Z', '7600.0000', '20000.0000');
+    row('3'.repeat(64), 'branch1', '2026-12-03T00:00:00.000Z', '1000.0000', '5000.0000'); // гарантия кончится в декабре
+    row('4'.repeat(64), 'branch2', '2026-11-05T00:00:00.000Z', '500.0000', '1000.0000'); // чужой участок
+    row('5'.repeat(64), 'branch1', '2026-11-05T00:00:00.000Z', '0.0000', '1000.0000'); // уже пусто
+    row('6'.repeat(64), 'branch1', '2026-10-05T00:00:00.000Z', '900.0000', '3000.0000', new Date('2026-10-31T21:00:00.000Z')); // списано
+    const now = new Date('2026-11-15T12:00:00.000Z');
+    expect(await service.ripeningForBranch(COOP, 'branch1', now)).toEqual({ count: 2, turnover: toUnits('30000.0000'), secured: toUnits('11400.0000') });
+    expect(await service.ripeningForBranch(COOP, 'branch2', now)).toEqual({ count: 1, turnover: toUnits('1000.0000'), secured: toUnits('500.0000') });
+  });
+});
+

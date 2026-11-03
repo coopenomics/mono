@@ -168,3 +168,8 @@ export * as CreateReview from './createReview'
 export * as UpdateMyReview from './updateMyReview'
 /** Администратор скрывает отзыв либо возвращает его в публикацию */
 export * as SetReviewStatus from './setReviewStatus'
+export * as SetInitiatorShare from './setInitiatorShare'
+export * as SetAidLimit from './setAidLimit'
+export * as SetBranchInitiator from './setBranchInitiator'
+export * as SetBranchReserve from './setBranchReserve'
+export * as DeleteBranchReserve from './deleteBranchReserve'

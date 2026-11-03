@@ -373,10 +373,10 @@ export class MarketplaceSecureDueService {
     if (fee <= 0n) return null;
     const zero = this.toDecimal(0n);
     if (ORDER_CLOSED_WITHOUT_ISSUE.has(order.status)) {
-      return { state: MarketplaceSecurePartState.RETURNED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, returned_amount: zero, charge_at: null, settled_at: null };
+      return { state: MarketplaceSecurePartState.RETURNED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, returned_amount: zero, charge_at: null, settled_at: null, rate_percent: null };
     }
     if (order.status === MarketplaceOrderStatuses.RECEIVED) return null;
-    return { state: MarketplaceSecurePartState.RESERVED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, returned_amount: zero, charge_at: null, settled_at: null };
+    return { state: MarketplaceSecurePartState.RESERVED, amount: this.toDecimal(fee), due_amount: zero, charged_amount: zero, returned_amount: zero, charge_at: null, settled_at: null, rate_percent: null };
   }
 
   private async securePartFromRow(
@@ -391,6 +391,7 @@ export class MarketplaceSecureDueService {
       due_amount: row.due_amount,
       charged_amount: row.charged_amount,
       returned_amount: this.toDecimal(returned),
+      rate_percent: null as string | null,
     };
     if (due > 0n && !row.charged_at) {
       const claim = await this.claimRepo.findActiveByOrderId(order.coopname, order.id);
@@ -400,7 +401,45 @@ export class MarketplaceSecureDueService {
       return { ...base, state: MarketplaceSecurePartState.DUE, charge_at, settled_at: null };
     }
     const state = charged > 0n ? MarketplaceSecurePartState.CHARGED : MarketplaceSecurePartState.RETURNED;
-    return { ...base, state, charge_at: null, settled_at: row.charged_at };
+    const rate_percent = state === MarketplaceSecurePartState.CHARGED ? await this.ratePercentOfRow(order.coopname, row) : null;
+    return { ...base, state, charge_at: null, settled_at: row.charged_at, rate_percent };
+  }
+
+  /**
+   * Ставка, по которой списана строка: у заказа со стоимостью — ставка итога
+   * месяца участка (месяц перед списанием), у удержания при отказе — вся сумма
+   * участку. Итога в зеркале нет (списано до модели) — ставки нет.
+   */
+  private async ratePercentOfRow(coopname: string, row: MarketplaceSecureDueEntity): Promise<string | null> {
+    if (this.fromDecimal(row.base_amount) <= 0n) return FULL_RATE_PERCENT;
+    if (!row.charged_at || !row.braname) return null;
+    const period = monthKey(row.charged_at, platformSettings().timezone || 'UTC') - 1;
+    const periodRow = await this.periodService.findOne(coopname, row.braname, period);
+    return periodRow ? this.periodService.ratePercentOf(periodRow) : null;
+  }
+
+  /**
+   * Заказы участка, которые созреют к ближайшему первому числу: выданы, не
+   * списаны, гарантийный срок кончается до начала следующего месяца. Для строки
+   * «текущий месяц, идёт» на экономике участка — без учёта открытых возвратов,
+   * они решаются до прогона.
+   */
+  async ripeningForBranch(coopname: string, braname: string, now: Date): Promise<{ count: number; turnover: bigint; secured: bigint }> {
+    const timeZone = platformSettings().timezone || 'UTC';
+    const currentMonth = monthKey(now, timeZone);
+    const rows = await this.dueStore.find({ coopname, braname, charged_at: isNull() }, { limit: CHARGE_BATCH_LIMIT });
+    let count = 0;
+    let turnover = 0n;
+    let secured = 0n;
+    for (const row of rows) {
+      if (!row.due_from || monthKey(row.due_from, timeZone) > currentMonth) continue;
+      const due = this.fromDecimal(row.due_amount);
+      if (due <= 0n) continue;
+      count++;
+      turnover += this.fromDecimal(row.base_amount);
+      secured += due;
+    }
+    return { count, turnover, secured };
   }
 
   // ── Списание первого числа ──────────────────────────────────────────

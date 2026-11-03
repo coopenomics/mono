@@ -10649,6 +10649,17 @@ export type ValueTypes = {
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: ValueTypes["MarketplaceReturnCancelStatementSignedInput"] | Variable<any, string>
 };
+	/** Фонд накопления кооператива: название, процент отчисления с членского взноса участка и разрез кошелька фондов. */
+["MarketplaceAccumulationFund"]: AliasType<{
+	/** Название фонда. */
+	name?:boolean | `@${string}`,
+	/** Процент отчисления, проценты. */
+	percent?:boolean | `@${string}`,
+	/** Имя разреза кошелька фондов накопления; пусто до первого отчисления. */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAccumulationFund']?: Omit<ValueTypes["MarketplaceAccumulationFund"], "...on MarketplaceAccumulationFund">
+}>;
 	["MarketplaceAddSupplierInput"]: {
 	/** Дата заключения договора (ГГГГ-ММ-ДД) */
 	contract_date?: string | undefined | null | Variable<any, string>,
@@ -10935,6 +10946,31 @@ export type ValueTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: string | Variable<any, string>
 };
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
+["MarketplaceBranchCurrentPeriod"]: AliasType<{
+	/** Материальная помощь, выплаченная участком за текущий месяц. */
+	aid_paid?:boolean | `@${string}`,
+	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	aid_reserve?:boolean | `@${string}`,
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	expenses?:boolean | `@${string}`,
+	/** Служебные записки участка сверх плана за текущий месяц. */
+	memos?:boolean | `@${string}`,
+	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
+	period?:boolean | `@${string}`,
+	/** Плановые расходы участка со сроком в текущем месяце. */
+	planned?:boolean | `@${string}`,
+	/** Заказов, которые созреют к первому числу. */
+	ripening_orders?:boolean | `@${string}`,
+	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
+	ripening_secured?:boolean | `@${string}`,
+	/** Стоимость заказов, которые созреют к первому числу. */
+	ripening_turnover?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchCurrentPeriod']?: Omit<ValueTypes["MarketplaceBranchCurrentPeriod"], "...on MarketplaceBranchCurrentPeriod">
+}>;
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
@@ -10958,6 +10994,8 @@ export type ValueTypes = {
 	assigned?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
+	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
+	invest_balance?:boolean | `@${string}`,
 	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -11648,6 +11686,8 @@ export type ValueTypes = {
 ["MarketplaceEconomySettings"]: AliasType<{
 	/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit?:boolean | `@${string}`,
+	/** Фонды накопления по отдельности. */
+	funds?:ValueTypes["MarketplaceAccumulationFund"],
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent?:boolean | `@${string}`,
 	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
@@ -13116,6 +13156,8 @@ export type ValueTypes = {
 	charged_amount?:boolean | `@${string}`,
 	/** Сколько ждёт списания. */
 	due_amount?:boolean | `@${string}`,
+	/** Ставка списания участка за месяц, проценты: участку, в фонды накопления и инициатору вместе. Есть только у списанной обеспечительной части; у удержания при отказе — 100. */
+	rate_percent?:boolean | `@${string}`,
 	/** Сколько возвращено пайщику на свободный паевой Стола заказов по итогу месяца участка. */
 	returned_amount?:boolean | `@${string}`,
 	/** Когда списана или возвращена. */
@@ -17058,6 +17100,7 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 	marketplaceGetAvailableCategories?:ValueTypes["MarketplaceAvailableCategory"],
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree?:ValueTypes["MarketplaceCategoryTreeNode"],
+marketplaceGetBranchCurrentPeriod?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchInitiator?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchInitiator"]],
 marketplaceGetBranchReserves?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
@@ -28963,6 +29006,16 @@ export type ResolverInputTypes = {
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: ResolverInputTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
+	/** Фонд накопления кооператива: название, процент отчисления с членского взноса участка и разрез кошелька фондов. */
+["MarketplaceAccumulationFund"]: AliasType<{
+	/** Название фонда. */
+	name?:boolean | `@${string}`,
+	/** Процент отчисления, проценты. */
+	percent?:boolean | `@${string}`,
+	/** Имя разреза кошелька фондов накопления; пусто до первого отчисления. */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceAddSupplierInput"]: {
 	/** Дата заключения договора (ГГГГ-ММ-ДД) */
 	contract_date?: string | undefined | null,
@@ -29243,6 +29296,30 @@ export type ResolverInputTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: string
 };
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
+["MarketplaceBranchCurrentPeriod"]: AliasType<{
+	/** Материальная помощь, выплаченная участком за текущий месяц. */
+	aid_paid?:boolean | `@${string}`,
+	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	aid_reserve?:boolean | `@${string}`,
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	expenses?:boolean | `@${string}`,
+	/** Служебные записки участка сверх плана за текущий месяц. */
+	memos?:boolean | `@${string}`,
+	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
+	period?:boolean | `@${string}`,
+	/** Плановые расходы участка со сроком в текущем месяце. */
+	planned?:boolean | `@${string}`,
+	/** Заказов, которые созреют к первому числу. */
+	ripening_orders?:boolean | `@${string}`,
+	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
+	ripening_secured?:boolean | `@${string}`,
+	/** Стоимость заказов, которые созреют к первому числу. */
+	ripening_turnover?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
@@ -29265,6 +29342,8 @@ export type ResolverInputTypes = {
 	assigned?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
+	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
+	invest_balance?:boolean | `@${string}`,
 	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -29928,6 +30007,8 @@ export type ResolverInputTypes = {
 ["MarketplaceEconomySettings"]: AliasType<{
 	/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit?:boolean | `@${string}`,
+	/** Фонды накопления по отдельности. */
+	funds?:ResolverInputTypes["MarketplaceAccumulationFund"],
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent?:boolean | `@${string}`,
 	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
@@ -31351,6 +31432,8 @@ export type ResolverInputTypes = {
 	charged_amount?:boolean | `@${string}`,
 	/** Сколько ждёт списания. */
 	due_amount?:boolean | `@${string}`,
+	/** Ставка списания участка за месяц, проценты: участку, в фонды накопления и инициатору вместе. Есть только у списанной обеспечительной части; у удержания при отказе — 100. */
+	rate_percent?:boolean | `@${string}`,
 	/** Сколько возвращено пайщику на свободный паевой Стола заказов по итогу месяца участка. */
 	returned_amount?:boolean | `@${string}`,
 	/** Когда списана или возвращена. */
@@ -35159,6 +35242,7 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 	marketplaceGetAvailableCategories?:ResolverInputTypes["MarketplaceAvailableCategory"],
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
+marketplaceGetBranchCurrentPeriod?: [{	braname: string},ResolverInputTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string},ResolverInputTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchInitiator?: [{	braname: string},ResolverInputTypes["MarketplaceBranchInitiator"]],
 marketplaceGetBranchReserves?: [{	braname: string},ResolverInputTypes["MarketplaceBranchReserves"]],
@@ -46661,6 +46745,15 @@ export type ModelTypes = {
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: ModelTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
+	/** Фонд накопления кооператива: название, процент отчисления с членского взноса участка и разрез кошелька фондов. */
+["MarketplaceAccumulationFund"]: {
+		/** Название фонда. */
+	name: string,
+	/** Процент отчисления, проценты. */
+	percent: number,
+	/** Имя разреза кошелька фондов накопления; пусто до первого отчисления. */
+	wallet_name: string
+};
 	["MarketplaceAddSupplierInput"]: {
 	/** Дата заключения договора (ГГГГ-ММ-ДД) */
 	contract_date?: string | undefined | null,
@@ -46930,6 +47023,29 @@ export type ModelTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: string
 };
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
+["MarketplaceBranchCurrentPeriod"]: {
+		/** Материальная помощь, выплаченная участком за текущий месяц. */
+	aid_paid: string,
+	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	aid_reserve: string,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	expenses: string,
+	/** Служебные записки участка сверх плана за текущий месяц. */
+	memos: string,
+	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
+	period: number,
+	/** Плановые расходы участка со сроком в текущем месяце. */
+	planned: string,
+	/** Заказов, которые созреют к первому числу. */
+	ripening_orders: number,
+	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
+	ripening_secured: string,
+	/** Стоимость заказов, которые созреют к первому числу. */
+	ripening_turnover: string
+};
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
 		/** Доступно к распределению: общий кошелёк за вычетом резерва. */
@@ -46951,6 +47067,8 @@ export type ModelTypes = {
 	assigned: boolean,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
+	invest_balance: string,
 	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
 	username?: string | undefined | null
 };
@@ -47585,6 +47703,8 @@ export type ModelTypes = {
 ["MarketplaceEconomySettings"]: {
 		/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit: string,
+	/** Фонды накопления по отдельности. */
+	funds: Array<ModelTypes["MarketplaceAccumulationFund"]>,
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent: number,
 	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
@@ -48940,6 +49060,8 @@ export type ModelTypes = {
 	charged_amount: string,
 	/** Сколько ждёт списания. */
 	due_amount: string,
+	/** Ставка списания участка за месяц, проценты: участку, в фонды накопления и инициатору вместе. Есть только у списанной обеспечительной части; у удержания при отказе — 100. */
+	rate_percent?: string | undefined | null,
 	/** Сколько возвращено пайщику на свободный паевой Стола заказов по итогу месяца участка. */
 	returned_amount: string,
 	/** Когда списана или возвращена. */
@@ -53148,6 +53270,8 @@ export type ModelTypes = {
 	marketplaceGetAvailableCategories: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу. */
+	marketplaceGetBranchCurrentPeriod: ModelTypes["MarketplaceBranchCurrentPeriod"],
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: ModelTypes["MarketplaceBranchEconomy"],
 	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
@@ -65210,6 +65334,17 @@ export type GraphQLTypes = {
 	/** Заявление оператора участка в совет об отмене сделки по гарантийному возврату (1116), подписанное оператором, принявшим имущество; с ним заявление уходит на повестку совета. */
 	signed_statement: GraphQLTypes["MarketplaceReturnCancelStatementSignedInput"]
 };
+	/** Фонд накопления кооператива: название, процент отчисления с членского взноса участка и разрез кошелька фондов. */
+["MarketplaceAccumulationFund"]: {
+	__typename: "MarketplaceAccumulationFund",
+	/** Название фонда. */
+	name: string,
+	/** Процент отчисления, проценты. */
+	percent: number,
+	/** Имя разреза кошелька фондов накопления; пусто до первого отчисления. */
+	wallet_name: string,
+	['...on MarketplaceAccumulationFund']: Omit<GraphQLTypes["MarketplaceAccumulationFund"], "...on MarketplaceAccumulationFund">
+};
 	["MarketplaceAddSupplierInput"]: {
 		/** Дата заключения договора (ГГГГ-ММ-ДД) */
 	contract_date?: string | undefined | null,
@@ -65496,6 +65631,31 @@ export type GraphQLTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: string
 };
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
+["MarketplaceBranchCurrentPeriod"]: {
+	__typename: "MarketplaceBranchCurrentPeriod",
+	/** Материальная помощь, выплаченная участком за текущий месяц. */
+	aid_paid: string,
+	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	aid_reserve: string,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	expenses: string,
+	/** Служебные записки участка сверх плана за текущий месяц. */
+	memos: string,
+	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
+	period: number,
+	/** Плановые расходы участка со сроком в текущем месяце. */
+	planned: string,
+	/** Заказов, которые созреют к первому числу. */
+	ripening_orders: number,
+	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
+	ripening_secured: string,
+	/** Стоимость заказов, которые созреют к первому числу. */
+	ripening_turnover: string,
+	['...on MarketplaceBranchCurrentPeriod']: Omit<GraphQLTypes["MarketplaceBranchCurrentPeriod"], "...on MarketplaceBranchCurrentPeriod">
+};
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
 	__typename: "MarketplaceBranchEconomy",
@@ -65520,6 +65680,8 @@ export type GraphQLTypes = {
 	assigned: boolean,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
+	invest_balance: string,
 	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
 	username?: string | undefined | null,
 	['...on MarketplaceBranchInitiator']: Omit<GraphQLTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
@@ -66210,6 +66372,8 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceEconomySettings",
 	/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit: string,
+	/** Фонды накопления по отдельности. */
+	funds: Array<GraphQLTypes["MarketplaceAccumulationFund"]>,
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent: number,
 	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
@@ -67678,6 +67842,8 @@ export type GraphQLTypes = {
 	charged_amount: string,
 	/** Сколько ждёт списания. */
 	due_amount: string,
+	/** Ставка списания участка за месяц, проценты: участку, в фонды накопления и инициатору вместе. Есть только у списанной обеспечительной части; у удержания при отказе — 100. */
+	rate_percent?: string | undefined | null,
 	/** Сколько возвращено пайщику на свободный паевой Стола заказов по итогу месяца участка. */
 	returned_amount: string,
 	/** Когда списана или возвращена. */
@@ -72205,6 +72371,8 @@ export type GraphQLTypes = {
 	marketplaceGetAvailableCategories: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу. */
+	marketplaceGetBranchCurrentPeriod: GraphQLTypes["MarketplaceBranchCurrentPeriod"],
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: GraphQLTypes["MarketplaceBranchEconomy"],
 	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */

@@ -1,0 +1,177 @@
+/**
+ * Коэффициент экономического участия — полный цикл снаружи, через API и цепь
+ * (задача 99D-23, документ модели dd5bf19e, разделы 5–9, 16).
+ *
+ * Набор ходит только на стенде со сжатым временем: прогон первого числа делает
+ * крон узла по шкале STAND_MONTH_SECONDS, и тест ждёт его. Полигон blackbox
+ * живёт в настоящем времени, поэтому без переменной BLACKBOX_STAND_MONTH_SECONDS
+ * набор пропускается целиком (scripts/blackbox/stack.sh пробрасывает её из
+ * STAND_MONTH_SECONDS вместе с STAND_DAY_SECONDS в окружение контроллера).
+ *
+ * Стенд общий: в прогон участка krg попадают и заказы соседних наборов, поэтому
+ * абсолютные суммы итога месяца не утверждаются. Утверждаются: формулы
+ * контракта по строке итога (У = min(C, РК), Ф = (C − У) × p, Э = C − У − Ф,
+ * И = Э × φ, В = Э − И), ставки по строке, разбивка наших заказов по этим
+ * ставкам, предел материальной помощи по резерву и возвраты пайщикам.
+ */
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { CHAIRMAN, COOP, ROLES, amount, caseName, gql, tableRows, tokenOf, waitFor } from '../core'
+import { KRG, pickOffer } from './flow'
+import { type IssuedOrder, issuedOrder, refusal } from './mkt-flows.helpers'
+
+const STAND_MONTH_SECONDS = Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0
+const COMPRESSED = STAND_MONTH_SECONDS > 0
+
+const chairkrg = ROLES.branchChairman()
+const ekaterina = ROLES.member()
+const ivanpetrov = ROLES.otherMember()
+const sidorov = ROLES.supplier()
+
+const SETTINGS = 'query{ marketplaceGetEconomySettings{ membership_fee_percent initiator_share_percent aid_month_limit funds_percent funds{ name percent wallet_name } } }'
+const SET_INITIATOR_SHARE = 'mutation($d:MarketplaceSetInitiatorShareInput!){ marketplaceSetInitiatorShare(data:$d){ initiator_share_percent } }'
+const SET_AID_LIMIT = 'mutation($d:MarketplaceSetAidLimitInput!){ marketplaceSetAidLimit(data:$d){ aid_month_limit } }'
+const RESERVES = 'query($b:String!){ marketplaceGetBranchReserves(braname:$b){ braname limit rows{ username amount submitted remaining } } }'
+const SET_RESERVE = 'mutation($d:MarketplaceSetBranchReserveInput!){ marketplaceSetBranchReserve(data:$d){ rows{ username amount remaining } } }'
+const DEL_RESERVE = 'mutation($d:MarketplaceDeleteBranchReserveInput!){ marketplaceDeleteBranchReserve(data:$d){ rows{ username } } }'
+const PERIODS = `query($b:String!,$o:PaginationInput){ marketplaceListBranchPeriods(braname:$b, options:$o){ items{
+  period turnover secured planned memos aid_paid aid_reserve aid_unpaid expenses membership funds_amount branch_amount
+  initiator_amount return_amount deficit rate_percent initiator rows_total rows_charged archived } } }`
+const CURRENT = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period planned memos aid_paid aid_reserve expenses ripening_orders ripening_turnover ripening_secured } }'
+const INITIATOR = 'query($b:String!){ marketplaceGetBranchInitiator(braname:$b){ username assigned invest_balance } }'
+const SECURE_PART = 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ secure_part{ state amount due_amount charged_amount returned_amount rate_percent settled_at } } }'
+
+const H = 1_000_000n
+const units = (asset: string | number): bigint => BigInt(Math.round(amount(asset) * 10_000))
+const percentUnits = (percent: number): bigint => BigInt(Math.round(percent * 10_000))
+
+/** Период стенда по его ключу: месяц сжатого времени — отрезок STAND_MONTH_SECONDS. */
+function standPeriodNow(): number {
+  return Math.floor(Date.now() / 1000 / STAND_MONTH_SECONDS)
+}
+
+let chairmanToken = ''
+let krgToken = ''
+let memberToken = ''
+let otherToken = ''
+let settings: any = null
+const RESERVE_CHAIR = 200_000
+const RESERVE_TRUSTED = 100_000
+
+describe.skipIf(!COMPRESSED)('коэффициент экономического участия — полный цикл на стенде со сжатым временем', () => {
+  let orders: IssuedOrder[] = []
+  let periodRow: any = null
+
+  beforeAll(async () => {
+    chairmanToken = await tokenOf(CHAIRMAN)
+    krgToken = await tokenOf(chairkrg)
+    memberToken = await tokenOf(ekaterina)
+    otherToken = await tokenOf(ivanpetrov)
+  })
+
+  afterAll(async () => {
+    // Снимаем свои строки резерва, чтобы соседние наборы с материальной помощью не упёрлись в предел.
+    for (const username of [chairkrg.account]) {
+      await gql(krgToken, DEL_RESERVE, { d: { braname: KRG, username } }).catch(() => {})
+    }
+  })
+
+  it(caseName('mkt.order.keu.api.01', 'администратор задаёт долю инициатора и потолок резерва; настройки читаются с процентами фондов'), async () => {
+    const share = await gql<any>(chairmanToken, SET_INITIATOR_SHARE, { d: { initiator_share_percent: 61.8 } })
+    expect(share.marketplaceSetInitiatorShare.initiator_share_percent).toBeCloseTo(61.8, 4)
+    const limit = await gql<any>(chairmanToken, SET_AID_LIMIT, { d: { aid_month_limit: RESERVE_CHAIR } })
+    expect(amount(limit.marketplaceSetAidLimit.aid_month_limit)).toBeCloseTo(RESERVE_CHAIR, 4)
+
+    settings = (await gql<any>(chairmanToken, SETTINGS)).marketplaceGetEconomySettings
+    expect(settings.initiator_share_percent).toBeCloseTo(61.8, 4)
+    expect(settings.funds_percent, 'проценты фондов складываются из строк').toBeCloseTo(
+      settings.funds.reduce((s: number, f: any) => s + Number(f.percent), 0), 4,
+    )
+
+    const over = await refusal(chairmanToken, SET_INITIATOR_SHARE, { d: { initiator_share_percent: 101 } })
+    expect(over, 'доля выше 100 % отклоняется до цепи').toBeTruthy()
+  })
+
+  it(caseName('mkt.order.keu.api.02', 'председатель участка задаёт резерв получателям; выше потолка и постороннему — отказ'), async () => {
+    const mine = await gql<any>(krgToken, SET_RESERVE, { d: { braname: KRG, username: chairkrg.account, amount: RESERVE_CHAIR } })
+    expect(mine.marketplaceSetBranchReserve.rows.find((r: any) => r.username === chairkrg.account)).toBeTruthy()
+
+    const over = await refusal(krgToken, SET_RESERVE, { d: { braname: KRG, username: chairkrg.account, amount: RESERVE_CHAIR + 1 } })
+    expect(over?.codeText ?? '').toMatch(/BRANCH_RESERVE_OVER_LIMIT|400/)
+    const stranger = await refusal(krgToken, SET_RESERVE, { d: { braname: KRG, username: ekaterina.account, amount: 10 } })
+    expect(stranger?.codeText ?? '').toMatch(/MARKETPLACE_RESERVE_RECIPIENT_NOT_TRUSTED|BRANCH_RESERVE_NOT_TRUSTED|400/)
+
+    const reserves = (await gql<any>(krgToken, RESERVES, { b: KRG })).marketplaceGetBranchReserves
+    expect(amount(reserves.limit)).toBeCloseTo(RESERVE_CHAIR, 4)
+    const row = reserves.rows.find((r: any) => r.username === chairkrg.account)
+    expect(amount(row.amount)).toBeCloseTo(RESERVE_CHAIR, 4)
+    expect(amount(row.remaining), 'остаток = резерв − поданное за месяц').toBeCloseTo(RESERVE_CHAIR - amount(row.submitted), 4)
+  })
+
+  it(caseName('mkt.order.keu.api.03', 'два заказа на участке выданы; текущий месяц показывает их как созревающие'), async () => {
+    const offer = await pickOffer(sidorov.account, KRG)
+    orders = [
+      await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 1 }),
+      await issuedOrder({ member: ivanpetrov, supplier: sidorov, operator: chairkrg, offer, quantity: 2 }),
+    ]
+    const current = (await gql<any>(krgToken, CURRENT, { b: KRG })).marketplaceGetBranchCurrentPeriod
+    expect(current.ripening_orders, 'наши заказы без гарантии созреют к первому числу').toBeGreaterThanOrEqual(2)
+    expect(amount(current.aid_reserve), 'резерв участка — сумма строк').toBeGreaterThanOrEqual(RESERVE_CHAIR)
+    expect(amount(current.expenses)).toBeCloseTo(amount(current.planned) + amount(current.memos) + amount(current.aid_reserve), 4)
+  }, 240_000)
+
+  it(caseName('mkt.order.keu.api.04', 'первое число: итог месяца участка сходится по формулам контракта и ставкам'), async () => {
+    const period = standPeriodNow()
+    periodRow = await waitFor(async () => {
+      const d = await gql<any>(krgToken, PERIODS, { b: KRG, o: { page: 1, limit: 5, sortOrder: 'DESC' } })
+      return (d.marketplaceListBranchPeriods.items as any[]).find(r => Number(r.period) >= period) ?? null
+    }, { timeoutMs: STAND_MONTH_SECONDS * 2_500, intervalMs: 3_000, label: 'итог месяца участка krg' })
+
+    const C = units(periodRow.secured)
+    const RK = units(periodRow.expenses)
+    const U = C < RK ? C : RK
+    const p = percentUnits(settings.funds_percent)
+    const F = (C - U) * p / H
+    const E = C - U - F
+    const I = E * percentUnits(settings.initiator_share_percent) / H
+    expect(units(periodRow.branch_amount), 'У = min(C, РК)').toBe(U)
+    expect(units(periodRow.deficit), 'Д = РК − У').toBe(RK - U)
+    expect(units(periodRow.funds_amount), 'Ф = (C − У) × p').toBe(F)
+    expect(units(periodRow.membership), 'М = У + Ф').toBe(U + F)
+    expect(units(periodRow.initiator_amount), 'И = Э × φ').toBe(I)
+    expect(units(periodRow.return_amount), 'В = Э − И').toBe(E - I)
+    expect(units(periodRow.expenses), 'РК = ПР + СЗ + Р − Н').toBe(
+      [periodRow.planned, periodRow.memos, periodRow.aid_reserve].map(units).reduce((a, b) => a + b, 0n) - units(periodRow.aid_unpaid),
+    )
+    const T = units(periodRow.turnover)
+    const rate = (U + F + I) * H / T
+    expect(Number(periodRow.rate_percent.replace(',', '.')) * 10_000, 'ставка списания = (У + Ф + И) / T').toBeCloseTo(Number(rate) / 100, -2)
+    expect(periodRow.rows_total).toBeGreaterThanOrEqual(2)
+  }, 60 * 60_000)
+
+  it(caseName('mkt.order.keu.api.05', 'строки учёта обоих заказов закрыты по ставке итога; возврат пайщикам сходится с строкой'), async () => {
+    for (const [i, order] of orders.entries()) {
+      const token = i === 0 ? memberToken : otherToken
+      const part = await waitFor(async () => {
+        const d = await gql<any>(token, SECURE_PART, { i: { order_id: order.orderId } })
+        const sp = d.marketplaceGetOrder.secure_part
+        return sp && sp.state === 'CHARGED' ? sp : null
+      }, { timeoutMs: 180_000, intervalMs: 3_000, label: `списание заказа ${order.orderId}` })
+      const base = units(String(order.unitPrice * order.quantity))
+      const expectedCharged = base * (units(periodRow.branch_amount) + units(periodRow.funds_amount) + units(periodRow.initiator_amount)) * H / units(periodRow.turnover) / H
+      // Части считаются по ставкам в единицах; остаток округления достаётся пайщику.
+      expect(Number(units(part.charged_amount) - expectedCharged), 'списано по трём ставкам').toBeLessThanOrEqual(3)
+      expect(units(part.charged_amount) + units(part.returned_amount), 'списано + возвращено = обеспечительная часть').toBe(units(part.amount))
+      expect(part.rate_percent, 'ставка месяца в карточке').toBe(periodRow.rate_percent)
+    }
+    const initiator = (await gql<any>(krgToken, INITIATOR, { b: KRG })).marketplaceGetBranchInitiator
+    expect(initiator.username, 'без назначения долю получает председатель участка').toBe(chairkrg.account)
+    if (units(periodRow.initiator_amount) > 0n) expect(amount(initiator.invest_balance)).toBeGreaterThan(0)
+  }, 240_000)
+
+  it(caseName('mkt.order.keu.api.06', 'строки прогонов в цепи — не больше двух на участок; на узле история остаётся'), async () => {
+    const rows = await tableRows<any>('marketplace', COOP, 'kuperiods')
+    expect(rows.filter(r => r.braname === KRG).length).toBeLessThanOrEqual(2)
+    const mirrored = (await gql<any>(krgToken, PERIODS, { b: KRG, o: { page: 1, limit: 20, sortOrder: 'DESC' } })).marketplaceListBranchPeriods.items as any[]
+    expect(mirrored.length).toBeGreaterThanOrEqual(1)
+  })
+})

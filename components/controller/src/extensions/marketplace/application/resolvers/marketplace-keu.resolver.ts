@@ -1,4 +1,4 @@
-import { Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GqlJwtAuthGuard,
@@ -12,7 +12,10 @@ import {
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceBranchReserveService } from '../services/marketplace-branch-reserve.service';
 import { MarketplacePeriodService } from '../services/marketplace-period.service';
+import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from '../services/marketplace-economy.service';
+import { MarketplaceSecureDueService, monthKey } from '../services/marketplace-secure-due.service';
 import {
+  MarketplaceBranchCurrentPeriodDTO,
   MarketplaceBranchInitiatorDTO,
   MarketplaceBranchPeriodDTO,
   MarketplaceBranchReservesDTO,
@@ -42,7 +45,10 @@ const paginatedBranchPeriods = createPaginationResult(MarketplaceBranchPeriodDTO
 export class MarketplaceKeuResolver {
   constructor(
     private readonly reserves: MarketplaceBranchReserveService,
-    private readonly periods: MarketplacePeriodService
+    private readonly periods: MarketplacePeriodService,
+    private readonly secureDue: MarketplaceSecureDueService,
+    @Inject(MARKETPLACE_ECONOMY_SERVICE)
+    private readonly economyService: MarketplaceEconomyService
   ) {}
 
   // ── Настройки администратора ───────────────────────────────────────────
@@ -91,8 +97,8 @@ export class MarketplaceKeuResolver {
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
   async marketplaceGetBranchInitiator(@Args('braname') braname: string): Promise<MarketplaceBranchInitiatorDTO> {
     const coopname = platformSettings().coopname;
-    const { username, assigned } = await this.reserves.getBranchInitiator(coopname, braname);
-    return { braname, username, assigned };
+    const initiator = await this.reserves.getBranchInitiator(coopname, braname);
+    return { braname, ...initiator };
   }
 
   @Mutation(() => MarketplaceBranchInitiatorDTO, {
@@ -104,8 +110,8 @@ export class MarketplaceKeuResolver {
   async marketplaceSetBranchInitiator(@Args('data') data: MarketplaceSetBranchInitiatorInputDTO): Promise<MarketplaceBranchInitiatorDTO> {
     const coopname = platformSettings().coopname;
     await this.reserves.setBranchInitiator(coopname, data.braname, data.username ?? null);
-    const { username, assigned } = await this.reserves.getBranchInitiator(coopname, data.braname);
-    return { braname: data.braname, username, assigned };
+    const initiator = await this.reserves.getBranchInitiator(coopname, data.braname);
+    return { braname: data.braname, ...initiator };
   }
 
   // ── Резерв социально-экономического обеспечения пайщиков ─────────────
@@ -163,6 +169,38 @@ export class MarketplaceKeuResolver {
     return {
       ...result,
       items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row))),
+    };
+  }
+
+  @Query(() => MarketplaceBranchCurrentPeriodDTO, {
+    name: 'marketplaceGetBranchCurrentPeriod',
+    description:
+      'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
+  async marketplaceGetBranchCurrentPeriod(@Args('braname') braname: string): Promise<MarketplaceBranchCurrentPeriodDTO> {
+    const coopname = platformSettings().coopname;
+    const now = new Date();
+    const period = monthKey(now, platformSettings().timezone || 'UTC');
+    const [facts, reserves, ripening] = await Promise.all([
+      this.periods.collectFacts(coopname, braname, period),
+      this.reserves.getReserves(coopname, braname, now),
+      this.secureDue.ripeningForBranch(coopname, braname, now),
+    ]);
+    const reserve = reserves.rows.reduce((sum, r) => sum + this.economyService.assetToUnits(r.amount), 0n);
+    const asset = (units: bigint) => this.economyService.unitsToAsset(units);
+    return {
+      braname,
+      period,
+      planned: asset(facts.planned),
+      memos: asset(facts.memos),
+      aid_paid: asset(facts.aidPaid),
+      aid_reserve: asset(reserve),
+      expenses: asset(facts.planned + facts.memos + reserve),
+      ripening_orders: ripening.count,
+      ripening_turnover: asset(ripening.turnover),
+      ripening_secured: asset(ripening.secured),
     };
   }
 }

@@ -44,4 +44,11 @@ export class MarketplaceSecurePartDTO {
 
   @Field(() => Date, { nullable: true, description: 'Когда списана или возвращена.' })
   settled_at!: Date | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Ставка списания участка за месяц, проценты: участку, в фонды накопления и инициатору вместе. Есть только у списанной обеспечительной части; у удержания при отказе — 100.',
+  })
+  rate_percent!: string | null;
 }

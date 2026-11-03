@@ -116,6 +116,13 @@ EOF
   # Короткие сутки гарантийного срока «Образования»: сценарии «срок вышел»
   # проходят за минуты. То же значение читают наборы (api_tests_env).
   set_env "$ctl_env" EDUBRIDGE_GUARANTEE_DAY_SECONDS "$GUARANTEE_DAY_SECONDS"
+  # Сжатое время стенда (extension-kit): задано снаружи — прогон первого числа
+  # (списание обеспечительной части, итог месяца участка) идёт по этой шкале, и
+  # набор marketplace/period-cycle ждёт его. По умолчанию время настоящее.
+  if [ -n "${STAND_MONTH_SECONDS:-}" ]; then
+    set_env "$ctl_env" STAND_DAY_SECONDS "${STAND_DAY_SECONDS:-60}"
+    set_env "$ctl_env" STAND_MONTH_SECONDS "$STAND_MONTH_SECONDS"
+  fi
   # Ход очереди отложенных заявлений, секунд; пусто — раз в десять минут.
   if [ -n "${EDUBRIDGE_WORKER_PACE_SECONDS:-}" ]; then
     set_env "$ctl_env" EDUBRIDGE_WORKER_PACE_SECONDS "$EDUBRIDGE_WORKER_PACE_SECONDS"
@@ -237,6 +244,7 @@ api_tests_env() {
   export BLACKBOX_CARDCOOP_CLIENT_ID="$CARDCOOP_CLIENT_ID"
   export BLACKBOX_CARDCOOP_OIDC_ISSUER="$CARDCOOP_OIDC_ISSUER"
   export BLACKBOX_GUARANTEE_DAY_SECONDS="$GUARANTEE_DAY_SECONDS"
+  export BLACKBOX_STAND_MONTH_SECONDS="${STAND_MONTH_SECONDS:-}"
 }
 
 # Контроллер с включённой автоматикой: пересоздаётся, только если стенд

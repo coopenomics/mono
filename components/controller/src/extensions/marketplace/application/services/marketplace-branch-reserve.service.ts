@@ -41,6 +41,26 @@ export interface MarketplaceEconomySettingsView {
   aid_month_limit: string;
   /** Сумма процентов фондов накопления кооператива, проценты. */
   funds_percent: number;
+  /** Фонды накопления по отдельности: название, процент, имя разреза кошелька. */
+  funds: MarketplaceAccumulationFundView[];
+}
+
+/** Инициатор участка — получатель доли экономии месяца и остаток его паевого кошелька. */
+export interface MarketplaceBranchInitiatorView {
+  username: string | null;
+  /** Назначен отдельно от председателя участка. */
+  assigned: boolean;
+  /** Остаток `w.mkt.invest` инициатора, asset-строка. */
+  invest_balance: string;
+}
+
+/** Фонд накопления кооператива для чтения на столе администратора. */
+export interface MarketplaceAccumulationFundView {
+  name: string;
+  /** Процент отчисления, проценты. */
+  percent: number;
+  /** Имя разреза кошелька фондов `w.fnd.accum`; пусто до первого отчисления. */
+  wallet_name: string;
 }
 
 /**
@@ -54,6 +74,9 @@ export interface MarketplaceEconomySettingsView {
  * часовому поясу кооператива. Суммы резерва называет председатель — это
  * допустимый случай суммы-аргумента.
  */
+/** Паевой кошелёк инициатора участка (ledger2, счёт 80). */
+const INVEST_WALLET = 'w.mkt.invest';
+
 @Injectable()
 export class MarketplaceBranchReserveService {
   constructor(
@@ -81,6 +104,11 @@ export class MarketplaceBranchReserveService {
       initiator_share_percent: this.toHumanPercent(initiator),
       aid_month_limit: branchConfig?.aid_month_limit ?? this.economyService.unitsToAsset(0n),
       funds_percent: this.toHumanPercent(fundsPercent),
+      funds: funds.map((f) => ({
+        name: String(f.name),
+        percent: this.toHumanPercent(Number(f.percent)),
+        wallet_name: String(f.wallet_name ?? ''),
+      })),
     };
   }
 
@@ -118,11 +146,18 @@ export class MarketplaceBranchReserveService {
   }
 
   /** Получатель доли инициатора участка сегодня: назначенный либо председатель участка. */
-  async getBranchInitiator(coopname: string, braname: string): Promise<{ username: string | null; assigned: boolean }> {
-    const rows = await this.chainPort.listInitiators(coopname);
+  async getBranchInitiator(coopname: string, braname: string): Promise<MarketplaceBranchInitiatorView> {
+    const [rows, balances] = await Promise.all([this.chainPort.listInitiators(coopname), this.chainPort.listBranchWalletBalances(coopname)]);
     const assigned = rows.find((r) => r.braname === braname);
-    if (assigned) return { username: assigned.username, assigned: true };
-    return { username: await this.kuChairmanService.getTrusteeOfBranch(coopname, braname), assigned: false };
+    const username = assigned ? assigned.username : await this.kuChairmanService.getTrusteeOfBranch(coopname, braname);
+    // Паевой кошелёк инициатора `w.mkt.invest` — его остаток показывает экономика
+    // участка; у пайщика без отчислений строки кошелька ещё нет.
+    const invest = username ? balances.find((b) => b.wallet_name === INVEST_WALLET && b.username === username)?.available : undefined;
+    return {
+      username,
+      assigned: Boolean(assigned),
+      invest_balance: invest ? String(invest) : this.economyService.unitsToAsset(0n),
+    };
   }
 
   // ── Резерв участка ─────────────────────────────────────────────────────

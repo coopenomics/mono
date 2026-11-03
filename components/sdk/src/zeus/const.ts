@@ -3689,6 +3689,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCategoryOfferCounts:{
 
 		},
+		marketplaceGetBranchCurrentPeriod:{
+
+		},
 		marketplaceGetBranchEconomy:{
 
 		},
@@ -7169,6 +7172,11 @@ export const ReturnTypes: Record<string,any> = {
 		totp_enabled:"Boolean",
 		totp_enrolled:"Boolean"
 	},
+	MarketplaceAccumulationFund:{
+		name:"String",
+		percent:"Float",
+		wallet_name:"String"
+	},
 	MarketplaceAid:{
 		amount:"String",
 		braname:"String",
@@ -7233,6 +7241,18 @@ export const ReturnTypes: Record<string,any> = {
 		typeId:"Int",
 		updatedAt:"DateTime"
 	},
+	MarketplaceBranchCurrentPeriod:{
+		aid_paid:"String",
+		aid_reserve:"String",
+		braname:"String",
+		expenses:"String",
+		memos:"String",
+		period:"Int",
+		planned:"String",
+		ripening_orders:"Int",
+		ripening_secured:"String",
+		ripening_turnover:"String"
+	},
 	MarketplaceBranchEconomy:{
 		available_to_distribute:"String",
 		braname:"String",
@@ -7244,6 +7264,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceBranchInitiator:{
 		assigned:"Boolean",
 		braname:"String",
+		invest_balance:"String",
 		username:"String"
 	},
 	MarketplaceBranchPeriod:{
@@ -7453,6 +7474,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceEconomySettings:{
 		aid_month_limit:"String",
+		funds:"MarketplaceAccumulationFund",
 		funds_percent:"Float",
 		initiator_share_percent:"Float",
 		membership_fee_percent:"Float"
@@ -7936,6 +7958,7 @@ export const ReturnTypes: Record<string,any> = {
 		charge_at:"DateTime",
 		charged_amount:"String",
 		due_amount:"String",
+		rate_percent:"String",
 		returned_amount:"String",
 		settled_at:"DateTime",
 		state:"MarketplaceSecurePartState"
@@ -9701,6 +9724,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetAvailabilityStats:"MarketplaceAvailabilityStats",
 		marketplaceGetAvailableCategories:"MarketplaceAvailableCategory",
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
+		marketplaceGetBranchCurrentPeriod:"MarketplaceBranchCurrentPeriod",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
 		marketplaceGetBranchInitiator:"MarketplaceBranchInitiator",
 		marketplaceGetBranchReserves:"MarketplaceBranchReserves",

@@ -9,6 +9,18 @@ import type {
 
 // ── Настройки экономики Стола заказов (стол администратора) ───────────────
 
+@ObjectType('MarketplaceAccumulationFund', { description: 'Фонд накопления кооператива: название, процент отчисления с членского взноса участка и разрез кошелька фондов.' })
+export class MarketplaceAccumulationFundDTO {
+  @Field({ description: 'Название фонда.' })
+  name!: string;
+
+  @Field(() => Float, { description: 'Процент отчисления, проценты.' })
+  percent!: number;
+
+  @Field({ description: 'Имя разреза кошелька фондов накопления; пусто до первого отчисления.' })
+  wallet_name!: string;
+}
+
 @ObjectType('MarketplaceEconomySettings', {
   description:
     'Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива.',
@@ -25,6 +37,9 @@ export class MarketplaceEconomySettingsDTO {
 
   @Field(() => Float, { description: 'Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка.' })
   funds_percent!: number;
+
+  @Field(() => [MarketplaceAccumulationFundDTO], { description: 'Фонды накопления по отдельности.' })
+  funds!: MarketplaceAccumulationFundDTO[];
 }
 
 @InputType('MarketplaceSetInitiatorShareInput')
@@ -67,6 +82,9 @@ export class MarketplaceBranchInitiatorDTO {
 
   @Field(() => Boolean, { description: 'Назначен отдельно от председателя участка.' })
   assigned!: boolean;
+
+  @Field({ description: 'Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев.' })
+  invest_balance!: string;
 }
 
 // ── Резерв социально-экономического обеспечения пайщиков ─────────────────
@@ -205,10 +223,46 @@ export class MarketplaceBranchPeriodDTO {
   archived!: boolean;
 }
 
+@ObjectType('MarketplaceBranchCurrentPeriod', {
+  description:
+    'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа.',
+})
+export class MarketplaceBranchCurrentPeriodDTO {
+  @Field({ description: 'Кооперативный участок.' })
+  braname!: string;
+
+  @Field(() => Int, { description: 'Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива.' })
+  period!: number;
+
+  @Field({ description: 'Плановые расходы участка со сроком в текущем месяце.' })
+  planned!: string;
+
+  @Field({ description: 'Служебные записки участка сверх плана за текущий месяц.' })
+  memos!: string;
+
+  @Field({ description: 'Материальная помощь, выплаченная участком за текущий месяц.' })
+  aid_paid!: string;
+
+  @Field({ description: 'Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям.' })
+  aid_reserve!: string;
+
+  @Field({ description: 'Расходы участка на сегодня: плановые, служебные записки и резерв.' })
+  expenses!: string;
+
+  @Field(() => Int, { description: 'Заказов, которые созреют к первому числу.' })
+  ripening_orders!: number;
+
+  @Field({ description: 'Стоимость заказов, которые созреют к первому числу.' })
+  ripening_turnover!: string;
+
+  @Field({ description: 'Обеспечительная часть по заказам, которые созреют к первому числу.' })
+  ripening_secured!: string;
+}
+
 // ── Преобразования ────────────────────────────────────────────────────────
 
 export function toMarketplaceEconomySettingsDTO(view: MarketplaceEconomySettingsView): MarketplaceEconomySettingsDTO {
-  return { ...view };
+  return { ...view, funds: view.funds.map((f) => ({ ...f })) };
 }
 
 export function toMarketplaceBranchReservesDTO(view: MarketplaceBranchReservesView): MarketplaceBranchReservesDTO {

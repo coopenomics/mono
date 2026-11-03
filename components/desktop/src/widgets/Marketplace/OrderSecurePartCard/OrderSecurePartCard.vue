@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseBadge, BaseCard, type BaseBadgeVariant } from 'src/shared/ui/base';
+import { DataRow } from 'src/shared/ui/domain';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import { t } from 'src/shared/i18n';
@@ -13,6 +14,11 @@ import type { OrderSecurePart } from './OrderSecurePartCard.types';
  * пайщика и в реестре заказов администратора и участка — без отдельной
  * страницы учёта: обеспечительная часть принадлежит заказу, её срок задаёт
  * гарантия этого заказа.
+ *
+ * После списания (коэффициент экономического участия, 99D-23) карточка
+ * раскладывает сумму: сколько стало членским взносом участка, сколько
+ * вернулось пайщику на свободный паевой Стола заказов и по какой ставке
+ * участок списал за месяц.
  */
 
 const props = defineProps<{ part: OrderSecurePart }>();
@@ -26,6 +32,13 @@ const STATE: Record<Zeus.MarketplaceSecurePartState, { label: string; variant: B
 };
 
 const state = computed(() => STATE[props.part.state]);
+
+/** Разбивка после списания: есть только у списанной части с известной ставкой. */
+const charged = computed(() => props.part.state === Zeus.MarketplaceSecurePartState.CHARGED);
+const rateLabel = computed(() => (props.part.rate_percent ? `${props.part.rate_percent.replace('.', ',')} %` : '—'));
+function money(value: string | undefined): string {
+  return `${formatAsset2Digits(value ?? '0.0000 RUB')} ₽`;
+}
 
 /**
  * Дата без времени, если момент приходится на полночь (первое число в
@@ -68,6 +81,10 @@ BaseCard.order-secure-part
     .order-secure-part__amount {{ formatAsset2Digits(part.amount) }} ₽
     BaseBadge(:variant='state.variant') {{ state.label }}
   .order-secure-part__note {{ note }}
+  .order-secure-part__split(v-if='charged')
+    DataRow(align='spread', :label='$t("marketplace.orderSecurePart.chargedLabel")', :value='money(part.charged_amount)', mono)
+    DataRow(align='spread', :label='$t("marketplace.orderSecurePart.returnedLabel")', :value='money(part.returned_amount)', mono)
+    DataRow(align='spread', :label='$t("marketplace.orderSecurePart.rateLabel")', :value='rateLabel', mono)
 </template>
 
 <style scoped lang="scss">
@@ -92,6 +109,12 @@ BaseCard.order-secure-part
     font-size: var(--p-fs-body-sm, 13px);
     line-height: 1.45;
     color: var(--p-ink-2);
+  }
+
+  &__split {
+    margin-top: var(--p-3, 12px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
   }
 }
 </style>

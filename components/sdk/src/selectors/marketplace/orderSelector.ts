@@ -100,6 +100,7 @@ export const rawSecurePartSelector = {
   returned_amount: true,
   charge_at: true,
   settled_at: true,
+  rate_percent: true,
 }
 
 const _validateSecurePart: MakeAllFieldsRequired<ValueTypes['MarketplaceSecurePart']> = rawSecurePartSelector
