@@ -29,11 +29,11 @@ div.funds-page
     @row-click='openFund'
   )
     template(#cell-kind='{ row }')
-      BaseChip(:variant='row.kind === "accum" ? "info" : "neutral"' size='sm') {{ kindLabel(row.kind) }}
+      BaseChip(:variant='row.kind === ACCUM ? "info" : "neutral"' size='sm') {{ kindLabel(row.kind) }}
     template(#cell-wallet='{ row }')
       WalletIdCell(:wallet-name='row.wallet')
     template(#cell-percent='{ row }')
-      span(v-if='row.kind === "accum"') {{ percentLabel(row.percent) }}
+      span(v-if='row.kind === ACCUM') {{ percentLabel(row.percent) }}
       span.t-faint(v-else) —
 
   //- Вложения «Благороста» — справка, не фонд: расходы программы идут со счёта
@@ -70,7 +70,7 @@ div.funds-page
             :skeleton-rows='4'
           )
             template(#cell-amount='{ row }')
-              span.funds-page__num(:class='row.direction === "in" ? "funds-page__in" : "funds-page__out"') {{ formatAsset2Digits(row.amount) }}
+              span.funds-page__num(:class='row.direction === IN ? "funds-page__in" : "funds-page__out"') {{ formatAsset2Digits(row.amount) }}
             template(#cell-counterparty='{ row }')
               WalletIdCell(:wallet-name='row.counterparty_wallet')
             template(#cell-process='{ row }')
@@ -90,7 +90,7 @@ div.funds-page
             BaseButton(variant='secondary' size='sm' :loading='historyLoading' @click='loadMore') {{ $t('reports.fundsPage.showMoreLabel') }}
         template(v-else)
           DataRow(align='spread' :label='$t("reports.fundsPage.column.kind")' :value='kindLabel(selected.kind)')
-          DataRow(v-if='selected.kind === "accum"' align='spread' :label='$t("reports.fundsPage.percentLabel")' :value='percentLabel(selected.percent)' mono)
+          DataRow(v-if='selected.kind === ACCUM' align='spread' :label='$t("reports.fundsPage.percentLabel")' :value='percentLabel(selected.percent)' mono)
           DataRow(align='spread' :label='$t("reports.fundsPage.walletLabel")' :value='selected.wallet' mono copyable)
           DataRow(align='spread' :label='$t("reports.fundsPage.accountLabel")' :value='accountLabel(selected.account)' mono)
           DataRow(align='spread' :label='$t("reports.fundsPage.incomeLabel")' :value='formatAsset2Digits(selected.income)' mono)
@@ -113,7 +113,7 @@ div.funds-page
         :label='$t("reports.fundsPage.descriptionField")'
       )
       BaseInput(
-        v-if='selected.kind === "accum"'
+        v-if='selected.kind === ACCUM'
         v-model='editPercent'
         type='number'
         :label='$t("reports.fundsPage.percentField")'
@@ -130,6 +130,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { FundContract } from 'cooptypes'
+import { Zeus } from '@coopenomics/sdk'
 import { useLiveReload, liveTable } from 'src/shared/lib/realtime'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
@@ -157,6 +158,9 @@ const router = useRouter()
 /** Фонды реестра живут по строке `funds` контракта fund и по кошелькам учётной книги. */
 const FUNDS_LIVE_TABLES = [...LEDGER_LIVE_TABLES, liveTable(FundContract, FundContract.Tables.Funds)]
 const HISTORY_PAGE = 20
+/** Значения перечислений схемы: вид фонда и направление движения. */
+const ACCUM = Zeus.ReportsFundKind.ACCUMULATION
+const IN = Zeus.ReportsFundMovementDirection.IN
 
 // Первая загрузка показывает каркас таблицы, не «пусто».
 const loading = ref(true)
@@ -189,12 +193,12 @@ const percentSumLabel = computed(() => percentLabel(percentSum.value))
 const othersPercent = computed(() => {
   if (!selected.value) return 0
   return funds.value
-    .filter((f) => f.kind === 'accum' && f.id !== selected.value?.id)
+    .filter((f) => f.kind === ACCUM && f.id !== selected.value?.id)
     .reduce((sum, f) => sum + Number(f.percent), 0)
 })
 
 const percentError = computed(() => {
-  if (!selected.value || selected.value.kind !== 'accum') return undefined
+  if (!selected.value || selected.value.kind !== ACCUM) return undefined
   const value = Number(editPercent.value)
   if (!editPercent.value || Number.isNaN(value) || value <= 0 || value > 100) {
     return t('reports.fundsPage.percentInvalidError')
@@ -222,7 +226,7 @@ const historyColumns: BaseTableColumn<IDeskFundMovement>[] = [
 ]
 
 function kindLabel(kind: string): string {
-  return kind === 'accum' ? t('reports.fundsPage.kind.accum') : t('reports.fundsPage.kind.expend')
+  return kind === ACCUM ? t('reports.fundsPage.kind.accum') : t('reports.fundsPage.kind.expend')
 }
 
 function percentLabel(value: number): string {
@@ -294,7 +298,7 @@ function toProcess(row: IDeskFundMovement): void {
 function openEdit(): void {
   if (!selected.value) return
   editDescription.value = selected.value.description
-  editPercent.value = selected.value.kind === 'accum' ? String(selected.value.percent) : '0'
+  editPercent.value = selected.value.kind === ACCUM ? String(selected.value.percent) : '0'
   editOpen.value = true
 }
 
@@ -306,7 +310,7 @@ async function saveEdit(): Promise<void> {
       coopname: info.coopname,
       fund_id: selected.value.id,
       description: editDescription.value,
-      percent: selected.value.kind === 'accum' ? Number(editPercent.value) : 0,
+      percent: selected.value.kind === ACCUM ? Number(editPercent.value) : 0,
     })
     SuccessAlert(t('reports.fundsPage.savedMessage'))
     editOpen.value = false

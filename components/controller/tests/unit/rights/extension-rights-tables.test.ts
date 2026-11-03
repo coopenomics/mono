@@ -69,6 +69,9 @@ const SUITES: Suite[] = [
       reportsLedgerWallets: COUNCIL,
       reportsLedgerHistory: COUNCIL,
       reportsLedgerPostings: COUNCIL,
+      // Фонды кооператива (задача 99D-24): реестр и история — чтение стола.
+      reportsFunds: COUNCIL,
+      reportsFundHistory: COUNCIL,
       reportsProcess: COUNCIL,
       reportsProcesses: COUNCIL,
       reportsParticipants: COUNCIL,

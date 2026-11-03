@@ -35,6 +35,10 @@ const FULL_DESK: Record<string, string[]> = {
   ReportRequisites: ['read', 'manage'],
   ReportCalendar: ['read', 'manage'],
   WithheldTax: ['read', 'pay'],
+  // Проценты и описания фондов (страница «Фонды», задача 99D-24). Стол открыт
+  // целиком председателю и бухгалтеру; кто именно вправе править фонд, решает
+  // контракт fund — он сверяет имя подписанта с председателем совета.
+  FundSettings: ['manage'],
 };
 
 /**
@@ -56,9 +60,7 @@ const READ_DESK: Record<string, string[]> = {
  */
 export const reportsRightsTable: RightsTable<ReportsRole, never> = {
   council: [{ when: [], rights: READ_DESK }],
-  // Проценты и описания фондов кооператива (страница «Фонды», задача 99D-24)
-  // правит только председатель совета: контракт fund сверяет его имя.
-  chairman: [{ when: [], rights: { ...FULL_DESK, FundSettings: ['manage'] } }],
+  chairman: [{ when: [], rights: FULL_DESK }],
   accountant: [{ when: [], rights: FULL_DESK }],
   auditor: [{ when: [], rights: READ_DESK }],
 };

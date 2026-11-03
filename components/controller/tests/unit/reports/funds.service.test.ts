@@ -120,7 +120,7 @@ describe('fnd.wal.backend.02 — история фонда: знак суммы,
       op('o.brn.expret', '100.0000 RUB'),
       op('o.brn.tofund', '500.0000 RUB'),
     ]);
-    const page = await service.history({ coopname: COOP, fund_id: 4 }, { page: 1, limit: 50 });
+    const page = await service.history({ coopname: COOP, fund_id: 4 }, { page: 1, limit: 50, sortOrder: 'DESC' });
     expect(page.totalCount).toBe(2);
     const spend = page.items.find((m) => m.operation_code === 'o.brn.spend');
     const back = page.items.find((m) => m.operation_code === 'o.brn.expret');
