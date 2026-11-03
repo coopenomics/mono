@@ -332,11 +332,16 @@ inline UserWalletAvailable get_user_wallet_balance(eosio::name coopname,
 
 // ── Обеспечительная часть паевого взноса «Стола заказов» (задача 99D-18) ──
 
-/// Дефолтная ставка обеспечительной части нового кооператива — 30%
-/// (HUNDR_PERCENTS = 100%). Действует, пока председатель явно не настроит свою
-/// ставку через `setfee` (в т.ч. явный 0 — обеспечительная часть осознанно
-/// отключена).
-constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 300000;
+/// Дефолтная ставка обеспечительной части нового кооператива — 38%
+/// (HUNDR_PERCENTS = 100%; решение владельца 02.11.2026, задача 99D-21; до неё
+/// было 30%). Действует, пока председатель явно не настроит свою ставку через
+/// `setfee` (в т.ч. явный 0 — обеспечительная часть осознанно отключена).
+constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 380000;
+
+/// Дефолтная доля инициатора участка в экономии месяца — 61,8 % (золотое
+/// сечение из расчётной таблицы «Соседей»; остальные 38,2 % возвращаются
+/// пайщикам). Действует, пока администратор не задал свою через `setshares`.
+constexpr uint64_t DEFAULT_INITIATOR_SHARE_PERCENT = 618000;
 
 /// Единая ставка обеспечительной части паевого взноса кооператива
 /// (HUNDR_PERCENTS = 100%; имя поля историческое — задача 99D-18);
@@ -344,6 +349,41 @@ constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 300000;
 inline uint64_t get_membership_fee_percent(eosio::name coopname) {
   mkt_config_singleton cfg(_marketplace, coopname.value);
   return cfg.exists() ? cfg.get().membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT;
+}
+
+/// Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100 %); поле —
+/// расширение структуры, у прежних строк значения нет — берётся дефолт.
+inline uint64_t get_initiator_share_percent(eosio::name coopname) {
+  mkt_config_singleton cfg(_marketplace, coopname.value);
+  if (!cfg.exists()) return DEFAULT_INITIATOR_SHARE_PERCENT;
+  const auto state = cfg.get();
+  return state.initiator_share_percent.has_value()
+    ? state.initiator_share_percent.value()
+    : DEFAULT_INITIATOR_SHARE_PERCENT;
+}
+
+/**
+ * @brief Получатель доли инициатора участка (задача 99D-21, решение владельца
+ * 03.11.2026). Единственная точка выбора: строка `initiators` участка, а без
+ * неё — председатель участка. Инициатор и председатель не связаны намертво:
+ * председатель сменился — инициатор продолжает получать свою долю. На
+ * инвестиционном этапе здесь встанет правило «вложение возвращено — получатель
+ * кошелёк обеспечения пайщиков участка» и несколько инициаторов с долями.
+ */
+inline eosio::name initiator_of(eosio::name coopname, eosio::name braname, eosio::name trustee) {
+  mkt_initiators_index initiators(_marketplace, coopname.value);
+  auto it = initiators.find(braname.value);
+  return it != initiators.end() ? it->username : trustee;
+}
+
+/// Строка прогона участка за период либо отказ: без неё списание по ставкам
+/// невозможно (задача 99D-21).
+inline const kuperiod& get_period_or_fail(kuperiods_index& periods, eosio::name braname, uint32_t period) {
+  auto idx = periods.get_index<"bybrperiod"_n>();
+  auto it = idx.find(combine_ids(braname.value, period));
+  eosio::check(it != idx.end(),
+               "MARKETPLACE_PERIOD_NOT_CLOSED: Итог участка за период не рассчитан");
+  return periods.get(it->id);
 }
 
 /// Доля суммы по ставке (целочисленно, вниз): обеспечительная часть заказа и

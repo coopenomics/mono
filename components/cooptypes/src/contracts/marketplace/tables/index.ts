@@ -21,5 +21,15 @@ export * as WroffProps from './wroffprops'
 export * as Config from './config'
 
 /**
+ * Итоги прогонов списания по участкам (задача 99D-21).
+ */
+export * as Periods from './periods'
+
+/**
+ * Инициаторы кооперативных участков Стола заказов (задача 99D-21).
+ */
+export * as Initiators from './initiators'
+
+/**
  * Отсечки персонального распределения членского взноса по КУ (requirement b6).
  */

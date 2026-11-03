@@ -118,6 +118,31 @@ export * as SetFee from './setFee'
 export * as ChargeDue from './chargeDue'
 
 /**
+ * Доля инициатора участка в экономии месяца (задача 99D-21).
+ */
+export * as SetShares from './setShares'
+
+/**
+ * Инициатор кооперативного участка Стола заказов (задача 99D-21).
+ */
+export * as SetInitiator from './setInitiator'
+
+/**
+ * Расчёт итога прогона участка по фактам ИСТОКА (задача 99D-21).
+ */
+export * as ClosePeriod from './closePeriod'
+
+/**
+ * Стереть строку прогона участка (задача 99D-21).
+ */
+export * as DelPeriod from './delPeriod'
+
+/**
+ * Списание обеспечительной части заказа по ставкам прогона (задача 99D-21).
+ */
+export * as ChargePeriod from './chargePeriod'
+
+/**
  * Отсечка персонального распределения членского взноса КУ (requirement b6).
  * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
  */

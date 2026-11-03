@@ -56,6 +56,9 @@
 #include "table_branch_weights.hpp"
 #include "table_branch_decisions.hpp"
 #include "table_branch_trustreqs.hpp"
+#include "table_branch_config.hpp"
+#include "table_branch_reserves.hpp"
+#include "table_branch_aidmonths.hpp"
 
 // wallet / gateway / ledger / loan / marketplace
 #include "table_wallet_deposits.hpp"
@@ -80,6 +83,8 @@
 // shipments) удалены вместе с donor-actions (AR30). Batch (consolidated request)
 // — backend-only, on-chain не хранится (Locked Decision L10).
 #include "table_marketplace_fee_config.hpp"
+#include "table_marketplace_initiators.hpp"
+#include "table_marketplace_periods.hpp"
 #include "table_marketplace_orders.hpp"
 #include "table_marketplace_return_requests.hpp"
 #include "table_marketplace_warranty_claims.hpp"

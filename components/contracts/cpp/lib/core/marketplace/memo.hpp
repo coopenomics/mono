@@ -63,6 +63,23 @@ namespace Marketplace::Memo {
     return "Членский взнос по условиям ЦПП «Стол заказов» в общий кошелёк кооперативного участка";
   }
 
+  // Списание по итогу месяца участка (задача 99D-21): четыре части одного заказа.
+  inline std::string get_charge_period_memo() {
+    return "Списание обеспечительной части паевого взноса по итогу месяца кооперативного участка";
+  }
+
+  inline std::string get_charge_period_funds_memo() {
+    return "Отчисление в фонды накопления из членского взноса участка по итогу месяца";
+  }
+
+  inline std::string get_charge_period_initiator_memo() {
+    return "Вознаграждение инициатора участка из экономии месяца";
+  }
+
+  inline std::string get_charge_period_return_memo() {
+    return "Возврат части обеспечительной части паевого взноса по итогу месяца участка";
+  }
+
   inline std::string get_markdown_loss_memo(uint64_t order_id) {
     return "Уценка имущества при выдаче со склада кооператива по заказу № " + std::to_string(order_id);
   }

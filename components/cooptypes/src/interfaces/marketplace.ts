@@ -111,6 +111,85 @@ export interface IChargeDue {
 
 export interface IMktConfig {
   membership_fee_percent: IUint64
+  /** Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
+  initiator_share_percent?: IUint64
+}
+
+export interface ISetShares {
+  coopname: IName
+  initiator_share_percent: IUint64
+}
+
+export interface ISetInitiator {
+  coopname: IName
+  braname: IName
+  /** Пайщик-инициатор участка; пустое имя стирает строку. */
+  username: IName
+}
+
+export interface IMktInitiator {
+  braname: IName
+  username: IName
+}
+
+export interface IClosePeriod {
+  coopname: IName
+  braname: IName
+  /** Номер прогона: год × 12 + месяц по часовому поясу кооператива. */
+  period: IUint32
+  /** T — стоимость заказов прогона. */
+  turnover: IAsset
+  /** C — собранная обеспечительная часть прогона. */
+  secured: IAsset
+  /** ПР — плановые расходы участка за месяц. */
+  planned: IAsset
+  /** СЗ — служебные записки сверх плана за месяц. */
+  memos: IAsset
+  /** МП — материальная помощь, выплаченная за месяц. */
+  aid_paid: IAsset
+}
+
+export interface IDelPeriod {
+  coopname: IName
+  braname: IName
+  period: IUint32
+}
+
+export interface IChargePeriod {
+  coopname: IName
+  username: IName
+  braname: IName
+  order_hash: IChecksum256
+  /** Остаток обеспечительной части заказа. */
+  amount: IAsset
+  /** Стоимость заказа (факт выдачи). */
+  base: IAsset
+  period: IUint32
+}
+
+export interface IKuPeriod {
+  id: IUint64
+  braname: IName
+  period: IUint32
+  turnover: IAsset
+  secured: IAsset
+  planned: IAsset
+  memos: IAsset
+  aid_paid: IAsset
+  aid_reserve: IAsset
+  aid_unpaid: IAsset
+  expenses: IAsset
+  membership: IAsset
+  funds_amount: IAsset
+  branch_amount: IAsset
+  initiator_amount: IAsset
+  return_amount: IAsset
+  deficit: IAsset
+  rate_branch: IUint64
+  rate_funds: IUint64
+  rate_initiator: IUint64
+  initiator: IName
+  closed_at: ITimePointSec
 }
 
 export interface ICancelOrder {

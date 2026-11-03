@@ -2,6 +2,7 @@
 
 
 #include "../core/ram_payer.hpp"
+#include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/singleton.hpp>
 
@@ -25,6 +26,11 @@
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_config {
   uint64_t membership_fee_percent = 0;  ///< ставка обеспечительной части паевого взноса от стоимости заказа (HUNDR_PERCENTS = 100%)
+  /// Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100 %); остальное
+  /// возвращается пайщикам. Расширение в конце структуры: прежние строки
+  /// читаются без значения, тогда берётся DEFAULT_INITIATOR_SHARE_PERCENT
+  /// (задача 99D-21, решение владельца 02.11.2026).
+  eosio::binary_extension<uint64_t> initiator_share_percent;
 };
 
 typedef eosio::singleton<"config"_n, mkt_config> mkt_config_singleton;

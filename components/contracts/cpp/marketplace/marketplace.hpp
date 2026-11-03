@@ -328,6 +328,57 @@ public:
                                     checksum256 order_hash,
                                     eosio::asset amount);
 
+  // ── Коэффициент экономического участия (задача 99D-21, КЭУ-3) ──
+  /**
+   * @brief Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100%);
+   * остальное возвращается пайщикам. По умолчанию 61,8 %. Ставит администратор.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void setshares(eosio::name coopname,
+                                    uint64_t initiator_share_percent);
+  /**
+   * @brief Инициатор кооперативного участка — получатель доли экономии; без
+   * строки им считается председатель участка. Пустое имя стирает строку.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void setinitiator(eosio::name coopname,
+                                       eosio::name braname,
+                                       eosio::name username);
+  /**
+   * @brief Расчёт итога прогона участка по пяти фактам ИСТОКА: стоимость
+   * заказов прогона, собранная обеспечительная часть, плановые расходы,
+   * служебные записки, выплаченная материальная помощь. Контракт считает
+   * членский взнос участка, фонды, долю инициатора, возврат и ставки прогона.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void closeperiod(eosio::name coopname,
+                                      eosio::name braname,
+                                      uint32_t period,
+                                      eosio::asset turnover,
+                                      eosio::asset secured,
+                                      eosio::asset planned,
+                                      eosio::asset memos,
+                                      eosio::asset aid_paid);
+  /**
+   * @brief Стереть строку прогона участка (позапрошлый месяц); зовёт ИСТОК.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void delperiod(eosio::name coopname,
+                                    eosio::name braname,
+                                    uint32_t period);
+  /**
+   * @brief Списание обеспечительной части заказа по ставкам прогона: участку,
+   * в фонды накопления, инициатору, остаток — пайщику на свободный паевой.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void chargeperiod(eosio::name coopname,
+                                       eosio::name username,
+                                       eosio::name braname,
+                                       checksum256 order_hash,
+                                       eosio::asset amount,
+                                       eosio::asset base,
+                                       uint32_t period);
+
   // ── p.mkt.supply: выдача по заявлению, протоколу совета и акту (паевая модель) ──
   /**
    * @brief Оператор участка выдачи отмечает поступление имущества по заказу на

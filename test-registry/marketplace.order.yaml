@@ -613,3 +613,104 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запросов к базе — снаружи они не видны; сами партии, расчёты и выдача через API покрыты случаями mkt.order.* во внешнем слое"
     status: written
+
+  # ── Коэффициент экономического участия (задачи 99D-19, 99D-20, 99D-21) ──
+  # Документ модели — требование компонента 68 «Коэффициент экономического
+  # участия». Контракты: fund (w.fnd.accum, fund::accrue), branch (резерв
+  # обеспечения по получателям, потолок, предел материальной помощи),
+  # marketplace (closeperiod, chargeperiod, delperiod, setshares, setinitiator).
+
+  - id: mkt.order.keu.01
+    level: contract
+    kind: happy
+    scenario: >
+      Первого числа кооператив передаёт факты прогона участка: стоимость заказов
+      с истёкшей гарантией, собранную обеспечительную часть, плановые расходы,
+      служебные записки, выплаченную материальную помощь.
+    expect: >
+      строка итога месяца записана один раз: расходы = планы + записки + резерв
+      обеспечения − невыплаченная часть прошлого резерва; членский взнос участка
+      = min(собрано, расходы ÷ (1 − проценты фондов)); фонды, участку, инициатору,
+      возврат и три ставки сходятся по формулам документа; повтор — отказ
+      MARKETPLACE_PERIOD_EXISTS, нулевая стоимость — MARKETPLACE_PERIOD_AMOUNT_INVALID
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.02
+    level: contract
+    kind: happy
+    scenario: >
+      Списание обеспечительной части заказа по ставкам итога месяца.
+    expect: >
+      одной транзакцией в нитке заказа: o.mkt.charge на сумму участку + фонды +
+      инициатору, o.brn.common участку (Дт 80 / Кт 86), o.fnd.accrue по каждому
+      фонду накопления по его проценту с остатком округления у последнего,
+      o.mkt.initr инициатору из строки прогона, o.mkt.retdue пайщику на свободный
+      паевой; кошелёк к списанию обнуляется, остатки кошельков растут ровно на части
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.03
+    level: contract
+    kind: break
+    scenario: >
+      Повторное списание того же заказа; списание без строки итога месяца;
+      стирание строки итога.
+    expect: >
+      повтор — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку, повторный
+      delperiod и chargeperiod без строки — MARKETPLACE_PERIOD_NOT_CLOSED
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.04
+    level: contract
+    kind: side
+    scenario: >
+      Настройки модели: доля инициатора в экономии и инициатор участка отдельно
+      от председателя.
+    expect: >
+      setshares пишет долю, выше 100 % — MARKETPLACE_INITIATOR_SHARE_INVALID;
+      setinitiator назначает пайщика, не пайщика отклоняет, пустое имя снимает
+      назначение; строка итога месяца хранит получателя доли
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.05
+    level: contract
+    kind: happy
+    scenario: >
+      Резерв социально-экономического обеспечения пайщиков: потолок администратора
+      и строки по получателям участка.
+    expect: >
+      setaidlimit пишет потолок, отрицательный — BRANCH_AID_LIMIT_INVALID;
+      setreserve председателю — одна строка, перезапись меняет сумму; выше потолка —
+      BRANCH_RESERVE_OVER_LIMIT, постороннему — BRANCH_RESERVE_NOT_TRUSTED, ноль —
+      BRANCH_RESERVE_AMOUNT_INVALID, при потолке ноль — BRANCH_RESERVE_DISABLED
+    test: components/boot/src/tests/branch-reserve.test.ts
+    status: written
+
+  - id: mkt.order.keu.06
+    level: contract
+    kind: break
+    scenario: >
+      Предел материальной помощи получателя за месяц равен его резерву.
+    expect: >
+      заявление в пределах резерва проходит и пишется в накопитель месяца;
+      сверх резерва — BRANCH_AID_OVER_RESERVE; без строки резерва при включённом
+      потолке — BRANCH_AID_NO_RESERVE; при потолке ноль заявление проходит без
+      предела, как до задачи
+    test: components/boot/src/tests/branch-reserve.test.ts
+    status: written
+
+  - id: mkt.order.keu.07
+    level: contract
+    kind: side
+    scenario: >
+      Фонды накопления на кошельках ledger2: три стандартных фонда и
+      дополнительные фонды совета получают отдельный остаток каждый.
+    expect: >
+      у стандартных фондов постоянные имена разрезов indivisible, reserve, develop;
+      при первом отчислении имя закрепляется в строке фонда; доли фондов
+      пропорциональны процентам, сумма долей равна переданной сумме
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
