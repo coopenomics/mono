@@ -202,3 +202,4 @@ export const api = {
   loadMethods,
   loadUserAgreements
 };
+export * from './activity'

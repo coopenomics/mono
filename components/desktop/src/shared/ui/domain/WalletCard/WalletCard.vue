@@ -2,9 +2,12 @@
   <div
     :class="[
       'wallet',
-      { 'wallet--row': compact, 'wallet--stacked': stacked, 'wallet--empty': empty },
+      { 'wallet--row': compact, 'wallet--stacked': stacked, 'wallet--empty': empty, 'wallet--clickable': clickable, 'wallet--selected': selected },
     ]"
     :style="progStyle"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
+    :aria-pressed="clickable ? selected : undefined"
   >
     <span class="wallet__icon">
       <q-icon :name="resolvedIcon" />
@@ -55,6 +58,8 @@ import type { WalletCardProps, WalletProgram } from './WalletCard.types';
 import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<WalletCardProps>(), {
+  clickable: false,
+  selected: false,
   loading: false,
   compact: false,
   stacked: false,

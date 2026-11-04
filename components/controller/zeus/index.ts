@@ -9882,6 +9882,26 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	/** Неисполненные заявки и платежи пайщика */
+["GetMyPendingPayoutsInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Пайщик */
+	username: string | Variable<any, string>
+};
+	/** Движения по кошелькам пайщика */
+["GetMyWalletMovementsInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Строк на странице */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Страница, с первой */
+	page?: number | undefined | null | Variable<any, string>,
+	/** Пайщик, чьи движения читаются */
+	username: string | Variable<any, string>,
+	/** Отбор по одному кошельку пайщика; пусто — все кошельки */
+	wallet_name?: string | undefined | null | Variable<any, string>
+};
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -15651,6 +15671,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedRobotDecisionsPaginationResult']?: Omit<ValueTypes["PaginatedRobotDecisionsPaginationResult"], "...on PaginatedRobotDecisionsPaginationResult">
 }>;
+	["PaginatedWalletMovementsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["WalletMovement"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedWalletMovementsPaginationResult']?: Omit<ValueTypes["PaginatedWalletMovementsPaginationResult"], "...on PaginatedWalletMovementsPaginationResult">
+}>;
 	["PaginationInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -17046,6 +17078,8 @@ getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTy
 	getMyAccess?:ValueTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate?:ValueTypes["ParticipantCertificate"],
+getMyPendingPayouts?: [{	data: ValueTypes["GetMyPendingPayoutsInput"] | Variable<any, string>},ValueTypes["WalletPendingItem"]],
+getMyWalletMovements?: [{	data: ValueTypes["GetMyWalletMovementsInput"] | Variable<any, string>},ValueTypes["PaginatedWalletMovementsPaginationResult"]],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ValueTypes["NodeSyncState"],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
@@ -19637,6 +19671,56 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	/** Кооператив; сверяется с кооперативом узла. */
 	coopname: string | Variable<any, string>
 };
+	/** Движение по кошельку пайщика */
+["WalletMovement"]: AliasType<{
+	/** Когда проведена операция */
+	created_at?:boolean | `@${string}`,
+	/** Направление относительно кошельков пайщика */
+	direction?:boolean | `@${string}`,
+	/** Номер операции учётной книги */
+	global_sequence?:boolean | `@${string}`,
+	/** Пояснение к операции */
+	memo?:boolean | `@${string}`,
+	/** Код операции */
+	operation_code?:boolean | `@${string}`,
+	/** Операция человеческим названием */
+	operation_name?:boolean | `@${string}`,
+	/** Хэш процесса — открывает документы и операции процесса */
+	process_hash?:boolean | `@${string}`,
+	/** Тип процесса */
+	process_type?:boolean | `@${string}`,
+	/** Сумма */
+	quantity?:boolean | `@${string}`,
+	/** Кошелёк пайщика, по которому прошло движение */
+	wallet_name?:boolean | `@${string}`,
+	/** Название кошелька пайщика */
+	wallet_title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WalletMovement']?: Omit<ValueTypes["WalletMovement"], "...on WalletMovement">
+}>;
+	/** Направление движения по кошелькам пайщика: поступление, списание, перевод между своими кошельками, шаг процесса без движения по ним */
+["WalletMovementDirection"]:WalletMovementDirection;
+	/** Заявка на выплату или платёж пайщика, который ещё не исполнен */
+["WalletPendingItem"]: AliasType<{
+	/** Когда подано */
+	created_at?:boolean | `@${string}`,
+	/** Хэш заявки или платежа — он же хэш процесса */
+	hash?:boolean | `@${string}`,
+	/** Реквизиты пайщика, на которые выплата поступит */
+	payment_method_id?:boolean | `@${string}`,
+	/** Сумма */
+	quantity?:boolean | `@${string}`,
+	/** Состояние */
+	state?:boolean | `@${string}`,
+	/** Вид выплаты или платежа словами: возврат паевого взноса, материальная помощь, паевой взнос */
+	title?:boolean | `@${string}`,
+	/** Вид выплаты или платежа */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on WalletPendingItem']?: Omit<ValueTypes["WalletPendingItem"], "...on WalletPendingItem">
+}>;
+	/** Состояние неисполненной заявки или платежа пайщика: на рассмотрении совета, ожидает кассира, ожидает оплаты */
+["WalletPendingState"]:WalletPendingState;
 	["WalmoveInput"]: {
 	coopname: string | Variable<any, string>,
 	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
@@ -28391,6 +28475,26 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	/** Неисполненные заявки и платежи пайщика */
+["GetMyPendingPayoutsInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Пайщик */
+	username: string
+};
+	/** Движения по кошелькам пайщика */
+["GetMyWalletMovementsInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Строк на странице */
+	limit?: number | undefined | null,
+	/** Страница, с первой */
+	page?: number | undefined | null,
+	/** Пайщик, чьи движения читаются */
+	username: string,
+	/** Отбор по одному кошельку пайщика; пусто — все кошельки */
+	wallet_name?: string | undefined | null
+};
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -33962,6 +34066,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["PaginatedWalletMovementsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["WalletMovement"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["PaginationInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -35315,6 +35430,8 @@ getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["Mee
 	getMyAccess?:ResolverInputTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate?:ResolverInputTypes["ParticipantCertificate"],
+getMyPendingPayouts?: [{	data: ResolverInputTypes["GetMyPendingPayoutsInput"]},ResolverInputTypes["WalletPendingItem"]],
+getMyWalletMovements?: [{	data: ResolverInputTypes["GetMyWalletMovementsInput"]},ResolverInputTypes["PaginatedWalletMovementsPaginationResult"]],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?:ResolverInputTypes["NodeSyncState"],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
@@ -37833,6 +37950,54 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	/** Кооператив; сверяется с кооперативом узла. */
 	coopname: string
 };
+	/** Движение по кошельку пайщика */
+["WalletMovement"]: AliasType<{
+	/** Когда проведена операция */
+	created_at?:boolean | `@${string}`,
+	/** Направление относительно кошельков пайщика */
+	direction?:boolean | `@${string}`,
+	/** Номер операции учётной книги */
+	global_sequence?:boolean | `@${string}`,
+	/** Пояснение к операции */
+	memo?:boolean | `@${string}`,
+	/** Код операции */
+	operation_code?:boolean | `@${string}`,
+	/** Операция человеческим названием */
+	operation_name?:boolean | `@${string}`,
+	/** Хэш процесса — открывает документы и операции процесса */
+	process_hash?:boolean | `@${string}`,
+	/** Тип процесса */
+	process_type?:boolean | `@${string}`,
+	/** Сумма */
+	quantity?:boolean | `@${string}`,
+	/** Кошелёк пайщика, по которому прошло движение */
+	wallet_name?:boolean | `@${string}`,
+	/** Название кошелька пайщика */
+	wallet_title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Направление движения по кошелькам пайщика: поступление, списание, перевод между своими кошельками, шаг процесса без движения по ним */
+["WalletMovementDirection"]:WalletMovementDirection;
+	/** Заявка на выплату или платёж пайщика, который ещё не исполнен */
+["WalletPendingItem"]: AliasType<{
+	/** Когда подано */
+	created_at?:boolean | `@${string}`,
+	/** Хэш заявки или платежа — он же хэш процесса */
+	hash?:boolean | `@${string}`,
+	/** Реквизиты пайщика, на которые выплата поступит */
+	payment_method_id?:boolean | `@${string}`,
+	/** Сумма */
+	quantity?:boolean | `@${string}`,
+	/** Состояние */
+	state?:boolean | `@${string}`,
+	/** Вид выплаты или платежа словами: возврат паевого взноса, материальная помощь, паевой взнос */
+	title?:boolean | `@${string}`,
+	/** Вид выплаты или платежа */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние неисполненной заявки или платежа пайщика: на рассмотрении совета, ожидает кассира, ожидает оплаты */
+["WalletPendingState"]:WalletPendingState;
 	["WalmoveInput"]: {
 	coopname: string,
 	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
@@ -46289,6 +46454,26 @@ export type ModelTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	/** Неисполненные заявки и платежи пайщика */
+["GetMyPendingPayoutsInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Пайщик */
+	username: string
+};
+	/** Движения по кошелькам пайщика */
+["GetMyWalletMovementsInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Строк на странице */
+	limit?: number | undefined | null,
+	/** Страница, с первой */
+	page?: number | undefined | null,
+	/** Пайщик, чьи движения читаются */
+	username: string,
+	/** Отбор по одному кошельку пайщика; пусто — все кошельки */
+	wallet_name?: string | undefined | null
+};
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -52016,6 +52201,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedWalletMovementsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["WalletMovement"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginationInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -53432,6 +53627,10 @@ export type ModelTypes = {
 	getMyAccess: ModelTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate: ModelTypes["ParticipantCertificate"],
+	/** Неисполненные заявки и платежи пайщика: на рассмотрении совета, у кассира, ожидают оплаты */
+	getMyPendingPayouts: Array<ModelTypes["WalletPendingItem"]>,
+	/** Движения по кошелькам пайщика: поступления, списания и переводы, свежие сверху */
+	getMyWalletMovements: ModelTypes["PaginatedWalletMovementsPaginationResult"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?: ModelTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки */
@@ -55972,6 +56171,50 @@ export type ModelTypes = {
 	/** Кооператив; сверяется с кооперативом узла. */
 	coopname: string
 };
+	/** Движение по кошельку пайщика */
+["WalletMovement"]: {
+		/** Когда проведена операция */
+	created_at: ModelTypes["DateTime"],
+	/** Направление относительно кошельков пайщика */
+	direction: ModelTypes["WalletMovementDirection"],
+	/** Номер операции учётной книги */
+	global_sequence: string,
+	/** Пояснение к операции */
+	memo?: string | undefined | null,
+	/** Код операции */
+	operation_code: string,
+	/** Операция человеческим названием */
+	operation_name: string,
+	/** Хэш процесса — открывает документы и операции процесса */
+	process_hash?: string | undefined | null,
+	/** Тип процесса */
+	process_type?: string | undefined | null,
+	/** Сумма */
+	quantity: string,
+	/** Кошелёк пайщика, по которому прошло движение */
+	wallet_name?: string | undefined | null,
+	/** Название кошелька пайщика */
+	wallet_title?: string | undefined | null
+};
+	["WalletMovementDirection"]:WalletMovementDirection;
+	/** Заявка на выплату или платёж пайщика, который ещё не исполнен */
+["WalletPendingItem"]: {
+		/** Когда подано */
+	created_at: ModelTypes["DateTime"],
+	/** Хэш заявки или платежа — он же хэш процесса */
+	hash: string,
+	/** Реквизиты пайщика, на которые выплата поступит */
+	payment_method_id?: string | undefined | null,
+	/** Сумма */
+	quantity: string,
+	/** Состояние */
+	state: ModelTypes["WalletPendingState"],
+	/** Вид выплаты или платежа словами: возврат паевого взноса, материальная помощь, паевой взнос */
+	title: string,
+	/** Вид выплаты или платежа */
+	type: ModelTypes["PaymentType"]
+};
+	["WalletPendingState"]:WalletPendingState;
 	["WalmoveInput"]: {
 	coopname: string,
 	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
@@ -64937,6 +65180,26 @@ export type GraphQLTypes = {
 		/** Хеш метрики */
 	metric_hash: string
 };
+	/** Неисполненные заявки и платежи пайщика */
+["GetMyPendingPayoutsInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Пайщик */
+	username: string
+};
+	/** Движения по кошелькам пайщика */
+["GetMyWalletMovementsInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Строк на странице */
+	limit?: number | undefined | null,
+	/** Страница, с первой */
+	page?: number | undefined | null,
+	/** Пайщик, чьи движения читаются */
+	username: string,
+	/** Отбор по одному кошельку пайщика; пусто — все кошельки */
+	wallet_name?: string | undefined | null
+};
 	["GetPaymentMethodsInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -71124,6 +71387,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedRobotDecisionsPaginationResult']: Omit<GraphQLTypes["PaginatedRobotDecisionsPaginationResult"], "...on PaginatedRobotDecisionsPaginationResult">
 };
+	["PaginatedWalletMovementsPaginationResult"]: {
+	__typename: "PaginatedWalletMovementsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["WalletMovement"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedWalletMovementsPaginationResult']: Omit<GraphQLTypes["PaginatedWalletMovementsPaginationResult"], "...on PaginatedWalletMovementsPaginationResult">
+};
 	["PaginationInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -72653,6 +72928,10 @@ export type GraphQLTypes = {
 	getMyAccess: GraphQLTypes["ParticipantAccess"],
 	/** Получить удостоверение текущего пайщика */
 	getMyCertificate: GraphQLTypes["ParticipantCertificate"],
+	/** Неисполненные заявки и платежи пайщика: на рассмотрении совета, у кассира, ожидают оплаты */
+	getMyPendingPayouts: Array<GraphQLTypes["WalletPendingItem"]>,
+	/** Движения по кошелькам пайщика: поступления, списания и переводы, свежие сверху */
+	getMyWalletMovements: GraphQLTypes["PaginatedWalletMovementsPaginationResult"],
 	/** Насколько узел кооператива отстал от цепи. Пусто, пока состояние не измерено */
 	getNodeSyncState?: GraphQLTypes["NodeSyncState"] | undefined | null,
 	/** Детализация одного уведомления с историей попыток доставки */
@@ -75365,6 +75644,56 @@ export type GraphQLTypes = {
 		/** Кооператив; сверяется с кооперативом узла. */
 	coopname: string
 };
+	/** Движение по кошельку пайщика */
+["WalletMovement"]: {
+	__typename: "WalletMovement",
+	/** Когда проведена операция */
+	created_at: GraphQLTypes["DateTime"],
+	/** Направление относительно кошельков пайщика */
+	direction: GraphQLTypes["WalletMovementDirection"],
+	/** Номер операции учётной книги */
+	global_sequence: string,
+	/** Пояснение к операции */
+	memo?: string | undefined | null,
+	/** Код операции */
+	operation_code: string,
+	/** Операция человеческим названием */
+	operation_name: string,
+	/** Хэш процесса — открывает документы и операции процесса */
+	process_hash?: string | undefined | null,
+	/** Тип процесса */
+	process_type?: string | undefined | null,
+	/** Сумма */
+	quantity: string,
+	/** Кошелёк пайщика, по которому прошло движение */
+	wallet_name?: string | undefined | null,
+	/** Название кошелька пайщика */
+	wallet_title?: string | undefined | null,
+	['...on WalletMovement']: Omit<GraphQLTypes["WalletMovement"], "...on WalletMovement">
+};
+	/** Направление движения по кошелькам пайщика: поступление, списание, перевод между своими кошельками, шаг процесса без движения по ним */
+["WalletMovementDirection"]: WalletMovementDirection;
+	/** Заявка на выплату или платёж пайщика, который ещё не исполнен */
+["WalletPendingItem"]: {
+	__typename: "WalletPendingItem",
+	/** Когда подано */
+	created_at: GraphQLTypes["DateTime"],
+	/** Хэш заявки или платежа — он же хэш процесса */
+	hash: string,
+	/** Реквизиты пайщика, на которые выплата поступит */
+	payment_method_id?: string | undefined | null,
+	/** Сумма */
+	quantity: string,
+	/** Состояние */
+	state: GraphQLTypes["WalletPendingState"],
+	/** Вид выплаты или платежа словами: возврат паевого взноса, материальная помощь, паевой взнос */
+	title: string,
+	/** Вид выплаты или платежа */
+	type: GraphQLTypes["PaymentType"],
+	['...on WalletPendingItem']: Omit<GraphQLTypes["WalletPendingItem"], "...on WalletPendingItem">
+};
+	/** Состояние неисполненной заявки или платежа пайщика: на рассмотрении совета, ожидает кассира, ожидает оплаты */
+["WalletPendingState"]: WalletPendingState;
 	["WalmoveInput"]: {
 		coopname: string,
 	/** eosio::name кошелька-источника (w.<contract>.<waltype>) */
@@ -76784,6 +77113,19 @@ export enum VerificationReviewStatus {
 	Rejected = "Rejected",
 	Revoked = "Revoked"
 }
+/** Направление движения по кошелькам пайщика: поступление, списание, перевод между своими кошельками, шаг процесса без движения по ним */
+export enum WalletMovementDirection {
+	IN = "IN",
+	MOVE = "MOVE",
+	OUT = "OUT",
+	PROCESS = "PROCESS"
+}
+/** Состояние неисполненной заявки или платежа пайщика: на рассмотрении совета, ожидает кассира, ожидает оплаты */
+export enum WalletPendingState {
+	AWAITING_CASHIER = "AWAITING_CASHIER",
+	AWAITING_PAYMENT = "AWAITING_PAYMENT",
+	COUNCIL_REVIEW = "COUNCIL_REVIEW"
+}
 /** Метка волны 5/3: импульс 1–5, коррекция A–C */
 export enum WaveLabel {
 	W1 = "W1",
@@ -77171,6 +77513,8 @@ type ZEUS_VARIABLES = {
 	["GetMetricSuperpositionHistoryInput"]: ValueTypes["GetMetricSuperpositionHistoryInput"];
 	["GetMetricSuperpositionInput"]: ValueTypes["GetMetricSuperpositionInput"];
 	["GetMetricWaveInput"]: ValueTypes["GetMetricWaveInput"];
+	["GetMyPendingPayoutsInput"]: ValueTypes["GetMyPendingPayoutsInput"];
+	["GetMyWalletMovementsInput"]: ValueTypes["GetMyWalletMovementsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
 	["GetProjectInput"]: ValueTypes["GetProjectInput"];
@@ -77623,6 +77967,8 @@ type ZEUS_VARIABLES = {
 	["VoteOnAnnualGeneralMeetInput"]: ValueTypes["VoteOnAnnualGeneralMeetInput"];
 	["VoteOnKuDecisionInput"]: ValueTypes["VoteOnKuDecisionInput"];
 	["WalletEventsInput"]: ValueTypes["WalletEventsInput"];
+	["WalletMovementDirection"]: ValueTypes["WalletMovementDirection"];
+	["WalletPendingState"]: ValueTypes["WalletPendingState"];
 	["WalmoveInput"]: ValueTypes["WalmoveInput"];
 	["WaveLabel"]: ValueTypes["WaveLabel"];
 	["WavePhase"]: ValueTypes["WavePhase"];

@@ -24,7 +24,11 @@
     :icon='entry.icon',
     :balance='entry.balance',
     :symbol='entry.symbol',
-    :locked-balance='entry.locked'
+    :locked-balance='entry.locked',
+    clickable,
+    :selected='walletMovementsFilter === entry.key',
+    @click='toggleWalletMovementsFilter(entry.key)',
+    @keyup.enter='toggleWalletMovementsFilter(entry.key)'
   )
 
 EmptyState(
@@ -38,7 +42,7 @@ EmptyState(
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { useWalletStore } from 'src/entities/Wallet';
+import { toggleWalletMovementsFilter, useWalletStore, walletMovementsFilter } from 'src/entities/Wallet';
 import type { IUserWalletData } from 'src/entities/Wallet';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -66,6 +70,7 @@ interface MinimumBalance {
 }
 
 const walletStore = useWalletStore();
+// Нажатие на карточку отбирает историю движений под кошельками по этому кошельку.
 const session = useSessionStore();
 const desktop = useDesktopStore();
 const { info } = useSystemStore();

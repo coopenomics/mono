@@ -1046,6 +1046,12 @@ export const AllTypesProps: Record<string,any> = {
 	GetMetricWaveInput:{
 
 	},
+	GetMyPendingPayoutsInput:{
+
+	},
+	GetMyWalletMovementsInput:{
+
+	},
 	GetPaymentMethodsInput:{
 
 	},
@@ -3579,6 +3585,12 @@ export const AllTypesProps: Record<string,any> = {
 		getMeets:{
 			data:"GetMeetsInput"
 		},
+		getMyPendingPayouts:{
+			data:"GetMyPendingPayoutsInput"
+		},
+		getMyWalletMovements:{
+			data:"GetMyWalletMovementsInput"
+		},
 		getNotification:{
 
 		},
@@ -4408,6 +4420,8 @@ export const AllTypesProps: Record<string,any> = {
 	WalletEventsInput:{
 
 	},
+	WalletMovementDirection: "enum" as const,
+	WalletPendingState: "enum" as const,
 	WalmoveInput:{
 
 	},
@@ -9162,6 +9176,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedWalletMovementsPaginationResult:{
+		currentPage:"Int",
+		items:"WalletMovement",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	ParticipantAccess:{
 		grants:"AccessGrant",
 		sets:"String"
@@ -9703,6 +9723,8 @@ export const ReturnTypes: Record<string,any> = {
 		getMeets:"MeetAggregate",
 		getMyAccess:"ParticipantAccess",
 		getMyCertificate:"ParticipantCertificate",
+		getMyPendingPayouts:"WalletPendingItem",
+		getMyWalletMovements:"PaginatedWalletMovementsPaginationResult",
 		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
@@ -10430,6 +10452,28 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String",
 		username:"String",
 		wallet_name:"String"
+	},
+	WalletMovement:{
+		created_at:"DateTime",
+		direction:"WalletMovementDirection",
+		global_sequence:"String",
+		memo:"String",
+		operation_code:"String",
+		operation_name:"String",
+		process_hash:"String",
+		process_type:"String",
+		quantity:"String",
+		wallet_name:"String",
+		wallet_title:"String"
+	},
+	WalletPendingItem:{
+		created_at:"DateTime",
+		hash:"String",
+		payment_method_id:"String",
+		quantity:"String",
+		state:"WalletPendingState",
+		title:"String",
+		type:"PaymentType"
 	},
 	WebPushSubscriptionDto:{
 		authKey:"String",
