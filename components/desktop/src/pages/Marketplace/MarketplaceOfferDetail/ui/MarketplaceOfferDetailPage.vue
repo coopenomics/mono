@@ -63,6 +63,7 @@ const BACK_TARGETS: Record<string, { label: string; name: string }> = {
   moderation: { label: t('marketplace.marketplaceOfferDetailPage.backToModeration'), name: 'marketplace-moderation' },
   warehouse: { label: t('marketplace.marketplaceOfferDetailPage.backToWarehouse'), name: 'marketplace-warehouse-summary' },
   reviews: { label: t('marketplace.marketplaceOfferDetailPage.backToReviews'), name: 'marketplace-admin-reviews' },
+  economy: { label: t('marketplace.marketplaceOfferDetailPage.backToEconomy'), name: 'marketplace-admin-economy' },
 };
 
 const backTarget = computed<{ label: string; name: string }>(() => {

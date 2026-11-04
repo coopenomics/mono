@@ -7,6 +7,8 @@ import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { AmountInput, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
+import { useSystemStore } from 'src/entities/System/model'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 import {
   fetchOrdersForTurnover,
@@ -43,6 +45,8 @@ import { t } from 'src/shared/i18n';
  */
 
 type SettingKey = 'fee' | 'initiator' | 'aidLimit'
+
+const { info } = useSystemStore()
 
 const loading = ref(true)
 const firstLoad = useFirstLoad(loading)
@@ -254,6 +258,9 @@ q-page.admin-economy
     :orders='orders',
     :loading='turnoverLoading'
   )
+
+  //- Карточка предложения строки оборота — та же, что в реестре предложений.
+  OfferRegistryOverlay(:coopname='info.coopname', from='economy')
 
   BaseDialog(v-model='dialogOpen', :title='dialogTitle', size='sm')
     p.admin-economy__dialog-hint {{ dialogHint }}

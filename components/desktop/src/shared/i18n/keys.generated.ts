@@ -5163,6 +5163,7 @@ export type MessageKey =
   | 'marketplace.marketplaceOfferDetailPage.approveAction'
   | 'marketplace.marketplaceOfferDetailPage.ariaLabel'
   | 'marketplace.marketplaceOfferDetailPage.backToCatalog'
+  | 'marketplace.marketplaceOfferDetailPage.backToEconomy'
   | 'marketplace.marketplaceOfferDetailPage.backToModeration'
   | 'marketplace.marketplaceOfferDetailPage.backToOffers'
   | 'marketplace.marketplaceOfferDetailPage.backToOrders'

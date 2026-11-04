@@ -16,6 +16,7 @@ import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 import {
@@ -1390,6 +1391,8 @@ q-page.economy
         @click='onGetFunds'
       ) {{ $t('marketplace.operatorBranchEconomyPage.receiveAction') }}
 
+  //- Карточка предложения строки оборота — та же, что на складе ПВЗ, без полной страницы.
+  OfferRegistryOverlay(:coopname='coopname', :show-full-page='false')
   //- Заказ из движения кошелька — оверлеем поверх экономики (`?order=<id>`).
   OrderRegistryOverlay(
     :coopname='coopname',

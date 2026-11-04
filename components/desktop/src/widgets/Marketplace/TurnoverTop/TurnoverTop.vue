@@ -22,6 +22,7 @@ import {
   type TurnoverOrder,
   type TurnoverRow,
 } from 'src/shared/lib/marketplace'
+import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { t } from 'src/shared/i18n';
 
 const TOP_LIMIT = 10
@@ -78,6 +79,17 @@ const columns = computed<BaseTableColumn<TurnoverTableRow>[]>(() => {
   return list
 })
 
+const offerOverlay = useQueryOverlay('offer')
+
+/** Позиция с предложением открывает его карточку; позиция без предложения — только строка свода. */
+function hasOffer(row: TurnoverTableRow): boolean {
+  return Boolean(row.offerId)
+}
+
+function openOffer(row: TurnoverTableRow): void {
+  if (row.offerId) offerOverlay.open(row.offerId)
+}
+
 function money(value: number): string {
   return `${formatAsset2Digits(value.toFixed(4))} ₽`
 }
@@ -96,6 +108,8 @@ const totals = computed<StatStripItem[]>(() => [
 <template lang="pug">
 //- Заголовок раздела и выбор периода — одной строкой; как считается оборот —
 //- подсказкой у заголовка, итоги — плитками чисел, общими для всех столов.
+//- Строка открывает карточку предложения справа (`?offer=<id>`): панель
+//- `OfferRegistryOverlay` ставит страница, у которой есть право на карточку.
 section.turnover
   .turnover__head
     .turnover__title
@@ -115,7 +129,9 @@ section.turnover
     :rows='rows',
     row-key='key',
     :loading='loading',
-    :min-width='showBranch ? "900px" : "700px"'
+    :min-width='showBranch ? "900px" : "700px"',
+    :clickable-rows='hasOffer',
+    @row-click='openOffer'
   )
     template(#cell-branch='{ row }')
       .turnover__branch
