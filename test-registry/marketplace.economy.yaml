@@ -64,6 +64,7 @@ sources:
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-economy.resolver.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-economy.dto.ts
     - components/controller/src/extensions/marketplace/application/shared/ndfl.util.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-aid-council-sync.service.ts
   ui:
     - components/desktop/src/pages/Marketplace/**Economy**/**
 
@@ -331,4 +332,25 @@ cases:
       открывается панель с суммой крупно, налогом, лентой вех и карточкой
       процесса с документами
     test: components/docs-harness/scenarios/marketplace/branch-chairman/economy-reserve-periods.mjs
+    status: written
+
+# 2026-11-04 (решение владельца): платёж кассиру по материальной помощи
+# создаёт решение совета. При подаче сохраняется заявка на выплату с
+# реквизитами (в цепь они не попадают), onaidauth создаёт из неё платёж,
+# onaiddecl закрывает заявку. Подача, не дошедшая до повестки, снимает заявку.
+
+  - id: mkt.eco.side.12
+    level: backend
+    kind: side
+    scenario: >
+      Совет решает заявление на материальную помощь: одобрение, отказ, повтор
+      события, платёж «ожидает решения совета», заведённый до заявок
+    expect: >
+      одобрение создаёт платёж кассиру из заявки и шлёт уведомление с суммой
+      заявки; отказ закрывает заявку без платежа; повтор по решённой заявке
+      ничего не меняет и уведомление не дублирует; старый платёж решение
+      переводит кассиру
+    test: components/controller/tests/unit/marketplace/marketplace-aid-council-sync.test.ts
+    external: unreachable
+    external_reason: "решение совета приходит действием цепи — снаружи проверяется сценарием экономики участка после голосования"
     status: written

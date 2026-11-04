@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 337.
+Всего экспортов: 339.
 
 ## ACCOUNT_PORT
 
@@ -1981,6 +1981,29 @@
 - `statementDate: string`
 - `lastProcessedPage: number`
 
+## InnerPayoutRequest
+
+`interface` · core-ports
+
+- `hash: string`
+- `coopname: string`
+- `username: string`
+- `quantity: number`
+- `symbol: string`
+- `type: PaymentType`
+- `payment_method_id?: string | null`
+- `status: InnerPayoutRequestStatus`
+- `created_at: Date`
+- `decided_at?: Date | null`
+
+## InnerPayoutRequestStatus
+
+`enum` · core-ports
+
+- `AWAITING = 'awaiting',`
+- `RELEASED = 'released',`
+- `DECLINED = 'declined',`
+
 ## InnerPrivateAccount
 
 `interface` · core-ports
@@ -2312,6 +2335,11 @@
 - `getPayments(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
 - `setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>`
 - `createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>`
+- `registerPayoutRequest(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayoutRequest>`
+- `releasePayoutRequest(hash: string): Promise<InnerPayment | null>`
+- `declinePayoutRequest(hash: string): Promise<void>`
+- `dropPayoutRequest(hash: string): Promise<void>`
+- `getPayoutRequest(hash: string): Promise<InnerPayoutRequest | null>`
 - `confirmers(): Promise<string[]>`
 
 ## IPaymentMethodPort
@@ -2345,6 +2373,7 @@
 - `create(payment: InnerPaymentDraft): Promise<InnerPayment>`
 - `update(id: string, data: Partial<InnerPayment>): Promise<InnerPayment | null>`
 - `list(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
+- `findPayoutRequestByHash(hash: string): Promise<InnerPayoutRequest | null>`
 
 ## IPaymentProvider
 

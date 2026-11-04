@@ -618,12 +618,12 @@ export class MarketplaceEconomyService {
       throw DomainError.badRequest('MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND');
     }
 
-    // Core-платёж создаётся ДО отправки на цепь и скрыт от кассира
-    // (AWAITING_AUTHORIZATION): реквизиты нужно запомнить в момент подачи, а
-    // показывать выплату кассиру можно только после решения совета. Перевод в
-    // PENDING делает MarketplaceAidCouncilSyncService по callback'у onaidauth.
-    // payment_hash обязан совпадать с on-chain outcome_hash — им становится сам
-    // aid_hash, по нему же платёж находят слушатели решения совета и кассира.
+    // До отправки в цепь сохраняется заявка на выплату с реквизитами,
+    // выбранными при подаче: платежа кассиру до решения совета нет. Платёж из
+    // заявки создаёт MarketplaceAidCouncilSyncService по callback'у onaidauth.
+    // Реквизиты живут в базе узла и в цепь не попадают. payment_hash обязан
+    // совпадать с on-chain outcome_hash — им становится сам aid_hash, по нему
+    // же платёж находят слушатели решения совета и кассира.
     // Кооператив — налоговый агент: кассиру уходит сумма за вычетом НДФЛ,
     // а с персонального кошелька спишется всё заявление. Расчёт зеркалит
     // `BranchNdfl` контракта, иначе платёж и проводка разойдутся.
@@ -631,7 +631,7 @@ export class MarketplaceEconomyService {
     const netAsset = this.formatAsset(netAmount);
 
     try {
-      await this.coreGateway.createSystemOutgoingPayment({
+      await this.coreGateway.registerPayoutRequest({
         coopname,
         username,
         quantity: netAmount,
@@ -642,7 +642,6 @@ export class MarketplaceEconomyService {
         // в день несколько.
         memo: i18nT('marketplace.economy.aidPaymentTitle', { aidHashShort: aidHash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
         type: PaymentType.AID,
-        status: PaymentStatus.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
         related_entity_id: aidHash,
         payment_hash: aidHash,
@@ -682,13 +681,9 @@ export class MarketplaceEconomyService {
         }),
       });
     } catch (e) {
-      // Заявление на повестку не встало — гасим уже созданный платёж, иначе он
-      // навсегда останется в AWAITING_AUTHORIZATION без решения совета.
-      await this.cancelAidPayment(
-        coopname,
-        aidHash,
-        i18nT('marketplace.economy.aidCouncilSubmitFailedNote')
-      );
+      // Заявление на повестку не встало — снимаем заявку на выплату: решения
+      // совета по ней не будет.
+      await this.dropAidPayoutRequest(aidHash);
       rethrowChainError(e);
     }
 
@@ -788,23 +783,12 @@ export class MarketplaceEconomyService {
     return input.expense_hash;
   }
 
-  /** Отменить core-платёж заявки по её hash. Молчит, если платежа нет. */
-  private async cancelAidPayment(coopname: string, aidHash: string, reason: string): Promise<void> {
+  /** Снять заявку на выплату, не дошедшую до совета. Молчит, если заявки нет. */
+  private async dropAidPayoutRequest(aidHash: string): Promise<void> {
     try {
-      const found = await this.coreGateway.getPayments(
-        { coopname, hash: aidHash.toLowerCase() },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
-      );
-      const payment = found.items[0];
-      if (payment?.id) {
-        await this.coreGateway.setPaymentStatus({
-          id: payment.id,
-          status: PaymentStatus.CANCELLED,
-          message: reason,
-        });
-      }
+      await this.coreGateway.dropPayoutRequest(aidHash.toLowerCase());
     } catch (e: any) {
-      this.logger.warn(`Не удалось отменить платёж заявки ${aidHash}: ${e.message}`);
+      this.logger.warn(`Не удалось снять заявку на выплату ${aidHash}: ${e.message}`);
     }
   }
 
@@ -826,10 +810,12 @@ export class MarketplaceEconomyService {
   ): Promise<MarketplaceAidView> {
     const hash = String(aid.hash);
     const payment = await this.aidPayment(coopname, hash);
+    // До решения совета платежа нет — реквизиты берутся из заявки на выплату.
+    const methodId = payment?.payment_method_id ?? (await this.aidPayoutMethodId(hash));
     let payment_destination: string | null = null;
-    if (payment?.payment_method_id) {
+    if (methodId) {
       try {
-        const method = await this.paymentMethodRepo.get({ username: aid.username, method_id: payment.payment_method_id });
+        const method = await this.paymentMethodRepo.get({ username: aid.username, method_id: methodId });
         payment_destination = formatPayoutDestination(method);
       } catch {
         // Реквизиты удалены получателем после подачи заявки — не блокирует.
@@ -866,6 +852,15 @@ export class MarketplaceEconomyService {
         { page: 1, limit: 1, sortOrder: 'DESC' }
       );
       return found.items[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Реквизиты заявки на выплату, пока платежа нет; заявки нет — null. */
+  private async aidPayoutMethodId(hash: string): Promise<string | null> {
+    try {
+      return (await this.coreGateway.getPayoutRequest(hash.toLowerCase()))?.payment_method_id ?? null;
     } catch {
       return null;
     }

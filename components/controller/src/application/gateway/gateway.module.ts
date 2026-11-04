@@ -5,6 +5,7 @@ import { GatewayService } from './services/gateway.service';
 import { PaymentFilesService } from './services/payment-files.service';
 import { PaymentNotificationService } from './services/payment-notification.service';
 import { WithdrawAuthorizationListener } from './services/withdraw-authorization.listener';
+import { PayoutRequestService } from './services/payout-request.service';
 import { PaymentController } from './controllers/payment.controller';
 import { GatewayInteractor } from './interactors/gateway.interactor';
 import { GatewayNotificationHandler } from './handlers/gateway-notification.handler';
@@ -47,6 +48,7 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     { provide: GATEWAY_INTERACTOR_PORT, useExisting: GatewayInteractor },
     GatewayNotificationHandler,
     WithdrawAuthorizationListener,
+    PayoutRequestService,
     GatewayExpiryCronService,
   ],
   exports: [
@@ -55,6 +57,7 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     GatewayInteractor,
     GATEWAY_INTERACTOR_PORT,
     PaymentFilesService,
+    PayoutRequestService,
   ],
 })
 export class GatewayModule {}

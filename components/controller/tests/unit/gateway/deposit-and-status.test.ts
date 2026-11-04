@@ -18,7 +18,7 @@ function makeInteractor(payment: any = null) {
     update: jest.fn(async () => null),
   } as any;
   const stub = {} as any;
-  const interactor = new GatewayInteractor(stub, paymentRepository, stub, stub, stub, stub, stub, stub);
+  const interactor = new GatewayInteractor(stub, paymentRepository, stub, stub, stub, stub, stub, stub, stub);
   return { interactor, paymentRepository };
 }
 
@@ -46,6 +46,23 @@ describe('смена статуса — настоящая причина отк
     const code = await codeOf(interactor.setPaymentStatus({ id: 'p1', status: PaymentStatusEnum.CANCELLED } as any));
     expect(code).toBe('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN');
     expect(paymentRepository.setPaymentStatus).not.toHaveBeenCalled();
+  });
+
+  // Платёж «ожидает решения совета» (заведён до заявок на выплату) кассир не
+  // трогает: дальше его переводит только решение совета (решение владельца 04.11.2026).
+  it('платёж «ожидает решения совета» кассир не переводит — отказ до решения совета', async () => {
+    const { interactor, paymentRepository } = makeInteractor({ id: 'p2', status: PaymentStatusEnum.AWAITING_AUTHORIZATION });
+    const code = await codeOf(interactor.setPaymentStatus({ id: 'p2', status: PaymentStatusEnum.COMPLETED } as any));
+    expect(code).toBe('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN');
+    expect(paymentRepository.setPaymentStatus).not.toHaveBeenCalled();
+  });
+
+  it('системную выплату «ожидает решения совета» платежом не завести — только заявкой', async () => {
+    const { interactor } = makeInteractor(null);
+    const code = await codeOf(
+      interactor.createSystemOutgoingPayment({ payment_hash: 'h', status: PaymentStatusEnum.AWAITING_AUTHORIZATION } as any)
+    );
+    expect(code).toBe('GATEWAY_PAYOUT_BEFORE_COUNCIL_FORBIDDEN');
   });
 
   it('несуществующий платёж — «не найден»', async () => {

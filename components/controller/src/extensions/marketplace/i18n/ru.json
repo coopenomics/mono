@@ -537,7 +537,6 @@
       "quantityLabel": "количество"
     },
     "economy": {
-      "aidCouncilSubmitFailedNote": "Заявление не удалось внести на рассмотрение совета",
       "aidPaymentTitle": "Материальная помощь № {aidHashShort}. {vatExemptNote}",
       "distributionAvailable": "доступно к распределению {availableToDistribute}",
       "distributionReserveDetail": "в общем кошельке {commonBalance}, резерв {reserveAmount}, ",

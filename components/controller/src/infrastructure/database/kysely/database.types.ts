@@ -2534,6 +2534,35 @@ export interface PaymentState {
   updated_at: Generated<Timestamp>;
 }
 
+export interface PayoutRequests {
+  blockchain_data: Json | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  expired_at: Timestamp | null;
+  /**
+   * Хэш заявки — им же станет хэш платежа
+   */
+  hash: string;
+  id: Generated<string>;
+  memo: string | null;
+  payment_details: Json | null;
+  payment_method_id: string | null;
+  provider: string | null;
+  quantity: Numeric;
+  related_entity_id: string | null;
+  related_extension: string | null;
+  statement: Json | null;
+  /**
+   * awaiting — ждёт решения совета, released — платёж создан, declined — совет отказал
+   */
+  status: Generated<string>;
+  symbol: string;
+  type: PaymentsTypeEnum;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
 export interface ProgramWallets {
   _created_at: Generated<Timestamp>;
   _id: Generated<string>;
@@ -2945,6 +2974,7 @@ export interface DB {
   payment_files: PaymentFiles;
   payment_state: PaymentState;
   payments: Payments;
+  payout_requests: PayoutRequests;
   program_wallets: ProgramWallets;
   report_drafts: ReportDrafts;
   report_requisites: ReportRequisites;

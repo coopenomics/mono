@@ -312,26 +312,32 @@ async function outgoingPayments(chairman: string, username: string): Promise<any
   return listPayments(chairman, { username, direction: 'OUTGOING' })
 }
 
+const MY_SETTLEMENT = '{ edubridgeMySettlementJournal { kind status amount payment_hash } }'
+
 /**
  * 07 — совет удовлетворил заявление преподавателя о возврате паевого взноса
- * (подано со стола преподавателя). Платёж возврата создаётся вместе с заявлением
- * в состоянии AWAITING_AUTHORIZATION, вопрос в повестке несёт тот же хэш.
- * Голоса «за», утверждение и исполнение решения — wallet::authwthd переводит
- * платёж в PENDING, кассир видит его в реестре.
+ * (подано со стола преподавателя). До решения совета платежа кассиру нет:
+ * возврат держит заявка на выплату, в выписке преподавателя он «на
+ * рассмотрении совета», вопрос в повестке несёт тот же хэш. Голоса «за»,
+ * утверждение и исполнение решения — wallet::authwthd создаёт платёж «ожидает»,
+ * кассир видит его в реестре.
  */
 async function phase07(): Promise<void> {
   const who = fixture(TEACHER)
+  const teacher = await tokenOf(TEACHER)
   const chairman = await tokenOf(CHAIRMAN)
-  const payment = await waitFor(async () => (await outgoingPayments(chairman, who.account))[0] ?? null,
-    { timeoutMs: 60_000, intervalMs: 2_000, label: `платёж возврата ${TEACHER} в реестре` })
-  if (payment.status !== 'AWAITING_AUTHORIZATION') {
-    log(`${TEACHER}: платёж возврата уже ${payment.status}`)
+  const entry = await waitFor(
+    async () => ((await gql<any>(teacher, MY_SETTLEMENT)).edubridgeMySettlementJournal as any[]).find(e => e.kind === 'OUT') ?? null,
+    { timeoutMs: 60_000, intervalMs: 2_000, label: `возврат ${TEACHER} в выписке` })
+  if (entry.status !== 'COUNCIL_REVIEW') {
+    log(`${TEACHER}: возврат уже ${entry.status}`)
     return
   }
-  const agenda = await agendaWith(String(payment.hash))
+  const hash = String(entry.payment_hash).toLowerCase()
+  const agenda = await agendaWith(hash)
   await voteOnDecision(agenda.id, 'for')
   await authorizeDecisionOnChain(agenda.id)
-  await waitFor(async () => (await outgoingPayments(chairman, who.account)).find(p => p.hash === payment.hash && p.status === 'PENDING') ?? null,
+  const payment = await waitFor(async () => (await outgoingPayments(chairman, who.account)).find(p => String(p.hash).toLowerCase() === hash && p.status === 'PENDING') ?? null,
     { timeoutMs: 120_000, intervalMs: 2_000, label: 'платёж возврата ждёт кассира' })
   log(`${TEACHER}: совет утвердил возврат ${payment.quantity} ${payment.symbol}, платёж ждёт кассира`)
 }

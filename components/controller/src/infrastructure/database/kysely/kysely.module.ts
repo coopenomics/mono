@@ -5,6 +5,8 @@ import { MAIN_DATABASE } from '@coopenomics/extension-kit';
 import { PG_POOL, kyselyProvider, mainDatabaseProvider, pgPoolProvider } from './kysely.provider';
 import { KYSELY } from './kysely.tokens';
 import { MEMBERSHIP_EXIT_REQUEST_REPOSITORY } from '~/domain/membership-exit/repositories/membership-exit-request.repository';
+import { PAYOUT_REQUEST_REPOSITORY } from '~/domain/gateway/repositories/payout-request.repository';
+import { PayoutRequestKyselyRepository } from './repositories/payout-request.kysely-repository';
 import { MembershipExitRequestKyselyRepository } from './repositories/membership-exit-request.kysely-repository';
 import { ExtensionKyselyRepository } from './repositories/extension.kysely-repository';
 import { LogExtensionKyselyRepository } from './repositories/log-extension.kysely-repository';
@@ -92,6 +94,7 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     mainDatabaseProvider,
     kyselyProvider,
     { provide: MEMBERSHIP_EXIT_REQUEST_REPOSITORY, useClass: MembershipExitRequestKyselyRepository },
+    { provide: PAYOUT_REQUEST_REPOSITORY, useClass: PayoutRequestKyselyRepository },
     { provide: NOTIFICATION_OUTBOX_REPOSITORY, useClass: NotificationOutboxKyselyRepository },
     { provide: NOTIFICATION_DELIVERY_REPOSITORY, useClass: NotificationDeliveryKyselyRepository },
     { provide: NOTIFICATION_INBOX_REPOSITORY, useClass: NotificationInboxKyselyRepository },
@@ -245,6 +248,7 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     MAIN_DATABASE,
     KYSELY,
     MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
+    PAYOUT_REQUEST_REPOSITORY,
     NOTIFICATION_OUTBOX_REPOSITORY,
     NOTIFICATION_DELIVERY_REPOSITORY,
     NOTIFICATION_INBOX_REPOSITORY,

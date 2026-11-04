@@ -23,6 +23,11 @@ sources:
     - components/controller/src/domain/gateway/**/*.ts
     - components/controller/src/infrastructure/database/kysely/repositories/payment*.kysely-repository.ts
     - components/controller/src/infrastructure/database/kysely/repositories/ipn.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/payout-request.kysely-repository.ts
+    - components/controller/src/application/gateway/services/payout-request.service.ts
+    - components/controller/src/application/gateway/services/withdraw-authorization.listener.ts
+    - components/controller/src/infrastructure/innercoop/payment-desk-innercoop.adapter.ts
+    - components/controller/src/infrastructure/innercoop/payment-innercoop.adapter.ts
     - components/controller/src/infrastructure/database/generator-repositories/repositories/payment-method-generator.repository.ts
 
 cases:
@@ -286,3 +291,52 @@ cases:
     external: unreachable
     external_reason: "реквизиты без поля банка через API стенда не создать: добавление требует банк"
     status: written   # прогон — CI на полигоне ci/tests
+
+# 2026-11-04 (решение владельца): выплата, которую решает совет, до решения
+# живёт заявкой на выплату (таблица payout_requests: сумма, реквизиты на момент
+# подачи, назначение), а не платежом «ожидает решения совета». Платёж кассиру
+# создаёт решение совета (wallet::authwthd, branch::onaidauth), отказ совета
+# закрывает заявку. Реквизиты остаются в базе узла и в цепь не попадают.
+# Миграция переносит висящие платежи «ожидает решения совета» в заявки.
+
+  - id: pay.core.happy.09
+    level: backend
+    kind: happy
+    scenario: >
+      Совет разрешил выплату по заявке (возврат паевого взноса, материальная
+      помощь)
+    expect: >
+      из заявки создаётся платёж «ожидает» с той же суммой, реквизитами и
+      назначением, хэш платежа — хэш заявки; заявка отмечается решённой
+    test: components/controller/tests/unit/gateway/withdraw-authorization.listener.test.ts
+    external: unreachable
+    external_reason: "решение совета приходит действием цепи — снаружи проверяется сидом edubridge (шаг 07) и сценарием экономики участка"
+    status: written
+
+  - id: pay.core.side.21
+    level: backend
+    kind: side
+    scenario: >
+      Повтор события решения совета, отказ совета, подача с занятым хэшем
+    expect: >
+      повтор второго платежа не создаёт; отказ закрывает заявку без платежа и
+      отменяет платёж, если он уже был; занятый платежом или заявкой хэш —
+      отказ GATEWAY_PAYMENT_HASH_DUPLICATE
+    test: components/controller/tests/unit/gateway/withdraw-authorization.listener.test.ts
+    external: unreachable
+    external_reason: "повтор и отказ — события цепи, снаружи не воспроизводятся без голосования совета"
+    status: written
+
+  - id: pay.core.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Кассир меняет статус платежа «ожидает решения совета» (заведён до
+      заявок) либо расширение заводит системную выплату с этим статусом
+    expect: >
+      смена статуса — отказ GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN; системная
+      выплата до решения совета — отказ GATEWAY_PAYOUT_BEFORE_COUNCIL_FORBIDDEN
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    external: unreachable
+    external_reason: "после миграции платежей «ожидает решения совета» на узле нет — снаружи состояние не создать"
+    status: written

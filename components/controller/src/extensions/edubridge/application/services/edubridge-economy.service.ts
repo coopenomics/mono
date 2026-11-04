@@ -5,6 +5,7 @@ import {
   LEDGER2_HISTORY_PORT,
   PAYMENT_PORT,
   PaymentStatus,
+  InnerPayoutRequestStatus,
   USER_WALLET_PORT,
   type ILedger2HistoryPort,
   type IPaymentPort,
@@ -182,13 +183,15 @@ export class EdubridgeEconomyService {
     const outgoing = await Promise.all(
       returns.map(async (r): Promise<EduSettlementEntryDTO> => {
         const payment = await this.payments.findByHash(r.payment_hash);
+        // До решения совета платежа нет — состояние возврата несёт заявка на выплату.
+        const request = payment ? null : await this.payments.findPayoutRequestByHash(r.payment_hash);
         return {
           id: r.id,
           at: r.created_at,
           kind: EduSettlementEntryKind.OUT,
           title: i18nT('edubridge.economy.settlement.return'),
           amount: r.amount,
-          status: returnStatus(payment?.status),
+          status: payment ? returnStatus(payment.status) : requestStatus(request?.status),
           contribution_id: null,
           return_id: r.id,
           payment_hash: r.payment_hash,
@@ -392,8 +395,24 @@ const PROGRAM_SHARE_WALLET = 'w.edu.share';
 const SHARE_SETTLE_OPERATION = 'o.edu.ridshr';
 
 /**
- * Состояние возврата — по платежу шлюза: ждёт решения совета, одобрен и ждёт
- * кассира, выплачен, либо не состоялся. Платежа нет — возврат не состоялся.
+ * Состояние возврата до решения совета — по заявке на выплату: ждёт решения
+ * совета, разрешён (платёж кассиру уже создан), отклонён. Заявки нет — возврат
+ * не состоялся.
+ */
+function requestStatus(status: InnerPayoutRequestStatus | undefined): EduSettlementEntryStatus {
+  switch (status) {
+    case InnerPayoutRequestStatus.AWAITING:
+      return EduSettlementEntryStatus.COUNCIL_REVIEW;
+    case InnerPayoutRequestStatus.RELEASED:
+      return EduSettlementEntryStatus.AWAITING_PAYOUT;
+    default:
+      return EduSettlementEntryStatus.DECLINED;
+  }
+}
+
+/**
+ * Состояние возврата — по платежу шлюза: ждёт решения совета (платёж заведён
+ * до заявок), одобрен и ждёт кассира, выплачен, либо не состоялся.
  */
 function returnStatus(status: PaymentStatus | undefined): EduSettlementEntryStatus {
   switch (status) {
