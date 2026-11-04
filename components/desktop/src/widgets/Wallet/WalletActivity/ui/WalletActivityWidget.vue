@@ -183,7 +183,7 @@ interface DrawerView {
   title: string;
   amountLabel: string;
   amount: string;
-  at: string | Date;
+  at: unknown;
   state?: string;
   wallet?: string | null;
   destination?: string | null;
