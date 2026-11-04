@@ -52,6 +52,7 @@ void edubridge::holdrid(eosio::name coopname,
   uint64_t assignment_id = 0;
   uint64_t course_id = 0;
   eosio::time_point_sec held_at;
+  Edubridge::edu_rid_lesson lesson_info;
   bool single = pack.empty();
 
   if (single) {
@@ -68,6 +69,12 @@ void edubridge::holdrid(eosio::name coopname,
     assignment_id = lesson->assignment_id;
     course_id     = lesson->course_id;
     held_at       = lesson->held_at;
+    // Запись занятия стирается — для возврата оплаты при отказе совета её
+    // номер, минуты и цены переходят в запись материалов.
+    lesson_info.number  = lesson->number;
+    lesson_info.minutes = lesson->minutes;
+    lesson_info.cost    = lesson->cost;
+    lesson_info.charge  = lesson->charge;
     lessons_by_hash.erase(lesson);
   } else {
     // Занятия гарантийного срока принимаются разом, одним актом: названы все
@@ -134,6 +141,7 @@ void edubridge::holdrid(eosio::name coopname,
     r.hold_until       = hold_until;
     r.created_at       = now;
     r.course_id        = course_id;
+    if (single) r.lesson.emplace(lesson_info);
     rid_id             = r.id;
   });
 

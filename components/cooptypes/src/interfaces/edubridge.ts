@@ -261,6 +261,13 @@ export interface IRecallrid {
   reason: string
 }
 
+/** Отказ совета по взносу занятия: подписки группы, где занятие рассчитано, получают оплату назад. */
+export interface IRefundlesson {
+  coopname: IName
+  rid_hash: IChecksum256
+  subs: IChecksum256[]
+}
+
 export interface IOnRidAuth {
   coopname: IName
   hash: IChecksum256

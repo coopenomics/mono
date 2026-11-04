@@ -78,6 +78,11 @@ export * as Declinerid from './declinerid'
 export * as Recallrid from './recallrid'
 
 /**
+ * Отказ совета по взносу занятия: оплата возвращается ученикам, номер занятия освобождается.
+ */
+export * as Refundlesson from './refundlesson'
+
+/**
  * Трансляция паевого взноса преподавателя в «Цифровой Кошелёк»: o.edu.wthshr.
  */
 export * as Wthshare from './wthshare'

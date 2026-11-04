@@ -99,3 +99,13 @@ cases:
     test: C9S/docs-factory:test/education-program.test.ts
     api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
+
+  # 02.11.2026 (решение владельца): отказ совета по взносу занятия возвращает
+  # ученикам оплату — в RAM ничего сверх живых записей не хранится.
+  - id: edu.contract.side.06
+    level: contract
+    kind: side
+    scenario: "Совет отказал по взносу результатом занятия; контроллер до recallrid вызывает refundlesson с подписками группы"
+    expect: "Подпискам, где занятие рассчитано, оплата занятия возвращена в резерв (часть из кошелька программы — o.edu.allot), минуты занятия не проведены, удержание выровнено; номер и минуты занятия освобождены в условиях группы; повторный вызов отклоняется; подписки, которых нет, пропускаются."
+    test: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
