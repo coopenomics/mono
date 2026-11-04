@@ -24,7 +24,7 @@ import { walletEventsTopic } from '~/application/wallet/services/wallet-events.s
 const makeResolver = () => {
   const iterator = {} as AsyncIterator<unknown>;
   const pubSub = { asyncIterator: jest.fn().mockReturnValue(iterator) } as any;
-  const resolver = new WalletResolver({} as any, pubSub);
+  const resolver = new WalletResolver({} as any, pubSub, {} as any);
   return { resolver, pubSub, iterator };
 };
 
