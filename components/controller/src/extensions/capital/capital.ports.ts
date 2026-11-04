@@ -23,6 +23,7 @@ import {
   EXPENSE_CHASSIS_PORT,
   FREE_DECISION_PORT,
   INTEGRATION_SETTINGS_PORT,
+  LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   MATRIX_ROOM_MESSAGING_PORT,
   MUTATION_LOG_PORT,
@@ -43,6 +44,8 @@ import {
 
 export const capitalPorts = {
   required: [
+    // Повтор взноса в программу: проведено ли заявление с этим invest_hash — по журналу ledger2.
+    LEDGER2_HISTORY_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     ACCOUNT_PORT,
     CANDIDATE_PORT,

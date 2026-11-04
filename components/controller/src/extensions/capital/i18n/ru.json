@@ -1488,6 +1488,7 @@
     "CAPITAL_PROCESS_TEMPLATE_NO_START_STEPS": "В шаблоне нет стартовых шагов",
     "CAPITAL_PROGRAM_DOC_DATA_HASH_EMPTY": "Hash PrivateData документов ЦПП не может быть пустым",
     "CAPITAL_PROGRAM_DOC_DATA_HASH_MISSING": "Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital",
+    "CAPITAL_PROGRAM_INVEST_DUPLICATE": "Это заявление о взносе в программу уже принято: повторно оно не проводится",
     "CAPITAL_PROJECT_ALREADY_EXISTS": "Проект с хэшем {hash} уже существует",
     "CAPITAL_PROJECT_AMOUNT_MISSING": "Сумма проекта не найдена",
     "CAPITAL_PROJECT_AMOUNT_NOT_POSITIVE": "Сумма проекта не может быть меньше или равна 0",
