@@ -1,26 +1,20 @@
 <template lang="pug">
-//- Выбор периода оборотов в шапке страницы «Фонды»: кнопка с названием
-//- периода, список готовых периодов открывается меню под кнопкой.
-BaseButton(variant='secondary' size='sm')
-  template(#icon-left)
-    q-icon(name='date_range' size='18px')
-  | {{ $t(`reports.fundsPage.period.${fundsPeriod}`) }}
-  q-icon.q-ml-xs(name='expand_more' size='18px')
-  q-menu(anchor='bottom right' self='top right')
-    q-list(dense)
-      q-item(
-        v-for='key in FUNDS_PERIOD_KEYS'
-        :key='key'
-        v-close-popup
-        clickable
-        :active='key === fundsPeriod'
-        active-class='text-primary'
-        @click='fundsPeriod = key'
-      )
-        q-item-section {{ $t(`reports.fundsPage.period.${key}`) }}
+//- Выбор периода оборотов в шапке страницы «Фонды». Шапка рисуется вне дерева
+//- страницы, поэтому значение — общий для кнопки и страницы `fundsPeriod`.
+MenuSelectButton(:model-value='fundsPeriod' :options='options' icon='date_range' @update:model-value='select')
 </template>
 
 <script setup lang="ts">
-import { BaseButton } from 'src/shared/ui/base'
-import { FUNDS_PERIOD_KEYS, fundsPeriod } from '../model/period'
+import { computed } from 'vue'
+import { MenuSelectButton, type MenuSelectOption } from 'src/shared/ui/domain'
+import { FUNDS_PERIOD_KEYS, fundsPeriod, type FundsPeriodKey } from '../model/period'
+import { t } from '../../../i18n'
+
+const options = computed<MenuSelectOption[]>(() =>
+  FUNDS_PERIOD_KEYS.map((key) => ({ value: key, label: t(`reports.fundsPage.period.${key}`) })),
+)
+
+function select(value: string | number): void {
+  fundsPeriod.value = value as FundsPeriodKey
+}
 </script>

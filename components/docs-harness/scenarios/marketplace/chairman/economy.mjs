@@ -36,18 +36,19 @@ export default async ({ page, shot, expect, env, context }) => {
   await shot(
     page,
     '01-economy',
-    'Экономика на столе администратора: три настройки модели — ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца и потолок резерва социально-экономического обеспечения пайщиков на получателя в месяц. Ниже строкой — проценты фондов накопления кооператива, ими распоряжается совет. Доля и потолок применяются при расчёте итога месяца, прошедшие месяцы не пересчитываются.',
+    'Экономика на столе администратора: один ряд плиток — ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва материальной помощи на получателя в месяц и проценты фондов накопления кооператива (ими распоряжается совет). Число правится карандашом у значения, подробности — подсказкой у подписи.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Ставка обеспечительной части').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Обеспечительная часть').first()).toBeVisible({ timeout: 20000 });
         await expect(p.locator('text=Доля инициатора').first()).toBeVisible({ timeout: 20000 });
-        await expect(p.locator('text=Потолок резерва').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Потолок резерва матпомощи').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Фонды накопления').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );
 
   // Окно правки доли инициатора: подсказка о том, что прошедшие месяцы не пересчитываются.
-  await page.locator('[data-setting="initiator"] button').first().click();
+  await page.locator('button[aria-label="Доля инициатора в экономии участка"]').first().click();
   await page.waitForTimeout(600);
   await shot(
     page,

@@ -4,7 +4,8 @@ import { useLiveReload } from 'src/shared/lib/realtime'
 import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
-import { AmountInput, PageHint } from 'src/shared/ui/domain'
+import { AmountInput, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 import {
@@ -34,33 +35,22 @@ import { t } from 'src/shared/i18n';
  *
  * Проценты фондов накопления здесь только читаются: ими распоряжается совет.
  *
- * Паттерн «настройка-значение» как в банковских приложениях: значение
- * показывается статичным крупным числом (не полем-инпутом), правка — в
- * отдельном сфокусированном диалоге. Так экран не «прыгает» при переходе
- * просмотр↔правка и не притворяется формой там, где меняют одну цифру.
+ * Раскладка (замечание владельца 04.11.2026): настройки и фонды — одним рядом
+ * общих плиток чисел `StatStrip`: короткая подпись, число крупно, пояснение
+ * строкой ниже, подробности — подсказкой у подписи. Правка — карандашом у
+ * числа, в отдельном диалоге: экран не притворяется формой там, где меняют
+ * одну цифру.
  */
 
 type SettingKey = 'fee' | 'initiator' | 'aidLimit'
 
-interface SettingCard {
-  key: SettingKey
-  label: string
-  /** Отформатированное значение без единицы. */
-  value: string
-  unit: string
-  caption: string
-}
-
-const loading = ref(false)
+const loading = ref(true)
+const firstLoad = useFirstLoad(loading)
 const saving = ref(false)
 const dialogOpen = ref(false)
 const editing = ref<SettingKey>('fee')
 const settings = ref<MarketplaceEconomySettingsView | null>(null)
 const draft = ref<number>(0)
-
-function percentText(value: number | undefined): string {
-  return (value ?? 0).toFixed(2).replace('.', ',')
-}
 
 function assetAmount(asset: string | undefined): number {
   return Number.parseFloat(asset?.split(' ')[0] ?? '0') || 0
@@ -70,39 +60,76 @@ function assetSymbol(asset: string | undefined): string {
   return asset?.split(' ')[1] ?? ''
 }
 
-const cards = computed<SettingCard[]>(() => [
-  {
-    key: 'fee',
-    label: t('marketplace.marketEconomy.feeLabel'),
-    value: percentText(settings.value?.membership_fee_percent),
-    unit: '%',
-    caption: t('marketplace.marketEconomy.statSubtitle'),
-  },
-  {
-    key: 'initiator',
-    label: t('marketplace.marketEconomy.initiatorShareLabel'),
-    value: percentText(settings.value?.initiator_share_percent),
-    unit: '%',
-    caption: t('marketplace.marketEconomy.initiatorShareSubtitle'),
-  },
-  {
-    key: 'aidLimit',
-    label: t('marketplace.marketEconomy.aidLimitLabel'),
-    value: formatAsset2Digits(settings.value?.aid_month_limit ?? '0.0000 RUB').split(' ')[0] || '0,00',
-    unit: assetSymbol(settings.value?.aid_month_limit),
-    caption: assetAmount(settings.value?.aid_month_limit) > 0
-      ? t('marketplace.marketEconomy.aidLimitSubtitle')
-      : t('marketplace.marketEconomy.aidLimitDisabledSubtitle'),
-  },
-])
+/** Полное название настройки — заголовок и подпись поля диалога правки. */
+const SETTING_LABELS: Record<SettingKey, string> = {
+  fee: t('marketplace.marketEconomy.feeLabel'),
+  initiator: t('marketplace.marketEconomy.initiatorShareLabel'),
+  aidLimit: t('marketplace.marketEconomy.aidLimitLabel'),
+}
 
-/** Фонды накопления одной строкой: «Неделимый фонд 1 %, Резервный фонд 15 %, …». */
-const fundsLine = computed(() => {
+/** Процент без лишних нулей: 38 → «38», 61,80 → «61,8». */
+function percentShort(value: number | undefined): string {
+  return Number(value ?? 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+}
+
+/** Состав фондов накопления для подсказки: «Неделимый фонд 1 %, Резервный фонд 15 %, …». */
+const fundsHint = computed(() => {
   const funds = settings.value?.funds ?? []
   if (!funds.length) return t('marketplace.marketEconomy.fundsEmpty')
-  const parts = funds.map((f) => `${f.name} ${percentText(f.percent).replace(',00', '')} %`)
-  return t('marketplace.marketEconomy.fundsLine', { funds: parts.join(', '), total: percentText(settings.value?.funds_percent).replace(',00', '') })
+  const parts = funds.map((f) => `${f.name} ${percentShort(f.percent)} %`)
+  return t('marketplace.marketEconomy.fundsHint', { funds: parts.join(', ') })
 })
+
+/** Плитки по пути денег заказа: ставка → доля инициатора в экономии → потолок резерва → фонды. */
+const tiles = computed<StatStripItem[]>(() => {
+  const s = settings.value
+  const limitOn = assetAmount(s?.aid_month_limit) > 0
+  return [
+    {
+      key: 'fee',
+      caption: t('marketplace.marketEconomy.feeTileCaption'),
+      value: percentShort(s?.membership_fee_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.feeTileSub'),
+      hint: t('marketplace.marketEconomy.feeTileHint'),
+      icon: 'receipt_long',
+      editLabel: t('marketplace.marketEconomy.feeLabel'),
+    },
+    {
+      key: 'initiator',
+      caption: t('marketplace.marketEconomy.initiatorTileCaption'),
+      value: percentShort(s?.initiator_share_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.initiatorShareSubtitle'),
+      hint: t('marketplace.marketEconomy.periodSettingsHint'),
+      icon: 'trending_up',
+      editLabel: t('marketplace.marketEconomy.initiatorShareLabel'),
+    },
+    {
+      key: 'aidLimit',
+      caption: t('marketplace.marketEconomy.aidLimitTileCaption'),
+      value: formatAsset2Digits(s?.aid_month_limit ?? '0.0000 RUB').split(' ')[0] || '0,00',
+      symbol: assetSymbol(s?.aid_month_limit),
+      sub: limitOn ? t('marketplace.marketEconomy.aidLimitTileSub') : t('marketplace.marketEconomy.aidLimitTileOffSub'),
+      hint: t('marketplace.marketEconomy.aidLimitTileHint'),
+      icon: 'volunteer_activism',
+      editLabel: t('marketplace.marketEconomy.aidLimitLabel'),
+    },
+    {
+      key: 'funds',
+      caption: t('marketplace.marketEconomy.fundsTileCaption'),
+      value: percentShort(s?.funds_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.fundsTileSub'),
+      hint: fundsHint.value,
+      icon: 'account_balance',
+    },
+  ]
+})
+
+function onEditTile(key: string): void {
+  if (key === 'fee' || key === 'initiator' || key === 'aidLimit') openDialog(key)
+}
 
 const currentValue = computed<number>(() => {
   const s = settings.value
@@ -115,7 +142,7 @@ const currentValue = computed<number>(() => {
 })
 
 const changed = computed(() => Number(draft.value) !== currentValue.value)
-const editingCard = computed(() => cards.value.find((c) => c.key === editing.value) ?? cards.value[0])
+const dialogTitle = computed(() => SETTING_LABELS[editing.value])
 const dialogSymbol = computed(() => (editing.value === 'aidLimit' ? assetSymbol(settings.value?.aid_month_limit) : '%'))
 const dialogMax = computed(() => (editing.value === 'aidLimit' ? undefined : 100))
 const dialogHint = computed(() =>
@@ -215,33 +242,11 @@ useLiveReload(marketLiveTables('order', 'warehouse'), () => loadTurnover(true))
 q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
     | {{ $t('marketplace.marketEconomy.intro') }}
-    | {{ $t('marketplace.marketEconomy.introPeriod') }}
 
-  //- Три настройки одной сеткой: одинаковые карточки «подпись — число — пояснение»,
-  //- правка каждой — в своём диалоге.
-  .admin-economy__cards
-    .admin-economy__card(v-for='card in cards', :key='card.key', :data-setting='card.key')
-      .admin-economy__stat
-        .admin-economy__label {{ card.label }}
-        .admin-economy__value
-          span.admin-economy__amount {{ card.value }}
-          span.admin-economy__unit {{ card.unit }}
-        .admin-economy__caption {{ card.caption }}
-      BaseButton.admin-economy__edit(
-        variant='secondary',
-        size='sm',
-        :disabled='loading',
-        @click='openDialog(card.key)'
-      )
-        template(#icon-left)
-          q-icon(name='edit', size='16px')
-        | {{ $t('marketplace.marketEconomy.editButton') }}
-
-  //- Проценты фондов накопления — для чтения: ими распоряжается совет.
-  .admin-economy__funds
-    q-icon(name='account_balance', size='18px')
-    span {{ fundsLine }}
-    span.admin-economy__funds-note {{ $t('marketplace.marketEconomy.fundsNote') }}
+  //- Модель кооператива одним рядом плиток: три настройки администратора
+  //- (правка — карандашом у числа, своим диалогом) и проценты фондов накопления
+  //- только для чтения — ими распоряжается совет. Подробности — подсказкой у подписи.
+  StatStrip(:items='tiles' :loading='firstLoad' :framed='false' @edit='onEditTile')
 
   TurnoverTop(
     v-model='periodDays',
@@ -250,11 +255,11 @@ q-page.admin-economy
     :loading='turnoverLoading'
   )
 
-  BaseDialog(v-model='dialogOpen', :title='editingCard.label', size='sm')
+  BaseDialog(v-model='dialogOpen', :title='dialogTitle', size='sm')
     p.admin-economy__dialog-hint {{ dialogHint }}
     AmountInput(
       v-model='draft',
-      :label='editingCard.label',
+      :label='dialogTitle',
       :symbol='dialogSymbol',
       :precision='2',
       :min='0',
@@ -273,92 +278,22 @@ q-page.admin-economy
 
 <style scoped lang="scss">
 .admin-economy {
-  padding: var(--p-6, 24px);
+  padding: var(--p-6);
   display: flex;
   flex-direction: column;
-  gap: var(--p-4, 16px);
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--p-4, 16px);
-  }
-
-  &__card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-4, 16px);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    padding: var(--p-5, 20px) var(--p-6, 24px);
-  }
-
-  &__label {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    margin-bottom: var(--p-1, 4px);
-  }
-
-  &__caption {
-    margin-top: var(--p-1, 4px);
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
-  }
-
-  &__value {
-    display: flex;
-    align-items: baseline;
-    gap: var(--p-1, 4px);
-    color: var(--p-ink);
-  }
-
-  &__amount {
-    font-size: var(--p-fs-h1, 24px);
-    line-height: var(--p-lh-h1, 1.2);
-    letter-spacing: var(--p-ls-h1, -0.018em);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1;
-  }
-
-  &__unit {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 500;
-    color: var(--p-ink-2);
-  }
-
-  &__edit {
-    flex-shrink: 0;
-  }
-
-  &__funds {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
-  }
-
-  &__funds-note {
-    color: var(--p-ink-3);
-  }
+  gap: var(--p-6);
 
   &__dialog-hint {
     margin: 0;
     color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
+    font-size: var(--p-fs-body-sm);
+    line-height: var(--p-lh-body-sm);
   }
 }
 
 @media (max-width: 599px) {
   .admin-economy {
-    padding: var(--p-4, 16px);
+    padding: var(--p-4);
   }
 }
 </style>
