@@ -25,6 +25,7 @@ sources:
     - components/controller/src/application/decision/resolvers/decision.resolver.ts
     - components/controller/src/application/agenda/resolvers/agenda.resolver.ts
     - components/controller/src/application/document-approval/resolvers/document-approval.resolver.ts
+    - components/controller/src/application/process-registry/resolvers/process-registry.resolver.ts
   ui:
     - components/desktop/extensions/soviet/install.ts
 
@@ -182,3 +183,21 @@ cases:
       читает только совет; свой журнал оплат пайщик-кооператив видит по имени
       из сессии
     status: missing
+
+# 2026-11-04 (решение владельца): процесс читает и его участник — пайщик,
+# названный в шагах процесса (операции учётной книги, а до денег — строка
+# сущности). Заявитель материальной помощи видит процесс своего заявления.
+
+  - id: core.rights.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик открывает процесс по хэшу: свой (он в шагах процесса или в строке
+      заявления до выплаты) и чужой
+    expect: >
+      свой — читает; чужой — отказ KIT_RIGHT_SCOPE_OWN; совет читает любой
+      процесс; процесса нет — отвечает сама операция «не найден»
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+

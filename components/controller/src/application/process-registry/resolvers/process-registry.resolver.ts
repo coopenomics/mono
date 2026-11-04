@@ -24,7 +24,9 @@ export class ProcessRegistryResolver {
     description: 'Получить полную картину процесса ledger2 по process_hash',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Process', 'read:all')
+  // Совет читает любой процесс; пайщик — процесс, в котором он участник
+  // (заявитель матпомощи видит процесс своего заявления).
+  @RequireRight('Process', ['read:own', 'read:all'], { of: 'Process', id: 'hash', match: 'any' })
   async getProcess(
     @Args('hash') hash: string,
     @Args('coopname') coopname: string
