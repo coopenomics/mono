@@ -324,7 +324,7 @@ const MY_SETTLEMENT = '{ edubridgeMySettlementJournal { kind status amount payme
  */
 async function phase07(): Promise<void> {
   const who = fixture(TEACHER)
-  const teacher = await tokenOf(TEACHER)
+  const teacher = await tokenOf(who)
   const chairman = await tokenOf(CHAIRMAN)
   const entry = await waitFor(
     async () => ((await gql<any>(teacher, MY_SETTLEMENT)).edubridgeMySettlementJournal as any[]).find(e => e.kind === 'OUT') ?? null,
