@@ -42,26 +42,24 @@ div.funds-page
       q-separator
       .funds-page__drawer-body
         template(v-if='drawerTab === "history"')
-          BaseTable(
-            v-if='movements.length || historyLoading'
-            :columns='historyColumns'
-            :rows='movements'
-            row-key='global_sequence'
-            :loading='historyLoading'
-            :skeleton-rows='4'
-          )
-            template(#cell-amount='{ row }')
-              span.funds-page__num(:class='row.direction === IN ? "funds-page__in" : "funds-page__out"') {{ formatAsset2Digits(row.amount) }}
-            template(#cell-counterparty='{ row }')
-              WalletIdCell(:wallet-name='row.counterparty_wallet')
-            template(#cell-process='{ row }')
-              BaseButton(
-                v-if='row.process_hash'
-                variant='ghost'
-                size='sm'
-                @click='toProcess(row)'
-              ) {{ $t('reports.fundsPage.toProcessLabel') }}
-              span.t-faint(v-else) —
+          //- Узкая панель — лента строк, а не широкая таблица: слева операция и
+          //- мета-строка (дата · кошелёк другой стороны), справа сумма со знаком.
+          //- Строка с процессом открывает его операции в реестре.
+          .funds-page__history(v-if='movements.length || historyLoading')
+            template(v-if='historyLoading && !movements.length')
+              q-skeleton.funds-page__history-skel(v-for='n in 4' :key='n' type='rect' height='48px')
+            button.funds-page__history-row(
+              v-for='row in movements'
+              :key='row.global_sequence'
+              type='button'
+              :class='{ "funds-page__history-row--link": !!row.process_hash }'
+              :disabled='!row.process_hash'
+              @click='toProcess(row)'
+            )
+              .funds-page__history-main
+                .funds-page__history-title {{ row.operation_name }}
+                .funds-page__history-meta {{ historyMeta(row) }}
+              .funds-page__num.funds-page__history-amount(:class='row.direction === IN ? "funds-page__in" : "funds-page__out"') {{ formatAsset2Digits(row.amount) }}
           EmptyState(
             v-else
             :title='$t("reports.fundsPage.historyEmptyTitle")'
@@ -217,13 +215,12 @@ const columns: BaseTableColumn<IDeskFund>[] = [
   { key: 'outcome', label: t('reports.fundsPage.column.outcome'), align: 'right', numeric: true, field: (row) => formatAsset2Digits(row.outcome) },
 ]
 
-const historyColumns: BaseTableColumn<IDeskFundMovement>[] = [
-  { key: 'created_at', label: t('reports.fundsPage.history.date'), field: (row) => formatDate(row.created_at), nowrap: true },
-  { key: 'operation_name', label: t('reports.fundsPage.history.operation'), field: 'operation_name' },
-  { key: 'amount', label: t('reports.fundsPage.history.amount'), align: 'right', numeric: true },
-  { key: 'counterparty', label: t('reports.fundsPage.history.counterparty') },
-  { key: 'process', label: '', align: 'right' },
-]
+/** Мета-строка движения: дата и, если есть, кошелёк другой стороны. */
+function historyMeta(row: IDeskFundMovement): string {
+  const counterparty = row.counterparty_name || row.counterparty_wallet;
+  return [formatDate(row.created_at), counterparty].filter(Boolean).join(' · ');
+}
+
 
 function kindLabel(kind: string): string {
   return kind === ACCUM ? t('reports.fundsPage.kind.accum') : t('reports.fundsPage.kind.expend')
@@ -286,6 +283,7 @@ function loadMore(): void {
 
 /** Строка истории открывает реестр операций по хэшу процесса: заказ, записка, заявление. */
 function toProcess(row: IDeskFundMovement): void {
+  if (!row.process_hash) return
   void router.push({ name: 'reports-operations', query: { process_hash: row.process_hash ?? '' } })
 }
 
@@ -379,6 +377,66 @@ useLiveReload(FUNDS_LIVE_TABLES, async () => {
 
 .funds-page__description p {
   margin: var(--p-1) 0 0;
+}
+
+.funds-page__history {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  overflow: hidden;
+}
+
+.funds-page__history-skel {
+  margin: var(--p-2) var(--p-3);
+}
+
+.funds-page__history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--p-4);
+  padding: var(--p-3) var(--p-4);
+  border: 0;
+  border-bottom: 1px solid var(--p-line);
+  background: var(--p-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.funds-page__history-row--link {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--p-surface-2);
+  }
+}
+
+.funds-page__history-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.funds-page__history-title {
+  color: var(--p-ink);
+}
+
+.funds-page__history-meta {
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+}
+
+.funds-page__history-amount {
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .funds-page__more {
