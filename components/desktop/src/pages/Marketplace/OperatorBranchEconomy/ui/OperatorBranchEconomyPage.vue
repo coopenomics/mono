@@ -570,8 +570,8 @@ async function onDeleteWeight(username: string): Promise<void> {
 // ─── Резерв социально-экономического обеспечения пайщиков (председатель КУ) ───
 //
 // Строка резерва — предел материальной помощи получателя за месяц; сумму
-// строк контракт учитывает расходом участка при расчёте итога месяца. Потолок
-// строки ставит администратор кооператива; ноль выключает резерв целиком.
+// строк контракт учитывает расходом участка при расчёте итога месяца. Верхний
+// предел строки ставит администратор кооператива; ноль выключает резерв целиком.
 
 const { confirm } = useConfirm()
 
@@ -579,6 +579,8 @@ const reserveLimit = computed(() => (reserves.value ? assetAmount(reserves.value
 const reserveEnabled = computed(() => reserveLimit.value > 0)
 const reserveSymbol = computed(() => (reserves.value ? assetSymbol(reserves.value.limit) : assetSymbol(personalBalance.value)))
 const reserveRows = computed<MarketplaceBranchReserveRow[]>(() => reserves.value?.rows ?? [])
+/** Резерв участка в месяц — сумма строк для карточки; итог месяца считает контракт сам. */
+const reserveTotal = computed(() => reserveRows.value.reduce((sum, r) => sum + assetAmount(String(r.amount)), 0))
 
 const reserveColumns = computed<BaseTableColumn<MarketplaceBranchReserveRow>[]>(() => [
   { key: 'recipient', label: i18nT('marketplace.operatorBranchEconomyPage.reserveColumnRecipient'), width: '260px' },
@@ -1039,45 +1041,76 @@ q-page.economy
     //- на материальную помощь, сумма строк — расход участка в итоге месяца.
     //- Председатель участка ведёт строки, потолок строки ставит администратор.
     template(v-if='activeKey === "reserve"')
-      .t-muted.q-mb-md(v-if='reserves && reserveEnabled')
-        | {{ $t('marketplace.operatorBranchEconomyPage.reserveLimitLabel', { limit: formatAsset2Digits(reserves.limit) }) }}
-      .banner.banner--info.q-mb-md(v-if='reserves && !reserveEnabled')
-        q-icon.banner__icon(name='info', size='18px')
-        .banner__body {{ $t('marketplace.operatorBranchEconomyPage.reserveDisabledBanner') }}
+      //- Как на соседних вкладках: пара карточек над таблицей — верхний предел
+      //- строки (ставит администратор) и резерв участка в месяц (сумма строк,
+      //- расход участка в итоге месяца). Нет предела — резерв выключен целиком.
+      template(v-if='reserveEnabled')
+        .economy__cards
+          WalletCard(
+            program='wallet',
+            icon='vertical_align_top',
+            :title='$t("marketplace.operatorBranchEconomyPage.reserveLimitTitle")',
+            :subtitle='$t("marketplace.operatorBranchEconomyPage.reserveLimitSubtitle")',
+            :balance='reserveLimit.toFixed(2)',
+            :symbol='reserveSymbol',
+            :loading='loading && !reserves'
+          )
+          WalletCard(
+            program='wallet',
+            icon='volunteer_activism',
+            :title='$t("marketplace.operatorBranchEconomyPage.reserveTotalTitle")',
+            :subtitle='$t("marketplace.operatorBranchEconomyPage.reserveTotalSubtitle")',
+            :balance='reserveTotal.toFixed(2)',
+            :symbol='reserveSymbol',
+            :loading='loading && !reserves'
+          )
 
-      BaseTable(
-        v-if='firstLoad || reserveRows.length',
-        :columns='reserveColumns',
-        :rows='reserveRows',
-        row-key='username',
-        :loading='firstLoad',
-        min-width='780px'
+        .economy__section
+          BaseTable(
+            v-if='firstLoad || reserveRows.length',
+            :columns='reserveColumns',
+            :rows='reserveRows',
+            row-key='username',
+            :loading='firstLoad',
+            min-width='780px'
+          )
+            template(#cell-recipient='{ row: r }')
+              .economy__name {{ nameByUsername[r.username] || r.username }}
+            template(#cell-amount='{ row: r }')
+              span.t-mono {{ formatAsset2Digits(r.amount) }}
+            template(#cell-submitted='{ row: r }')
+              span.t-mono {{ formatAsset2Digits(r.submitted) }}
+            template(#cell-remaining='{ row: r }')
+              span.t-mono {{ formatAsset2Digits(r.remaining) }}
+            template(#cell-actions='{ row: r }')
+              .economy__row-actions
+                BaseButton(variant='secondary', size='sm', :disabled='reserveSaving', @click='openEditReserve(r)') {{ $t('marketplace.operatorBranchEconomyPage.reserveEditAction') }}
+                BaseButton(
+                  variant='ghost',
+                  icon-only,
+                  size='sm',
+                  :aria-label='$t("marketplace.operatorBranchEconomyPage.reserveDeleteAction")',
+                  :disabled='reserveSaving',
+                  @click='onDeleteReserve(r)'
+                )
+                  template(#icon-left)
+                    q-icon(name='person_remove', size='18px')
+
+          EmptyState(
+            v-if='!firstLoad && !reserveRows.length',
+            :title='$t("marketplace.operatorBranchEconomyPage.reserveEmptyTitle")',
+            :body='$t("marketplace.operatorBranchEconomyPage.reserveEmptyBody")'
+          )
+            template(#icon)
+              q-icon(name='volunteer_activism', size='48px')
+
+      EmptyState(
+        v-else-if='reserves',
+        :title='$t("marketplace.operatorBranchEconomyPage.reserveOffTitle")',
+        :body='$t("marketplace.operatorBranchEconomyPage.reserveOffBody")'
       )
-        template(#cell-recipient='{ row: r }')
-          .economy__name {{ nameByUsername[r.username] || r.username }}
-        template(#cell-amount='{ row: r }')
-          span.t-mono {{ formatAsset2Digits(r.amount) }}
-        template(#cell-submitted='{ row: r }')
-          span.t-mono {{ formatAsset2Digits(r.submitted) }}
-        template(#cell-remaining='{ row: r }')
-          span.t-mono {{ formatAsset2Digits(r.remaining) }}
-        template(#cell-actions='{ row: r }')
-          .economy__row-actions
-            BaseButton(variant='secondary', size='sm', :disabled='reserveSaving', @click='openEditReserve(r)') {{ $t('marketplace.operatorBranchEconomyPage.reserveEditAction') }}
-            BaseButton(
-              variant='ghost',
-              icon-only,
-              size='sm',
-              :aria-label='$t("marketplace.operatorBranchEconomyPage.reserveDeleteAction")',
-              :disabled='reserveSaving',
-              @click='onDeleteReserve(r)'
-            )
-              template(#icon-left)
-                q-icon(name='person_remove', size='18px')
-
-      .banner.banner--info(v-else-if='reserves && reserveEnabled')
-        q-icon.banner__icon(name='info', size='18px')
-        .banner__body {{ $t('marketplace.operatorBranchEconomyPage.reserveEmptyBanner') }}
+        template(#icon)
+          q-icon(name='volunteer_activism', size='48px')
 
     //- Мои средства — свободная доля (получена после распределения) и лента
     //- выплат: каждое «Получить» превращается в карточку своего статуса.
