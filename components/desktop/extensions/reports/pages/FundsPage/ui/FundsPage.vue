@@ -2,28 +2,21 @@
 //- Фонды кооператива на кошельках учётной книги (задача 99D-24). Кошелёк и есть
 //- субсчёт фонда: остаток — остаток кошелька, обороты и история — операции
 //- учётной книги, у которых кошелёк фонда стоит источником или получателем.
+//- Зоны страницы сверху вниз: подсказка — что такое фонды и как они пополняются;
+//- плитки — сколько денег в фондах и как они двигались за период (период
+//- выбирается кнопкой в шапке приложения); таблица — каждый фонд; панель справа —
+//- история и настройки фонда.
 div.funds-page
-  .funds-page__toolbar
-    .funds-page__period
-      BaseInput(
-        v-model='dateFrom'
-        type='date'
-        :label='$t("reports.fundsPage.periodFromLabel")'
-      )
-      BaseInput(
-        v-model='dateTo'
-        type='date'
-        :label='$t("reports.fundsPage.periodToLabel")'
-      )
-    .funds-page__summary
-      .t-muted {{ $t('reports.fundsPage.percentSumLine', { sum: percentSumLabel }) }}
-      .t-faint {{ $t('reports.fundsPage.percentHint') }}
+  PageHint(storage-key='reports:funds:banner-dismissed')
+    | {{ $t('reports.fundsPage.hint') }}
+
+  StatStrip(:items='stats' :loading='firstLoad' :framed='false')
 
   BaseTable(
     :columns='columns'
     :rows='funds'
     row-key='id'
-    :loading='loading'
+    :loading='firstLoad'
     clickable-rows
     :skeleton-rows='5'
     @row-click='openFund'
@@ -35,18 +28,6 @@ div.funds-page
     template(#cell-percent='{ row }')
       span(v-if='row.kind === ACCUM') {{ percentLabel(row.percent) }}
       span.t-faint(v-else) —
-
-  //- Вложения «Благороста» — справка, не фонд: расходы программы идут со счёта
-  //- вложений (08), а не из целевого финансирования (вопрос бухгалтеру BB1-2).
-  .funds-page__investments(v-if='investments')
-    .funds-page__investments-head
-      .t-muted {{ $t('reports.fundsPage.investmentsTitle') }}
-      .t-faint {{ $t('reports.fundsPage.investmentsHint') }}
-    .funds-page__investments-row
-      WalletIdCell(:wallet-name='investments.wallet')
-      span {{ investments.wallet_name }}
-      span.funds-page__num {{ formatAsset2Digits(investments.available) }}
-      span.funds-page__num.t-muted {{ $t('reports.fundsPage.turnoverLine', { income: formatAsset2Digits(investments.income), outcome: formatAsset2Digits(investments.outcome) }) }}
 
   //- Панель фонда: остаток крупно, обороты, настройки; вкладки «История» и «О фонде».
   DetailsDrawer(v-model='drawerOpen' :title='selected ? selected.name : ""' :width='560')
@@ -126,7 +107,7 @@ div.funds-page
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { FundContract } from 'cooptypes'
@@ -135,10 +116,12 @@ import { useLiveReload, liveTable } from 'src/shared/lib/realtime'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { formatAsset2Digits } from 'src/shared/lib/utils'
+import { addAssets, formatAsset2Digits } from 'src/shared/lib/utils'
+import { useFirstLoad } from 'src/shared/lib/composables'
+import { useHeaderActions } from 'src/shared/hooks/useHeaderActions'
 import { BaseButton, BaseChip, BaseDialog, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseTableColumn } from 'src/shared/ui/base'
-import { DataRow, DetailsDrawer } from 'src/shared/ui/domain'
+import { DataRow, DetailsDrawer, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
 import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import {
   editDeskFund,
@@ -148,6 +131,8 @@ import {
   type IDeskFundMovement,
 } from 'app/extensions/reports/shared/lib/registries'
 import { WalletIdCell } from '../../../shared/ui'
+import { fundsPeriod, fundsPeriodRange } from '../model/period'
+import FundsPeriodButton from './FundsPeriodButton.vue'
 import { t } from '../../../i18n'
 
 const { info } = useSystemStore()
@@ -164,11 +149,13 @@ const IN = Zeus.ReportsFundMovementDirection.IN
 
 // Первая загрузка показывает каркас таблицы, не «пусто».
 const loading = ref(true)
+const firstLoad = useFirstLoad(loading)
 const funds = ref<IDeskFund[]>([])
-const investments = ref<IDeskFund | null>(null)
 const percentSum = ref(0)
-const dateFrom = ref('')
-const dateTo = ref('')
+
+/** Кнопка периода — в шапке приложения, справа. */
+const { registerAction, unregisterAction } = useHeaderActions()
+const PERIOD_ACTION_ID = 'reports-funds-period'
 
 const drawerOpen = ref(false)
 const drawerTab = ref<'history' | 'about'>('history')
@@ -187,7 +174,22 @@ const editPercent = ref('')
 const saving = ref(false)
 
 const canEdit = computed(() => isChairman.value)
-const percentSumLabel = computed(() => percentLabel(percentSum.value))
+
+/** Сумма сумм пяти фондов: остаток и обороты за период — для плиток над таблицей. */
+function total(pick: (f: IDeskFund) => string): string {
+  return formatAsset2Digits(funds.value.map(pick).reduce((acc, v) => addAssets(acc, v), '0'))
+}
+
+/** Плитки по пути денег: сколько в фондах → что поступило → что списано → какой процент получают фонды накопления. */
+const stats = computed<StatStripItem[]>(() => {
+  const periodSub = t(`reports.fundsPage.periodSub.${fundsPeriod.value}`)
+  return [
+    { key: 'available', caption: t('reports.fundsPage.stats.available'), value: total((f) => f.available), sub: t('reports.fundsPage.stats.availableSub'), icon: 'account_balance' },
+    { key: 'income', caption: t('reports.fundsPage.stats.income'), value: total((f) => f.income), sub: periodSub, icon: 'south_west' },
+    { key: 'outcome', caption: t('reports.fundsPage.stats.outcome'), value: total((f) => f.outcome), sub: periodSub, icon: 'north_east' },
+    { key: 'percent', caption: t('reports.fundsPage.stats.percent'), value: percentLabel(percentSum.value), sub: t('reports.fundsPage.stats.percentSub'), hint: t('reports.fundsPage.stats.percentHint'), icon: 'percent' },
+  ]
+})
 
 /** Сумма процентов остальных фондов накопления — чтобы отказ по сумме был виден до отправки. */
 const othersPercent = computed(() => {
@@ -243,18 +245,13 @@ function formatDate(value: string | Date): string {
 }
 
 function periodInput() {
-  return {
-    coopname: info.coopname,
-    date_from: dateFrom.value ? new Date(`${dateFrom.value}T00:00:00`) : undefined,
-    date_to: dateTo.value ? new Date(`${dateTo.value}T23:59:59`) : undefined,
-  }
+  return { coopname: info.coopname, ...fundsPeriodRange(fundsPeriod.value) }
 }
 
 async function load(): Promise<void> {
   try {
     const registry = await loadDeskFunds(periodInput())
     funds.value = registry.funds
-    investments.value = registry.investments ?? null
     percentSum.value = Number(registry.percent_sum)
   } catch (e) {
     FailAlert(e)
@@ -322,12 +319,16 @@ async function saveEdit(): Promise<void> {
   }
 }
 
-watch([dateFrom, dateTo], () => {
+watch(fundsPeriod, () => {
   void load()
   if (drawerOpen.value) void loadHistory(1)
 })
 
-onMounted(load)
+onMounted(() => {
+  registerAction({ id: PERIOD_ACTION_ID, component: FundsPeriodButton, order: 10 })
+  void load()
+})
+onBeforeUnmount(() => unregisterAction(PERIOD_ACTION_ID))
 useLiveReload(FUNDS_LIVE_TABLES, async () => {
   await load()
   if (drawerOpen.value) await loadHistory(1)
@@ -338,43 +339,12 @@ useLiveReload(FUNDS_LIVE_TABLES, async () => {
 .funds-page {
   display: flex;
   flex-direction: column;
-  gap: var(--p-4);
-}
+  gap: var(--p-5);
+  padding: var(--p-6);
 
-.funds-page__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--p-4);
-}
-
-.funds-page__period {
-  display: flex;
-  gap: var(--p-3);
-}
-
-.funds-page__summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-  max-width: 48ch;
-}
-
-.funds-page__investments {
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-  padding: var(--p-3) var(--p-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-
-.funds-page__investments-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--p-4);
+  @media (max-width: 768px) {
+    padding: var(--p-4);
+  }
 }
 
 .funds-page__num {

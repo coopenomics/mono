@@ -62,12 +62,6 @@ export class ReportsFundsRegistryDTO {
 
   @Field(() => Float, { description: 'Сумма процентов фондов накопления, проценты' })
   percent_sum!: number;
-
-  @Field(() => ReportsFundDTO, {
-    nullable: true,
-    description: 'Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд',
-  })
-  investments!: ReportsFundDTO | null;
 }
 
 @InputType('ReportsFundsInput', { description: 'Запрос реестра фондов за период' })

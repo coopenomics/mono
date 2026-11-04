@@ -102,15 +102,6 @@ describe('fnd.wal.backend.01 — реестр фондов: остатки по 
     expect(economic.outcome).toBe('500.0000 RUB');
     expect(economic.income).toBe('100.0000 RUB');
   });
-
-  it('справка о вложениях «Благороста» — пул расходов программы на счёте 08', async () => {
-    const { service } = makeService([op('o.exp.blgdir', '20000.0000 RUB')], [{ id: 'w.cap.pgexp', available: '115520.0000 RUB' }]);
-    const view = await service.registryView({ coopname: COOP });
-    expect(view.investments?.wallet).toBe('w.cap.pgexp');
-    expect(view.investments?.account).toBe(8_000);
-    expect(view.investments?.available).toBe('115520.0000 RUB');
-    expect(view.investments?.outcome).toBe('20000.0000 RUB');
-  });
 });
 
 describe('fnd.wal.backend.02 — история фонда: знак суммы, вторая сторона, без транзита', () => {

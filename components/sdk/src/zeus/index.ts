@@ -17757,8 +17757,6 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 ["ReportsFundsRegistry"]: AliasType<{
 	/** Пять стандартных фондов по порядку номеров */
 	funds?:ValueTypes["ReportsFund"],
-	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
-	investments?:ValueTypes["ReportsFund"],
 	/** Сумма процентов фондов накопления, проценты */
 	percent_sum?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -35996,8 +35994,6 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 ["ReportsFundsRegistry"]: AliasType<{
 	/** Пять стандартных фондов по порядку номеров */
 	funds?:ResolverInputTypes["ReportsFund"],
-	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
-	investments?:ResolverInputTypes["ReportsFund"],
 	/** Сумма процентов фондов накопления, проценты */
 	percent_sum?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -54195,8 +54191,6 @@ export type ModelTypes = {
 ["ReportsFundsRegistry"]: {
 		/** Пять стандартных фондов по порядку номеров */
 	funds: Array<ModelTypes["ReportsFund"]>,
-	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
-	investments?: ModelTypes["ReportsFund"] | undefined | null,
 	/** Сумма процентов фондов накопления, проценты */
 	percent_sum: number
 };
@@ -73459,8 +73453,6 @@ export type GraphQLTypes = {
 	__typename: "ReportsFundsRegistry",
 	/** Пять стандартных фондов по порядку номеров */
 	funds: Array<GraphQLTypes["ReportsFund"]>,
-	/** Вложения в программу «Благорост»: пул расходов программы на счёте вложений — справка, не фонд */
-	investments?: GraphQLTypes["ReportsFund"] | undefined | null,
 	/** Сумма процентов фондов накопления, проценты */
 	percent_sum: number,
 	['...on ReportsFundsRegistry']: Omit<GraphQLTypes["ReportsFundsRegistry"], "...on ReportsFundsRegistry">

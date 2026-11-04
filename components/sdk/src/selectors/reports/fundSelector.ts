@@ -21,11 +21,10 @@ const _validateFund: MakeAllFieldsRequired<ValueTypes['ReportsFund']> = rawRepor
 export type reportsFundModel = ModelTypes['ReportsFund']
 export const reportsFundSelector = Selector('ReportsFund')(rawReportsFundSelector)
 
-// Реестр фондов: пять фондов, сумма процентов и справка о вложениях «Благороста».
+// Реестр фондов: пять фондов и сумма процентов фондов накопления.
 export const rawReportsFundsRegistrySelector = {
   funds: rawReportsFundSelector,
   percent_sum: true,
-  investments: rawReportsFundSelector,
 }
 
 const _validateRegistry: MakeAllFieldsRequired<ValueTypes['ReportsFundsRegistry']> = rawReportsFundsRegistrySelector

@@ -2,22 +2,22 @@
 //- Плитка числа — одна на все экраны образования: подпись сверху, число крупно,
 //- пояснение снизу. Значок, если есть, стоит справа от подписи одним цветом;
 //- правка числа — карандашом у значения.
-.edu-tile
-  .edu-tile__top
-    .edu-tile__caption
+.stat-tile
+  .stat-tile__top
+    .stat-tile__caption
       span {{ caption }}
-      q-icon.edu-tile__hint(v-if="hint" name="help_outline" size="14px")
+      q-icon.stat-tile__hint(v-if="hint" name="help_outline" size="14px")
         q-tooltip(max-width="320px") {{ hint }}
-    q-icon.edu-tile__icon(v-if="icon" :name="icon" size="18px")
-  .edu-tile__value
+    q-icon.stat-tile__icon(v-if="icon" :name="icon" size="18px")
+  .stat-tile__value
     template(v-if="loading") —
     slot(v-else)
       | {{ value }}
-      span.edu-tile__ccy(v-if="symbol") {{ symbol }}
-    BaseButton.edu-tile__edit(v-if="editLabel && !loading" variant="ghost" size="sm" icon-only :aria-label="editLabel" @click="emit('edit')")
+      span.stat-tile__ccy(v-if="symbol") {{ symbol }}
+    BaseButton.stat-tile__edit(v-if="editLabel && !loading" variant="ghost" size="sm" icon-only :aria-label="editLabel" @click="emit('edit')")
       template(#icon-left)
         q-icon(name="edit" size="16px")
-  .edu-tile__sub(v-if="sub") {{ sub }}
+  .stat-tile__sub(v-if="sub") {{ sub }}
 </template>
 
 <script setup lang="ts">
@@ -40,7 +40,7 @@ const emit = defineEmits<{ edit: [] }>();
 </script>
 
 <style scoped>
-.edu-tile {
+.stat-tile {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
@@ -51,13 +51,13 @@ const emit = defineEmits<{ edit: [] }>();
   /* Чистая карточка: фон поверхности и тонкая рамка, без серой заливки. */
   background: var(--p-surface);
 }
-.edu-tile__top {
+.stat-tile__top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--p-2);
 }
-.edu-tile__caption {
+.stat-tile__caption {
   display: flex;
   align-items: center;
   gap: var(--p-1);
@@ -68,15 +68,15 @@ const emit = defineEmits<{ edit: [] }>();
   font-weight: 500;
   color: var(--p-ink-2);
 }
-.edu-tile__hint {
+.stat-tile__hint {
   color: var(--p-ink-3);
   cursor: help;
 }
-.edu-tile__icon {
+.stat-tile__icon {
   flex: none;
   color: var(--p-ink-3);
 }
-.edu-tile__value {
+.stat-tile__value {
   display: flex;
   align-items: center;
   gap: var(--p-1);
@@ -88,18 +88,18 @@ const emit = defineEmits<{ edit: [] }>();
   font-feature-settings: 'tnum' 1;
   white-space: nowrap;
 }
-.edu-tile__ccy {
+.stat-tile__ccy {
   margin-left: 0.3em;
   font-size: var(--p-fs-body-sm);
   font-weight: 400;
   letter-spacing: 0;
   color: var(--p-ink-3);
 }
-.edu-tile__edit {
+.stat-tile__edit {
   flex: none;
   color: var(--p-ink-3);
 }
-.edu-tile__sub {
+.stat-tile__sub {
   font-size: var(--p-fs-body-sm);
   line-height: var(--p-lh-body-sm);
   color: var(--p-ink-2);

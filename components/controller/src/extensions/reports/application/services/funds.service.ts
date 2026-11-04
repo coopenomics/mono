@@ -39,11 +39,6 @@ const TRANSIT_CODES: ReadonlySet<string> = new Set([
   'o.brn.aidfnd',
 ]);
 
-/** Пул расходов программы «Благорост»: вложения на счёте 08 — справочная строка реестра фондов (до ответа бухгалтера, BB1-2). */
-const INVESTMENTS_WALLET = 'w.cap.pgexp';
-const INVESTMENTS_ACCOUNT = 8_000;
-const INVESTMENTS_ID = 0;
-
 /** Страница истории при подсчёте оборотов за период и предел страниц. */
 const TURNOVER_PAGE = 500;
 const TURNOVER_MAX_PAGES = 40;
@@ -125,7 +120,7 @@ export class FundsService {
     @Inject(LEDGER2_HISTORY_PORT) private readonly ledger: ILedger2HistoryPort
   ) {}
 
-  /** Реестр фондов с остатками и оборотами за период; справкой — вложения «Благороста». */
+  /** Реестр фондов с остатками и оборотами за период. */
   async registryView(input: ReportsFundsInputDTO): Promise<ReportsFundsRegistryDTO> {
     const [rows, wallets] = await Promise.all([
       this.registry.listFunds(input.coopname),
@@ -138,11 +133,10 @@ export class FundsService {
     for (const row of rows) {
       funds.push(await this.fundView(input, row, availableOf, symbol));
     }
-    const investments = await this.investmentsView(input, availableOf, symbol);
     const percent_sum = funds
       .filter((f) => f.kind === ReportsFundKind.ACCUMULATION)
       .reduce((sum, f) => sum + f.percent, 0);
-    return { funds, percent_sum: Math.round(percent_sum * 100) / 100, investments };
+    return { funds, percent_sum: Math.round(percent_sum * 100) / 100 };
   }
 
   /** История движений одного фонда по страницам: только операции, меняющие остаток фонда. */
@@ -251,29 +245,6 @@ export class FundsService {
       wallet_name: Ledger2.getWalletHumanName(wallet) ?? wallet,
       account: Ledger2.getWalletAccount(wallet),
       available: availableOf.get(wallet) ?? this.zero(symbol),
-      income: turnover.income,
-      outcome: turnover.outcome,
-    };
-  }
-
-  /** Справка о вложениях «Благороста»: пул расходов программы на счёте 08, не фонд. */
-  private async investmentsView(
-    input: ReportsFundsInputDTO,
-    availableOf: Map<string, string>,
-    symbol: string
-  ): Promise<ReportsFundDTO | null> {
-    if (!this.operationsOfWallet(INVESTMENTS_WALLET).length) return null;
-    const turnover = await this.turnover(input, INVESTMENTS_WALLET, symbol);
-    return {
-      id: INVESTMENTS_ID,
-      kind: ReportsFundKind.EXPENDITURE,
-      name: Ledger2.getWalletHumanName(INVESTMENTS_WALLET) ?? INVESTMENTS_WALLET,
-      description: '',
-      percent: 0,
-      wallet: INVESTMENTS_WALLET,
-      wallet_name: Ledger2.getWalletHumanName(INVESTMENTS_WALLET) ?? INVESTMENTS_WALLET,
-      account: INVESTMENTS_ACCOUNT,
-      available: availableOf.get(INVESTMENTS_WALLET) ?? this.zero(symbol),
       income: turnover.income,
       outcome: turnover.outcome,
     };

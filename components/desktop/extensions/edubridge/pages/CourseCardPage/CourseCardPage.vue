@@ -98,7 +98,7 @@ import { programSpanCompact, programSpanLabel } from '../../shared/lib/courseMon
 import { SubscribeDialog } from '../../features/Subscribe';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero } from '../../widgets/CourseHero';
-import { StatTile } from '../../shared/ui/StatStrip';
+import { StatTile } from 'src/shared/ui/domain';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';

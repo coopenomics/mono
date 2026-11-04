@@ -33,3 +33,4 @@ export * from './VerificationConfirmDialog';
 export * from './VerticalStepper';
 export * from './WalletCard';
 export * from './StatusPage';
+export * from './StatStrip';

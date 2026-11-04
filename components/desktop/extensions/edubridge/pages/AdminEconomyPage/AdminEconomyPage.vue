@@ -119,11 +119,10 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, IdentityCell, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain';
 import { MoneyFlowGuide } from '../../widgets/MoneyFlowGuide';
 import { PROGRAM_WALLET_ICONS, PROGRAM_WALLET_ORDER, type ProgramWalletId } from '../../shared/lib/programWallets';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
-import { StatStrip, type StatStripItem } from '../../shared/ui/StatStrip';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ExpenseCreateDialog, ExpenseProposalDetails, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
 import {
