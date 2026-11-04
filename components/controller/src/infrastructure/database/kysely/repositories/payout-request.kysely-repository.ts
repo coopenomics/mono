@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Selectable } from 'kysely';
+import { affectedCount } from '@coopenomics/extension-kit';
 import {
   PayoutRequestStatusEnum,
   type PayoutRequestCreate,
@@ -82,14 +83,36 @@ export class PayoutRequestKyselyRepository implements PayoutRequestRepository {
   async markDecided(
     hash: string,
     status: PayoutRequestStatusEnum.RELEASED | PayoutRequestStatusEnum.DECLINED
-  ): Promise<void> {
+  ): Promise<boolean> {
     const now = new Date();
-    await this.db
+    const result = await this.db
       .updateTable('payout_requests')
       .set({ status, decided_at: now, updated_at: now })
       .where('hash', '=', hash.toLowerCase())
       .where('status', '=', PayoutRequestStatusEnum.AWAITING)
       .execute();
+    return affectedCount(result) > 0;
+  }
+
+  async reopen(hash: string): Promise<void> {
+    await this.db
+      .updateTable('payout_requests')
+      .set({ status: PayoutRequestStatusEnum.AWAITING, decided_at: null, updated_at: new Date() })
+      .where('hash', '=', hash.toLowerCase())
+      .where('status', '=', PayoutRequestStatusEnum.RELEASED)
+      .execute();
+  }
+
+  async listAwaitingByMember(coopname: string, username: string): Promise<PayoutRequestDomainInterface[]> {
+    const rows = await this.db
+      .selectFrom('payout_requests')
+      .selectAll()
+      .where('coopname', '=', coopname)
+      .where('username', '=', username)
+      .where('status', '=', PayoutRequestStatusEnum.AWAITING)
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map(toDomain);
   }
 
   async deleteAwaiting(hash: string): Promise<void> {

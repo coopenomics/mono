@@ -64,7 +64,9 @@ describe('WithdrawAuthorizationListener — возврат паевого взн
     requests = {
       create: jest.fn(),
       findByHash: jest.fn().mockResolvedValue(request()),
-      markDecided: jest.fn().mockResolvedValue(undefined),
+      markDecided: jest.fn().mockResolvedValue(true),
+      reopen: jest.fn().mockResolvedValue(undefined),
+      listAwaitingByMember: jest.fn().mockResolvedValue([]),
       deleteAwaiting: jest.fn().mockResolvedValue(undefined),
     };
     const service = new PayoutRequestService(requests, payments as unknown as PaymentRepository);
@@ -112,10 +114,28 @@ describe('WithdrawAuthorizationListener — возврат паевого взн
 
     it('заявка отклонена ранее — платёж не создаётся', async () => {
       requests.findByHash.mockResolvedValue(request(PayoutRequestStatusEnum.DECLINED));
+      requests.markDecided.mockResolvedValue(false);
 
       await listener.onAuthWithdraw(action({ hash: HASH_UPPER }));
 
       expect(payments.create).not.toHaveBeenCalled();
+    });
+
+    // 04.11.2026: два слушателя одного решения создали два платежа кассиру.
+    it('одновременный вызов: заявку уже забрал другой — второй платёж не создаётся', async () => {
+      requests.markDecided.mockResolvedValue(false);
+
+      await listener.onAuthWithdraw(action({ hash: HASH_UPPER }));
+
+      expect(payments.create).not.toHaveBeenCalled();
+    });
+
+    it('платёж создать не удалось — заявка снова ждёт решения, повтор её подхватит', async () => {
+      payments.create.mockRejectedValue(new Error('база недоступна'));
+
+      await expect(listener.onAuthWithdraw(action({ hash: HASH_UPPER }))).rejects.toThrow('база недоступна');
+
+      expect(requests.reopen).toHaveBeenCalledWith(HASH_LOWER);
     });
 
     it('не реагирует на withdraw_hash — у этого действия поля с таким именем нет', async () => {

@@ -411,27 +411,23 @@ import {
     // (payconfirm/paydecline) для зеркалирования статуса выплаты поставщику.
     // Сам кассир работает в общем столе кооператива через расширение
     // gateway, marketplace только подписывается на blockchain-action delta.
-    {
-      provide: MARKETPLACE_PAYOUT_SYNC_SERVICE,
-      useClass: MarketplacePayoutSyncService,
-    },
+    { provide: MARKETPLACE_PAYOUT_SYNC_SERVICE, useExisting: MarketplacePayoutSyncService },
     MarketplacePayoutSyncService,
     // requirement b6 (2026-08-03) — слушатель callback'ов от gateway
     // (aidconfirm/aiddecline) для зеркалирования статуса выплаты
     // материальной помощи доверенному КУ, тем же паттерном, что и выплата
     // поставщику выше.
-    {
-      provide: MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
-      useClass: MarketplaceAidPayoutSyncService,
-    },
+    { provide: MARKETPLACE_AID_PAYOUT_SYNC_SERVICE, useExisting: MarketplaceAidPayoutSyncService },
     MarketplaceAidPayoutSyncService,
     // requirement b6 — слушатель решений совета по заявлению на матпомощь
     // (onaidauth/onaiddecl): открывает платёж кассиру либо отменяет его.
+    // useExisting: один экземпляр — иначе на onaidauth подписаны два слушателя,
+    // и решение совета обрабатывается дважды (04.11.2026: два платежа кассиру).
+    MarketplaceAidCouncilSyncService,
     {
       provide: MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
-      useClass: MarketplaceAidCouncilSyncService,
+      useExisting: MarketplaceAidCouncilSyncService,
     },
-    MarketplaceAidCouncilSyncService,
     // requirement b6 (2026-08-13) — удержанный НДФЛ: расчёт остатка долга
     // перед бюджетом, отправка платежа кассиру и слушатель его подтверждения.
     // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
@@ -501,10 +497,7 @@ import {
     MarketplaceUndeliveredOrderCronService,
     MarketplaceReviewInviteCronService,
     // Задача 99D-14: инварианты учёта Стола заказов
-    {
-      provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
-      useClass: MarketplaceLedgerInvariantsService,
-    },
+    { provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE, useClass: MarketplaceLedgerInvariantsService },
     MarketplaceLedgerInvariantsResolver,
     // Эпик 16 — корзина заказчика
     {

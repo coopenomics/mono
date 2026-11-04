@@ -39,8 +39,16 @@ export interface PayoutRequestRepository {
   create(data: PayoutRequestCreate): Promise<PayoutRequestDomainInterface>;
   /** Поиск по хэшу без учёта регистра: цепь отдаёт хэш заглавными. */
   findByHash(hash: string): Promise<PayoutRequestDomainInterface | null>;
-  /** Отметить решение совета; заявка, по которой решение уже есть, не переписывается. */
-  markDecided(hash: string, status: InnerPayoutRequestStatus.RELEASED | InnerPayoutRequestStatus.DECLINED): Promise<void>;
+  /**
+   * Отметить решение совета, если заявка ещё ждёт его. `true` — решение
+   * отметил этот вызов; `false` — заявку уже решили (повтор, одновременный
+   * вызов). Так платёж из заявки создаёт ровно один вызов.
+   */
+  markDecided(hash: string, status: InnerPayoutRequestStatus.RELEASED | InnerPayoutRequestStatus.DECLINED): Promise<boolean>;
+  /** Вернуть заявку в ожидание решения — платёж из неё создать не удалось. */
+  reopen(hash: string): Promise<void>;
+  /** Заявки пайщика, которые ждут решения совета, — новые сверху. */
+  listAwaitingByMember(coopname: string, username: string): Promise<PayoutRequestDomainInterface[]>;
   /** Снять заявку, которая так и не дошла до совета (подача в цепь не удалась). */
   deleteAwaiting(hash: string): Promise<void>;
 }

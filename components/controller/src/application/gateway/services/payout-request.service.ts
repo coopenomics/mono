@@ -70,15 +70,22 @@ export class PayoutRequestService {
       this.logger.warn(`Выплата ${key.slice(0, 8)}: ни заявки, ни платежа — решение совета не к чему применить`);
       return null;
     }
-    if (request.status === PayoutRequestStatusEnum.DECLINED) {
-      this.logger.warn(`Выплата ${key.slice(0, 8)}: заявка отклонена ранее — платёж не создаётся`);
-      return null;
+    // Заявку забирает тот вызов, который первым отметил решение: повтор и
+    // одновременный вызов платежа не создают.
+    if (!(await this.requests.markDecided(key, PayoutRequestStatusEnum.RELEASED))) {
+      this.logger.debug(`Выплата ${key.slice(0, 8)}: решение по заявке уже отмечено (${request.status}) — платёж не создаётся`);
+      return this.payments.findByHash(key);
     }
 
-    const payment = await this.payments.create(paymentFromRequest(request, new Date()));
-    await this.requests.markDecided(key, PayoutRequestStatusEnum.RELEASED);
-    this.logger.log(`Выплата ${key.slice(0, 8)}: совет разрешил, платёж ${payment.id} создан для кассира`);
-    return payment;
+    try {
+      const payment = await this.payments.create(paymentFromRequest(request, new Date()));
+      this.logger.log(`Выплата ${key.slice(0, 8)}: совет разрешил, платёж ${payment.id} создан для кассира`);
+      return payment;
+    } catch (e) {
+      // Платёж не создан — заявка снова ждёт, повтор решения её подхватит.
+      await this.requests.reopen(key);
+      throw e;
+    }
   }
 
   /** Платёж по хэшу уже есть: повтор события либо платёж, заведённый до заявок. */
