@@ -39,8 +39,11 @@ import {
   InnerExpenseRecipientType as ExpenseRecipientType,
 } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
-import { PAYMENT_DESK_PORT, type IPaymentDeskPort, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort, type InnerPayment, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
 import { t as i18nT } from '../../i18n';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_BRANCH_AID_STORE } from '../../infrastructure/database/marketplace-stores';
+import type { MarketplaceBranchAidEntity } from '../../infrastructure/entities/marketplace-branch-aid.entity';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -123,6 +126,16 @@ export interface MarketplaceAidView {
   payment_status: PaymentStatus | null;
   /** Маскированная подпись реквизитов («Сбербанк •1234»), null — реквизиты недоступны. */
   payment_destination: string | null;
+  /** Налог, который кооператив удерживает с суммы заявления, — показ, деление как в контракте. */
+  ndfl_tax: string;
+  /** Сумма на счёт получателя: сумма заявления за вычетом налога. */
+  net_amount: string;
+  /** Вехи процесса: подача, решение совета, платёж у кассира. Null — вехи ещё нет. */
+  submitted_at: Date | null;
+  decided_at: Date | null;
+  payment_created_at: Date | null;
+  payment_completed_at: Date | null;
+  payment_failed_at: Date | null;
 }
 
 /**
@@ -160,7 +173,9 @@ export class MarketplaceEconomyService {
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(EXPENSE_CHASSIS_PORT)
-    private readonly expenseChassis: IExpenseChassisPort
+    private readonly expenseChassis: IExpenseChassisPort,
+    @Inject(MARKETPLACE_BRANCH_AID_STORE)
+    private readonly aidStore: TableStore<MarketplaceBranchAidEntity>
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -797,40 +812,29 @@ export class MarketplaceEconomyService {
   }
 
   /**
-   * Статус и реквизиты core-платежа заявки, по её hash. `null`/`null` —
-   * платёж не создался (см. предупреждение в createAid) либо реквизиты с тех
-   * пор удалены получателем — не блокирует отображение самой заявки.
+   * Заявление для строки и панели стола: стадия, реквизиты и статус платежа,
+   * налог и сумма на счёт, вехи процесса (подача, решение совета, платёж).
+   * Платёж не найден или реквизиты удалены — заявление всё равно показывается.
+   * Дата подачи — из зеркала заявлений узла, решение — по подписи протокола.
    */
   private async toAidView(
     coopname: string,
     aid: BranchContract.Tables.Aids.IBranchAid
   ): Promise<MarketplaceAidView> {
     const hash = String(aid.hash);
-    let payment_status: PaymentStatus | null = null;
+    const payment = await this.aidPayment(coopname, hash);
     let payment_destination: string | null = null;
-    try {
-      const found = await this.coreGateway.getPayments(
-        { coopname, hash: hash.toLowerCase() },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
-      );
-      const payment = found.items[0];
-      if (payment) {
-        payment_status = payment.status;
-        if (payment.payment_method_id) {
-          try {
-            const method = await this.paymentMethodRepo.get({
-              username: aid.username,
-              method_id: payment.payment_method_id,
-            });
-            payment_destination = formatPayoutDestination(method);
-          } catch {
-            // Реквизиты удалены получателем после подачи заявки — не блокирует.
-          }
-        }
+    if (payment?.payment_method_id) {
+      try {
+        const method = await this.paymentMethodRepo.get({ username: aid.username, method_id: payment.payment_method_id });
+        payment_destination = formatPayoutDestination(method);
+      } catch {
+        // Реквизиты удалены получателем после подачи заявки — не блокирует.
       }
-    } catch {
-      // Платёж не найден в реестре — статус выплаты неизвестен.
     }
+    const mirror = await this.aidStore.findOne({ aid_hash: hash.toLowerCase() }).catch(() => null);
+    const ndfl = ndflBreakdown(this.assetToNumber(aid.amount), this.assetConfig.decimals);
+    const symbol = aid.amount.split(' ')[1] ?? this.assetConfig.symbol;
     return {
       hash,
       username: aid.username,
@@ -840,9 +844,37 @@ export class MarketplaceEconomyService {
         String(aid.status) === BRANCH_AID_STATUS_AUTHORIZED
           ? MarketplaceAidStage.AWAITING_PAYOUT
           : MarketplaceAidStage.ON_COUNCIL,
-      payment_status,
+      payment_status: payment?.status ?? null,
       payment_destination,
+      ndfl_tax: `${ndfl.tax.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      net_amount: `${ndfl.net.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      submitted_at: mirror?.created_at ? new Date(mirror.created_at) : null,
+      decided_at: this.protocolSignedAt(aid),
+      payment_created_at: payment?.created_at ?? null,
+      payment_completed_at: payment?.completed_at ?? null,
+      payment_failed_at: payment?.failed_at ?? null,
     };
+  }
+
+  /** Платёж ядра по хэшу заявки; не найден — null, статус выплаты неизвестен. */
+  private async aidPayment(coopname: string, hash: string): Promise<InnerPayment | null> {
+    try {
+      const found = await this.coreGateway.getPayments(
+        { coopname, hash: hash.toLowerCase() },
+        { page: 1, limit: 1, sortOrder: 'DESC' }
+      );
+      return found.items[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Время подписи протокола совета — момент решения; протокола ещё нет — null. */
+  private protocolSignedAt(aid: BranchContract.Tables.Aids.IBranchAid): Date | null {
+    const signedAt = aid.protocol?.signatures?.[0]?.signed_at;
+    if (!signedAt || /^0+$/.test(String(aid.protocol?.hash ?? '0'))) return null;
+    const date = new Date(`${String(signedAt).replace(/Z?$/, 'Z')}`);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   // ── Внутреннее ────────────────────────────────────────────────────────

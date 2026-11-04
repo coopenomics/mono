@@ -86,7 +86,8 @@ function buildService(setup: StandSetup = {}) {
     {} as any, // coreGateway
     {} as any, // paymentMethodRepo
     {} as any, // orderRepo
-    expenseChassis
+    expenseChassis,
+    {} as any // aidStore — зеркало заявлений на матпомощь здесь не читается
   );
 
   return { service, chainPort, kuChairmanService, expenseChassis };

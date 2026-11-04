@@ -10,7 +10,8 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { DigitalDocument } from 'src/shared/lib/document'
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, PageHint, WalletCard } from 'src/shared/ui/domain'
+import { ActivityTimeline, AmountInput, DataRow, DetailsDrawer, PageHint, WalletCard, type ActivityEvent } from 'src/shared/ui/domain'
+import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
@@ -204,14 +205,53 @@ function assetSymbol(asset: string): string {
 // заявку ещё не видит; после одобрения показываем общий словарь статусов
 // src/shared/lib/payment (тот же, что у стола кассира — ListOfPaymentsWidget).
 function aidStageLabel(aid: MarketplaceAidView): string {
-  if (aid.stage === 'ON_COUNCIL') return i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview')
+  if (aid.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview')
   return paymentStatusLabel(aid.payment_status)
 }
 
 function aidStageVariant(aid: MarketplaceAidView): BaseBadgeVariant {
-  if (aid.stage === 'ON_COUNCIL') return 'info'
+  if (aid.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return 'info'
   return paymentStatusVariant(aid.payment_status)
 }
+
+/** Процесс материальной помощи: его хэш — хэш заявления (реестр процессов ядра). */
+const AID_PROCESS_TYPE = 'p.brn.aid'
+
+const aidColumns = computed<BaseTableColumn<MarketplaceAidView>[]>(() => [
+  { key: 'submitted', label: i18nT('marketplace.operatorBranchEconomyPage.aidColumnSubmitted'), width: '170px', nowrap: true },
+  { key: 'amount', label: i18nT('marketplace.operatorBranchEconomyPage.aidColumnAmount'), width: '150px', numeric: true },
+  { key: 'net', label: i18nT('marketplace.operatorBranchEconomyPage.aidColumnNet'), width: '150px', numeric: true },
+  { key: 'destination', label: i18nT('marketplace.operatorBranchEconomyPage.aidColumnDestination'), width: '220px' },
+  { key: 'stage', label: i18nT('marketplace.operatorBranchEconomyPage.columnStatus'), width: '220px', nowrap: true },
+])
+
+/** Выбранное заявление живёт по хэшу: после перечитывания списка панель показывает свежую строку. */
+const selectedAidHash = ref<string | null>(null)
+const selectedAid = computed(() => aids.value.find((a) => a.hash === selectedAidHash.value) ?? null)
+const aidDrawerOpen = computed({
+  get: () => selectedAid.value !== null,
+  set: (open: boolean) => {
+    if (!open) selectedAidHash.value = null
+  },
+})
+
+function openAid(row: MarketplaceAidView): void {
+  selectedAidHash.value = row.hash
+}
+
+/** Вехи заявления, которые уже наступили: подача → решение совета → платёж у кассира. */
+const aidEvents = computed<ActivityEvent[]>(() => {
+  const a = selectedAid.value
+  if (!a) return []
+  const at = (d: unknown) => formatDateToLocalTimezone(d as string, 'DD.MM.YYYY HH:mm')
+  const ev: ActivityEvent[] = []
+  if (a.submitted_at) ev.push({ id: 'submitted', type: 'sign', icon: 'edit_document', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventSubmitted'), date: at(a.submitted_at) })
+  if (a.decided_at) ev.push({ id: 'decided', type: 'sign', icon: 'gavel', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventDecided'), date: at(a.decided_at) })
+  if (a.payment_created_at) ev.push({ id: 'payment', type: 'transfer', icon: 'payments', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventPaymentCreated'), description: a.payment_destination || undefined, date: at(a.payment_created_at) })
+  if (a.payment_completed_at) ev.push({ id: 'paid', type: 'transfer', icon: 'task_alt', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventPaid'), date: at(a.payment_completed_at) })
+  if (a.payment_failed_at) ev.push({ id: 'failed', type: 'reject', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventFailed'), date: at(a.payment_failed_at) })
+  return ev
+})
 
 function personName(p: { first_name?: string; last_name?: string; middle_name?: string; username: string } | undefined): string {
   if (!p) return ''
@@ -1125,21 +1165,30 @@ q-page.economy
           :loading='loading && !personalBalance'
         )
 
-      //- Заявления на материальную помощь в процессе: пока совет не принял
-      //- решение — показываем стадию рассмотрения, после одобрения — реальный
-      //- статус выплаты у кассира.
+      //- Заявления на материальную помощь — таблицей на всю ширину: дата, сумма,
+      //- на счёт, реквизиты, состояние. Пока совет не решил — бейдж рассмотрения,
+      //- после одобрения — статус выплаты у кассира. Строка открывает панель
+      //- процесса справа: вехи, документы, операции.
       .economy__section(v-if='aids.length')
-        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.inProgressLabel') }}
-        .economy__payout-cards
-          BaseCard(v-for='a in aids', :key='a.hash')
-            template(#head)
-              div
-                .t-mono.economy__payout-amount {{ formatAsset2Digits(a.amount) }}
-                .t-muted {{ $t('marketplace.operatorBranchEconomyPage.aidLabel') }}
-              BaseBadge(:variant='aidStageVariant(a)') {{ aidStageLabel(a) }}
-            .t-muted(v-if='a.stage === "ON_COUNCIL"')
-              | {{ $t('marketplace.operatorBranchEconomyPage.aidUnderReviewHint') }}
-            .t-muted(v-if='a.payment_destination') {{ $t('marketplace.operatorBranchEconomyPage.payoutDestinationLabel', { destination: a.payment_destination }) }}
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.aidsTitle') }}
+        BaseTable(
+          :columns='aidColumns',
+          :rows='aids',
+          row-key='hash',
+          min-width='780px',
+          clickable-rows,
+          @row-click='openAid'
+        )
+          template(#cell-submitted='{ row: a }')
+            span.t-mono {{ a.submitted_at ? formatDateToLocalTimezone(a.submitted_at, 'DD.MM.YYYY HH:mm') : '—' }}
+          template(#cell-amount='{ row: a }')
+            span.t-mono {{ formatAsset2Digits(a.amount) }}
+          template(#cell-net='{ row: a }')
+            span.t-mono {{ formatAsset2Digits(a.net_amount) }}
+          template(#cell-destination='{ row: a }')
+            | {{ a.payment_destination || '—' }}
+          template(#cell-stage='{ row: a }')
+            BaseBadge(:variant='aidStageVariant(a)') {{ aidStageLabel(a) }}
 
       //- История завершённых получений (перевод в Стол заказов + выплаченная
       //- материальная помощь) — движения персонального кошелька ledger2.
@@ -1264,7 +1313,31 @@ q-page.economy
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodInitiatorLine")', :value='nameByUsername[selectedPeriod.initiator] || selectedPeriod.initiator')
       .t-muted(v-if='selectedPeriod.archived') {{ $t('marketplace.operatorBranchEconomyPage.periodArchivedNote') }}
 
-  //- Строка резерва получателя: сумма в месяц, не выше потолка кооператива.
+  //- Заявление на материальную помощь целиком: сумма крупно и состояние,
+  //- расчёт выплаты (налог, на счёт), реквизиты, лента вех процесса и карточка
+  //- процесса p.brn.aid с документами (заявление, решение совета), операциями и
+  //- проводками — тот же виджет, что в карточке заказа.
+  DetailsDrawer(v-model='aidDrawerOpen', :title='$t("marketplace.operatorBranchEconomyPage.aidDrawerTitle")', :width='560')
+    template(v-if='selectedAid')
+      .economy__drawer-amount
+        .t-muted {{ $t('marketplace.operatorBranchEconomyPage.aidAmountLabel') }}
+        .economy__drawer-sum {{ formatAsset2Digits(selectedAid.amount) }}
+        BaseBadge.economy__drawer-badge(:variant='aidStageVariant(selectedAid)') {{ aidStageLabel(selectedAid) }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.aidPayoutTitle') }}
+        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.aidTaxLabel")', :value='formatAsset2Digits(selectedAid.ndfl_tax)', mono)
+        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.aidNetLabel")', :value='formatAsset2Digits(selectedAid.net_amount)', mono)
+        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.aidDestinationLabel")', :value='selectedAid.payment_destination || "—"')
+      .economy__drawer-group(v-if='aidEvents.length')
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.aidTimelineTitle') }}
+        ActivityTimeline(:events='aidEvents')
+      ProcessDetailCard(
+        :coopname='coopname',
+        :process-hash='selectedAid.hash.toLowerCase()',
+        :process-type='AID_PROCESS_TYPE'
+      )
+
+  //- Строка резерва получателя: сумма в месяц, не выше верхнего предела кооператива.
   BaseDialog(
     v-model='reserveDialogOpen',
     :title='reserveEditing ? $t("marketplace.operatorBranchEconomyPage.reserveEditTitle") : $t("marketplace.operatorBranchEconomyPage.reserveAddTitle")',
@@ -1512,15 +1585,8 @@ q-page.economy
     }
   }
 
-  &__payout-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: var(--p-3, 12px);
-  }
-
-  &__payout-amount {
-    font-size: var(--p-fs-md, 1rem);
-    font-weight: 600;
+  &__drawer-badge {
+    align-self: flex-start;
   }
 
   &__get-funds-note {

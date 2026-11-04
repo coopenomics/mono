@@ -10691,14 +10691,28 @@ export type ValueTypes = {
 	amount?:boolean | `@${string}`,
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname?:boolean | `@${string}`,
+	/** Когда совет принял решение о выплате. Пусто — решения ещё нет. */
+	decided_at?:boolean | `@${string}`,
 	/** Идентификатор заявления. */
 	hash?:boolean | `@${string}`,
+	/** Налог на доходы физических лиц, который кооператив удерживает с суммы заявления. */
+	ndfl_tax?:boolean | `@${string}`,
+	/** Сумма, которая поступит на счёт получателя: сумма заявления за вычетом налога. */
+	net_amount?:boolean | `@${string}`,
+	/** Когда платёж исполнен. */
+	payment_completed_at?:boolean | `@${string}`,
+	/** Когда кассир получил платёж к исполнению. */
+	payment_created_at?:boolean | `@${string}`,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?:boolean | `@${string}`,
+	/** Когда платёж отклонён. */
+	payment_failed_at?:boolean | `@${string}`,
 	/** Статус выплаты у кассира. Пусто — платёж не найден в реестре, обратитесь к администратору. */
 	payment_status?:boolean | `@${string}`,
 	/** Стадия заявления: на рассмотрении совета либо одобрено советом и ожидает выплаты кассиром. */
 	stage?:boolean | `@${string}`,
+	/** Когда заявление подано. */
+	submitted_at?:boolean | `@${string}`,
 	/** Получатель материальной помощи. */
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -29162,14 +29176,28 @@ export type ResolverInputTypes = {
 	amount?:boolean | `@${string}`,
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname?:boolean | `@${string}`,
+	/** Когда совет принял решение о выплате. Пусто — решения ещё нет. */
+	decided_at?:boolean | `@${string}`,
 	/** Идентификатор заявления. */
 	hash?:boolean | `@${string}`,
+	/** Налог на доходы физических лиц, который кооператив удерживает с суммы заявления. */
+	ndfl_tax?:boolean | `@${string}`,
+	/** Сумма, которая поступит на счёт получателя: сумма заявления за вычетом налога. */
+	net_amount?:boolean | `@${string}`,
+	/** Когда платёж исполнен. */
+	payment_completed_at?:boolean | `@${string}`,
+	/** Когда кассир получил платёж к исполнению. */
+	payment_created_at?:boolean | `@${string}`,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?:boolean | `@${string}`,
+	/** Когда платёж отклонён. */
+	payment_failed_at?:boolean | `@${string}`,
 	/** Статус выплаты у кассира. Пусто — платёж не найден в реестре, обратитесь к администратору. */
 	payment_status?:boolean | `@${string}`,
 	/** Стадия заявления: на рассмотрении совета либо одобрено советом и ожидает выплаты кассиром. */
 	stage?:boolean | `@${string}`,
+	/** Когда заявление подано. */
+	submitted_at?:boolean | `@${string}`,
 	/** Получатель материальной помощи. */
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -47011,14 +47039,28 @@ export type ModelTypes = {
 	amount: string,
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname: string,
+	/** Когда совет принял решение о выплате. Пусто — решения ещё нет. */
+	decided_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Идентификатор заявления. */
 	hash: string,
+	/** Налог на доходы физических лиц, который кооператив удерживает с суммы заявления. */
+	ndfl_tax: string,
+	/** Сумма, которая поступит на счёт получателя: сумма заявления за вычетом налога. */
+	net_amount: string,
+	/** Когда платёж исполнен. */
+	payment_completed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Когда кассир получил платёж к исполнению. */
+	payment_created_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?: string | undefined | null,
+	/** Когда платёж отклонён. */
+	payment_failed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Статус выплаты у кассира. Пусто — платёж не найден в реестре, обратитесь к администратору. */
 	payment_status?: ModelTypes["PaymentStatus"] | undefined | null,
 	/** Стадия заявления: на рассмотрении совета либо одобрено советом и ожидает выплаты кассиром. */
 	stage: ModelTypes["MarketplaceAidStage"],
+	/** Когда заявление подано. */
+	submitted_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Получатель материальной помощи. */
 	username: string
 };
@@ -65711,14 +65753,28 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname: string,
+	/** Когда совет принял решение о выплате. Пусто — решения ещё нет. */
+	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Идентификатор заявления. */
 	hash: string,
+	/** Налог на доходы физических лиц, который кооператив удерживает с суммы заявления. */
+	ndfl_tax: string,
+	/** Сумма, которая поступит на счёт получателя: сумма заявления за вычетом налога. */
+	net_amount: string,
+	/** Когда платёж исполнен. */
+	payment_completed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Когда кассир получил платёж к исполнению. */
+	payment_created_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?: string | undefined | null,
+	/** Когда платёж отклонён. */
+	payment_failed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Статус выплаты у кассира. Пусто — платёж не найден в реестре, обратитесь к администратору. */
 	payment_status?: GraphQLTypes["PaymentStatus"] | undefined | null,
 	/** Стадия заявления: на рассмотрении совета либо одобрено советом и ожидает выплаты кассиром. */
 	stage: GraphQLTypes["MarketplaceAidStage"],
+	/** Когда заявление подано. */
+	submitted_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Получатель материальной помощи. */
 	username: string,
 	['...on MarketplaceAid']: Omit<GraphQLTypes["MarketplaceAid"], "...on MarketplaceAid">

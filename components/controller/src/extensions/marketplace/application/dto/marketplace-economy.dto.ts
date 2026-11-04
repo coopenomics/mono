@@ -246,6 +246,27 @@ export class MarketplaceAidDTO {
 
   @Field(() => String, { nullable: true, description: 'Реквизиты получателя, на которые уходит выплата (маскированная подпись).' })
   payment_destination?: string | null;
+
+  @Field(() => String, { description: 'Налог на доходы физических лиц, который кооператив удерживает с суммы заявления.' })
+  ndfl_tax!: string;
+
+  @Field(() => String, { description: 'Сумма, которая поступит на счёт получателя: сумма заявления за вычетом налога.' })
+  net_amount!: string;
+
+  @Field(() => Date, { nullable: true, description: 'Когда заявление подано.' })
+  submitted_at?: Date | null;
+
+  @Field(() => Date, { nullable: true, description: 'Когда совет принял решение о выплате. Пусто — решения ещё нет.' })
+  decided_at?: Date | null;
+
+  @Field(() => Date, { nullable: true, description: 'Когда кассир получил платёж к исполнению.' })
+  payment_created_at?: Date | null;
+
+  @Field(() => Date, { nullable: true, description: 'Когда платёж исполнен.' })
+  payment_completed_at?: Date | null;
+
+  @Field(() => Date, { nullable: true, description: 'Когда платёж отклонён.' })
+  payment_failed_at?: Date | null;
 }
 
 @InputType('MarketplaceListAidsInput')

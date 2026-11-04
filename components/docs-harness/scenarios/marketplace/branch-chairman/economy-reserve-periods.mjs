@@ -90,6 +90,27 @@ export default async ({ page, shot, expect }) => {
     await page.waitForTimeout(400);
   }
 
+  // Заявления на материальную помощь — строки на «Моих средствах»; строка
+  // открывает панель процесса справа. Заявлений на стенде может не быть.
+  await openTab(page, 'Мои средства');
+  const aidRow = page.locator('.economy__section:has-text("Заявления на материальную помощь") tbody tr').first();
+  if (await aidRow.count()) {
+    await aidRow.click();
+    await page.waitForTimeout(800);
+    await shot(
+      page,
+      '03b-aid-drawer',
+      'Заявление на материальную помощь в панели справа: сумма заявления крупно и состояние, налог на доходы и сумма на счёт, реквизиты, ход заявления — подано, решение совета, платёж у кассира — и карточка процесса с документами: заявлением и решением совета.',
+      {
+        expect: async (p) => {
+          await expect(p.locator('text=Ход заявления').or(p.locator('text=Поступит на счёт')).first()).toBeVisible({ timeout: 15000 });
+        },
+      },
+    );
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+  }
+
   await openTab(page, 'Итоги месяцев');
   await shot(
     page,

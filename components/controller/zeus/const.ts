@@ -7203,10 +7203,17 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAid:{
 		amount:"String",
 		braname:"String",
+		decided_at:"DateTime",
 		hash:"String",
+		ndfl_tax:"String",
+		net_amount:"String",
+		payment_completed_at:"DateTime",
+		payment_created_at:"DateTime",
 		payment_destination:"String",
+		payment_failed_at:"DateTime",
 		payment_status:"PaymentStatus",
 		stage:"MarketplaceAidStage",
+		submitted_at:"DateTime",
 		username:"String"
 	},
 	MarketplaceAplReception:{
