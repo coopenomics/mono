@@ -10046,8 +10046,7 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String"
 	},
 	ReportsFundsRegistry:{
-		funds:"ReportsFund",
-		percent_sum:"Float"
+		funds:"ReportsFund"
 	},
 	ReportsParticipant:{
 		name:"String",

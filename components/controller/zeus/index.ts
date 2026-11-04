@@ -17677,7 +17677,7 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	name?:boolean | `@${string}`,
 	/** Списания с фонда за период */
 	outcome?:boolean | `@${string}`,
-	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	/** Процент отчислений из членских взносов, проценты; у фондов списания 0 */
 	percent?:boolean | `@${string}`,
 	/** Кошелёк учётной книги — субсчёт фонда */
 	wallet?:boolean | `@${string}`,
@@ -17757,8 +17757,6 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 ["ReportsFundsRegistry"]: AliasType<{
 	/** Пять стандартных фондов по порядку номеров */
 	funds?:ValueTypes["ReportsFund"],
-	/** Сумма процентов фондов накопления, проценты */
-	percent_sum?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ReportsFundsRegistry']?: Omit<ValueTypes["ReportsFundsRegistry"], "...on ReportsFundsRegistry">
 }>;
@@ -35917,7 +35915,7 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	name?:boolean | `@${string}`,
 	/** Списания с фонда за период */
 	outcome?:boolean | `@${string}`,
-	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	/** Процент отчислений из членских взносов, проценты; у фондов списания 0 */
 	percent?:boolean | `@${string}`,
 	/** Кошелёк учётной книги — субсчёт фонда */
 	wallet?:boolean | `@${string}`,
@@ -35994,8 +35992,6 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 ["ReportsFundsRegistry"]: AliasType<{
 	/** Пять стандартных фондов по порядку номеров */
 	funds?:ResolverInputTypes["ReportsFund"],
-	/** Сумма процентов фондов накопления, проценты */
-	percent_sum?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
@@ -54119,7 +54115,7 @@ export type ModelTypes = {
 	name: string,
 	/** Списания с фонда за период */
 	outcome: string,
-	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	/** Процент отчислений из членских взносов, проценты; у фондов списания 0 */
 	percent: number,
 	/** Кошелёк учётной книги — субсчёт фонда */
 	wallet: string,
@@ -54190,9 +54186,7 @@ export type ModelTypes = {
 	/** Реестр фондов кооператива с остатками и оборотами за период */
 ["ReportsFundsRegistry"]: {
 		/** Пять стандартных фондов по порядку номеров */
-	funds: Array<ModelTypes["ReportsFund"]>,
-	/** Сумма процентов фондов накопления, проценты */
-	percent_sum: number
+	funds: Array<ModelTypes["ReportsFund"]>
 };
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
 ["ReportsParticipant"]: {
@@ -73373,7 +73367,7 @@ export type GraphQLTypes = {
 	name: string,
 	/** Списания с фонда за период */
 	outcome: string,
-	/** Процент отчислений из членского взноса участка, проценты; у фондов списания 0 */
+	/** Процент отчислений из членских взносов, проценты; у фондов списания 0 */
 	percent: number,
 	/** Кошелёк учётной книги — субсчёт фонда */
 	wallet: string,
@@ -73453,8 +73447,6 @@ export type GraphQLTypes = {
 	__typename: "ReportsFundsRegistry",
 	/** Пять стандартных фондов по порядку номеров */
 	funds: Array<GraphQLTypes["ReportsFund"]>,
-	/** Сумма процентов фондов накопления, проценты */
-	percent_sum: number,
 	['...on ReportsFundsRegistry']: Omit<GraphQLTypes["ReportsFundsRegistry"], "...on ReportsFundsRegistry">
 };
 	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */

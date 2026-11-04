@@ -33,7 +33,7 @@ export class ReportsFundDTO {
   @Field(() => String, { description: 'Описание фонда' })
   description!: string;
 
-  @Field(() => Float, { description: 'Процент отчислений из членского взноса участка, проценты; у фондов списания 0' })
+  @Field(() => Float, { description: 'Процент отчислений из членских взносов, проценты; у фондов списания 0' })
   percent!: number;
 
   @Field(() => String, { description: 'Кошелёк учётной книги — субсчёт фонда' })
@@ -59,9 +59,6 @@ export class ReportsFundDTO {
 export class ReportsFundsRegistryDTO {
   @Field(() => [ReportsFundDTO], { description: 'Пять стандартных фондов по порядку номеров' })
   funds!: ReportsFundDTO[];
-
-  @Field(() => Float, { description: 'Сумма процентов фондов накопления, проценты' })
-  percent_sum!: number;
 }
 
 @InputType('ReportsFundsInput', { description: 'Запрос реестра фондов за период' })

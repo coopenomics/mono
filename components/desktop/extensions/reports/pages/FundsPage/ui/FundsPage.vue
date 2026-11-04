@@ -151,7 +151,6 @@ const IN = Zeus.ReportsFundMovementDirection.IN
 const loading = ref(true)
 const firstLoad = useFirstLoad(loading)
 const funds = ref<IDeskFund[]>([])
-const percentSum = ref(0)
 
 /** Кнопка периода — в шапке приложения, справа. */
 const { registerAction, unregisterAction } = useHeaderActions()
@@ -180,14 +179,13 @@ function total(pick: (f: IDeskFund) => string): string {
   return formatAsset2Digits(funds.value.map(pick).reduce((acc, v) => addAssets(acc, v), '0'))
 }
 
-/** Плитки по пути денег: сколько в фондах → что поступило → что списано → какой процент получают фонды накопления. */
+/** Плитки по пути денег: сколько в фондах → что поступило → что списано. */
 const stats = computed<StatStripItem[]>(() => {
   const periodSub = t(`reports.fundsPage.periodSub.${fundsPeriod.value}`)
   return [
     { key: 'available', caption: t('reports.fundsPage.stats.available'), value: total((f) => f.available), sub: t('reports.fundsPage.stats.availableSub'), icon: 'account_balance' },
     { key: 'income', caption: t('reports.fundsPage.stats.income'), value: total((f) => f.income), sub: periodSub, icon: 'south_west' },
     { key: 'outcome', caption: t('reports.fundsPage.stats.outcome'), value: total((f) => f.outcome), sub: periodSub, icon: 'north_east' },
-    { key: 'percent', caption: t('reports.fundsPage.stats.percent'), value: percentLabel(percentSum.value), sub: t('reports.fundsPage.stats.percentSub'), hint: t('reports.fundsPage.stats.percentHint'), icon: 'percent' },
   ]
 })
 
@@ -252,7 +250,6 @@ async function load(): Promise<void> {
   try {
     const registry = await loadDeskFunds(periodInput())
     funds.value = registry.funds
-    percentSum.value = Number(registry.percent_sum)
   } catch (e) {
     FailAlert(e)
   } finally {

@@ -63,7 +63,7 @@ function makeService(history: ReturnType<typeof op>[], wallets: Array<{ id: stri
   return { service, registry, ledger };
 }
 
-describe('fnd.wal.backend.01 — реестр фондов: остатки по кошелькам, обороты по операциям, сумма процентов', () => {
+describe('fnd.wal.backend.01 — реестр фондов: остатки по кошелькам, обороты по операциям', () => {
   it('пять фондов с кошельками, остаток из кошелька, обороты по направлению операции, транзит не считается', async () => {
     const { service } = makeService(
       [
@@ -87,7 +87,6 @@ describe('fnd.wal.backend.01 — реестр фондов: остатки по 
     const view = await service.registryView({ coopname: COOP });
     expect(view.funds.map((f) => f.wallet)).toEqual(['w.fnd.indiv', 'w.fnd.resrv', 'w.fnd.devel', 'w.sov.expns', 'w.fnd.mutual']);
     expect(view.funds.map((f) => f.account)).toEqual([86_000, 86_000, 86_000, 86_000, 86_000]);
-    expect(view.percent_sum).toBe(21);
 
     const [indiv, reserve, devel, economic, mutual] = view.funds;
     expect(indiv.percent).toBe(1);

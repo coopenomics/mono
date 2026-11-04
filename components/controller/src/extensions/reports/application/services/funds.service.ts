@@ -133,10 +133,7 @@ export class FundsService {
     for (const row of rows) {
       funds.push(await this.fundView(input, row, availableOf, symbol));
     }
-    const percent_sum = funds
-      .filter((f) => f.kind === ReportsFundKind.ACCUMULATION)
-      .reduce((sum, f) => sum + f.percent, 0);
-    return { funds, percent_sum: Math.round(percent_sum * 100) / 100 };
+    return { funds };
   }
 
   /** История движений одного фонда по страницам: только операции, меняющие остаток фонда. */
