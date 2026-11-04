@@ -62,9 +62,14 @@ function build(opts: { aids: Aid[]; payment?: Record<string, unknown> | null; mi
 }
 
 describe('mkt.aid.view — заявление на матпомощь: налог, сумма на счёт, вехи процесса', () => {
-  it('на рассмотрении совета: налог и сумма на счёт с сервера, дата подачи из зеркала, решения и платежа нет', async () => {
+  it('на рассмотрении совета: налог и сумма на счёт с сервера, дата подачи из зеркала; платёж ждёт решения совета — вех решения и платежа нет', async () => {
     const submitted = new Date('2026-11-04T09:00:00Z');
-    const { service, aidStore } = build({ aids: [aid()], mirror: { created_at: submitted } });
+    // Платёж заводится при подаче скрытым от кассира — «ожидает решения совета».
+    const { service, aidStore } = build({
+      aids: [aid()],
+      mirror: { created_at: submitted },
+      payment: { status: PaymentStatus.AWAITING_AUTHORIZATION, payment_method_id: 'm1', created_at: submitted },
+    });
 
     const [view] = await service.listAids(COOP);
 
@@ -74,7 +79,9 @@ describe('mkt.aid.view — заявление на матпомощь: нало�
     expect(view.stage).toBe(MarketplaceAidStage.ON_COUNCIL);
     expect(view.submitted_at?.toISOString()).toBe(submitted.toISOString());
     expect(view.decided_at).toBeNull();
-    expect(view.payment_created_at).toBeNull();
+    expect(view.payment_status).toBe(PaymentStatus.AWAITING_AUTHORIZATION);
+    // Платёж заводится при подаче скрытым от кассира — веха платежа до решения совета не показывается.
+    expect(view.payment_completed_at).toBeNull();
     // Зеркало узла хранит хэш строчными буквами — поиск по нему, не по записи цепи.
     expect(aidStore.findOne).toHaveBeenCalledWith({ aid_hash: HASH.toLowerCase() });
   });
@@ -97,7 +104,6 @@ describe('mkt.aid.view — заявление на матпомощь: нало�
     expect(view.stage).toBe(MarketplaceAidStage.AWAITING_PAYOUT);
     expect(view.decided_at?.toISOString()).toBe('2026-11-05T08:30:00.000Z');
     expect(view.payment_status).toBe(PaymentStatus.COMPLETED);
-    expect(view.payment_created_at).toBe(created);
     expect(view.payment_completed_at).toBe(completed);
     expect(view.payment_failed_at).toBeNull();
     expect(view.payment_destination).toEqual(expect.any(String));

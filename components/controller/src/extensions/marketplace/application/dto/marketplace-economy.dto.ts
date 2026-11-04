@@ -259,9 +259,6 @@ export class MarketplaceAidDTO {
   @Field(() => Date, { nullable: true, description: 'Когда совет принял решение о выплате. Пусто — решения ещё нет.' })
   decided_at?: Date | null;
 
-  @Field(() => Date, { nullable: true, description: 'Когда кассир получил платёж к исполнению.' })
-  payment_created_at?: Date | null;
-
   @Field(() => Date, { nullable: true, description: 'Когда платёж исполнен.' })
   payment_completed_at?: Date | null;
 

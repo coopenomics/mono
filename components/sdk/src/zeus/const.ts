@@ -7208,7 +7208,6 @@ export const ReturnTypes: Record<string,any> = {
 		ndfl_tax:"String",
 		net_amount:"String",
 		payment_completed_at:"DateTime",
-		payment_created_at:"DateTime",
 		payment_destination:"String",
 		payment_failed_at:"DateTime",
 		payment_status:"PaymentStatus",

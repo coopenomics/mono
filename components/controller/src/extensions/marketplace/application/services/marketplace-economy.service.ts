@@ -130,10 +130,13 @@ export interface MarketplaceAidView {
   ndfl_tax: string;
   /** Сумма на счёт получателя: сумма заявления за вычетом налога. */
   net_amount: string;
-  /** Вехи процесса: подача, решение совета, платёж у кассира. Null — вехи ещё нет. */
+  /**
+   * Вехи процесса: подача, решение совета, исполнение или отказ платежа.
+   * Платёж заводится при подаче скрытым от кассира и поступает ему решением
+   * совета, поэтому отдельной вехи «передан кассиру» нет. Null — вехи ещё нет.
+   */
   submitted_at: Date | null;
   decided_at: Date | null;
-  payment_created_at: Date | null;
   payment_completed_at: Date | null;
   payment_failed_at: Date | null;
 }
@@ -850,7 +853,6 @@ export class MarketplaceEconomyService {
       net_amount: `${ndfl.net.toFixed(this.assetConfig.decimals)} ${symbol}`,
       submitted_at: mirror?.created_at ? new Date(mirror.created_at) : null,
       decided_at: this.protocolSignedAt(aid),
-      payment_created_at: payment?.created_at ?? null,
       payment_completed_at: payment?.completed_at ?? null,
       payment_failed_at: payment?.failed_at ?? null,
     };

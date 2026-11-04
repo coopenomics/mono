@@ -10701,8 +10701,6 @@ export type ValueTypes = {
 	net_amount?:boolean | `@${string}`,
 	/** Когда платёж исполнен. */
 	payment_completed_at?:boolean | `@${string}`,
-	/** Когда кассир получил платёж к исполнению. */
-	payment_created_at?:boolean | `@${string}`,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?:boolean | `@${string}`,
 	/** Когда платёж отклонён. */
@@ -29186,8 +29184,6 @@ export type ResolverInputTypes = {
 	net_amount?:boolean | `@${string}`,
 	/** Когда платёж исполнен. */
 	payment_completed_at?:boolean | `@${string}`,
-	/** Когда кассир получил платёж к исполнению. */
-	payment_created_at?:boolean | `@${string}`,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?:boolean | `@${string}`,
 	/** Когда платёж отклонён. */
@@ -47049,8 +47045,6 @@ export type ModelTypes = {
 	net_amount: string,
 	/** Когда платёж исполнен. */
 	payment_completed_at?: ModelTypes["DateTime"] | undefined | null,
-	/** Когда кассир получил платёж к исполнению. */
-	payment_created_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?: string | undefined | null,
 	/** Когда платёж отклонён. */
@@ -65763,8 +65757,6 @@ export type GraphQLTypes = {
 	net_amount: string,
 	/** Когда платёж исполнен. */
 	payment_completed_at?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Когда кассир получил платёж к исполнению. */
-	payment_created_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Реквизиты получателя, на которые уходит выплата (маскированная подпись). */
 	payment_destination?: string | undefined | null,
 	/** Когда платёж отклонён. */

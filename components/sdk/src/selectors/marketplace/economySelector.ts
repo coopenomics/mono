@@ -38,7 +38,6 @@ export const marketplaceAidSelector = Selector('MarketplaceAid')({
   net_amount: true,
   submitted_at: true,
   decided_at: true,
-  payment_created_at: true,
   payment_completed_at: true,
   payment_failed_at: true,
 })

@@ -239,7 +239,11 @@ function openAid(row: MarketplaceAidView): void {
   selectedAidHash.value = row.hash
 }
 
-/** Вехи заявления, которые уже наступили: подача → решение совета → платёж у кассира. */
+/**
+ * Вехи заявления, которые уже наступили: подача → решение совета → исполнение
+ * или отказ платежа. Платёж заводится при подаче скрытым от кассира и поступает
+ * ему решением совета — отдельной вехи «передан кассиру» нет.
+ */
 const aidEvents = computed<ActivityEvent[]>(() => {
   const a = selectedAid.value
   if (!a) return []
@@ -247,7 +251,6 @@ const aidEvents = computed<ActivityEvent[]>(() => {
   const ev: ActivityEvent[] = []
   if (a.submitted_at) ev.push({ id: 'submitted', type: 'sign', icon: 'edit_document', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventSubmitted'), date: at(a.submitted_at) })
   if (a.decided_at) ev.push({ id: 'decided', type: 'sign', icon: 'gavel', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventDecided'), date: at(a.decided_at) })
-  if (a.payment_created_at) ev.push({ id: 'payment', type: 'transfer', icon: 'payments', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventPaymentCreated'), description: a.payment_destination || undefined, date: at(a.payment_created_at) })
   if (a.payment_completed_at) ev.push({ id: 'paid', type: 'transfer', icon: 'task_alt', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventPaid'), date: at(a.payment_completed_at) })
   if (a.payment_failed_at) ev.push({ id: 'failed', type: 'reject', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventFailed'), date: at(a.payment_failed_at) })
   return ev

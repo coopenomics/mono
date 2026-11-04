@@ -5568,7 +5568,6 @@ export type MessageKey =
   | 'marketplace.operatorBranchEconomyPage.aidEventDecided'
   | 'marketplace.operatorBranchEconomyPage.aidEventFailed'
   | 'marketplace.operatorBranchEconomyPage.aidEventPaid'
-  | 'marketplace.operatorBranchEconomyPage.aidEventPaymentCreated'
   | 'marketplace.operatorBranchEconomyPage.aidEventSubmitted'
   | 'marketplace.operatorBranchEconomyPage.aidHintApproval'
   | 'marketplace.operatorBranchEconomyPage.aidHintIntro'
