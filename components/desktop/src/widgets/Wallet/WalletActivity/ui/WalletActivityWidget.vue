@@ -64,13 +64,24 @@
     .wallet-activity__more(v-if='hasMore')
       BaseButton(variant='secondary', size='sm', :loading='loading', @click='loadMore') {{ $t('wallet.walletActivity.showMore') }}
 
-  DetailsDrawer(v-model='drawerOpen', :title='drawerTitle', :width='560')
-    ProcessDetailCard(
-      v-if='drawer',
-      :coopname='info.coopname',
-      :process-hash='drawer.hash',
-      :process-type='drawer.type'
-    )
+  //- Пайщику — сумма, состояние и документы процесса; операции и проводки
+  //- учёта на его столе не показываются (решение владельца 04.11.2026).
+  DetailsDrawer(v-model='drawerOpen', :title='drawerTitle', :width='520')
+    template(v-if='drawer')
+      .wallet-activity__drawer-amount
+        .t-muted {{ drawer.amountLabel }}
+        .wallet-activity__drawer-sum {{ drawer.amount }}
+        BaseBadge.wallet-activity__drawer-badge(v-if='drawer.state', :variant='STATE_VARIANTS[drawer.state]') {{ $t(`wallet.walletActivity.state.${drawer.state}`) }}
+      .wallet-activity__drawer-group
+        DataRow(align='spread', :label='$t("wallet.walletActivity.column.date")', :value='formatDateToLocalTimezone(drawer.at, "DD.MM.YYYY HH:mm")')
+        DataRow(v-if='drawer.wallet', align='spread', :label='$t("wallet.walletActivity.walletLabel")', :value='drawer.wallet')
+        DataRow(v-if='drawer.destination', align='spread', :label='$t("wallet.walletActivity.column.destination")', :value='drawer.destination')
+      ProcessDetailCard(
+        :coopname='info.coopname',
+        :process-hash='drawer.hash',
+        :process-type='drawer.type',
+        documents-only
+      )
 </template>
 
 <script setup lang="ts">
@@ -83,7 +94,7 @@ import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone';
 import { BaseBadge, BaseButton, BaseTable, EmptyState, type BaseBadgeVariant, type BaseTableColumn } from 'src/shared/ui/base';
-import { DetailsDrawer } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import {
@@ -165,8 +176,19 @@ function hasProcess(row: IWalletMovement): boolean {
   return Boolean(row.process_hash);
 }
 
-// Панель процесса — по хэшу; тип процесса даёт подпись и цвет карточки.
-const drawer = ref<{ hash: string; type: string; title: string } | null>(null);
+// Панель строки: сводка для пайщика и документы процесса по хэшу.
+interface DrawerView {
+  hash: string;
+  type: string;
+  title: string;
+  amountLabel: string;
+  amount: string;
+  at: string | Date;
+  state?: string;
+  wallet?: string | null;
+  destination?: string | null;
+}
+const drawer = ref<DrawerView | null>(null);
 const drawerOpen = computed({
   get: () => drawer.value !== null,
   set: (open: boolean) => {
@@ -177,11 +199,28 @@ const drawerTitle = computed(() => drawer.value?.title ?? '');
 
 function openMovement(row: IWalletMovement): void {
   if (!row.process_hash) return;
-  drawer.value = { hash: row.process_hash.toLowerCase(), type: row.process_type ?? '', title: row.operation_name };
+  drawer.value = {
+    hash: row.process_hash.toLowerCase(),
+    type: row.process_type ?? '',
+    title: row.operation_name,
+    amountLabel: t('wallet.walletActivity.column.amount'),
+    amount: signed(row),
+    at: row.created_at,
+    wallet: row.wallet_title,
+  };
 }
 
 function openPending(row: IWalletPendingItem): void {
-  drawer.value = { hash: row.hash.toLowerCase(), type: PENDING_PROCESS[row.type] ?? '', title: row.title };
+  drawer.value = {
+    hash: row.hash.toLowerCase(),
+    type: PENDING_PROCESS[row.type] ?? '',
+    title: row.title,
+    amountLabel: t('wallet.walletActivity.column.amount'),
+    amount: formatAsset2Digits(row.quantity),
+    at: row.created_at,
+    state: row.state,
+    destination: destinationOf(row.payment_method_id),
+  };
 }
 
 async function loadPage(next: number): Promise<void> {
@@ -294,6 +333,32 @@ useLiveReload(
 .wallet-activity__amount--move,
 .wallet-activity__amount--process {
   color: var(--p-ink-3);
+}
+
+.wallet-activity__drawer-amount {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding-bottom: var(--p-4);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.wallet-activity__drawer-sum {
+  font-size: var(--p-fs-h2);
+  font-weight: 700;
+  color: var(--p-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-activity__drawer-badge {
+  align-self: flex-start;
+}
+
+.wallet-activity__drawer-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding: var(--p-4) 0;
 }
 
 .wallet-activity__more {

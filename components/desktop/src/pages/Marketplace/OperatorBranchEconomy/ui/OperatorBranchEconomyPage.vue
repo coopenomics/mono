@@ -1334,10 +1334,12 @@ q-page.economy
       .economy__drawer-group(v-if='aidEvents.length')
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.aidTimelineTitle') }}
         ActivityTimeline(:events='aidEvents')
+      //- Заявитель — пайщик: ему документы процесса, без операций и проводок учёта.
       ProcessDetailCard(
         :coopname='coopname',
         :process-hash='selectedAid.hash.toLowerCase()',
-        :process-type='AID_PROCESS_TYPE'
+        :process-type='AID_PROCESS_TYPE',
+        documents-only
       )
 
   //- Строка резерва получателя: сумма в месяц, не выше верхнего предела кооператива.

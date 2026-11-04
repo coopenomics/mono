@@ -9918,6 +9918,7 @@ export type MessageKey =
   | 'wallet.walletActivity.state.AWAITING_CASHIER'
   | 'wallet.walletActivity.state.AWAITING_PAYMENT'
   | 'wallet.walletActivity.state.COUNCIL_REVIEW'
+  | 'wallet.walletActivity.walletLabel'
   | 'wallet.walletProgramWidget.emptyBody'
   | 'wallet.walletProgramWidget.emptyTitle'
   | 'wallet.walletProgramWidget.minBalanceSubtitle'

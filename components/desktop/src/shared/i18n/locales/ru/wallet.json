@@ -33,9 +33,10 @@
       "showMore": "Показать ещё",
       "state": {
         "COUNCIL_REVIEW": "На рассмотрении совета",
-        "AWAITING_CASHIER": "Ожидает кассира",
+        "AWAITING_CASHIER": "На выплате",
         "AWAITING_PAYMENT": "Ожидает оплаты"
-      }
+      },
+      "walletLabel": "Кошелёк"
     },
     "walletProgramWidget": {
       "emptyBody": "У вас пока нет кошельков на столе пайщика.",

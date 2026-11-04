@@ -1,6 +1,7 @@
 <template lang="pug">
 .process-detail
-  .op-header.q-mb-md(:style='{ borderLeftColor: processAccentColor(processType) }')
+  //- Пайщику шапка процесса не нужна: панель над карточкой уже называет, что это.
+  .op-header.q-mb-md(v-if='!documentsOnly', :style='{ borderLeftColor: processAccentColor(processType) }')
     .text-h6.text-weight-medium {{ processTypeLabel(processType) }}
     .row.items-center.q-gutter-sm.q-mb-xs
       .text-caption.text-grey-7 {{ $t('process.processDetailCard.processIdLabel') }}
@@ -13,7 +14,7 @@
     BaseCard.q-mb-md(variant='flat', :title='$t("process.processDetailCard.documentsTitle")')
       CardListSkeleton(:count='2')
 
-    .row.q-col-gutter-md
+    .row.q-col-gutter-md(v-if='!documentsOnly')
       .col-12
         BaseCard(variant='flat', :title='$t("process.processDetailCard.operationsTitle")')
           TableSkeleton(:columns='OP_SKELETON_COLUMNS', :rows='4')
@@ -39,7 +40,8 @@
     //- Операции и проводки — каждая на всю ширину, одна под другой: рядом в две
     //- колонки обе таблицы обрезались по горизонтали, и ни номер операции, ни
     //- пара счетов целиком не читались (особенно в оверлее заказа).
-    .row.q-col-gutter-md
+    //- Пайщику на его столе операции и проводки не показываются — только документы.
+    .row.q-col-gutter-md(v-if='!documentsOnly')
       //- Операции процесса (apply + корректировки)
       .col-12
         q-card(flat bordered)
@@ -186,6 +188,11 @@ const props = defineProps<{
   postingRouteName?: string
   /** Откуда брать процесс, операции и проводки: общие операции ядра либо операции стола бухгалтера. */
   source?: RegistrySource
+  /**
+   * Только документы процесса — для стола пайщика: операции и проводки учёта
+   * и номер процесса ему не нужны, историю учёта читает только совет.
+   */
+  documentsOnly?: boolean
 }>()
 
 const router = useRouter()
@@ -297,6 +304,11 @@ void copyText
 
 async function load(): Promise<void> {
   try {
+    if (props.documentsOnly) {
+      const view = await processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }, props.source)
+      documents.value = view?.documents ?? []
+      return
+    }
     // Документы + операции + проводки одного процесса грузим параллельно.
     const [view, history, post] = await Promise.all([
       processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }, props.source),
