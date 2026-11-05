@@ -71,3 +71,42 @@ describe('смена статуса — настоящая причина отк
     expect(code).toBe('GATEWAY_PAYMENT_NOT_FOUND');
   });
 });
+
+describe('взнос — срок оплаты трое суток по шкале времени стенда', () => {
+  function depositInteractor() {
+    let created: any = null;
+    const paymentRepository = {
+      expireOutdatedPayments: jest.fn(async () => undefined),
+      findActivePendingPayment: jest.fn(async () => null),
+      create: jest.fn(async (data: any) => (created = { ...data, id: 'p1' })),
+      update: jest.fn(async () => null),
+      findById: jest.fn(async () => created),
+    } as any;
+    const providerPort = { getProvider: () => ({ createPayment: async () => ({ data: {} }) }) } as any;
+    const systemDomainPort = { getSettings: async () => ({ provider_name: 'qrpay' }) } as any;
+    const stub = {} as any;
+    const interactor = new GatewayInteractor(stub, paymentRepository, stub, providerPort, systemDomainPort, stub, stub, stub, stub);
+    return { interactor, created: () => created };
+  }
+  const saved = process.env.STAND_DAY_SECONDS;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.STAND_DAY_SECONDS;
+    else process.env.STAND_DAY_SECONDS = saved;
+  });
+
+  it('в работе — 72 часа от создания: неоплаченный взнос истекает, а не висит «в работе» вечно', async () => {
+    delete process.env.STAND_DAY_SECONDS;
+    const { interactor, created } = depositInteractor();
+    await interactor.createDeposit({ username: 'ivanov', quantity: 100, symbol: 'RUB' } as any);
+    const p = created();
+    expect(p.expired_at.getTime() - p.created_at.getTime()).toBe(72 * 60 * 60 * 1000);
+  });
+
+  it('на стенде с минутными сутками — три минуты', async () => {
+    process.env.STAND_DAY_SECONDS = '60';
+    const { interactor, created } = depositInteractor();
+    await interactor.createDeposit({ username: 'ivanov', quantity: 100, symbol: 'RUB' } as any);
+    const p = created();
+    expect(p.expired_at.getTime() - p.created_at.getTime()).toBe(3 * 60 * 1000);
+  });
+});

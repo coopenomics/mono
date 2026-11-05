@@ -18,6 +18,8 @@ sources:
     - components/controller/src/application/gateway/services/gateway.service.ts
     - components/controller/src/application/gateway/services/payment-files.service.ts
     - components/controller/src/application/gateway/interactors/gateway.interactor.ts
+    - components/controller/src/application/gateway/services/gateway-expiry-cron.service.ts
+    - components/controller/src/infrastructure/database/migrations/1793869546649-deposit-payment-expiry.ts
     - components/controller/src/application/gateway/dto/*.ts
     - components/controller/src/application/payment-method/**/*.ts
     - components/controller/src/domain/gateway/**/*.ts
@@ -339,4 +341,21 @@ cases:
     test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
     external: unreachable
     external_reason: "после миграции платежей «ожидает решения совета» на узле нет — снаружи состояние не создать"
+    status: written
+
+  - id: pay.core.side.22
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик заводит паевой взнос и не оплачивает его (передумал, ошибся
+      суммой); на стенде со сжатыми сутками и в работе
+    expect: >
+      у взноса срок оплаты — трое суток по шкале времени стенда (в работе 72
+      часа, при минутных сутках — три минуты); сторож истечения переводит его в
+      «Истёк», взнос скрывается из «В работе» кошелька, в «Платежах» остаётся с
+      реквизитами; кассир подтверждает и истёкший взнос; висящим взносам без
+      срока миграция ставит три дня от создания (решение владельца 05.11.2026)
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    external: unreachable
+    external_reason: "срок истечения проверяется сторожем по часам узла — снаружи без ожидания суток не воспроизвести; на стенде со сжатым временем виден на странице кошелька"
     status: written

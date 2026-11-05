@@ -8,6 +8,7 @@ import { CoreUserAvatarExitAnnulment1790236885855 } from './1790236885855-user-a
 import { CoreSettingsOnboardingCompleted1792411435309 } from './1792411435309-settings-onboarding-completed';
 import { CoreFactoryStorage1793204380830 } from './1793204380830-factory-storage';
 import { CorePayoutRequests1793781600000 } from './1793781600000-payout-requests';
+import { CoreDepositPaymentExpiry1793869546649 } from './1793869546649-deposit-payment-expiry';
 
 /**
  * Миграции таблиц ядра — в порядке появления (метка времени в имени класса).
@@ -26,4 +27,5 @@ export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [Core
   ProviderChartersBillingLog1792054007375,
   CashierRoleToCashierDesk1792132849961,
   CoreSettingsOnboardingCompleted1792411435309, CoreFactoryStorage1793204380830,
-  CorePayoutRequests1793781600000];
+  CorePayoutRequests1793781600000,
+  CoreDepositPaymentExpiry1793869546649];

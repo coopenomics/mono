@@ -34,7 +34,7 @@ import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/com
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
-import { QuantityUtils, DomainError, chainErrorCode } from '@coopenomics/extension-kit';
+import { QuantityUtils, DomainError, chainErrorCode, standDaySeconds } from '@coopenomics/extension-kit';
 import { PayoutRequestService } from '../services/payout-request.service';
 import type { PayoutRequestDomainInterface } from '~/domain/gateway/repositories/payout-request.repository';
 import { t } from '~/i18n';
@@ -48,6 +48,13 @@ import { t } from '~/i18n';
  * - Истекшие платежи автоматически обновляются в статус EXPIRED при создании новых платежей
  * - Доступен отдельный метод expireOutdatedPayments() для периодической очистки
  */
+/**
+ * Срок оплаты паевого взноса, суток: после него неоплаченный взнос истекает.
+ * Сутки — по шкале времени стенда (extension-kit): в работе настоящие, на
+ * стенде со сжатым временем — короче, как у остальных сроков приложений.
+ */
+export const DEPOSIT_PAYMENT_TTL_DAYS = 3;
+
 @Injectable()
 export class GatewayInteractor implements GatewayInteractorPort {
   private readonly logger = new Logger(GatewayInteractor.name);
@@ -547,7 +554,11 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const secret = generateUniqueHash();
     const hash = generateUniqueHash();
     const now = new Date();
-    const expiredAt = this.createPaymentExpirationDate(-1); // Бессрочный платеж для паевых взносов
+    // Неоплаченный взнос через трое суток истекает (сторож истечения переводит
+    // его в «Истёк»): иначе передуманный взнос вечно висел бы у пайщика «в
+    // работе». Кассир подтверждает и истёкший взнос, если деньги всё же пришли;
+    // реквизиты пайщик находит в «Платежах» (решение владельца 05.11.2026).
+    const expiredAt = new Date(now.getTime() + DEPOSIT_PAYMENT_TTL_DAYS * standDaySeconds() * 1000);
 
     const paymentData: PaymentDomainInterface = {
       id: '', // будет установлен в репозитории
