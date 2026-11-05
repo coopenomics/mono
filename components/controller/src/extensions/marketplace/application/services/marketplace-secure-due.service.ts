@@ -31,6 +31,7 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplacePeriodService } from './marketplace-period.service';
+import { MARKETPLACE_DUE_WALLET } from './marketplace-convert.service';
 import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
 import { MarketplaceSecurePartState, type MarketplaceSecurePartDTO } from '../dto/marketplace-secure-part.dto';
 import { MarketplaceOrderStatuses, type MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
@@ -102,9 +103,6 @@ const CHARGE_BATCH_LIMIT = 200;
 /** Начала строк журнала узла о списании: удержание при отказе и заказ по ставкам итога месяца. */
 const LOG_CHARGE_DUE = 'Списание обеспечительной части'; // i18n-ignore: строка журнала узла, не текст интерфейса
 const LOG_CHARGE_PERIOD = 'Списание по итогу месяца'; // i18n-ignore: строка журнала узла, не текст интерфейса
-
-/** Кошелёк обеспечительной части к списанию в ledger2. */
-const SECURE_DUE_WALLET = 'w.mkt.due';
 
 /** Отказ контракта, когда на кошельке к списанию меньше заявленного. */
 const DUE_EXCEEDS = 'MARKETPLACE_DUE_EXCEEDS';
@@ -662,7 +660,7 @@ export class MarketplaceSecureDueService {
       const mine = sent.filter((row) => row.username === username);
       let onChain: bigint;
       try {
-        const wallet = await this.chainPort.getUserWallet(coopname, SECURE_DUE_WALLET, username);
+        const wallet = await this.chainPort.getUserWallet(coopname, MARKETPLACE_DUE_WALLET, username);
         onChain = this.economyService.assetToUnits(String(wallet?.available ?? '0'));
       } catch (err: any) {
         this.logger.warn(`Списание обеспечительной части: кошелёк пайщика ${username} в цепи не прочитан (${err.message}) — ${mine.length} отправленных строк ждут сверки.`);

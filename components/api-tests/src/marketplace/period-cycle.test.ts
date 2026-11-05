@@ -167,7 +167,8 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     )
     const T = units(periodRow.turnover)
     const rate = (U + F + I) * H / T
-    expect(Number(periodRow.rate_percent.replace(',', '.')) * 10_000, 'ставка списания = (У + Ф + И) / T').toBeCloseTo(Number(rate) / 100, -2)
+    // Ставка в строке — проценты с двумя знаками, расчётная — доли шкалы контракта (1 000 000 = 100 %).
+    expect(Number(periodRow.rate_percent.replace(',', '.')), 'ставка списания = (У + Ф + И) / T').toBeCloseTo(Number(rate) / 10_000, 1)
     expect(periodRow.rows_total).toBeGreaterThanOrEqual(2)
   }, 60 * 60_000)
 

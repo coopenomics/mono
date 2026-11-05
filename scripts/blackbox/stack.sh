@@ -306,7 +306,11 @@ KEU_DAY_SECONDS="${KEU_DAY_SECONDS:-60}"
 # Шкала времени стенда: длины суток и месяца в окружении контроллера и его
 # пересоздание. Пустые значения — настоящее время.
 keu_stand_time() {
-  local day="$1" month="$2" label="$3"
+  local day="$1" month="$2" label="$3" saved_log="$4"
+  # Пересоздание контейнера стирает его журнал: сохраняем прожитое до него,
+  # иначе по артефактам прогона не разобрать ни сценарные наборы, ни саму фазу.
+  mkdir -p "$OUT/logs"
+  docker compose logs --no-color --timestamps coopback > "$OUT/logs/$saved_log" 2>&1 || true
   set_env components/controller/.env STAND_DAY_SECONDS "$day"
   set_env components/controller/.env STAND_MONTH_SECONDS "$month"
   echo "▸ ${label} — пересоздаём контроллер..."
@@ -319,7 +323,7 @@ keu_stand_time() {
 
 cmd_keu() {
   load_stack
-  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с)"
+  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с)" coopback-before-keu.log
   api_tests_env
   export BLACKBOX_STAND_MONTH_SECONDS="$KEU_MONTH_SECONDS"
   local failed=0
@@ -329,7 +333,7 @@ cmd_keu() {
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
   ) || failed=1
-  keu_stand_time "" "" "Возвращаем настоящее время стенда"
+  keu_stand_time "" "" "Возвращаем настоящее время стенда" coopback-keu.log
   return $failed
 }
 
