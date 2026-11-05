@@ -19,15 +19,32 @@ import { t } from 'src/shared/i18n';
  * телефоне и компьютере. Шаг выдачи на сервере берёт один стол; остальные
  * получают «шаг выполняется» и молча ждут обновления. Ручная кнопка
  * перехватывает шаг, захваченный больше двадцати секунд назад.
+ *
+ * Закрытую выдачу стол второй раз не трогает. Обход ждущих выдач запускается
+ * на каждый сигнал ленты изменений, и при выдаче нескольких заказов подряд
+ * обходы идут внахлёст: один закрыл выдачу, а второй шёл по списку, снятому до
+ * этого, и запрашивал акт уже закрытой выдачи — сервер отвечал «выдача не
+ * начата», оператор видел ошибку при успешной выдаче (стенд, 05.11.2026).
+ * Поэтому закрытые этим столом выдачи запоминаются: обход их пропускает, а
+ * обновление списка не возвращает их, даже если ответ сервера собран раньше.
  */
 
 type IssuanceSaga = Queries.Marketplace.ListIssuanceSagas.IOutput['marketplaceListIssuanceSagas'][number];
 
 /** Шаг держит другой стол — не ошибка: экран обновится, когда тот закончит. */
 const STEP_IN_PROGRESS = 'MARKETPLACE_ISSUANCE_STEP_IN_PROGRESS';
+/** Выдачи, ждущей закрытия, уже нет: её закрыл другой стол этого оператора либо она снята. */
+const ISSUANCE_GONE = 'MARKETPLACE_ISSUANCE_NOT_STARTED_OPERATOR';
 
 const pending = ref<IssuanceSaga[]>([]);
 const closing = ref<Set<string>>(new Set());
+/** Заказы, выдачу которых этот стол уже закрыл либо застал закрытой: повторно к ним не обращаемся. */
+const settled = new Set<string>();
+
+function settle(orderId: string): void {
+  settled.add(orderId);
+  pending.value = pending.value.filter((s) => s.order_id !== orderId);
+}
 let refreshing: Promise<void> | null = null;
 
 async function listAwaiting(braname: string): Promise<IssuanceSaga[]> {
@@ -47,7 +64,8 @@ async function refresh(branames: string[]): Promise<void> {
   refreshing = (async () => {
     try {
       const lists = await Promise.all(branames.map((b) => listAwaiting(b).catch(() => [] as IssuanceSaga[])));
-      pending.value = lists.flat();
+      // Ответ сервера мог быть собран до закрытия выдачи — закрытые в список не возвращаются.
+      pending.value = lists.flat().filter((s) => !settled.has(s.order_id));
     } finally {
       refreshing = null;
     }
@@ -60,7 +78,7 @@ async function refresh(branames: string[]): Promise<void> {
  * подпись и отправить. `true` — выдача закрыта этим столом.
  */
 async function closeOne(saga: IssuanceSaga, opts: { manual: boolean }): Promise<boolean> {
-  if (closing.value.has(saga.order_id)) return false;
+  if (settled.has(saga.order_id) || closing.value.has(saga.order_id)) return false;
   closing.value = new Set([...closing.value, saga.order_id]);
   const globalStore = useGlobalStore();
   try {
@@ -74,10 +92,15 @@ async function closeOne(saga: IssuanceSaga, opts: { manual: boolean }): Promise<
     await client.Mutation(Mutations.Marketplace.CloseIssuance.mutation, {
       variables: { data: { order_id: saga.order_id, signed_act, manual: opts.manual } },
     });
-    pending.value = pending.value.filter((s) => s.order_id !== saga.order_id);
+    settle(saga.order_id);
     return true;
   } catch (e) {
-    if (!hasErrorCode(e, STEP_IN_PROGRESS) || opts.manual) FailAlert(e, t('marketplace.operatorIssuance.closeError'));
+    const gone = hasErrorCode(e, ISSUANCE_GONE);
+    if (gone) settle(saga.order_id);
+    // Фоновый обход молчит, когда шаг держит другой стол либо выдача уже закрыта;
+    // по нажатию оператора ответ сервера показывается всегда.
+    const quiet = !opts.manual && (gone || hasErrorCode(e, STEP_IN_PROGRESS));
+    if (!quiet) FailAlert(e, t('marketplace.operatorIssuance.closeError'));
     return false;
   } finally {
     const next = new Set(closing.value);
