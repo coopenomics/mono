@@ -10,8 +10,8 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { DigitalDocument } from 'src/shared/lib/document'
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { ActivityTimeline, AmountInput, DataRow, DetailsDrawer, PageHint, WalletCard, type ActivityEvent } from 'src/shared/ui/domain'
-import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
+import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
+import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
@@ -214,8 +214,6 @@ function aidStageVariant(aid: MarketplaceAidView): BaseBadgeVariant {
   return paymentStatusVariant(aid.payment_status)
 }
 
-/** Процесс материальной помощи: его хэш — хэш заявления (реестр процессов ядра). */
-const AID_PROCESS_TYPE = 'p.brn.aid'
 
 const aidColumns = computed<BaseTableColumn<MarketplaceAidView>[]>(() => [
   { key: 'submitted', label: i18nT('marketplace.operatorBranchEconomyPage.aidColumnSubmitted'), width: '170px', nowrap: true },
@@ -240,20 +238,24 @@ function openAid(row: MarketplaceAidView): void {
 }
 
 /**
- * Вехи заявления, которые уже наступили: подача → решение совета → исполнение
- * или отказ платежа. Платёж заводится при подаче скрытым от кассира и поступает
- * ему решением совета — отдельной вехи «передан кассиру» нет.
+ * Шаги заявления: подача → решение совета → выплата кассиром → деньги
+ * получены. Пройденные шаги несут дату, текущий выделен, следующие видны
+ * заранее — заявитель понимает, что будет дальше. Платёж кассиру создаёт
+ * решение совета, отдельного шага «передан кассиру» нет.
  */
-const aidEvents = computed<ActivityEvent[]>(() => {
+const aidSteps = computed(() => {
   const a = selectedAid.value
-  if (!a) return []
-  const at = (d: unknown) => formatDateToLocalTimezone(d as string, 'DD.MM.YYYY HH:mm')
-  const ev: ActivityEvent[] = []
-  if (a.submitted_at) ev.push({ id: 'submitted', type: 'sign', icon: 'edit_document', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventSubmitted'), date: at(a.submitted_at) })
-  if (a.decided_at) ev.push({ id: 'decided', type: 'sign', icon: 'gavel', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventDecided'), date: at(a.decided_at) })
-  if (a.payment_completed_at) ev.push({ id: 'paid', type: 'transfer', icon: 'task_alt', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventPaid'), date: at(a.payment_completed_at) })
-  if (a.payment_failed_at) ev.push({ id: 'failed', type: 'reject', title: i18nT('marketplace.operatorBranchEconomyPage.aidEventFailed'), date: at(a.payment_failed_at) })
-  return ev
+  const at = (d: unknown) => (d ? formatDateToLocalTimezone(d as string, 'DD.MM.YYYY HH:mm') : undefined)
+  const items: StepperStep[] = [
+    { key: 'submitted', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepSubmitted'), description: at(a?.submitted_at) },
+    { key: 'council', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepCouncil'), description: at(a?.decided_at) },
+    { key: 'cashier', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepCashier'), description: a?.payment_failed_at ? i18nT('marketplace.operatorBranchEconomyPage.aidStepFailed') : undefined },
+    { key: 'paid', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepPaid'), description: at(a?.payment_completed_at) },
+  ]
+  if (a?.payment_completed_at) return { items, active: 'paid', completed: ['submitted', 'council', 'cashier', 'paid'], errored: [] as string[] }
+  if (a?.payment_failed_at) return { items, active: 'cashier', completed: ['submitted', 'council'], errored: ['cashier'] }
+  if (a?.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return { items, active: 'council', completed: ['submitted'], errored: [] as string[] }
+  return { items, active: 'cashier', completed: ['submitted', 'council'], errored: [] as string[] }
 })
 
 function personName(p: { first_name?: string; last_name?: string; middle_name?: string; username: string } | undefined): string {
@@ -1331,16 +1333,12 @@ q-page.economy
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.aidTaxLabel")', :value='formatAsset2Digits(selectedAid.ndfl_tax)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.aidNetLabel")', :value='formatAsset2Digits(selectedAid.net_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.aidDestinationLabel")', :value='selectedAid.payment_destination || "—"')
-      .economy__drawer-group(v-if='aidEvents.length')
+      //- Ход заявления по шагам — что прошло (с датой) и что будет дальше.
+      //- Документов процесса в панели нет (решение владельца 05.11.2026): свои
+      //- документы пайщик видит в разделе «Документы», где отбор по владельцу.
+      .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.aidTimelineTitle') }}
-        ActivityTimeline(:events='aidEvents')
-      //- Заявитель — пайщик: ему документы процесса, без операций и проводок учёта.
-      ProcessDetailCard(
-        :coopname='coopname',
-        :process-hash='selectedAid.hash.toLowerCase()',
-        :process-type='AID_PROCESS_TYPE',
-        documents-only
-      )
+        VerticalStepper(:steps='aidSteps.items', :active-key='aidSteps.active', :completed='aidSteps.completed', :errored='aidSteps.errored')
 
   //- Строка резерва получателя: сумма в месяц, не выше верхнего предела кооператива.
   BaseDialog(

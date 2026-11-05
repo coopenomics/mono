@@ -69,10 +69,6 @@ export interface CoreStand {
   files?: Record<number, string>;
   /** Назначенные роли: учётное имя → ключи ролей. */
   assigned?: Record<string, string[]>;
-  /** Процессы с операциями учётной книги: хэш → пайщики в шагах. */
-  processes?: Record<string, string[]>;
-  /** Процессы до операций учётной книги: хэш → пайщик в строке сущности. */
-  processEntities?: Record<string, string>;
 }
 
 export function makeGuard(stand: CoreStand = {}) {
@@ -88,13 +84,7 @@ export function makeGuard(stand: CoreStand = {}) {
     declare: jest.fn(),
     rolesOf: jest.fn(async (_app: string, username: string) => stand.assigned?.[username] ?? []),
   };
-  const processJournal = {
-    findActionsByProcess: jest.fn(async (hash: string) => (stand.processes?.[hash] ?? []).map((username) => ({ data: { username } }))),
-    findEntityDeltas: jest.fn(async (_loc: unknown, hash: string) =>
-      stand.processEntities?.[hash] ? [{ value: { username: stand.processEntities[hash] } }] : []
-    ),
-  };
-  const rights = new CoreRights(registry as any, roleAssignments as any, meetRepo as any, paymentRepo as any, fileRepo as any, processJournal as any);
+  const rights = new CoreRights(registry as any, roleAssignments as any, meetRepo as any, paymentRepo as any, fileRepo as any);
   return { pass: guardOver(rights), rights, registry, meetRepo, roleAssignments };
 }
 

@@ -3302,6 +3302,10 @@ export type MessageKey =
   | 'validation.email'
   | 'validation.personalName'
   | 'validation.required'
+  | 'wallet.walletActivity.pendingTitle.aid'
+  | 'wallet.walletActivity.pendingTitle.deposit'
+  | 'wallet.walletActivity.pendingTitle.payment'
+  | 'wallet.walletActivity.pendingTitle.withdrawal'
   | 'wallet.walletNotification.paymentTypeShareContribution'
   | 'yookassa.payment.defaultDescription';
 
@@ -4103,6 +4107,8 @@ export type MessageBranch =
   | 'validation'
   | 'validation.date'
   | 'wallet'
+  | 'wallet.walletActivity'
+  | 'wallet.walletActivity.pendingTitle'
   | 'wallet.walletNotification'
   | 'yookassa'
   | 'yookassa.payment';

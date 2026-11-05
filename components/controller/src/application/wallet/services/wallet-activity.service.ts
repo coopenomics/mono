@@ -8,7 +8,8 @@ import {
   type PayoutRequestRepository,
 } from '~/domain/gateway/repositories/payout-request.repository';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PAYMENT_TYPE_LABELS, PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { PAYMENT_TYPE_LABELS, PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { t } from '~/i18n';
 import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import {
   WalletMovementDirection,
@@ -23,6 +24,24 @@ const USER_SHARED = 'USER_SHARED';
 const DEFAULT_LIMIT = 20;
 /** Сколько последних платежей пайщика смотреть в поиске неисполненных. */
 const PENDING_SCAN_LIMIT = 50;
+
+/**
+ * Название заявки или выплаты для пайщика. Общие подписи видов платежа
+ * написаны для кассира («Оплата»), пайщику нужно, за что именно: выплата
+ * поставщику за переданное имущество, возврат паевого взноса (решение
+ * владельца 05.11.2026). Остальные виды — общей подписью.
+ */
+const MEMBER_TITLES: Partial<Record<string, string>> = {
+  [PaymentTypeEnum.DEPOSIT]: 'wallet.walletActivity.pendingTitle.deposit',
+  [PaymentTypeEnum.WITHDRAWAL]: 'wallet.walletActivity.pendingTitle.withdrawal',
+  [PaymentTypeEnum.AID]: 'wallet.walletActivity.pendingTitle.aid',
+  [PaymentTypeEnum.PAYMENT]: 'wallet.walletActivity.pendingTitle.payment',
+};
+
+function memberTitle(type: string): string {
+  const key = MEMBER_TITLES[type];
+  return key ? t(key) : (PAYMENT_TYPE_LABELS[type as PaymentTypeEnum] ?? String(type));
+}
 
 /** Кошелёк пайщика — разрез по пайщику, а не общий баланс кооператива. */
 function isMemberWallet(name: string | null | undefined): boolean {
@@ -93,7 +112,7 @@ export class WalletActivityService {
       ...requests.map((r) => ({
         hash: r.hash,
         type: r.type,
-        title: PAYMENT_TYPE_LABELS[r.type] ?? String(r.type),
+        title: memberTitle(r.type),
         state: WalletPendingState.COUNCIL_REVIEW,
         quantity: `${r.quantity.toFixed(4)} ${r.symbol}`,
         payment_method_id: r.payment_method_id ?? null,
@@ -111,7 +130,7 @@ export class WalletActivityService {
     return {
       hash: p.hash,
       type: p.type,
-      title: PAYMENT_TYPE_LABELS[p.type] ?? String(p.type),
+      title: memberTitle(p.type),
       state: p.direction === PaymentDirectionEnum.OUTGOING ? WalletPendingState.AWAITING_CASHIER : WalletPendingState.AWAITING_PAYMENT,
       quantity: `${Number(p.quantity).toFixed(4)} ${p.symbol}`,
       payment_method_id: p.payment_method_id ?? null,

@@ -18,7 +18,7 @@
     "walletActivity": {
       "column": {
         "date": "Дата",
-        "kind": "Заявка",
+        "kind": "Назначение",
         "amount": "Сумма",
         "destination": "Реквизиты",
         "state": "Состояние",
@@ -38,7 +38,20 @@
       },
       "walletLabel": "Кошелёк",
       "movementDrawerTitle": "Движение по кошельку",
-      "documentsAfterPayment": "Документы появятся после оплаты взноса"
+      "orderLabel": "Заказ",
+      "orderMeta": "по заказу №{number}",
+      "stepsTitle": "Ход процесса",
+      "payTitle": "Реквизиты для оплаты",
+      "step": {
+        "submitted": "Заявление подано",
+        "council": "Решение совета",
+        "cashier": "Выплата кассиром",
+        "paid": "Деньги получены",
+        "accepted": "Имущество принято кооперативом",
+        "pay": "Оплата пайщиком по реквизитам",
+        "confirm": "Подтверждение оплаты кассиром",
+        "credited": "Зачисление на паевой кошелёк"
+      }
     },
     "walletProgramWidget": {
       "emptyBody": "У вас пока нет кошельков на столе пайщика.",

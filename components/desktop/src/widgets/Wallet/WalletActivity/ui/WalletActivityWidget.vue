@@ -3,7 +3,9 @@
 //- «В работе» — что ещё не исполнено: заявки до решения совета, выплаты у
 //- кассира, неоплаченные пополнения; «Движения» — история по всем кошелькам
 //- пайщика, отбор по одному — нажатием на его карточку выше. Строка открывает
-//- справа карточку процесса: документы, операции и проводки.
+//- справа сумму, ход процесса и реквизиты неоплаченного взноса. Документов
+//- процесса в панели нет (решение владельца 05.11.2026): свои документы
+//- пайщик смотрит в разделе «Документы», где отбор по владельцу.
 .wallet-activity
   section.wallet-activity__section(v-if='pending.length')
     .wallet-activity__title {{ $t('wallet.walletActivity.pendingTitle') }}
@@ -19,6 +21,10 @@
         span.t-mono {{ formatDateToLocalTimezone(row.created_at, 'DD.MM.YYYY HH:mm') }}
       template(#cell-quantity='{ row }')
         span.t-mono {{ formatAsset2Digits(row.quantity) }}
+      template(#cell-title='{ row }')
+        .wallet-activity__operation
+          span {{ row.title }}
+          span.wallet-activity__meta(v-if='orderMeta(row)') {{ orderMeta(row) }}
       template(#cell-destination='{ row }')
         | {{ destinationOf(row.payment_method_id) }}
       template(#cell-state='{ row }')
@@ -64,8 +70,9 @@
     .wallet-activity__more(v-if='hasMore')
       BaseButton(variant='secondary', size='sm', :loading='loading', @click='loadMore') {{ $t('wallet.walletActivity.showMore') }}
 
-  //- Пайщику — сумма, состояние и документы процесса; операции и проводки
-  //- учёта на его столе не показываются (решение владельца 04.11.2026).
+  //- Пайщику — сумма, состояние и ход процесса. Процесс с сервера не
+  //- запрашивается: шаги строятся из состояния заявки, поэтому документы одной
+  //- стороны процесса не могут открыться другой (решение владельца 05.11.2026).
   DetailsDrawer(v-model='drawerOpen', :title='drawerTitle', :width='520')
     template(v-if='drawer')
       //- Название операции бывает длинным — строкой в теле с переносом, а не в
@@ -77,18 +84,16 @@
         BaseBadge.wallet-activity__drawer-badge(v-if='drawer.state', :variant='STATE_VARIANTS[drawer.state]') {{ $t(`wallet.walletActivity.state.${drawer.state}`) }}
       .wallet-activity__drawer-group
         DataRow(align='spread', :label='$t("wallet.walletActivity.column.date")', :value='formatDateToLocalTimezone(drawer.at, "DD.MM.YYYY HH:mm")')
+        DataRow(v-if='drawer.meta', align='spread', :label='$t("wallet.walletActivity.orderLabel")', :value='drawer.meta')
         DataRow(v-if='drawer.wallet', align='vertical', :label='$t("wallet.walletActivity.walletLabel")', :value='drawer.wallet')
         DataRow(v-if='drawer.destination', align='spread', :label='$t("wallet.walletActivity.column.destination")', :value='drawer.destination')
-      //- Неоплаченный взнос ещё не дошёл до цепи — процесса нет, документы
-      //- появятся после оплаты; карточку процесса не запрашиваем.
-      .wallet-activity__drawer-note.t-muted(v-if='!drawer.withProcess') {{ $t('wallet.walletActivity.documentsAfterPayment') }}
-      ProcessDetailCard(
-        v-else,
-        :coopname='info.coopname',
-        :process-hash='drawer.hash',
-        :process-type='drawer.type',
-        documents-only
-      )
+      .wallet-activity__drawer-block(v-if='drawer.steps')
+        .wallet-activity__drawer-subtitle {{ $t('wallet.walletActivity.stepsTitle') }}
+        VerticalStepper(:steps='drawer.steps.items', :active-key='drawer.steps.active', :completed='drawer.steps.completed')
+      //- Неоплаченный взнос: те же реквизиты и код для оплаты, что при пополнении.
+      .wallet-activity__drawer-block(v-if='drawer.paymentOrder')
+        .wallet-activity__drawer-subtitle {{ $t('wallet.walletActivity.payTitle') }}
+        PayWithProvider(:payment-order='drawer.paymentOrder')
 </template>
 
 <script setup lang="ts">
@@ -101,7 +106,11 @@ import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone';
 import { BaseBadge, BaseButton, BaseTable, EmptyState, type BaseBadgeVariant, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, VerticalStepper } from 'src/shared/ui/domain';
+import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types';
+import { PayWithProvider } from 'src/shared/ui/PayWithProvider';
+import { api as paymentApi } from 'src/entities/Payment/api';
+import type { IPayment } from 'src/entities/Payment/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import {
@@ -113,16 +122,22 @@ import {
   type IWalletMovement,
   type IWalletPendingItem,
 } from 'src/entities/Wallet';
-import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard';
 import { t } from 'src/shared/i18n';
 
 const PAGE = 20;
 
-/** Процесс заявки по виду выплаты или платежа — подпись и цвет карточки процесса. */
-const PENDING_PROCESS: Partial<Record<string, string>> = {
-  [Zeus.PaymentType.WITHDRAWAL]: 'p.wal.wthdrw',
-  [Zeus.PaymentType.AID]: 'p.brn.aid',
-  [Zeus.PaymentType.DEPOSIT]: 'p.wal.depo',
+/** Шаги процесса заявки по виду платежа — ход процесса без документов. */
+const PENDING_STEPS: Partial<Record<string, string[]>> = {
+  [Zeus.PaymentType.WITHDRAWAL]: ['submitted', 'council', 'cashier', 'paid'],
+  [Zeus.PaymentType.AID]: ['submitted', 'council', 'cashier', 'paid'],
+  [Zeus.PaymentType.PAYMENT]: ['accepted', 'cashier', 'paid'],
+  [Zeus.PaymentType.DEPOSIT]: ['pay', 'confirm', 'credited'],
+};
+/** Текущий шаг по состоянию заявки. */
+const ACTIVE_STEP: Record<string, string> = {
+  [Zeus.WalletPendingState.COUNCIL_REVIEW]: 'council',
+  [Zeus.WalletPendingState.AWAITING_CASHIER]: 'cashier',
+  [Zeus.WalletPendingState.AWAITING_PAYMENT]: 'pay',
 };
 
 const STATE_VARIANTS: Record<string, BaseBadgeVariant> = {
@@ -175,6 +190,19 @@ function destinationOf(methodId: string | null | undefined): string {
   return method ? paymentMethodLabel(method) : '—';
 }
 
+/** Выплата за имущество идёт по хэшу заказа — номер заказа объясняет, за что она. */
+function orderMeta(row: IWalletPendingItem): string {
+  return row.type === Zeus.PaymentType.PAYMENT ? t('wallet.walletActivity.orderMeta', { number: row.hash.slice(0, 8) }) : '';
+}
+
+function stepsOf(row: IWalletPendingItem): DrawerSteps | undefined {
+  const keys = PENDING_STEPS[row.type];
+  const active = ACTIVE_STEP[row.state];
+  if (!keys || !active || !keys.includes(active)) return undefined;
+  const items: StepperStep[] = keys.map((key) => ({ key, label: t(`wallet.walletActivity.step.${key}`) }));
+  return { items, active, completed: keys.slice(0, keys.indexOf(active)) };
+}
+
 function clearFilter(): void {
   walletMovementsFilter.value = null;
 }
@@ -183,13 +211,19 @@ function hasProcess(row: IWalletMovement): boolean {
   return Boolean(row.process_hash);
 }
 
-// Панель строки: сводка для пайщика и документы процесса по хэшу.
+// Панель строки: сводка для пайщика, ход процесса, реквизиты неоплаченного взноса.
+interface DrawerSteps {
+  items: StepperStep[];
+  active: string;
+  completed: string[];
+}
 interface DrawerView {
   hash: string;
-  type: string;
   title: string;
   heading?: string;
-  withProcess: boolean;
+  steps?: DrawerSteps;
+  meta?: string;
+  paymentOrder?: IPayment | null;
   amountLabel: string;
   amount: string;
   at: unknown;
@@ -210,10 +244,8 @@ function openMovement(row: IWalletMovement): void {
   if (!row.process_hash) return;
   drawer.value = {
     hash: row.process_hash.toLowerCase(),
-    type: row.process_type ?? '',
     title: t('wallet.walletActivity.movementDrawerTitle'),
     heading: row.operation_name,
-    withProcess: true,
     amountLabel: t('wallet.walletActivity.column.amount'),
     amount: signed(row),
     at: row.created_at,
@@ -222,18 +254,33 @@ function openMovement(row: IWalletMovement): void {
 }
 
 function openPending(row: IWalletPendingItem): void {
+  const unpaidDeposit = row.type === Zeus.PaymentType.DEPOSIT && row.state === Zeus.WalletPendingState.AWAITING_PAYMENT;
   drawer.value = {
     hash: row.hash.toLowerCase(),
-    type: PENDING_PROCESS[row.type] ?? '',
     title: row.title,
-    // Пополнение без оплаты в цепи ещё не отражено — процесса по хэшу нет.
-    withProcess: row.state !== Zeus.WalletPendingState.AWAITING_PAYMENT,
+    steps: stepsOf(row),
+    meta: orderMeta(row) || undefined,
     amountLabel: t('wallet.walletActivity.column.amount'),
     amount: formatAsset2Digits(row.quantity),
     at: row.created_at,
     state: row.state,
-    destination: destinationOf(row.payment_method_id),
+    // У пополнения реквизиты получателя — кооператива, их показывает блок оплаты.
+    destination: row.type === Zeus.PaymentType.DEPOSIT ? null : destinationOf(row.payment_method_id),
   };
+  if (unpaidDeposit) void loadPaymentOrder(row.hash);
+}
+
+/** Платёж неоплаченного взноса — реквизиты и код для оплаты, как в окне пополнения. */
+async function loadPaymentOrder(hash: string): Promise<void> {
+  const username = session.username;
+  if (!username) return;
+  try {
+    const result = await paymentApi.loadPayments({ username, hash }, { page: 1, limit: 1, sortOrder: 'DESC' });
+    const order = result.items[0] ?? null;
+    if (drawer.value && drawer.value.hash === hash.toLowerCase()) drawer.value.paymentOrder = order;
+  } catch (e) {
+    FailAlert(e);
+  }
 }
 
 async function loadPage(next: number): Promise<void> {
@@ -354,8 +401,14 @@ useLiveReload(
   font-weight: 600;
   line-height: var(--p-lh-h3);
 }
-.wallet-activity__drawer-note {
-  padding: var(--p-4) 0;
+.wallet-activity__drawer-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  margin-top: var(--p-5);
+}
+.wallet-activity__drawer-subtitle {
+  font-weight: 600;
 }
 .wallet-activity__drawer-amount {
   display: flex;

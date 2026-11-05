@@ -36,7 +36,6 @@ const FILES = {
   gateway: 'gateway/resolvers/gateway.resolver.ts',
   paymentFiles: 'gateway/resolvers/payment-files.resolver.ts',
   accessRoles: 'access-roles/access-roles.resolver.ts',
-  process: 'process-registry/resolvers/process-registry.resolver.ts',
 };
 
 describe('роли ядра', () => {
@@ -181,28 +180,6 @@ describe('собрания: председатель и секретарь со�
     const { pass } = makeGuard();
     const requirement = requirementOf(FILES.meet, 'signByPresiderOnAnnualGeneralMeet');
     await expect(pass(requirement, chairman, { data: { hash: 'нет', username: 'ant' } })).resolves.toBe(true);
-  });
-});
-
-describe('процесс: участник читает свой процесс (04.11.2026)', () => {
-  const HASH = 'a'.repeat(64);
-  const AID = 'b'.repeat(64);
-
-  // core.rights.side.10
-  it('участник шагов процесса читает его; посторонний пайщик — отказ; совет — любой', async () => {
-    const { pass } = makeGuard({ processes: { [HASH]: ['ivan', 'supplier1'] } });
-    const requirement = requirementOf(FILES.process, 'process');
-    await expect(pass(requirement, participant, { hash: HASH, coopname: 'voskhod' })).resolves.toBe(true);
-    await expect(pass(requirement, { ...participant, username: 'stranger' }, { hash: HASH, coopname: 'voskhod' })).rejects.toMatchObject(OWN);
-    await expect(pass(requirement, councilMember, { hash: HASH, coopname: 'voskhod' })).resolves.toBe(true);
-  });
-
-  // core.rights.side.10
-  it('заявитель материальной помощи читает процесс своего заявления до выплаты — по строке заявления', async () => {
-    const { pass } = makeGuard({ processEntities: { [AID]: 'ivan' } });
-    const requirement = requirementOf(FILES.process, 'process');
-    await expect(pass(requirement, participant, { hash: AID, coopname: 'voskhod' })).resolves.toBe(true);
-    await expect(pass(requirement, { ...participant, username: 'stranger' }, { hash: AID, coopname: 'voskhod' })).rejects.toMatchObject(OWN);
   });
 });
 

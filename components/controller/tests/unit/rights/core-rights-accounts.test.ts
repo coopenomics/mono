@@ -118,7 +118,7 @@ const COUNCIL_READS: [string, string][] = [
   [F.journal, 'getNotifications'],
   [F.journal, 'getNotification'],
   [F.participant, 'addParticipant'],
-  // Процесс читает и его участник (04.11.2026) — случаи в core-rights.test.ts, core.rights.side.10.
+  [F.process, 'process'],
   [F.provider, 'getProviderSubscriptionById'],
   // Реестр кооперативов оператора с данными провайдера (B2D-17).
   [F.provider, 'getCooperativesRegistry'],

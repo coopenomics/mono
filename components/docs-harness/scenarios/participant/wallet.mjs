@@ -60,7 +60,7 @@ export default async ({ page, shot }) => {
   if (await row.count()) {
     await row.click();
     await page.waitForTimeout(1200);
-    await shot(page, '07-movement-process', 'Строка движения открывает справа сумму, дату, кошелёк и документы процесса — заявление и решение совета.');
+    await shot(page, '07-movement-process', 'Строка открывает справа сумму, дату и кошелёк; у заявки в работе — ход процесса по шагам, у неоплаченного взноса — реквизиты для оплаты. Документов в панели нет: свои документы пайщик смотрит в разделе «Документы».');
     await page.keyboard.press('Escape');
   }
 };

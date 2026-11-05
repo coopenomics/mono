@@ -14,9 +14,6 @@ import { t } from '~/i18n';
 import { MEET_REPOSITORY, type MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PAYMENT_FILE_REPOSITORY, type PaymentFileRepository } from '~/domain/gateway/repositories/payment-file.repository';
-import { PROCESS_JOURNAL_PORT, type ProcessJournalPort } from '~/domain/process-registry/ports/process-journal.port';
-import { PROCESS_HASH_LOCATOR } from '~/domain/process-registry/config/process-hash-locator';
-import config from '~/config/config';
 
 /**
  * Исполнители ядра:
@@ -275,7 +272,7 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
   /**
    * Справочник объектов ядра: вид объекта → его владельцы по номеру.
    * Собрание называет председателя и секретаря; платёж и файл платежа —
-   * плательщика; процесс — своих участников.
+   * плательщика.
    */
   private readonly locators: Readonly<Record<string, (id: string) => Promise<RightFacts[]>>> = {
     MeetPresider: (hash) => this.meetOfficers(hash, ['presider']),
@@ -283,7 +280,6 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
     MeetOfficer: (hash) => this.meetOfficers(hash, ['presider', 'secretary']),
     Payment: (hash) => this.paymentOwner(hash),
     PaymentFile: (id) => this.paymentFileOwner(id),
-    Process: (hash) => this.processParticipants(hash),
   };
 
   constructor(
@@ -291,8 +287,7 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
     private readonly roleAssignments: RoleAssignmentsRegistry,
     @Inject(MEET_REPOSITORY) private readonly meets: MeetPreProcessingRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly payments: PaymentRepository,
-    @Inject(PAYMENT_FILE_REPOSITORY) private readonly paymentFiles: PaymentFileRepository,
-    @Inject(PROCESS_JOURNAL_PORT) private readonly processJournal: ProcessJournalPort
+    @Inject(PAYMENT_FILE_REPOSITORY) private readonly paymentFiles: PaymentFileRepository
   ) {}
 
   onModuleInit(): void {
@@ -347,32 +342,6 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
   private async meetOfficers(hash: string, officers: ('presider' | 'secretary')[]): Promise<RightFacts[]> {
     const meet = await this.meets.findByHash(hash);
     return meet ? officers.map((officer) => ({ owner: meet[officer] })) : [];
-  }
-
-  /**
-   * Участники процесса: пайщики, названные в его шагах (операции учётной книги,
-   * а до денег — строка сущности, например заявление на материальную помощь).
-   * Заявитель видит процесс своего заявления (решение владельца 04.11.2026).
-   * Процесса нет — фактов нет, «не найдено» отвечает сама операция; процесс без
-   * названных пайщиков — факт без владельца, охват «своё» не подтверждается.
-   */
-  private async processParticipants(hash: string): Promise<RightFacts[]> {
-    const key = String(hash).toLowerCase();
-    const actions = await this.processJournal.findActionsByProcess(key, config.coopname);
-    const names = actions.map((a) => (a.data as Record<string, unknown> | null)?.username);
-    let found = actions.length > 0;
-    if (!found) {
-      for (const locations of Object.values(PROCESS_HASH_LOCATOR)) {
-        const rows = (await Promise.all(locations.map((loc) => this.processJournal.findEntityDeltas(loc, key, config.coopname)))).flat();
-        if (rows.length === 0) continue;
-        found = true;
-        names.push(...rows.map((row) => (row.value as Record<string, unknown> | null)?.username));
-        break;
-      }
-    }
-    if (!found) return [];
-    const owners = [...new Set(names.filter((name): name is string => typeof name === 'string' && name.length > 0))];
-    return owners.length > 0 ? owners.map((owner) => ({ owner })) : [{}];
   }
 
   /**

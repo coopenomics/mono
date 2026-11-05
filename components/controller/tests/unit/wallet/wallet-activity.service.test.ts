@@ -95,4 +95,17 @@ describe('wallet.activity.pending — что у пайщика в работе',
     ]);
     expect(items[0]).toMatchObject({ quantity: '1500.0000 RUB', payment_method_id: 'm1' });
   });
+
+  it('название для пайщика — за что выплата, а не подпись кассира «Оплата»', async () => {
+    const { service } = build({
+      requests: [{ hash: 'r1', type: PaymentTypeEnum.WITHDRAWAL, quantity: 1500, symbol: 'RUB', payment_method_id: 'm1', status: PayoutRequestStatusEnum.AWAITING, created_at: new Date('2026-11-04T12:00:00Z') }],
+      payments: [
+        { hash: 'o1', type: PaymentTypeEnum.PAYMENT, direction: PaymentDirectionEnum.OUTGOING, status: PaymentStatusEnum.PENDING, quantity: 500, symbol: 'RUB', payment_method_id: 'm1', created_at: new Date('2026-11-04T11:00:00Z') },
+      ],
+    });
+
+    const items = await service.pending({ coopname: COOP, username: 'ivan' });
+
+    expect(items.map((i) => i.title)).toEqual(['Возврат паевого взноса', 'Выплата за имущество, переданное кооперативу']);
+  });
 });
