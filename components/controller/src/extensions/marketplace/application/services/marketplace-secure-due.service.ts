@@ -173,13 +173,28 @@ export class MarketplaceSecureDueService {
 
   // ── Учёт по операциям контракта ──────────────────────────────────────
 
+  /**
+   * Операции учёта идут строго по очереди, в порядке цепи. Шина выпускает
+   * действия одного блока разом и слушателей не ждёт, а одна транзакция несёт
+   * по заказу сразу две операции: выдача — стоимость и постановку к списанию,
+   * списание по итогу месяца — списанную и возвращённую части. Обе читают и
+   * пишут одну строку; без очереди вторая вставка падала по ключу, а второе
+   * обновление затирало первое (журнал полигона 04.11.2026: 32 потерянные
+   * операции) — строка оставалась без суммы к списанию либо без стоимости.
+   */
+  private applyQueue: Promise<void> = Promise.resolve();
+
   @OnEvent(`action::${Ledger2Contract.contractName.production}::${Ledger2Contract.Actions.Apply.actionName}`)
-  async onLedgerApply(action: InnerChainActionRecord): Promise<void> {
-    try {
-      await this.applyOperation(action);
-    } catch (err: any) {
-      this.logger.error(`Учёт обеспечительной части: операция ${action.global_sequence} не учтена (${err.message})`, err.stack);
-    }
+  onLedgerApply(action: InnerChainActionRecord): Promise<void> {
+    const run = this.applyQueue.then(async () => {
+      try {
+        await this.applyOperation(action);
+      } catch (err: any) {
+        this.logger.error(`Учёт обеспечительной части: операция ${action.global_sequence} не учтена (${err.message})`, err.stack);
+      }
+    });
+    this.applyQueue = run;
+    return run;
   }
 
   async applyOperation(action: InnerChainActionRecord): Promise<void> {

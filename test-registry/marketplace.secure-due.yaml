@@ -149,3 +149,22 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
     api: components/api-tests/src/marketplace/economy.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+
+  # 05.11.2026 (аудит коэффициента экономического участия): шина выпускает
+  # действия одного блока разом и слушателей не ждёт, а одна транзакция несёт по
+  # заказу две операции. Слушатель учёта ведёт их очередью в порядке цепи.
+  - id: mkt.secure.due.side.12
+    level: backend
+    kind: break
+    scenario: >
+      Две операции одного заказа приходят слушателю учёта одновременно: выдача —
+      стоимость заказа и постановка к списанию; списание по итогу месяца —
+      списанная и возвращённая части
+    expect: >
+      обе операции учтены по порядку цепи: строка получает и стоимость, и сумму к
+      списанию; после списания остаток ноль. Без очереди вторая вставка падала по
+      ключу строки, а второе обновление затирало первое
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "порядок доставки действий слушателю снаружи не задать; следствие проверяет набор period-cycle на стенде со сжатым временем"
+    status: passing
