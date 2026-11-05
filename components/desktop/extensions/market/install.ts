@@ -1099,8 +1099,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
  * стоимость и обеспечительная часть следующего заказа. Обеспечительная часть
  * паевого взноса к списанию (`w.mkt.due`, задача 99D-18) — после выдачи ждёт
  * конца гарантийного срока и первого числа месяца по условиям программы
- * списывается в членский взнос. Паевой резерв под заказ (`w.mkt.order`)
- * здесь НЕ показываем.
+ * списывается в членский взнос. Паевой резерв под заказы (`w.mkt.order`) —
+ * стоимость имущества заказов до их выдачи: без этой карточки паевой взнос
+ * после оформления заказа не был виден ни на одном кошельке (владелец
+ * 05.11.2026). Порядок карточек — путь паевого взноса по заказу.
  */
 export const walletCards: DesktopWalletCard[] = [
   {
@@ -1109,6 +1111,13 @@ export const walletCards: DesktopWalletCard[] = [
     description: t('market.install.walletDescription'),
     accent: 'wallet',
     icon: 'savings',
+  },
+  {
+    wallet_name: 'w.mkt.order',
+    label: t('market.install.walletOrderLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'shopping_bag',
   },
   {
     wallet_name: 'w.mkt.due',
