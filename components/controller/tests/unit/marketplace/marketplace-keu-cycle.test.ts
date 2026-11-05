@@ -15,7 +15,11 @@
  *  - после прогона кошельки к списанию пусты, списанное и возвращённое по
  *    каждому заказу равны собранному;
  *  - сбой расчёта, сбой записи зеркала и сбой одной строки не ведут ни к
- *    двойному списанию, ни к списанию без итога.
+ *    двойному списанию, ни к списанию без итога;
+ *  - итог считается по всем созревшим заказам участка, сколько бы их ни было;
+ *    строка, созревшая после расчёта, ждёт следующего первого числа;
+ *  - строка с отметкой отправки повторно не списывается, пока сверка с
+ *    кошельком в цепи не покажет, что списание не прошло.
  */
 jest.mock('@coopenomics/extension-kit', () => {
   const actual = jest.requireActual('@coopenomics/extension-kit');
@@ -27,6 +31,7 @@ jest.mock('@coopenomics/extension-kit', () => {
 
 import { MarketContract } from 'cooptypes';
 import { type IssuedOrder, type KeuWorld, createKeuWorld, dayOf, firstOfMonth, periodOf, rub, toUnits } from './helpers/keu-world';
+import { useRealCalendar } from './helpers/real-calendar';
 
 const Model = MarketContract.PeriodModel;
 const H = Model.HUNDR_PERCENTS;
@@ -62,27 +67,7 @@ function expectSettled(world: KeuWorld, o: IssuedOrder, period: number): void {
 const sum = (values: bigint[]): bigint => values.reduce((a, b) => a + b, 0n);
 const walletTotal = (map: Map<string, bigint>): bigint => sum([...map.values()]);
 
-/**
- * Тест идёт по настоящему календарю. Шкала стенда (сжатые сутки и месяц) читается
- * из окружения при каждом вызове, а локальный `.env` стенда разработки её задаёт —
- * на время теста переменные убираются.
- */
-const STAND_SCALE = ['STAND_DAY_SECONDS', 'STAND_MONTH_SECONDS', 'STAND_WORKER_PACE_SECONDS'] as const;
-const standScaleBefore = new Map<string, string | undefined>();
-
-beforeAll(() => {
-  for (const name of STAND_SCALE) {
-    standScaleBefore.set(name, process.env[name]);
-    delete process.env[name];
-  }
-});
-
-afterAll(() => {
-  for (const [name, value] of standScaleBefore) {
-    if (value === undefined) delete process.env[name];
-    else process.env[name] = value;
-  }
-});
+useRealCalendar();
 
 beforeEach(() => {
   nextHash = 1;
@@ -270,17 +255,24 @@ describe('mkt.order.keu.cycle.03 — сбой расчёта итога: спи�
   });
 });
 
-describe('mkt.order.keu.cycle.04 — сбой списания одной строки', () => {
-  it('строка не прошла: остальные списаны, упавшая списывается следующим проходом по тем же ставкам, итог не пересчитывается', async () => {
+describe('mkt.order.keu.cycle.04 — сбой списания одной строки и отметка отправки', () => {
+  async function threeOrders() {
     const world = createKeuWorld();
     world.settings.plans.push({ branchName: 'branch1', dueDate: dayOf(2027, 1, 20), amount: '5000.0000 RUB' });
     const orders = [order('anna', 10_000, dayOf(2027, 1, 5)), order('boris', 20_000, dayOf(2027, 1, 6)), order('vera', 30_000, dayOf(2027, 1, 7))];
     for (const o of orders) await world.issue(o);
+    return { world, orders };
+  }
+
+  it('узел цепи не ответил на списание строки: остальные списаны; сверка видит деньги на кошельке, и следующий проход списывает строку по тем же ставкам', async () => {
+    const { world, orders } = await threeOrders();
     world.faults.chargePeriod.set(orders[1].hash, [new Error('transaction net usage is too high')]);
 
     expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 2, failed: 1 });
     expect(world.wallets.due.get('boris')).toBe(orders[1].due);
-    expect(toUnits(world.dueRow(orders[1].hash)!.due_amount)).toBe(orders[1].due);
+    // Исход отправки неизвестен: отметка остаётся до сверки.
+    expect(world.dueRow(orders[1].hash)).toMatchObject({ due_amount: '7600.0000' });
+    expect(world.dueRow(orders[1].hash)!.charge_sent_at).toBeInstanceOf(Date);
     expect(world.notifications.notifyUser).toHaveBeenCalledTimes(2);
 
     expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 1, failed: 0 });
@@ -290,7 +282,19 @@ describe('mkt.order.keu.cycle.04 — сбой списания одной стр
     expect(await world.periodService.findOne('voskhod', 'branch1', periodOf(2027, 1))).toMatchObject({ rows_total: 3, rows_charged: 3 });
   });
 
-  it('операции списания не дошли до учёта, других заказов у пайщика нет: повтор отклоняет контракт, деньги целы, в журнале тревога', async () => {
+  it('контракт отклонил списание строки: отметка снимается сразу, сверка с цепью не нужна, следующий проход повторяет', async () => {
+    const { world, orders } = await threeOrders();
+    world.faults.chargePeriod.set(orders[1].hash, [new Error('assertion failure with message: MARKETPLACE_PERIOD_NOT_CLOSED: Итог участка за период не рассчитан')]);
+
+    expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 2, failed: 1 });
+    expect(world.dueRow(orders[1].hash)!.charge_sent_at ?? null).toBeNull();
+
+    expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 1, failed: 0 });
+    expect(world.calls.getUserWallet).toHaveLength(0);
+    for (const o of orders) expectSettled(world, o, periodOf(2027, 1));
+  });
+
+  it('операции списания не дошли до учёта, других заказов у пайщика нет: повторной отправки нет, в журнале тревога о расхождении с кошельком', async () => {
     const world = createKeuWorld();
     const o = order('anna', 10_000, dayOf(2027, 1, 5));
     await world.issue(o);
@@ -300,18 +304,16 @@ describe('mkt.order.keu.cycle.04 — сбой списания одной стр
     const afterFirst = { branch: walletTotal(world.wallets.branch), share: walletTotal(world.wallets.share) };
     expect(world.wallets.due.get('anna')).toBe(0n);
 
-    expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 0, failed: 1 });
+    for (let i = 1; i <= 3; i++) {
+      expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + i * hour))).toEqual({ charged: 0, failed: 0 });
+    }
+    expect(world.calls.chargePeriod.filter((c) => c.order_hash === o.hash)).toHaveLength(1);
     expect(walletTotal(world.wallets.branch)).toBe(afterFirst.branch);
     expect(walletTotal(world.wallets.share)).toBe(afterFirst.share);
-    expect(world.logger.error).toHaveBeenCalledWith(expect.stringContaining('учёт разошёлся'));
+    expect(world.logger.error).toHaveBeenCalledWith(expect.stringContaining('разошёлся с кошельком в цепи'));
   });
 
-  // Известное слабое место (аудит 05.11.2026, находка 3): строка закрывается только
-  // слушателем операций. Если операции списания до учёта не дошли, следующий проход
-  // списывает заказ ещё раз — из обеспечительной части другого заказа того же пайщика.
-  // Тест описывает нужное поведение и падает на нынешнем коде; после исправления
-  // пометка `failing` снимается.
-  it.failing('операции списания не дошли до учёта, у пайщика есть второй заказ: повторный проход не списывает заказ дважды', async () => {
+  it('операции списания не дошли до учёта, у пайщика есть второй заказ: заказ не списывается дважды, деньги второго заказа целы', async () => {
     const world = createKeuWorld();
     const ripe = order('anna', 10_000, dayOf(2027, 1, 5));
     const later = order('anna', 50_000, dayOf(2027, 2, 2));
@@ -325,6 +327,25 @@ describe('mkt.order.keu.cycle.04 — сбой списания одной стр
     await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour));
     expect(world.calls.chargePeriod.filter((c) => c.order_hash === ripe.hash)).toHaveLength(1);
     expect(world.wallets.due.get('anna')).toBe(later.due);
+    expect(world.logger.error).toHaveBeenCalledWith(expect.stringContaining('разошёлся с кошельком в цепи'));
+    // Второй заказ в свой месяц списывается целиком из своей обеспечительной части.
+    await world.run(firstOfMonth(2027, 3));
+    expect(world.calls.chargePeriod.filter((c) => c.order_hash === later.hash)).toHaveLength(1);
+    expectSettled(world, later, periodOf(2027, 2));
+    expect(world.wallets.due.get('anna')).toBe(0n);
+  });
+
+  it('кошелёк в цепи при сверке не прочитан: отметка остаётся, строка ждёт следующей сверки', async () => {
+    const { world, orders } = await threeOrders();
+    world.faults.chargePeriod.set(orders[0].hash, [new Error('socket hang up')]);
+    await world.run(firstOfMonth(2027, 2));
+    world.faults.walletRead.push(new Error('connect ECONNREFUSED'));
+
+    expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 0, failed: 0 });
+    expect(world.dueRow(orders[0].hash)!.charge_sent_at).toBeInstanceOf(Date);
+
+    expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + 2 * hour))).toEqual({ charged: 1, failed: 0 });
+    for (const o of orders) expectSettled(world, o, periodOf(2027, 1));
   });
 });
 
@@ -412,17 +433,80 @@ describe('mkt.order.keu.cycle.05 — какие строки входят в п�
     expect(world.periods.filter((p) => p.braname === 'branch1').length).toBeLessThanOrEqual(2);
   });
 
-  // Известная ошибка (аудит 05.11.2026, находка 2): проход берёт не больше 200 созревших
-  // строк кооператива, и итог месяца считается по этой части. Ставки первой части
-  // неверны, а остальные заказы потом списываются по ним же. Тест описывает нужное
-  // поведение и падает на нынешнем коде; после исправления пометка `failing` снимается.
-  it.failing('больше двухсот созревших заказов: в расчёт итога передаются суммы всех заказов участка', async () => {
+  it('гарантийный возврат закрыт в середине месяца: заказ ждёт следующего первого числа и входит в расчёт того итога, по которому списывается', async () => {
+    const world = createKeuWorld();
+    const plain = order('anna', 10_000, dayOf(2027, 1, 5));
+    const disputed = order('boris', 20_000, dayOf(2027, 1, 6));
+    await world.issue(plain);
+    await world.issue(disputed);
+    world.settings.openClaims.add(disputed.hash);
+    await world.run(firstOfMonth(2027, 2));
+
+    // Совет отклонил возврат 10 февраля: итог января уже рассчитан без этого заказа.
+    world.settings.openClaims.delete(disputed.hash);
+    expect(await world.run(dayOf(2027, 2, 10))).toEqual({ charged: 0, failed: 0 });
+    expect(await world.run(dayOf(2027, 2, 27))).toEqual({ charged: 0, failed: 0 });
+    expect(world.wallets.due.get('boris')).toBe(disputed.due);
+    expect(world.chainPeriod('branch1', periodOf(2027, 1))!.facts.turnover).toBe(plain.base);
+    expect((await world.periodService.findOne('voskhod', 'branch1', periodOf(2027, 1)))!.rows_total).toBe(1);
+
+    // Первого марта заказ входит в прогон февраля вместе с февральскими заказами.
+    const february = order('vera', 30_000, dayOf(2027, 2, 12));
+    await world.issue(february);
+    expect(await world.run(firstOfMonth(2027, 3))).toEqual({ charged: 2, failed: 0 });
+    const chain = world.chainPeriod('branch1', periodOf(2027, 2))!;
+    expect(chain.facts.turnover).toBe(disputed.base + february.base);
+    expect(chain.facts.secured).toBe(disputed.due + february.due);
+    expectSettled(world, disputed, periodOf(2027, 2));
+    expectSettled(world, february, periodOf(2027, 2));
+  });
+
+  it('гарантийный возврат открыт после неудачного расчёта итога: при повторе расчёта заказ из списка прогона исключается', async () => {
+    const world = createKeuWorld();
+    const plain = order('anna', 10_000, dayOf(2027, 1, 5));
+    const disputed = order('boris', 20_000, dayOf(2027, 1, 6));
+    await world.issue(plain);
+    await world.issue(disputed);
+    world.faults.closePeriod.push(new Error('connect ECONNREFUSED'));
+    expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 0, failed: 2 });
+
+    world.settings.openClaims.add(disputed.hash);
+    expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 1, failed: 0 });
+    expect(world.chainPeriod('branch1', periodOf(2027, 1))!.facts.turnover).toBe(plain.base);
+    expect(world.dueRow(disputed.hash)!.run_period ?? null).toBeNull();
+    expect(world.wallets.due.get('boris')).toBe(disputed.due);
+  });
+
+  it('строка не списалась за весь месяц: первого числа следующего месяца она входит в новый прогон и его расчёт', async () => {
+    const world = createKeuWorld();
+    const stuck = order('anna', 10_000, dayOf(2027, 1, 5));
+    await world.issue(stuck);
+    world.faults.chargePeriod.set(stuck.hash, Array.from({ length: 3 }, () => new Error('assertion failure with message: MARKETPLACE_DUE_AMOUNT_INVALID: проверка')));
+    for (let i = 0; i < 3; i++) await world.run(new Date(firstOfMonth(2027, 2).getTime() + i * hour));
+    expect(world.dueRow(stuck.hash)!.run_period).toBe(periodOf(2027, 1));
+
+    const february = order('boris', 20_000, dayOf(2027, 2, 12));
+    await world.issue(february);
+    expect(await world.run(firstOfMonth(2027, 3))).toEqual({ charged: 2, failed: 0 });
+    expect(world.chainPeriod('branch1', periodOf(2027, 2))!.facts.turnover).toBe(stuck.base + february.base);
+    expectSettled(world, stuck, periodOf(2027, 2));
+  });
+
+  it('двести пятьдесят созревших заказов: итог считается по всем, проход отправляет двести списаний, следующий — остальные по тем же ставкам', async () => {
     const world = createKeuWorld();
     const orders = Array.from({ length: 250 }, (_, i) => order(`member${i % 40}`, 1_000 + i, dayOf(2027, 1, 1 + (i % 28))));
     for (const o of orders) await world.issue(o);
 
-    await world.run(firstOfMonth(2027, 2));
+    expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 200, failed: 0 });
+    expect(world.calls.closePeriod).toHaveLength(1);
     expect(toUnits(world.calls.closePeriod[0].turnover)).toBe(sum(orders.map((o) => o.base)));
     expect(toUnits(world.calls.closePeriod[0].secured)).toBe(sum(orders.map((o) => o.due)));
+    expect((await world.periodService.findOne('voskhod', 'branch1', periodOf(2027, 1)))!.rows_total).toBe(250);
+
+    expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 50, failed: 0 });
+    expect(world.calls.closePeriod).toHaveLength(1);
+    for (const o of orders) expectSettled(world, o, periodOf(2027, 1));
+    expect(walletTotal(world.wallets.due)).toBe(0n);
+    expect(await world.periodService.findOne('voskhod', 'branch1', periodOf(2027, 1))).toMatchObject({ rows_total: 250, rows_charged: 250 });
   });
 });

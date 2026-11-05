@@ -67,6 +67,11 @@ const DEFAULT_MEMBERSHIP_FEE_PERCENT = 380_000;
 /** Контракт-источник распределения в реестре весов branch::weights. */
 const MARKETPLACE_SOURCE_CONTRACT = 'marketplace';
 
+/** Общий кошелёк участка: владелец строки — имя участка. */
+const BRANCH_COMMON_WALLET = 'w.brn.common';
+/** Персональный кошелёк членских средств доверенного лица участка. */
+const BRANCH_PERSONAL_WALLET = 'w.brn.person';
+
 export interface MarketplaceTrusteeWeightView {
   username: string;
   weight: number;
@@ -290,28 +295,27 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, balances, reserve] = await Promise.all([
-      this.chainPort.getBranchWeights(coopname),
-      this.chainPort.getBranchWeightTotals(coopname),
-      this.chainPort.listBranchWalletBalances(coopname),
+    const [weights, totals, common, reserve] = await Promise.all([
+      this.chainPort.getBranchWeights(coopname, braname),
+      this.chainPort.getBranchWeightTotals(coopname, braname),
+      this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
       this.expenseChassis.getPlannedReserve(coopname, braname),
     ]);
 
-    const branchWeights = weights.filter(
-      (w) => w.braname === braname && w.contract === MARKETPLACE_SOURCE_CONTRACT
-    );
-    const total = totals.find(
-      (t) => t.braname === braname && t.contract === MARKETPLACE_SOURCE_CONTRACT
-    );
+    const branchWeights = weights.filter((w) => w.contract === MARKETPLACE_SOURCE_CONTRACT);
+    const total = totals.find((t) => t.contract === MARKETPLACE_SOURCE_CONTRACT);
     const totalWeight = total ? Number(total.total_weight) : 0;
 
-    const personalBalanceOf = (username: string): string =>
-      balances.find((b) => b.wallet_name === 'w.brn.person' && b.username === username)
-        ?.available ?? this.zeroAsset();
+    // Персональные кошельки доверенных участка — по одному чтению на получателя веса.
+    const personal = new Map<string, string>();
+    await Promise.all(
+      branchWeights.map(async (w) => {
+        personal.set(String(w.username), await this.getPersonalBalance(coopname, String(w.username)));
+      })
+    );
+    const personalBalanceOf = (username: string): string => personal.get(username) ?? this.zeroAsset();
 
-    const commonBalance =
-      balances.find((b) => b.wallet_name === 'w.brn.common' && b.username === braname)
-        ?.available ?? this.zeroAsset();
+    const commonBalance = common?.available ?? this.zeroAsset();
 
     const available = Math.max(0, this.assetToNumber(commonBalance) - reserve.amount);
 
@@ -348,7 +352,7 @@ export class MarketplaceEconomyService {
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
     const result = await this.ledger2History.getHistory({
       coopname,
-      walletName: 'w.brn.common',
+      walletName: BRANCH_COMMON_WALLET,
       username: braname,
       actionNames: ['apply'],
       page: options?.page ?? 1,
@@ -377,7 +381,7 @@ export class MarketplaceEconomyService {
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
     const result = await this.ledger2History.getHistory({
       coopname,
-      walletName: 'w.brn.person',
+      walletName: BRANCH_PERSONAL_WALLET,
       username,
       actionNames: ['apply'],
       operationCodes: ['o.brn.conv', 'o.brn.aid'],
@@ -475,11 +479,8 @@ export class MarketplaceEconomyService {
 
   /** Баланс персонального кошелька (w.brn.person) одного доверенного. */
   async getPersonalBalance(coopname: string, username: string): Promise<string> {
-    const balances = await this.chainPort.listBranchWalletBalances(coopname);
-    return (
-      balances.find((b) => b.wallet_name === 'w.brn.person' && b.username === username)
-        ?.available ?? this.zeroAsset()
-    );
+    const wallet = await this.chainPort.getUserWallet(coopname, BRANCH_PERSONAL_WALLET, username);
+    return wallet?.available ?? this.zeroAsset();
   }
 
   private async assertIsTrusteeOfBranch(
@@ -793,9 +794,8 @@ export class MarketplaceEconomyService {
   }
 
   async listAids(coopname: string, username?: string): Promise<MarketplaceAidView[]> {
-    const aids = await this.chainPort.listAids(coopname);
-    const scoped = username ? aids.filter((a) => a.username === username) : aids;
-    return Promise.all(scoped.map((aid) => this.toAidView(coopname, aid)));
+    const aids = await this.chainPort.listAids(coopname, username);
+    return Promise.all(aids.map((aid) => this.toAidView(coopname, aid)));
   }
 
   /**

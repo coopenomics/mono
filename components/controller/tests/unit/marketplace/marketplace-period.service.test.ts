@@ -14,9 +14,12 @@ jest.mock('@coopenomics/extension-kit', () => {
 });
 
 import { MarketplacePeriodService } from '~/extensions/marketplace/application/services/marketplace-period.service';
+import { useRealCalendar } from './helpers/real-calendar';
 
 const COOP = 'voskhod';
 const BRANAME = 'krg';
+useRealCalendar();
+
 /** Ноябрь 2026 по Москве. */
 const NOVEMBER = 2026 * 12 + 11;
 
@@ -104,7 +107,8 @@ function build(opts: {
       if (opts.closeError) throw opts.closeError;
       return {};
     }),
-    listPeriods: jest.fn(async () => chainRows),
+    // Строки итога цепь отдаёт по индексу участка.
+    listBranchPeriods: jest.fn(async (_coopname: string, braname: string) => chainRows.filter((r: any) => r.braname === braname)),
     deletePeriod: jest.fn(async () => {
       if (opts.deleteError) throw opts.deleteError;
       return {};
@@ -220,6 +224,41 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
       code: 'MARKETPLACE_PERIOD_NOT_IN_CHAIN',
       params: { braname: BRANAME, period: NOVEMBER },
     });
+  });
+
+  it('итог прежнего прохода: зеркало есть — цепь не читается; зеркала нет — строка цепи участка зеркалируется с числом строк прогона; нет нигде — null', async () => {
+    const mirrored = build();
+    await mirrored.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 2);
+    mirrored.chainPort.listBranchPeriods.mockClear();
+    expect(await mirrored.service.adoptClosed(COOP, BRANAME, NOVEMBER, 9)).toMatchObject({ period: NOVEMBER, rows_total: 2 });
+    expect(mirrored.chainPort.listBranchPeriods).not.toHaveBeenCalled();
+
+    const lost = build();
+    const adopted = await lost.service.adoptClosed(COOP, BRANAME, NOVEMBER, 7);
+    expect(adopted).toMatchObject({ period: NOVEMBER, rows_total: 7, branch_amount: '500000.0000' });
+    expect(lost.chainPort.listBranchPeriods).toHaveBeenCalledWith(COOP, BRANAME);
+    expect(lost.chainPort.closePeriod).not.toHaveBeenCalled();
+    expect(lost.store.rows.size).toBe(1);
+
+    const none = build({ chainRows: [] });
+    expect(await none.service.adoptClosed(COOP, BRANAME, NOVEMBER, 3)).toBeNull();
+    const otherBranch = build({ chainRows: [chainRow({ braname: 'other' })] });
+    expect(await otherBranch.service.adoptClosed(COOP, BRANAME, NOVEMBER, 3)).toBeNull();
+    const otherMonth = build({ chainRows: [chainRow({ period: NOVEMBER - 1 })] });
+    expect(await otherMonth.service.adoptClosed(COOP, BRANAME, NOVEMBER, 3)).toBeNull();
+  });
+
+  it('служебные записки читаются до последней страницы истории: тридцать страниц складываются целиком', async () => {
+    const { service, ledger2History } = build();
+    (ledger2History.getHistory as jest.Mock).mockImplementation(async (query: { page: number }) => ({
+      items: [{ globalSequence: String(query.page), action: 'apply', operationCode: 'o.brn.expfnd', processHash: `m${query.page}`, quantity: '10.0000 RUB' }],
+      totalCount: 30,
+      totalPages: 30,
+      currentPage: query.page,
+    }));
+    const facts = await service.collectFacts(COOP, BRANAME, NOVEMBER);
+    expect(facts.memos).toBe(toUnits('300.0000'));
+    expect(ledger2History.getHistory).toHaveBeenCalledTimes(30);
   });
 
   it('noteCharged увеличивает число списанных строк', async () => {

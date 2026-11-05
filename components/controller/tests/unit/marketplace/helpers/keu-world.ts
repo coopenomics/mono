@@ -11,6 +11,7 @@
  * ожидания между ними, — как их выпускает шина событий узла.
  */
 import { MarketContract } from 'cooptypes';
+import { memoryTable, toAsset, toUnits } from './memory-table';
 import { MarketplaceSecureDueOperation, MarketplaceSecureDueService } from '~/extensions/marketplace/application/services/marketplace-secure-due.service';
 import { MarketplacePeriodService } from '~/extensions/marketplace/application/services/marketplace-period.service';
 import type { MarketplaceSecureDueEntity } from '~/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity';
@@ -18,21 +19,13 @@ import type { MarketplaceBranchPeriodEntity } from '~/extensions/marketplace/inf
 
 const Model = MarketContract.PeriodModel;
 
+export { toAsset, toUnits };
+
 export const COOP = 'voskhod';
 export const TIMEZONE = 'Europe/Moscow';
 
 /** Рубли в единицы актива: четыре знака. */
 export const rub = (value: number): bigint => BigInt(Math.round(value * 10_000));
-
-export function toUnits(value: unknown): bigint {
-  const [int = '0', frac = ''] = (String(value ?? '0').trim().split(/\s+/)[0] ?? '0').split('.');
-  return BigInt(int) * 10_000n + BigInt((frac + '0000').slice(0, 4));
-}
-
-export function toAsset(units: bigint): string {
-  const padded = units.toString().padStart(5, '0');
-  return `${padded.slice(0, -4)}.${padded.slice(-4)} RUB`;
-}
 
 /** 00:30 первого числа месяца по Москве — первый проход крона в новом месяце. */
 export function firstOfMonth(year: number, month: number): Date {
@@ -52,74 +45,31 @@ function refusal(code: string, text: string): Error {
   return new Error(`assertion failure with message: ${code}: ${text}`);
 }
 
-type Where = Record<string, any>;
-
-function matches(row: any, where: Where): boolean {
-  return Object.entries(where).every(([key, expected]) => {
-    if (expected && typeof expected === 'object' && 'operator' in expected) {
-      if (expected.operator === 'is null') return row[key] == null;
-      if (expected.operator === '<=') return row[key] != null && row[key] <= expected.value;
-      throw new Error(`условие ${expected.operator} в таблице теста не описано`);
-    }
-    return row[key] === expected;
-  });
-}
-
 /**
- * Таблица в памяти с поведением шлюза базы: первичный ключ уникален (повторная
- * вставка падает, как в PostgreSQL), каждый запрос уступает очередь событий,
- * отбор понимает порядок и предел.
+ * Суммы по строкам учёта поверх таблицы в памяти — те же отборы, что делает
+ * `MarketplaceSecureDueRunQueries` запросами к базе.
  */
-function memoryTable<T extends object>(keyOf: (row: any) => string) {
-  const rows = new Map<string, T>();
-  const yieldTurn = () => new Promise<void>((resolve) => setImmediate(resolve));
-  const select = (where: Where, options: { order?: Record<string, 'ASC' | 'DESC'>; limit?: number; offset?: number } = {}) => {
-    let list = [...rows.values()].filter((row) => matches(row, where));
-    for (const [field, direction] of Object.entries(options.order ?? {})) {
-      list = list.sort((a: any, b: any) => (a[field] < b[field] ? -1 : a[field] > b[field] ? 1 : 0) * (direction === 'DESC' ? -1 : 1));
-    }
-    const offset = options.offset ?? 0;
-    return list.slice(offset, options.limit === undefined ? undefined : offset + options.limit);
-  };
-  const table = {
-    rows,
-    /** Следующая вставка упадёт с этой ошибкой — сбой базы. */
-    failNextInsert: null as Error | null,
-    async findOne(where: Where): Promise<T | null> {
-      await yieldTurn();
-      return select(where)[0] ?? null;
+export function runQueriesOver(table: { rows: Map<string, MarketplaceSecureDueEntity> }) {
+  const all = () => [...table.rows.values()];
+  const open = (row: MarketplaceSecureDueEntity) => row.charged_at == null && toUnits(row.due_amount) > 0n;
+  const unsent = (row: MarketplaceSecureDueEntity) => row.charge_sent_at == null;
+  const totals = (list: MarketplaceSecureDueEntity[]) => ({
+    turnover: toAsset(list.reduce((s, r) => s + toUnits(r.base_amount), 0n)).split(' ')[0] ?? '0',
+    secured: toAsset(list.reduce((s, r) => s + toUnits(r.due_amount), 0n)).split(' ')[0] ?? '0',
+    rows: list.length,
+  });
+  return {
+    async ripeBranches(coopname: string, before: Date): Promise<string[]> {
+      const ripe = all().filter((r) => r.coopname === coopname && open(r) && unsent(r) && r.due_from != null && r.due_from < before && toUnits(r.base_amount) > 0n);
+      return [...new Set(ripe.map((r) => r.braname))].sort();
     },
-    async find(where: Where, options?: any): Promise<T[]> {
-      await yieldTurn();
-      return select(where, options);
+    async runTotals(coopname: string, braname: string, period: number) {
+      return totals(all().filter((r) => r.coopname === coopname && r.braname === braname && r.run_period === period && open(r) && unsent(r)));
     },
-    async findAndCount(where: Where, options?: any): Promise<[T[], number]> {
-      await yieldTurn();
-      return [select(where, options), select(where).length];
-    },
-    async insert(fields: any): Promise<T> {
-      await yieldTurn();
-      if (table.failNextInsert) {
-        const error = table.failNextInsert;
-        table.failNextInsert = null;
-        throw error;
-      }
-      const key = keyOf(fields);
-      if (rows.has(key)) throw Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' });
-      const row = { created_at: new Date(), updated_at: new Date(), ...fields } as T;
-      rows.set(key, row);
-      return row;
-    },
-    async update(where: Where, patch: any): Promise<number> {
-      await yieldTurn();
-      const key = keyOf(where);
-      const row = rows.get(key);
-      if (!row) return 0;
-      rows.set(key, { ...row, ...patch });
-      return 1;
+    async ripeningTotals(coopname: string, braname: string, before: Date) {
+      return totals(all().filter((r) => r.coopname === coopname && r.braname === braname && open(r) && r.due_from != null && r.due_from < before));
     },
   };
-  return table;
 }
 
 /** Заказ, выданный пайщику: стоимость и обеспечительная часть, которую провёл контракт. */
@@ -186,12 +136,15 @@ export function createKeuWorld() {
     lostEvents: new Set<string>(),
     /** Очередь сбоев чтения реестра плановых расходов: факты месяца не собраны. */
     plans: [] as Error[],
+    /** Очередь сбоев чтения кошелька пайщика из цепи при сверке. */
+    walletRead: [] as Error[],
   };
   const calls = {
     closePeriod: [] as any[],
     chargePeriod: [] as any[],
     chargeDue: [] as any[],
     deletePeriod: [] as any[],
+    getUserWallet: [] as any[],
   };
   let sequence = 1;
   let clock = new Date('2027-01-01T00:00:00.000Z');
@@ -289,8 +242,17 @@ export function createKeuWorld() {
       return {};
     },
 
-    async listPeriods() {
-      return periods.map(periodRowOf);
+    async listBranchPeriods(_coopname: string, braname: string) {
+      return periods.filter((p) => p.braname === braname).map(periodRowOf);
+    },
+
+    /** Кошелёк пайщика в цепи; тест читает только кошелёк обеспечительной части к списанию. */
+    async getUserWallet(_coopname: string, walletName: string, username: string) {
+      calls.getUserWallet.push({ walletName, username });
+      const fault = faults.walletRead.shift();
+      if (fault) throw fault;
+      if (walletName !== 'w.mkt.due' || !wallets.due.has(username)) return null;
+      return { id: 0, wallet_name: walletName, username, available: toAsset(wallets.due.get(username) ?? 0n), blocked: toAsset(0n) };
     },
 
     async deletePeriod(data: any) {
@@ -353,7 +315,7 @@ export function createKeuWorld() {
   };
   const claimRepo = {
     findByRequestHash: async () => null,
-    listByStatus: async () => [...settings.openClaims].map((order_hash) => ({ order_hash })),
+    listActiveOrderHashes: async () => [...settings.openClaims],
     findActiveByOrderId: async () => null,
   };
   const expenseChassis = {
@@ -390,7 +352,8 @@ export function createKeuWorld() {
     accountPort as never,
     notifications as never,
     logger as never,
-    periodService
+    periodService,
+    runQueriesOver(dueStore) as never
   );
 
   return {

@@ -161,6 +161,18 @@ private readonly repo: TableStore<MarketplaceReturnClaimEntity>,
 
 
 
+  async listActiveOrderHashes(coopname: string): Promise<string[]> {
+    // Только колонка хэша заказа: тела заявлений с документами прогону не нужны.
+    const rows = await this.repo
+      .sqlBuilder('c')
+      .select('c.order_hash', 'order_hash')
+      .distinct()
+      .where('c.coopname = :coopname', { coopname })
+      .andWhere('c.status IN (:...statuses)', { statuses: ACTIVE_STATUSES })
+      .getRawMany<{ order_hash: string }>();
+    return rows.map((row) => String(row.order_hash).toLowerCase());
+  }
+
   async listByStatus(
     coopname: string,
     status: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[],

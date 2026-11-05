@@ -25,51 +25,18 @@ import {
   monthKey,
 } from '~/extensions/marketplace/application/services/marketplace-secure-due.service';
 import type { MarketplaceSecureDueEntity } from '~/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity';
+import { memoryTable, toAsset, toUnits } from './helpers/memory-table';
+import { runQueriesOver } from './helpers/keu-world';
+import { useRealCalendar } from './helpers/real-calendar';
 
 const COOP = 'voskhod';
+
+useRealCalendar();
 const ORDER = 'a'.repeat(64);
 const ORDER_2 = 'b'.repeat(64);
 
-function toUnits(value: string): bigint {
-  const [int = '0', frac = ''] = (String(value).trim().split(/\s+/)[0] ?? '0').split('.');
-  return BigInt(int) * 10_000n + BigInt((frac + '0000').slice(0, 4));
-}
-function toAsset(units: bigint): string {
-  const padded = units.toString().padStart(5, '0');
-  return `${padded.slice(0, -4)}.${padded.slice(-4)} RUB`;
-}
-
-/** Шлюз таблицы в памяти: поддерживает равенство полей и условия, которыми пользуется сервис. */
-function memoryStore() {
-  const rows = new Map<string, MarketplaceSecureDueEntity>();
-  const matches = (row: any, where: Record<string, any>) =>
-    Object.entries(where).every(([k, v]) => {
-      if (v && typeof v === 'object' && 'operator' in v) {
-        if (v.operator === 'is null') return row[k] == null;
-        if (v.operator === '<=') return row[k] != null && row[k] <= v.value;
-        return true;
-      }
-      return row[k] === v;
-    });
-  return {
-    rows,
-    findOne: jest.fn(async (where: any) => [...rows.values()].find((r) => matches(r, where)) ?? null),
-    find: jest.fn(async (where: any) => [...rows.values()].filter((r) => matches(r, where))),
-    insert: jest.fn(async (fields: any) => {
-      rows.set(fields.order_hash, { created_at: new Date(), updated_at: new Date(), ...fields });
-      return rows.get(fields.order_hash);
-    }),
-    update: jest.fn(async (where: any, patch: any) => {
-      const row = rows.get(where.order_hash);
-      if (!row) return 0;
-      rows.set(where.order_hash, { ...row, ...patch });
-      return 1;
-    }),
-  };
-}
-
 function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; mirroredPeriod?: number } = {}) {
-  const store = memoryStore();
+  const store = memoryTable<MarketplaceSecureDueEntity>((row) => row.order_hash);
   const orderRepo = {
     findByOrderHash: jest.fn(async (_c: string, hash: string) => ({
       order_hash: hash,
@@ -79,7 +46,7 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
   };
   const claimRepo = {
     findByRequestHash: jest.fn(async (_c: string, hash: string) => (hash === 'c'.repeat(64) ? { order_hash: ORDER.toUpperCase() } : null)),
-    listByStatus: jest.fn(async () => (opts.openClaimOrders ?? []).map((order_hash) => ({ order_hash }))),
+    listActiveOrderHashes: jest.fn(async () => opts.openClaimOrders ?? []),
     // Открытой претензии по заказу нет: карточка заказа читает ставку списания без гарантийного спора.
     findActiveByOrderId: jest.fn(async () => null),
   };
@@ -91,6 +58,8 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
     rows_total: 0, rows_charged: 0, deleted_at: null,
   };
   const periodService = {
+    // Итог месяца прежним проходом не рассчитан: ни в зеркале, ни в цепи его нет.
+    adoptClosed: jest.fn(async () => null),
     pruneOld: jest.fn(async () => undefined),
     ensureClosed: jest.fn(async (_c: string, _b: string, period: number, _t: bigint, _s: bigint, rows: number) => ({ ...periodRow, period, rows_total: rows })),
     noteCharged: jest.fn(async () => undefined),
@@ -132,7 +101,8 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
     accountPort as never,
     notifications as never,
     logger as never,
-    periodService as never
+    periodService as never,
+    runQueriesOver(store) as never
   );
   return { service, store, chainPort, notifications, logger, claimRepo, periodService };
 }
@@ -333,9 +303,21 @@ describe('mkt.secure.due.side.11 — обеспечительная часть �
   it('после выдачи — ждёт списания с датой: полночь первого числа месяца после гарантии по часовому поясу кооператива', async () => {
     const { service } = withClaims(false);
     await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
-    const part = await service.securePartOf(order({ status: 'RECEIVED' }));
+    const part = await service.securePartOf(order({ status: 'RECEIVED' }), new Date('2026-10-25T10:00:00.000Z'));
     expect(part).toMatchObject({ state: 'DUE', amount: '30.0000', due_amount: '30.0000', charged_amount: '0.0000' });
     expect(part?.charge_at).toEqual(new Date('2026-10-31T21:00:00.000Z'));
+  });
+
+  it('срок прошёл, а в список идущего прогона строка не вошла — дата списания: ближайшее первое число', async () => {
+    const { service, store } = withClaims(false);
+    await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
+    // 10 ноября: итог октября рассчитан без этой строки (гарантийный возврат закрыт позже).
+    const tenthOfNovember = new Date('2026-11-10T10:00:00.000Z');
+    expect((await service.securePartOf(order({ status: 'RECEIVED' }), tenthOfNovember))?.charge_at).toEqual(new Date('2026-11-30T21:00:00.000Z'));
+    // Строка в списке прогона октября: списание идёт этим прогоном, дата прежняя.
+    const row = store.rows.get(ORDER)!;
+    store.rows.set(ORDER, { ...row, run_period: 2026 * 12 + 10 });
+    expect((await service.securePartOf(order({ status: 'RECEIVED' }), tenthOfNovember))?.charge_at).toEqual(new Date('2026-10-31T21:00:00.000Z'));
   });
 
   it('открытый гарантийный возврат приостанавливает списание, даты нет', async () => {

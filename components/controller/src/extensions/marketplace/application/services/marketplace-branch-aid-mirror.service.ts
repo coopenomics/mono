@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
-import { TableStore } from '@coopenomics/extension-kit';
+import { TableStore, moreOrEqual } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_AID_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceBranchAidEntity, MarketplaceBranchAidStatus } from '../../infrastructure/entities/marketplace-branch-aid.entity';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
@@ -88,9 +88,10 @@ export class MarketplaceBranchAidMirrorService {
 
   /** Материальная помощь участка, выплаченная за отрезок времени [from, to). Сумма заявлений целиком, с налогом. */
   async paidWithin(coopname: string, braname: string, from: Date, to: Date): Promise<bigint> {
-    const rows = await this.store.find({ coopname, braname, status: MarketplaceBranchAidStatus.PAID });
+    // Отбор по дате делает база: строк за все прошлые месяцы узел не читает.
+    const rows = await this.store.find({ coopname, braname, status: MarketplaceBranchAidStatus.PAID, paid_at: moreOrEqual(from) });
     return rows
-      .filter((r) => r.paid_at && r.paid_at >= from && r.paid_at < to)
+      .filter((r) => r.paid_at && r.paid_at < to)
       .reduce((sum, r) => sum + this.fromDecimal(r.amount), 0n);
   }
 
@@ -99,9 +100,9 @@ export class MarketplaceBranchAidMirrorService {
    * выплаченные заявления — все они занимают предел материальной помощи.
    */
   async submittedWithin(coopname: string, username: string, from: Date, to: Date): Promise<bigint> {
-    const rows = await this.store.find({ coopname, username });
+    const rows = await this.store.find({ coopname, username, created_at: moreOrEqual(from) });
     return rows
-      .filter((r) => r.status !== MarketplaceBranchAidStatus.DECLINED && r.created_at >= from && r.created_at < to)
+      .filter((r) => r.status !== MarketplaceBranchAidStatus.DECLINED && r.created_at < to)
       .reduce((sum, r) => sum + this.fromDecimal(r.amount), 0n);
   }
 

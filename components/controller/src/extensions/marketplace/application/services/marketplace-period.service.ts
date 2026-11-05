@@ -27,9 +27,8 @@ const PERIOD_NOT_CLOSED = 'MARKETPLACE_PERIOD_NOT_CLOSED';
 const MEMO_FUND_CODE = 'o.brn.expfnd';
 const MEMO_UNFUND_CODE = 'o.brn.expunf';
 
-/** Сколько операций по общему кошельку участка читается за страницу истории; записок у участка за месяц единицы. */
+/** Сколько операций по общему кошельку участка читается за страницу истории; страницы читаются до последней. */
 const HISTORY_PAGE = 200;
-const HISTORY_PAGES_MAX = 20;
 
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1 000 000) = 100 %. */
 const HUNDR_PERCENTS = 1_000_000n;
@@ -106,7 +105,7 @@ export class MarketplacePeriodService {
    */
   private async memosWithin(coopname: string, braname: string, bounds: PeriodBounds, planHashes: Set<string>): Promise<bigint> {
     let total = 0n;
-    for (let page = 1; page <= HISTORY_PAGES_MAX; page++) {
+    for (let page = 1; ; page++) {
       const result = await this.ledger2History.getHistory({
         coopname,
         username: braname,
@@ -117,18 +116,39 @@ export class MarketplacePeriodService {
         page,
         limit: HISTORY_PAGE,
       });
-      for (const op of result.items) {
-        if (op.processHash && planHashes.has(op.processHash.toLowerCase())) continue;
-        const units = this.economyService.assetToUnits(String(op.quantity ?? '0'));
-        if (op.operationCode === MEMO_FUND_CODE) total += units;
-        else if (op.operationCode === MEMO_UNFUND_CODE) total -= units;
-      }
-      if (page >= result.totalPages) break;
+      for (const op of result.items) total += this.memoDelta(op, planHashes);
+      // Пустая страница — страховка от неверного числа страниц в ответе истории.
+      if (page >= result.totalPages || result.items.length === 0) break;
     }
     return total > 0n ? total : 0n;
   }
 
+  /**
+   * Сколько одна операция общего кошелька добавляет к служебным запискам месяца: выделение
+   * под расход — плюс, возврат неизрасходованного — минус; записка по записи
+   * реестра планов уже учтена в плановых расходах и не считается.
+   */
+  private memoDelta(op: { processHash?: string | null; quantity?: unknown; operationCode?: string | null }, planHashes: Set<string>): bigint {
+    if (op.processHash && planHashes.has(op.processHash.toLowerCase())) return 0n;
+    const units = this.economyService.assetToUnits(String(op.quantity ?? '0'));
+    if (op.operationCode === MEMO_FUND_CODE) return units;
+    if (op.operationCode === MEMO_UNFUND_CODE) return -units;
+    return 0n;
+  }
+
   // ── Расчёт и зеркало ───────────────────────────────────────────────────
+
+  /**
+   * Итог месяца участка, рассчитанный прежним проходом: из зеркала, а если
+   * зеркало его не дождалось — из строки цепи с записью в зеркало. Нет ни там,
+   * ни там — null: итог ещё не считался, список прогона открыт.
+   */
+  async adoptClosed(coopname: string, braname: string, period: number, rowsTotal: number): Promise<MarketplaceBranchPeriodEntity | null> {
+    const existing = await this.store.findOne({ coopname, braname, period });
+    if (existing) return existing;
+    const chainRow = (await this.chainPort.listBranchPeriods(coopname, braname)).find((r) => Number(r.period) === period);
+    return chainRow ? this.mirror(coopname, chainRow, rowsTotal) : null;
+  }
 
   /**
    * Строка итога месяца участка: уже рассчитанная — из зеркала; иначе расчёт
@@ -164,9 +184,7 @@ export class MarketplacePeriodService {
       if (chainErrorCode(err) !== PERIOD_EXISTS) throw err;
     }
 
-    const chainRow = (await this.chainPort.listPeriods(coopname)).find(
-      (r) => r.braname === braname && Number(r.period) === period
-    );
+    const chainRow = (await this.chainPort.listBranchPeriods(coopname, braname)).find((r) => Number(r.period) === period);
     if (!chainRow) {
       throw DomainError.internal('MARKETPLACE_PERIOD_NOT_IN_CHAIN', { braname, period });
     }

@@ -325,6 +325,18 @@
 - `initialize(username: string, wif: string): void`
 - `transact(action: InnerChainAction | InnerChainAction[], broadcast?: boolean): Promise<InnerTransactResult>`
 - `getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<T[]>`
+- `queryRows<T = any>(`
+- `code: string,`
+- `scope: string,`
+- `tableName: string,`
+- `options: {`
+- `indexPosition?: string`
+- `keyType?: string`
+- `from?: string | number`
+- `to?: string | number`
+- `maxRows?: number`
+- `}`
+- `): Promise<T[]>`
 - `getSingleRow<T = any>(`
 - `code: string,`
 - `scope: string,`

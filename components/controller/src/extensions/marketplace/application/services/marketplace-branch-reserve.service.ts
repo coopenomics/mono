@@ -147,12 +147,11 @@ export class MarketplaceBranchReserveService {
 
   /** Получатель доли инициатора участка сегодня: назначенный либо председатель участка. */
   async getBranchInitiator(coopname: string, braname: string): Promise<MarketplaceBranchInitiatorView> {
-    const [rows, balances] = await Promise.all([this.chainPort.listInitiators(coopname), this.chainPort.listBranchWalletBalances(coopname)]);
-    const assigned = rows.find((r) => r.braname === braname);
+    const assigned = await this.chainPort.getInitiator(coopname, braname);
     const username = assigned ? assigned.username : await this.kuChairmanService.getTrusteeOfBranch(coopname, braname);
     // Паевой кошелёк инициатора `w.mkt.invest` — его остаток показывает экономика
     // участка; у пайщика без отчислений строки кошелька ещё нет.
-    const invest = username ? balances.find((b) => b.wallet_name === INVEST_WALLET && b.username === username)?.available : undefined;
+    const invest = username ? (await this.chainPort.getUserWallet(coopname, INVEST_WALLET, username))?.available : undefined;
     return {
       username,
       assigned: Boolean(assigned),
@@ -164,12 +163,12 @@ export class MarketplaceBranchReserveService {
 
   async getReserves(coopname: string, braname: string, now = new Date()): Promise<MarketplaceBranchReservesView> {
     const [rows, branchConfig] = await Promise.all([
-      this.chainPort.listReserves(coopname),
+      this.chainPort.listBranchReserves(coopname, braname),
       this.chainPort.getBranchConfig(coopname),
     ]);
     const bounds = this.currentMonth(now);
     const views: MarketplaceBranchReserveView[] = [];
-    for (const r of rows.filter((x) => x.braname === braname)) {
+    for (const r of rows) {
       const amount = this.economyService.assetToUnits(String(r.amount));
       const submitted = await this.aidMirror.submittedWithin(coopname, r.username, bounds.start, bounds.end);
       const remaining = amount > submitted ? amount - submitted : 0n;
@@ -220,7 +219,7 @@ export class MarketplaceBranchReserveService {
     const branchConfig = await this.chainPort.getBranchConfig(coopname);
     const limit = this.economyService.assetToUnits(branchConfig?.aid_month_limit ?? '0');
     if (limit <= 0n) return;
-    const reserve = (await this.chainPort.listReserves(coopname)).find((r) => r.braname === braname && r.username === username);
+    const reserve = (await this.chainPort.listBranchReserves(coopname, braname)).find((r) => r.username === username);
     if (!reserve) throw DomainError.badRequest('MARKETPLACE_AID_NO_RESERVE');
     const bounds = this.currentMonth(now);
     const submitted = await this.aidMirror.submittedWithin(coopname, username, bounds.start, bounds.end);

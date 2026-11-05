@@ -36,7 +36,10 @@ function aid(over: Aid = {}): Aid {
 }
 
 function build(opts: { aids: Aid[]; payment?: Record<string, unknown> | null; mirror?: Record<string, unknown> | null; paymentsFail?: boolean }) {
-  const chainPort = { listAids: jest.fn().mockResolvedValue(opts.aids) } as any;
+  // Заявления одного получателя цепь отдаёт по индексу получателя — заглушка отбирает так же.
+  const chainPort = {
+    listAids: jest.fn(async (_coopname: string, username?: string) => (username ? opts.aids.filter((a) => a.username === username) : opts.aids)),
+  } as any;
   const coreGateway = {
     getPayments: opts.paymentsFail
       ? jest.fn().mockRejectedValue(new Error('нет связи'))

@@ -364,25 +364,36 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Singleton-конфигурация «Стола заказов» (единая ставка взноса); null — не настроена. */
   getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null>;
 
-  /** Реестр весов распределения (branch::weights). */
-  getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
+  // Таблицы, которые растут с числом пайщиков и участков, читаются по индексу:
+  // узел отдаёт только строки участка, пайщика или хэша, полного чтения нет.
 
-  /** Агрегаты Σ весов (branch::weighttotals). */
-  getBranchWeightTotals(coopname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]>;
+  /** Веса распределения участка (branch::weights) — по индексу участка. */
+  getBranchWeights(coopname: string, braname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
 
-  /** Заявки на материальную помощь (branch::aids). */
-  listAids(coopname: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+  /** Агрегаты Σ весов участка (branch::weighttotals) — по индексу участка. */
+  getBranchWeightTotals(coopname: string, braname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]>;
 
-  /** L3-балансы кошельков экономики КУ (w.brn.person / w.brn.common) из ledger2. */
-  listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]>;
+  /**
+   * Заявления на материальную помощь (branch::aids): одного получателя — по
+   * индексу получателя; без имени — все заявления в работе для стола
+   * администратора (выплаченные и отклонённые строки цепь стирает).
+   */
+  listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+
+  /**
+   * Кошелёк пайщика либо участка в ledger2 по имени кошелька (w.brn.person,
+   * w.brn.common, w.mkt.invest, w.mkt.due) — по индексу владельца; null —
+   * строки кошелька ещё нет.
+   */
+  getUserWallet(coopname: string, walletName: string, username: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet | null>;
 
   // ── Чтение таблиц коэффициента экономического участия (задача 99D-22) ──
-  /** Итоги месяцев участков, которые ещё лежат в цепи (marketplace::kuperiods). */
-  listPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]>;
-  /** Инициаторы участков (marketplace::initiators). */
-  listInitiators(coopname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator[]>;
-  /** Резерв социально-экономического обеспечения по получателям (branch::reserves). */
-  listReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
+  /** Итоги месяцев участка, которые ещё лежат в цепи (marketplace::kuperiods), — по индексу участка; строк не больше двух. */
+  listBranchPeriods(coopname: string, braname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]>;
+  /** Назначенный инициатор участка (marketplace::initiators) — по ключу участка; null — не назначен. */
+  getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null>;
+  /** Резерв социально-экономического обеспечения участка по получателям (branch::reserves) — по индексу участка. */
+  listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
   /** Потолок резерва на получателя в месяц (branch::brnconfig); null — не задан. */
   getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
   /** Фонды накопления кооператива с процентами и кошельками (fund::funds, вид `accum`). */

@@ -511,15 +511,15 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
 
   async findCouncilDecisionByHash(coopname: string, hash: string): Promise<SovietContract.Tables.Decisions.IDecision | null> {
-    // Решений у кооператива немного и живут они до исполнения — полный скан
-    // области допустим; при росте перевести на secondary-индекс byhash.
-    const rows: SovietContract.Tables.Decisions.IDecision[] = await this.blockchainService.getAllRows(
+    // Индекс `byhash` таблицы решений — седьмой по порядку объявления в контракте.
+    return this.blockchainService.getSingleRow<SovietContract.Tables.Decisions.IDecision>(
       SovietContract.contractName.production,
       coopname,
-      SovietContract.Tables.Decisions.tableName
+      SovietContract.Tables.Decisions.tableName,
+      hash.toLowerCase(),
+      'seventh',
+      'sha256'
     );
-    const wanted = hash.toLowerCase();
-    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
   }
 
   async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult> {
@@ -596,23 +596,22 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return (rows[0] as MarketContract.Tables.Config.IMktConfig | undefined) ?? null;
   }
 
-  async getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]> {
-    return this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.Weights.tableName
-    );
+  async getBranchWeights(coopname: string, braname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]> {
+    // Индексы таблицы весов: второй — контракт и участок, третий — участок.
+    return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Weights.tableName, 'tertiary', braname);
   }
 
-  async getBranchWeightTotals(coopname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]> {
-    return this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.WeightTotals.tableName
-    );
+  async getBranchWeightTotals(coopname: string, braname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]> {
+    return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.WeightTotals.tableName, 'tertiary', braname);
   }
 
-  async listAids(coopname: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
+  async listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
+    // Заявления одного получателя — по третьему индексу (получатель).
+    if (username) {
+      return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Aids.tableName, 'tertiary', username);
+    }
+    // Стол администратора читает все заявления в работе: строка живёт от подачи
+    // до выплаты либо отказа, после чего контракт её стирает.
     return this.blockchainService.getAllRows(
       BranchContract.contractName.production,
       coopname,
@@ -620,32 +619,24 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  // ── Чтение таблиц коэффициента экономического участия (задача 99D-22) ──
-  // Строк единицы: у участка не больше двух итогов, инициатор — один на участок,
-  // резервы — по числу доверенных, фонды — единицы. Полный скан области допустим.
+  async listBranchPeriods(coopname: string, braname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Periods.tableName, 'secondary', braname);
+  }
 
-  async listPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
-    return this.blockchainService.getAllRows(
+  async getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null> {
+    // Первичный ключ строки инициатора — имя участка.
+    return this.blockchainService.getSingleRow<MarketContract.Tables.Initiators.IMktInitiator>(
       MarketContract.contractName.production,
       coopname,
-      MarketContract.Tables.Periods.tableName
+      MarketContract.Tables.Initiators.tableName,
+      braname,
+      'primary',
+      'name'
     );
   }
 
-  async listInitiators(coopname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator[]> {
-    return this.blockchainService.getAllRows(
-      MarketContract.contractName.production,
-      coopname,
-      MarketContract.Tables.Initiators.tableName
-    );
-  }
-
-  async listReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {
-    return this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.Reserves.tableName
-    );
+  async listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {
+    return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Reserves.tableName, 'secondary', braname);
   }
 
   async getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null> {
@@ -668,21 +659,26 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return rows.filter((row) => row.kind === FundContract.Tables.Funds.KIND_ACCUMULATION);
   }
 
-  async listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]> {
-    // Полный скан userwallets кооператива с фильтром по кошелькам экономики КУ.
-    // Объём = пайщики × кошельки — приемлем для MVP; при росте перевести на
-    // запрос по secondary-индексу byuserwallet (i128).
-    const rows: Ledger2Contract.Tables.UserWallets.IUserWallet[] =
-      await this.blockchainService.getAllRows(
-        Ledger2Contract.contractName.production,
-        coopname,
-        Ledger2Contract.Tables.UserWallets.tableName
-      );
-    return rows.filter(
-      // w.mkt.invest — паевой кошелёк инициатора участка (задача 99D-22): его
-      // остаток показывает экономика участка рядом с общим кошельком.
-      (r) => r.wallet_name === 'w.brn.person' || r.wallet_name === 'w.brn.common' || r.wallet_name === 'w.mkt.invest'
+  async getUserWallet(coopname: string, walletName: string, username: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet | null> {
+    // Третий индекс таблицы кошельков — владелец: узел отдаёт только кошельки
+    // этого пайщика (их число ограничено числом видов кошельков), нужный берётся
+    // по имени. Чтение не зависит от числа пайщиков кооператива.
+    const wallets = await this.rowsByName<Ledger2Contract.Tables.UserWallets.IUserWallet>(
+      Ledger2Contract.contractName.production,
+      coopname,
+      Ledger2Contract.Tables.UserWallets.tableName,
+      'tertiary',
+      username
     );
+    return wallets.find((w) => String(w.wallet_name) === walletName) ?? null;
+  }
+
+  /**
+   * Строки таблицы, у которых ключ индекса равен имени (участок, пайщик):
+   * узел отдаёт только их, размер таблицы на чтение не влияет.
+   */
+  private rowsByName<T>(code: string, coopname: string, tableName: string, indexPosition: string, name: string): Promise<T[]> {
+    return this.blockchainService.queryRows<T>(code, coopname, tableName, { indexPosition, keyType: 'name', from: name, to: name });
   }
 
 }

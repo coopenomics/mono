@@ -8,6 +8,7 @@ import {
   MarketplaceBranchAidMirrorService,
 } from '~/extensions/marketplace/application/services/marketplace-branch-aid-mirror.service';
 import { MarketplaceBranchAidStatus } from '~/extensions/marketplace/infrastructure/entities/marketplace-branch-aid.entity';
+import { matches } from './helpers/memory-table';
 
 const COOP = 'voskhod';
 const HASH = 'a'.repeat(64);
@@ -23,7 +24,6 @@ function toAsset(units: bigint): string {
 
 function memoryStore() {
   const rows = new Map<string, any>();
-  const matches = (row: any, where: Record<string, any>) => Object.entries(where).every(([k, v]) => row[k] === v);
   return {
     rows,
     findOne: jest.fn(async (where: any) => [...rows.values()].find((r) => matches(r, where)) ?? null),

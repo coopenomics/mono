@@ -215,6 +215,22 @@ jobs:
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh dbcov snap rights
 
+      # Коэффициент экономического участия — прогон первого числа целиком:
+      # заказ, выдача, расчёт итога месяца участка, списание по ставкам. Набор
+      # ждёт первое число, поэтому идёт последней фазой на сжатом времени
+      # стенда; остальные наборы уже отработали в настоящем времени. Фаза
+      # входит в полный и в ночной прогон (решение владельца 05.11.2026).
+      - name: Коэффициент экономического участия — прогон первого числа (сжатое время)
+        id: keu
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
+        timeout-minutes: 45
+        run: bash scripts/blackbox/stack.sh keu
+
+      - name: База — снимок после прогона первого числа
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap keu
+
       - name: Логи стенда
         if: always()
         run: bash scripts/blackbox/stack.sh collect

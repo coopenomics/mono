@@ -175,6 +175,7 @@ import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.re
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
 import { MarketplaceSecureDueService } from './services/marketplace-secure-due.service';
+import { MarketplaceSecureDueRunQueries } from '../infrastructure/database/marketplace-secure-due-run.queries';
 import { MarketplacePeriodService } from './services/marketplace-period.service';
 import { MarketplaceBranchAidMirrorService } from './services/marketplace-branch-aid-mirror.service';
 import { MarketplaceBranchReserveService } from './services/marketplace-branch-reserve.service';
@@ -485,6 +486,7 @@ import {
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,
     MarketplaceSecureDueService,
+    MarketplaceSecureDueRunQueries,
     // Задача 99D-22: итог месяца участка, зеркало материальной помощи, резерв обеспечения
     MarketplaceBranchAidMirrorService,
     MarketplacePeriodService,

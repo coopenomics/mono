@@ -13,6 +13,9 @@ jest.mock('@coopenomics/extension-kit', () => {
 });
 
 import { MarketplaceBranchReserveService } from '~/extensions/marketplace/application/services/marketplace-branch-reserve.service';
+import { useRealCalendar } from './helpers/real-calendar';
+
+useRealCalendar();
 
 const COOP = 'voskhod';
 
@@ -42,12 +45,17 @@ function build(opts: {
       { id: 2, kind: 'accum', name: 'Резервный фонд', percent: 150_000, wallet: 'w.fnd.resrv' },
       { id: 3, kind: 'accum', name: 'Фонд развития', percent: 50_000, wallet: 'w.fnd.devel' },
     ]),
-    listReserves: jest.fn(async () => (opts.reserves ?? []).map((r, i) => ({ id: i + 1, ...r }))),
-    listInitiators: jest.fn(async () => opts.initiators ?? []),
-    listBranchWalletBalances: jest.fn(async () => [
-      { username: 'investor', wallet_name: 'w.mkt.invest', available: '31447.5900 RUB' },
-      { username: 'chairkrg', wallet_name: 'w.brn.person', available: '5.0000 RUB' },
-    ]),
+    // Цепь отдаёт резерв по индексу участка, инициатора — по ключу участка, кошелёк — по индексу владельца.
+    listBranchReserves: jest.fn(async (_coopname: string, braname: string) =>
+      (opts.reserves ?? []).map((r, i) => ({ id: i + 1, ...r })).filter((r: any) => r.braname === braname)
+    ),
+    getInitiator: jest.fn(async (_coopname: string, braname: string) => (opts.initiators ?? []).find((r: any) => r.braname === braname) ?? null),
+    getUserWallet: jest.fn(async (_coopname: string, walletName: string, username: string) =>
+      [
+        { username: 'investor', wallet_name: 'w.mkt.invest', available: '31447.5900 RUB' },
+        { username: 'chairkrg', wallet_name: 'w.brn.person', available: '5.0000 RUB' },
+      ].find((w) => w.wallet_name === walletName && w.username === username) ?? null
+    ),
     setShares: jest.fn(async () => ({})),
     setAidLimit: jest.fn(async () => ({})),
     setInitiator: jest.fn(async () => ({})),

@@ -13,6 +13,9 @@ title: Обеспечительная часть паевого взноса —
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-secure-due.service.ts
+    # Список прогона и отметка отправки (05.11.2026): суммы по строкам считает база, колонки — миграцией.
+    - components/controller/src/extensions/marketplace/infrastructure/database/marketplace-secure-due-run.queries.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1793880530030-secure-due-run.ts
     - components/extension-kit/src/config/stand-time.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity.ts
     - components/controller/src/extensions/marketplace/migrations/database/1793440000000-secure-due.ts

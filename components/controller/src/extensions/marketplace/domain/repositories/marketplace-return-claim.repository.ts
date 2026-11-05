@@ -121,6 +121,13 @@ export interface MarketplaceReturnClaimDomainRepository {
   /** Дописать поля совета без смены статуса. */
   patchCouncil(id: string, patch: MarketplaceReturnClaimCouncilPatch): Promise<MarketplaceReturnClaimDomainEntity>;
 
+  /**
+   * Хэши заказов со всеми заявлениями на гарантийный возврат в работе — без
+   * предела и без тел заявлений: по ним прогон списания обеспечительной части
+   * пропускает заказы до решения совета.
+   */
+  listActiveOrderHashes(coopname: string): Promise<string[]>;
+
   /** Заявления в заданных статусах по кооперативу (для сторожа ожидания совета). */
   listByStatus(
     coopname: string,

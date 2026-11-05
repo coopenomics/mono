@@ -450,6 +450,7 @@ export interface MarketplaceReview {
 export interface MarketplaceSecureDue {
   base_amount: Generated<Numeric>;
   braname: string;
+  charge_sent_at: Timestamp | null;
   charged_amount: Generated<Numeric>;
   charged_at: Timestamp | null;
   coopname: string;
@@ -459,6 +460,7 @@ export interface MarketplaceSecureDue {
   last_sequence: Generated<string>;
   order_hash: string;
   returned_amount: Generated<Numeric>;
+  run_period: number | null;
   updated_at: Generated<Timestamp>;
   username: string;
 }

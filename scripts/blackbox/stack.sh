@@ -12,7 +12,7 @@
 #   - контейнеры работают под uid раннера (docker-compose.blackbox.yml);
 #   - каждая фаза — отдельный подкоманд, чтобы workflow видел время каждой.
 #
-# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|apitests|rights|dbcov|collect|summary>
+# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|apitests|rights|keu|dbcov|collect|summary>
 #
 # Второй потребитель стенда — визуальные сценарии docs-harness (workflow
 # ui-docs.yaml): те же фазы до app, затем desktop (собранный SSR рабочий стол
@@ -285,6 +285,39 @@ cmd_cardcoop() {
     --outputFile.junit="$OUT/junit-cardcoop.xml"
 }
 
+# Коэффициент экономического участия — сквозной прогон первого числа (решение
+# владельца 05.11.2026). Набор marketplace/period-cycle ждёт первое число:
+# заказ, выдача, расчёт итога месяца участка, списание по ставкам, карточка
+# заказа. На стенде в настоящем времени он пропускается, и путь целиком не
+# проходил ни разу — так ошибка учёта дожила до аудита. Здесь время стенда
+# сжимается отдельной фазой после всех наборов: остальные наборы идут в
+# настоящем времени, и крон первого числа не списывает их заказы раньше них
+# самих. Фаза идёт и в ночном прогоне — у него тот же workflow.
+#
+# Месяц стенда — KEU_MONTH_SECONDS (по умолчанию десять минут), сутки —
+# KEU_DAY_SECONDS. Набор сам дожидается начала месяца, если до конца текущего
+# осталось меньше, чем нужно на два заказа.
+KEU_MONTH_SECONDS="${KEU_MONTH_SECONDS:-600}"
+KEU_DAY_SECONDS="${KEU_DAY_SECONDS:-60}"
+
+cmd_keu() {
+  load_stack
+  set_env components/controller/.env STAND_DAY_SECONDS "$KEU_DAY_SECONDS"
+  set_env components/controller/.env STAND_MONTH_SECONDS "$KEU_MONTH_SECONDS"
+  echo "▸ Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с) — пересоздаём контроллер..."
+  docker compose up -d --no-deps --force-recreate coopback
+  if ! stack_wait_for "API контроллера" 300 3 api_ready; then
+    docker compose logs --tail 200 coopback
+    exit 1
+  fi
+  api_tests_env
+  export BLACKBOX_STAND_MONTH_SECONDS="$KEU_MONTH_SECONDS"
+  cd components/api-tests
+  pnpm exec vitest run src/marketplace/period-cycle.test.ts \
+    --reporter=default --reporter=junit \
+    --outputFile.junit="$OUT/junit-keu.xml"
+}
+
 cmd_rights() {
   api_tests_env
   export RIGHTS_OUT="$OUT/rights"
@@ -401,13 +434,13 @@ cmd_summary() {
     echo "## Black-box: тесты"
     echo
     local junit found=0
-    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml"; do
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml" "$OUT/junit-keu.xml"; do
       # Пустой отчёт — набор не нашёл файлов или упал до старта.
       [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
-titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-keu.xml": "коэффициент экономического участия: прогон первого числа на сжатом времени", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0
@@ -574,6 +607,7 @@ case "${1:-}" in
   rights) cmd_rights ;;
   faults) cmd_faults ;;
   cardcoop) cmd_cardcoop ;;
+  keu) cmd_keu ;;
   dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
@@ -582,5 +616,5 @@ case "${1:-}" in
   ui) shift; cmd_ui "$@" ;;
   uidiff) shift; cmd_uidiff "$@" ;;
   uisummary) shift; cmd_uisummary "$@" ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|keu|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
 esac

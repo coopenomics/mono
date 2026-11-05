@@ -49,6 +49,22 @@ function standPeriodNow(): number {
   return Math.floor(Date.now() / 1000 / STAND_MONTH_SECONDS)
 }
 
+/** Сколько секунд осталось до первого числа стенда. */
+function secondsLeftInStandMonth(): number {
+  return STAND_MONTH_SECONDS - ((Date.now() / 1000) % STAND_MONTH_SECONDS)
+}
+
+/**
+ * Два заказа с приёмкой и выдачей обязаны лечь в один месяц стенда: итог месяца
+ * считается по заказам, выданным до первого числа. Столько секунд на них
+ * нужно с запасом; если до конца месяца осталось меньше — набор ждёт начала
+ * следующего.
+ */
+const ORDERS_BUDGET_SECONDS = Math.min(240, Math.floor(STAND_MONTH_SECONDS / 2))
+
+/** Месяц стенда, в котором выданы заказы набора: по нему ищется строка итога. */
+let ordersPeriod = 0
+
 let chairmanToken = ''
 let krgToken = ''
 let memberToken = ''
@@ -109,21 +125,28 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
 
   it(caseName('mkt.order.keu.api.03', 'два заказа на участке выданы; текущий месяц показывает их как созревающие'), async () => {
     const offer = await pickOffer(sidorov.account, KRG)
+    if (secondsLeftInStandMonth() < ORDERS_BUDGET_SECONDS) {
+      // timing: schedule — ждём первое число стенда, чтобы оба заказа были выданы в одном месяце
+      await new Promise(resolve => setTimeout(resolve, (secondsLeftInStandMonth() + 2) * 1000))
+    }
+    ordersPeriod = standPeriodNow()
     orders = [
       await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 1 }),
       await issuedOrder({ member: ivanpetrov, supplier: sidorov, operator: chairkrg, offer, quantity: 2 }),
     ]
+    expect(standPeriodNow(), 'оба заказа выданы в одном месяце стенда').toBe(ordersPeriod)
     const current = (await gql<any>(krgToken, CURRENT, { b: KRG })).marketplaceGetBranchCurrentPeriod
     expect(current.ripening_orders, 'наши заказы без гарантии созреют к первому числу').toBeGreaterThanOrEqual(2)
     expect(amount(current.aid_reserve), 'резерв участка — сумма строк').toBeGreaterThanOrEqual(RESERVE_CHAIR)
     expect(amount(current.expenses)).toBeCloseTo(amount(current.planned) + amount(current.memos) + amount(current.aid_reserve), 4)
-  }, 240_000)
+  }, 600_000)
 
   it(caseName('mkt.order.keu.api.04', 'первое число: итог месяца участка сходится по формулам контракта и ставкам'), async () => {
-    const period = standPeriodNow()
+    // Строка итога — за месяц, в котором выданы заказы; её пишет первый проход следующего месяца.
+    const period = ordersPeriod
     periodRow = await waitFor(async () => {
       const d = await gql<any>(krgToken, PERIODS, { b: KRG, o: { page: 1, limit: 5, sortOrder: 'DESC' } })
-      return (d.marketplaceListBranchPeriods.items as any[]).find(r => Number(r.period) >= period) ?? null
+      return (d.marketplaceListBranchPeriods.items as any[]).find(r => Number(r.period) === period) ?? null
     }, { timeoutMs: STAND_MONTH_SECONDS * 2_500, intervalMs: 3_000, label: 'итог месяца участка krg' })
 
     const C = units(periodRow.secured)
