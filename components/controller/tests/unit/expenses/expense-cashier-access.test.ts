@@ -352,4 +352,30 @@ describe('авансы кооператива на кассе (expenseAdvancesBy
     expect(queries[0].sql).toContain('LIMIT 200');
     expect(queries[0].sql).not.toContain('OFFSET');
   });
+
+  // exp.adv.side.05
+  it('платёж выдачи аванса не считается доплатой: реестр платежей отбирает по виду только направление', async () => {
+    // Реестр платежей на запрос вида отдаёт все платежи его направления: доплата
+    // перерасхода исходящая, и вместе с ней приходит выдача аванса (EXPENSE) с тем
+    // же item_hash. До 04.11.2026 выдача держала каждый аванс в «возврат или доплата».
+    const all = [
+      { type: PaymentType.EXPENSE, status: PaymentStatus.PENDING, blockchain_data: { item_hash: ITEM } },
+      { type: PaymentType.EXPENSE, status: PaymentStatus.PAID, blockchain_data: { item_hash: 'ee' } },
+      { type: PaymentType.EXPENSE_OVERSPEND, status: PaymentStatus.PENDING, blockchain_data: { item_hash: 'ff' } },
+      { type: PaymentType.DEPOSIT, status: PaymentStatus.PENDING, blockchain_data: { item_hash: 'aa' } },
+      { type: PaymentType.EXPENSE_RETURN, status: PaymentStatus.PENDING, blockchain_data: { item_hash: 'bb' } },
+    ];
+    const incoming = new Set<PaymentType>([PaymentType.EXPENSE_RETURN, PaymentType.DEPOSIT]);
+    const byDirection = {
+      list: jest.fn(async (filters: { type: PaymentType }) => {
+        const items = all.filter((p) => incoming.has(p.type) === incoming.has(filters.type));
+        return { items, totalCount: items.length, totalPages: 1, currentPage: 1 };
+      }),
+      findByHash: jest.fn(async () => null),
+    };
+    const { svc } = service([{ proposal_hash: PROPOSAL, item: advanceItem(ExpenseChainItemStatus.PAID) }], byDirection as any);
+    expect([...(await svc.settlingItems(COOP))].sort()).toEqual(['bb', 'ff']);
+    const page = await svc.list(COOP, undefined, undefined);
+    expect(page.items[0].state).toBe(ExpenseAdvanceState.AWAITING_REPORT);
+  });
 });
