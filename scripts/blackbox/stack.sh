@@ -290,9 +290,12 @@ cmd_cardcoop() {
 # заказ, выдача, расчёт итога месяца участка, списание по ставкам, карточка
 # заказа. На стенде в настоящем времени он пропускается, и путь целиком не
 # проходил ни разу — так ошибка учёта дожила до аудита. Здесь время стенда
-# сжимается отдельной фазой после всех наборов: остальные наборы идут в
-# настоящем времени, и крон первого числа не списывает их заказы раньше них
-# самих. Фаза идёт и в ночном прогоне — у него тот же workflow.
+# сжимается отдельной фазой после сценарных наборов: они идут в настоящем
+# времени, и крон первого числа не списывает их заказы раньше них самих. После
+# набора время возвращается настоящим — отказы стенда и матрица прав от шкалы
+# зависеть не должны. Фаза стоит до матрицы прав: та оставляет стенд
+# непригодным для сценариев Стола заказов (поставщик теряет роль). Фаза идёт и
+# в ночном прогоне — у него тот же workflow.
 #
 # Месяц стенда — KEU_MONTH_SECONDS (по умолчанию десять минут), сутки —
 # KEU_DAY_SECONDS. Набор сам дожидается начала месяца, если до конца текущего
@@ -300,22 +303,34 @@ cmd_cardcoop() {
 KEU_MONTH_SECONDS="${KEU_MONTH_SECONDS:-600}"
 KEU_DAY_SECONDS="${KEU_DAY_SECONDS:-60}"
 
-cmd_keu() {
-  load_stack
-  set_env components/controller/.env STAND_DAY_SECONDS "$KEU_DAY_SECONDS"
-  set_env components/controller/.env STAND_MONTH_SECONDS "$KEU_MONTH_SECONDS"
-  echo "▸ Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с) — пересоздаём контроллер..."
+# Шкала времени стенда: длины суток и месяца в окружении контроллера и его
+# пересоздание. Пустые значения — настоящее время.
+keu_stand_time() {
+  local day="$1" month="$2" label="$3"
+  set_env components/controller/.env STAND_DAY_SECONDS "$day"
+  set_env components/controller/.env STAND_MONTH_SECONDS "$month"
+  echo "▸ ${label} — пересоздаём контроллер..."
   docker compose up -d --no-deps --force-recreate coopback
   if ! stack_wait_for "API контроллера" 300 3 api_ready; then
     docker compose logs --tail 200 coopback
     exit 1
   fi
+}
+
+cmd_keu() {
+  load_stack
+  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с)"
   api_tests_env
   export BLACKBOX_STAND_MONTH_SECONDS="$KEU_MONTH_SECONDS"
-  cd components/api-tests
-  pnpm exec vitest run src/marketplace/period-cycle.test.ts \
-    --reporter=default --reporter=junit \
-    --outputFile.junit="$OUT/junit-keu.xml"
+  local failed=0
+  (
+    cd components/api-tests
+    pnpm exec vitest run src/marketplace/period-cycle.test.ts \
+      --reporter=default --reporter=junit \
+      --outputFile.junit="$OUT/junit-keu.xml"
+  ) || failed=1
+  keu_stand_time "" "" "Возвращаем настоящее время стенда"
+  return $failed
 }
 
 cmd_rights() {
