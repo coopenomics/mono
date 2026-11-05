@@ -41,7 +41,7 @@ import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder, pickOffer } from './marketplace/orderFlow'
-import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror, docMeta } from './marketplace/chainHelpers'
+import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, docMeta, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror } from './marketplace/chainHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -159,7 +159,7 @@ describe('стол заказов — денежные места поставк
     const feeAmount = sumOf(ops, 'o.mkt.fee')
     const rowsCreate = await historyOfProcess(chairmanToken, orderHash)
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.fee')) {
-      expect([r.walletFrom, r.walletTo], 'обеспечительная часть берётся со свободного паевого программы').toEqual(['w.mkt.share', 'w.mkt.fee'])
+      expect([r.walletFrom, r.walletTo], 'обеспечительная часть берётся со свободного паевого на кошелёк пайщика под заказы').toEqual(['w.mkt.share', 'w.mkt.secure'])
     }
     for (const r of rowsCreate.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.lockp')) {
       expect([r.walletFrom, r.walletTo], 'часть тела со свободного паевого программы').toEqual(['w.mkt.share', 'w.mkt.order'])
@@ -332,10 +332,10 @@ describe('стол заказов — денежные места поставк
     const toShare = rowsAfter.filter(r => r.action === 'walletop' && r.walletTo === 'w.mkt.share' && r.operationCode === 'o.mkt.unlock')
     expect(toShare.length, 'недовыданный резерв обязан прийти на свободный паевой «Стола заказов»').toBeGreaterThanOrEqual(1)
     for (const r of rowsAfter.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.refund')) {
-      expect([r.walletFrom, r.walletTo], 'излишек обеспечительной части возвращается на свободный паевой').toEqual(['w.mkt.fee', 'w.mkt.share'])
+      expect([r.walletFrom, r.walletTo], 'излишек обеспечительной части возвращается на свободный паевой').toEqual(['w.mkt.secure', 'w.mkt.share'])
     }
     for (const r of rowsAfter.filter(r => r.action === 'walletop' && r.operationCode === 'o.mkt.todue')) {
-      expect([r.walletFrom, r.walletTo], 'факт обеспечительной части — на кошелёк к списанию').toEqual(['w.mkt.fee', 'w.mkt.due'])
+      expect([r.walletFrom, r.walletTo], 'факт обеспечительной части — с кошелька под заказы на кошелёк к списанию').toEqual(['w.mkt.secure', 'w.mkt.due'])
     }
 
     // Обеспечительная часть не раздваивается: к списанию плюс возвращённое
@@ -384,7 +384,8 @@ describe('стол заказов — денежные места поставк
       expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
     }
     for (const code of ['o.mkt.lock', 'o.mkt.lockp']) {
-      if (byOp[code] !== undefined) expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
+      if (byOp[code] !== undefined)
+        expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
     }
 
     // И реестр процессов отдаёт хэшу заказа ровно одно имя.
@@ -411,7 +412,8 @@ describe('стол заказов — денежные места поставк
     ])
     // Трансляция по заявлению живёт в нитке заказа (уточнение владельца 08.09.2026,
     // проверка оформления выше) — она запланирована, если заявление было.
-    if (expectedConvert > 0) expected.add('o.mkt.conv')
+    if (expectedConvert > 0)
+      expected.add('o.mkt.conv')
     const unexpected = [...codes].filter(c => !expected.has(c))
     expect(unexpected, `в нитке заказа появились незапланированные проводки: ${unexpected.join(', ')}`).toEqual([])
     // Оплата поставщику — отдельное ленивое действие кассира (payout), в

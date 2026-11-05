@@ -104,6 +104,9 @@ sources:
     - components/contracts/cpp/fund/src/accrue.cpp
     # Эталон расчёта итога месяца и списания по ставкам — повторяет арифметику контрактов (аудит 05.11.2026).
     - components/cooptypes/src/contracts/marketplace/periodModel.ts
+    # Обеспечительная часть невыданных заказов на кошельке пайщика w.mkt.secure (05.11.2026).
+    - components/contracts/cpp/marketplace/marketplace.cpp
+    - components/contracts/cpp/lib/core/marketplace/marketplace.hpp
   ui:
     - components/desktop/src/pages/Marketplace/AdminMarketEconomy/**
     - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/**
@@ -1222,3 +1225,64 @@ cases:
     external: unreachable
     external_reason: "закрыть гарантийный возврат после расчёта итога и дождаться второго первого числа — два месяца стенда и решение совета между ними; один месяц проходит набор period-cycle"
     status: passing
+
+  # 05.11.2026, решение владельца: средства заказа видны пайщику на всём пути.
+  # Обеспечительная часть до выдачи лежит на кошельке пайщика w.mkt.secure
+  # («Обеспечительная часть в заказах»), а не в общем пуле кооператива.
+  - id: mkt.order.secure.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица оформляет заказ.
+    expect: >
+      со свободного паевого на её кошелёк «Обеспечительная часть в заказах»
+      переходит ровно обеспечительная часть заказа; общий пул кооператива
+      заказом не пополняется
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.02
+    level: contract
+    kind: side
+    scenario: >
+      Перенос обеспечительной части при обновлении контракта (marketplace::migrate)
+      запускается повторно при открытом заказе нового образца.
+    expect: >
+      ничего не переносится: перенос считает разницу между обеспечительной частью
+      невыданных заказов пайщика и остатком его кошелька; не больше остатка пула
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.03
+    level: contract
+    kind: side
+    scenario: >
+      Пайщица отменяет заказ до акцепта поставщиком.
+    expect: >
+      обеспечительная часть возвращается с кошелька под заказы на свободный паевой
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.04
+    level: contract
+    kind: side
+    scenario: >
+      Реестр кошельков и операций после правки.
+    expect: >
+      кошелёк под заказы держит выход пайщика и принадлежит программе «Стол
+      заказов»; заказ, возврат и переход к списанию двигают его, а не общий пул;
+      перенос при обновлении — из пула на кошелёк пайщика
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик открывает стол пайщика и окно кошелька Стола заказов после заказа.
+    expect: >
+      карточки по пути заказа: «Свободный паевой», «В заказах» (стоимость
+      имущества), «Обеспечительная часть в заказах», «Обеспечительная часть к
+      списанию»; сумма каждой равна остатку кошелька в цепи
+    test: ~
+    status: missing   # сценарий harness не написан

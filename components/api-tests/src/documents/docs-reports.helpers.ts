@@ -10,7 +10,6 @@
  * области `draft`) — работа оператора платформы: для теста это подготовка
  * состояния, проверяемое читается через API.
  */
-import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
@@ -20,8 +19,9 @@ import { docMeta, signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
-import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
-import { getOrder, pickOffer, placeOrder } from '../marketplace/flow'
+import { amount } from '../core/wallet'
+import { pickOffer } from '../marketplace/flow'
+import { chargeSecurePart, issuedOrder } from '../marketplace/mkt-flows.helpers'
 import { paymentByHash as paymentSeenBy } from '../payments/payments.helpers'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
@@ -259,52 +259,22 @@ async function branchEconomy(token: string): Promise<any> {
 }
 
 /**
- * Паевой взнос деньгами: заявка на приход (wallet::createdpst) и его
- * исполнение шлюзом (gateway::incomplete) — как платёжный провайдер.
- * Помощник ядра deposit() зовёт прежние имена действий (createdeposit /
- * completeincome), которых в контрактах больше нет.
+ * Членские взносы в общий кошелёк участка — настоящим путём: заказ пайщика
+ * выдаётся, и его обеспечительная часть списывается участку (chargedue).
+ * Обеспечительная часть невыданных заказов лежит на кошельке пайщика под
+ * заказы (05.11.2026), общий пул открытыми заказами не наполняется — брать
+ * взнос для участка из пула больше нечем.
  */
-async function depositShare(username: string, sum: number): Promise<void> {
-  const hash = crypto.randomBytes(32).toString('hex')
-  await transact(COOP_SIGNER, [{ account: 'wallet', name: 'createdpst', data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(sum) } }])
-  await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
-}
-
-/** Паевой остаток пайщика не меньше нужного, и зеркало контроллера это видит. */
-async function ensureShare(who: Who, minimumRub: number): Promise<void> {
-  const have = await availableShare(who.account)
-  if (have < minimumRub)
-    await depositShare(who.account, Math.ceil(minimumRub - have) + 10_000)
-  const token = await tokenOf(who)
-  await waitFor(async () => {
-    const d = await gql<any>(token, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
-    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
-    return row && amount(row.available) >= minimumRub ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${who.account} ≥ ${minimumRub} RUB` })
-}
-
-/** Пул обеспечительной части под заказы не меньше нужного: при нехватке — заказ пайщика. */
-async function ensureFeePool(need: number): Promise<void> {
-  let rate = 0.1
-  for (let round = 0; round < 4; round++) {
-    const pool = await coopWallet('w.mkt.fee')
-    if (pool >= need)
-      return
-    const member = ROLES.member()
-    const token = await tokenOf(member)
-    // Каталог целиком видит председатель кооператива, пайщику — только витрина.
-    const offer = await pickOffer(ROLES.supplier().account, KRG, 'Мёд цветочный')
-    const price = amount(offer.price_per_unit)
-    const qty = Math.max(1, Math.ceil((need - pool) / (price * rate)) + 1)
-    await ensureShare(member, price * qty * 2 + 1_000)
-    const { orderId } = await placeOrder({ who: member, offerId: offer.id, quantity: qty })
-    const order = await getOrder(token, orderId)
-    const fee = amount(order.membership_fee)
-    const cost = amount(order.total_cost)
-    if (fee > 0 && cost > 0)
-      rate = fee / cost
-  }
-  throw new Error(`пул обеспечительной части w.mkt.fee не набрал ${need} RUB`)
+async function chargeToBranch(need: number): Promise<void> {
+  const member = ROLES.member()
+  const offer = await pickOffer(ROLES.supplier().account, KRG, 'Мёд цветочный')
+  const price = amount(offer.price_per_unit)
+  // Ставка обеспечительной части не ниже 10 % — заказ с запасом покрывает нужное.
+  const quantity = Math.max(1, Math.ceil(need / (price * 0.1)))
+  const order = await issuedOrder({ member, supplier: ROLES.supplier(), operator: ROLES.branchChairman(), offer, quantity })
+  const charged = await chargeSecurePart({ member, orderId: order.orderId, orderHash: order.orderHash })
+  if (charged < need)
+    throw new Error(`списание заказа ${order.orderId} дало участку ${charged} RUB, нужно ${need}`)
 }
 
 /**
@@ -332,21 +302,7 @@ async function ensurePersonalFunds(need: number, recipient: Who = ROLES.branchCh
     const common = amount(eco.common_balance)
     const shortage = toDistribute + reserve - common
     if (shortage > 0) {
-      const topUp = Math.ceil(shortage) + 1
-      await ensureFeePool(topUp)
-      await transact(COOP_SIGNER, [{
-        account: 'branch',
-        name: 'accrue',
-        data: {
-          coopname: COOP,
-          braname: KRG,
-          source_contract: 'marketplace',
-          amount: rub(topUp),
-          process_type: 'p.brn.fees',
-          process_hash: crypto.randomBytes(32).toString('hex'),
-          memo: 'Внешний слой: членские взносы участка под материальную помощь',
-        },
-      }])
+      await chargeToBranch(Math.ceil(shortage) + 1)
     }
     await gql(token, 'mutation($d:MarketplaceDistributeBranchFundsInput!){ marketplaceDistributeBranchFunds(data:$d) }', {
       d: { braname: KRG, amount: toDistribute },

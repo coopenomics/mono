@@ -74,11 +74,76 @@
  */
 static void migrate_supplier_payables(eosio::name coopname);
 
+/**
+ * Перенос обеспечительной части невыданных заказов из общего пула `w.mkt.fee`
+ * на кошелёк пайщика под заказы `w.mkt.secure` (решение владельца 05.11.2026:
+ * средства заказа видны пайщику на всём пути).
+ *
+ * До правки заказ клал обеспечительную часть в общий пул кооператива, и до
+ * выдачи пайщик не видел её ни на одном своём кошельке. Новые заказы кладут её
+ * на кошелёк пайщика, а возврат и переход к списанию берут её с этого кошелька — у
+ * заказов, оформленных раньше, сумма обязана переехать, иначе их отмена и
+ * выдача упадут на нехватке.
+ *
+ * По каждому пайщику считается обеспечительная часть его невыданных заказов
+ * (поле `membership_fee` заказа — ровно то, что лежит под ним), из неё
+ * вычитается остаток кошелька: новые заказы уже положили своё, а повторный
+ * запуск ничего не удваивает. Переносится не больше остатка пула: установка на
+ * узле со странной историей не должна падать.
+ */
+static void migrate_secure_parts(eosio::name coopname);
+
 [[eosio::action]] void marketplace::migrate() {
   require_auth(_marketplace);
 
   for (const auto& coopname : Core::Registrator::get_cooperative_names()) {
     migrate_supplier_payables(coopname);
+    migrate_secure_parts(coopname);
+  }
+}
+
+static bool order_awaits_issue(const Marketplace::order& o) {
+  return o.status == OrderStatus::ACTIVE           || o.status == OrderStatus::ACCEPTED         ||
+         o.status == OrderStatus::SUPPLY_PREPARED  || o.status == OrderStatus::ACCEPTED_TO_COOP ||
+         o.status == OrderStatus::READY_TO_RECEIVE || o.status == OrderStatus::ISSUE_PENDING    ||
+         o.status == OrderStatus::ISSUE_AUTHORIZED || o.status == OrderStatus::ISSUE_ACT1;
+}
+
+static void migrate_secure_parts(eosio::name coopname) {
+  wallets2_index pools(_ledger2, coopname.value);
+  auto pool = pools.find(ledger2_wallets::MARKETPLACE_FEE_POOL.value);
+  if (pool == pools.end() || pool->available.amount <= 0) return;
+  eosio::asset pool_left = pool->available;
+
+  std::vector<std::pair<eosio::name, eosio::asset>> secured_by_member;
+  Marketplace::orders_index orders(_marketplace, coopname.value);
+  for (const auto& o : orders) {
+    if (!order_awaits_issue(o)) continue;
+    const eosio::asset fee = Marketplace::get_order_membership_fee(o);
+    if (fee.amount <= 0) continue;
+
+    bool merged = false;
+    for (auto& entry : secured_by_member) {
+      if (entry.first == o.orderer) { entry.second += fee; merged = true; break; }
+    }
+    if (!merged) secured_by_member.emplace_back(o.orderer, fee);
+  }
+
+  for (const auto& [member, secured] : secured_by_member) {
+    if (pool_left.amount <= 0) break;
+    const auto wallet = Marketplace::get_user_wallet_balance(
+        coopname, ledger2_wallets::MARKETPLACE_SECURE_ORDER, member);
+    eosio::asset deficit = secured - wallet.available;
+    if (deficit.amount <= 0) continue;
+    if (deficit > pool_left) deficit = pool_left;
+    pool_left -= deficit;
+
+    const std::string seed = "marketplace.secure:" + coopname.to_string() + ":" + member.to_string();
+    Ledger2::apply(_marketplace, coopname,
+                   operations::migration::SECURE_ORDER,
+                   processes::migration::TRANSIT,
+                   deficit, member, eosio::sha256(seed.data(), seed.size()),
+                   "Перенос обеспечительной части невыданных заказов на кошелёк пайщика, пайщик=" + member.to_string());
   }
 }
 

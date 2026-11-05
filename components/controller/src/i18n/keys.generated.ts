@@ -2790,6 +2790,7 @@ export type MessageKey =
   | 'marketplace.ledgerInvariants.threadsSummary'
   | 'marketplace.ledgerInvariants.unlockWithoutReserveIssue'
   | 'marketplace.memberWallet.securePartDueLabel'
+  | 'marketplace.memberWallet.securePartOrderLabel'
   | 'marketplace.memberWallet.shareDigitalWalletLabel'
   | 'marketplace.memberWallet.shareFreeLabel'
   | 'marketplace.memberWallet.shareOrderReserveLabel'

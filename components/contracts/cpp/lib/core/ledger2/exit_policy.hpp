@@ -80,6 +80,11 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
   // --- Незавершённые обязательства: держат выход --------------------------
   { ledger2_wallets::MARKETPLACE_ORDER_LOCK, ExitWalletPolicy::BLOCKER, eosio::name{},
     "под заказы Стола заказов зарезервирован паевой взнос — завершите или отмените заказы" },
+  // Обеспечительная часть невыданных заказов живёт столько же, сколько резерв
+  // под заказы: выход держится, пока заказы не выданы либо не отменены
+  // (решение владельца 05.11.2026).
+  { ledger2_wallets::MARKETPLACE_SECURE_ORDER, ExitWalletPolicy::BLOCKER, eosio::name{},
+    "под заказы Стола заказов внесена обеспечительная часть паевого взноса — завершите или отмените заказы" },
   { ledger2_wallets::MARKETPLACE_INITIATOR, ExitWalletPolicy::BLOCKER, eosio::name{},
     "на паевом кошельке инициатора участка есть остаток — его судьба решается договором участия в хозяйственной деятельности на инвестиционном этапе" },
   { ledger2_wallets::ADVANCE_HOLD, ExitWalletPolicy::BLOCKER, eosio::name{},

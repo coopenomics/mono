@@ -1432,17 +1432,26 @@ operations:
     debit: null
     credit: null
     wallet_from: w.mkt.share       # Свободный паевой пайщика в Столе заказов
-    wallet_to: w.mkt.fee           # Обеспечительная часть под заказы (кооперативный пул)
-    user_wallet: w.mkt.share
-    user_ref: order.orderer
-    available_delta: -order.membership_fee
-    blocked_delta: null
+    wallet_to: w.mkt.secure        # Обеспечительная часть пайщика под заказы
+    # L3 — две стороны у одного заказчика: со свободного паевого на кошелёк
+    # обеспечительной части под заказы (решение владельца 05.11.2026).
+    l3:
+      - user_wallet: w.mkt.share
+        user_ref: order.orderer
+        available_delta: -order.membership_fee
+        blocked_delta: null
+      - user_wallet: w.mkt.secure
+        user_ref: order.orderer
+        available_delta: +order.membership_fee
+        blocked_delta: null
     amount_ref: order.membership_fee | fact_fee − order.membership_fee
     triggered_by: marketplace::createorder | marketplace::stockorder | marketplace::issueact2
     description: >
       Сверх стоимости имущества заказчик вносит обеспечительную часть паевого
       взноса по единой ставке кооператива — со свободного паевого Стола
-      заказов, раньше стоимости заказа. Сумма фиксируется в заказе и входит
+      заказов, раньше стоимости заказа. До выдачи она лежит на кошельке
+      заказчика «Обеспечительная часть в заказах» и видна ему на столе
+      пайщика. Сумма фиксируется в заказе и входит
       в общую стоимость для заказчика; при выдаче больше заказанного
       доплачивается по факту. Это паевой взнос: членским взносом участка он
       станет только при списании по условиям программы после гарантийного срока.
@@ -1508,12 +1517,17 @@ operations:
     # L1 — без проводки: оба кошелька на счёте 80
     debit: null
     credit: null
-    wallet_from: w.mkt.fee         # Обеспечительная часть под заказы
+    wallet_from: w.mkt.secure      # Обеспечительная часть пайщика под заказы
     wallet_to: w.mkt.share         # Свободный паевой пайщика в Столе заказов
-    user_wallet: w.mkt.share
-    user_ref: order.orderer
-    available_delta: +amount
-    blocked_delta: null
+    l3:
+      - user_wallet: w.mkt.secure
+        user_ref: order.orderer
+        available_delta: -amount
+        blocked_delta: null
+      - user_wallet: w.mkt.share
+        user_ref: order.orderer
+        available_delta: +amount
+        blocked_delta: null
     amount_ref: order.membership_fee | order.membership_fee × (1 − факт/заказ) | order.membership_fee / 2
     triggered_by: marketplace::cancelorder | marketplace::expireorder | marketplace::declineorder | marketplace::issueact2
     description: >
@@ -1721,17 +1735,23 @@ operations:
     # L1 — без проводки: оба кошелька на счёте 80
     debit: null
     credit: null
-    wallet_from: w.mkt.fee         # Обеспечительная часть под заказы
+    wallet_from: w.mkt.secure      # Обеспечительная часть пайщика под заказы
     wallet_to: w.mkt.due           # Обеспечительная часть к списанию
-    user_wallet: w.mkt.due
-    user_ref: order.orderer
-    available_delta: +amount
-    blocked_delta: null
+    l3:
+      - user_wallet: w.mkt.secure
+        user_ref: order.orderer
+        available_delta: -amount
+        blocked_delta: null
+      - user_wallet: w.mkt.due
+        user_ref: order.orderer
+        available_delta: +amount
+        blocked_delta: null
     amount_ref: fact_fee | order.membership_fee / 2
     triggered_by: marketplace::issueact2, marketplace::cancelorder
     description: >
-      При закрытии выдачи обеспечительная часть выданного имущества ложится
-      на кошелёк заказчика к списанию; при отказе от получения после акцепта
+      При закрытии выдачи обеспечительная часть выданного имущества переходит
+      с кошелька заказчика «Обеспечительная часть в заказах» на его кошелёк к
+      списанию; при отказе от получения после акцепта
       на этот кошелёк ложится удержанная половина. Средства остаются паевыми, пока
       не списаны по условиям программы. В гарантийный срок обеспечительная
       часть за возвращённое имущество возвращается с этого кошелька на

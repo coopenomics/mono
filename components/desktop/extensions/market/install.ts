@@ -1100,7 +1100,8 @@ export default async function (): Promise<IWorkspaceConfig[]> {
  * паевого взноса к списанию (`w.mkt.due`, задача 99D-18) — после выдачи ждёт
  * конца гарантийного срока и первого числа месяца по условиям программы
  * списывается в членский взнос. Паевой резерв под заказы (`w.mkt.order`) —
- * стоимость имущества заказов до их выдачи: без этой карточки паевой взнос
+ * стоимость имущества заказов до их выдачи; обеспечительная часть под заказы
+ * (`w.mkt.secure`) — до выдачи отдельно от стоимости. Без них паевой взнос
  * после оформления заказа не был виден ни на одном кошельке (владелец
  * 05.11.2026). Порядок карточек — путь паевого взноса по заказу.
  */
@@ -1118,6 +1119,13 @@ export const walletCards: DesktopWalletCard[] = [
     description: t('market.install.walletDescription'),
     accent: 'wallet',
     icon: 'shopping_bag',
+  },
+  {
+    wallet_name: 'w.mkt.secure',
+    label: t('market.install.walletSecureLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'verified_user',
   },
   {
     wallet_name: 'w.mkt.due',

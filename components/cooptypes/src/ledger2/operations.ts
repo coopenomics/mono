@@ -246,23 +246,24 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Уценка имущества при выдаче со склада кооператива' },
 
   // Обеспечительная часть паевого взноса под заказ — со свободного паевого
-  // «Стола заказов» (createorder, stockorder, доплата по факту на issueact2).
+  // «Стола заказов» на кошелёк пайщика под заказы (createorder, stockorder,
+  // доплата по факту на issueact2; решение владельца 05.11.2026).
   { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'SECURE_PART_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.fee',
+    name: 'SECURE_PART_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.share', wallet_to: 'w.mkt.secure',
     debit: null, credit: null,
     human_name: 'Блокировка обеспечительной части паевого взноса под заказ' },
 
   // Возврат неиспользованной обеспечительной части на свободный паевой:
   // отмена — полностью, недовыдача — пропорционально факту, отказ — половина.
   { code: 'o.mkt.refund',  process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'SECURE_PART_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.share',
+    name: 'SECURE_PART_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.secure', wallet_to: 'w.mkt.share',
     debit: null, credit: null,
     human_name: 'Возврат обеспечительной части на свободный паевой «Стола заказов»' },
 
   // Обеспечительная часть к списанию: факт выданного заказа (issueact2) и
   // удержанная половина при отказе.
   { code: 'o.mkt.todue',   process_type: 'p.mkt.supply',  contract: 'marketplace',
-    name: 'SECURE_TO_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.due',
+    name: 'SECURE_TO_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.secure', wallet_to: 'w.mkt.due',
     debit: null, credit: null,
     human_name: 'Постановка обеспечительной части паевого взноса на списание' },
 
@@ -627,6 +628,8 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.mig.entry', process_type: 'p.mig.trans', contract: 'migration', name: 'ENTRY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Перенос вступительных взносов из прежнего учёта' },
 
+  // Обеспечительная часть невыданных заказов — из общего пула на кошелёк пайщика под заказы (разовый перенос из marketplace::migrate, 05.11.2026).
+  { code: 'o.mig.mktsec', process_type: 'p.mig.trans', contract: 'migration', name: 'SECURE_ORDER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.secure', debit: null, credit: null, human_name: 'Перенос обеспечительной части невыданных заказов на кошелёк пайщика' },
   { code: 'o.mig.topay', process_type: 'p.mig.trans', contract: 'migration', name: 'SUPPLIER_PAYABLE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.topay', debit: null, credit: null, human_name: 'Перенос открытых обязательств перед поставщиками на кошелёк к оплате' },
   // Хозяйственные расходы до цифрового учёта: остаток миграции 10.05.2026 на кошельке фонда сжигается без проводки (99D-26).
   { code: 'o.mig.spent', process_type: 'p.mig.trans', contract: 'migration', name: 'SPENT', wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null, debit: null, credit: null, human_name: 'Хозяйственные расходы, произведённые до цифрового учёта' },

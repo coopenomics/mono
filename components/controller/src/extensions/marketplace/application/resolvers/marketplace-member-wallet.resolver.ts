@@ -20,8 +20,9 @@ import { t } from '../../i18n';
  * соответствует пути паевого взноса: `w.wal.share` (Цифровой кошелёк) →
  * `w.mkt.order` (паевой резерв под заказ) → `w.mkt.share` (свободный паевой
  * Стола заказов: остатки, источник заказов из остатка и доплат, вывод обратно)
- * → `w.mkt.due` (обеспечительная часть к списанию в членский взнос по условиям
- * ЦПП, задача 99D-18).
+ * → `w.mkt.secure` (обеспечительная часть под невыданные заказы, решение
+ * владельца 05.11.2026) → `w.mkt.due` (обеспечительная часть к списанию в
+ * членский взнос по условиям ЦПП, задача 99D-18).
  *
  * `label` — UX-метка в формате `<тип взноса> | <программа>`. Не та же что
  * `human_name` из cooptypes (там длинное юр.описание); этот label короткий,
@@ -35,6 +36,7 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   { name: 'w.wal.share', program_id: 1, label: t('marketplace.memberWallet.shareDigitalWalletLabel') },
   { name: 'w.mkt.order', program_id: 2, label: t('marketplace.memberWallet.shareOrderReserveLabel') },
   { name: 'w.mkt.share', program_id: 2, label: t('marketplace.memberWallet.shareFreeLabel') },
+  { name: 'w.mkt.secure', program_id: 2, label: t('marketplace.memberWallet.securePartOrderLabel') },
   { name: 'w.mkt.due', program_id: 2, label: t('marketplace.memberWallet.securePartDueLabel') },
 ];
 

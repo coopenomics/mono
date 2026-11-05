@@ -53,6 +53,7 @@
       "walletDescription": "Стол заказов",
       "walletDueLabel": "Обеспечительная часть к списанию",
       "walletOrderLabel": "В заказах",
+      "walletSecureLabel": "Обеспечительная часть в заказах",
       "walletShareLabel": "Свободный паевой",
       "warrantyClaimDetailTitle": "Гарантийная претензия",
       "writeoffsTitle": "Списания скоропорта"

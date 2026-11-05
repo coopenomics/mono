@@ -239,6 +239,7 @@ namespace operations {
     inline constexpr eosio::name SHARE            = "o.mig.share"_n;    ///< Перенос: остаток паевых деньгами (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY).
     inline constexpr eosio::name ENTRY            = "o.mig.entry"_n;    ///< Перенос: вступительные (Dr 51 / Cr 86, ISSUE ENTRANCE_FEES).
     inline constexpr eosio::name SPENT            = "o.mig.spent"_n;    ///< Списание с фонда обеспечения хозяйственной деятельности расходов, произведённых до цифрового учёта (BURN с w.sov.expns, без Dr/Cr). Сумма внесена миграцией 10.05.2026 остатком кошелька фонда, хотя уже потрачена; счета миграции сведены с бухгалтером и не меняются — операция только закрывает кошелёк и оставляет след расхода в истории фонда. Разовая, из ledger2::migrate (задача 99D-26, решение владельца 05.11.2026).
+    inline constexpr eosio::name SECURE_ORDER     = "o.mig.mktsec"_n;   ///< Перенос обеспечительной части невыданных заказов из общего пула w.mkt.fee на кошелёк пайщика w.mkt.secure (TRANSFER, без Dr/Cr — оба на 80); из marketplace::migrate.
     inline constexpr eosio::name SUPPLIER_PAYABLE = "o.mig.topay"_n;    ///< Перенос открытых обязательств перед поставщиками на кошелёк к оплате (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый, из marketplace::migrate (задача 99D-16).
   }
 
@@ -573,25 +574,26 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Трансляция паевого взноса из Цифрового кошелька в Стол заказов по заявлению" },
 
-  // 12i. p.mkt.supply: Обеспечительная часть паевого взноса под заказ
-  //      (TRANSFER w.mkt.share → w.mkt.fee, без Dr/Cr — оба на 80).
+  // 12i. p.mkt.supply: Обеспечительная часть паевого взноса под заказ на
+  //      кошелёк пайщика «под заказы» (TRANSFER w.mkt.share → w.mkt.secure,
+  //      без Dr/Cr — оба на 80). До 05.11.2026 — в общий пул w.mkt.fee.
   { operations::marketplace::SECURE_PART_LOCK, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_SECURE_ORDER,
     0, 0,
     "Блокировка обеспечительной части паевого взноса под заказ" },
 
   // 12j. p.mkt.supply: Возврат неиспользованной обеспечительной части на
-  //      свободный паевой (TRANSFER w.mkt.fee → w.mkt.share, без Dr/Cr — оба на 80).
+  //      свободный паевой (TRANSFER w.mkt.secure → w.mkt.share, без Dr/Cr — оба на 80).
   { operations::marketplace::SECURE_PART_REFUND, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SHARE_FUND,
+    ledger2_wallets::MARKETPLACE_SECURE_ORDER, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     0, 0,
     "Возврат обеспечительной части на свободный паевой «Стола заказов»" },
 
   // 12j². p.mkt.supply: Обеспечительная часть к списанию — факт выданного заказа
-  //       (issueact2) и удержанная половина при отказе (TRANSFER w.mkt.fee →
+  //       (issueact2) и удержанная половина при отказе (TRANSFER w.mkt.secure →
   //       w.mkt.due, без Dr/Cr — оба на 80).
   { operations::marketplace::SECURE_TO_DUE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SECURE_DUE,
+    ledger2_wallets::MARKETPLACE_SECURE_ORDER, ledger2_wallets::MARKETPLACE_SECURE_DUE,
     0, 0,
     "Постановка обеспечительной части паевого взноса на списание" },
 
@@ -1219,6 +1221,15 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::migration::SUPPLIER_PAYABLE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE,
     0, 0,
     "Перенос открытых обязательств перед поставщиками на кошелёк к оплате" },
+
+  // 18b. Миграция: обеспечительная часть невыданных заказов — из общего пула на
+  //      кошелёк пайщика «под заказы» (TRANSFER w.mkt.fee → w.mkt.secure, без
+  //      Dr/Cr — оба на 80). Разовый перенос из marketplace::migrate (решение
+  //      владельца 05.11.2026: средства заказа видны пайщику на всём пути).
+  { operations::migration::SECURE_ORDER, processes::migration::TRANSIT, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SECURE_ORDER,
+    0, 0,
+    "Перенос обеспечительной части невыданных заказов на кошелёк пайщика" },
 
   // 19. Миграция: хозяйственные расходы, произведённые до цифрового учёта, —
   //     списание с кошелька фонда обеспечения хозяйственной деятельности (BURN

@@ -450,7 +450,8 @@ inline void lock_order_body(eosio::name coopname, eosio::name orderer,
 }
 
 /// Обеспечительная часть паевого взноса под заказ со свободного паевого «Стола
-/// заказов» (o.mkt.fee, w.mkt.share → w.mkt.fee); no-op для нулевой суммы.
+/// заказов» на кошелёк пайщика под заказы (o.mkt.fee, w.mkt.share → w.mkt.secure);
+/// no-op для нулевой суммы.
 /// Идёт раньше тела заказа: тело берёт со свободного паевого то, что осталось.
 inline void lock_secure_part(eosio::name coopname, eosio::name orderer,
                              const checksum256& order_hash,
@@ -463,7 +464,7 @@ inline void lock_secure_part(eosio::name coopname, eosio::name orderer,
 }
 
 /// Возврат обеспечительной части на свободный паевой «Стола заказов»
-/// (o.mkt.refund, w.mkt.fee → w.mkt.share); no-op для нулевой суммы.
+/// (o.mkt.refund, w.mkt.secure → w.mkt.share); no-op для нулевой суммы.
 inline void refund_secure_part(eosio::name coopname, const order& o, const eosio::asset& amount) {
   if (amount.amount <= 0) return;
   Ledger2::apply(_marketplace, coopname,
@@ -473,7 +474,7 @@ inline void refund_secure_part(eosio::name coopname, const order& o, const eosio
                  Marketplace::Memo::get_secure_part_refund_memo(o.id));
 }
 
-/// Обеспечительная часть к списанию (o.mkt.todue, w.mkt.fee → w.mkt.due);
+/// Обеспечительная часть к списанию (o.mkt.todue, w.mkt.secure → w.mkt.due);
 /// no-op для нулевой суммы. Когда списывать, решает бэкенд (chargedue).
 inline void move_secure_part_to_due(eosio::name coopname, const order& o, const eosio::asset& amount) {
   if (amount.amount <= 0) return;
@@ -525,7 +526,8 @@ inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
 /// Отказ пайщика от получения позиции после акцепта поставщиком: удержание 50%.
 /// Тело заказа и обеспечительная часть делятся пополам. Удержанные половины
 /// остаются паевыми и ложатся на кошелёк пайщика к списанию w.mkt.due (тело —
-/// o.mkt.penal с резерва, обеспечительная часть — o.mkt.todue из пула); членским
+/// o.mkt.penal с резерва, обеспечительная часть — o.mkt.todue с кошелька под
+/// заказы); членским
 /// взносом участка они становятся при списании по условиям ЦПП первого числа
 /// месяца (chargedue, решение владельца 31.10.2026, задача 99D-18). Вторые
 /// половины возвращаются на свободный паевой «Стола заказов». Имущество

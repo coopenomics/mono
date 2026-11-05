@@ -37,11 +37,14 @@ const SHARE_WALLET = 'w.wal.share';
  */
 const DUE_WALLET = 'w.mkt.due';
 /**
- * Паевой резерв под заказы: стоимость имущества заказов до их выдачи. Заказы им
- * уже оплачены, поэтому в сумму в шапке он не входит; карточка показывает, где
+ * Паевой резерв под заказы и обеспечительная часть под заказы: стоимость
+ * имущества и обеспечительная часть заказов до их выдачи. Заказы ими уже
+ * оплачены, поэтому в сумму в шапке они не входят; карточки показывают, где
  * лежит паевой взнос после оформления заказа.
  */
 const ORDER_WALLET = 'w.mkt.order';
+/** Обеспечительная часть паевого взноса под заказы до их выдачи — отдельно от стоимости. */
+const SECURE_ORDER_WALLET = 'w.mkt.secure';
 
 const walletStore = useWalletStore();
 const session = useSessionStore();
@@ -90,6 +93,15 @@ const WALLET_CARDS = [
     icon: 'shopping_bag',
     title: t('marketplace.walletHeaderButton.inOrdersWalletLabel'),
     subtitle: t('marketplace.walletHeaderButton.inOrdersWalletHint'),
+    neutral: true,
+    showLocked: false,
+    payable: false,
+  },
+  {
+    name: SECURE_ORDER_WALLET,
+    icon: 'verified_user',
+    title: t('marketplace.walletHeaderButton.inOrdersSecureWalletLabel'),
+    subtitle: t('marketplace.walletHeaderButton.inOrdersSecureWalletHint'),
     neutral: true,
     showLocked: false,
     payable: false,

@@ -607,7 +607,8 @@
       "shareDigitalWalletLabel": "Паевой {'|'} Цифровой Кошелёк",
       "shareFreeLabel": "Свободный паевой {'|'} Стол Заказов",
       "shareOrderReserveLabel": "Паевой резерв под заказы {'|'} Стол Заказов",
-      "securePartDueLabel": "Обеспечительная часть к списанию {'|'} Стол Заказов"
+      "securePartDueLabel": "Обеспечительная часть к списанию {'|'} Стол Заказов",
+      "securePartOrderLabel": "Обеспечительная часть в заказах {'|'} Стол Заказов"
     },
     "moderation": {
       "approvedStatusLabel": "одобрено",
