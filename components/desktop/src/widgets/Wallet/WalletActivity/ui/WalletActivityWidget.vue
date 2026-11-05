@@ -68,15 +68,22 @@
   //- учёта на его столе не показываются (решение владельца 04.11.2026).
   DetailsDrawer(v-model='drawerOpen', :title='drawerTitle', :width='520')
     template(v-if='drawer')
+      //- Название операции бывает длинным — строкой в теле с переносом, а не в
+      //- однострочной шапке панели, где оно обрезалось бы многоточием.
+      .wallet-activity__drawer-heading(v-if='drawer.heading') {{ drawer.heading }}
       .wallet-activity__drawer-amount
         .t-muted {{ drawer.amountLabel }}
         .wallet-activity__drawer-sum {{ drawer.amount }}
         BaseBadge.wallet-activity__drawer-badge(v-if='drawer.state', :variant='STATE_VARIANTS[drawer.state]') {{ $t(`wallet.walletActivity.state.${drawer.state}`) }}
       .wallet-activity__drawer-group
         DataRow(align='spread', :label='$t("wallet.walletActivity.column.date")', :value='formatDateToLocalTimezone(drawer.at, "DD.MM.YYYY HH:mm")')
-        DataRow(v-if='drawer.wallet', align='spread', :label='$t("wallet.walletActivity.walletLabel")', :value='drawer.wallet')
+        DataRow(v-if='drawer.wallet', align='vertical', :label='$t("wallet.walletActivity.walletLabel")', :value='drawer.wallet')
         DataRow(v-if='drawer.destination', align='spread', :label='$t("wallet.walletActivity.column.destination")', :value='drawer.destination')
+      //- Неоплаченный взнос ещё не дошёл до цепи — процесса нет, документы
+      //- появятся после оплаты; карточку процесса не запрашиваем.
+      .wallet-activity__drawer-note.t-muted(v-if='!drawer.withProcess') {{ $t('wallet.walletActivity.documentsAfterPayment') }}
       ProcessDetailCard(
+        v-else,
         :coopname='info.coopname',
         :process-hash='drawer.hash',
         :process-type='drawer.type',
@@ -181,6 +188,8 @@ interface DrawerView {
   hash: string;
   type: string;
   title: string;
+  heading?: string;
+  withProcess: boolean;
   amountLabel: string;
   amount: string;
   at: unknown;
@@ -202,7 +211,9 @@ function openMovement(row: IWalletMovement): void {
   drawer.value = {
     hash: row.process_hash.toLowerCase(),
     type: row.process_type ?? '',
-    title: row.operation_name,
+    title: t('wallet.walletActivity.movementDrawerTitle'),
+    heading: row.operation_name,
+    withProcess: true,
     amountLabel: t('wallet.walletActivity.column.amount'),
     amount: signed(row),
     at: row.created_at,
@@ -215,6 +226,8 @@ function openPending(row: IWalletPendingItem): void {
     hash: row.hash.toLowerCase(),
     type: PENDING_PROCESS[row.type] ?? '',
     title: row.title,
+    // Пополнение без оплаты в цепи ещё не отражено — процесса по хэшу нет.
+    withProcess: row.state !== Zeus.WalletPendingState.AWAITING_PAYMENT,
     amountLabel: t('wallet.walletActivity.column.amount'),
     amount: formatAsset2Digits(row.quantity),
     at: row.created_at,
@@ -335,6 +348,15 @@ useLiveReload(
   color: var(--p-ink-3);
 }
 
+.wallet-activity__drawer-heading {
+  margin-bottom: var(--p-4);
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  line-height: var(--p-lh-h3);
+}
+.wallet-activity__drawer-note {
+  padding: var(--p-4) 0;
+}
 .wallet-activity__drawer-amount {
   display: flex;
   flex-direction: column;
