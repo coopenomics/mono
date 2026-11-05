@@ -53,6 +53,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.sov.infra", human_name: "Членские взносы за инфраструктуру кооп. платформы", kind: "COOPERATIVE", account: 86000 },
   { name: "w.sov.delgte", human_name: "Делегатские членские взносы", kind: "COOPERATIVE", account: 86000 },
   { name: "w.sov.expns", human_name: "Фонд обеспечения хозяйственной деятельности", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.sov.budget", human_name: "Пул расходов кооператива", kind: "COOPERATIVE", account: 86000 },
   { name: "w.sov.mnused", human_name: "Использованные минимальные паевые взносы", kind: "COOPERATIVE", account: 80000 },
   { name: "w.cap.loan", human_name: "Выданные пайщикам беспроцентные займы", kind: "COOPERATIVE", account: 58000 },
   { name: "w.mkt.payout", human_name: "Выплаты поставщикам", kind: "COOPERATIVE", account: 76000 },

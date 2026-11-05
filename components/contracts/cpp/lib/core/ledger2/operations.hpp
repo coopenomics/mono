@@ -183,9 +183,12 @@ namespace operations {
   namespace soviet {
     inline constexpr eosio::name CONVERT_AXN      = "o.sov.axncnv"_n;   ///< Трансляция паевого взноса в членский (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → DELEGATE_FEES).
     inline constexpr eosio::name TAX_PAYMENT      = "o.sov.taxpay"_n;   ///< Перечисление удержанного НДФЛ в бюджет единым налоговым платежом (BURN с w.sov.ndfl, Dr 68 / Cr 51). Инициирует бухгалтер, подтверждает кассир; сумма не может превышать остаток кошелька — перечислить больше удержанного налоговый агент не вправе. Префикс кооперативный, а не программы-источника: в один кошелёк стекаются удержания любой программы, выплатившей доход физлицу.
-    // Расходы кооператива (не участка и не программы) идут прямо с кошелька фонда
-    // обеспечения хозяйственной деятельности w.sov.expns — он же пул шасси расходов
-    // (задача 99D-25). Транзита нет: пул и фонд — один кошелёк.
+    // Расходы кооператива (не участка и не программы): деньги лежат в пуле
+    // расходов кооператива w.sov.budget, выплата идёт транзитом через фонд
+    // обеспечения хозяйственной деятельности w.sov.expns — как у участков и
+    // программ (решение владельца 05.11.2026, задача 99D-26: фонд — только транзит).
+    inline constexpr eosio::name EXPENSE_TO_FUND  = "o.sov.tofund"_n;   ///< Направление расхода кооператива в фонд обеспечения хозяйственной деятельности (TRANSFER w.sov.budget → w.sov.expns, без Dr/Cr — внутри 86). Первая нога выплаты.
+    inline constexpr eosio::name EXPENSE_FROM_FUND = "o.sov.fmfund"_n;  ///< Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооператива (TRANSFER w.sov.expns → w.sov.budget, без Dr/Cr — внутри 86). Вторая нога возврата после o.sov.expret.
     inline constexpr eosio::name EXPENSE_SPEND    = "o.sov.spend"_n;    ///< Прямая оплата расхода кооператива по реквизитам получателя (BURN с w.sov.expns, Дт 86 / Кт 51). Роль `direct` в наборе шасси.
     inline constexpr eosio::name EXPENSE_ADVANCE  = "o.sov.expadv"_n;   ///< Выдача аванса под отчёт по расходу кооператива (TRANSFER w.sov.expns → w.exp.adv, Дт 86 / Кт 51). Роль `advance`.
     inline constexpr eosio::name EXPENSE_REPORT   = "o.sov.exprpt"_n;   ///< Закрытие подотчёта по расходу кооператива отчётом с чеками (BURN с w.exp.adv, без Dr/Cr). Роль `report`.
@@ -235,6 +238,7 @@ namespace operations {
     inline constexpr eosio::name MIN_SHARE        = "o.mig.minshr"_n;   ///< Перенос: минимальный паевой взнос (Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND).
     inline constexpr eosio::name SHARE            = "o.mig.share"_n;    ///< Перенос: остаток паевых деньгами (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY).
     inline constexpr eosio::name ENTRY            = "o.mig.entry"_n;    ///< Перенос: вступительные (Dr 51 / Cr 86, ISSUE ENTRANCE_FEES).
+    inline constexpr eosio::name SPENT            = "o.mig.spent"_n;    ///< Списание с фонда обеспечения хозяйственной деятельности расходов, произведённых до цифрового учёта (BURN с w.sov.expns, без Dr/Cr). Сумма внесена миграцией 10.05.2026 остатком кошелька фонда, хотя уже потрачена; счета миграции сведены с бухгалтером и не меняются — операция только закрывает кошелёк и оставляет след расхода в истории фонда. Разовая, из ledger2::migrate (задача 99D-26, решение владельца 05.11.2026).
     inline constexpr eosio::name SUPPLIER_PAYABLE = "o.mig.topay"_n;    ///< Перенос открытых обязательств перед поставщиками на кошелёк к оплате (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый, из marketplace::migrate (задача 99D-16).
   }
 
@@ -1022,9 +1026,17 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Перечисление удержанного налога на доходы физических лиц в бюджет" },
 
   // p.sov.spend: Расходы кооператива (не участка и не программы) — шасси расходов
-  //      на кошельке фонда обеспечения хозяйственной деятельности w.sov.expns.
-  //      Пул и фонд — один кошелёк, транзита нет; проводки те же, что у расходов
-  //      участка (Дт 86 / Кт 51). Задача 99D-25.
+  //      с пулом w.sov.budget и транзитом через фонд обеспечения хозяйственной
+  //      деятельности w.sov.expns; проводки те же, что у расходов участка
+  //      (Дт 86 / Кт 51). Задачи 99D-25, 99D-26.
+  { operations::soviet::EXPENSE_TO_FUND, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_BUDGET, ledger2_wallets::SOV_EXPENSES,
+    0, 0,
+    "Направление расхода кооператива в фонд обеспечения хозяйственной деятельности" },
+  { operations::soviet::EXPENSE_FROM_FUND, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::SOV_BUDGET,
+    0, 0,
+    "Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооператива" },
   { operations::soviet::EXPENSE_SPEND, processes::soviet::SPEND, WalletOp::BURN,
     ledger2_wallets::SOV_EXPENSES, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
@@ -1207,6 +1219,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::migration::SUPPLIER_PAYABLE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE,
     0, 0,
     "Перенос открытых обязательств перед поставщиками на кошелёк к оплате" },
+
+  // 19. Миграция: хозяйственные расходы, произведённые до цифрового учёта, —
+  //     списание с кошелька фонда обеспечения хозяйственной деятельности (BURN
+  //     w.sov.expns, без Dr/Cr). Деньги потрачены вне цифры, счета миграции
+  //     10.05.2026 сведены с бухгалтером — проводки нет, как у закрытия
+  //     подотчёта (o.sov.exprpt). Разовая, из ledger2::migrate (задача 99D-26).
+  { operations::migration::SPENT, processes::migration::TRANSIT, WalletOp::BURN,
+    ledger2_wallets::SOV_EXPENSES, eosio::name{},
+    0, 0,
+    "Хозяйственные расходы, произведённые до цифрового учёта" },
 };
 
 static constexpr size_t OPERATION_REGISTRY_SIZE = sizeof(OPERATION_REGISTRY) / sizeof(OPERATION_REGISTRY[0]);
@@ -1465,7 +1487,8 @@ struct ExpenseOperationSet {
   // Транзит через фонд (задача 99D-25): деньги выходят из кооператива только с
   // кошелька фонда. Пустое `fund_wallet` — выплата идёт прямо с пула (вложения
   // «Благороста» на счёте 08 — до ответа бухгалтера, задача BB1-2); `fund_wallet`,
-  // равный пулу, — пул и есть фонд, транзита нет (расходы кооператива).
+  // равный пулу, — пул и есть фонд, транзита нет (сейчас таких наборов нет: с
+  // 99D-26 у расходов кооператива свой пул w.sov.budget).
   eosio::name fund_wallet;    ///< кошелёк фонда, с которого идёт выплата (счёт 86); пусто — выплата с пула
   eosio::name to_fund;        ///< перевод пул → фонд перед выплатой (TRANSFER без проводки); пусто, если транзита нет
   eosio::name from_fund;      ///< перевод фонд → пул после возврата аванса (TRANSFER без проводки); пусто, если транзита нет
@@ -1516,17 +1539,18 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
     ledger2_wallets::SOV_EXPENSES,
     operations::branch::EXPENSE_TO_FUND,
     operations::branch::EXPENSE_FROM_FUND },
-  // Расходы кооператива — пул и фонд один кошелёк w.sov.expns, транзита нет
-  // (задача 99D-25). Служебную записку заводит председатель совета общей
-  // мутацией шасси с этим кошельком-источником.
-  { ledger2_wallets::SOV_EXPENSES,
+  // Расходы кооператива — пул w.sov.budget, выплата транзитом через фонд
+  // w.sov.expns, как у участков (задача 99D-26). Служебную записку заводит
+  // председатель совета общей мутацией шасси с этим кошельком-источником.
+  { ledger2_wallets::SOV_BUDGET,
     operations::soviet::EXPENSE_ADVANCE,
     operations::soviet::EXPENSE_SPEND,
     operations::soviet::EXPENSE_REPORT,
     operations::soviet::EXPENSE_RETURN,
     operations::soviet::EXPENSE_OVERSPEND,
     ledger2_wallets::SOV_EXPENSES,
-    eosio::name{}, eosio::name{} },
+    operations::soviet::EXPENSE_TO_FUND,
+    operations::soviet::EXPENSE_FROM_FUND },
 };
 
 static constexpr size_t EXPENSE_OPERATION_SETS_SIZE =

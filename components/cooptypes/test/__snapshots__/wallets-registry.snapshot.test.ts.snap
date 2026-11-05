@@ -299,6 +299,12 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.sov.expns",
   },
   {
+    "account": 86000,
+    "human_name": "Пул расходов кооператива",
+    "kind": "COOPERATIVE",
+    "name": "w.sov.budget",
+  },
+  {
     "account": 80000,
     "human_name": "Использованные минимальные паевые взносы",
     "kind": "COOPERATIVE",

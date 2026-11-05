@@ -36,6 +36,8 @@ const TRANSIT_CODES: ReadonlySet<string> = new Set([
   'o.brn.fmfund',
   'o.edu.tofund',
   'o.edu.fmfund',
+  'o.sov.tofund',
+  'o.sov.fmfund',
   'o.brn.aidfnd',
 ]);
 

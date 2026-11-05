@@ -125,7 +125,12 @@ describe('fnd.wal.backend.02 — история фонда: знак суммы,
     const requested = (ledger.getHistory.mock.calls[0]![0] as { operationCodes: string[] }).operationCodes;
     expect(requested).not.toContain('o.brn.tofund');
     expect(requested).not.toContain('o.brn.fmfund');
+    // Расходы кооператива идут транзитом из своего пула (99D-26) — ноги транзита не история фонда.
+    expect(requested).not.toContain('o.sov.tofund');
+    expect(requested).not.toContain('o.sov.fmfund');
     expect(requested).toContain('o.sov.spend');
+    // Списание расходов до цифрового учёта (миграция) — строка расхода в истории фонда.
+    expect(requested).toContain('o.mig.spent');
   });
 
   it('фонда с таким номером нет — отказ с кодом', async () => {

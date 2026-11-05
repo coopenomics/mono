@@ -61,7 +61,8 @@ struct ledger2_wallets {
   // soviet — членские (инфраструктура) + делегатские + хоз.расходы + использованные паевые
   static constexpr eosio::name INFRA_FEES           = "w.sov.infra"_n;   ///< Членские взносы за инфраструктуру кооп. платформы (COOPERATIVE)
   static constexpr eosio::name DELEGATE_FEES        = "w.sov.delgte"_n;  ///< Делегатские членские взносы (цель CONVERT_TO_AXN, COOPERATIVE)
-  static constexpr eosio::name SOV_EXPENSES         = "w.sov.expns"_n;   ///< Фонд обеспечения хозяйственной деятельности (COOPERATIVE, счёт 86). Кошелёк фонда и пул расходов кооператива сразу: расходы участков и программ со счёта 86 проходят через него транзитом перед выплатой (o.brn.tofund / o.edu.tofund, затем списание с фонда Дт 86 / Кт 51), расходы кооператива идут с него напрямую (o.sov.spend и набор шасси). Оборот фонда — расходы по факту; остаток — средства, выделенные на расходы кооператива. Задача 99D-25.
+  static constexpr eosio::name SOV_EXPENSES         = "w.sov.expns"_n;   ///< Фонд обеспечения хозяйственной деятельности (COOPERATIVE, счёт 86). Только транзит: любой хозяйственный расход — участка, программы или самого кооператива — переводится из своего пула на кошелёк фонда (o.brn.tofund / o.edu.tofund / o.sov.tofund) и той же транзакцией списывается с фонда (Дт 86 / Кт 51) или выдаётся авансом. Остаток фонда между транзакциями — ноль, оборот — расходы по факту. Задачи 99D-25, 99D-26 (решение владельца 05.11.2026: фонд — транзит, деньги лежат в пулах).
+  static constexpr eosio::name SOV_BUDGET           = "w.sov.budget"_n;  ///< Пул расходов кооператива (COOPERATIVE, счёт 86): средства самого кооператива (не участка и не программы) на хозяйственные расходы — источник шасси расходов для служебных записок председателя совета. Выплата идёт транзитом через фонд обеспечения хозяйственной деятельности (o.sov.tofund), возврат аванса — обратно (o.sov.fmfund). Задача 99D-26.
   static constexpr eosio::name MIN_SHARE_USED       = "w.sov.mnused"_n;  ///< Использованные минимальные паевые взносы (Cr 80 source, перешедшие в 08; COOPERATIVE)
   static constexpr eosio::name NDFL_WITHHELD        = "w.sov.ndfl"_n;   ///< Удержанный НДФЛ к перечислению в бюджет (COOPERATIVE, счёт 68). Кошелёк общекооперативный: в него стекаются удержания ЛЮБОЙ программы, выплатившей доход физлицу (сегодня — материальная помощь доверенному, o.brn.aidtax), а гасит его бухгалтерия единым налоговым платежом (o.sov.taxpay, BURN, Дт 68 / Кт 51). Поэтому кошелёк не принадлежит программе-источнику и назван по кооперативу, а не по участку. Остаток = долг кооператива перед бюджетом; он же ограничивает сумму платежа — перечислить больше удержанного налоговый агент не вправе. Деньги при удержании с расчётного счёта НЕ уходят: кооператив просто выплатил получателю меньше.
 
@@ -144,7 +145,7 @@ struct Ledger2WalletMeta {
   uint64_t         account;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 43> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 44> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (20) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
@@ -187,6 +188,7 @@ inline constexpr std::array<Ledger2WalletMeta, 43> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::INFRA_FEES,        "Членские взносы за инфраструктуру кооп. платформы",        WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::DELEGATE_FEES,     "Делегатские членские взносы",                              WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::SOV_EXPENSES,      "Фонд обеспечения хозяйственной деятельности",   WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
+  { ledger2_wallets::SOV_BUDGET,        "Пул расходов кооператива",                                 WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::MIN_SHARE_USED,    "Использованные минимальные паевые взносы",                 WalletKind::COOPERATIVE, ledger2_accounts::SHARE_FUND },
   { ledger2_wallets::LOAN_ISSUED,       "Выданные пайщикам беспроцентные займы",                    WalletKind::COOPERATIVE, ledger2_accounts::FINANCIAL_INVESTMENTS },
   { ledger2_wallets::SUPPLIER_PAYMENTS, "Выплаты поставщикам",                                      WalletKind::COOPERATIVE, ledger2_accounts::OTHER_SETTLEMENTS },

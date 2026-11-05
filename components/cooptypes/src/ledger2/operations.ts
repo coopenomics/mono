@@ -583,8 +583,18 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 68, credit: 51,
     human_name: 'Перечисление удержанного налога на доходы физических лиц в бюджет' },
 
-  // Расходы кооператива — шасси расходов на кошельке фонда обеспечения
-  // хозяйственной деятельности w.sov.expns: пул и фонд один кошелёк (99D-25).
+  // Расходы кооператива — пул w.sov.budget, выплата транзитом через фонд
+  // обеспечения хозяйственной деятельности w.sov.expns (99D-25, 99D-26).
+  { code: 'o.sov.tofund',  process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_TO_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.budget', wallet_to: 'w.sov.expns',
+    debit: null, credit: null,
+    human_name: 'Направление расхода кооператива в фонд обеспечения хозяйственной деятельности' },
+
+  { code: 'o.sov.fmfund',  process_type: 'p.sov.spend',   contract: 'soviet',
+    name: 'EXPENSE_FROM_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.sov.expns', wallet_to: 'w.sov.budget',
+    debit: null, credit: null,
+    human_name: 'Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооператива' },
+
   { code: 'o.sov.spend',   process_type: 'p.sov.spend',   contract: 'soviet',
     name: 'EXPENSE_SPEND',  wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null,
     debit: 86, credit: 51,
@@ -618,6 +628,8 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mig.entry', process_type: 'p.mig.trans', contract: 'migration', name: 'ENTRY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Перенос вступительных взносов из прежнего учёта' },
 
   { code: 'o.mig.topay', process_type: 'p.mig.trans', contract: 'migration', name: 'SUPPLIER_PAYABLE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.topay', debit: null, credit: null, human_name: 'Перенос открытых обязательств перед поставщиками на кошелёк к оплате' },
+  // Хозяйственные расходы до цифрового учёта: остаток миграции 10.05.2026 на кошельке фонда сжигается без проводки (99D-26).
+  { code: 'o.mig.spent', process_type: 'p.mig.trans', contract: 'migration', name: 'SPENT', wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null, debit: null, credit: null, human_name: 'Хозяйственные расходы, произведённые до цифрового учёта' },
 
   // adjustment (ручные корректировки председателя — динамические параметры,
   // не идут через ledger2::apply; см. operations.hpp `OPERATION_ADJUSTMENT_REGISTRY`).
