@@ -364,12 +364,20 @@ describe('экономика участка: общий кошелёк, сетк
     return (d.getPayments.items as any[]).find(p => String(p.hash).toLowerCase() === aidHash.toLowerCase())
   }
 
+  /** Заявка на выплату получателя, которая ждёт решения совета, — по хэшу заявления. */
+  async function payoutRequest(aidHash: string): Promise<any> {
+    const d = await gql<any>(krgToken, `query($d:GetMyPendingPayoutsInput!){
+      getMyPendingPayouts(data:$d){ hash quantity state type }
+    }`, { d: { coopname: COOP, username: chairkrg.account } })
+    return (d.getMyPendingPayouts as any[]).find(p => String(p.hash).toLowerCase() === aidHash.toLowerCase())
+  }
+
   function ndfl(gross: number): number {
     // Половина рубля и больше округляется вверх (НК РФ, ст. 52 п. 6).
     return Math.floor((Math.round(gross * 10_000) * NDFL_RATE_PERCENT + 500_000) / 1_000_000)
   }
 
-  it(caseName('mkt.eco.happy.04', 'заявление на материальную помощь — на сумму до налога, кассиру за вычетом налога'), async () => {
+  it(caseName('mkt.eco.happy.04', 'заявление на материальную помощь — на сумму до налога; до решения совета — заявка на выплату за вычетом налога, платежа у кассира нет'), async () => {
     const gross = 100
     expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
     const { aidHash } = await submitAid(gross)
@@ -383,23 +391,25 @@ describe('экономика участка: общий кошелёк, сетк
     expect(amount(aid.amount), 'заявление — на всю сумму до налога').toBeCloseTo(gross, 4)
     expect(aid.stage).toBe('ON_COUNCIL')
 
-    // Платёж кассиру выставлен заранее — на сумму за вычетом налога.
-    const payment = await cashierPayment(aidHash)
-    expect(payment, 'платёж материальной помощи в реестре кассира').toBeTruthy()
-    expect(payment.username).toBe(chairkrg.account)
-    expect(payment.quantity, 'кассиру — сумма за вычетом налога').toBeCloseTo(gross - ndfl(gross), 4)
-    expect(payment.quantity, '100 ₽ − 13 ₽ налога').toBeCloseTo(87, 4)
+    // До решения совета выплата живёт заявкой на выплату — на сумму за вычетом
+    // налога; платёж кассиру создаёт решение совета (решение владельца 04.11.2026).
+    const request = await payoutRequest(aidHash)
+    expect(request, 'заявка на выплату материальной помощи у получателя').toBeTruthy()
+    expect(request.state).toBe('COUNCIL_REVIEW')
+    expect(amount(request.quantity), 'к выплате — сумма за вычетом налога').toBeCloseTo(gross - ndfl(gross), 4)
+    expect(amount(request.quantity), '100 ₽ − 13 ₽ налога').toBeCloseTo(87, 4)
+    expect(await cashierPayment(aidHash), 'до решения совета платежа у кассира нет').toBeUndefined()
   })
 
-  it(caseName('mkt.eco.side.10', 'сумма не кратна рублю: налог округлён до рубля, платёж кассиру с копейками регистрируется'), async () => {
+  it(caseName('mkt.eco.side.10', 'сумма не кратна рублю: налог округлён до рубля, заявка на выплату с копейками регистрируется'), async () => {
     // До 25.09.2026 сумма платежа хранилась целым числом, и выплата 87,50 ₽
     // падала «invalid input syntax for type integer».
     const gross = 100.5
     expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
     const { aidHash } = await submitAid(gross)
-    const payment = await cashierPayment(aidHash)
-    expect(payment, 'платёж материальной помощи в реестре кассира').toBeTruthy()
+    const request = await payoutRequest(aidHash)
+    expect(request, 'заявка на выплату материальной помощи у получателя').toBeTruthy()
     expect(ndfl(gross), 'налог 13,065 ₽ округлён до 13 ₽').toBe(13)
-    expect(payment.quantity, '100,50 ₽ − 13 ₽ налога').toBeCloseTo(87.5, 4)
+    expect(amount(request.quantity), '100,50 ₽ − 13 ₽ налога').toBeCloseTo(87.5, 4)
   })
 })
