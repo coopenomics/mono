@@ -1,4 +1,5 @@
 import { ExpensesBaseline1790197276756 } from './migrations/database/1790197276756-baseline';
+import { ExpensesBankSafePaymentPurpose1793946254663 } from './migrations/database/1793946254663-bank-safe-payment-purpose';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -6,4 +7,4 @@ import { ExpensesBaseline1790197276756 } from './migrations/database/17901972767
  * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
  * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
  */
-export const expensesDatabaseMigrations = [ExpensesBaseline1790197276756];
+export const expensesDatabaseMigrations = [ExpensesBaseline1790197276756, ExpensesBankSafePaymentPurpose1793946254663];

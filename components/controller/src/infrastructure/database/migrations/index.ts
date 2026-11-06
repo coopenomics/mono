@@ -9,6 +9,7 @@ import { CoreSettingsOnboardingCompleted1792411435309 } from './1792411435309-se
 import { CoreFactoryStorage1793204380830 } from './1793204380830-factory-storage';
 import { CorePayoutRequests1793781600000 } from './1793781600000-payout-requests';
 import { CoreDepositPaymentExpiry1793869546649 } from './1793869546649-deposit-payment-expiry';
+import { CoreBankSafePaymentPurpose1793946153183 } from './1793946153183-bank-safe-payment-purpose';
 
 /**
  * Миграции таблиц ядра — в порядке появления (метка времени в имени класса).
@@ -28,4 +29,6 @@ export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [Core
   CashierRoleToCashierDesk1792132849961,
   CoreSettingsOnboardingCompleted1792411435309, CoreFactoryStorage1793204380830,
   CorePayoutRequests1793781600000,
-  CoreDepositPaymentExpiry1793869546649];
+  CoreDepositPaymentExpiry1793869546649,
+  CoreBankSafePaymentPurpose1793946153183,
+];

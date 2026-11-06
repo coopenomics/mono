@@ -20,6 +20,11 @@ sources:
     - components/controller/src/application/gateway/interactors/gateway.interactor.ts
     - components/controller/src/application/gateway/services/gateway-expiry-cron.service.ts
     - components/controller/src/infrastructure/database/migrations/1793869546649-deposit-payment-expiry.ts
+    - components/controller/src/infrastructure/database/migrations/1793946153183-bank-safe-payment-purpose.ts
+    - components/extension-kit/src/payment/bank-safe-text.ts
+    - components/controller/src/extensions/qrpay/qrpay-extension.module.ts
+    - components/controller/src/extensions/sberpoll/sberpoll-extension.module.ts
+    - components/controller/src/extensions/expenses/migrations/database/1793946254663-bank-safe-payment-purpose.ts
     - components/controller/src/application/gateway/dto/*.ts
     - components/controller/src/application/payment-method/**/*.ts
     - components/controller/src/domain/gateway/**/*.ts
@@ -359,3 +364,20 @@ cases:
     external: unreachable
     external_reason: "срок истечения проверяется сторожем по часам узла — снаружи без ожидания суток не воспроизвести; на стенде со сжатым временем виден на странице кошелька"
     status: written
+
+  - id: pay.core.side.23
+    level: backend
+    kind: side
+    scenario: >
+      Назначение платежа содержит «ё»: паевой взнос по соглашению о ЦПП
+      «Цифровой Кошелёк», аванс под отчёт, назначение организации в служебной
+      записке; пайщик либо кассир копирует назначение в банк
+    expect: >
+      в платёж, заявку на выплату, строку QR-кода оплаты и снимок реквизитов
+      назначение записывается с «е» вместо «ё» — банк «ё» не принимает
+      (владелец 06.11.2026); подписи в словарях и тексты интерфейса остаются с
+      «ё»; записанные раньше назначения миграция переписывает
+    test: components/controller/tests/unit/extension-kit/bank-safe-text.test.ts
+    external: unreachable
+    external_reason: "назначение записывает сервер при создании платежа; снаружи видно только итог, отдельной операции у замены нет"
+    status: passing

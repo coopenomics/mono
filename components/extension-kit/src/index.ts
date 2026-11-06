@@ -16,6 +16,7 @@
 export * from './auth';
 export * from './base-extension.module';
 export * from './payment/payment-provider';
+export * from './payment/bank-safe-text';
 export * from './file-storage/bucket';
 export * from './file-storage/bucket-providers';
 export * from './expense/expense-proposal-statement-document.dto';

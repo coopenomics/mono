@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Selectable } from 'kysely';
-import { affectedCount } from '@coopenomics/extension-kit';
+import { affectedCount, bankSafeText } from '@coopenomics/extension-kit';
 import {
   PayoutRequestStatusEnum,
   type PayoutRequestCreate,
@@ -58,7 +58,8 @@ export class PayoutRequestKyselyRepository implements PayoutRequestRepository {
         type: data.type as Row['type'],
         provider: data.provider ?? null,
         payment_method_id: data.payment_method_id ?? null,
-        memo: data.memo ?? null,
+        // Назначение станет назначением платежа кассиру — без «ё».
+        memo: bankSafeText(data.memo) ?? null,
         expired_at: data.expired_at ?? null,
         payment_details: json(data.payment_details),
         blockchain_data: json(data.blockchain_data),
