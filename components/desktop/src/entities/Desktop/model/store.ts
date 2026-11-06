@@ -109,7 +109,6 @@ export const useDesktopStore = defineStore(namespace, () => {
       backNavigationButton: currentDesktop.value?.backNavigationButton || null,
     };
 
-    console.log('🏠 [DesktopStore] Desktop updated, active workspace:', activeWorkspaceName.value);
     // Сбрасываем состояние загрузки после загрузки рабочего стола
     isWorkspaceChanging.value = false;
   }
