@@ -110,7 +110,8 @@ describe('wallet.activity.movements — движения по кошелькам
 
   it('выплата возврата паевого из резерва — получателя нет: деньги выплачены за пределы кооператива', async () => {
     const meta = Ledger2.LEDGER2_OPERATION_REGISTRY.find((o) => !o.wallet_to && o.wallet_from && Ledger2.getWalletKind(o.wallet_from) === 'USER_SHARED');
-    expect(meta, 'в реестре есть выплата с кошелька пайщика').toBeTruthy();
+    // В реестре есть выплата с кошелька пайщика за пределы учёта.
+    expect(meta).toBeTruthy();
     const { service } = build({ history: [op(meta!.code)] });
 
     const [row] = (await service.movements({ coopname: COOP, username: 'ivan' })).items;
