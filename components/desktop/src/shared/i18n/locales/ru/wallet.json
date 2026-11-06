@@ -29,7 +29,7 @@
       "filterActive": "Отбор: {wallet}",
       "filterReset": "Все кошельки",
       "movementsTitle": "Движения",
-      "pendingTitle": "В работе",
+      "pendingTitle": "В обработке",
       "showMore": "Показать ещё",
       "state": {
         "COUNCIL_REVIEW": "На рассмотрении совета",
