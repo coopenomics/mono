@@ -50,12 +50,16 @@ namespace Capital::ProgramProperties {
     uint64_t primary_key() const { return id; } ///< Первичный ключ (1)
     uint64_t by_username() const { return username.value; } ///< Индекс по имени пользователя (2)
     checksum256 by_property_hash() const { return property_hash; } ///< Индекс по хэшу предложения (3)
+    checksum256 by_statement_hash() const { return statement.hash; } ///< Индекс по хэшу заявления — ключ одобрения заявления (4)
+    checksum256 by_act_hash() const { return act.hash; } ///< Индекс по хэшу акта — ключ одобрения акта (5)
   };
 
 typedef eosio::multi_index<
     "pgproperties"_n, program_property,
     indexed_by<"byusername"_n, const_mem_fun<program_property, uint64_t, &program_property::by_username>>,
-    indexed_by<"byhash"_n, const_mem_fun<program_property, checksum256, &program_property::by_property_hash>>
+    indexed_by<"byhash"_n, const_mem_fun<program_property, checksum256, &program_property::by_property_hash>>,
+    indexed_by<"bystatement"_n, const_mem_fun<program_property, checksum256, &program_property::by_statement_hash>>,
+    indexed_by<"byact"_n, const_mem_fun<program_property, checksum256, &program_property::by_act_hash>>
 > program_property_index;
 
 /**
@@ -84,8 +88,41 @@ typedef eosio::multi_index<
  */
  inline program_property get_program_property_or_fail(eosio::name coopname, const checksum256 &hash) {
   auto property = get_program_property(coopname, hash);
-  eosio::check(property.has_value(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property.has_value(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
 
+  return property.value();
+}
+
+/**
+ * @brief Находит предложение по хэшу одобряемого документа.
+ * Одобрение председателя заводится под хэшем документа, который он одобряет:
+ * заявление — под хэшем заявления, акт — под хэшем акта. Так у каждого
+ * одобрения свой ключ, а процесс остаётся под хэшем взноса. Обратный вызов
+ * получает хэш документа на входе и дальше работает по ID найденной строки.
+ * @param coopname Имя кооператива (scope таблицы).
+ * @tparam IndexName Индекс: "bystatement"_n или "byact"_n.
+ * @param document_hash Хэш заявления или акта.
+ */
+template <eosio::name::raw IndexName>
+inline std::optional<program_property> find_program_property_by_document(eosio::name coopname, const checksum256 &document_hash) {
+  program_property_index properties(_capital, coopname.value);
+  auto index = properties.get_index<IndexName>();
+  auto itr = index.find(document_hash);
+  if (itr == index.end()) return std::nullopt;
+  return program_property(*itr);
+}
+
+/** Предложение, чьё заявление одобряет председатель. */
+inline program_property get_program_property_by_statement_or_fail(eosio::name coopname, const checksum256 &statement_hash) {
+  auto property = find_program_property_by_document<"bystatement"_n>(coopname, statement_hash);
+  eosio::check(property.has_value(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по заявлению не найдено");
+  return property.value();
+}
+
+/** Предложение, чей акт подписывает председатель. */
+inline program_property get_program_property_by_act_or_fail(eosio::name coopname, const checksum256 &act_hash) {
+  auto property = find_program_property_by_document<"byact"_n>(coopname, act_hash);
+  eosio::check(property.has_value(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по акту не найдено");
   return property.value();
 }
 
@@ -97,7 +134,7 @@ typedef eosio::multi_index<
 inline void delete_program_property(eosio::name coopname, uint64_t property_id) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
 
   properties.erase(property);
 }
@@ -136,14 +173,14 @@ inline void create_program_property_with_approve(
     p.created_at = current_time_point();
   });
 
-  // Отправляем на approve председателю
+  // Одобрение заявления председателем — под хэшем заявления (ключ одобрения — одобряемый документ).
   ::Soviet::create_approval(
     _capital,
     coopname,
     username,
     statement,
     Names::Capital::CREATE_PROGRAM_PROPERTY,
-    property_hash,
+    statement.hash,
     _capital,
     Names::Capital::APPROVE_PROGRAM_PROPERTY,
     Names::Capital::DECLINE_PROGRAM_PROPERTY,
@@ -160,7 +197,7 @@ inline void create_program_property_with_approve(
 inline void update_program_property_status(eosio::name coopname, uint64_t property_id, eosio::name new_status) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.status = new_status;
@@ -174,7 +211,7 @@ inline void set_program_property_approved_statement(eosio::name coopname, uint64
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
   
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.statement = approved_statement;
@@ -187,7 +224,7 @@ inline void set_program_property_approved_statement(eosio::name coopname, uint64
 inline void set_program_property_authorization(eosio::name coopname, uint64_t property_id, const document2 &authorization) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.authorization = authorization;
@@ -200,7 +237,7 @@ inline void set_program_property_authorization(eosio::name coopname, uint64_t pr
 inline void set_program_property_act1(eosio::name coopname, uint64_t property_id, const document2 &act1) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.act = act1;
@@ -213,7 +250,7 @@ inline void set_program_property_act1(eosio::name coopname, uint64_t property_id
 inline void set_program_property_act2(eosio::name coopname, uint64_t property_id, const document2 &act2) {
   program_property_index properties(_capital, coopname.value);
   auto property = properties.find(property_id);
-  eosio::check(property != properties.end(), "Предложение по программному имущественному взносу не найдено");
+  eosio::check(property != properties.end(), "CAPITAL_PROPERTY_NOT_FOUND: Предложение по программному имущественному взносу не найдено");
   
   properties.modify(property, RamPayer::of(properties, coopname), [&](auto &p) {
     p.act = act2;

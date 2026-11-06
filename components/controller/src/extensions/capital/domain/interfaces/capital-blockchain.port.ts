@@ -132,6 +132,12 @@ export interface CapitalBlockchainPort {
   createProgramProperty(data: CapitalContract.Actions.CreateProgramProperty.ICreateProgramProperty): Promise<InnerTransactResult>;
 
   /**
+   * Пайщик подписал акт приёма-передачи имущества — первая подпись; контракт
+   * направляет акт председателю в запросы одобрений
+   */
+  signProgramPropertyAct1(data: CapitalContract.Actions.Act1ProgramProperty.IAct1ProgramProperty): Promise<InnerTransactResult>;
+
+  /**
    * Запуск голосования в CAPITAL контракте
    */
   startVoting(data: CapitalContract.Actions.StartVoting.IStartVoting): Promise<InnerTransactResult>;

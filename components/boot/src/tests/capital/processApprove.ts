@@ -3,14 +3,19 @@ import { SovietContract } from 'cooptypes'
 import { getTotalRamUsage } from '../../utils/getTotalRamUsage'
 import { fakeDocument } from '../shared/fakeDocument'
 
-export async function processApprove(blockchain: any, coopname: string, approvalHash: string) {
+/**
+ * Председатель `ant` подтверждает одобрение. Документ по умолчанию — фикстура
+ * с одной подписью председателя; двухподписной акт (вторая подпись поверх
+ * подписи пайщика) передаётся явно в `approvedDocument`.
+ */
+export async function processApprove(blockchain: any, coopname: string, approvalHash: string, approvedDocument?: any) {
   fakeDocument.signatures[0].signer = 'ant'
 
   const data: SovietContract.Actions.Approves.ConfirmApprove.IConfirmApprove = {
     coopname,
     username: 'ant',
     approval_hash: approvalHash,
-    approved_document: fakeDocument,
+    approved_document: approvedDocument ?? fakeDocument,
   }
 
   const result = await blockchain.api.transact(

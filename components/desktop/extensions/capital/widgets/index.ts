@@ -46,3 +46,4 @@ export * from './InvitationsListWidget';
 export * from './InvitationDetailsWidget';
 export * from './InvitationsListWidget';
 export * from './InvitationDetailsWidget';
+export * from './ContributionsFeedWidget';

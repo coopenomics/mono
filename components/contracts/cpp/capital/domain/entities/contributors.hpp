@@ -367,6 +367,23 @@ inline void increase_investor_contribution(eosio::name coopname, uint64_t contri
 }
 
 /**
+ * @brief Увеличивает накопленную сумму паевых взносов участника имуществом в программу
+ * @param coopname Наименование кооператива
+ * @param contributor_id ID контрибьютора
+ * @param amount Оценочная стоимость принятого имущества
+ */
+inline void increase_propertor_contribution(eosio::name coopname, uint64_t contributor_id, eosio::asset amount) {
+  contributor_index contributors(_capital, coopname.value);
+  auto contributor = contributors.find(contributor_id);
+
+  eosio::check(contributor != contributors.end(), "CAPITAL_CONTRIBUTOR_NOT_FOUND: Участник не найден");
+
+  contributors.modify(contributor, RamPayer::of(contributors, coopname), [&](auto &c) {
+    c.contributed_as_propertor += amount;
+  });
+}
+
+/**
  * @brief Завершает регистрацию импортированного участника
  * Обновляет импортированного участника (статус IMPORT) данными регистрации:
  * - Устанавливает rate_per_hour и hours_per_day

@@ -388,8 +388,10 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Паевой взнос результатом интеллектуальной деятельности по программе «Генератор»" },
 
   // 9. Акт-2 имущественный паевой взнос: Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
-  // Имущественный (РИД) — Dr 04 (НМА), не Dr 51 (банк). Денежный паевой —
-  // через o.wal.depcpl или o.cap.invest.
+  // Сейчас кооператив принимает взносом имуществом только объекты авторских
+  // прав и ставит их сразу на нематериальные активы — Dr 04 (решение владельца
+  // 04.11.2026). Прочее имущество (вещи на 08, 01, 10) — отдельной задачей.
+  // Денежный паевой — через o.wal.depcpl или o.cap.invest.
   { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
     "Паевой взнос (не денежный) по программе «Благорост»" },

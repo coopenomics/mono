@@ -411,6 +411,8 @@ import { ShareTransferService } from './application/services/share-transfer.serv
 import { ShareTransferKyselyRepository } from './infrastructure/repositories/share-transfer.kysely-repository';
 import { DebtManagementService } from './application/services/debt-management.service';
 import { PropertyManagementService } from './application/services/property-management.service';
+import { ContributionsHistoryService } from './application/services/contributions-history.service';
+import { ProgramPropertyNotificationListener } from './application/listeners/program-property-notification.listener';
 import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
 import { DistributionManagementService } from './application/services/distribution-management.service';
@@ -471,6 +473,7 @@ import { InvestsManagementResolver } from './application/resolvers/invests-manag
 import { ShareTransferResolver } from './application/resolvers/share-transfer.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
+import { ContributionsHistoryResolver } from './application/resolvers/contributions-history.resolver';
 import { TimeTrackerResolver } from './application/resolvers/time-tracker.resolver';
 import { VotingResolver } from './application/resolvers/voting.resolver';
 import { ResultSubmissionResolver } from './application/resolvers/result-submission.resolver';
@@ -755,10 +758,11 @@ export class CapitalExtension extends BaseExtensionModule {
       const T = CapitalContract.Tables;
       this.chainChanges?.declareTables([
         { code, table: T.Contributors.tableName, owner_field: 'username' },
-        ...[T.Projects, T.ProjectProperties, T.ProgramProperties, T.Segments, T.Votes, T.Results, T.Commits, T.Appendixes, T.State].map(
+        ...[T.Projects, T.ProjectProperties, T.Segments, T.Votes, T.Results, T.Commits, T.Appendixes, T.State].map(
           (t) => ({ code, table: t.tableName })
         ),
-        ...[T.Invests, T.ProgramInvests, T.Debts, T.ProgramWithdraws, T.ProgramWallets, T.Expenses, T.ProgramExpenses].map(
+        // Взнос имуществом — личный: описание имущества видят пайщик и совет.
+        ...[T.Invests, T.ProgramInvests, T.ProgramProperties, T.Debts, T.ProgramWithdraws, T.ProgramWallets, T.Expenses, T.ProgramExpenses].map(
           (t) => ({ code, table: t.tableName, owner_field: 'username' })
         ),
       ]);
@@ -781,6 +785,9 @@ export class CapitalExtension extends BaseExtensionModule {
         { code, table: 'capital_favorites', owner_field: 'username' },
         // История трансляций паевого взноса в Цифровой Кошелёк — личная.
         { code, table: 'capital_share_transfers', owner_field: 'username' },
+        // Итог взноса имуществом (принято / отклонено) пишется в базу узла по
+        // действию цепи уже после удаления строки — экран узнаёт о нём по сигналу этой таблицы.
+        { code, table: 'capital_program_properties', owner_field: 'username' },
       ]);
       this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {
@@ -885,6 +892,8 @@ IssueIdGenerationService,
     ShareTransferKyselyRepository,
     DebtManagementService,
     PropertyManagementService,
+    ContributionsHistoryService,
+    ProgramPropertyNotificationListener,
     VotingService,
     ResultSubmissionService,
     DistributionManagementService,
@@ -948,6 +957,7 @@ IssueIdGenerationService,
     ShareTransferResolver,
     DebtManagementResolver,
     PropertyManagementResolver,
+    ContributionsHistoryResolver,
     VotingResolver,
     ResultSubmissionResolver,
     DistributionManagementResolver,

@@ -44,6 +44,10 @@ title: Паевой взнос в программу «Благорост»
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+# Правка 30.10.2026: в contributors.hpp добавлен помощник накопленной суммы
+# взносов имуществом (capital.program-property). Денежный взнос и его учёт
+# не менялись, набор случаев прежний.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/invest_to_program/createpinv.cpp

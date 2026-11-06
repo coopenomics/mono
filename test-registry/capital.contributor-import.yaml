@@ -59,6 +59,10 @@ title: Импорт пайщика с бумажными договорами
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+# Правка 30.10.2026: в общий адаптер цепи capital добавлена отправка подписи
+# акта паевого взноса имуществом (act1pgprp, capital.program-property).
+# Импорт пайщиков не менялся.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp

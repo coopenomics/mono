@@ -10,6 +10,10 @@ title: Благорост — трансляция паевого взноса �
 # штатным заявлением. История трансляций — в базе узла, заявления — в реестре
 # документов цепи.
 
+# Правка 30.10.2026: в общей таблице прав capital пайщику добавлены чтение и
+# подпись своего паевого взноса имуществом, совету — чтение всех взносов
+# имуществом (capital.program-property). Права трансляции не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/distribution_managment/distribution_in_program/transfer_share/**

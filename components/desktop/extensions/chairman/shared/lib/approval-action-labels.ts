@@ -4,6 +4,8 @@ const approval_action_labels: Record<string, string> = {
   'capital::approvereg': t('chairman.approvalActionLabels.blagorostUhdContract'),
   'capital::approveinvst': t('chairman.approvalActionLabels.blagorostInvestmentApplication'),
   'capital::approverslt': t('chairman.approvalActionLabels.blagorostRidContribution'),
+  'capital::approvepgprp': t('chairman.approvalActionLabels.blagorostPropertyStatement'),
+  'capital::act2pgprp': t('chairman.approvalActionLabels.blagorostPropertyAct'),
   'edubridge::apprvcontr': t('chairman.approvalActionLabels.eduTeacherContract'),
   'edubridge::apprvridact': t('chairman.approvalActionLabels.eduRidAct'),
   'branch::apprliab': t('chairman.approvalActionLabels.unitChairmanLiabilityContract'),

@@ -129,7 +129,8 @@
       "executorRole": "Исполнитель",
       "investorRole": "Инвестор",
       "participationParamsTitle": "Параметры участия",
-      "totalContributionsLabel": "Общая сумма взносов"
+      "totalContributionsLabel": "Общая сумма взносов",
+      "propertorRole": "Имуществом"
     },
     "capitalProgramDocFields": {
       "blagorostRegulationLabel": "Положение БЛАГОРОСТ",
@@ -512,11 +513,11 @@
     "createProgramInvestButton": {
       "amountLabel": "Сумма",
       "amountPositiveError": "Сумма должна быть положительной",
-      "ariaLabel": "Инвестировать в программу",
+      "ariaLabel": "Внести паевой взнос деньгами в программу «Благорост»",
       "cancel": "Отмена",
-      "dialogTitle": "Инвестирование в программу",
-      "label": "Инвестировать",
-      "success": "Инвестиция принята"
+      "dialogTitle": "Паевой взнос деньгами",
+      "label": "Внести деньгами",
+      "success": "Паевой взнос принят"
     },
     "createProjectButton": {
       "label": "Проект"
@@ -741,7 +742,8 @@
       "signActRawDocumentMissing": "Сырой документ акта не найден. Невозможно наложить вторую подпись.",
       "signActResultNotFound": "Результат не найден",
       "signActUsernameMissing": "Имя пользователя не найдено",
-      "statementGenerationFailed": "Не удалось сгенерировать заявление"
+      "statementGenerationFailed": "Не удалось сгенерировать заявление",
+      "missingCreatepgprpMeta": "В вопросе повестки нет заявления о паевом взносе имуществом"
     },
     "expandOptionsWidget": {
       "expandAllLabel": "Развернуть всё"
@@ -888,7 +890,8 @@
       "templateRouteTitle": "Шаблон",
       "trackerRouteTitle": "Время",
       "walletLabel": "Благорост",
-      "shareTransferRouteTitle": "Трансляции"
+      "shareTransferRouteTitle": "Трансляции",
+      "contributionsRouteTitle": "Мои взносы"
     },
     "invitationDetailsWidget": {
       "blagorostReceivedLabel": "Получено по Благоросту",
@@ -1910,6 +1913,82 @@
         "revokeConfirmTitle": "Снять доступ к трансляции?",
         "revokeConfirmMessage": "Страница трансляции у пайщика {name} пропадёт из меню. История его трансляций сохранится."
       }
+    },
+    "createPropertyContributionButton": {
+      "label": "Внести имуществом",
+      "dialogTitle": "Паевой взнос имуществом",
+      "intro": "Опишите одну позицию имущества и укажите её оценку. Заявление рассматривают председатель и совет, затем вы подписываете акт приёма-передачи. Черновик сохраняется до подачи заявления.",
+      "nameLabel": "Наименование",
+      "quantityLabel": "Количество",
+      "unitLabel": "Единица измерения",
+      "amountLabel": "Оценочная стоимость",
+      "amountPositiveError": "Оценка должна быть больше нуля",
+      "submit": "Подписать и подать заявление",
+      "success": "Заявление подано",
+      "namePlaceholder": "Например, ноутбук Lenovo ThinkPad T14 или методика обучения в виде документа",
+      "descriptionLabel": "Описание, характеристики и состояние",
+      "descriptionHint": "Что передаётся, характеристики, комплектность, состояние или форма передачи",
+      "quantityPlaceholder": "Например, 1",
+      "unitPlaceholder": "шт., экз., кг"
+    },
+    "myContributionsPage": {
+      "ariaLabel": "Мои взносы",
+      "hint": "Здесь все ваши паевые взносы в программу «Благорост»: деньгами, имуществом и результатами интеллектуальной деятельности. Взнос имуществом проходит одобрение председателя, решение совета и подпись акта приёма-передачи. Нажмите на строку, чтобы открыть подробности и документы."
+    },
+    "contributionsFeed": {
+      "emptyTitle": "Взносов пока нет",
+      "emptyBody": "Внесите паевой взнос деньгами или имуществом кнопками в правом верхнем углу.",
+      "loadMore": "Показать ещё",
+      "column": {
+        "date": "Дата",
+        "contribution": "Взнос",
+        "amount": "Сумма",
+        "status": "Состояние"
+      },
+      "kind": {
+        "money": "Взнос деньгами",
+        "property": "Взнос имуществом",
+        "result": "Взнос результатом интеллектуальной деятельности",
+        "import": "Взнос из прежнего учёта"
+      },
+      "status": {
+        "created": "Заявление на одобрении председателя",
+        "approved": "На рассмотрении совета",
+        "authorized": "Требуется ваша подпись",
+        "act1": "Акт на подписи у председателя",
+        "accepted": "Принят",
+        "declined": "Отклонён",
+        "contributed": "Внесён",
+        "unknown": "Статус уточняется"
+      },
+      "note": {
+        "created": "Председатель рассматривает заявление",
+        "approved": "Совет голосует по заявлению",
+        "authorized": "Совет принял решение — подпишите акт приёма-передачи",
+        "act1": "Вы подписали акт. Председатель подписывает его в запросах одобрений, после этого имущество будет принято."
+      },
+      "step": {
+        "statement": "Заявление подано",
+        "chairman": "Председатель одобрил",
+        "council": "Совет принял решение",
+        "act1": "Пайщик подписал акт",
+        "act2": "Председатель принял имущество"
+      },
+      "dateLabel": "Дата и время",
+      "nameLabel": "Наименование",
+      "quantityLabel": "Количество",
+      "descriptionLabel": "Описание",
+      "operationLabel": "Номер операции",
+      "progressSection": "Ход рассмотрения",
+      "documentsSection": "Документы",
+      "signAct": "Подписать акт",
+      "signed": "Акт подписан и направлен председателю"
+    },
+    "programPropertyDecisionInfo": {
+      "title": "Паевой взнос имуществом",
+      "applicantLabel": "Пайщик",
+      "quantityLabel": "Количество",
+      "descriptionLabel": "Описание, характеристики и состояние"
     }
   }
 }

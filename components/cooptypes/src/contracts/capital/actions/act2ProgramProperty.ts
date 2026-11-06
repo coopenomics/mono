@@ -1,8 +1,13 @@
 import * as Permissions from '../../../common/permissions'
 import type * as Capital from '../../../interfaces/capital'
-import { Actors } from '../../../common'
+import { ContractNames } from '../../../common'
 
-export const authorizations = [{ permissions: [Permissions.active], actor: Actors._chairman }] as const
+/**
+ * Председатель подписал акт приёма-передачи имущества вторым — коллбэк контракта
+ * совета после подтверждения одобрения: имущество принимается паевым взносом в
+ * программу «Благорост» (процесс p.cap.prop).
+ */
+export const authorizations = [{ permissions: [Permissions.active], actor: ContractNames._soviet }] as const
 
 /**
  * Имя действия
