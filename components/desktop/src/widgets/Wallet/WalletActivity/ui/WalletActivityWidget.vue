@@ -47,17 +47,21 @@
       row-key='global_sequence',
       :loading='firstLoad',
       min-width='640px',
-      :clickable-rows='hasProcess',
+      clickable-rows,
       @row-click='openMovement'
     )
       template(#cell-created='{ row }')
         span.t-mono {{ formatDateToLocalTimezone(row.created_at, 'DD.MM.YYYY HH:mm') }}
+      //- Строка — дата, операция и сумма со знаком. Что произошло с деньгами,
+      //- откуда и куда они перемещены, — в правой панели по нажатию на строку;
+      //- в строке и при наведении подробности не показываются (решение
+      //- владельца 06.11.2026).
       template(#cell-operation='{ row }')
-        .wallet-activity__operation
-          span {{ row.operation_name }}
-          span.wallet-activity__meta(v-if='row.wallet_title') {{ row.wallet_title }}
+        span {{ row.operation_name }}
       template(#cell-quantity='{ row }')
-        span.t-mono(:class='`wallet-activity__amount--${String(row.direction).toLowerCase()}`') {{ signed(row) }}
+        span.t-mono.wallet-activity__sum(:class='`wallet-activity__amount--${String(row.direction).toLowerCase()}`')
+          q-icon(v-if='isMove(row)', name='swap_horiz', size='16px')
+          | {{ signed(row) }}
 
     EmptyState(
       v-else,
@@ -81,12 +85,25 @@
       .wallet-activity__drawer-amount
         .t-muted {{ drawer.amountLabel }}
         .wallet-activity__drawer-sum {{ drawer.amount }}
+        .t-muted(v-if='drawer.effect') {{ drawer.effect }}
         BaseBadge.wallet-activity__drawer-badge(v-if='drawer.state', :variant='STATE_VARIANTS[drawer.state]') {{ $t(`wallet.walletActivity.state.${drawer.state}`) }}
       .wallet-activity__drawer-group
         DataRow(align='spread', :label='$t("wallet.walletActivity.column.date")', :value='formatDateToLocalTimezone(drawer.at, "DD.MM.YYYY HH:mm")')
         DataRow(v-if='drawer.meta', align='spread', :label='$t("wallet.walletActivity.orderLabel")', :value='drawer.meta')
-        DataRow(v-if='drawer.wallet', align='vertical', :label='$t("wallet.walletActivity.walletLabel")', :value='drawer.wallet')
+
         DataRow(v-if='drawer.destination', align='spread', :label='$t("wallet.walletActivity.column.destination")', :value='drawer.destination')
+      //- Маршрут движения: две плашки «Откуда» и «Куда» с понятным названием
+      //- кошелька, чей он и что в нём лежит (решение владельца 06.11.2026).
+      .wallet-activity__route(v-if='drawer.route')
+        template(v-for='(end, index) in drawer.route', :key='end.side')
+          .wallet-activity__route-arrow(v-if='index > 0')
+            q-icon(name='south', size='18px')
+          .wallet-activity__route-item
+            q-icon.wallet-activity__route-icon(:name='end.icon', size='20px')
+            .wallet-activity__route-body
+              .wallet-activity__route-label {{ end.side === 'from' ? $t('wallet.walletActivity.fromLabel') : $t('wallet.walletActivity.toLabel') }} · {{ end.owner }}
+              .wallet-activity__route-title {{ end.title }}
+              .wallet-activity__route-desc {{ end.description }}
       .wallet-activity__drawer-block(v-if='drawer.steps')
         .wallet-activity__drawer-subtitle {{ $t('wallet.walletActivity.stepsTitle') }}
         VerticalStepper(:steps='drawer.steps.items', :active-key='drawer.steps.active', :completed='drawer.steps.completed')
@@ -122,7 +139,7 @@ import {
   type IWalletMovement,
   type IWalletPendingItem,
 } from 'src/entities/Wallet';
-import { t } from 'src/shared/i18n';
+import { t, te } from 'src/shared/i18n';
 
 const PAGE = 20;
 
@@ -176,12 +193,74 @@ const movementColumns = computed<BaseTableColumn<IWalletMovement>[]>(() => [
   { key: 'quantity', label: t('wallet.walletActivity.column.amount'), width: '170px', numeric: true },
 ]);
 
-/** Сумма со знаком относительно кошельков пайщика; перевод и шаг процесса — без знака. */
+/** Сумма со знаком относительно кошельков пайщика; перенос и шаг процесса — без знака. */
 function signed(row: IWalletMovement): string {
   const amount = formatAsset2Digits(row.quantity);
   if (row.direction === Zeus.WalletMovementDirection.IN) return `+${amount}`;
   if (row.direction === Zeus.WalletMovementDirection.OUT) return `−${amount}`;
   return amount;
+}
+
+function isMove(row: IWalletMovement): boolean {
+  return row.direction === Zeus.WalletMovementDirection.MOVE;
+}
+
+/** Конец маршрута движения в панели: значок, чей кошелёк, название и пояснение. */
+interface RouteEnd {
+  side: 'from' | 'to';
+  icon: string;
+  owner: string;
+  title: string;
+  description: string;
+}
+
+/**
+ * Кошелёк по коду: короткое название и пояснение из словаря стола; кошелька
+ * нет в словаре — название из реестра учёта. Без кошелька — поступление
+ * извне (источник) или передача пайщику за пределы учёта (получатель).
+ */
+function routeEnd(side: 'from' | 'to', wallet: string | null | undefined): RouteEnd {
+  if (!wallet) {
+    const key = side === 'from' ? 'external' : 'outside';
+    return {
+      side,
+      icon: side === 'from' ? 'login' : 'logout',
+      owner: t('wallet.walletActivity.route.cooperativeBadge'),
+      title: t(`wallet.walletActivity.route.${key}Title`),
+      description: t(`wallet.walletActivity.route.${key}Description`),
+    };
+  }
+  const member = Ledger2.getWalletKind(wallet) === 'USER_SHARED';
+  const key = `wallet.walletActivity.wallets.${wallet.replace(/\./g, '_')}`;
+  const known = te(`${key}.title`);
+  return {
+    side,
+    icon: member ? 'account_balance_wallet' : 'account_balance',
+    owner: member ? t('wallet.walletActivity.route.memberBadge') : t('wallet.walletActivity.route.cooperativeBadge'),
+    title: known ? t(`${key}.title`) : (Ledger2.getWalletHumanName(wallet) ?? wallet),
+    description: known ? t(`${key}.description`) : '',
+  };
+}
+
+function routeOf(row: IWalletMovement): RouteEnd[] {
+  const meta = Ledger2.getOperationMeta(row.operation_code);
+  if (!meta) return [];
+  return [routeEnd('from', meta.wallet_from), routeEnd('to', meta.wallet_to)];
+}
+
+/** Подпись под суммой: что произошло с деньгами пайщика. */
+function effectOf(row: IWalletMovement): string {
+  switch (row.direction) {
+    case Zeus.WalletMovementDirection.IN:
+      return t('wallet.walletActivity.effect.in');
+    case Zeus.WalletMovementDirection.MOVE:
+      return t('wallet.walletActivity.effect.move');
+    case Zeus.WalletMovementDirection.OUT:
+      if (row.to_cooperative) return t('wallet.walletActivity.effect.toCooperative');
+      return row.to_title ? t('wallet.walletActivity.effect.out') : t('wallet.walletActivity.effect.payout');
+    default:
+      return t('wallet.walletActivity.effect.process');
+  }
 }
 
 function destinationOf(methodId: string | null | undefined): string {
@@ -207,10 +286,6 @@ function clearFilter(): void {
   walletMovementsFilter.value = null;
 }
 
-function hasProcess(row: IWalletMovement): boolean {
-  return Boolean(row.process_hash);
-}
-
 // Панель строки: сводка для пайщика, ход процесса, реквизиты неоплаченного взноса.
 interface DrawerSteps {
   items: StepperStep[];
@@ -228,7 +303,8 @@ interface DrawerView {
   amount: string;
   at: unknown;
   state?: string;
-  wallet?: string | null;
+  effect?: string;
+  route?: RouteEnd[];
   destination?: string | null;
 }
 const drawer = ref<DrawerView | null>(null);
@@ -241,15 +317,15 @@ const drawerOpen = computed({
 const drawerTitle = computed(() => drawer.value?.title ?? '');
 
 function openMovement(row: IWalletMovement): void {
-  if (!row.process_hash) return;
   drawer.value = {
-    hash: row.process_hash.toLowerCase(),
+    hash: (row.process_hash ?? row.global_sequence).toLowerCase(),
     title: t('wallet.walletActivity.movementDrawerTitle'),
     heading: row.operation_name,
     amountLabel: t('wallet.walletActivity.column.amount'),
     amount: signed(row),
+    effect: effectOf(row),
     at: row.created_at,
-    wallet: row.wallet_title,
+    route: routeOf(row),
   };
 }
 
@@ -386,12 +462,72 @@ useLiveReload(
   color: var(--p-pos);
 }
 
-.wallet-activity__amount--out {
+.wallet-activity__amount--out,
+.wallet-activity__amount--move {
   color: var(--p-ink);
 }
 
-.wallet-activity__amount--move,
 .wallet-activity__amount--process {
+  color: var(--p-ink-3);
+}
+
+.wallet-activity__sum {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+}
+
+
+
+.wallet-activity__route {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--p-1);
+  padding: var(--p-4) 0;
+}
+
+.wallet-activity__route-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+  padding: var(--p-3);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface-2);
+}
+
+.wallet-activity__route-icon {
+  color: var(--p-ink-2);
+  margin-top: 2px;
+}
+
+.wallet-activity__route-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wallet-activity__route-label {
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-meta);
+}
+
+.wallet-activity__route-title {
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+.wallet-activity__route-desc {
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+}
+
+.wallet-activity__route-arrow {
+  display: flex;
+  justify-content: center;
   color: var(--p-ink-3);
 }
 

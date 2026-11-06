@@ -85,6 +85,23 @@ export class WalletMovementDTO {
   @Field(() => String, { nullable: true, description: 'Название кошелька пайщика' })
   wallet_title!: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Откуда пришли деньги: название кошелька-источника; пусто — поступление извне (касса, расчётный счёт)',
+  })
+  from_title!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Куда пришли деньги: название кошелька-получателя; пусто — выплата за пределы кооператива',
+  })
+  to_title!: string | null;
+
+  @Field(() => Boolean, {
+    description: 'Получатель — кошелёк кооператива, а не пайщика: деньги стали средствами кооператива (например, вступительный взнос)',
+  })
+  to_cooperative!: boolean;
+
   @Field(() => WalletMovementDirection, { description: 'Направление относительно кошельков пайщика' })
   direction!: WalletMovementDirection;
 

@@ -10541,6 +10541,7 @@ export const ReturnTypes: Record<string,any> = {
 	WalletMovement:{
 		created_at:"DateTime",
 		direction:"WalletMovementDirection",
+		from_title:"String",
 		global_sequence:"String",
 		memo:"String",
 		operation_code:"String",
@@ -10548,6 +10549,8 @@ export const ReturnTypes: Record<string,any> = {
 		process_hash:"String",
 		process_type:"String",
 		quantity:"String",
+		to_cooperative:"Boolean",
+		to_title:"String",
 		wallet_name:"String",
 		wallet_title:"String"
 	},

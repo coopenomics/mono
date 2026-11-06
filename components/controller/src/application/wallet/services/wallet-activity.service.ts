@@ -157,6 +157,13 @@ export class WalletActivityService {
       operation_name: Ledger2.getOperationHumanName(code) ?? code,
       wallet_name: wallet,
       wallet_title: walletTitle(wallet),
+      // Маршрут движения целиком: без кошелька-получателя лента показывала
+      // одну и ту же подпись источника у трёх шагов регистрации, и было не
+      // видно, что 300 ₽ легли на минимальный паевой взнос, а 100 ₽ стали
+      // вступительным взносом кооператива (замечание владельца 06.11.2026).
+      from_title: walletTitle(orNull(meta?.wallet_from)),
+      to_title: walletTitle(orNull(meta?.wallet_to)),
+      to_cooperative: !!meta?.wallet_to && !toMember,
       direction,
       quantity: op.quantity ?? '',
       process_hash: orNull(op.processHash),

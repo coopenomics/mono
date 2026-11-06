@@ -73,6 +73,51 @@ describe('wallet.activity.movements — движения по кошелькам
 
     expect(page.items[0].direction).toBe(WalletMovementDirection.MOVE);
   });
+
+  // Замечание владельца 06.11.2026: три шага регистрации показывались одной
+  // подписью кошелька ожидания, перенос 300 ₽ — серым без знака. Строка обязана
+  // назвать маршрут: откуда, куда и стали ли деньги средствами кооператива.
+  it('регистрация: приём — поступление извне на кошелёк ожидания, минимальный паевой — перенос между своими, вступительный — средствам кооператива', async () => {
+    const { service } = build({
+      history: [
+        op('o.reg.inpay', { quantity: '400.0000 RUB' }),
+        op('o.reg.setmin', { quantity: '300.0000 RUB' }),
+        op('o.reg.setent', { quantity: '100.0000 RUB' }),
+      ],
+    });
+
+    const [inpay, setmin, setent] = (await service.movements({ coopname: COOP, username: 'ivan' })).items;
+
+    expect(inpay).toMatchObject({
+      direction: WalletMovementDirection.IN,
+      from_title: null,
+      to_title: Ledger2.getWalletHumanName('w.reg.pend'),
+      to_cooperative: false,
+    });
+    expect(setmin).toMatchObject({
+      direction: WalletMovementDirection.MOVE,
+      from_title: Ledger2.getWalletHumanName('w.reg.pend'),
+      to_title: Ledger2.getWalletHumanName('w.reg.minshr'),
+      to_cooperative: false,
+    });
+    expect(setent).toMatchObject({
+      direction: WalletMovementDirection.OUT,
+      from_title: Ledger2.getWalletHumanName('w.reg.pend'),
+      to_title: Ledger2.getWalletHumanName('w.reg.entry'),
+      to_cooperative: true,
+    });
+  });
+
+  it('выплата возврата паевого из резерва — получателя нет: деньги выплачены за пределы кооператива', async () => {
+    const meta = Ledger2.LEDGER2_OPERATION_REGISTRY.find((o) => !o.wallet_to && o.wallet_from && Ledger2.getWalletKind(o.wallet_from) === 'USER_SHARED');
+    expect(meta, 'в реестре есть выплата с кошелька пайщика').toBeTruthy();
+    const { service } = build({ history: [op(meta!.code)] });
+
+    const [row] = (await service.movements({ coopname: COOP, username: 'ivan' })).items;
+
+    expect(row).toMatchObject({ direction: WalletMovementDirection.OUT, to_title: null, to_cooperative: false });
+    expect(row.from_title).toBe(Ledger2.getWalletHumanName(meta!.wallet_from!));
+  });
 });
 
 describe('wallet.activity.pending — что у пайщика в работе', () => {

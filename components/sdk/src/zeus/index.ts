@@ -19924,6 +19924,8 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	created_at?:boolean | `@${string}`,
 	/** Направление относительно кошельков пайщика */
 	direction?:boolean | `@${string}`,
+	/** Откуда пришли деньги: название кошелька-источника; пусто — поступление извне (касса, расчётный счёт) */
+	from_title?:boolean | `@${string}`,
 	/** Номер операции учётной книги */
 	global_sequence?:boolean | `@${string}`,
 	/** Пояснение к операции */
@@ -19938,6 +19940,10 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	process_type?:boolean | `@${string}`,
 	/** Сумма */
 	quantity?:boolean | `@${string}`,
+	/** Получатель — кошелёк кооператива, а не пайщика: деньги стали средствами кооператива (например, вступительный взнос) */
+	to_cooperative?:boolean | `@${string}`,
+	/** Куда пришли деньги: название кошелька-получателя; пусто — выплата за пределы кооператива */
+	to_title?:boolean | `@${string}`,
 	/** Кошелёк пайщика, по которому прошло движение */
 	wallet_name?:boolean | `@${string}`,
 	/** Название кошелька пайщика */
@@ -38446,6 +38452,8 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	created_at?:boolean | `@${string}`,
 	/** Направление относительно кошельков пайщика */
 	direction?:boolean | `@${string}`,
+	/** Откуда пришли деньги: название кошелька-источника; пусто — поступление извне (касса, расчётный счёт) */
+	from_title?:boolean | `@${string}`,
 	/** Номер операции учётной книги */
 	global_sequence?:boolean | `@${string}`,
 	/** Пояснение к операции */
@@ -38460,6 +38468,10 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	process_type?:boolean | `@${string}`,
 	/** Сумма */
 	quantity?:boolean | `@${string}`,
+	/** Получатель — кошелёк кооператива, а не пайщика: деньги стали средствами кооператива (например, вступительный взнос) */
+	to_cooperative?:boolean | `@${string}`,
+	/** Куда пришли деньги: название кошелька-получателя; пусто — выплата за пределы кооператива */
+	to_title?:boolean | `@${string}`,
 	/** Кошелёк пайщика, по которому прошло движение */
 	wallet_name?:boolean | `@${string}`,
 	/** Название кошелька пайщика */
@@ -56907,6 +56919,8 @@ export type ModelTypes = {
 	created_at: ModelTypes["DateTime"],
 	/** Направление относительно кошельков пайщика */
 	direction: ModelTypes["WalletMovementDirection"],
+	/** Откуда пришли деньги: название кошелька-источника; пусто — поступление извне (касса, расчётный счёт) */
+	from_title?: string | undefined | null,
 	/** Номер операции учётной книги */
 	global_sequence: string,
 	/** Пояснение к операции */
@@ -56921,6 +56935,10 @@ export type ModelTypes = {
 	process_type?: string | undefined | null,
 	/** Сумма */
 	quantity: string,
+	/** Получатель — кошелёк кооператива, а не пайщика: деньги стали средствами кооператива (например, вступительный взнос) */
+	to_cooperative: boolean,
+	/** Куда пришли деньги: название кошелька-получателя; пусто — выплата за пределы кооператива */
+	to_title?: string | undefined | null,
 	/** Кошелёк пайщика, по которому прошло движение */
 	wallet_name?: string | undefined | null,
 	/** Название кошелька пайщика */
@@ -76631,6 +76649,8 @@ export type GraphQLTypes = {
 	created_at: GraphQLTypes["DateTime"],
 	/** Направление относительно кошельков пайщика */
 	direction: GraphQLTypes["WalletMovementDirection"],
+	/** Откуда пришли деньги: название кошелька-источника; пусто — поступление извне (касса, расчётный счёт) */
+	from_title?: string | undefined | null,
 	/** Номер операции учётной книги */
 	global_sequence: string,
 	/** Пояснение к операции */
@@ -76645,6 +76665,10 @@ export type GraphQLTypes = {
 	process_type?: string | undefined | null,
 	/** Сумма */
 	quantity: string,
+	/** Получатель — кошелёк кооператива, а не пайщика: деньги стали средствами кооператива (например, вступительный взнос) */
+	to_cooperative: boolean,
+	/** Куда пришли деньги: название кошелька-получателя; пусто — выплата за пределы кооператива */
+	to_title?: string | undefined | null,
 	/** Кошелёк пайщика, по которому прошло движение */
 	wallet_name?: string | undefined | null,
 	/** Название кошелька пайщика */
