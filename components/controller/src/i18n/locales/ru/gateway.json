@@ -17,7 +17,8 @@
     "GATEWAY_SURCHARGE_PAYMENT_MISSING_HASH": "У платежа доплаты {hash} нет proposal_hash/item_hash в blockchain_data",
     "GATEWAY_SYSTEM_PAYMENT_CREATE_MISSING_ID": "createSystemOutgoingPayment: не удалось создать платёж — отсутствует ID",
     "GATEWAY_UPDATED_PAYMENT_NOT_FOUND": "Не удалось найти обновленный платеж с ID {id}",
-    "GATEWAY_DEPOSIT_AMOUNT_NOT_POSITIVE": "Сумма паевого взноса должна быть больше нуля"
+    "GATEWAY_DEPOSIT_AMOUNT_NOT_POSITIVE": "Сумма паевого взноса должна быть больше нуля",
+    "GATEWAY_PAYOUT_BEFORE_COUNCIL_FORBIDDEN": "Выплату {hash}, которую решает совет, нельзя завести платежом до решения совета — она подаётся заявкой на выплату."
   },
   "gateway": {
     "createDepositPaymentInput": {

@@ -1,10 +1,10 @@
-import { marketplaceOrderSelector } from '../../selectors/marketplace/orderSelector'
+import { marketplaceOrderDetailSelector } from '../../selectors/marketplace/orderSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceGetOrder'
 
 export const query = Selector('Query')({
-  [name]: [{ input: $('input', 'MarketplaceGetOrderInput!') }, marketplaceOrderSelector],
+  [name]: [{ input: $('input', 'MarketplaceGetOrderInput!') }, marketplaceOrderDetailSelector],
 })
 
 export interface IInput {

@@ -1,4 +1,5 @@
 import { VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
+import { bankSafeText } from '@coopenomics/extension-kit';
 import { t } from '../i18n';
 /**
  * Параметры шасси расходов.
@@ -27,8 +28,11 @@ export const EXPENSES_CHASSIS_CONFIG = {
  * возвратов ядра; налоговая оговорка — общая константа innercoop.
  */
 export function advancePaymentMemo(itemHash: string): string {
-  return t('expenses.chassisConfig.advancePaymentMemo', {
-    hashPrefix: itemHash.toLowerCase().slice(0, 8),
-    vatExemptNote: VAT_EXEMPT_NOTE,
-  });
+  // Назначение передаётся в банк: «под отчёт» с «ё» банк не принимает.
+  return bankSafeText(
+    t('expenses.chassisConfig.advancePaymentMemo', {
+      hashPrefix: itemHash.toLowerCase().slice(0, 8),
+      vatExemptNote: VAT_EXEMPT_NOTE,
+    })
+  );
 }

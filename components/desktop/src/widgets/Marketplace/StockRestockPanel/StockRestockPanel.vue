@@ -30,6 +30,9 @@ const props = defineProps<{
   memberAccount: string;
 }>();
 
+/** Сколько позиций со склада участка можно предложить — родитель строит по этому пустое состояние. */
+const emit = defineEmits<{ (e: 'loaded', count: number): void }>();
+
 interface CoopStockPackage {
   id: string;
   size: number;
@@ -137,6 +140,7 @@ async function loadOffers(): Promise<void> {
       (o) => o.stock_braname === props.braname && o.quantity_available > 0,
     );
     offers.value.forEach(ensureDefaultPackage);
+    emit('loaded', offers.value.length);
   } catch (e) {
     FailAlert(e);
   } finally {

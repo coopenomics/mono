@@ -76,7 +76,7 @@ export async function fillCart(token: string, lines: CartLine[], braname = KRG):
 
 export const PREVIEW_QUERY = `query{
   marketplaceCheckoutSignablePayloads{
-    lines{ offer_id package_id order_hash amount membership_fee from_member from_program from_wallet }
+    lines{ offer_id package_id order_hash amount membership_fee from_program from_wallet }
     convert{ amount membership_fee document{ full_title html hash meta binary } }
   }
 }`

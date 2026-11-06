@@ -33,6 +33,8 @@ export interface MarketplaceIssuanceSagaPatch {
   tx_hashes?: MarketplaceIssuanceSagaTxHashes;
   last_error?: string | null;
   attempts?: number;
+  step_claimed_at?: Date | null;
+  step_claimed_by?: string | null;
   decided_at?: Date | null;
   closed_at?: Date | null;
 }
@@ -55,6 +57,18 @@ export interface MarketplaceIssuanceSagaDomainRepository {
   /** Живая сага по заказу (этап до закрытия). */
   findActiveByOrderId(coopname: string, order_id: string): Promise<MarketplaceIssuanceSagaDomainEntity | null>;
   list(filter: MarketplaceIssuanceSagaListFilter): Promise<MarketplaceIssuanceSagaDomainEntity[]>;
+  /**
+   * Захватить текущий шаг выдачи перед отправкой в цепь: `true` — шаг взят
+   * этим столом. Шаг занят, если его захватили позже `staleBefore`; более
+   * старый захват считается брошенным (стол закрыли посреди подписи).
+   */
+  claimStep(id: string, stage: MarketplaceIssuanceSagaStage, by: string, now: Date, staleBefore: Date): Promise<boolean>;
+  /** Снять захват: шаг не удался, его можно повторить с любого стола. */
+  releaseStep(id: string): Promise<void>;
+  /** Выдачи, где акт пайщика подписан раньше порога, а закрывающей подписи и напоминания нет. */
+  listAwaitingCloseReminder(coopname: string, actSignedBefore: Date, limit: number): Promise<MarketplaceIssuanceSagaDomainEntity[]>;
+  /** Отметить напоминание; `false` — отметку уже поставил другой прогон. */
+  markCloseReminded(id: string, at: Date): Promise<boolean>;
   /**
    * Атомарный переход: применяет патч только если текущий этап — один из
    * ожидаемых. `null` — переход не применён (гонка или повтор), состояние не

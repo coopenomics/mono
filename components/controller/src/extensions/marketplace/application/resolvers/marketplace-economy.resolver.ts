@@ -22,6 +22,7 @@ import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
 } from '../services/marketplace-economy.service';
+import { MarketplaceBranchReserveService } from '../services/marketplace-branch-reserve.service';
 import {
   MarketplaceAidDTO,
   MarketplaceBranchEconomyDTO,
@@ -66,7 +67,8 @@ function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO
 export class MarketplaceEconomyResolver {
   constructor(
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
-    private readonly economyService: MarketplaceEconomyService
+    private readonly economyService: MarketplaceEconomyService,
+    private readonly reserveService: MarketplaceBranchReserveService
   ) {}
 
   // ── Единая ставка членского взноса ───────────────────────────────────
@@ -270,6 +272,9 @@ export class MarketplaceEconomyResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateAidInputDTO
   ): Promise<boolean> {
+    // Предел по резерву социально-экономического обеспечения (задача 99D-22):
+    // то же правило держит контракт, здесь отказ приходит до обращения в цепь.
+    await this.reserveService.assertAidWithinReserve(platformSettings().coopname, data.braname, member.username, data.amount);
     await this.economyService.createAid(
       platformSettings().coopname,
       member.username,

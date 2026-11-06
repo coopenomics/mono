@@ -9,7 +9,8 @@
  * Количество остаётся рядом — им проверяют, что за суммой стоит.
  */
 import { computed } from 'vue'
-import { BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseTable, EmptyState } from 'src/shared/ui/base'
+import { MenuSelectButton, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
 import type { BaseTableColumn } from 'src/shared/ui/base'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units'
@@ -21,6 +22,7 @@ import {
   type TurnoverOrder,
   type TurnoverRow,
 } from 'src/shared/lib/marketplace'
+import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { t } from 'src/shared/i18n';
 
 const TOP_LIMIT = 10
@@ -42,9 +44,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: number]
 }>()
 
-const period = computed<number>({
+const period = computed<string | number>({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: (value) => emit('update:modelValue', Number(value)),
 })
 
 const periodLabel = computed(
@@ -77,6 +79,17 @@ const columns = computed<BaseTableColumn<TurnoverTableRow>[]>(() => {
   return list
 })
 
+const offerOverlay = useQueryOverlay('offer')
+
+/** Позиция с предложением открывает его карточку; позиция без предложения — только строка свода. */
+function hasOffer(row: TurnoverTableRow): boolean {
+  return Boolean(row.offerId)
+}
+
+function openOffer(row: TurnoverTableRow): void {
+  if (row.offerId) offerOverlay.open(row.offerId)
+}
+
 function money(value: number): string {
   return `${formatAsset2Digits(value.toFixed(4))} ₽`
 }
@@ -85,32 +98,30 @@ function units(value: number, row: TurnoverRow): string {
   return `${value} ${marketplaceOrderUnitLabel(row.unitOfMeasure)}`
 }
 
-const totals = computed(() => [
-  {
-    key: 'accepted',
-    label: t('marketplace.turnoverTop.totalAcceptedLabel'),
-    value: money(turnover.value.totals.acceptedAmount),
-  },
-  { key: 'issued', label: t('marketplace.turnoverTop.totalIssuedLabel'), value: money(turnover.value.totals.issuedAmount) },
-  { key: 'fee', label: t('marketplace.turnoverTop.totalFeeLabel'), value: money(turnover.value.totals.feeAmount) },
+const totals = computed<StatStripItem[]>(() => [
+  { key: 'accepted', caption: t('marketplace.turnoverTop.totalAcceptedLabel'), value: money(turnover.value.totals.acceptedAmount), icon: 'inventory_2' },
+  { key: 'issued', caption: t('marketplace.turnoverTop.totalIssuedLabel'), value: money(turnover.value.totals.issuedAmount), icon: 'local_shipping' },
+  { key: 'fee', caption: t('marketplace.turnoverTop.totalFeeLabel'), value: money(turnover.value.totals.feeAmount), icon: 'savings' },
 ])
 </script>
 
 <template lang="pug">
+//- Заголовок раздела и выбор периода — одной строкой; как считается оборот —
+//- подсказкой у заголовка, итоги — плитками чисел, общими для всех столов.
+//- Строка открывает карточку предложения справа (`?offer=<id>`): панель
+//- `OfferRegistryOverlay` ставит страница, у которой есть право на карточку.
 section.turnover
   .turnover__head
-    .t-h3 {{ $t('marketplace.turnoverTop.title') }}
-    BaseSelect.turnover__period(v-model='period', :options='TURNOVER_PERIODS', :label='$t("marketplace.turnoverTop.periodFieldLabel")')
+    .turnover__title
+      .t-h3 {{ $t('marketplace.turnoverTop.title') }}
+      q-icon.turnover__hint(name='help_outline' size='18px')
+        q-tooltip(max-width='360px')
+          | {{ $t('marketplace.turnoverTop.descriptionPart1') }}
+          | {{ $t('marketplace.turnoverTop.descriptionPart2', { period: periodLabel }) }}
+          | {{ $t('marketplace.turnoverTop.descriptionPart3') }}
+    MenuSelectButton(v-model='period' :options='TURNOVER_PERIODS' icon='date_range')
 
-  .turnover__note
-    | {{ $t('marketplace.turnoverTop.descriptionPart1') }}
-    | {{ $t('marketplace.turnoverTop.descriptionPart2', { period: periodLabel }) }}
-    | {{ $t('marketplace.turnoverTop.descriptionPart3') }}
-
-  .turnover__totals
-    .turnover__total(v-for='t in totals', :key='t.key')
-      .turnover__total-label {{ t.label }}
-      .turnover__total-value {{ t.value }}
+  StatStrip(:items='totals' :loading='loading' :framed='false')
 
   BaseTable(
     v-if='loading || rows.length',
@@ -118,7 +129,9 @@ section.turnover
     :rows='rows',
     row-key='key',
     :loading='loading',
-    :min-width='showBranch ? "900px" : "700px"'
+    :min-width='showBranch ? "900px" : "700px"',
+    :clickable-rows='hasOffer',
+    @row-click='openOffer'
   )
     template(#cell-branch='{ row }')
       .turnover__branch
@@ -148,7 +161,7 @@ section.turnover
 .turnover {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3, 12px);
+  gap: var(--p-4);
 
   &__head {
     display: flex;
@@ -158,43 +171,22 @@ section.turnover
     gap: var(--p-3, 12px);
   }
 
-  &__period {
-    width: 200px;
-  }
-
-  &__note {
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
-  }
-
-  &__totals {
+  &__title {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-3, 12px);
+    align-items: center;
+    gap: var(--p-2);
   }
 
-  &__total {
-    flex: 1 1 200px;
-    min-width: 180px;
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    padding: var(--p-3, 12px) var(--p-4, 16px);
-  }
-
-  &__total-label {
+  &__hint {
     color: var(--p-ink-3);
-    font-size: var(--p-fs-meta, 12px);
+    cursor: help;
   }
 
-  &__total-value {
-    margin-top: var(--p-1, 4px);
-    color: var(--p-ink);
-    font-size: var(--p-fs-h2, 20px);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
+
+
+
+
+
 
   &__branch {
     display: flex;

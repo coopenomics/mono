@@ -60,3 +60,9 @@ export * as ReportsParticipantWallets from './reportsParticipantWallets'
 
 /** Имена и вид субъектов операций — для реестров стола бухгалтера */
 export * as ReportsSubjects from './reportsSubjects'
+
+/** Фонды кооператива с остатками кошельков и оборотами за период (стол бухгалтера) */
+export * as ReportsFunds from './reportsFunds'
+
+/** Движения по фонду за период, по страницам */
+export * as ReportsFundHistory from './reportsFundHistory'

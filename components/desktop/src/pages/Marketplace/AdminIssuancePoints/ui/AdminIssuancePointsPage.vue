@@ -12,7 +12,7 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 // иначе тип стирается при компиляции → ReferenceError в шаблоне.
 import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetails'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
-import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { IdentityCell, PageHint } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
@@ -22,6 +22,7 @@ import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { Map as MapView } from 'src/shared/ui/Map'
 import { MarketplaceDetailKUDialog } from 'src/features/MarketplaceDetailKU'
 import { t } from 'src/shared/i18n';
+import { getBranchInitiator, setBranchInitiator, type MarketplaceBranchInitiatorView } from '../api'
 
 /**
  * Эпик 2: admin-стол «Пункты выдачи заказов».
@@ -34,6 +35,11 @@ import { t } from 'src/shared/i18n';
  *
  * Управляющие действия (подключить/изменить/геокодинг/активация) — только
  * председателю; совет видит сеть ПВЗ в режиме чтения.
+ *
+ * Инициатор участка (коэффициент экономического участия, 99D-23): получатель
+ * доли экономии месяца. По умолчанию — председатель участка; администратор
+ * назначает другого пайщика из состава участка, пустой выбор возвращает
+ * председателя. Прошедшие месяцы назначение не трогает.
  */
 
 const route = useRoute()
@@ -147,8 +153,91 @@ const columns: BaseTableColumn<IssuancePointRow>[] = [
   { key: 'address', label: t('marketplace.issuancePoints.column.address'), width: '300px', field: (row) => addressOf(row) },
   { key: 'status', label: t('marketplace.issuancePoints.column.status'), width: '160px', sortable: true, field: (row) => statusOf(row).label },
   { key: 'geo', label: t('marketplace.issuancePoints.column.geocode'), width: '190px' },
+  { key: 'initiator', label: t('marketplace.issuancePoints.column.initiator'), width: '220px' },
   { key: 'actions', label: t('marketplace.issuancePoints.column.actions'), width: '200px' },
 ]
+
+// ─── Инициатор участка ───
+
+/** Инициаторы по участкам; строки без ответа узла — председатель участка. */
+const initiators = ref<Record<string, MarketplaceBranchInitiatorView>>({})
+const initiatorDialogOpen = ref(false)
+const initiatorRow = ref<IssuancePointRow | null>(null)
+const initiatorDraft = ref<string | null>(null)
+const initiatorSaving = ref(false)
+
+/** Пустой выбор — доля достаётся председателю участка. */
+const CHAIRMAN_OPTION = ''
+
+function memberName(p: { first_name?: string | null; last_name?: string | null; middle_name?: string | null; username: string } | null | undefined): string {
+  if (!p) return ''
+  const full = [p.last_name, p.first_name, p.middle_name].filter(Boolean).join(' ').trim()
+  return full || p.username
+}
+
+function initiatorLabel(row: IssuancePointRow): string {
+  const info = initiators.value[row.branch.braname]
+  if (!info?.username) return '—'
+  const members = [row.branch.trustee, ...(row.branch.trusted ?? [])]
+  const person = members.find((m) => m?.username === info.username)
+  return person ? memberName(person) : info.username
+}
+
+function initiatorAssigned(row: IssuancePointRow): boolean {
+  return Boolean(initiators.value[row.branch.braname]?.assigned)
+}
+
+const initiatorOptions = computed(() => {
+  const b = initiatorRow.value?.branch
+  if (!b) return []
+  const members = [b.trustee, ...(b.trusted ?? [])].filter((m): m is NonNullable<typeof m> => Boolean(m))
+  return [
+    { value: CHAIRMAN_OPTION, label: t('marketplace.issuancePoints.initiatorChairmanOption') },
+    ...members
+      .filter((m) => m.username !== b.trustee?.username)
+      .map((m) => ({ value: m.username, label: memberName(m) })),
+  ]
+})
+
+async function loadInitiators(): Promise<void> {
+  const result: Record<string, MarketplaceBranchInitiatorView> = {}
+  await Promise.all(
+    branchStore.branches.map(async (b) => {
+      try {
+        result[b.braname] = await getBranchInitiator(b.braname)
+      } catch {
+        // Участок без ответа остаётся без подписи инициатора — доля у председателя.
+      }
+    }),
+  )
+  initiators.value = result
+}
+
+function openInitiator(row: IssuancePointRow): void {
+  initiatorRow.value = row
+  const info = initiators.value[row.branch.braname]
+  initiatorDraft.value = info?.assigned && info.username ? info.username : CHAIRMAN_OPTION
+  initiatorDialogOpen.value = true
+}
+
+async function onSaveInitiator(): Promise<void> {
+  const row = initiatorRow.value
+  if (!row) return
+  initiatorSaving.value = true
+  try {
+    const saved = await setBranchInitiator({
+      braname: row.branch.braname,
+      username: initiatorDraft.value ? initiatorDraft.value : null,
+    })
+    initiators.value = { ...initiators.value, [row.branch.braname]: saved }
+    SuccessAlert(t('marketplace.issuancePoints.initiatorSavedSuccess'))
+    initiatorDialogOpen.value = false
+  } catch (e) {
+    FailAlert(e, t('marketplace.issuancePoints.initiatorSaveFailedError'))
+  } finally {
+    initiatorSaving.value = false
+  }
+}
 
 async function load(): Promise<void> {
   loading.value = true
@@ -157,6 +246,7 @@ async function load(): Promise<void> {
       branchStore.loadBranches({ coopname: coopname.value }),
       kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ])
+    await loadInitiators()
   } catch (e) {
     FailAlert(e, t('marketplace.issuancePoints.loadFailedError'))
   } finally {
@@ -244,7 +334,7 @@ q-page.admin-pvz
     :row-key='pointRowKey',
     hover,
     :loading='loading',
-    min-width='1230px',
+    min-width='1450px',
     sort-by='ku'
   )
     template(#cell-ku='{ row }')
@@ -283,6 +373,21 @@ q-page.admin-pvz
           template(#icon-left)
             q-icon(name='map', size='18px')
       span.admin-pvz__dash(v-else) —
+    //- Получатель доли инициатора: председатель участка, если не назначен другой.
+    template(#cell-initiator='{ row }')
+      .admin-pvz__initiator
+        span {{ initiatorLabel(row) }}
+        BaseBadge(v-if='initiatorAssigned(row)', variant='info') {{ $t('marketplace.issuancePoints.initiatorAssignedBadge') }}
+        BaseButton(
+          v-if='isChairman',
+          variant='ghost',
+          icon-only,
+          size='sm',
+          :aria-label='$t("marketplace.issuancePoints.initiatorEditAriaLabel")',
+          @click='openInitiator(row)'
+        )
+          template(#icon-left)
+            q-icon(name='edit', size='18px')
     template(#cell-actions='{ row }')
       template(v-if='isChairman')
         BaseButton(
@@ -356,6 +461,19 @@ q-page.admin-pvz
     @saved='onSaved'
   )
 
+  //- Назначение инициатора участка: получатель доли экономии месяца.
+  BaseDialog(v-model='initiatorDialogOpen', :title='$t("marketplace.issuancePoints.initiatorDialogTitle")', size='sm')
+    .admin-pvz__dialog-body
+      p {{ $t('marketplace.issuancePoints.initiatorDialogHint') }}
+      BaseSelect(
+        v-model='initiatorDraft',
+        :label='$t("marketplace.issuancePoints.column.initiator")',
+        :options='initiatorOptions'
+      )
+    template(#footer)
+      BaseButton(variant='ghost', :disabled='initiatorSaving', @click='initiatorDialogOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', :loading='initiatorSaving', @click='onSaveInitiator') {{ $t('common.action.save') }}
+
   BaseDialog(v-model='mapOpen', :title='mapTitle', size='lg')
     .admin-pvz__map(
       v-if='mapRow && mapRow.details && mapRow.details.lat != null && mapRow.details.lng != null'
@@ -415,6 +533,20 @@ q-page.admin-pvz
   &__map-addr {
     color: var(--p-ink-2);
     margin-bottom: var(--p-3, 12px);
+  }
+
+  &__initiator {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    flex-wrap: wrap;
+  }
+
+  &__dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    color: var(--p-ink-2);
   }
 }
 

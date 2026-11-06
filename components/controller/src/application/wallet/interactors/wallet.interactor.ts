@@ -108,8 +108,9 @@ export class WalletInteractor {
   }
 
   /**
-   * Создание заявки на вывод средств (createWithdraw)
-   * Данный метод создает платеж в gateway и withdraw в blockchain
+   * Создание заявки на возврат паевого взноса (createWithdraw): заявка в цепи
+   * (wallet::createwthd) и заявка на выплату с реквизитами в базе узла. Платёж
+   * кассиру создаст решение совета (wallet::authwthd).
    */
   async createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<{ withdraw_hash: string }> {
     // Используем payment_hash из параметров вместо генерации нового
@@ -155,21 +156,21 @@ export class WalletInteractor {
       throw error;
     }
 
-    // 3. Только после успешной on-chain заявки фиксируем платёж в БД для
-    //    отслеживания кассиром и последующего перехода статусов.
+    // 3. Только после успешной on-chain заявки сохраняем заявку на выплату с
+    //    реквизитами: платёж кассиру создаст решение совета.
     try {
       await this.gatewayInteractorPort.persistWithdraw(preparedPayment);
     } catch (error: any) {
       // Редкий случай: on-chain заявка прошла, но запись в БД не удалась (например,
       // недоступна БД). On-chain withdraw существует — требуется ручная сверка.
       this.logger.error(
-        `КРИТИЧНО: on-chain withdraw ${withdraw_hash} создан, но не удалось зафиксировать платёж в БД: ${error.message}`,
+        `КРИТИЧНО: on-chain withdraw ${withdraw_hash} создан, но не удалось сохранить заявку на выплату в БД: ${error.message}`,
         error
       );
       throw error;
     }
 
-    this.logger.log(`Создан withdraw в wallet: ${withdraw_hash}, платёж зафиксирован в gateway`);
+    this.logger.log(`Создан withdraw в wallet: ${withdraw_hash}, заявка на выплату ждёт решения совета`);
 
     return { withdraw_hash };
   }

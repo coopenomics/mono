@@ -377,8 +377,12 @@ export class MarketplaceStockResolver {
   private async toProposalDTOs(
     list: MarketplaceStockProposalDomainEntity[]
   ): Promise<MarketplaceStockProposalDTO[]> {
-    const ordered = await this.proposalService.loadOrderedTotals(list);
-    return list.map((proposal) => toMarketplaceStockProposalDTO(proposal, ordered));
+    const [ordered, images] = await Promise.all([
+      this.proposalService.loadOrderedTotals(list),
+      // Снимок товара в строке бандла — пайщик у стойки видит, что получает.
+      this.orderDisplay.coverImagesByOfferIds(list.flatMap((p) => p.items.map((i) => i.offer_id))),
+    ]);
+    return list.map((proposal) => toMarketplaceStockProposalDTO(proposal, ordered, images));
   }
 
   /** Участки отбора от гарда; охват «весь кооператив» разворачивается в список участков. */

@@ -36,7 +36,7 @@ const FLAGS = ['is_email_verified', 'has_account', 'is_registered'] as const;
 /** Условия отбора реестра пользователей. */
 function conditions(eb: UserExpression, filter: UserFilterInputDomainInterface): Condition[] {
   const exact = EXACT.filter((column) => filter[column]).map((column) => eb(column, '=', filter[column] as string));
-  const flags = FLAGS.filter((column) => filter[column] !== undefined).map((column) =>
+  const flags = FLAGS.filter((column) => filter[column] != null).map((column) =>
     eb(column, '=', filter[column] as boolean)
   );
   return [...exact, ...flags, ...emailAndPeriod(eb, filter), ...usernames(eb, filter)];

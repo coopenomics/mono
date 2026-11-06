@@ -1,0 +1,99 @@
+feature: marketplace.issuance-pick
+title: Подбор на выдаче — скан бокса и этикетки имущества в окне выдачи пайщику
+
+# Заведено 01.11.2026 (99D-18). Оператор открыл выдачу пайщику и идёт на
+# склад: сканирует бокс, чтобы найти нужный, и этикетку имущества, чтобы
+# подтвердить, что это оно. Сервер сверяет код с заказами окна выдачи и только
+# читает склад. Режим мягкий (слово владельца 01.11.2026): скан этикетки сам
+# ставит галку и количество, ручная правка остаётся, отправку на подпись скан
+# не блокирует. Строгий режим — флажок в настройках расширения — после
+# решения владельца по этикеткам на упаковках.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-issuance-pick.service.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-issuance-pick.dto.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-scan.resolver.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OperatorIssuance/ui/IssueActOpenDialog.vue
+    - components/desktop/src/shared/lib/marketplace/scan-tone.ts
+
+cases:
+  - id: mkt.pick.happy.01
+    level: backend
+    kind: happy
+    scenario: оператор сканирует этикетку имущества, которое входит в выдачу
+    expect: ответ «совпало» с заказом выдачи, позицией склада и количеством под этикеткой
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    api: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.happy.02
+    level: backend
+    kind: happy
+    scenario: оператор сканирует этикетку остатка кооператива, зарезервированного под заказ из остатка в этой выдаче
+    expect: ответ «совпало» с заказом из остатка, а не с исходным заказом партии
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    external: unreachable
+    external_reason: "заказ из остатка с наклеенной этикеткой требует публикации остатка, докладки и маркировки резерва; сверка заказа резерва — одна ветка того же сервиса, путь этикетки проверен снаружи случаем happy.01"
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.happy.03
+    level: backend
+    kind: happy
+    scenario: оператор сканирует QR бокса либо набирает код с этикетки бокса
+    expect: ответ называет заказы выдачи, имущество которых лежит в этом боксе
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    api: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.break.01
+    level: backend
+    kind: break
+    scenario: оператор сканирует этикетку имущества, которое не входит в эту выдачу
+    expect: ответ «не то имущество» с названием имущества, без заказа выдачи
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    api: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.break.02
+    level: backend
+    kind: break
+    scenario: оператор сканирует этикетку имущества, которое уже выдано
+    expect: ответ «числится вне склада»
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    api: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.break.03
+    level: backend
+    kind: break
+    scenario: на выдаче одного участка сканируют этикетку или бокс другого участка
+    expect: ответ «другой участок»
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    api: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.side.01
+    level: backend
+    kind: side
+    scenario: оператор сканирует бокс без имущества выдачи, неизвестный бокс либо постороннюю строку
+    expect: свой ответ — «в боксе нет имущества пайщика» или «код не узнан», не ошибка
+    test: components/controller/tests/unit/marketplace/marketplace-issuance-pick.test.ts
+    api: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.side.02
+    level: backend
+    kind: side
+    scenario: подбор запрашивает пайщик без прав оператора либо оператор чужого участка
+    expect: отказ по правам
+    test: components/api-tests/src/marketplace/issuance-pick.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
+  - id: mkt.pick.ui.01
+    level: ui
+    kind: happy
+    scenario: оператор сканирует этикетку в окне выдачи ручным сканером или камерой
+    expect: строка получает галку и количество по числу найденных этикеток, под бейджем сверки — «Найдено» или «Найдено 1 из 2», над таблицей — ответ со звуком; ручная правка и отправка без скана работают
+    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён

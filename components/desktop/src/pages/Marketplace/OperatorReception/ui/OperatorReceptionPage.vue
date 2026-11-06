@@ -3,24 +3,22 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
-import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
-import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
+import { ActDialogLayout, ActLineItem, ActLinesTable, ActSummaryCard, type ActLinesColumn } from 'src/widgets/Marketplace/ActDialogLayout';
+import { useUniversalScanner } from 'src/widgets/Marketplace/UniversalScanner';
 import { GoodsManifest, type GoodsManifestLine } from 'src/widgets/Marketplace/GoodsManifest';
-import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnitLabel, marketplaceSaleUnitLabel, marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceLineCost } from 'src/shared/lib/marketplace/line-cost';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
-  decodeScannedCode,
-  HandoffTokenKind,
   groupAplReceptions,
-  handoffStageRoute,
   useMarketplaceHandoffSignal,
   marketLiveTables,
   type ReceptionGroup,
@@ -62,7 +60,6 @@ import { t } from 'src/shared/i18n';
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute();
-const router = useRouter();
 const store = useOperatorBranchStore();
 const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
@@ -357,11 +354,11 @@ const expectedDeliveries = computed<ExpectedDelivery[]>(() => {
   return out;
 });
 
-// QR-код передачи (Эпик 14, агрегирующая приёмка): оператор сканирует
-// account-bound код поставщика → грузим ВСЕ единицы имущества этого поставщика,
-// ожидающие приёмки на этом КУ (единый базис «акцепт поставщика на КУ», R4),
-// и открываем агрегирующую страницу приёмки.
-const scanDialogOpen = ref(false);
+// Код поставщика (Эпик 14, агрегирующая приёмка): общий сканер стола нашёл
+// поставщика → грузим ВСЕ единицы имущества этого поставщика, ожидающие
+// приёмки на этом КУ (единый базис «акцепт поставщика на КУ», R4), и
+// открываем агрегирующую страницу приёмки.
+const scanner = useUniversalScanner();
 const pickupDialogOpen = ref(false);
 const pickupAccount = ref('');
 // Режим приёмки по ТТН экспедитора: id партии из shipment-bound QR. null —
@@ -429,6 +426,96 @@ const addonOrders = computed(() =>
   pickupOrders.value.filter((o) => o.status === 'ACCEPTED'),
 );
 
+// ── Окно приёмки: строка позиции, её сумма и итог ──
+// Строка участвует в приёмке: задекларированная — отмеченная галкой, добор —
+// при включённом «Принять добор».
+function isLineActive(o: MarketplaceSupplierPickupOrderView): boolean {
+  return o.status === 'ACCEPTED' ? takeAddon.value : isSelected(o.id);
+}
+
+/** Короткая единица в поле «Принять»: «упак.» при отпуске упаковкой, иначе «кг», «л», «шт». */
+function saleUnitShort(o: MarketplaceSupplierPickupOrderView): string {
+  return packageSizeOf(o) > 0 ? t('marketplace.operatorReception.packShort') : marketplaceUnitShort(o.unit_of_measure);
+}
+
+/** Сумма строки по факту и цене — общей формулой единицы отпуска; снятая строка — ноль. */
+function lineSum(o: MarketplaceSupplierPickupOrderView): number {
+  if (!isLineActive(o)) return 0;
+  return marketplaceLineCost(factBaseQuantity(o), pickupPrice.value[o.id], packageSizeOf(o));
+}
+
+/** Сумма в рублях для показа: два знака, разряды, знак рубля. */
+function rub(value: number): string {
+  return `${formatAsset2Digits(value.toFixed(4))} ₽`;
+}
+
+/** Мета-строка позиции: что такое единица отпуска и по какой ТТН пришла. */
+function lineMeta(o: MarketplaceSupplierPickupOrderView): string {
+  const ttn = o.status === 'ACCEPTED' ? null : shipmentForOrder(o)?.ttn_number;
+  const unit = saleUnitSuffix(o);
+  return ttn ? `${unit} · ${t('marketplace.operatorReception.ttnText', { ttn })}` : unit;
+}
+
+const pickupLines = computed(() => [...declaredOrders.value, ...addonOrders.value]);
+
+// Таблица позиций окна приёмки: галка · позиция · заказано · принять · цена · сумма.
+const receptionColumns = computed<ActLinesColumn[]>(() => [
+  { key: 'check', label: '', width: 'var(--p-6, 24px)' },
+  { key: 'item', label: t('marketplace.operatorReception.columnPosition'), wide: true },
+  { key: 'ordered', label: t('marketplace.operatorReception.orderedLabel'), width: '88px', align: 'right' },
+  { key: 'receive', label: t('marketplace.operatorReception.receiveQtyLabel'), width: '128px', align: 'right' },
+  { key: 'price', label: t('marketplace.operatorReception.columnPrice'), width: '128px', align: 'right' },
+  { key: 'sum', label: t('marketplace.operatorReception.columnSum'), width: '112px', align: 'right', strong: true },
+]);
+
+/** Строка таблицы: позиция заказа либо подзаголовок раздела. */
+type ReceptionRow = {
+  key: string;
+  section?: boolean;
+  off?: boolean;
+  order?: MarketplaceSupplierPickupOrderView;
+  label?: string;
+  addonToggle?: boolean;
+};
+
+// Привезённое по ТТН, затем добор по акцепту. Подзаголовок привезённого — только
+// когда рядом есть добор; у добора подзаголовок несёт галку «Принять добор».
+const receptionRows = computed<ReceptionRow[]>(() => {
+  const rows: ReceptionRow[] = [];
+  const both = declaredOrders.value.length > 0 && addonOrders.value.length > 0;
+  if (both) rows.push({ key: 'section-declared', section: true, label: t('marketplace.operatorReception.declaredInBatchLabel') });
+  for (const o of declaredOrders.value) rows.push({ key: o.id, order: o, off: !isLineActive(o) });
+  if (addonOrders.value.length) {
+    rows.push({
+      key: 'section-addon',
+      section: true,
+      label: declaredOrders.value.length ? t('marketplace.operatorReception.addonSectionLabel') : t('marketplace.operatorReception.supplierPropertyLabel'),
+      addonToggle: declaredOrders.value.length > 0,
+    });
+    for (const o of addonOrders.value) rows.push({ key: o.id, order: o, off: !isLineActive(o) });
+  }
+  return rows;
+});
+
+/** Факты сводки: сколько позиций принимается и ТТН одной партии. */
+const receptionFacts = computed(() => {
+  const facts = [
+    {
+      label: t('marketplace.operatorReception.asidePositionsLabel'),
+      value: t('marketplace.operatorReception.asidePositionsValue', { active: activeLinesCount.value, total: pickupLines.value.length }),
+    },
+  ];
+  if (pickupTtn.value) facts.push({ label: t('marketplace.operatorReception.asideTtnLabel'), value: pickupTtn.value });
+  return facts;
+});
+/** ТТН в сводке — когда все задекларированные позиции пришли одной партией. */
+const pickupTtn = computed(() => {
+  const ttns = new Set(declaredOrders.value.map((o) => shipmentForOrder(o)?.ttn_number).filter(Boolean));
+  return ttns.size === 1 ? String([...ttns][0]) : '';
+});
+const activeLinesCount = computed(() => pickupLines.value.filter(isLineActive).length);
+const pickupTotal = computed(() => pickupLines.value.reduce((sum, o) => sum + lineSum(o), 0));
+
 // Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
 const pickupDialogTitle = computed(() =>
   pickupShipmentId.value ? t('marketplace.operatorReception.byExpeditorReceptionTitle') : t('marketplace.operatorReception.supplierReceptionTitle'),
@@ -453,6 +540,18 @@ function toggleOrder(id: string, value: boolean): void {
 // Потолок факта = заказано (акцепт): сверх акцепта не принимаем (R5).
 // Значение — целое число единиц отпуска: половины упаковки не бывает, а
 // контракт требует кратности количества размеру упаковки.
+/**
+ * Цену приёмки можно снизить (привезли хуже — уценка), но не поднять выше
+ * цены заказа: поставщик привёз по заказу пайщика (слово владельца
+ * 02.11.2026). Ввод прижимается к цене заказа сразу; сервер держит тот же
+ * потолок.
+ */
+function clampPrice(o: MarketplaceSupplierPickupOrderView): void {
+  const ceiling = Number.parseFloat(o.price_per_unit);
+  const v = Number.parseFloat(String(pickupPrice.value[o.id] ?? ''));
+  if (Number.isFinite(v) && Number.isFinite(ceiling) && v > ceiling) pickupPrice.value[o.id] = o.price_per_unit;
+}
+
 function clampFact(orderId: string, orderedUnits: number): void {
   const v = Number(pickupFact.value[orderId]);
   if (!Number.isFinite(v) || v < 0) pickupFact.value[orderId] = 0;
@@ -572,49 +671,14 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
   }
 }
 
-async function onQrScanned(code: string): Promise<void> {
-  scanDialogOpen.value = false;
-  const token = decodeScannedCode(code, coopname.value);
-  if (!token) {
-    FailAlert(
-      new Error(
-        t('marketplace.error.receptionCodeUnrecognized'),
-      ),
-    );
-    return;
-  }
-  if (token.coopname && token.coopname !== coopname.value) {
-    FailAlert(new Error(t('marketplace.error.codeWrongCoop')));
-    return;
-  }
-  if (token.kind === HandoffTokenKind.Shipment && token.shipment_id) {
-    await openPickupForShipment(token.shipment_id);
-    return;
-  }
-  if (token.kind === HandoffTokenKind.Pickup) {
-    await openPickupForSupplier(token.account);
-    return;
-  }
-  // Код получения заказчика (receive) на столе приёмки — НЕ ошибка: сканер
-  // универсален, оператору не нужно знать, кто пришёл. Ведём его на «Выдачу
-  // заказов» с тем же кодом — целевой стол сам откроет выдачу.
-  handoffSignal.post(code);
-  void router.push({
-    name: handoffStageRoute('issuance'),
-    params: { coopname: coopname.value },
-  });
-}
-
-// Код передачи мог прийти с универсального сканера (или со стола выдачи) через
-// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
-// query-параметр нужно было стирать сразу после чтения, а `router.replace` для
-// этого не дожидался (fire-and-forget). Если страница успевала пересобраться в
-// промежутке (первый заход на стол в сессии — догрузка чанка/стора КУ), код уже
-// был стёрт из URL и терялся безвозвратно. Стор переживает переход как есть.
+// Дело приходит с общего сканера стола через стор `useMarketplaceHandoffSignal`
+// (не через URL: query стирался раньше, чем страница успевала его прочитать).
+// Сервер уже разобрал код; здесь только открываем приёмку по найденному.
 async function consumeHandoffSignal(): Promise<void> {
-  const code = handoffSignal.consume();
-  if (!code) return;
-  await onQrScanned(code);
+  const matter = handoffSignal.consume(['shipment', 'reception']);
+  if (!matter) return;
+  if (matter.kind === 'shipment') await openPickupForShipment(matter.shipment_id);
+  else if (matter.kind === 'reception') await openPickupForSupplier(matter.account);
 }
 
 // Сформировать акты / отказать в приёмке: на каждую партию — createAplReception
@@ -720,7 +784,7 @@ async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptio
 watch(braname, () => void load());
 
 // Повторный заход с новым кодом (универсальный сканер уже на этом столе).
-watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
+watch(() => handoffSignal.pending, () => void consumeHandoffSignal());
 
 // Realtime вместо поллинга: статус акта меняет поставщик со своего устройства
 // (подписал приёмку → PENDING_CHAIRMAN_RECEPTION_SIGN, у оператора сама
@@ -755,13 +819,13 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    //- Действие страницы — в шапку (канон Teleport): сканирование QR-кода
-    //- передачи (код поставщика / ТТН экспедитора) всегда в одном месте сверху.
+    //- Действие страницы — в шапку (канон Teleport): один общий сканер стола,
+    //- сервер сам определяет, кто пришёл и за чем.
     Teleport(to="#header-actions-host", defer)
-      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
+      BaseButton(variant='primary', size='sm', @click='scanner.open()')
         template(#icon-left)
           q-icon(name='qr_code_scanner', size='16px')
-        | {{ $t('marketplace.operatorReception.scanButton') }}
+        | {{ $t('marketplace.universalScannerHost.scanButton') }}
 
     PageHint(storage-key='mp:operator-reception:banner-dismissed')
       | {{ $t('marketplace.operatorReception.hintLine1') }}
@@ -862,14 +926,21 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
     @signed='onChairmanSigned'
   )
 
-  ScannerDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorReception.scanDialogTitle")', @scanned='onQrScanned')
-
-  //- Эпик 14: агрегирующая приёмка. Каркас — ActDialogLayout (как выдача и
-  //- подписи АПП): lead + карточка позиций + футер BaseDialog.
-  BaseDialog(v-model='pickupDialogOpen', :title='pickupDialogTitle', maximized)
-    ActDialogLayout(v-if='pickupDialogOpen')
-      template(#head)
-        .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
+  //- Эпик 14: агрегирующая приёмка — рабочая страница на холсте (ActDialogLayout
+  //- со сводкой справа). Зоны: шапка (поставщик, процесс, сколько позиций) →
+  //- позиции слева (что → заказано → принять → цена → сумма строки) → сводка
+  //- справа (сколько принимается, сумма поставки крупно, действия).
+  BaseDialog(v-model='pickupDialogOpen', maximized, canvas, hide-close-button)
+    ActDialogLayout(
+      v-if='pickupDialogOpen',
+      :eyebrow='pickupDialogTitle',
+      :title='pickupSupplierName || pickupAccount',
+      :meta='pickupSupplierName ? pickupAccount : ""',
+      :avatar-name='pickupSupplierName || pickupAccount',
+      :panel-title='$t("marketplace.operatorReception.positionsTitle")',
+      closable,
+      @close='pickupDialogOpen = false'
+    )
       template(#lead)
         | {{ $t('marketplace.operatorReception.instructionLine1') }}
         | {{ $t('marketplace.operatorReception.instructionLine2') }}
@@ -877,102 +948,79 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
           |  {{ $t('marketplace.operatorReception.instructionLine3') }}
           | {{ $t('marketplace.operatorReception.instructionLine4') }}
 
-      template(v-if='declaredOrders.length')
-        .reception__pickup-section {{ $t('marketplace.operatorReception.declaredInBatchLabel') }}
-        .reception__unit(
-          v-for='o in declaredOrders',
-          :key='o.id',
-          :class='{ "reception__unit--off": !isSelected(o.id) }'
-        )
+      ActLinesTable(:columns='receptionColumns', :rows='receptionRows')
+        template(#section='{ row }')
+          span {{ row.label }}
           BaseCheckbox(
-            :model-value='isSelected(o.id)',
-            @update:model-value='(v) => toggleOrder(o.id, v)'
+            v-if='row.addonToggle',
+            v-model='takeAddon',
+            :label='$t("marketplace.operatorReception.takeAddonLabel")'
           )
-          .reception__unit-info
-            .reception__unit-title {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
-            .reception__unit-meta(v-if='shipmentForOrder(o)?.ttn_number')
-              | {{ $t('marketplace.operatorReception.ttnText', { ttn: shipmentForOrder(o)?.ttn_number }) }}
-          .reception__unit-fact
-            BaseInput(
-              :model-value='orderedSaleUnits(o)',
-              type='number',
-              :label='$t("marketplace.operatorReception.orderedLabel")',
-              readonly,
-              :suffix='saleUnitSuffix(o)'
-            )
-            BaseInput(
-              v-model.number='pickupFact[o.id]',
-              type='number',
-              :label='$t("marketplace.operatorReception.receiveQtyLabel")',
-              :min='0',
-              :max='orderedSaleUnits(o)',
-              :step='1',
-              :disabled='!isSelected(o.id)',
-              :suffix='saleUnitSuffix(o)',
-              @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
-              @blur='clampFact(o.id, orderedSaleUnits(o))'
-            )
-            BaseInput(
-              v-model='pickupPrice[o.id]',
-              type='number',
-              :label='packageSizeOf(o) > 0 ? $t("marketplace.operatorReception.packagePriceLabel") : $t("marketplace.operatorReception.unitPriceLabel")',
-              :disabled='!isSelected(o.id)'
-            )
+        template(#cell-check='{ row }')
+          BaseCheckbox(
+            v-if='row.order && row.order.status !== "ACCEPTED"',
+            :model-value='isSelected(row.order.id)',
+            :aria-label='row.order.product_name || $t("marketplace.operatorReception.productOfferFallback")',
+            @update:model-value='(v) => row.order && toggleOrder(row.order.id, v)'
+          )
+        template(#cell-item='{ row }')
+          ActLineItem(
+            v-if='row.order',
+            :title='row.order.product_name || $t("marketplace.operatorReception.productOfferFallback")',
+            :meta='lineMeta(row.order)',
+            :image-url='row.order.image_url'
+          )
+        template(#cell-ordered='{ row }')
+          template(v-if='row.order') {{ orderedSaleUnits(row.order) }} {{ saleUnitShort(row.order) }}
+        template(#cell-receive='{ row }')
+          BaseInput(
+            v-if='row.order',
+            v-model.number='pickupFact[row.order.id]',
+            type='number',
+            :min='0',
+            :max='orderedSaleUnits(row.order)',
+            :step='1',
+            :disabled='!isLineActive(row.order)',
+            :suffix='saleUnitShort(row.order)',
+            @update:model-value='() => row.order && clampFact(row.order.id, orderedSaleUnits(row.order))',
+            @blur='row.order && clampFact(row.order.id, orderedSaleUnits(row.order))'
+          )
+        template(#cell-price='{ row }')
+          BaseInput(
+            v-if='row.order',
+            v-model='pickupPrice[row.order.id]',
+            type='number',
+            :min='0',
+            :max='row.order.price_per_unit',
+            :disabled='!isLineActive(row.order)',
+            suffix='₽',
+            @update:model-value='() => row.order && clampPrice(row.order)',
+            @blur='row.order && clampPrice(row.order)'
+          )
+        template(#cell-sum='{ row }')
+          template(v-if='row.order') {{ rub(lineSum(row.order)) }}
 
-      template(v-if='addonOrders.length')
-        template(v-if='declaredOrders.length')
-          .reception__pickup-divider
-          .reception__pickup-section-row
-            .reception__pickup-section {{ $t('marketplace.operatorReception.addonSectionLabel') }}
-            BaseCheckbox(v-model='takeAddon', :label='$t("marketplace.operatorReception.takeAddonLabel")')
-        .reception__pickup-section(v-else) {{ $t('marketplace.operatorReception.supplierPropertyLabel') }}
-        .reception__unit.reception__unit--addon(
-          v-for='o in addonOrders',
-          :key='o.id',
-          :class='{ "reception__unit--off": !takeAddon }'
+      //- Сводка справа: что принимается, на какую сумму и главное действие.
+      template(#aside)
+        ActSummaryCard(
+          :eyebrow='$t("marketplace.operatorReception.asideTitle")',
+          :facts='receptionFacts',
+          :total-label='$t("marketplace.operatorReception.supplyTotalLabel")',
+          :total='rub(pickupTotal)'
         )
-          q-icon.reception__unit-addon-icon(name='add_circle_outline', size='18px')
-          .reception__unit-info
-            .reception__unit-title {{ o.product_name || $t('marketplace.operatorReception.productOfferFallback') }}
-          .reception__unit-fact
-            BaseInput(
-              :model-value='orderedSaleUnits(o)',
-              type='number',
-              :label='$t("marketplace.operatorReception.acceptedQtyLabel")',
-              readonly,
-              :suffix='saleUnitSuffix(o)'
+          template(#actions)
+            BaseButton(
+              block,
+              :variant='isRejectAllReception ? "negative" : "primary"',
+              :loading='acceptingPickup',
+              :disabled='!canSubmitPickup',
+              @click='acceptPickup'
             )
-            BaseInput(
-              v-model.number='pickupFact[o.id]',
-              type='number',
-              :label='$t("marketplace.operatorReception.receiveQtyLabel")',
-              :min='0',
-              :max='orderedSaleUnits(o)',
-              :step='1',
-              :disabled='!takeAddon',
-              :suffix='saleUnitSuffix(o)',
-              @update:model-value='() => clampFact(o.id, orderedSaleUnits(o))',
-              @blur='clampFact(o.id, orderedSaleUnits(o))'
-            )
-            BaseInput(
-              v-model='pickupPrice[o.id]',
-              type='number',
-              :label='packageSizeOf(o) > 0 ? $t("marketplace.operatorReception.packagePriceLabel") : $t("marketplace.operatorReception.unitPriceLabel")',
-              :disabled='!takeAddon'
-            )
-
-    template(#footer)
-      BaseButton(variant='ghost', @click='pickupDialogOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(
-        :variant='isRejectAllReception ? "negative" : "primary"',
-        :loading='acceptingPickup',
-        :disabled='!canSubmitPickup',
-        @click='acceptPickup'
-      )
-        template(#icon-left)
-          q-icon(:name='isRejectAllReception ? "block" : "how_to_reg"', size='18px')
-        span(v-if='isRejectAllReception') {{ $t('marketplace.operatorReception.declineReceptionButton') }}
-        span(v-else) {{ $t('marketplace.operatorReception.createActsButton', { count: plannedReceptionsCount }) }}
+              template(#icon-left)
+                q-icon(:name='isRejectAllReception ? "block" : "send"', size='18px')
+              span(v-if='isRejectAllReception') {{ $t('marketplace.operatorReception.declineReceptionButton') }}
+              span(v-else) {{ $t('marketplace.operatorReception.createActsButton', { count: plannedReceptionsCount }) }}
+            BaseButton(block, variant='ghost', @click='pickupDialogOpen = false') {{ $t('common.action.cancel') }}
 </template>
 
 <style scoped lang="scss">
@@ -1081,86 +1129,6 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
     justify-content: flex-end;
   }
 
-  &__pickup-account {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__pickup-section {
-    font-size: var(--p-fs-meta, 12px);
-    font-weight: 600;
-    color: var(--p-ink-2);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  &__pickup-section-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-  }
-
-  &__pickup-divider {
-    height: 1px;
-    background: var(--p-line);
-    margin: var(--p-2, 8px) 0;
-  }
-
-  &__unit {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-    padding-top: var(--p-3, 12px);
-    border-top: 1px solid var(--p-line);
-
-    &:first-of-type {
-      border-top: 0;
-      padding-top: 0;
-    }
-
-    &--off {
-      opacity: 0.5;
-    }
-
-    &--addon .reception__unit-addon-icon {
-      color: var(--p-ink-3);
-      flex-shrink: 0;
-    }
-  }
-
-  &__unit-info {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  &__unit-title {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
-    color: var(--p-ink);
-    overflow-wrap: break-word;
-  }
-
-  &__unit-meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-
-  // Заказано (readonly) · Принять · Цена/ед. — один ряд, как сверка на выдаче.
-  &__unit-fact {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-2, 8px);
-    width: 420px;
-
-    :deep(.base-input) {
-      flex: 1 1 0;
-      min-width: 0;
-    }
-  }
 }
 
 @media (max-width: 768px) {
@@ -1169,14 +1137,6 @@ q-page.reception(role='region', :aria-label='$t("marketplace.operatorReception.a
 
     &__grid {
       grid-template-columns: 1fr;
-    }
-
-    &__unit {
-      flex-wrap: wrap;
-    }
-
-    &__unit-fact {
-      width: 100%;
     }
   }
 }

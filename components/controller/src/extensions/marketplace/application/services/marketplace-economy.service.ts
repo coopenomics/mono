@@ -39,8 +39,11 @@ import {
   InnerExpenseRecipientType as ExpenseRecipientType,
 } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
-import { PAYMENT_DESK_PORT, type IPaymentDeskPort, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
+import { PAYMENT_DESK_PORT, type IPaymentDeskPort, type InnerPayment, VAT_EXEMPT_NOTE } from '@coopenomics/innercoop';
 import { t as i18nT } from '../../i18n';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_BRANCH_AID_STORE } from '../../infrastructure/database/marketplace-stores';
+import type { MarketplaceBranchAidEntity } from '../../infrastructure/entities/marketplace-branch-aid.entity';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
@@ -59,10 +62,15 @@ const HUNDR_PERCENTS = 1_000_000;
  * один и тот же дефолт — иначе сумма в чекауте разойдётся с фактическим
  * списанием on-chain.
  */
-const DEFAULT_MEMBERSHIP_FEE_PERCENT = 300_000;
+const DEFAULT_MEMBERSHIP_FEE_PERCENT = 380_000;
 
 /** Контракт-источник распределения в реестре весов branch::weights. */
 const MARKETPLACE_SOURCE_CONTRACT = 'marketplace';
+
+/** Общий кошелёк участка: владелец строки — имя участка. */
+const BRANCH_COMMON_WALLET = 'w.brn.common';
+/** Персональный кошелёк членских средств доверенного лица участка. */
+const BRANCH_PERSONAL_WALLET = 'w.brn.person';
 
 export interface MarketplaceTrusteeWeightView {
   username: string;
@@ -123,6 +131,19 @@ export interface MarketplaceAidView {
   payment_status: PaymentStatus | null;
   /** Маскированная подпись реквизитов («Сбербанк •1234»), null — реквизиты недоступны. */
   payment_destination: string | null;
+  /** Налог, который кооператив удерживает с суммы заявления, — показ, деление как в контракте. */
+  ndfl_tax: string;
+  /** Сумма на счёт получателя: сумма заявления за вычетом налога. */
+  net_amount: string;
+  /**
+   * Вехи процесса: подача, решение совета, исполнение или отказ платежа.
+   * Платёж заводится при подаче скрытым от кассира и поступает ему решением
+   * совета, поэтому отдельной вехи «передан кассиру» нет. Null — вехи ещё нет.
+   */
+  submitted_at: Date | null;
+  decided_at: Date | null;
+  payment_completed_at: Date | null;
+  payment_failed_at: Date | null;
 }
 
 /**
@@ -160,7 +181,9 @@ export class MarketplaceEconomyService {
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(EXPENSE_CHASSIS_PORT)
-    private readonly expenseChassis: IExpenseChassisPort
+    private readonly expenseChassis: IExpenseChassisPort,
+    @Inject(MARKETPLACE_BRANCH_AID_STORE)
+    private readonly aidStore: TableStore<MarketplaceBranchAidEntity>
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -272,28 +295,27 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, balances, reserve] = await Promise.all([
-      this.chainPort.getBranchWeights(coopname),
-      this.chainPort.getBranchWeightTotals(coopname),
-      this.chainPort.listBranchWalletBalances(coopname),
+    const [weights, totals, common, reserve] = await Promise.all([
+      this.chainPort.getBranchWeights(coopname, braname),
+      this.chainPort.getBranchWeightTotals(coopname, braname),
+      this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
       this.expenseChassis.getPlannedReserve(coopname, braname),
     ]);
 
-    const branchWeights = weights.filter(
-      (w) => w.braname === braname && w.contract === MARKETPLACE_SOURCE_CONTRACT
-    );
-    const total = totals.find(
-      (t) => t.braname === braname && t.contract === MARKETPLACE_SOURCE_CONTRACT
-    );
+    const branchWeights = weights.filter((w) => w.contract === MARKETPLACE_SOURCE_CONTRACT);
+    const total = totals.find((t) => t.contract === MARKETPLACE_SOURCE_CONTRACT);
     const totalWeight = total ? Number(total.total_weight) : 0;
 
-    const personalBalanceOf = (username: string): string =>
-      balances.find((b) => b.wallet_name === 'w.brn.person' && b.username === username)
-        ?.available ?? this.zeroAsset();
+    // Персональные кошельки доверенных участка — по одному чтению на получателя веса.
+    const personal = new Map<string, string>();
+    await Promise.all(
+      branchWeights.map(async (w) => {
+        personal.set(String(w.username), await this.getPersonalBalance(coopname, String(w.username)));
+      })
+    );
+    const personalBalanceOf = (username: string): string => personal.get(username) ?? this.zeroAsset();
 
-    const commonBalance =
-      balances.find((b) => b.wallet_name === 'w.brn.common' && b.username === braname)
-        ?.available ?? this.zeroAsset();
+    const commonBalance = common?.available ?? this.zeroAsset();
 
     const available = Math.max(0, this.assetToNumber(commonBalance) - reserve.amount);
 
@@ -330,7 +352,7 @@ export class MarketplaceEconomyService {
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
     const result = await this.ledger2History.getHistory({
       coopname,
-      walletName: 'w.brn.common',
+      walletName: BRANCH_COMMON_WALLET,
       username: braname,
       actionNames: ['apply'],
       page: options?.page ?? 1,
@@ -359,7 +381,7 @@ export class MarketplaceEconomyService {
   ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
     const result = await this.ledger2History.getHistory({
       coopname,
-      walletName: 'w.brn.person',
+      walletName: BRANCH_PERSONAL_WALLET,
       username,
       actionNames: ['apply'],
       operationCodes: ['o.brn.conv', 'o.brn.aid'],
@@ -457,11 +479,8 @@ export class MarketplaceEconomyService {
 
   /** Баланс персонального кошелька (w.brn.person) одного доверенного. */
   async getPersonalBalance(coopname: string, username: string): Promise<string> {
-    const balances = await this.chainPort.listBranchWalletBalances(coopname);
-    return (
-      balances.find((b) => b.wallet_name === 'w.brn.person' && b.username === username)
-        ?.available ?? this.zeroAsset()
-    );
+    const wallet = await this.chainPort.getUserWallet(coopname, BRANCH_PERSONAL_WALLET, username);
+    return wallet?.available ?? this.zeroAsset();
   }
 
   private async assertIsTrusteeOfBranch(
@@ -600,12 +619,12 @@ export class MarketplaceEconomyService {
       throw DomainError.badRequest('MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND');
     }
 
-    // Core-платёж создаётся ДО отправки на цепь и скрыт от кассира
-    // (AWAITING_AUTHORIZATION): реквизиты нужно запомнить в момент подачи, а
-    // показывать выплату кассиру можно только после решения совета. Перевод в
-    // PENDING делает MarketplaceAidCouncilSyncService по callback'у onaidauth.
-    // payment_hash обязан совпадать с on-chain outcome_hash — им становится сам
-    // aid_hash, по нему же платёж находят слушатели решения совета и кассира.
+    // До отправки в цепь сохраняется заявка на выплату с реквизитами,
+    // выбранными при подаче: платежа кассиру до решения совета нет. Платёж из
+    // заявки создаёт MarketplaceAidCouncilSyncService по callback'у onaidauth.
+    // Реквизиты живут в базе узла и в цепь не попадают. payment_hash обязан
+    // совпадать с on-chain outcome_hash — им становится сам aid_hash, по нему
+    // же платёж находят слушатели решения совета и кассира.
     // Кооператив — налоговый агент: кассиру уходит сумма за вычетом НДФЛ,
     // а с персонального кошелька спишется всё заявление. Расчёт зеркалит
     // `BranchNdfl` контракта, иначе платёж и проводка разойдутся.
@@ -613,7 +632,7 @@ export class MarketplaceEconomyService {
     const netAsset = this.formatAsset(netAmount);
 
     try {
-      await this.coreGateway.createSystemOutgoingPayment({
+      await this.coreGateway.registerPayoutRequest({
         coopname,
         username,
         quantity: netAmount,
@@ -624,7 +643,6 @@ export class MarketplaceEconomyService {
         // в день несколько.
         memo: i18nT('marketplace.economy.aidPaymentTitle', { aidHashShort: aidHash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
         type: PaymentType.AID,
-        status: PaymentStatus.AWAITING_AUTHORIZATION,
         related_extension: 'marketplace',
         related_entity_id: aidHash,
         payment_hash: aidHash,
@@ -664,13 +682,9 @@ export class MarketplaceEconomyService {
         }),
       });
     } catch (e) {
-      // Заявление на повестку не встало — гасим уже созданный платёж, иначе он
-      // навсегда останется в AWAITING_AUTHORIZATION без решения совета.
-      await this.cancelAidPayment(
-        coopname,
-        aidHash,
-        i18nT('marketplace.economy.aidCouncilSubmitFailedNote')
-      );
+      // Заявление на повестку не встало — снимаем заявку на выплату: решения
+      // совета по ней не будет.
+      await this.dropAidPayoutRequest(aidHash);
       rethrowChainError(e);
     }
 
@@ -770,67 +784,46 @@ export class MarketplaceEconomyService {
     return input.expense_hash;
   }
 
-  /** Отменить core-платёж заявки по её hash. Молчит, если платежа нет. */
-  private async cancelAidPayment(coopname: string, aidHash: string, reason: string): Promise<void> {
+  /** Снять заявку на выплату, не дошедшую до совета. Молчит, если заявки нет. */
+  private async dropAidPayoutRequest(aidHash: string): Promise<void> {
     try {
-      const found = await this.coreGateway.getPayments(
-        { coopname, hash: aidHash.toLowerCase() },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
-      );
-      const payment = found.items[0];
-      if (payment?.id) {
-        await this.coreGateway.setPaymentStatus({
-          id: payment.id,
-          status: PaymentStatus.CANCELLED,
-          message: reason,
-        });
-      }
+      await this.coreGateway.dropPayoutRequest(aidHash.toLowerCase());
     } catch (e: any) {
-      this.logger.warn(`Не удалось отменить платёж заявки ${aidHash}: ${e.message}`);
+      this.logger.warn(`Не удалось снять заявку на выплату ${aidHash}: ${e.message}`);
     }
   }
 
   async listAids(coopname: string, username?: string): Promise<MarketplaceAidView[]> {
-    const aids = await this.chainPort.listAids(coopname);
-    const scoped = username ? aids.filter((a) => a.username === username) : aids;
-    return Promise.all(scoped.map((aid) => this.toAidView(coopname, aid)));
+    const aids = await this.chainPort.listAids(coopname, username);
+    return Promise.all(aids.map((aid) => this.toAidView(coopname, aid)));
   }
 
   /**
-   * Статус и реквизиты core-платежа заявки, по её hash. `null`/`null` —
-   * платёж не создался (см. предупреждение в createAid) либо реквизиты с тех
-   * пор удалены получателем — не блокирует отображение самой заявки.
+   * Заявление для строки и панели стола: стадия, реквизиты и статус платежа,
+   * налог и сумма на счёт, вехи процесса (подача, решение совета, платёж).
+   * Платёж не найден или реквизиты удалены — заявление всё равно показывается.
+   * Дата подачи — из зеркала заявлений узла, решение — по подписи протокола.
    */
   private async toAidView(
     coopname: string,
     aid: BranchContract.Tables.Aids.IBranchAid
   ): Promise<MarketplaceAidView> {
     const hash = String(aid.hash);
-    let payment_status: PaymentStatus | null = null;
+    const payment = await this.aidPayment(coopname, hash);
+    // До решения совета платежа нет — реквизиты берутся из заявки на выплату.
+    const methodId = payment?.payment_method_id ?? (await this.aidPayoutMethodId(hash));
     let payment_destination: string | null = null;
-    try {
-      const found = await this.coreGateway.getPayments(
-        { coopname, hash: hash.toLowerCase() },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
-      );
-      const payment = found.items[0];
-      if (payment) {
-        payment_status = payment.status;
-        if (payment.payment_method_id) {
-          try {
-            const method = await this.paymentMethodRepo.get({
-              username: aid.username,
-              method_id: payment.payment_method_id,
-            });
-            payment_destination = formatPayoutDestination(method);
-          } catch {
-            // Реквизиты удалены получателем после подачи заявки — не блокирует.
-          }
-        }
+    if (methodId) {
+      try {
+        const method = await this.paymentMethodRepo.get({ username: aid.username, method_id: methodId });
+        payment_destination = formatPayoutDestination(method);
+      } catch {
+        // Реквизиты удалены получателем после подачи заявки — не блокирует.
       }
-    } catch {
-      // Платёж не найден в реестре — статус выплаты неизвестен.
     }
+    const mirror = await this.aidStore.findOne({ aid_hash: hash.toLowerCase() }).catch(() => null);
+    const ndfl = ndflBreakdown(this.assetToNumber(aid.amount), this.assetConfig.decimals);
+    const symbol = aid.amount.split(' ')[1] ?? this.assetConfig.symbol;
     return {
       hash,
       username: aid.username,
@@ -840,9 +833,45 @@ export class MarketplaceEconomyService {
         String(aid.status) === BRANCH_AID_STATUS_AUTHORIZED
           ? MarketplaceAidStage.AWAITING_PAYOUT
           : MarketplaceAidStage.ON_COUNCIL,
-      payment_status,
+      payment_status: payment?.status ?? null,
       payment_destination,
+      ndfl_tax: `${ndfl.tax.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      net_amount: `${ndfl.net.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      submitted_at: mirror?.created_at ? new Date(mirror.created_at) : null,
+      decided_at: this.protocolSignedAt(aid),
+      payment_completed_at: payment?.completed_at ?? null,
+      payment_failed_at: payment?.failed_at ?? null,
     };
+  }
+
+  /** Платёж ядра по хэшу заявки; не найден — null, статус выплаты неизвестен. */
+  private async aidPayment(coopname: string, hash: string): Promise<InnerPayment | null> {
+    try {
+      const found = await this.coreGateway.getPayments(
+        { coopname, hash: hash.toLowerCase() },
+        { page: 1, limit: 1, sortOrder: 'DESC' }
+      );
+      return found.items[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Реквизиты заявки на выплату, пока платежа нет; заявки нет — null. */
+  private async aidPayoutMethodId(hash: string): Promise<string | null> {
+    try {
+      return (await this.coreGateway.getPayoutRequest(hash.toLowerCase()))?.payment_method_id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Время подписи протокола совета — момент решения; протокола ещё нет — null. */
+  private protocolSignedAt(aid: BranchContract.Tables.Aids.IBranchAid): Date | null {
+    const signedAt = aid.protocol?.signatures?.[0]?.signed_at;
+    if (!signedAt || /^0+$/.test(String(aid.protocol?.hash ?? '0'))) return null;
+    const date = new Date(`${String(signedAt).replace(/Z?$/, 'Z')}`);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   // ── Внутреннее ────────────────────────────────────────────────────────

@@ -75,6 +75,8 @@ export async function toMarketplaceReturnClaimDTO(
     council_decision_id: claim.council_decision_id,
     council_decision_mode: (claim.council_decision_mode as MarketplaceReturnClaimDecisionModeEnum | null) ?? null,
     accepted_at: claim.accepted_at,
+    // Текст заявления дописывает запрос одного заявления; в списках его нет.
+    statement: null,
     created_at: claim.created_at,
     updated_at: claim.updated_at,
   };

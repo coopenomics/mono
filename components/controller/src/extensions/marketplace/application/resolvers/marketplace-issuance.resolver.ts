@@ -161,7 +161,7 @@ export class MarketplaceIssuanceResolver {
     @Args('data') data: MarketplaceSignIssuanceActInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
     const coopname = platformSettings().coopname;
-    const saga = await this.service.closeIssuance({ coopname, operator_account: member.username, order_id: data.order_id, signed_act: data.signed_act });
+    const saga = await this.service.closeIssuance({ coopname, operator_account: member.username, order_id: data.order_id, signed_act: data.signed_act, manual: data.manual ?? false });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
 
@@ -251,7 +251,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceActInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
-    const saga = await this.service.signAct1({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_act: data.signed_act });
+    const saga = await this.service.signAct1({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_act: data.signed_act, manual: data.manual ?? false });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
 

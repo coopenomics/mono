@@ -16,6 +16,7 @@ import type { MarketplaceOrderDomainEntity } from '~/extensions/marketplace/doma
 import type { MarketplaceIssuanceSagaDomainRepository } from '~/extensions/marketplace/domain/repositories/marketplace-issuance-saga.repository';
 import type { MarketplaceAssetConfig } from '~/extensions/marketplace/application/services/marketplace-asset.config';
 import { Registry } from '@coopenomics/docs-templates';
+import { MarketplaceConvertService } from '../../../src/extensions/marketplace/application/services/marketplace-convert.service';
 
 export const COOP = 'voskhod';
 
@@ -74,6 +75,11 @@ export function buildSaga(overrides: Partial<MarketplaceIssuanceSagaProps> = {})
 /** In-memory репозиторий саг: хранит одну-две саги, честно применяет переходы «из этапа». */
 export function buildSagaRepo(initial: MarketplaceIssuanceSagaDomainEntity[] = []) {
   const store = new Map(initial.map((s) => [s.id, s]));
+  // Захват шага (99D-18): кто и когда взял шаг; смена этапа его снимает.
+  const claims = new Map<string, Date>();
+  const dropClaim = (id: string, patch: Record<string, unknown>) => {
+    if ('step_claimed_at' in patch && patch.step_claimed_at === null) claims.delete(id);
+  };
   const active = (s: MarketplaceIssuanceSagaDomainEntity) => s.is_active;
   const patchOf = (s: MarketplaceIssuanceSagaDomainEntity, patch: Record<string, unknown>) =>
     buildSaga({ ...(s as unknown as MarketplaceIssuanceSagaProps), ...patch, updated_at: new Date() } as MarketplaceIssuanceSagaProps);
@@ -97,23 +103,40 @@ export function buildSagaRepo(initial: MarketplaceIssuanceSagaDomainEntity[] = [
       if (!allowed.includes(cur.stage)) return null;
       const next = patchOf(cur, patch);
       store.set(id, next);
+      dropClaim(id, patch);
       return next;
     }),
+    claimStep: jest.fn(async (id: string, stage: MarketplaceIssuanceSagaStage, _by: string, now: Date, staleBefore: Date) => {
+      const cur = store.get(id);
+      if (!cur || cur.stage !== stage) return false;
+      const held = claims.get(id);
+      if (held && held >= staleBefore) return false;
+      claims.set(id, now);
+      return true;
+    }),
+    releaseStep: jest.fn(async (id: string) => {
+      claims.delete(id);
+    }),
+    listAwaitingCloseReminder: jest.fn(async () => []),
+    markCloseReminded: jest.fn(async () => true),
     update: jest.fn(async (id: string, patch: Record<string, unknown>) => {
       const cur = store.get(id);
       if (!cur) throw new Error('saga not found');
       const next = patchOf(cur, patch);
       store.set(id, next);
+      dropClaim(id, patch);
       return next;
     }),
   } as unknown as jest.Mocked<MarketplaceIssuanceSagaDomainRepository>;
-  return { repo, store };
+  return { repo, store, claims };
 }
 
 export interface IssuanceMocks {
   orderRepo: any;
   sagaRepo: jest.Mocked<MarketplaceIssuanceSagaDomainRepository>;
   sagaStore: Map<string, MarketplaceIssuanceSagaDomainEntity>;
+  /** Захваты шага: id саги → момент захвата. */
+  claims: Map<string, Date>;
   inventoryRepo: any;
   offerRepo: any;
   /** Счётчики предложения: на выдаче заблокированное становится выданным. */
@@ -148,8 +171,6 @@ export function buildMocks(opts: {
   /** Принято на склад по заказу (для заказа поставщика) / зарезервировано (для заказа из остатка). */
   warehouse?: number;
   robotPort?: any;
-  /** Остаток членского кошелька программы пайщика в минимальных единицах (по умолчанию — хватает на всё). */
-  memberAvailableUnits?: bigint;
   /** Остаток свободного паевого программы (по умолчанию — хватает на любую доплату). */
   shareAvailableUnits?: bigint;
   /** Цена прибытия адресных позиций заказа на складе (по умолчанию — позиций с ценой нет). */
@@ -157,7 +178,7 @@ export function buildMocks(opts: {
 } = {}): IssuanceMocks {
   const order = opts.order ?? buildOrder();
   const warehouse = opts.warehouse ?? 10;
-  const { repo: sagaRepo, store: sagaStore } = buildSagaRepo(opts.sagas ?? []);
+  const { repo: sagaRepo, store: sagaStore, claims } = buildSagaRepo(opts.sagas ?? []);
   const orderRepo = {
     findById: jest.fn(async (id: string) => (id === order.id ? order : null)),
     applyReadyIssue: jest.fn(async () => buildOrder({ ...order, status: 'READY_TO_RECEIVE' })),
@@ -201,7 +222,6 @@ export function buildMocks(opts: {
     getVerificationTypes: jest.fn(async () => []),
   };
   const logger = { setContext: jest.fn(), debug: jest.fn(), log: jest.fn(), error: jest.fn(), warn: jest.fn(), info: jest.fn() };
-  const memberAvailable = opts.memberAvailableUnits ?? 1_000_000_000n;
   const shareAvailable = opts.shareAvailableUnits ?? 1_000_000_000n;
   const economyService = {
     assetToUnits: jest.fn((v: string) => toUnits(v)),
@@ -209,26 +229,10 @@ export function buildMocks(opts: {
     getMembershipFeeContractPercent: jest.fn(async () => 300000),
     toHumanFeePercent: jest.fn((v: number) => (Number(v) * 100) / 1_000_000),
   };
-  const planFunding = (balances: { member: bigint; share: bigint }, lines: Array<{ body_units: bigint; fee_units: bigint }>) => {
-    let member = balances.member;
-    let share = balances.share;
-    const planned = lines.map((line) => {
-      const fee_member_units = line.fee_units > member ? member : line.fee_units;
-      member -= fee_member_units;
-      const body_program_units = line.body_units > share ? share : line.body_units;
-      share -= body_program_units;
-      return { ...line, fee_member_units, fee_convert_units: line.fee_units - fee_member_units, body_program_units, body_wallet_units: line.body_units - body_program_units };
-    });
-    const fee_convert_units = planned.reduce((sum, l) => sum + l.fee_convert_units, 0n);
-    const body_wallet_units = planned.reduce((sum, l) => sum + l.body_wallet_units, 0n);
-    return { lines: planned, fee_convert_units, body_wallet_units, transfer_units: body_wallet_units + fee_convert_units };
-  };
   const convertService = {
-    memberAvailableUnits: jest.fn(async () => memberAvailable),
-    programShareAvailableUnits: jest.fn(async () => shareAvailable),
-    programBalances: jest.fn(async () => ({ member: memberAvailable, share: shareAvailable })),
-    planFunding: jest.fn(planFunding),
-    shortfallUnits: jest.fn((available: bigint, fee: bigint) => planFunding({ member: available, share: 0n }, [{ body_units: 0n, fee_units: fee }]).fee_convert_units),
+    programBalances: jest.fn(async () => ({ share: shareAvailable })),
+    // Тот же расчёт, что у сервиса: копия в фикстуре разошлась бы с ним.
+    planFunding: jest.fn(MarketplaceConvertService.prototype.planFunding),
     generateStatement: jest.fn(async (input: any) => ({
       full_title: 'convert',
       html: '<html/>',
@@ -242,7 +246,7 @@ export function buildMocks(opts: {
       binary: '',
     })),
     verifySigned: jest.fn((signed: any) => {
-      if (!signed) throw new Error('Нет подписанного заявления о переводе');
+      if (!signed) throw new Error('Нет подписанного заявления о трансляции');
       return { hash: signed.hash ?? 'signed-1110', meta: JSON.stringify(signed.meta), signatures: signed.signatures ?? [] };
     }),
   };
@@ -250,6 +254,7 @@ export function buildMocks(opts: {
     orderRepo,
     sagaRepo,
     sagaStore,
+    claims,
     inventoryRepo,
     offerRepo,
     offerCounters,

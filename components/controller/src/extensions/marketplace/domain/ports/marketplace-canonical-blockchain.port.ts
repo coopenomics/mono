@@ -1,4 +1,4 @@
-import type { BranchContract, Interfaces, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
+import type { BranchContract, FundContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
 
 /**
@@ -41,7 +41,7 @@ export type MarketplaceCheckoutOrderAction =
  */
 export interface MarketplaceCheckoutChainInput {
   coopname: string;
-  /** Перевод в членский кошелёк — первым действием; null, если переводить нечего. */
+  /** Трансляция на свободный паевой «Стола заказов» — первым действием; null, если транслировать нечего. */
   convert: MarketContract.Actions.Convert.IConvert | null;
   orders: MarketplaceCheckoutOrderAction[];
 }
@@ -49,7 +49,7 @@ export interface MarketplaceCheckoutChainInput {
 export interface MarketplaceCanonicalBlockchainPort {
   createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<InnerTransactResult>;
 
-  /** Перевод по заявлению и заказы всех строк корзины одной транзакцией. */
+  /** Трансляция по заявлению и заказы всех строк корзины одной транзакцией. */
   checkout(data: MarketplaceCheckoutChainInput): Promise<InnerTransactResult>;
 
   /**
@@ -57,21 +57,21 @@ export interface MarketplaceCanonicalBlockchainPort {
    * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
    * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
    * и идёт только через выдачу по саге (заявление → совет → акт). Фондируется
-   * из свободного паевого пайщика: o.mkt.lockp (тело, w.mkt.share → w.mkt.order)
-   * и o.mkt.fee (взнос, w.mkt.member → w.mkt.fee); недостающая часть взноса
-   * приходит заранее переводом по заявлению 1110 (o.mkt.conv).
+   * из свободного паевого пайщика: o.mkt.fee (обеспечительная часть,
+   * w.mkt.share → w.mkt.fee) и o.mkt.lockp (тело, w.mkt.share → w.mkt.order);
+   * недостающее приходит заранее трансляцией по заявлению 1110 (o.mkt.conv).
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
   stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<InnerTransactResult>;
 
   /**
-   * Перевод паевого взноса во внутренний членский кошелёк «Стола заказов» по
-   * заявлению 1110 — только когда кошелька не хватает (o.mkt.conv с Цифрового
-   * кошелька). Оформление корзины шлёт его первым действием общей транзакции
+   * Трансляция паевого взноса из Цифрового кошелька на свободный паевой «Стола
+   * заказов» по заявлению 1110 — только когда его не хватает (o.mkt.conv).
+   * Оформление корзины шлёт её первым действием общей транзакции
    * (`checkout`); отдельным вызовом пользуются потоки с одним заказом. Сумма адресуется заказам
    * (`targets`): на каждый заказ идёт своя операция с его хэшем как
-   * `process_hash`, поэтому перевод виден первой операцией нитки того заказа,
+   * `process_hash`, поэтому трансляция видна первой операцией нитки того заказа,
    * который оплачивает. Заявление публикуется в реестр документов отдельным
    * пакетом — оно одно на всё оформление.
    */
@@ -288,9 +288,9 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<InnerTransactResult>;
 
-  // ── Экономика КУ (requirement b6): членский взнос и распределение ────
+  // ── Экономика КУ (requirement b6): ставка обеспечительной части и распределение ────
 
-  /** Единая ставка членского взноса кооператива (администратор). */
+  /** Единая ставка обеспечительной части паевого взноса кооператива (администратор). */
   // ── Паевая модель: выдача по заявлению, протоколу совета и акту (компонент 68) ──
 
   /** Оператор участка выдачи отметил поступление имущества: acceptcoop → readyrecv. */
@@ -307,17 +307,29 @@ export interface MarketplaceCanonicalBlockchainPort {
   handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
 
   /**
-   * Довнесение членского взноса по возврату, ждавшему пополнения общего
-   * кошелька участка (`feepend → ∅`, задача 99D-15). Зовёт крон повтора.
+   * Списание обеспечительной части паевого взноса в членский взнос участка по
+   * условиям ЦПП (задача 99D-18). Сумму и момент называет бэкенд по своему
+   * учёту; контракт держит потолок остатка кошелька пайщика к списанию.
    */
-  payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult>;
+  chargeDue(data: MarketContract.Actions.ChargeDue.IChargeDue): Promise<InnerTransactResult>;
 
-  /**
-   * Заявление на возврат на цепи по хэшу — null, если запись уже стёрта.
-   * Читается сразу после обратного вызова совета: по статусу `feepend` бэкенд
-   * узнаёт, что взнос ждёт пополнения кошелька участка.
-   */
-  findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null>;
+  // ── Коэффициент экономического участия (задача 99D-22) ──
+  /** Расчёт итога месяца участка по пяти фактам ИСТОКА (marketplace::closeperiod). */
+  closePeriod(data: MarketContract.Actions.ClosePeriod.IClosePeriod): Promise<InnerTransactResult>;
+  /** Стирание строки итога месяца из цепи (marketplace::delperiod). */
+  deletePeriod(data: MarketContract.Actions.DelPeriod.IDelPeriod): Promise<InnerTransactResult>;
+  /** Списание обеспечительной части заказа по ставкам итога месяца (marketplace::chargeperiod). */
+  chargePeriod(data: MarketContract.Actions.ChargePeriod.IChargePeriod): Promise<InnerTransactResult>;
+  /** Доля инициатора участка в экономии месяца (marketplace::setshares). */
+  setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult>;
+  /** Инициатор участка; пустое имя снимает назначение (marketplace::setinitiator). */
+  setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
+  /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */
+  setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult>;
+  /** Резерв получателя на участке (branch::setreserve). */
+  setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult>;
+  /** Снятие резерва получателя (branch::delreserve). */
+  deleteReserve(data: BranchContract.Actions.DelReserve.IDelreserve): Promise<InnerTransactResult>;
 
   // ── p.mkt.claim — гарантийная претензия поставщику (99D-13) ──
   /** Поставщик признал претензию: o.mkt.admit, долг к удержанию из выплат. Несогласие в цепь не пишется. */
@@ -352,17 +364,40 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Singleton-конфигурация «Стола заказов» (единая ставка взноса); null — не настроена. */
   getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null>;
 
-  /** Реестр весов распределения (branch::weights). */
-  getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
+  // Таблицы, которые растут с числом пайщиков и участков, читаются по индексу:
+  // узел отдаёт только строки участка, пайщика или хэша, полного чтения нет.
 
-  /** Агрегаты Σ весов (branch::weighttotals). */
-  getBranchWeightTotals(coopname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]>;
+  /** Веса распределения участка (branch::weights) — по индексу участка. */
+  getBranchWeights(coopname: string, braname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
 
-  /** Заявки на материальную помощь (branch::aids). */
-  listAids(coopname: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+  /** Агрегаты Σ весов участка (branch::weighttotals) — по индексу участка. */
+  getBranchWeightTotals(coopname: string, braname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]>;
 
-  /** L3-балансы кошельков экономики КУ (w.brn.person / w.brn.common) из ledger2. */
-  listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]>;
+  /**
+   * Заявления на материальную помощь (branch::aids): одного получателя — по
+   * индексу получателя; без имени — все заявления в работе для стола
+   * администратора (выплаченные и отклонённые строки цепь стирает).
+   */
+  listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+
+  /**
+   * Кошелёк пайщика либо участка в ledger2 по имени кошелька (w.brn.person,
+   * w.brn.common, w.mkt.invest, w.mkt.due) — по индексу владельца; null —
+   * строки кошелька ещё нет.
+   */
+  getUserWallet(coopname: string, walletName: string, username: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet | null>;
+
+  // ── Чтение таблиц коэффициента экономического участия (задача 99D-22) ──
+  /** Итоги месяцев участка, которые ещё лежат в цепи (marketplace::kuperiods), — по индексу участка; строк не больше двух. */
+  listBranchPeriods(coopname: string, braname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]>;
+  /** Назначенный инициатор участка (marketplace::initiators) — по ключу участка; null — не назначен. */
+  getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null>;
+  /** Резерв социально-экономического обеспечения участка по получателям (branch::reserves) — по индексу участка. */
+  listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
+  /** Потолок резерва на получателя в месяц (branch::brnconfig); null — не задан. */
+  getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
+  /** Фонды накопления кооператива с процентами и кошельками (fund::funds, вид `accum`). */
+  listAccumulationFunds(coopname: string): Promise<FundContract.Tables.Funds.IFund[]>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

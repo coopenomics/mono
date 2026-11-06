@@ -22,12 +22,16 @@ import {
   toMarketplaceContainerDTO,
   toMarketplaceContainerTypeDTO,
 } from '../dto/marketplace-container.dto';
+import { MarketplaceBranchOwnershipService } from '../services/marketplace-branch-ownership.service';
 import { MarketplaceContainerService } from '../services/marketplace-container.service';
 
 @Resolver()
 @Injectable()
 export class MarketplaceContainerResolver {
-  constructor(private readonly containerService: MarketplaceContainerService) {}
+  constructor(
+    private readonly containerService: MarketplaceContainerService,
+    private readonly branches: MarketplaceBranchOwnershipService
+  ) {}
 
   @Query(() => [MarketplaceContainerTypeDTO], {
     name: 'marketplaceListContainerTypes',
@@ -104,14 +108,17 @@ export class MarketplaceContainerResolver {
   @Mutation(() => [MarketplaceContainerDTO], {
     name: 'marketplaceCreateContainers',
     description:
-      'Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно.',
+      'Заведение партии боксов одного типа на участке; коды выдаются последовательно. Председатель участка заводит боксы у себя, председатель кооператива — на любом участке.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
-  @RequireRight('Container', 'manage:own-KU', { ku: 'data.braname' })
+  @RequireRight('Container', ['manage:own-KU', 'manage:all'], { ku: 'data.braname' })
   async marketplaceCreateContainers(
     @Args('data') data: MarketplaceCreateContainersInputDTO
   ): Promise<MarketplaceContainerDTO[]> {
     const coopname = platformSettings().coopname;
+    // Право «по всем участкам» имя участка не сверяет — бокс на несуществующем
+    // участке не увидел бы ни один оператор.
+    await this.branches.assertBranchExists(coopname, data.braname);
     const containers = await this.containerService.createContainers({
       coopname,
       braname: data.braname,

@@ -247,6 +247,14 @@ export interface MarketplaceExpressPickupCandidate {
  * PENDING_SUPPLIER_SIGN. MVP не автоматизирует разрешение; кооператив
  * решает через свои процедуры. Compensating-транзакций нет.
  */
+/**
+ * Сколько держится захват подписи приёмки. Подпись ставят кнопкой: отправка
+ * в цепь занимает секунды, и захват старше двадцати секунд считается
+ * брошенным — повторное нажатие проходит (слово владельца 02.11.2026: ручное
+ * действие должно работать всегда).
+ */
+const RECEPTION_CLAIM_LEASE_MS = 20 * 1000;
+
 @Injectable()
 export class MarketplaceAplReceptionService {
   constructor(
@@ -666,6 +674,36 @@ export class MarketplaceAplReceptionService {
     return { apl_receptions: receptions };
   }
 
+  /**
+   * Захват подписи приёмки перед отправкой в цепь. Подпись ставят кнопкой,
+   * и нажатие на двух устройствах сразу — у поставщика на телефоне и
+   * компьютере, у двух операторов участка — отправило бы две транзакции, а
+   * вторая получила бы отказ цепи. Подпись берёт один стол; другой получает
+   * `MARKETPLACE_RECEPTION_STEP_IN_PROGRESS`. Захват старше
+   * `RECEPTION_CLAIM_LEASE_MS` считается брошенным, и кнопка снова работает.
+   *
+   * Возвращает приёмку, если подпись уже поставил другой стол, иначе `null`.
+   */
+  private async claimSignature(
+    reception: MarketplaceAplReceptionDomainEntity,
+    by: string
+  ): Promise<MarketplaceAplReceptionDomainEntity | null> {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - RECEPTION_CLAIM_LEASE_MS);
+    if (await this.receptionRepo.claimStep(reception.id, reception.status, by, now, staleBefore)) return null;
+    const advanced = await this.signedElsewhere(reception);
+    if (advanced) return advanced;
+    throw DomainError.conflict('MARKETPLACE_RECEPTION_STEP_IN_PROGRESS');
+  }
+
+  /** Статус приёмки сменился — подпись сделал другой стол; иначе `null`. */
+  private async signedElsewhere(
+    reception: MarketplaceAplReceptionDomainEntity
+  ): Promise<MarketplaceAplReceptionDomainEntity | null> {
+    const fresh = await this.receptionRepo.findById(reception.id);
+    return fresh && fresh.status !== reception.status ? fresh : null;
+  }
+
   async signAsSupplier(
     input: MarketplaceAplReceptionSignSupplierInputDto
   ): Promise<MarketplaceAplReceptionResult> {
@@ -676,6 +714,8 @@ export class MarketplaceAplReceptionService {
     if (!reception.awaits_supplier) {
       throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_WRONG_STATUS', { status: reception.status });
     }
+    const signedElsewhere = await this.claimSignature(reception, input.supplier_account);
+    if (signedElsewhere) return { apl_reception: signedElsewhere };
 
     // Разнос позиций: оператор на стойке снял некондицию (факт = 0). Поставщик
     // подтверждает приёмку целиком — подписывает акт по принятым позициям и тем
@@ -717,6 +757,10 @@ export class MarketplaceAplReceptionService {
         input.supplier_account
       );
     } catch (err: any) {
+      // Подпись мог поставить другой стол: тогда отказ цепи — не ошибка.
+      const advanced = await this.signedElsewhere(reception);
+      if (advanced) return { apl_reception: advanced };
+      await this.receptionRepo.releaseStep(reception.id);
       this.logger.warn(
         `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
       );
@@ -788,6 +832,9 @@ export class MarketplaceAplReceptionService {
       input.placements ?? []
     );
 
+    const closedElsewhere = await this.claimSignature(reception, input.chairman_account);
+    if (closedElsewhere) return await this.completeAcceptedReception(closedElsewhere, input);
+
     let txHash: string;
     try {
       txHash = await this.submitOnChainSignChair(
@@ -797,6 +844,12 @@ export class MarketplaceAplReceptionService {
         input.chairman_account
       );
     } catch (err: any) {
+      // Приёмку мог закрыть другой стол: тогда доводим склад и выплаты, как при повторе.
+      const advanced = await this.signedElsewhere(reception);
+      if (advanced?.status === MarketplaceAplReceptionStatuses.ACCEPTED_TO_COOP) {
+        return await this.completeAcceptedReception(advanced, input);
+      }
+      await this.receptionRepo.releaseStep(reception.id);
       this.logger.warn(
         `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
       );
@@ -1762,8 +1815,11 @@ export class MarketplaceAplReceptionService {
         if (fact > o.quantity) {
           throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED', { orderId: o.id, factQuantity: fact, orderedQuantity: o.quantity });
         }
-        // Цена за единицу: оператор может скорректировать (привезли хуже —
-        // принимаем со скидкой). По умолчанию — цена заказа.
+        // Цена за единицу: оператор может снизить её (привезли хуже —
+        // принимаем со скидкой), но не поднять выше цены заказа: поставщик
+        // привёз по заказу пайщика, и основания платить ему больше нет (слово
+        // владельца 02.11.2026). Тот же потолок стоит на выдаче. По умолчанию —
+        // цена заказа.
         let fact_unit_price = o.price_per_unit;
         if (entry.fact_unit_price !== undefined) {
           const priceNum = Number.parseFloat(entry.fact_unit_price);
@@ -1771,6 +1827,13 @@ export class MarketplaceAplReceptionService {
             throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_INVALID', { orderId: o.id, factUnitPrice: entry.fact_unit_price });
           }
           fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
+          if (Number.parseFloat(fact_unit_price) > Number.parseFloat(o.price_per_unit)) {
+            throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED', {
+              orderId: o.id,
+              factUnitPrice: fact_unit_price,
+              orderedUnitPrice: o.price_per_unit,
+            });
+          }
         }
         out.push({ order_id: o.id, fact_quantity: fact, fact_unit_price });
       } else {

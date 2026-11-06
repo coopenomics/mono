@@ -34,7 +34,9 @@ import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/com
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
-import { QuantityUtils, DomainError, chainErrorCode } from '@coopenomics/extension-kit';
+import { QuantityUtils, DomainError, chainErrorCode, standDaySeconds } from '@coopenomics/extension-kit';
+import { PayoutRequestService } from '../services/payout-request.service';
+import type { PayoutRequestDomainInterface } from '~/domain/gateway/repositories/payout-request.repository';
 import { t } from '~/i18n';
 
 /**
@@ -46,6 +48,13 @@ import { t } from '~/i18n';
  * - Истекшие платежи автоматически обновляются в статус EXPIRED при создании новых платежей
  * - Доступен отдельный метод expireOutdatedPayments() для периодической очистки
  */
+/**
+ * Срок оплаты паевого взноса, суток: после него неоплаченный взнос истекает.
+ * Сутки — по шкале времени стенда (extension-kit): в работе настоящие, на
+ * стенде со сжатым временем — короче, как у остальных сроков приложений.
+ */
+export const DEPOSIT_PAYMENT_TTL_DAYS = 3;
+
 @Injectable()
 export class GatewayInteractor implements GatewayInteractorPort {
   private readonly logger = new Logger(GatewayInteractor.name);
@@ -66,7 +75,8 @@ export class GatewayInteractor implements GatewayInteractorPort {
     @Inject(PAYMENT_METHOD_REPOSITORY)
     private readonly paymentMethodRepository: PaymentMethodRepository,
     @Inject(EXPENSE_CHASSIS_PORT)
-    private readonly expenseChassis: IExpenseChassisPort
+    private readonly expenseChassis: IExpenseChassisPort,
+    private readonly payoutRequests: PayoutRequestService
   ) {}
 
   /**
@@ -544,7 +554,11 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const secret = generateUniqueHash();
     const hash = generateUniqueHash();
     const now = new Date();
-    const expiredAt = this.createPaymentExpirationDate(-1); // Бессрочный платеж для паевых взносов
+    // Неоплаченный взнос через трое суток истекает (сторож истечения переводит
+    // его в «Истёк»): иначе передуманный взнос вечно висел бы у пайщика «в
+    // работе». Кассир подтверждает и истёкший взнос, если деньги всё же пришли;
+    // реквизиты пайщик находит в «Платежах» (решение владельца 05.11.2026).
+    const expiredAt = new Date(now.getTime() + DEPOSIT_PAYMENT_TTL_DAYS * standDaySeconds() * 1000);
 
     const paymentData: PaymentDomainInterface = {
       id: '', // будет установлен в репозитории
@@ -620,10 +634,11 @@ export class GatewayInteractor implements GatewayInteractorPort {
     // Валидируем символ перед созданием платежа
     QuantityUtils.validateSymbol(data.symbol);
 
-    // Проверяем, нет ли уже платежа с таким же хешем - это ошибка
+    // Хэш занят платежом или заявкой на выплату — повтор той же заявки, отказ.
     const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
+    const existingRequest = await this.payoutRequests.find(data.payment_hash);
 
-    if (existingPayment) {
+    if (existingPayment || existingRequest) {
       throw DomainError.conflict('GATEWAY_PAYMENT_HASH_DUPLICATE', { hash: data.payment_hash });
     }
 
@@ -666,10 +681,9 @@ export class GatewayInteractor implements GatewayInteractorPort {
       type: PaymentTypeEnum.WITHDRAWAL,
       direction: PaymentDirectionEnum.OUTGOING,
       provider: provider,
-      // Платёж создаётся до решения совета и не должен видеться кассиром как
-      // готовый к выплате. Переход AWAITING_AUTHORIZATION → PENDING происходит
-      // в WithdrawAuthorizationListener при on-chain action wallet::authwthd.
-      status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
+      // Черновик платежа: при подаче он сохраняется заявкой на выплату, платёж
+      // кассиру «ожидает» создаёт решение совета (wallet::authwthd).
+      status: PaymentStatusEnum.PENDING,
       memo: t('gateway.gatewayInteractor.shareRefundMemo', { hashPrefix: data.payment_hash.slice(0, 8), vatExemptNote: VAT_EXEMPT_NOTE }),
       secret: generateUniqueHash(),
       payment_method_id: data.method_id,
@@ -684,21 +698,15 @@ export class GatewayInteractor implements GatewayInteractorPort {
   }
 
   /**
-   * Зафиксировать ранее подготовленный исходящий платеж в БД.
-   * Вызывается только после успешной on-chain транзакции.
+   * Сохранить ранее подготовленный возврат паевого взноса заявкой на выплату.
+   * Вызывается только после успешной заявки в цепи. Платёж кассиру создаст
+   * решение совета (WithdrawAuthorizationListener → PayoutRequestService.release).
    */
-  async persistWithdraw(paymentData: PaymentDomainInterface): Promise<PaymentDomainEntity> {
-    const createdPayment = await this.paymentRepository.create(paymentData);
-
-    if (!createdPayment.id) {
-      throw DomainError.internal('GATEWAY_PAYMENT_CREATE_MISSING_ID');
-    }
-
+  async persistWithdraw(paymentData: PaymentDomainInterface): Promise<void> {
+    await this.payoutRequests.register(paymentData);
     this.logger.log(
-      `Создан исходящий платеж ${paymentData.hash} для пользователя ${paymentData.username} на сумму ${paymentData.quantity} ${paymentData.symbol} с платежным методом ${paymentData.payment_method_id}`
+      `Заявка на возврат ${paymentData.hash} для ${paymentData.username} на ${paymentData.quantity} ${paymentData.symbol} (реквизиты ${paymentData.payment_method_id}) ждёт решения совета`
     );
-
-    return new PaymentDomainEntity(createdPayment);
   }
 
   /**
@@ -712,6 +720,11 @@ export class GatewayInteractor implements GatewayInteractorPort {
   async createSystemOutgoingPayment(
     data: CreateSystemOutgoingPaymentInputDomainInterface
   ): Promise<PaymentDomainEntity> {
+    // Выплата по решению совета заводится заявкой (registerSystemPayoutRequest):
+    // платежа кассиру до решения совета быть не должно.
+    if (data.status === PaymentStatusEnum.AWAITING_AUTHORIZATION) {
+      throw DomainError.conflict('GATEWAY_PAYOUT_BEFORE_COUNCIL_FORBIDDEN', { hash: data.payment_hash });
+    }
     await this.paymentRepository.expireOutdatedPayments();
     QuantityUtils.validateSymbol(data.symbol);
 
@@ -723,6 +736,53 @@ export class GatewayInteractor implements GatewayInteractorPort {
       return new PaymentDomainEntity(existingPayment);
     }
 
+    const paymentData = await this.buildSystemOutgoingPayment(data);
+    const created = await this.paymentRepository.create(paymentData);
+    if (!created.id) {
+      throw DomainError.internal('GATEWAY_SYSTEM_PAYMENT_CREATE_MISSING_ID');
+    }
+
+    this.logger.log(
+      `Создан системный исходящий платёж: id=${created.id} extension=${data.related_extension} entity=${data.related_entity_id} amount=${data.quantity} ${data.symbol}`
+    );
+
+    return new PaymentDomainEntity(created);
+  }
+
+  /**
+   * Заявка на системную выплату расширения, которую решает совет (материальная
+   * помощь и т.п.): сохраняются сумма и реквизиты, платёж кассиру создаст
+   * решение совета через порт (`releasePayoutRequest`).
+   */
+  async registerSystemPayoutRequest(data: CreateSystemOutgoingPaymentInputDomainInterface): Promise<PayoutRequestDomainInterface> {
+    QuantityUtils.validateSymbol(data.symbol);
+    const draft = await this.buildSystemOutgoingPayment({ ...data, status: PaymentStatusEnum.PENDING });
+    return this.payoutRequests.register(draft);
+  }
+
+  /** Совет разрешил выплату: платёж кассиру из заявки (повтор события второго не создаёт). */
+  async releasePayoutRequest(hash: string): Promise<PaymentDomainInterface | null> {
+    return this.payoutRequests.release(hash);
+  }
+
+  /** Совет отказал: заявка закрывается, платежа не будет. */
+  async declinePayoutRequest(hash: string): Promise<void> {
+    return this.payoutRequests.decline(hash);
+  }
+
+  /** Подача в цепь не удалась: заявка снимается. */
+  async dropPayoutRequest(hash: string): Promise<void> {
+    return this.payoutRequests.drop(hash);
+  }
+
+  async getPayoutRequest(hash: string): Promise<PayoutRequestDomainInterface | null> {
+    return this.payoutRequests.find(hash);
+  }
+
+  /** Исходящий системный платёж расширения из входа порта — общий для платежа и заявки. */
+  private async buildSystemOutgoingPayment(
+    data: CreateSystemOutgoingPaymentInputDomainInterface
+  ): Promise<PaymentDomainInterface> {
     const settings = await this.systemDomainPort.getSettings();
     const provider = settings.provider_name;
     const now = new Date();
@@ -737,7 +797,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       tolerance_percent: 0,
     };
 
-    const paymentData: PaymentDomainInterface = {
+    return {
       id: '',
       coopname: data.coopname,
       username: data.username,
@@ -750,9 +810,6 @@ export class GatewayInteractor implements GatewayInteractorPort {
       type: data.type ?? PaymentTypeEnum.PAYMENT,
       direction: PaymentDirectionEnum.OUTGOING,
       provider,
-      // Выплаты, требующие решения совета, создаются в AWAITING_AUTHORIZATION —
-      // кассиру они скрыты до принятия решения (тот же приём, что у возврата
-      // паевого взноса, см. WithdrawAuthorizationListener).
       status: data.status ?? PaymentStatusEnum.PENDING,
       memo: data.memo,
       secret: generateUniqueHash(),
@@ -765,29 +822,6 @@ export class GatewayInteractor implements GatewayInteractorPort {
       related_extension: data.related_extension,
       related_entity_id: data.related_entity_id,
     };
-
-    const created = await this.paymentRepository.create(paymentData);
-    if (!created.id) {
-      throw DomainError.internal('GATEWAY_SYSTEM_PAYMENT_CREATE_MISSING_ID');
-    }
-
-    this.logger.log(
-      `Создан системный исходящий платёж: id=${created.id} extension=${data.related_extension} entity=${data.related_entity_id} amount=${data.quantity} ${data.symbol}`
-    );
-
-    return new PaymentDomainEntity(created);
-  }
-
-  /**
-   * Создать исходящий платеж (withdraw): подготовка + немедленный персист.
-   *
-   * Не использует on-chain проверку — подходит только там, где запись о платеже
-   * в БД должна существовать безусловно. Для возврата паевого взноса используется
-   * связка prepareWithdraw → on-chain транзакция → persistWithdraw.
-   */
-  async createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainEntity> {
-    const paymentData = await this.prepareWithdraw(data);
-    return await this.persistWithdraw(paymentData);
   }
 
   /**

@@ -318,21 +318,22 @@ export function checkInvariantI1SupplierThreads(rows: readonly MarketplaceLedger
 }
 
 // ---------------------------------------------------------------------------
-// I2 — Счёт 86 в marketplace: только перевод в членский и удержание при
-// отказе.
+// I2 — Счёт 86 в marketplace: только списание обеспечительной части.
 //
-// В паевой модели тело заказа живёт на счёте 80; на 86 Стол заказов пишет
-// ровно две операции, и обе с движением кошельков: o.mkt.conv (Кт 86, перевод
-// паевого в членский по заявлению 1110) и o.mkt.penal (Кт 86, удержание при
-// отказе). Дебета 86 у Стола заказов нет: списание скоропорта уходит в прочие
-// расходы (Дт 91), как уценка (решение владельца 10.09.2026) — так сальдо 86
-// всегда равно сумме кошельков на нём. Любая другая проводка по 86 в нитке
-// Стола заказов — чужая либо сбой реестра. Прежняя редакция считала дельту
-// и всегда отвечала «сходится».
+// В паевой модели и тело заказа, и обеспечительная часть паевого взноса живут
+// на счёте 80 (задача 99D-18). На 86 в нитке Стола заказов пишется ровно одна
+// операция — o.brn.common (Кт 86): списание обеспечительной части в членский
+// взнос участка по условиям ЦПП (chargedue, выход пайщика). Дебета 86 у Стола
+// заказов нет: списание скоропорта относится на прочие расходы (Дт 91), как
+// уценка (решение владельца 10.09.2026), а гарантийный возврат идёт до
+// списания. Любая другая проводка по 86 в нитке Стола заказов — чужая либо
+// сбой реестра.
 // ---------------------------------------------------------------------------
 const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
   debit: { codes: [], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
-  credit: { codes: ['o.mkt.conv', 'o.mkt.penal'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
+  // Задача 99D-22: при списании по итогу месяца в кредит 86 ложится и
+  // отчисление в фонды накопления (o.fnd.accrue) — вторая нога chargeperiod.
+  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {
@@ -420,7 +421,7 @@ export function checkInvariantI4Account91Usage(rows: readonly MarketplaceLedger2
 //   sum(TRANSFER w.wal.share → w.mkt.order)         // o.mkt.lock   — паевой резерв из Кошелька (без проводки)
 //   + sum(TRANSFER w.mkt.share → w.mkt.order)       // o.mkt.lockp  — резерв из свободного паевого «Стола заказов»
 //   − sum(TRANSFER w.mkt.order → w.mkt.share)       // o.mkt.unlock — резерв снят / недовыдача / отказ
-//   − sum(TRANSFER w.mkt.order → w.mkt.fee)         // o.mkt.penal  — штраф за отказ (Дт 80 / Кт 86)
+//   − sum(TRANSFER w.mkt.order → w.mkt.due)         // o.mkt.penal  — удержание при отказе, к списанию (без проводки)
 //   − sum(BURN w.mkt.order)                         // o.mkt.consum — резерв сожжён при выдаче (Дт 80 / Кт 10)
 //     = sum(available у w.mkt.order-кошельков пайщиков).
 //
@@ -435,14 +436,14 @@ export function checkInvariantI4Account91Usage(rows: readonly MarketplaceLedger2
 /**
  * Знак движения по резерву w.mkt.order для пары кошельков walletop:
  *   +1 — резерв входит (o.mkt.lock с w.wal.share, o.mkt.lockp с w.mkt.share);
- *   −1 — резерв выходит (o.mkt.unlock на w.mkt.share, o.mkt.penal на w.mkt.fee,
+ *   −1 — резерв выходит (o.mkt.unlock на w.mkt.share, o.mkt.penal на w.mkt.due,
  *        o.mkt.consum — BURN без получателя);
  *    0 — движение резерва не касается.
  */
 function reserveDeltaSign(walletFrom: string | null | undefined, walletTo: string | null | undefined): -1n | 0n | 1n {
   if (walletTo === 'w.mkt.order' && (walletFrom === 'w.wal.share' || walletFrom === 'w.mkt.share')) return 1n
   if (walletFrom !== 'w.mkt.order') return 0n
-  if (walletTo === 'w.mkt.share' || walletTo === 'w.mkt.fee' || walletTo == null) return -1n
+  if (walletTo === 'w.mkt.share' || walletTo === 'w.mkt.due' || walletTo == null) return -1n
   return 0n
 }
 
@@ -631,6 +632,56 @@ export function checkAllMarketplaceLedger2Invariants(
     checkInvariantI6NoOrphanedReserves(rows),
     checkInvariantI7SupplierSettlements(rows, wallets, settlements),
   ]
+}
+
+// ---------------------------------------------------------------------------
+// I8 — Итог месяца участка сходится (задача 99D-22): по каждой строке зеркала
+//   фонды + участку = членский взнос участка,
+//   инициатору + пайщикам обратно = собрано − членский взнос,
+//   списано строк не больше, чем строк в прогоне.
+// Источник — зеркало `marketplace_branch_period`: суммы в нём — те, что
+// рассчитал контракт в closeperiod; расхождение означает повреждённое зеркало
+// либо ошибку формулы контракта.
+// ---------------------------------------------------------------------------
+
+/** Срез строки итога месяца участка — поля, которые проверяет I8. */
+export interface MarketplaceBranchPeriodRow {
+  braname: string
+  period: number
+  secured: string
+  membership: string
+  funds_amount: string
+  branch_amount: string
+  initiator_amount: string
+  return_amount: string
+  rows_total: number
+  rows_charged: number
+}
+
+export function checkInvariantI8PeriodConsistency(periods: readonly MarketplaceBranchPeriodRow[]): InvariantResult {
+  const details: Array<{ processHash: string; message: string }> = []
+  for (const p of periods) {
+    const key = `${p.braname}/${p.period}`
+    const secured = parseAssetToBigInt(p.secured)
+    const membership = parseAssetToBigInt(p.membership)
+    const funds = parseAssetToBigInt(p.funds_amount)
+    const branch = parseAssetToBigInt(p.branch_amount)
+    const initiator = parseAssetToBigInt(p.initiator_amount)
+    const returned = parseAssetToBigInt(p.return_amount)
+    if (funds + branch !== membership) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8MembershipSplit', { funds: p.funds_amount, branch: p.branch_amount, membership: p.membership }) })
+    }
+    if (initiator + returned !== secured - membership) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8EconomySplit', { initiator: p.initiator_amount, returned: p.return_amount, secured: p.secured, membership: p.membership }) })
+    }
+    if (p.rows_charged > p.rows_total) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8RowsOverflow', { charged: String(p.rows_charged), total: String(p.rows_total) }) })
+    }
+  }
+  if (details.length > 0) {
+    return { ok: false, invariant: 'I8', expected: i18nT('marketplace.ledgerInvariants.i8Expected'), violation: i18nT('marketplace.ledgerInvariants.i8Violation'), details }
+  }
+  return { ok: true, invariant: 'I8', expected: i18nT('marketplace.ledgerInvariants.i8Expected') }
 }
 
 /** Internal: для интеграции с другими тестами / админ-вью. */

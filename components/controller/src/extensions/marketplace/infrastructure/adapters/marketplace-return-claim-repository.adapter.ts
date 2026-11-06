@@ -1,4 +1,4 @@
-import { TableStore, notNull, oneOf } from '@coopenomics/extension-kit';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
 import { MARKETPLACE_RETURN_CLAIM_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
@@ -114,7 +114,7 @@ private readonly repo: TableStore<MarketplaceReturnClaimEntity>,
     // и архивная секция требует финальные статусы. Раньше дефолт был
     // ACTIVE_STATUSES — это делало секцию архива всегда пустой.
     const where: Record<string, unknown> = { coopname, delivery_braname };
-    if (status !== undefined) {
+    if (status != null) {
       where.status = Array.isArray(status) ? oneOf(status) : status;
     }
     const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
@@ -159,9 +159,18 @@ private readonly repo: TableStore<MarketplaceReturnClaimEntity>,
     return this.mapper.toDomain(fresh);
   }
 
-  async listFeeRefundPending(coopname: string, limit = 50): Promise<MarketplaceReturnClaimDomainEntity[]> {
-    const rows = await this.repo.find({ coopname, fee_refund_pending_at: notNull() }, { order: { fee_refund_pending_at: 'ASC' }, limit: limit });
-    return rows.map((r) => this.mapper.toDomain(r));
+
+
+  async listActiveOrderHashes(coopname: string): Promise<string[]> {
+    // Только колонка хэша заказа: тела заявлений с документами прогону не нужны.
+    const rows = await this.repo
+      .sqlBuilder('c')
+      .select('c.order_hash', 'order_hash')
+      .distinct()
+      .where('c.coopname = :coopname', { coopname })
+      .andWhere('c.status IN (:...statuses)', { statuses: ACTIVE_STATUSES })
+      .getRawMany<{ order_hash: string }>();
+    return rows.map((row) => String(row.order_hash).toLowerCase());
   }
 
   async listByStatus(

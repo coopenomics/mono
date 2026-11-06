@@ -198,6 +198,23 @@ export interface InnerExpensePlannedReserve {
   horizonDays: number;
 }
 
+/**
+ * Запись реестра плановых расходов — для потребителей, которым нужны суммы по
+ * срокам (итог месяца кооперативного участка Стола заказов, задача 99D-22).
+ */
+export interface InnerExpensePlan {
+  id: number;
+  /** Участок записи; null — расход уровня кооператива. */
+  branchName: string | null;
+  title: string;
+  /** Сумма, asset-строка в валюте кооператива. */
+  amount: string;
+  dueDate: Date | null;
+  /** Хэш служебной записки шасси, которой оплачивается запись; null — оплата не запускалась. */
+  proposalHash: string | null;
+  paidAt: Date | null;
+}
+
 export interface IExpenseChassisPort {
   /**
    * Чтение proposal'а по хэшу. Возвращает null, если шасси не видит
@@ -276,6 +293,13 @@ export interface IExpenseChassisPort {
    * подразделению.
    */
   getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve>;
+
+  /**
+   * Записи реестра плановых расходов участка (`branchName`) либо всего
+   * кооператива (`null`) — со сроками, суммами и связью с записками шасси.
+   * Читает итог месяца участка Стола заказов (задача 99D-22).
+   */
+  listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]>;
 
   /**
    * Связать плановую запись с поданной сметой: пока смета идёт по шасси

@@ -423,7 +423,7 @@ operations:
       снова в пуле расходов.
 
   - ledger_code: o.exp.over
-    human_name: Доплата сверх выданного аванса
+    human_name: Доплата сверх подотчёта при перерасходе
     wallet_op: TRANSFER
     wallet_from: w.cap.pgexp
     wallet_to: w.exp.adv
@@ -452,3 +452,8 @@ related:
     relation: provides
     note: >
       Подаёт свой расход в этот процесс и получает его итог.
+  - process_type: p.sov.spend
+    relation: provides
+    note: >
+      Расход кооператива из фонда обеспечения хозяйственной деятельности
+      оформляется этим процессом с кошельком фонда как источником средств.

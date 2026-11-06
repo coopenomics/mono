@@ -131,6 +131,39 @@ describe('Стол заказов — боксы участка', () => {
     expect(found.id).toBe(boxes[0].id)
   })
 
+  it(caseName('mkt.store.side.10', 'пустой фильтр (null), как его шлёт стол, список не сужает — типы и боксы на месте'), async () => {
+    // Стол передаёт невыбранный фильтр значением null, а не пропуском поля.
+    const types = (await gql<any>(chairman, LIST_TYPES, { a: null })).marketplaceListContainerTypes
+    expect(types.map((t: any) => t.id)).toContain(type.id)
+
+    const listed = (await gql<any>(operator, LIST_BOXES, {
+      d: { braname: KRG, container_type_id: type.id, is_active: null, unplaced_only: null },
+    })).marketplaceListContainers
+    expect(listed.map((b: any) => b.id).sort()).toEqual(boxes.map(b => b.id).sort())
+
+    const all = (await gql<any>(chairman, LIST_BOXES, { d: { braname: null, container_type_id: null, is_active: null } })).marketplaceListContainers
+    for (const box of boxes) expect(all.map((b: any) => b.id)).toContain(box.id)
+  })
+
+  it(caseName('mkt.store.happy.08', 'председатель кооператива заводит партию боксов на выбранный участок — оператор участка её видит'), async () => {
+    const fromCoop = (await gql<any>(chairman, CREATE_BOXES, {
+      d: { braname: KRG, container_type_id: type.id, count: 2, label: `Закупка ${T}` },
+    })).marketplaceCreateContainers
+    expect(fromCoop).toHaveLength(2)
+    for (const box of fromCoop)
+      expect(box).toMatchObject({ braname: KRG, container_type_id: type.id, label: `Закупка ${T}`, cell_id: null, is_active: true })
+
+    const seen = (await gql<any>(operator, LIST_BOXES, { d: { braname: KRG, container_type_id: type.id } })).marketplaceListContainers
+    for (const box of fromCoop) expect(seen.map((b: any) => b.id)).toContain(box.id)
+  })
+
+  it(caseName('mkt.store.side.12', 'боксы на участке, которого нет в кооперативе, председатель не заводит'), async () => {
+    expectCode(
+      await gqlError(chairman, CREATE_BOXES, { d: { braname: `нет${T}`.toLowerCase().slice(0, 12), container_type_id: type.id, count: 1 } }),
+      'MARKETPLACE_BRANCH_NOT_FOUND_BY_NAME',
+    )
+  })
+
   it(caseName('mkt.store.side.03', 'партия с нулём боксов, с типом, которого нет, и сверх предела — отказ'), async () => {
     invalid(
       await gqlError(operator, CREATE_BOXES, { d: { braname: KRG, container_type_id: type.id, count: 0 } }),

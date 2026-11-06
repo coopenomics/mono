@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BranchContract } from 'cooptypes';
-import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
+import { LOGGER_PORT, type ILoggerPort, PaymentStatus, InnerPayoutRequestStatus,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
 import { MARKETPLACE_AID_COUNCIL_DECIDED_EVENT } from '../events/marketplace-notification.events';
@@ -12,16 +12,16 @@ import { t } from '../../i18n';
  * Слушатель решений совета по заявлению на материальную помощь (p.brn.aid).
  *
  * Выплата денег из кооператива — компетенция совета, поэтому `createAid`
- * создаёт core-платёж скрытым от кассира (AWAITING_AUTHORIZATION) и вносит
+ * сохраняет заявку на выплату с реквизитами (платежа кассиру ещё нет) и вносит
  * заявление на повестку. Решение совета приходит одним из callback'ов
  * контракта branch:
- *   - `onaidauth` — совет одобрил: платёж переводится в PENDING и появляется
- *     у кассира в реестре исходящих;
- *   - `onaiddecl` — совет отказал (или повестка просрочена): платёж
- *     отменяется, средства остаются на персональном кошельке получателя.
+ *   - `onaidauth` — совет одобрил: из заявки создаётся платёж «ожидает», и он
+ *     появляется у кассира в реестре исходящих;
+ *   - `onaiddecl` — совет отказал (или повестка просрочена): заявка
+ *     закрывается, средства остаются на персональном кошельке получателя.
  *
- * Тот же приём, что и у возврата паевого взноса (WithdrawAuthorizationListener):
- * платёж ищется по `hash`, равному `aid_hash`.
+ * Тот же порядок, что у возврата паевого взноса (WithdrawAuthorizationListener):
+ * заявка и платёж ищутся по `hash`, равному `aid_hash`.
  */
 @Injectable()
 export class MarketplaceAidCouncilSyncService {
@@ -60,42 +60,49 @@ export class MarketplaceAidCouncilSyncService {
         return;
       }
       const aidHash = data.hash.toLowerCase();
-      const found = await this.coreGateway.getPayments(
-        { coopname: data.coopname, hash: aidHash },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
-      );
-      const payment = found.items[0];
-      if (!payment?.id) {
-        this.logger.warn(
-          `${actionLabel}: платёж заявления ${aidHash} не найден — пропускаю.`
-        );
-        return;
-      }
-      // Идемпотентность: решение применяем только к платежу, который ещё ждёт
-      // совета. Повторный или поздний callback ничего не меняет.
-      if (payment.status !== PaymentStatus.AWAITING_AUTHORIZATION) {
-        this.logger.debug(
-          `${actionLabel}: платёж ${payment.id} уже в статусе ${payment.status} — решение не применяю.`
-        );
+      const subject = await this.decisionSubject(data.coopname, aidHash);
+      if (!subject) {
+        // Повторный или поздний callback по уже решённому заявлению ничего не меняет.
+        this.logger.debug(`${actionLabel}: заявление ${aidHash} уже решено либо не найдено — пропускаю.`);
         return;
       }
 
-      await this.coreGateway.setPaymentStatus({
-        id: payment.id,
-        status: approved ? PaymentStatus.PENDING : PaymentStatus.CANCELLED,
-        message: approved ? undefined : (data.reason ?? t('marketplace.aidCouncilSync.rejectedReasonLabel')),
-      });
+      if (approved) {
+        // Совет разрешил: платёж кассиру создаётся из заявки только сейчас.
+        const payment = await this.coreGateway.releasePayoutRequest(aidHash);
+        if (!payment) {
+          this.logger.warn(`${actionLabel}: платёж по заявлению ${aidHash} не создан — заявка не найдена.`);
+          return;
+        }
+      } else {
+        await this.coreGateway.declinePayoutRequest(aidHash);
+      }
 
       this.eventBus.emit(MARKETPLACE_AID_COUNCIL_DECIDED_EVENT, {
-        coopname: payment.coopname,
-        member_account: payment.username,
-        amount: `${payment.quantity} ${payment.symbol}`,
+        coopname: subject.coopname,
+        member_account: subject.username,
+        amount: `${subject.quantity} ${subject.symbol}`,
         approved,
-        reason: approved ? undefined : data.reason,
+        reason: approved ? undefined : (data.reason ?? t('marketplace.aidCouncilSync.rejectedReasonLabel')),
       });
     } catch (err: any) {
       this.logger.error(`${actionLabel} listener упал: ${err.message}`, err.stack);
     }
+  }
+
+  /**
+   * Что решает совет: заявка, которая ждёт решения, либо платёж «ожидает решения
+   * совета», заведённый до заявок. Решённое — null.
+   */
+  private async decisionSubject(
+    coopname: string,
+    aidHash: string
+  ): Promise<{ coopname: string; username: string; quantity: number; symbol: string } | null> {
+    const request = await this.coreGateway.getPayoutRequest(aidHash);
+    if (request) return request.status === InnerPayoutRequestStatus.AWAITING ? request : null;
+    const found = await this.coreGateway.getPayments({ coopname, hash: aidHash }, { page: 1, limit: 1, sortOrder: 'DESC' });
+    const payment = found.items[0];
+    return payment?.status === PaymentStatus.AWAITING_AUTHORIZATION ? payment : null;
   }
 }
 

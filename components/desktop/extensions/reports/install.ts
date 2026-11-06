@@ -10,6 +10,7 @@ import {
   CoopWalletsPage,
   ParticipantWalletsPage,
   AccountsPage,
+  FundsPage,
   DocumentsPage,
   DocumentsCalendarPage,
   DocumentsFormsPage,
@@ -128,6 +129,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.accountsTitle'),
               icon: 'fa-solid fa-sitemap',
+              requires: 'Registry:read',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            // Фонды кооператива на кошельках учётной книги (задача 99D-24):
+            // остатки, обороты, история; проценты правит председатель совета.
+            path: 'funds',
+            name: 'reports-funds',
+            component: markRaw(FundsPage),
+            meta: {
+              title: t('reports.install.route.fundsTitle'),
+              icon: 'fa-solid fa-piggy-bank',
               requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,

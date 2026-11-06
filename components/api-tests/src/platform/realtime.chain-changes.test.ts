@@ -215,7 +215,7 @@ describe('realtime.chain-changes: лента изменений — сигнал
 
       const added = await gql<any>(memberToken, `mutation($d:AddPaymentMethodInput!){
         addPaymentMethod(data:$d){ method_id username }
-      }`, { d: { username: member.account, is_default: false, sbp_data: { phone: '+79990001122' } } })
+      }`, { d: { username: member.account, is_default: false, sbp_data: { phone: '+79990001122', bank_name: 'Т-Банк' } } })
 
       const mine = { ...PAYMENT_METHODS, primary_key: member.account, block_num: 0 }
       await waitSignal(ownSub, mine)

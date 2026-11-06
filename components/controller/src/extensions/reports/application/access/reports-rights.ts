@@ -35,6 +35,10 @@ const FULL_DESK: Record<string, string[]> = {
   ReportRequisites: ['read', 'manage'],
   ReportCalendar: ['read', 'manage'],
   WithheldTax: ['read', 'pay'],
+  // Проценты и описания фондов (страница «Фонды», задача 99D-24). Стол открыт
+  // целиком председателю и бухгалтеру; кто именно вправе править фонд, решает
+  // контракт fund — он сверяет имя подписанта с председателем совета.
+  FundSettings: ['manage'],
 };
 
 /**
@@ -82,6 +86,9 @@ export const reportsAssignableRoles: readonly AssignableRole<'accountant'>[] = [
       { title: t('reports.roles.accountant.permissions.requisitesEdit'), access: 'write', rights: ['ReportRequisites:manage'] },
       { title: t('reports.roles.accountant.permissions.calendarMarks'), access: 'write', rights: ['ReportCalendar:manage'] },
       { title: t('reports.roles.accountant.permissions.taxPay'), access: 'write', rights: ['WithheldTax:pay'] },
+      // Правку фонда контракт проводит только от имени председателя совета;
+      // здесь право названо, чтобы перечень полномочий совпадал с таблицей.
+      { title: t('reports.roles.accountant.permissions.fundSettings'), access: 'write', rights: ['FundSettings:manage'] },
     ],
   },
 ];

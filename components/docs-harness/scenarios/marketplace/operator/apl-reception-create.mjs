@@ -100,9 +100,11 @@ export default async ({ page, shot, expect }) => {
   // Правим факт: количество и цену. Поля управляемые — без blur модель
   // остаётся с прежним значением, и акт уйдёт на заказанных числах при
   // внешне правильном экране.
-  const factInputs = page.locator('.reception__unit-fact input');
-  const qtyInput = factInputs.nth(1); // 0 — «Заказано», только для чтения
-  const priceInput = factInputs.nth(2);
+  // Таблица позиций окна (ActLinesTable): «Заказано» — текст, поля в строке —
+  // «Принять» и «Цена».
+  const factInputs = page.locator('.act-lines__cell input');
+  const qtyInput = factInputs.nth(0);
+  const priceInput = factInputs.nth(1);
   await qtyInput.click();
   await qtyInput.fill(String(FACT_QUANTITY));
   await qtyInput.blur();
@@ -129,7 +131,7 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await page.locator('button:has-text("Сформировать акты")').first().click();
+  await page.locator('button:has-text("Отправить на подпись")').first().click();
   await page.waitForTimeout(8000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
@@ -137,7 +139,7 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '04-acts-created',
-    'Акт приёма-передачи сформирован. Дальше его подписывает поставщик, а закрывающую подпись ставит председатель участка — только после этого имущество оприходуется на склад.',
+    'Сверенные количества и цены отправлены поставщику на подпись. Поставщик подписывает акт приёма-передачи, а закрывающую подпись ставит председатель участка — только после этого имущество оприходуется на склад.',
     {
       preserveNotifications: true,
       expect: async (p) => {

@@ -34,6 +34,12 @@ export const marketplaceAidSelector = Selector('MarketplaceAid')({
   stage: true,
   payment_status: true,
   payment_destination: true,
+  ndfl_tax: true,
+  net_amount: true,
+  submitted_at: true,
+  decided_at: true,
+  payment_completed_at: true,
+  payment_failed_at: true,
 })
 
 export const rawMarketplaceBranchWalletOperationSelector = {

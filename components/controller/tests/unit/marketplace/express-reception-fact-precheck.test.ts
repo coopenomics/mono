@@ -60,4 +60,20 @@ describe('экспресс-приёмка — проверка факта до �
       expect(service.shipmentRepo.create).not.toHaveBeenCalled();
     }
   });
+
+  // mkt.supply.side.54
+  it('цена приёмки выше цены заказа — отказ; ниже или равна — проверка проходит', async () => {
+    const service = makeService();
+    const express = (price: string) => codeOf(service.createExpress({
+      coopname: 'voskhod',
+      braname: 'krg',
+      offerer_account: 'sidorov',
+      operator_account: 'chairkrg',
+      fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 4, fact_unit_price: price }],
+    }));
+    expect(await express('105.0000')).toBe('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED');
+    expect(service.shipmentRepo.create).not.toHaveBeenCalled();
+    expect(await express('100.0000')).not.toBe('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED');
+    expect(await express('90.0000')).not.toBe('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED');
+  });
 });

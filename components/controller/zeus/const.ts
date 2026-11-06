@@ -1069,6 +1069,12 @@ export const AllTypesProps: Record<string,any> = {
 	GetMetricWaveInput:{
 
 	},
+	GetMyPendingPayoutsInput:{
+
+	},
+	GetMyWalletMovementsInput:{
+
+	},
 	GetPaymentMethodsInput:{
 
 	},
@@ -1314,6 +1320,9 @@ export const AllTypesProps: Record<string,any> = {
 		photos:"MarketplaceReturnClaimPhotoUploadInput",
 		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
+	MarketplaceCreateReviewInput:{
+
+	},
 	MarketplaceCreateShipmentInput:{
 		groups:"MarketplaceShipmentGroupInput"
 	},
@@ -1334,6 +1343,9 @@ export const AllTypesProps: Record<string,any> = {
 		items:"MarketplaceWriteoffItemInput"
 	},
 	MarketplaceDeclineOrdersBatchInput:{
+
+	},
+	MarketplaceDeleteBranchReserveInput:{
 
 	},
 	MarketplaceDeleteTrusteeWeightInput:{
@@ -1365,6 +1377,10 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceHandBackReturnInput:{
 
 	},
+	MarketplaceHandoffCodeInput:{
+		kind:"MarketplaceHandoffCodeKind"
+	},
+	MarketplaceHandoffCodeKind: "enum" as const,
 	MarketplaceInventoryOrigin: "enum" as const,
 	MarketplaceInventoryOwnership: "enum" as const,
 	MarketplaceInventorySplitEntryInput:{
@@ -1375,6 +1391,11 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceIssuanceOrderInput:{
 
 	},
+	MarketplaceIssuancePickScanInput:{
+
+	},
+	MarketplaceIssuancePickTarget: "enum" as const,
+	MarketplaceIssuancePickVerdict: "enum" as const,
 	MarketplaceIssuanceSagaStage: "enum" as const,
 	MarketplaceKUStatus: "enum" as const,
 	MarketplaceListAidsInput:{
@@ -1421,6 +1442,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceListReturnClaimsByBranameInput:{
 
+	},
+	MarketplaceListReviewsFilterInput:{
+		status:"MarketplaceReviewStatus"
 	},
 	MarketplaceListShipmentsByBranameInput:{
 		statuses:"MarketplaceShipmentStatus"
@@ -1487,6 +1511,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceResolveContainerByCodeInput:{
 
 	},
+	MarketplaceResolveScanInput:{
+
+	},
 	MarketplaceResolveStockProposalInput:{
 
 	},
@@ -1517,8 +1544,27 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceReturnStatementSignedMetaDocumentInput:{
 
 	},
+	MarketplaceReviewStatus: "enum" as const,
+	MarketplaceReviewSummaryInput:{
+
+	},
 	MarketplaceSaleForm: "enum" as const,
+	MarketplaceScanMatterKind: "enum" as const,
+	MarketplaceScanTarget: "enum" as const,
+	MarketplaceSecurePartState: "enum" as const,
+	MarketplaceSetAidLimitInput:{
+
+	},
+	MarketplaceSetBranchInitiatorInput:{
+
+	},
+	MarketplaceSetBranchReserveInput:{
+
+	},
 	MarketplaceSetCartDeliveryPointInput:{
+
+	},
+	MarketplaceSetInitiatorShareInput:{
 
 	},
 	MarketplaceSetKUStatusInput:{
@@ -1529,6 +1575,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceSetOfferWarrantyInput:{
 
+	},
+	MarketplaceSetReviewStatusInput:{
+		status:"MarketplaceReviewStatus"
 	},
 	MarketplaceSetSupplierPayoutMethodInput:{
 
@@ -1597,6 +1646,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceSupplierModel: "enum" as const,
+	MarketplaceSupplierProfileCoverInput:{
+
+	},
 	MarketplaceSupplierStatus: "enum" as const,
 	MarketplaceSwitchSupplierModelInput:{
 		model:"MarketplaceSupplierModel"
@@ -1611,6 +1663,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceUpdateContainerInput:{
 
 	},
+	MarketplaceUpdateMyReviewInput:{
+
+	},
 	MarketplaceUpdateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
@@ -1621,6 +1676,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceUpdateStorageCellInput:{
 
+	},
+	MarketplaceUpdateSupplierProfileInput:{
+		cover:"MarketplaceSupplierProfileCoverInput"
 	},
 	MarketplaceUpdateWriteoffDraftInput:{
 		items:"MarketplaceWriteoffItemInput"
@@ -2592,6 +2650,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCreateReturnClaim:{
 			data:"MarketplaceCreateReturnClaimInput"
 		},
+		marketplaceCreateReview:{
+			data:"MarketplaceCreateReviewInput"
+		},
 		marketplaceCreateShipment:{
 			data:"MarketplaceCreateShipmentInput"
 		},
@@ -2612,6 +2673,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceDeclineStockProposal:{
 			data:"MarketplaceResolveStockProposalInput"
+		},
+		marketplaceDeleteBranchReserve:{
+			data:"MarketplaceDeleteBranchReserveInput"
 		},
 		marketplaceDeleteCustomCategory:{
 
@@ -2685,8 +2749,20 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceRetryKUGeocode:{
 
 		},
+		marketplaceSetAidLimit:{
+			data:"MarketplaceSetAidLimitInput"
+		},
+		marketplaceSetBranchInitiator:{
+			data:"MarketplaceSetBranchInitiatorInput"
+		},
+		marketplaceSetBranchReserve:{
+			data:"MarketplaceSetBranchReserveInput"
+		},
 		marketplaceSetCartDeliveryPoint:{
 			input:"MarketplaceSetCartDeliveryPointInput"
+		},
+		marketplaceSetInitiatorShare:{
+			data:"MarketplaceSetInitiatorShareInput"
 		},
 		marketplaceSetKUStatus:{
 			data:"MarketplaceSetKUStatusInput"
@@ -2696,6 +2772,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSetOfferWarranty:{
 			input:"MarketplaceSetOfferWarrantyInput"
+		},
+		marketplaceSetReviewStatus:{
+			data:"MarketplaceSetReviewStatusInput"
 		},
 		marketplaceSetSupplierPayoutMethod:{
 			input:"MarketplaceSetSupplierPayoutMethodInput"
@@ -2735,6 +2814,15 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceUpdateContainer:{
 			data:"MarketplaceUpdateContainerInput"
+		},
+		marketplaceUpdateCooperativeProfile:{
+			data:"MarketplaceUpdateSupplierProfileInput"
+		},
+		marketplaceUpdateMyReview:{
+			data:"MarketplaceUpdateMyReviewInput"
+		},
+		marketplaceUpdateMySupplierProfile:{
+			data:"MarketplaceUpdateSupplierProfileInput"
 		},
 		marketplaceUpdateOffer:{
 			input:"MarketplaceUpdateOfferInput"
@@ -2795,6 +2883,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		reportNotMe:{
 			data:"ReportNotMeInput"
+		},
+		reportsEditFund:{
+			input:"ReportsEditFundInput"
 		},
 		requestCooperativeEndorsement:{
 			data:"RequestCooperativeEndorsementInput"
@@ -3529,6 +3620,12 @@ export const AllTypesProps: Record<string,any> = {
 		getMeets:{
 			data:"GetMeetsInput"
 		},
+		getMyPendingPayouts:{
+			data:"GetMyPendingPayoutsInput"
+		},
+		getMyWalletMovements:{
+			data:"GetMyWalletMovementsInput"
+		},
 		getNotification:{
 
 		},
@@ -3642,7 +3739,16 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCategoryOfferCounts:{
 
 		},
+		marketplaceGetBranchCurrentPeriod:{
+
+		},
 		marketplaceGetBranchEconomy:{
+
+		},
+		marketplaceGetBranchInitiator:{
+
+		},
+		marketplaceGetBranchReserves:{
 
 		},
 		marketplaceGetBranchWalletHistory:{
@@ -3666,6 +3772,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetShipment:{
 			data:"MarketplaceGetShipmentInput"
 		},
+		marketplaceHandoffCode:{
+			data:"MarketplaceHandoffCodeInput"
+		},
 		marketplaceIssuanceActPayload:{
 			data:"MarketplaceIssuanceOrderInput"
 		},
@@ -3674,6 +3783,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceIssuanceConvertPayload:{
 			data:"MarketplaceIssuanceOrderInput"
+		},
+		marketplaceIssuancePickScan:{
+			data:"MarketplaceIssuancePickScanInput"
 		},
 		marketplaceIssuanceSaga:{
 			data:"MarketplaceIssuanceOrderInput"
@@ -3696,6 +3808,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListBranchOrders:{
 			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
+		},
+		marketplaceListBranchPeriods:{
 			options:"PaginationInput"
 		},
 		marketplaceListCatalog:{
@@ -3748,6 +3863,10 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceListReturnClaimsByBraname:{
 			data:"MarketplaceListReturnClaimsByBranameInput"
 		},
+		marketplaceListReviews:{
+			filter:"MarketplaceListReviewsFilterInput",
+			options:"PaginationInput"
+		},
 		marketplaceListShipments:{
 			data:"MarketplaceListShipmentsInput"
 		},
@@ -3774,8 +3893,14 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceListWriteoffProposalsInput",
 			options:"PaginationInput"
 		},
+		marketplaceMyReviewByOrder:{
+
+		},
 		marketplaceResolveContainerByCode:{
 			data:"MarketplaceResolveContainerByCodeInput"
+		},
+		marketplaceResolveScan:{
+			data:"MarketplaceResolveScanInput"
 		},
 		marketplaceReturnClaim:{
 
@@ -3786,6 +3911,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceReturnClaimSignablePayload:{
 			data:"MarketplaceReturnClaimSignablePayloadInput"
 		},
+		marketplaceReviewSummary:{
+			filter:"MarketplaceReviewSummaryInput"
+		},
 		marketplaceStockIssuancePayloads:{
 			data:"MarketplaceStockIssuancePrepareInput"
 		},
@@ -3793,6 +3921,9 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceResolveStockProposalInput"
 		},
 		marketplaceSupplierClaim:{
+
+		},
+		marketplaceSupplierProfile:{
 
 		},
 		marketplaceWriteoffProposal:{
@@ -3828,6 +3959,13 @@ export const AllTypesProps: Record<string,any> = {
 		processes:{
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
+		},
+		reportsFundHistory:{
+			input:"ReportsFundHistoryInput",
+			options:"PaginationInput"
+		},
+		reportsFunds:{
+			input:"ReportsFundsInput"
 		},
 		reportsLedgerAccounts:{
 
@@ -3942,6 +4080,19 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ReportSubmissionMark: "enum" as const,
 	ReportType: "enum" as const,
+	ReportsEditFundInput:{
+
+	},
+	ReportsFundHistoryInput:{
+		date_from:"DateTime",
+		date_to:"DateTime"
+	},
+	ReportsFundKind: "enum" as const,
+	ReportsFundMovementDirection: "enum" as const,
+	ReportsFundsInput:{
+		date_from:"DateTime",
+		date_to:"DateTime"
+	},
 	RepresentedByInput:{
 
 	},
@@ -4307,6 +4458,8 @@ export const AllTypesProps: Record<string,any> = {
 	WalletEventsInput:{
 
 	},
+	WalletMovementDirection: "enum" as const,
+	WalletPendingState: "enum" as const,
 	WalmoveInput:{
 
 	},
@@ -7126,13 +7279,24 @@ export const ReturnTypes: Record<string,any> = {
 		totp_enabled:"Boolean",
 		totp_enrolled:"Boolean"
 	},
+	MarketplaceAccumulationFund:{
+		name:"String",
+		percent:"Float",
+		wallet_name:"String"
+	},
 	MarketplaceAid:{
 		amount:"String",
 		braname:"String",
+		decided_at:"DateTime",
 		hash:"String",
+		ndfl_tax:"String",
+		net_amount:"String",
+		payment_completed_at:"DateTime",
 		payment_destination:"String",
+		payment_failed_at:"DateTime",
 		payment_status:"PaymentStatus",
 		stage:"MarketplaceAidStage",
+		submitted_at:"DateTime",
 		username:"String"
 	},
 	MarketplaceAplReception:{
@@ -7161,6 +7325,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionFactEntry:{
 		fact_quantity:"Float",
 		fact_unit_price:"String",
+		image_url:"String",
 		order_id:"String",
 		orderer_account:"String",
 		orderer_name:"String",
@@ -7189,6 +7354,18 @@ export const ReturnTypes: Record<string,any> = {
 		typeId:"Int",
 		updatedAt:"DateTime"
 	},
+	MarketplaceBranchCurrentPeriod:{
+		aid_paid:"String",
+		aid_reserve:"String",
+		braname:"String",
+		expenses:"String",
+		memos:"String",
+		period:"Int",
+		planned:"String",
+		ripening_orders:"Int",
+		ripening_secured:"String",
+		ripening_turnover:"String"
+	},
 	MarketplaceBranchEconomy:{
 		available_to_distribute:"String",
 		braname:"String",
@@ -7196,6 +7373,53 @@ export const ReturnTypes: Record<string,any> = {
 		reserve_amount:"String",
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
+	},
+	MarketplaceBranchInitiator:{
+		assigned:"Boolean",
+		braname:"String",
+		invest_balance:"String",
+		username:"String"
+	},
+	MarketplaceBranchPeriod:{
+		aid_paid:"String",
+		aid_reserve:"String",
+		aid_unpaid:"String",
+		archived:"Boolean",
+		braname:"String",
+		branch_amount:"String",
+		closed_at:"DateTime",
+		deficit:"String",
+		expenses:"String",
+		funds_amount:"String",
+		initiator:"String",
+		initiator_amount:"String",
+		membership:"String",
+		memos:"String",
+		period:"Int",
+		planned:"String",
+		rate_percent:"String",
+		return_amount:"String",
+		rows_charged:"Int",
+		rows_total:"Int",
+		secured:"String",
+		turnover:"String"
+	},
+	MarketplaceBranchPeriodsPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceBranchPeriod",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceBranchReserve:{
+		amount:"String",
+		remaining:"String",
+		submitted:"String",
+		username:"String"
+	},
+	MarketplaceBranchReserves:{
+		braname:"String",
+		limit:"String",
+		rows:"MarketplaceBranchReserve"
 	},
 	MarketplaceBranchWalletHistoryPaginationResult:{
 		currentPage:"Int",
@@ -7284,7 +7508,6 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCheckoutSignableLine:{
 		amount:"String",
-		from_member:"String",
 		from_program:"String",
 		from_wallet:"String",
 		membership_fee:"String",
@@ -7362,12 +7585,24 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceEconomyConfig:{
 		membership_fee_percent:"Float"
 	},
+	MarketplaceEconomySettings:{
+		aid_month_limit:"String",
+		funds:"MarketplaceAccumulationFund",
+		funds_percent:"Float",
+		initiator_share_percent:"Float",
+		membership_fee_percent:"Float"
+	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
 		offerer_account:"String",
 		orders_count:"Int",
 		total_amount:"String",
 		total_units:"Float"
+	},
+	MarketplaceHandoffCode:{
+		code:"String",
+		expires_at:"DateTime",
+		kind:"MarketplaceHandoffCodeKind"
 	},
 	MarketplaceInventoryItem:{
 		arrival_price:"String",
@@ -7383,6 +7618,7 @@ export const ReturnTypes: Record<string,any> = {
 		delivery_point_name:"String",
 		expiry_date:"DateTime",
 		id:"String",
+		image_url:"String",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
 		offer_id:"String",
@@ -7416,6 +7652,16 @@ export const ReturnTypes: Record<string,any> = {
 		actual_unit_price:"String",
 		fact_cost:"String"
 	},
+	MarketplaceIssuancePickScan:{
+		container_code:"String",
+		inventory_id:"String",
+		order_id:"String",
+		order_ids:"String",
+		product_name:"String",
+		quantity:"Float",
+		target:"MarketplaceIssuancePickTarget",
+		verdict:"MarketplaceIssuancePickVerdict"
+	},
 	MarketplaceIssuanceSaga:{
 		act1_document:"SignedDigitalDocument",
 		act2_document:"SignedDigitalDocument",
@@ -7430,11 +7676,13 @@ export const ReturnTypes: Record<string,any> = {
 		decision_mode:"MarketplaceIssuanceDecisionMode",
 		fact:"MarketplaceIssuanceFact",
 		id:"ID",
+		image_url:"String",
 		last_error:"String",
 		member_account:"String",
 		operator_account:"String",
 		order_hash:"String",
 		order_id:"String",
+		product_name:"String",
 		proposal_id:"String",
 		protocol_document:"SignedDigitalDocument",
 		stage:"MarketplaceIssuanceSagaStage",
@@ -7506,9 +7754,11 @@ export const ReturnTypes: Record<string,any> = {
 		quantity_available:"Float",
 		quantity_blocked:"Float",
 		quantity_consumed:"Float",
+		rating_avg:"Float",
 		reject_reason:"String",
 		rejected_at:"DateTime",
 		rejected_by:"String",
+		reviews_count:"Int",
 		sale_form:"MarketplaceSaleForm",
 		shelf_life_days:"Int",
 		status:"MarketplaceOfferStatus",
@@ -7602,6 +7852,7 @@ export const ReturnTypes: Record<string,any> = {
 		product_name:"String",
 		quantity:"Float",
 		received_at:"DateTime",
+		secure_part:"MarketplaceSecurePart",
 		shipment_id:"String",
 		status:"MarketplaceOrderStatus",
 		supplier_account:"String",
@@ -7730,6 +7981,7 @@ export const ReturnTypes: Record<string,any> = {
 		product_name:"String",
 		reason_text:"String",
 		request_hash:"String",
+		statement:"DocumentAggregate",
 		status:"MarketplaceReturnClaimStatus",
 		submretrn_tx_hash:"String",
 		supplier_account:"String",
@@ -7771,6 +8023,58 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceReturnClaimResult:{
 		claim:"MarketplaceReturnClaim",
 		tx_hash:"String"
+	},
+	MarketplaceReview:{
+		author_account:"String",
+		author_name:"String",
+		created_at:"DateTime",
+		hidden_reason:"String",
+		id:"String",
+		offer_id:"String",
+		offer_name:"String",
+		order_id:"String",
+		stars:"Int",
+		status:"MarketplaceReviewStatus",
+		supplier_account:"String",
+		text:"String",
+		updated_at:"DateTime"
+	},
+	MarketplaceReviewPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceReview",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceReviewStarsCount:{
+		count:"Int",
+		stars:"Int"
+	},
+	MarketplaceReviewSummary:{
+		rating_avg:"Float",
+		reviews_count:"Int",
+		stars_breakdown:"MarketplaceReviewStarsCount"
+	},
+	MarketplaceScanMatter:{
+		ids:"String",
+		kind:"MarketplaceScanMatterKind"
+	},
+	MarketplaceScanVisit:{
+		account:"String",
+		container_code:"String",
+		display_name:"String",
+		matters:"MarketplaceScanMatter",
+		shipment_id:"String",
+		target:"MarketplaceScanTarget"
+	},
+	MarketplaceSecurePart:{
+		amount:"String",
+		charge_at:"DateTime",
+		charged_amount:"String",
+		due_amount:"String",
+		rate_percent:"String",
+		returned_amount:"String",
+		settled_at:"DateTime",
+		state:"MarketplaceSecurePartState"
 	},
 	MarketplaceShipment:{
 		braname:"String",
@@ -7837,6 +8141,7 @@ export const ReturnTypes: Record<string,any> = {
 		sagas:"MarketplaceIssuanceSaga"
 	},
 	MarketplaceStockProposalItem:{
+		image_url:"String",
 		offer_id:"String",
 		order_hash:"String",
 		order_id:"String",
@@ -7927,6 +8232,18 @@ export const ReturnTypes: Record<string,any> = {
 		has_payout_method:"Boolean",
 		payout_destination:"String",
 		payout_method_id:"String"
+	},
+	MarketplaceSupplierProfile:{
+		about:"String",
+		cover_url:"String",
+		custom_display_name:"String",
+		display_name:"String",
+		is_cooperative:"Boolean",
+		offers_count:"Int",
+		rating_avg:"Float",
+		reviews_count:"Int",
+		supplier_account:"String",
+		updated_at:"DateTime"
 	},
 	MarketplaceTrusteeWeight:{
 		personal_balance:"String",
@@ -8474,6 +8791,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
 		marketplaceCreateReturnClaim:"MarketplaceReturnClaimResult",
+		marketplaceCreateReview:"MarketplaceReview",
 		marketplaceCreateShipment:"MarketplaceCreateShipmentResult",
 		marketplaceCreateStockProposal:"MarketplaceStockProposal",
 		marketplaceCreateStorageCell:"MarketplaceStorageCell",
@@ -8481,6 +8799,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceDeclineOrdersBatch:"MarketplaceSupplierBatchActionResult",
 		marketplaceDeclineStockProposal:"MarketplaceStockProposal",
+		marketplaceDeleteBranchReserve:"MarketplaceBranchReserves",
 		marketplaceDeleteCustomCategory:"Boolean",
 		marketplaceDeleteTrusteeWeight:"Boolean",
 		marketplaceDetailKU:"MarketplaceKUDetails",
@@ -8505,10 +8824,15 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRequestSupplier:"MarketplaceSupplier",
 		marketplaceRetireStorageCells:"MarketplaceStorageCell",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
+		marketplaceSetAidLimit:"MarketplaceEconomySettings",
+		marketplaceSetBranchInitiator:"MarketplaceBranchInitiator",
+		marketplaceSetBranchReserve:"MarketplaceBranchReserves",
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
+		marketplaceSetInitiatorShare:"MarketplaceEconomySettings",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
 		marketplaceSetOfferWarranty:"MarketplaceOffer",
+		marketplaceSetReviewStatus:"MarketplaceReview",
 		marketplaceSetSupplierPayoutMethod:"MarketplaceSupplierPaymentSettings",
 		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
@@ -8522,6 +8846,9 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceUnpublishStock:"MarketplaceUnpublishStockResult",
 		marketplaceUpdateCartItem:"MarketplaceCart",
 		marketplaceUpdateContainer:"MarketplaceContainer",
+		marketplaceUpdateCooperativeProfile:"MarketplaceSupplierProfile",
+		marketplaceUpdateMyReview:"MarketplaceReview",
+		marketplaceUpdateMySupplierProfile:"MarketplaceSupplierProfile",
 		marketplaceUpdateOffer:"MarketplaceOffer",
 		marketplaceUpdateStorageCell:"MarketplaceStorageCell",
 		marketplaceUpdateWriteoffDraft:"MarketplaceWriteoffProposal",
@@ -8543,6 +8870,7 @@ export const ReturnTypes: Record<string,any> = {
 		removeAvatar:"Boolean",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
+		reportsEditFund:"ReportsFund",
 		requestCooperativeEndorsement:"Boolean",
 		requestEmailVerification:"EmailVerificationRequestDTO",
 		requestForceRecoveryConsent:"Boolean",
@@ -8928,6 +9256,12 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedRobotDecisionsPaginationResult:{
 		currentPage:"Int",
 		items:"RobotDecision",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedWalletMovementsPaginationResult:{
+		currentPage:"Int",
+		items:"WalletMovement",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -9474,6 +9808,8 @@ export const ReturnTypes: Record<string,any> = {
 		getMeets:"MeetAggregate",
 		getMyAccess:"ParticipantAccess",
 		getMyCertificate:"ParticipantCertificate",
+		getMyPendingPayouts:"WalletPendingItem",
+		getMyWalletMovements:"PaginatedWalletMovementsPaginationResult",
 		getNodeSyncState:"NodeSyncState",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
@@ -9525,11 +9861,15 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetAvailabilityStats:"MarketplaceAvailabilityStats",
 		marketplaceGetAvailableCategories:"MarketplaceAvailableCategory",
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
+		marketplaceGetBranchCurrentPeriod:"MarketplaceBranchCurrentPeriod",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
+		marketplaceGetBranchInitiator:"MarketplaceBranchInitiator",
+		marketplaceGetBranchReserves:"MarketplaceBranchReserves",
 		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetCart:"MarketplaceCart",
 		marketplaceGetCategoryRules:"MarketplaceAvailableCategory",
 		marketplaceGetEconomyConfig:"MarketplaceEconomyConfig",
+		marketplaceGetEconomySettings:"MarketplaceEconomySettings",
 		marketplaceGetOffer:"MarketplaceOffer",
 		marketplaceGetOrder:"MarketplaceOrder",
 		marketplaceGetOutgoingPayment:"MarketplaceOutgoingPaymentDetail",
@@ -9537,9 +9877,11 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetPersonalWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
+		marketplaceHandoffCode:"MarketplaceHandoffCode",
 		marketplaceIssuanceActPayload:"GeneratedDocument",
 		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
 		marketplaceIssuanceConvertPayload:"GeneratedDocument",
+		marketplaceIssuancePickScan:"MarketplaceIssuancePickScan",
 		marketplaceIssuanceSaga:"MarketplaceIssuanceSaga",
 		marketplaceIssuanceStatementPayload:"GeneratedDocument",
 		marketplaceLedgerInvariants:"MarketplaceLedgerInvariant",
@@ -9550,6 +9892,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
 		marketplaceListAvailableCategories:"MarketplaceCategory",
 		marketplaceListBranchOrders:"MarketplaceOrderPaginationResult",
+		marketplaceListBranchPeriods:"MarketplaceBranchPeriodsPaginationResult",
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",
@@ -9569,6 +9912,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListOutgoingPaymentsAsSupplier:"MarketplaceOutgoingPaymentRequest",
 		marketplaceListPendingOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListReturnClaimsByBraname:"MarketplaceReturnClaim",
+		marketplaceListReviews:"MarketplaceReviewPaginationResult",
 		marketplaceListShipments:"MarketplaceShipment",
 		marketplaceListShipmentsByBraname:"MarketplaceShipment",
 		marketplaceListStock:"MarketplaceInventoryItem",
@@ -9581,18 +9925,22 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListWriteoffCandidates:"MarketplaceWriteoffCandidate",
 		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",
 		marketplaceMemberWallet:"MarketplaceMemberWallet",
+		marketplaceMyReviewByOrder:"MarketplaceReview",
 		marketplaceMySupplierState:"MarketplaceSupplier",
 		marketplaceOnboardingState:"MarketplaceOnboardingState",
 		marketplaceOpenWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
 		marketplaceResolveContainerByCode:"MarketplaceContainer",
+		marketplaceResolveScan:"MarketplaceScanVisit",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
 		marketplaceReturnClaimChairmanSignablePayload:"MarketplaceReturnAcceptancePayload",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
+		marketplaceReviewSummary:"MarketplaceReviewSummary",
 		marketplaceStockIssuancePayloads:"MarketplaceStockIssuanceOperatorLine",
 		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
 		marketplaceSupplierClaim:"MarketplaceSupplierClaim",
 		marketplaceSupplierClaimSummary:"MarketplaceSupplierClaimSummary",
+		marketplaceSupplierProfile:"MarketplaceSupplierProfile",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
 		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",
@@ -9608,6 +9956,8 @@ export const ReturnTypes: Record<string,any> = {
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
+		reportsFundHistory:"ReportsFundHistoryPaginationResult",
+		reportsFunds:"ReportsFundsRegistry",
 		reportsLedgerAccounts:"Ledger2Account",
 		reportsLedgerHistory:"Ledger2HistoryResponse",
 		reportsLedgerPostings:"Ledger2PostingsResponse",
@@ -9774,6 +10124,43 @@ export const ReturnTypes: Record<string,any> = {
 		signerSnils:"RequisiteFieldView",
 		signerType:"String"
 	},
+	ReportsFund:{
+		account:"Int",
+		available:"String",
+		description:"String",
+		id:"Int",
+		income:"String",
+		kind:"ReportsFundKind",
+		name:"String",
+		outcome:"String",
+		percent:"Float",
+		wallet:"String",
+		wallet_name:"String"
+	},
+	ReportsFundHistoryPaginationResult:{
+		currentPage:"Int",
+		items:"ReportsFundMovement",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	ReportsFundMovement:{
+		amount:"String",
+		block_num:"Int",
+		counterparty_name:"String",
+		counterparty_wallet:"String",
+		created_at:"DateTime",
+		direction:"ReportsFundMovementDirection",
+		global_sequence:"String",
+		memo:"String",
+		operation_code:"String",
+		operation_name:"String",
+		process_hash:"String",
+		process_type:"String",
+		username:"String"
+	},
+	ReportsFundsRegistry:{
+		funds:"ReportsFund"
+	},
 	ReportsParticipant:{
 		name:"String",
 		username:"String"
@@ -9924,6 +10311,7 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	SbpAccount:{
+		bank_name:"String",
 		phone:"String"
 	},
 	SearchResult:{
@@ -10149,6 +10537,28 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String",
 		username:"String",
 		wallet_name:"String"
+	},
+	WalletMovement:{
+		created_at:"DateTime",
+		direction:"WalletMovementDirection",
+		global_sequence:"String",
+		memo:"String",
+		operation_code:"String",
+		operation_name:"String",
+		process_hash:"String",
+		process_type:"String",
+		quantity:"String",
+		wallet_name:"String",
+		wallet_title:"String"
+	},
+	WalletPendingItem:{
+		created_at:"DateTime",
+		hash:"String",
+		payment_method_id:"String",
+		quantity:"String",
+		state:"WalletPendingState",
+		title:"String",
+		type:"PaymentType"
 	},
 	WebPushSubscriptionDto:{
 		authKey:"String",

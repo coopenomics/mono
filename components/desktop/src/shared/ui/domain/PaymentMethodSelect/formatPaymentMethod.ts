@@ -14,7 +14,9 @@ export function formatPaymentMethodShort(method: IPaymentMethodLike): string {
   if (method.method_type === 'sbp') {
     const phone = String(method.data?.phone ?? '');
     const masked = phone.length > 4 ? `${phone.slice(0, 2)}***${phone.slice(-2)}` : phone;
-    return t('ui.formatPaymentMethod.sbpText', { masked });
+    const label = t('ui.formatPaymentMethod.sbpText', { masked });
+    const sbpBank = String(method.data?.bank_name ?? '').trim();
+    return sbpBank ? `${sbpBank}, ${label}` : label;
   }
   const account = String(method.data?.account_number ?? '');
   const bank = String(method.data?.bank_name ?? '');

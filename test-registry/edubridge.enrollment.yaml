@@ -614,6 +614,11 @@ cases:
     test: ~
     status: missing
 
+# 01.11.2026: шкала времени образования читает общую шкалу стенда
+# (extension-kit, STAND_DAY_SECONDS / STAND_MONTH_SECONDS / STAND_WORKER_PACE_SECONDS),
+# если она задана; прежние переменные EDUBRIDGE_* и сжатие по NODE_ENV=development
+# остаются запасными. Сценарии фичи не менялись.
+
 # 02.11.2026 (7DD-25): адаптер цепи образования получил refundLesson — возврат
 # оплаты занятия в подписки при отказе совета по взносу преподавателя. Случаи —
 # edu.contract.side.06 и edu.teach.side.14.

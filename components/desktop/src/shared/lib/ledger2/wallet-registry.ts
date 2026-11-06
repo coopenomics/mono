@@ -13,3 +13,5 @@ export type WalletMeta = Ledger2.WalletMeta
 
 export const LEDGER2_WALLET_REGISTRY = Ledger2.LEDGER2_WALLET_REGISTRY
 export const getWalletHumanName = Ledger2.getWalletHumanName
+/** Счёт плана (id ×1000), субсчётом которого служит кошелёк; 0 — учётный кошелёк без счёта (задача 99D-25). */
+export const getWalletAccount = Ledger2.getWalletAccount

@@ -57,6 +57,20 @@ title: Заказ пайщика — оформление, приём и отк�
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+# Правка 31.10.2026 (99D-18): членский взнос при заказе заменён обеспечительной
+# частью паевого взноса. Трансляция по заявлению 1110, обеспечительная часть,
+# её возвраты и удержание при отказе остаются на счёте 80; на выдаче факт
+# обеспечительной части ложится на кошелёк пайщика к списанию w.mkt.due, а
+# членским взносом участка (Дт 80 / Кт 86) она становится только при списании
+# по условиям ЦПП первого числа месяца после гарантийного срока (chargedue).
+# Членский кошелёк программы w.mkt.member и ожидание довнесения при
+# гарантийном возврате (feepend, payretfee) сняты. Случаи слайса,
+# описывавшие прежнюю модель, переписаны.
+
+# Правка 2026-10-10 (598-61, профиль поставщика и отзывы): страница заказа заказчика получила карточку «Отзыв»: по полученному
+# заказу заказчик оставляет и правит отзыв. Оформление, отмена и статусы заказа не менялись, набор случаев
+# прежний. Случаи отзывов — в marketplace.reviews.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.ts
@@ -69,7 +83,35 @@ sources:
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-display.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-close-cron.service.ts
+    # Коэффициент экономического участия (99D-22): факты месяца, зеркало итогов, резерв, прогон по ставкам
+    - components/controller/src/extensions/marketplace/application/services/marketplace-period.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-branch-aid-mirror.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-branch-reserve.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-keu.resolver.ts
+    - components/controller/src/extensions/marketplace/application/shared/period-bounds.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-period.entity.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-aid.entity.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1793520000000-keu-period.ts
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/closeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/chargeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/delperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/setshares.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/setinitiator.cpp
+    - components/contracts/cpp/branch/src/setreserve.cpp
+    - components/contracts/cpp/branch/src/delreserve.cpp
+    - components/contracts/cpp/branch/src/setaidlimit.cpp
+    - components/contracts/cpp/fund/src/accrue.cpp
+    # Эталон расчёта итога месяца и списания по ставкам — повторяет арифметику контрактов (аудит 05.11.2026).
+    - components/cooptypes/src/contracts/marketplace/periodModel.ts
+    # Обеспечительная часть невыданных заказов на кошельке пайщика w.mkt.secure (05.11.2026).
+    - components/contracts/cpp/marketplace/marketplace.cpp
+    - components/contracts/cpp/lib/core/marketplace/marketplace.hpp
   ui:
+    - components/desktop/src/pages/Marketplace/AdminMarketEconomy/**
+    - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/**
+    - components/desktop/src/pages/Marketplace/AdminIssuancePoints/**
+    - components/desktop/src/widgets/Marketplace/OrderSecurePartCard/**
     - components/desktop/src/pages/Marketplace/Cart/**
     - components/desktop/src/pages/Marketplace/OrderConfirmation/**
     - components/desktop/src/pages/Marketplace/MyOrders/**
@@ -360,11 +402,12 @@ cases:
     level: backend
     kind: side
     scenario: >
-      План по строкам корзины: членского кошелька нет, хватает на часть взноса, хватает на
-      весь взнос; несколько строк; ставка взноса нулевая
+      План по строкам корзины: свободного паевого нет, хватает на часть обеспечительной
+      части, хватает на всё; несколько строк; ставка нулевая
     expect: >
-      взнос покрывается остатком кошелька в порядке проведения строк, недостающее переводится
-      в членский, тело всегда с паевого; сумма заявления — тело плюс недостающая часть взноса
+      со свободного паевого в порядке строк сначала обеспечительная часть, затем тело;
+      недостающее транслируется заявлением; сумма заявления — недостающие части тела и
+      обеспечительной части
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
     api: components/api-tests/src/marketplace/order.test.ts
     status: written
@@ -373,11 +416,11 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Превью формирует заявление 1110 (тело плюс взнос за вычетом остатка кошелька); членский
-      кошелёк ещё не заведён у пайщика
+      Превью формирует заявление 1110 о трансляции на недостающее; свободный паевой ещё
+      не заведён у пайщика
     expect: >
-      в мете — якорь, сумма, членская часть и источник, ничего лишнего; незаведённый кошелёк
-      считается пустым
+      в мете — якорь, сумма трансляции и обеспечительная часть в ней, ничего лишнего;
+      незаведённый кошелёк считается пустым
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
     api: components/api-tests/src/marketplace/order.test.ts
     status: written
@@ -387,8 +430,8 @@ cases:
     kind: side
     scenario: >
       Оформление с заявлением 1110, которого нет, которое подписано на другое оформление,
-      с разошедшейся недостающей суммой или членской частью (баланс кошелька изменился
-      с превью), либо чужой подписью; и полностью сошедшееся
+      с разошедшейся суммой трансляции или обеспечительной частью в ней (баланс
+      изменился с превью), либо чужой подписью; и полностью сошедшееся
     expect: >
       отказ «обновите оформление» до отправки в цепь, с обеими суммами при расхождении;
       сошедшееся заявление превращается в document2 для действия convert
@@ -400,10 +443,11 @@ cases:
     level: contract
     kind: side
     scenario: >
-      createorder при членском кошельке, которого не хватает на взнос участка (заявление
-      о переводе не подано)
+      createorder, когда свободного паевого не хватает на обеспечительную часть
+      (заявление о трансляции не подано)
     expect: >
-      контракт отвергает с подсказкой сначала подать заявление; движений по средствам нет
+      контракт отвергает с кодом MARKETPLACE_SECURE_PART_SHORTFALL и подсказкой сначала
+      подать заявление; движений по средствам нет
     test: components/boot/src/tests/marketplace-convert.test.ts
     status: written
 
@@ -411,13 +455,26 @@ cases:
     level: contract
     kind: happy
     scenario: >
-      Членского кошелька на взнос не хватает: превью приносит заявление 1110 на тело плюс
-      недостающую часть взноса, пайщица подписывает, оформление проводит перевод и заказ
+      Свободного паевого не хватает: превью приносит заявление 1110 о трансляции на
+      недостающее, пайщица подписывает, оформление проводит трансляцию и заказ
     expect: >
-      членская часть заявления — взнос за вычетом остатка кошелька, текст — только слова
-      владельца; o.mkt.conv ровно на членскую часть первой операцией нитки заказа (отдельной
-      нитки по хешу заявления нет); там же o.mkt.fee на весь взнос с членского кошелька и
-      o.mkt.lock на всё тело паевым резервом
+      текст заявления — только слова владельца, без членского взноса; o.mkt.conv ровно на
+      сумму заявления первой операцией нитки заказа без проводки (отдельной нитки по хешу
+      заявления нет); там же o.mkt.fee на обеспечительную часть и o.mkt.lockp на тело со
+      свободного паевого
+    test: components/boot/src/tests/marketplace-convert.test.ts
+    status: written
+
+  - id: mkt.order.side.43
+    level: contract
+    kind: side
+    scenario: >
+      Заказ без заявления: свободного паевого хватает на обеспечительную часть, но не на заказ
+      целиком (обеспечительная часть и тело); на главном паевом денег достаточно
+    expect: >
+      заказ отвергается с кодом MARKETPLACE_SHARE_SHORTFALL и не оставляет движений: с главного
+      паевого средства приходят только трансляцией по заявлению 1110, резерв — только со
+      свободного паевого (решение владельца 31.10.2026)
     test: components/boot/src/tests/marketplace-convert.test.ts
     status: written
 
@@ -467,14 +524,15 @@ cases:
     level: contract
     kind: happy
     scenario: >
-      Пайщица оформляет заказ: если членского кошелька не хватает, превью отдаёт заявление
-      1110 на недостающую сумму, она подписывает его один раз, перевод и заказ проходят
+      Пайщица оформляет заказ: если свободного паевого Стола заказов не хватает, превью
+      отдаёт заявление 1110 о трансляции на недостающую сумму, она подписывает его один раз,
+      трансляция и заказ проходят
     expect: >
-      перевод ровно на членскую часть (w.wal.share → w.mkt.member) идёт первой операцией
-      нитки заказа — тип процесса один, значит и идентификатор один; там же взнос с членского
-      кошелька (o.mkt.fee) и тело паевым резервом (o.mkt.lock), других проводок кроме
-      Дт 80 / Кт 86 перевода нет; при недовыдаче излишек взноса возвращается на
-      w.mkt.member, невыданное тело — на свободный паевой
+      трансляция ровно на сумму заявления (w.wal.share → w.mkt.share, без проводки) идёт
+      первой операцией нитки заказа — тип процесса один, значит и идентификатор один; там же
+      обеспечительная часть (o.mkt.fee) и тело паевым резервом (o.mkt.lockp); проводок по
+      счёту 86 при оформлении нет; при недовыдаче излишек обеспечительной части и невыданное
+      тело возвращаются на свободный паевой (правка 31.10.2026, задача 99D-18)
     test: components/boot/src/tests/marketplace-money.test.ts
     status: written
 
@@ -498,7 +556,7 @@ cases:
     scenario: Цепь отказала в одном из заказов общей транзакции
     expect: >
       отказ всего оформления: брони остатка сняты по каждой строке, ни один заказ не записан,
-      корзина не тронута, перевод в членский кошелёк не проведён (откатился вместе с заказами)
+      корзина не тронута, трансляция по заявлению не проведена (откатилась вместе с заказами)
     test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
     api: components/api-tests/src/marketplace/order.test.ts
     status: passing
@@ -550,7 +608,7 @@ cases:
       Дельта создания заказа приходит раньше, чем контроллер записал заказ:
       транзакция возвращается после разбора своего блока, а запись идёт следом.
     expect: >
-      заказ сразу после оформления несёт членский взнос и привязку к строке
+      заказ сразу после оформления несёт обеспечительную часть и привязку к строке
       цепи; ошибки «заказ создан мимо контроллера» нет
     test: components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.spec.ts
     api: components/boot/src/tests/marketplace-money.test.ts
@@ -583,3 +641,648 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запросов к базе — снаружи они не видны; сами партии, расчёты и выдача через API покрыты случаями mkt.order.* во внешнем слое"
     status: written
+
+  # ── Коэффициент экономического участия (задачи 99D-19, 99D-20, 99D-21) ──
+  # Документ модели — требование компонента 68 «Коэффициент экономического
+  # участия». Контракты: fund (w.fnd.accum, fund::accrue), branch (резерв
+  # обеспечения по получателям, потолок, предел материальной помощи),
+  # marketplace (closeperiod, chargeperiod, delperiod, setshares, setinitiator).
+
+  - id: mkt.order.keu.01
+    level: contract
+    kind: happy
+    scenario: >
+      Первого числа кооператив передаёт факты прогона участка: стоимость заказов
+      с истёкшей гарантией, собранную обеспечительную часть, плановые расходы,
+      служебные записки, выплаченную материальную помощь.
+    expect: >
+      строка итога месяца записана один раз: расходы = планы + записки + резерв
+      обеспечения − невыплаченная часть прошлого резерва; участку = min(собрано,
+      расходы), дефицит = расходы − участку; фонды = (собрано − участку) × проценты
+      фондов; экономия = собрано − участку − фонды делится между инициатором и
+      пайщиками; три ставки сходятся по формулам документа; повтор — отказ
+      MARKETPLACE_PERIOD_EXISTS, нулевая стоимость — MARKETPLACE_PERIOD_AMOUNT_INVALID
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.02
+    level: contract
+    kind: happy
+    scenario: >
+      Списание обеспечительной части заказа по ставкам итога месяца.
+    expect: >
+      одной транзакцией в нитке заказа: o.mkt.charge на сумму участку + фонды +
+      инициатору, o.brn.common участку (Дт 80 / Кт 86), o.fnd.accrue по каждому
+      фонду накопления по его проценту с остатком округления у последнего,
+      o.mkt.initr инициатору из строки прогона, o.mkt.retdue пайщику на свободный
+      паевой; кошелёк к списанию обнуляется, остатки кошельков растут ровно на части
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.03
+    level: contract
+    kind: break
+    scenario: >
+      Повторное списание того же заказа; списание без строки итога месяца;
+      стирание строки итога.
+    expect: >
+      повтор — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку, повторный
+      delperiod и chargeperiod без строки — MARKETPLACE_PERIOD_NOT_CLOSED
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.04
+    level: contract
+    kind: side
+    scenario: >
+      Настройки модели: доля инициатора в экономии и инициатор участка отдельно
+      от председателя.
+    expect: >
+      setshares пишет долю, выше 100 % — MARKETPLACE_INITIATOR_SHARE_INVALID;
+      setinitiator назначает пайщика, не пайщика отклоняет, пустое имя снимает
+      назначение; строка итога месяца хранит получателя доли
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.05
+    level: contract
+    kind: happy
+    scenario: >
+      Резерв социально-экономического обеспечения пайщиков: потолок администратора
+      и строки по получателям участка.
+    expect: >
+      setaidlimit пишет потолок, отрицательный — BRANCH_AID_LIMIT_INVALID;
+      setreserve председателю — одна строка, перезапись меняет сумму; выше потолка —
+      BRANCH_RESERVE_OVER_LIMIT, постороннему — BRANCH_RESERVE_NOT_TRUSTED, ноль —
+      BRANCH_RESERVE_AMOUNT_INVALID, при потолке ноль — BRANCH_RESERVE_DISABLED
+    test: components/boot/src/tests/branch-reserve.test.ts
+    status: written
+
+  - id: mkt.order.keu.06
+    level: contract
+    kind: break
+    scenario: >
+      Предел материальной помощи получателя за месяц равен его резерву.
+    expect: >
+      заявление в пределах резерва проходит и пишется в накопитель месяца;
+      сверх резерва — BRANCH_AID_OVER_RESERVE; без строки резерва при включённом
+      потолке — BRANCH_AID_NO_RESERVE; при потолке ноль заявление проходит без
+      предела, как до задачи
+    test: components/boot/src/tests/branch-reserve.test.ts
+    status: written
+
+  - id: mkt.order.keu.07
+    level: contract
+    kind: side
+    scenario: >
+      Фонды накопления на кошельках ledger2: три стандартных фонда и
+      дополнительные фонды совета получают отдельный остаток каждый.
+    expect: >
+      у стандартных фондов постоянные имена разрезов indivisible, reserve, develop;
+      при первом отчислении имя закрепляется в строке фонда; доли фондов
+      пропорциональны процентам, сумма долей равна переданной сумме
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written
+
+  - id: mkt.order.keu.08
+    level: backend
+    kind: side
+    scenario: >
+      Границы закончившегося месяца по часовому поясу кооператива для сбора
+      фактов прогона.
+    expect: >
+      начало и конец месяца в UTC по поясу кооператива; декабрь переходит в
+      январь; номер месяца момента совпадает с ключом строк учёта; пояса с
+      переходом на летнее время и без него дают разные границы
+    test: components/controller/tests/unit/marketplace/period-bounds.test.ts
+    external: unreachable
+    external_reason: "чистая функция узла, через API не выведена"
+    status: written
+
+  - id: mkt.order.keu.09
+    level: backend
+    kind: side
+    scenario: >
+      Зеркало заявлений на материальную помощь по действиям контракта branch:
+      создание, одобрение, выплата, отказ; суммы за отрезок времени.
+    expect: >
+      createaid заводит строку «подано» с хэшем в нижнем регистре, повтор строку не
+      трогает; onaidauth → одобрено, aidconfirm → выплачено с моментом блока,
+      onaiddecl → отклонено, выплатить отклонённое нельзя; неизвестный хэш —
+      предупреждение без падения; paidWithin — только выплаченное по участку внутри
+      отрезка, конец не входит; submittedWithin — поданные, одобренные и выплаченные,
+      отклонённые нет
+    test: components/controller/tests/unit/marketplace/marketplace-branch-aid-mirror.test.ts
+    external: unreachable
+    external_reason: "зеркало строится по событиям цепи, через API не выведено"
+    status: written
+
+  - id: mkt.order.keu.10
+    level: backend
+    kind: side
+    scenario: >
+      Настройки модели для администратора и резерв участка для председателя:
+      чтение, запись, предел материальной помощи до обращения в цепь.
+    expect: >
+      ставка, доля инициатора, потолок и проценты фондов — в человеческих единицах,
+      доля по умолчанию 61,8 %; setInitiatorShare вне 0–100 — отказ; setAidLimit
+      отрицательный — отказ; инициатор участка — назначенный, иначе председатель;
+      строки резерва с остатком на месяц, чужой участок не входит; получатель вне
+      участка или сумма ноль — отказ до цепи; предел: потолок ноль — предела нет,
+      без строки резерва — MARKETPLACE_AID_NO_RESERVE, сверх — MARKETPLACE_AID_OVER_RESERVE
+    test: components/controller/tests/unit/marketplace/marketplace-branch-reserve.service.test.ts
+    external: unreachable
+    external_reason: "API стенда проверяется сценарием КЭУ-5 после экранов"
+    status: written
+
+  - id: mkt.order.keu.11
+    level: backend
+    kind: happy
+    scenario: >
+      Факты закончившегося месяца, расчёт контрактом, зеркало строки итога,
+      стирание старых строк.
+    expect: >
+      плановые расходы — записи участка со сроком внутри месяца; служебные записки —
+      выделено минус возвращено без удвоения планов; материальная помощь — из
+      зеркала заявлений; ensureClosed передаёт пять фактов активами и зеркалирует
+      строку цепи; повтор в месяце контракт не зовёт; MARKETPLACE_PERIOD_EXISTS —
+      строка читается из цепи, другой отказ — наверх; нет строки после расчёта —
+      MARKETPLACE_PERIOD_NOT_IN_CHAIN; pruneOld стирает строки старше прошлого
+      месяца; listForBranch — новые месяцы первыми
+    test: components/controller/tests/unit/marketplace/marketplace-period.service.test.ts
+    external: unreachable
+    external_reason: "прогон крона, через API не выведен"
+    status: written
+
+  - id: mkt.order.keu.12
+    level: backend
+    kind: side
+    scenario: Стоимость заказа и возвращённая часть в строке учёта к списанию.
+    expect: >
+      o.mkt.consum пишет стоимость заказа в строку; o.mkt.retdue увеличивает
+      возвращённое и уменьшает остаток; удержание при отказе стоимости не имеет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла"
+    status: written
+
+  - id: mkt.order.keu.13
+    level: backend
+    kind: happy
+    scenario: Прогон первого числа по ставкам итога месяца участка.
+    expect: >
+      строки группируются по участку; до первого списания участка вызывается
+      ensureClosed за прошлый месяц; строка со стоимостью — chargeperiod, без
+      стоимости — chargedue; списанное и возвращённое читаются из строки после
+      транзакции; отказ одного участка не останавливает другие
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "прогон крона, через API не выведен"
+    status: written
+
+  - id: mkt.order.keu.14
+    level: backend
+    kind: side
+    scenario: Письмо пайщику после прогона по ставкам.
+    expect: >
+      одно письмо за прогон со списанной суммой, возвращённой суммой и ставкой
+      месяца в процентах; без списания письма нет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "почта стенда проверяется вручную"
+    status: written
+
+  - id: mkt.order.keu.15
+    level: backend
+    kind: side
+    scenario: Инвариант I8 — части итога месяца участка сходятся.
+    expect: >
+      участку + фонды = членский взнос; членский взнос + инициатору + возврат =
+      собрано; расходы − участку = дефицит; расхождение — нарушение с именем участка
+      и периода; I2 признаёт o.fnd.accrue операцией фондов
+    test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    external: unreachable
+    external_reason: "инвариант проверяется по базе узла"
+    status: written
+
+  # ── Коэффициент экономического участия: экраны и внешний слой (КЭУ-5, 99D-23) ──
+  - id: mkt.order.keu.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Администратор на «Экономике» видит три настройки модели — ставку
+      обеспечительной части, долю инициатора, потолок резерва — и проценты
+      фондов накопления строкой; правит долю инициатора в окне.
+    expect: >
+      три карточки «подпись — число — пояснение»; окно правки с подсказкой, что
+      прошедшие месяцы не пересчитываются; фонды — для чтения
+    test: components/docs-harness/scenarios/marketplace/chairman/economy.mjs
+    status: written
+
+  - id: mkt.order.keu.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка на «Моих средствах» ведёт резерв социально-экономического
+      обеспечения пайщиков: таблица по получателям, потолок кооператива, окно строки.
+    expect: >
+      получатель, резерв в месяц, подано в текущем месяце, остаток; кнопки
+      добавить/изменить/убрать у председателя; при потолке ноль — баннер о
+      выплате без предела; в окне заявления — остаток резерва и отказ до отправки
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/economy-reserve-periods.mjs
+    status: written
+
+  - id: mkt.order.keu.ui.03
+    level: ui
+    kind: happy
+    scenario: Вкладка «Итоги месяцев» экономики участка и карточка паевого кошелька инициатора.
+    expect: >
+      текущий месяц «идёт» с расходами на сегодня, резервом и заказами к первому
+      числу; строка на прогон с десятью колонками; состав расходов и распределения
+      в правой панели; на «Кошельке участка» — карточка инициатора с остатком
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/economy-reserve-periods.mjs
+    status: written
+
+  - id: mkt.order.keu.ui.04
+    level: ui
+    kind: side
+    scenario: Карточка заказа пайщика после списания обеспечительной части.
+    expect: >
+      три строки — списано в членский взнос участка, возвращено на свободный
+      паевой Стола заказов, ставка списания участка за месяц; до списания — как
+      прежде
+    test: components/docs-harness/scenarios/marketplace/orderer/order-secure-part-charged.mjs
+    status: written
+
+  - id: mkt.order.keu.api.01
+    level: backend
+    kind: happy
+    scenario: >
+      Полный цикл снаружи на стенде со сжатым временем: настройки администратора,
+      резерв участка, два заказа, прогон первого числа, списание по ставкам,
+      карточки заказов, строки прогонов в цепи.
+    expect: >
+      итог месяца сходится по формулам контракта (У = min(C, РК), Ф = (C − У) × p,
+      Э = C − У − Ф, И = Э × φ, В = Э − И); строки учёта заказов закрыты по ставке
+      итога, списано + возвращено = обеспечительная часть; в цепи не больше двух
+      строк прогонов участка; набор идёт отдельной фазой полигона на сжатом времени
+      стенда (scripts/blackbox/stack.sh keu) — в полном и в ночном прогоне; без
+      BLACKBOX_STAND_MONTH_SECONDS пропускается
+    test: components/api-tests/src/marketplace/period-cycle.test.ts
+    status: written
+
+
+  # ── Коэффициент экономического участия: эталон, арифметика цепи, цикл ИСТОКА (аудит 05.11.2026) ──
+  # Три слоя: эталон расчёта (cooptypes) проверяется на сотнях месяцев без цепи; тест цепи
+  # сверяет с эталоном строки, посчитанные контрактом; цикл ИСТОКА идёт поверх подставной
+  # цепи, которая считает тем же эталоном.
+
+  - id: mkt.order.keu.model.01
+    level: contract
+    kind: happy
+    scenario: >
+      Эталон расчёта на контрольных примерах документа модели: участок А (дефицит),
+      участок Б (экономия), заказ 10 000 ₽ на ставках обоих участков, заказ по
+      прежней ставке 30 %, отчисление 1 000 ₽ в три фонда.
+    expect: >
+      числа совпадают с таблицами документа: А — участку 380 000, дефицит 120 000;
+      Б — участку 500 000, фонды 134 400, инициатору 312 460,80, пайщикам 193 139,20,
+      ставки 166 666 / 44 800 / 104 153; заказ на ставках Б — 1 666,66 / 448,00 /
+      1 041,53 / 643,81; фонды 47,6190 / 714,2857 / 238,0953
+    test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.keu.model.02
+    level: contract
+    kind: side
+    scenario: >
+      Рост оборота участка при неизменных расходах: одиннадцать месяцев от 200 000 ₽
+      до миллиарда.
+    expect: >
+      пока собранного меньше расходов — ставка списания равна ставке обеспечительной
+      части и возврата нет; дальше участок получает ровно расходы, ставка с каждым
+      ростом оборота не растёт и стремится к пределу 26,53 % (доля фондов и
+      инициатора от 38 %); пайщик с заказом 10 000 ₽ платит не больше 3 800 ₽
+    test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.keu.model.03
+    level: contract
+    kind: side
+    scenario: >
+      Крайние значения фактов: расходов нет; невыплаченная часть прошлого резерва
+      больше расходов; выплачено больше прошлого резерва; фондов нет и фонды 100 %;
+      доля инициатора 0 % и 100 %; одна единица актива; триллионы рублей; остаток
+      заказа меньше доли участка.
+    expect: >
+      расходы не становятся отрицательными; ни одна единица не теряется; при
+      нехватке остатка части урезаются по порядку — инициатор, фонды, участок
+    test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.keu.model.04
+    level: contract
+    kind: side
+    scenario: >
+      Две тысячи случайных месяцев и триста месяцев, собранных из заказов.
+    expect: >
+      собранное делится без остатка на участок, фонды, инициатора и пайщиков; при
+      дефиците фондам, инициатору и пайщикам ноль; по заказу списано + возвращено =
+      остаток и списано не больше остатка; сумма частей по заказам не превышает
+      итог месяца, расхождение — только остатки округления в пользу пайщиков
+    test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.keu.math.01
+    level: contract
+    kind: happy
+    scenario: >
+      Двенадцать месяцев роста оборота на живой цепи: контракт считает итог каждого
+      месяца по пяти фактам, без заказов.
+    expect: >
+      каждое поле строки итога равно эталону копейка в копейку; собранное разделено
+      целиком; ставка списания не растёт и не выше ставки обеспечительной части;
+      при дефиците списывается вся обеспечительная часть, без дефицита участок
+      получает ровно расходы
+    test: components/boot/src/tests/marketplace-period-math.test.ts
+    status: passing
+
+  - id: mkt.order.keu.math.02
+    level: contract
+    kind: side
+    scenario: >
+      Границы расчёта на цепи: собрано ровно на расходы, на единицу меньше и на
+      единицу больше; наименьшие суммы; сотни триллионов рублей; расходов нет.
+    expect: >
+      строка равна эталону во всех случаях; единица сверх расходов достаётся
+      пайщикам; большие суммы считаются без переполнения
+    test: components/boot/src/tests/marketplace-period-math.test.ts
+    status: passing
+
+  - id: mkt.order.keu.math.03
+    level: contract
+    kind: side
+    scenario: >
+      Три месяца подряд: резерв прошлого месяца берётся из прошлой строки участка,
+      материальная помощь не выплачена, выплачена наполовину.
+    expect: >
+      невыплаченная часть равна резерву прошлой строки минус выплаченное и
+      уменьшает расходы месяца
+    test: components/boot/src/tests/marketplace-period-math.test.ts
+    status: passing
+
+  - id: mkt.order.keu.math.04
+    level: contract
+    kind: side
+    scenario: >
+      Резерв участка 150 000 ₽ и доля инициатора 0 % и 100 % — настройки меняются
+      только на стенде с сидом docs-harness и возвращаются.
+    expect: >
+      невыплаченный резерв гасит резерв следующего месяца; при доле 0 % экономия
+      целиком пайщикам, при 100 % — целиком инициатору
+    test: components/boot/src/tests/marketplace-period-math.test.ts
+    status: written
+
+  - id: mkt.order.keu.math.06
+    level: contract
+    kind: break
+    scenario: >
+      Отказы расчёта итога: нулевой оборот и собранное, отрицательные расходы,
+      чужая валюта в каждом из пяти фактов, период ноль, повтор периода, участка нет.
+    expect: >
+      MARKETPLACE_PERIOD_AMOUNT_INVALID либо MARKETPLACE_PERIOD_EXISTS; после отказов
+      строки нет, повтор строку не меняет
+    test: components/boot/src/tests/marketplace-period-math.test.ts
+    status: passing
+
+  - id: mkt.order.keu.growth.01
+    level: contract
+    kind: happy
+    scenario: >
+      Два месяца участка с настоящими заказами одной пайщицы: два заказа в первом
+      месяце при расходах выше собранного, два крупнее во втором при тех же расходах.
+    expect: >
+      первый месяц — вся обеспечительная часть участку, возврата нет; второй —
+      участок получает ровно расходы, ставка списания ниже, пайщице возвращается
+      часть; списание одного заказа не трогает остаток другого на том же кошельке;
+      остатки участка, фондов и инициатора растут ровно на части по эталону;
+      после четырёх заказов кошелёк к списанию пуст, списано + возвращено = собрано
+    test: components/boot/src/tests/marketplace-period-growth.test.ts
+    status: written
+
+  - id: mkt.order.keu.growth.03
+    level: contract
+    kind: side
+    scenario: >
+      Заказ списывается двумя частями: остаток меньше доли участка; остаток при
+      стоимости в одну единицу актива.
+    expect: >
+      первая часть целиком участку, инициатору и фондам ноль; вторая целиком
+      возвращается пайщице без списания
+    test: components/boot/src/tests/marketplace-period-growth.test.ts
+    status: written
+
+  - id: mkt.order.keu.growth.05
+    level: contract
+    kind: break
+    scenario: >
+      Отказы списания по ставкам: больше остатка кошелька, нулевая сумма, нулевая
+      стоимость, чужая валюта, нет строки итога, участка нет.
+    expect: >
+      MARKETPLACE_DUE_EXCEEDS, MARKETPLACE_DUE_AMOUNT_INVALID,
+      MARKETPLACE_PERIOD_NOT_CLOSED; кошелёк к списанию не тронут
+    test: components/boot/src/tests/marketplace-period-growth.test.ts
+    status: written
+
+  - id: mkt.order.keu.cycle.01
+    level: backend
+    kind: happy
+    scenario: >
+      Год роста оборота участка: двенадцать прогонов первого числа, от одного заказа
+      в месяц до двадцати шести, семь пайщиков, расходы участка неизменны.
+    expect: >
+      в расчёт каждого итога передаются суммы всех заказов месяца и факты месяца;
+      ставка списания не растёт; каждая строка учёта закрыта, списано и возвращено
+      по эталону; кошельки к списанию пусты; собранное за год разошлось без остатка;
+      в цепи не больше двух строк участка; письмо — одно на пайщика за прогон
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    api: components/api-tests/src/marketplace/period-cycle.test.ts
+    status: passing
+
+  - id: mkt.order.keu.cycle.02
+    level: backend
+    kind: side
+    scenario: >
+      Операции одной транзакции приходят слушателю учёта разом: выдача несёт
+      стоимость и постановку к списанию, списание по итогу — списанную и
+      возвращённую части.
+    expect: >
+      строка получает обе суммы, остаток после списания ноль. До правки 05.11.2026
+      вторая операция терялась (журнал полигона 04.11.2026 — 32 отказа по ключу
+      строки учёта): строка оставалась без суммы к списанию и не списывалась никогда
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "порядок доставки операций слушателю снаружи не задать; следствие — закрытые строки учёта — проверяет набор period-cycle на стенде со сжатым временем"
+    status: passing
+
+  - id: mkt.order.keu.cycle.03
+    level: backend
+    kind: break
+    scenario: >
+      Сбой расчёта итога: цепь отказала; реестр плановых расходов недоступен; итог
+      рассчитан, а зеркало не записалось; повторные проходы; первый проход опоздал.
+    expect: >
+      без рассчитанного итога ни одна строка не списывается, кошельки целы; следующий
+      проход считает итог один раз и списывает всё; строка цепи не пересчитывается;
+      повторный проход ничего не шлёт в цепь
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "отказ цепи, реестра плановых расходов и базы посреди прогона через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.order.keu.cycle.04
+    level: backend
+    kind: break
+    scenario: >
+      Сбой списания одной строки; операции списания не дошли до учёта, других
+      заказов у пайщика нет.
+    expect: >
+      остальные строки списаны, упавшая списывается следующим проходом по тем же
+      ставкам без нового расчёта; строка с потерянными операциями повторно не
+      отправляется, деньги целы, в журнале тревога о расхождении с кошельком
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "сбой отправки одной транзакции списания и потерю операций учёта через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.order.keu.cycle.05
+    level: backend
+    kind: side
+    scenario: >
+      Какие строки входят в прогон: два участка; заказ с гарантией до следующего
+      месяца; открытый гарантийный возврат; удержание при отказе; месяц без заказов.
+    expect: >
+      у каждого участка свой итог по своим заказам; строка с гарантией ждёт прогона
+      своего месяца; заказ с открытым возвратом в расчёт не входит и не списывается;
+      удержание списывается целиком участку и в расчёт не входит
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "прогон первого числа запускает крон узла по календарю; состав строк прогона на общем стенде снаружи не задать, один месяц с двумя заказами проходит набор period-cycle"
+    status: passing
+
+  # Решения владельца 05.11.2026 по находкам аудита: список прогона, отметка
+  # отправки со сверкой по кошельку в цепи, заказ после гарантийного возврата
+  # ждёт следующего первого числа.
+  - id: mkt.order.keu.cycle.06
+    level: backend
+    kind: break
+    scenario: >
+      У участка двести пятьдесят созревших заказов к первому числу.
+    expect: >
+      итог месяца считается по сумме всех заказов участка одним запросом базы;
+      первый проход отправляет двести списаний, следующий — остальные по тем же
+      ставкам; расчёт итога один. До правки итог считался по первым двумстам
+      строкам кооператива, и ставки были неверны
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "двести пятьдесят выданных заказов за один прогон стенда — часы работы полигона"
+    status: passing
+
+  - id: mkt.order.keu.cycle.07
+    level: backend
+    kind: break
+    scenario: >
+      Списание заказа отправлено, а строка учёта не закрылась: узел цепи не
+      ответил; контракт отклонил; операции списания не дошли до учёта (у пайщика
+      есть и нет второго заказа); кошелёк в цепи при сверке не прочитан.
+    expect: >
+      отметка отправки ставится до транзакции, строку с отметкой проход не берёт;
+      отказ контракта снимает отметку сразу; при неизвестном исходе сверка
+      сравнивает кошелёк пайщика в цепи с учётом: денег не меньше — отметка
+      снимается и строка списывается следующим проходом, меньше — строка повторно
+      не списывается, в журнале тревога. Заказ не списывается дважды, деньги
+      второго заказа целы
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "сбой отправки одной транзакции списания и потерю операций учёта через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.order.keu.cycle.08
+    level: backend
+    kind: side
+    scenario: >
+      Гарантийный возврат по заказу закрыт в середине месяца, итог которого уже
+      рассчитан без этого заказа; возврат открыт после неудачного расчёта итога;
+      строка не списалась за весь месяц.
+    expect: >
+      список прогона закрывается расчётом итога: заказ без номера прогона ждёт
+      следующего первого числа и входит в расчёт того итога, по ставкам которого
+      списывается (решение владельца 05.11.2026, как в документе модели); при
+      повторе расчёта заказ с открытым возвратом из списка исключается; строка,
+      не списанная за месяц, входит в новый прогон и его расчёт; в карточке
+      заказа дата списания — ближайшее первое число
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "закрыть гарантийный возврат после расчёта итога и дождаться второго первого числа — два месяца стенда и решение совета между ними; один месяц проходит набор period-cycle"
+    status: passing
+
+  # 05.11.2026, решение владельца: средства заказа видны пайщику на всём пути.
+  # Обеспечительная часть до выдачи лежит на кошельке пайщика w.mkt.secure
+  # («Обеспечительная часть в заказах»), а не в общем пуле кооператива.
+  - id: mkt.order.secure.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщица оформляет заказ.
+    expect: >
+      со свободного паевого на её кошелёк «Обеспечительная часть в заказах»
+      переходит ровно обеспечительная часть заказа; общий пул кооператива
+      заказом не пополняется
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.02
+    level: contract
+    kind: side
+    scenario: >
+      Перенос обеспечительной части при обновлении контракта (marketplace::migrate)
+      запускается повторно при открытом заказе нового образца.
+    expect: >
+      ничего не переносится: перенос считает разницу между обеспечительной частью
+      невыданных заказов пайщика и остатком его кошелька; не больше остатка пула
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.03
+    level: contract
+    kind: side
+    scenario: >
+      Пайщица отменяет заказ до акцепта поставщиком.
+    expect: >
+      обеспечительная часть возвращается с кошелька под заказы на свободный паевой
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.04
+    level: contract
+    kind: side
+    scenario: >
+      Реестр кошельков и операций после правки.
+    expect: >
+      кошелёк под заказы держит выход пайщика и принадлежит программе «Стол
+      заказов»; заказ, возврат и переход к списанию двигают его, а не общий пул;
+      перенос при обновлении — из пула на кошелёк пайщика
+    test: components/boot/src/tests/marketplace-secure-wallet.test.ts
+    status: written
+
+  - id: mkt.order.secure.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик открывает стол пайщика и окно кошелька Стола заказов после заказа.
+    expect: >
+      карточки по пути заказа: «Свободный паевой», «В заказах» (стоимость
+      имущества), «Обеспечительная часть в заказах», «Обеспечительная часть к
+      списанию»; сумма каждой равна остатку кошелька в цепи
+    test: ~
+    status: missing   # сценарий harness не написан

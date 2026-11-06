@@ -583,7 +583,7 @@ operations:
       программы пополняется. Одна операция на одно заявление.
 
   - ledger_code: o.edu.fee
-    human_name: Списание членского взноса в фонд программы
+    human_name: Зачисление членского взноса за курс в фонд ЦПП «Образование»
     wallet_op: TRANSFER
     debit: null                    # оба кошелька на счёте 86
     credit: null
@@ -632,7 +632,7 @@ operations:
       свободных средств.
 
   - ledger_code: o.edu.allot
-    human_name: Резерв выплат преподавателям из членского взноса
+    human_name: Резервирование выплат преподавателям из членского взноса по ЦПП «Образование»
     wallet_op: TRANSFER
     debit: null                    # оба кошелька на счёте 86
     credit: null

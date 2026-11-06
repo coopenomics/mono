@@ -18,11 +18,23 @@ sources:
     - components/controller/src/application/gateway/services/gateway.service.ts
     - components/controller/src/application/gateway/services/payment-files.service.ts
     - components/controller/src/application/gateway/interactors/gateway.interactor.ts
+    - components/controller/src/application/gateway/services/gateway-expiry-cron.service.ts
+    - components/controller/src/infrastructure/database/migrations/1793869546649-deposit-payment-expiry.ts
+    - components/controller/src/infrastructure/database/migrations/1793946153183-bank-safe-payment-purpose.ts
+    - components/extension-kit/src/payment/bank-safe-text.ts
+    - components/controller/src/extensions/qrpay/qrpay-extension.module.ts
+    - components/controller/src/extensions/sberpoll/sberpoll-extension.module.ts
+    - components/controller/src/extensions/expenses/migrations/database/1793946254663-bank-safe-payment-purpose.ts
     - components/controller/src/application/gateway/dto/*.ts
     - components/controller/src/application/payment-method/**/*.ts
     - components/controller/src/domain/gateway/**/*.ts
     - components/controller/src/infrastructure/database/kysely/repositories/payment*.kysely-repository.ts
     - components/controller/src/infrastructure/database/kysely/repositories/ipn.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/payout-request.kysely-repository.ts
+    - components/controller/src/application/gateway/services/payout-request.service.ts
+    - components/controller/src/application/gateway/services/withdraw-authorization.listener.ts
+    - components/controller/src/infrastructure/innercoop/payment-desk-innercoop.adapter.ts
+    - components/controller/src/infrastructure/innercoop/payment-innercoop.adapter.ts
     - components/controller/src/infrastructure/database/generator-repositories/repositories/payment-method-generator.repository.ts
 
 cases:
@@ -269,4 +281,103 @@ cases:
     expect: реквизиты пропадают из списка (до 25.09.2026 deletePaymentMethod отвергал любой вызов — method_id строкового поля проверялся как число, 422)
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
+
+  # 01.11.2026 (367-3): у реквизитов СБП есть банк получателя. Список способов
+  # оплаты отдаётся через DTO: у реквизитов, сохранённых до появления поля,
+  # обязательное поле банка получает пустую строку. Без этого запрос реквизитов
+  # на столе падал «Cannot return null for non-nullable field SbpAccount.bank_name».
+  - id: pay.core.side.20
+    level: backend
+    kind: side
+    scenario: в списке способов оплаты пайщика реквизиты СБП без банка (сохранены до появления поля) и с банком
+    expect: >
+      без банка — пустая строка в поле банка, запрос списка не падает; с банком — банк как есть;
+      счётчики страницы прежние
+    test: components/controller/tests/unit/payment-method/payment-method-list.test.ts
+    external: unreachable
+    external_reason: "реквизиты без поля банка через API стенда не создать: добавление требует банк"
+    status: written   # прогон — CI на полигоне ci/tests
+
+# 2026-11-04 (решение владельца): выплата, которую решает совет, до решения
+# живёт заявкой на выплату (таблица payout_requests: сумма, реквизиты на момент
+# подачи, назначение), а не платежом «ожидает решения совета». Платёж кассиру
+# создаёт решение совета (wallet::authwthd, branch::onaidauth), отказ совета
+# закрывает заявку. Реквизиты остаются в базе узла и в цепь не попадают.
+# Миграция переносит висящие платежи «ожидает решения совета» в заявки.
+
+  - id: pay.core.happy.09
+    level: backend
+    kind: happy
+    scenario: >
+      Совет разрешил выплату по заявке (возврат паевого взноса, материальная
+      помощь)
+    expect: >
+      из заявки создаётся платёж «ожидает» с той же суммой, реквизитами и
+      назначением, хэш платежа — хэш заявки; заявка отмечается решённой
+    test: components/controller/tests/unit/gateway/withdraw-authorization.listener.test.ts
+    external: unreachable
+    external_reason: "решение совета приходит действием цепи — снаружи проверяется сидом edubridge (шаг 07) и сценарием экономики участка"
+    status: written
+
+  - id: pay.core.side.21
+    level: backend
+    kind: side
+    scenario: >
+      Повтор события решения совета, отказ совета, подача с занятым хэшем
+    expect: >
+      повтор второго платежа не создаёт; отказ закрывает заявку без платежа и
+      отменяет платёж, если он уже был; занятый платежом или заявкой хэш —
+      отказ GATEWAY_PAYMENT_HASH_DUPLICATE
+    test: components/controller/tests/unit/gateway/withdraw-authorization.listener.test.ts
+    external: unreachable
+    external_reason: "повтор и отказ — события цепи, снаружи не воспроизводятся без голосования совета"
+    status: written
+
+  - id: pay.core.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Кассир меняет статус платежа «ожидает решения совета» (заведён до
+      заявок) либо расширение заводит системную выплату с этим статусом
+    expect: >
+      смена статуса — отказ GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN; системная
+      выплата до решения совета — отказ GATEWAY_PAYOUT_BEFORE_COUNCIL_FORBIDDEN
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    external: unreachable
+    external_reason: "после миграции платежей «ожидает решения совета» на узле нет — снаружи состояние не создать"
+    status: written
+
+  - id: pay.core.side.22
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик заводит паевой взнос и не оплачивает его (передумал, ошибся
+      суммой); на стенде со сжатыми сутками и в работе
+    expect: >
+      у взноса срок оплаты — трое суток по шкале времени стенда (в работе 72
+      часа, при минутных сутках — три минуты); сторож истечения переводит его в
+      «Истёк», взнос скрывается из «В обработке» кошелька, в «Платежах» остаётся с
+      реквизитами; кассир подтверждает и истёкший взнос; висящим взносам без
+      срока миграция ставит три дня от создания (решение владельца 05.11.2026)
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    external: unreachable
+    external_reason: "срок истечения проверяется сторожем по часам узла — снаружи без ожидания суток не воспроизвести; на стенде со сжатым временем виден на странице кошелька"
+    status: written
+
+  - id: pay.core.side.23
+    level: backend
+    kind: side
+    scenario: >
+      Назначение платежа содержит «ё»: паевой взнос по соглашению о ЦПП
+      «Цифровой Кошелёк», аванс под отчёт, назначение организации в служебной
+      записке; пайщик либо кассир копирует назначение в банк
+    expect: >
+      в платёж, заявку на выплату, строку QR-кода оплаты и снимок реквизитов
+      назначение записывается с «е» вместо «ё» — банк «ё» не принимает
+      (владелец 06.11.2026); подписи в словарях и тексты интерфейса остаются с
+      «ё»; записанные раньше назначения миграция переписывает
+    test: components/controller/tests/unit/extension-kit/bank-safe-text.test.ts
+    external: unreachable
+    external_reason: "назначение записывает сервер при создании платежа; снаружи видно только итог, отдельной операции у замены нет"
     status: passing

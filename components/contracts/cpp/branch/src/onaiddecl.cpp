@@ -30,5 +30,21 @@
   eosio::check(it->status == AidStatus::PROPOSED,
                "Решение о выплате материальной помощи уже принято и откату не подлежит");
 
+  // Предел за месяц освобождается: отклонённое заявление не выплачено, и
+  // получатель может подать новое в том же месяце (задача 99D-20). Только
+  // если накопитель ведётся по текущему месяцу — строка прошлого месяца уже
+  // ничего не ограничивает.
+  {
+    branch_aidmonths_index months(_branch, coopname.value);
+    auto month = months.find(it->username.value);
+    const uint32_t period = Branch::utc_month_period(eosio::time_point_sec(eosio::current_time_point()));
+    if (month != months.end() && month->period == period) {
+      const eosio::asset amount = it->amount;
+      months.modify(month, RamPayer::of(months, coopname), [&](auto &m) {
+        m.total = m.total >= amount ? m.total - amount : eosio::asset(0, amount.symbol);
+      });
+    }
+  }
+
   byhash.erase(it);
 }

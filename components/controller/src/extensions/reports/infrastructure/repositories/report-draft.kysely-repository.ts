@@ -88,7 +88,7 @@ export class ReportDraftKyselyRepository implements ReportDraftRepository {
       .where('coopname', '=', filter.coopname)
       .where('owner_username', '=', filter.owner_username);
     if (filter.report_type) query = query.where('report_type', '=', filter.report_type);
-    if (filter.year !== undefined) query = query.where('year', '=', filter.year);
+    if (filter.year != null) query = query.where('year', '=', filter.year);
     if (filter.period === null) query = query.where('period', 'is', null);
     else if (typeof filter.period === 'number') query = query.where('period', '=', filter.period);
     const rows = await query.orderBy('updated_at', 'desc').execute();

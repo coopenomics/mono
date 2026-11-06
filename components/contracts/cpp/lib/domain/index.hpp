@@ -43,6 +43,10 @@
 #include "table_soviet_coagreements.hpp"
 #include "table_soviet_programs.hpp"
 
+#include "table_fund_funds.hpp"
+// Таблицы прежнего учёта фондов (остатки в контракте fund). Код их не читает;
+// объявления оставлены только для `fund::cleanup`, который стирает строки на
+// деплое, и убираются после прогона на проде (задачи 99D-25, 99D-26).
 #include "table_fund_accfunds.hpp"
 #include "table_fund_coopwallet.hpp"
 #include "table_fund_expfunds.hpp"
@@ -56,6 +60,9 @@
 #include "table_branch_weights.hpp"
 #include "table_branch_decisions.hpp"
 #include "table_branch_trustreqs.hpp"
+#include "table_branch_config.hpp"
+#include "table_branch_reserves.hpp"
+#include "table_branch_aidmonths.hpp"
 
 // wallet / gateway / ledger / loan / marketplace
 #include "table_wallet_deposits.hpp"
@@ -80,6 +87,8 @@
 // shipments) удалены вместе с donor-actions (AR30). Batch (consolidated request)
 // — backend-only, on-chain не хранится (Locked Decision L10).
 #include "table_marketplace_fee_config.hpp"
+#include "table_marketplace_initiators.hpp"
+#include "table_marketplace_periods.hpp"
 #include "table_marketplace_orders.hpp"
 #include "table_marketplace_return_requests.hpp"
 #include "table_marketplace_warranty_claims.hpp"

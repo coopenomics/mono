@@ -111,6 +111,22 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
     }
   }
 
+  /**
+   * Перечитать настройки складского контура и список участков. Настройки
+   * расширения председатель меняет во время работы; окна, где от них зависит
+   * ход (оприходование при закрывающей подписи), зовут это при открытии —
+   * иначе стол держит прежние флаги до перезагрузки страницы, а сервер уже
+   * требует место хранения (случай 01.11.2026). Упавший запрос оставляет
+   * прежние данные.
+   */
+  async function refreshSettings(): Promise<void> {
+    try {
+      who.value = await fetchWhoAmI()
+    } catch {
+      /* прежние настройки остаются */
+    }
+  }
+
   async function ensureLoaded(coopname: string): Promise<void> {
     if (!loaded.value && !loading.value) await load(coopname)
   }
@@ -128,6 +144,7 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
     isOperator,
     hasMultiple,
     warehouseSettings,
+    refreshSettings,
     addressedStorageEnabled,
     branches,
     activeBranch,

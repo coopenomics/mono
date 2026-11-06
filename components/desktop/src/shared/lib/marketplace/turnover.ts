@@ -52,6 +52,8 @@ export interface TurnoverOrder {
 
 export interface TurnoverRow {
   key: string;
+  /** Предложение позиции — строка открывает его карточку; null — позиция без предложения. */
+  offerId: string | null;
   title: string;
   branchName: string;
   branchAddress: string | null;
@@ -87,9 +89,10 @@ function toNumber(value: string | number | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function emptyRow(key: string): TurnoverRow {
+function emptyRow(key: string, offerId: string | null | undefined): TurnoverRow {
   return {
     key,
+    offerId: offerId ? String(offerId) : null,
     title: '',
     branchName: '',
     branchAddress: null,
@@ -162,7 +165,7 @@ function addInventory(
     if (!withinPeriod(at, sinceMs)) continue;
 
     const key = turnoverKey(item.braname, item.offer_id, item.product_name_snapshot);
-    const row = map.get(key) ?? emptyRow(key);
+    const row = map.get(key) ?? emptyRow(key, item.offer_id);
     fillMeta(row, {
       title: item.product_name_snapshot,
       branchName: branchNameOf(item.delivery_point_name, item.braname),
@@ -192,7 +195,7 @@ function addOrders(
 
     const title = order.product_name || i18nT('marketplace.turnover.productByOfferLabel');
     const key = turnoverKey(order.delivery_braname, order.offer_id, title);
-    const row = map.get(key) ?? emptyRow(key);
+    const row = map.get(key) ?? emptyRow(key, order.offer_id);
     fillMeta(row, {
       title,
       branchName: branchNameOf(order.delivery_point_name, order.delivery_braname),

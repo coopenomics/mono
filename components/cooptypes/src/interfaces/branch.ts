@@ -143,6 +143,45 @@ export interface IDeltrusted {
   trusted: IName
 }
 
+export interface IBrnconfig {
+  /** Потолок резерва социально-экономического обеспечения на получателя в месяц; ноль — резерв выключен. */
+  aid_month_limit: IAsset
+}
+
+export interface IBranchReserve {
+  id: IUint64
+  braname: IName
+  username: IName
+  /** Резерв социально-экономического обеспечения получателя в месяц. */
+  amount: IAsset
+}
+
+export interface IBranchAidmonth {
+  username: IName
+  /** Месяц по UTC: год × 12 + месяц. */
+  period: IUint32
+  /** Сумма поданных заявлений на материальную помощь за этот месяц. */
+  total: IAsset
+}
+
+export interface ISetaidlimit {
+  coopname: IName
+  limit: IAsset
+}
+
+export interface ISetreserve {
+  coopname: IName
+  braname: IName
+  username: IName
+  amount: IAsset
+}
+
+export interface IDelreserve {
+  coopname: IName
+  braname: IName
+  username: IName
+}
+
 export interface ISetprivate {
   coopname: IName
   braname: IName

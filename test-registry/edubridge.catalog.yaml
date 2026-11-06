@@ -21,6 +21,7 @@ sources:
     - components/desktop/extensions/edubridge/pages/AdminCoursesPage/**
     - components/desktop/extensions/edubridge/pages/CourseCardPage/**
     - components/desktop/extensions/edubridge/widgets/CourseForm/**
+    - components/desktop/src/shared/ui/domain/StatStrip/**   # плитки чисел карточки курса — общий компонент столов
     - components/desktop/extensions/edubridge/pages/AdminCourseEditPage/**
     - components/desktop/extensions/edubridge/entities/Course/**
 

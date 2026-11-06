@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert, hasErrorCode } from 'src/shared/api';
 import { ensureSigningUnlocked, signDocument } from 'src/shared/lib/document';
 import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
@@ -365,7 +365,7 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
         actsSigned += 1;
         setFlow({ signedActs: actsSigned });
       } catch (error) {
-        // Кнопка по этому акту появится в гейте — как раз для такого случая.
+        if (signedElsewhere(error)) continue;
         autoSignFailed.value = new Set([...autoSignFailed.value, saga.order_id]);
         FailAlert(error, t('marketplace.onsiteSignatureGate.autoSignFailed'));
       }
@@ -373,14 +373,10 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
     const pending = sagas.length - authorized.length - declined.length;
     if (actsSigned === sagas.length) {
       finishFlow('done');
-      SuccessAlert(
-        t('marketplace.onsiteSignatureGate.issueDoneSuccess', { count: actsSigned }),
-      );
+      SuccessAlert(t('marketplace.onsiteSignatureGate.issueDoneSuccess', { count: actsSigned }));
     } else if (pending > 0) {
       finishFlow('pending');
-      SuccessAlert(
-        t('marketplace.onsiteSignatureGate.issuePendingSuccess', { count: sagas.length }),
-      );
+      SuccessAlert(t('marketplace.onsiteSignatureGate.issuePendingSuccess', { count: sagas.length }));
     } else if (declined.length) {
       finishFlow('declined');
       FailAlert(new Error(t('marketplace.error.onsiteIssueDeclined')));
@@ -431,9 +427,11 @@ async function autoSignAuthorizedActs(): Promise<void> {
       );
     } catch (error) {
       // Не алертим: акт выпадает из автоподписи и остаётся в гейте кнопкой —
-      // пайщик подпишет вручную.
-      console.warn('[OnsiteGate] автоподпись акта не удалась', error);
-      autoSignFailed.value = new Set([...autoSignFailed.value, saga.order_id]);
+      // пайщик подпишет вручную. Шаг у другого устройства — не сбой.
+      if (!signedElsewhere(error)) {
+        console.warn('[OnsiteGate] автоподпись акта не удалась', error);
+        autoSignFailed.value = new Set([...autoSignFailed.value, saga.order_id]);
+      }
     } finally {
       autoSigning.delete(saga.order_id);
     }
@@ -444,10 +442,19 @@ async function autoSignAuthorizedActs(): Promise<void> {
 }
 
 /** Первая подпись акта приёма-передачи по решённой советом выдаче. */
-async function signActFor(order_id: string, username: string): Promise<void> {
+async function signActFor(order_id: string, username: string, manual = false): Promise<void> {
   const act = await getIssuanceActPayload(order_id);
   const signed_act = (await signDocument(act, username, 1)) as Parameters<typeof signIssuanceAct>[0]['signed_act'];
-  await signIssuanceAct({ order_id, signed_act });
+  await signIssuanceAct({ order_id, signed_act, manual });
+}
+
+/**
+ * Акт подписывает другое устройство этого же пайщика (телефон и компьютер
+ * открыты разом): сервер отдаёт шаг одному, второе не ошибается — экран
+ * обновится, когда подпись встанет.
+ */
+function signedElsewhere(error: unknown): boolean {
+  return hasErrorCode(error, 'MARKETPLACE_ISSUANCE_STEP_IN_PROGRESS');
 }
 
 /**
@@ -495,7 +502,8 @@ async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
         SuccessAlert(t('marketplace.onsiteSignatureGate.issuePendingSingleSuccess'));
       }
     } else {
-      await signActFor(task.order_id, global.username);
+      // Подпись кнопкой — ручная: перехватывает шаг у зависшего устройства.
+      await signActFor(task.order_id, global.username, true);
       // Подписал руками — пометка о сорвавшейся автоподписи больше не нужна.
       const failed = new Set(autoSignFailed.value);
       failed.delete(task.order_id);

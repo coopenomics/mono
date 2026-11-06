@@ -55,7 +55,7 @@ export const STOCK_ISSUANCE_PAYLOADS = `query($d:MarketplaceStockIssuancePrepare
 
 /**
  * Докладка со склада до подписи пайщика: оператор готовит строки и бандл,
- * пайщик подписывает заявления (и 1110, если членского кошелька не хватает).
+ * пайщик подписывает заявления (и 1110, если свободного паевого не хватает).
  * На подписи рождается заказ из остатка — с резервом позиций склада.
  */
 export async function orderFromStock(args: { operator: Who, member: Who, offerId: string, quantity: number, packageId?: string | null, braname?: string }): Promise<{ proposalId: string, orderId: string, orderHash: string }> {

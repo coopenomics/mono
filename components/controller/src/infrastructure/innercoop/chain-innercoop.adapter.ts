@@ -33,6 +33,16 @@ export class ChainInnercoopAdapter implements IChainPort {
     return this.blockchainService.getAllRows<T>(code, scope, tableName);
   }
 
+  async queryRows<T = any>(
+    code: string,
+    scope: string,
+    tableName: string,
+    options: { indexPosition?: string; keyType?: string; from?: string | number; to?: string | number; maxRows?: number }
+  ): Promise<T[]> {
+    // Вид индекса и тип ключа контракт описывает широко — приведение на границе, как у `getSingleRow`.
+    return this.blockchainService.query<T>(code, scope, tableName, options as Parameters<BlockchainService['query']>[3]);
+  }
+
   async getSingleRow<T = any>(
     code: string,
     scope: string,

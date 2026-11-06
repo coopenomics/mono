@@ -11,6 +11,8 @@ import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
+import { ReviewFormDialog } from 'src/widgets/Marketplace/ReviewFormDialog';
+import { loadMyReviewByOrder, type MarketplaceReviewView } from 'src/entities/MarketplaceReview';
 import {
   HandoffTokenKind,
   marketLiveTables,
@@ -23,7 +25,7 @@ import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import { fetchOrder } from '../../MyOrders/api';
-import type { MarketplaceOrderView } from '../../MyOrders/types';
+import type { MarketplaceOrderDetailView } from 'src/entities/MarketplaceOrder';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
 import {
   SubmitReturnClaimDialog,
@@ -36,6 +38,7 @@ import {
   type MarketplaceReturnClaimView,
 } from '../../OrdererReturnClaims';
 import { t, t as i18nT } from 'src/shared/i18n';
+import { OrderSecurePartCard } from 'src/widgets/Marketplace/OrderSecurePartCard';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -60,7 +63,8 @@ const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const orderId = computed(() => String(route.params.orderId ?? ''));
 
-const order = ref<MarketplaceOrderView | null>(null);
+// Карточка одного заказа: поля ленты и обеспечительная часть (secure_part).
+const order = ref<MarketplaceOrderDetailView | null>(null);
 const offerImages = ref<string[]>([]);
 const loading = ref(false);
 
@@ -205,6 +209,31 @@ const hasMap = computed(() => pvzLat.value !== null && pvzLng.value !== null);
 // Факт выдачи появляется, когда оператор открыл выдачу.
 const issuanceFact = computed(() => order.value?.issuance_fact ?? null);
 
+// Отзыв заказчик оставляет после получения — и по возвращённому заказу тоже:
+// он имущество получил и видел.
+const review = ref<MarketplaceReviewView | null>(null);
+const reviewDialogOpen = ref(false);
+const canReview = computed(
+  () =>
+    order.value?.status === Zeus.MarketplaceOrderStatus.RECEIVED ||
+    order.value?.status === Zeus.MarketplaceOrderStatus.RETURNED,
+);
+const reviewHidden = computed(() => review.value?.status === Zeus.MarketplaceReviewStatus.HIDDEN);
+
+async function loadReview(): Promise<void> {
+  if (!orderId.value) return;
+  try {
+    review.value = await loadMyReviewByOrder(orderId.value);
+  } catch {
+    // Некритично для страницы заказа — без данных блок предложит оставить отзыв,
+    // а сервер повторный отзыв не примет.
+  }
+}
+
+function onReviewSaved(saved: MarketplaceReviewView): void {
+  review.value = saved;
+}
+
 // Хронология этапов → канон ActivityTimeline. Берём только проставленные
 // отметки времени; тип события задаёт цвет иконки на ленте.
 const timelineEvents = computed<ActivityEvent[]>(() => {
@@ -245,6 +274,10 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
         entry.at,
       );
     }
+  }
+
+  if (review.value) {
+    add('review', 'create', 'rate_review', t('marketplace.ordererOrderDetailPage.statusReviewLeft'), review.value.created_at);
   }
 
   // Заказные и возвратные события идут из независимых источников — сводим в
@@ -323,8 +356,24 @@ async function onOrderCancelled(): Promise<void> {
   await load();
 }
 
+/**
+ * Прямая ссылка из приглашения оставить отзыв (`?review=1`) открывает форму
+ * сразу. Признак снимается из адреса: обновление страницы форму не возвращает.
+ */
+async function openReviewFromLink(): Promise<void> {
+  if (!route.query.review) return;
+  await Promise.all([load(), loadReview()]);
+  const { review: _review, ...query } = route.query;
+  void router.replace({ query });
+  if (canReview.value && !reviewHidden.value) reviewDialogOpen.value = true;
+}
+
 onMounted(() => {
-  void load();
+  if (route.query.review) void openReviewFromLink();
+  else {
+    void load();
+    void loadReview();
+  }
   void loadReturnClaims();
   void getMembershipFeePercent()
     .then((p) => {
@@ -339,9 +388,10 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useLiveReload(marketLiveTables('order', 'return'), async () => {
+useLiveReload(marketLiveTables('order', 'return', 'review'), async () => {
     await reloadLive();
     await loadReturnClaims();
+    await loadReview();
   });
 </script>
 
@@ -404,6 +454,71 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
             .order-detail__hero-cancel(v-if="cancellable")
               BaseButton(variant="danger", size="sm", @click="openCancelDialog") {{ $t('marketplace.ordererOrderDetailPage.cancelOrderButton') }}
 
+      //- После получения заказчику нужны два действия — оценить полученное и, если
+      //- что-то не так, заявить возврат. Они стоят сразу под заказом; «где
+      //- забрать» и «факт выдачи» после получения — справка, она ниже.
+      //- Отзыв о полученном имуществе: оставить, прочитать свой, поправить.
+      BaseCard.order-detail__card(v-if="canReview")
+        template(#head)
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.reviewLabel') }}
+        .order-detail__review
+          template(v-if="review")
+            .order-detail__review-head
+              q-rating(
+                :model-value="review.stars",
+                readonly,
+                :max="5",
+                size="18px",
+                color="accent",
+                icon="star_border",
+                icon-selected="star"
+              )
+              BaseBadge(v-if="reviewHidden", variant="neutral") {{ $t('marketplace.ordererOrderDetailPage.reviewHiddenBadge') }}
+            .order-detail__review-text(v-if="review.text") {{ review.text }}
+            .t-muted(v-if="reviewHidden && review.hidden_reason")
+              | {{ $t('marketplace.ordererOrderDetailPage.reviewHiddenReason', { reason: review.hidden_reason }) }}
+            .order-detail__return-actions(v-if="!reviewHidden")
+              BaseButton(variant="secondary", size="sm", @click="reviewDialogOpen = true") {{ $t('marketplace.ordererOrderDetailPage.reviewEditButton') }}
+          template(v-else)
+            .t-muted {{ $t('marketplace.ordererOrderDetailPage.reviewInvite') }}
+            .order-detail__return-actions
+              BaseButton(variant="primary", size="sm", @click="reviewDialogOpen = true")
+                template(#icon-left)
+                  q-icon(name="rate_review", size="16px")
+                | {{ $t('marketplace.ordererOrderDetailPage.reviewLeaveButton') }}
+
+      BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
+        template(#head)
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.warrantyReturnLabel') }}
+        .order-detail__return
+          .order-detail__return-hero
+            q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
+            .order-detail__return-text
+              .order-detail__return-primary {{ returnPrimaryText }}
+              .order-detail__return-secondary(v-if="returnSecondaryText") {{ returnSecondaryText }}
+            BaseBadge.order-detail__return-badge(
+              v-if="displayedReturnClaim"
+              :variant="returnClaimStatusVariant(displayedReturnClaim.status)"
+            )
+              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
+
+          .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
+            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") {{ $t('marketplace.ordererOrderDetailPage.detailsLink') }}
+            BaseButton(
+              v-if="canSubmitReturn"
+              :variant="displayedReturnClaim ? 'secondary' : 'primary'"
+              size="sm"
+              @click="openSubmitReturn"
+            )
+              template(#icon-left)
+                q-icon(name="assignment", size="16px")
+              | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
+
+      //- Обеспечительная часть: пайщик видит, когда его паевой взнос станет
+      //- членским взносом участка, и что гарантийный возврат до этой даты
+      //- вернёт её на свободный паевой.
+      OrderSecurePartCard.order-detail__card(v-if="order.secure_part", :part="order.secure_part")
+
       BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
         template(#head)
           .t-h3 {{ $t('marketplace.ordererOrderDetailPage.pickupLocationLabel') }}
@@ -433,39 +548,21 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
               td.text-right {{ formatPrice(String(totalWithFee)) }}
               td.text-right {{ formatPrice(String(factCostWithFee)) }}
 
-      BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
-        template(#head)
-          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.warrantyReturnLabel') }}
-        .order-detail__return
-          .order-detail__return-hero
-            q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
-            .order-detail__return-text
-              .order-detail__return-primary {{ returnPrimaryText }}
-              .order-detail__return-secondary(v-if="returnSecondaryText") {{ returnSecondaryText }}
-            BaseBadge.order-detail__return-badge(
-              v-if="displayedReturnClaim"
-              :variant="returnClaimStatusVariant(displayedReturnClaim.status)"
-            )
-              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
-
-          .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
-            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") {{ $t('marketplace.ordererOrderDetailPage.detailsLink') }}
-            BaseButton(
-              v-if="canSubmitReturn"
-              :variant="displayedReturnClaim ? 'secondary' : 'primary'"
-              size="sm"
-              @click="openSubmitReturn"
-            )
-              template(#icon-left)
-                q-icon(name="assignment", size="16px")
-              | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
-
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
           .t-h3 {{ $t('marketplace.ordererOrderDetailPage.timelineTitle') }}
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
+
+    ReviewFormDialog(
+      v-if="order",
+      v-model="reviewDialogOpen",
+      :order-id="order.id",
+      :offer-name="order.product_name",
+      :review="review",
+      @saved="onReviewSaved"
+    )
 
     CancelOrderDialog(
       v-model="cancelDialogOpen",
@@ -657,6 +754,25 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
+  }
+
+  &__review {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__review-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
+
+  &__review-text {
+    color: var(--p-ink);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   // Иконка + жирная строка состояния + приглушённая деталь снизу — тот же

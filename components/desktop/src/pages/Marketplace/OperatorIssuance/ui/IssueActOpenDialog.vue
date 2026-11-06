@@ -1,24 +1,36 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseButton, BaseBadge, BaseDialog } from 'src/shared/ui/base';
-import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
-import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
+import { BaseButton, BaseBadge, BaseCheckbox, BaseDialog, BaseInput, type BaseBadgeVariant } from 'src/shared/ui/base';
+import {
+  ActDialogLayout,
+  ActLineItem,
+  ActLinesTable,
+  ActSummaryCard,
+  type ActLinesColumn,
+} from 'src/widgets/Marketplace/ActDialogLayout';
 import {
   getMembershipFeePercent,
   applyMembershipFee,
   computeIssuanceDiff,
   marketplaceLineCost,
+  SHOW_MONEY_FLOW_LINES,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceSaleUnitLabel, marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getStockIssuancePayloads,
   createStockProposal,
+  issuancePickScan,
+  type IssuancePickScanView,
   type CreateStockProposalInput,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 import { t } from 'src/shared/i18n';
+import { Zeus } from '@coopenomics/sdk';
+import { playScanTone } from 'src/shared/lib/marketplace/scan-tone';
+import { BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 
 // Строки бандла — тип берём прямо из SDK-входа.
 type StockBundleStockLine = NonNullable<CreateStockProposalInput['items']>[number];
@@ -101,13 +113,6 @@ function removeRestock(offer_id: string): void {
   restockLines.value = restockLines.value.filter((l) => l.offer_id !== offer_id);
 }
 
-// sku (короткий, отображается в таблице) → id заказа, для onChange-маппинга.
-const skuToId = computed<Record<string, string>>(() => {
-  const m: Record<string, string> = {};
-  for (const o of props.orders) m[o.id.slice(0, 8)] = o.id;
-  return m;
-});
-
 /**
  * Потолок выдачи по заказу — фактически принято на склад КУ и не выдано.
  * Выдать больше физического остатка нельзя (инцидент 2026-06-09: заказ 10,
@@ -160,37 +165,112 @@ const includedOrders = computed(() =>
  * отпуске, базовыми единицами по мере. Упаковку не вскрывают — если внутри
  * брак, выдают её целиком, но по сниженной цене (решение 2026-08-13).
  * Внутри формы факт хранится в базовой единице (как на цепи), поэтому здесь
- * он делится на фасовку, а обратно умножается в `onCorrectionChange`.
+ * он делится на фасовку, а обратно умножается в `onFactInput`.
  */
 function saleUnitsOf(o: MarketplaceOrderIssuanceView, baseQuantity: number): number {
   const size = o.package_size ?? 0;
   return size > 0 ? Math.round(baseQuantity / size) : baseQuantity;
 }
 
-const correctionRows = computed<CorrectionRow[]>(() =>
-  props.orders.map((o) => {
-    const f = facts.value[o.id];
-    const packaged = (o.package_size ?? 0) > 0;
-    return {
-      sku: o.id.slice(0, 8),
-      title: o.product_name || t('marketplace.issueActOpenDialog.productOfferFallback'),
-      unit: marketplaceSaleUnitLabel(o.unit_of_measure, o.package_size ?? null),
-      packaged,
-      expected: saleUnitsOf(o, o.quantity),
-      available: saleUnitsOf(o, availableOf(o)),
-      location: (o.warehouse_locations ?? []).join(', ') || undefined,
-      fact: saleUnitsOf(o, f?.qty ?? Math.min(o.quantity, availableOf(o))),
-      expectedPrice: Number.parseFloat(o.price_per_unit),
-      // Правку оператора показываем как есть, до неё — цену прибытия
-      // (см. defaultPriceOf).
-      factPrice: f?.price ?? defaultPriceOf(o),
-      // Цену при выдаче можно только снизить: потолок — цена, с которой
-      // открылась выдача (цена прибытия, у остатка — цена заказа).
-      maxPrice: defaultPriceOf(o),
-      included: f?.included ?? availableOf(o) > 0,
-    };
-  }),
+function isPackaged(o: MarketplaceOrderIssuanceView): boolean {
+  return (o.package_size ?? 0) > 0;
+}
+
+// Строка выдачи на общей таблице актов: галка · позиция · выдать · цена ·
+// сумма строки · сверка. Что заказано, сколько на складе и где лежит —
+// мета-строкой под названием: семь колонок фиксированной ширины не
+// помещались в карточку рядом со сводкой (слово владельца 01.11.2026).
+const issueColumns = computed<ActLinesColumn[]>(() => [
+  { key: 'check', label: '', width: 'var(--p-6, 24px)' },
+  { key: 'item', label: t('marketplace.issueActOpenDialog.columnItem'), wide: true, width: 'minmax(200px, 1fr)' },
+  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: '136px', align: 'right' },
+  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: '160px', align: 'right' },
+  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: '112px', align: 'right', strong: true },
+  // Самый длинный бейдж — «Больше принятого».
+  { key: 'status', label: t('marketplace.issueActOpenDialog.columnStatus'), width: '144px' },
+]);
+
+type IssueRow = { key: string; off: boolean; order: MarketplaceOrderIssuanceView };
+
+// Строки по месту хранения: оператор обходит склад один раз, от бокса к
+// боксу. Позиции без места — в конце.
+const issueRows = computed<IssueRow[]>(() =>
+  [...props.orders]
+    .sort((a, b) => {
+      const la = (a.warehouse_locations ?? []).join(', ');
+      const lb = (b.warehouse_locations ?? []).join(', ');
+      if (!la || !lb) return la ? -1 : lb ? 1 : 0;
+      return la.localeCompare(lb, 'ru', { numeric: true });
+    })
+    .map((o) => ({ key: o.id, off: !isIncluded(o), order: o })),
 );
+
+function isIncluded(o: MarketplaceOrderIssuanceView): boolean {
+  return (facts.value[o.id]?.included ?? availableOf(o) > 0) && availableOf(o) > 0;
+}
+
+/** Короткая единица отпуска для поля «Выдать»: «упак.», «шт», «кг». */
+function saleUnitShort(o: MarketplaceOrderIssuanceView): string {
+  return isPackaged(o) ? t('marketplace.issueActOpenDialog.packShort') : marketplaceUnitShort(o.unit_of_measure);
+}
+
+/** Мета-строка позиции: единица отпуска, заказано, на складе, место хранения. */
+function lineMeta(o: MarketplaceOrderIssuanceView): string {
+  const unit = marketplaceSaleUnitLabel(o.unit_of_measure, o.package_size ?? null);
+  const parts = [
+    unit,
+    t('marketplace.issueActOpenDialog.lineMetaText', {
+      ordered: saleUnitsOf(o, o.quantity),
+      available: saleUnitsOf(o, availableOf(o)),
+    }),
+  ];
+  const location = (o.warehouse_locations ?? []).join(', ');
+  if (location) parts.push(location);
+  return parts.join(' · ');
+}
+
+/** Выдаётся в единицах отпуска — то, что видит оператор в поле. */
+function factUnits(o: MarketplaceOrderIssuanceView): number {
+  return saleUnitsOf(o, facts.value[o.id]?.qty ?? Math.min(o.quantity, availableOf(o)));
+}
+
+function factPrice(o: MarketplaceOrderIssuanceView): number {
+  return facts.value[o.id]?.price ?? defaultPriceOf(o);
+}
+
+/** Сумма строки по факту и цене; снятая строка — ноль. */
+function lineSum(o: MarketplaceOrderIssuanceView): number {
+  if (!isIncluded(o)) return 0;
+  const f = facts.value[o.id];
+  return f ? marketplaceLineCost(f.qty, f.price, o.package_size ?? null) : 0;
+}
+
+// Шаг ввода количества: упаковка и штука неделимы (1), вес и объём — дробный
+// шаг 0.001, чтобы браузер не отвергал дробное значение.
+function stepFor(o: MarketplaceOrderIssuanceView): string {
+  if (isPackaged(o)) return '1';
+  const unit = marketplaceUnitShort(o.unit_of_measure);
+  // i18n-ignore: единица измерения из данных предложения, не надпись
+  return unit === 'шт' || unit === 'шт.' ? '1' : '0.001';
+}
+
+// Сверка строки: нет на складе / больше принятого / совпадает с заказом /
+// недостача / избыток. Сравнивается факт в единицах отпуска с заказом.
+function lineStatus(o: MarketplaceOrderIssuanceView): { label: string; variant: BaseBadgeVariant } {
+  const available = saleUnitsOf(o, availableOf(o));
+  const fact = factUnits(o);
+  const delta = fact - saleUnitsOf(o, o.quantity);
+  if (available <= 0) return { label: t('marketplace.issueActOpenDialog.statusOutOfStock'), variant: 'neg' };
+  if (fact > available) return { label: t('marketplace.issueActOpenDialog.statusOverStock'), variant: 'neg' };
+  if (delta === 0) return { label: t('marketplace.issueActOpenDialog.statusMatch'), variant: 'pos' };
+  if (delta < 0) return { label: t('marketplace.issueActOpenDialog.statusShort'), variant: 'warn' };
+  return { label: t('marketplace.issueActOpenDialog.statusOver'), variant: 'info' };
+}
+
+function toNumber(v: unknown): number {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 // Итоговая сумма к выдаче — только по выбранным к выдаче позициям.
 const totalFactCost = computed<string>(() => {
@@ -204,14 +284,15 @@ const totalFactCost = computed<string>(() => {
   return sum.toFixed(4);
 });
 
-// Ставка членского взноса — для оценки возврата/доплаты при расхождении факта
-// и для показа состава суммы (себестоимость + взнос) оператору и пайщику.
+// Ставка обеспечительной части — для оценки возврата/доплаты при расхождении
+// факта и для показа состава суммы (стоимость имущества + обеспечительная
+// часть) оператору и пайщику.
 const feePercent = ref(0);
 
-// Себестоимость выдаваемого показываем отдельно от суммы к оплате — пайщик
-// платит взнос сверх себестоимости (та же формула, что в каталоге/корзине,
-// requirement b6); раньше на этом экране взнос не был виден вообще ни
-// оператору, ни пайщику на следующей подписи (жалоба 2026-08-02).
+// Стоимость выдаваемого имущества показываем отдельно от суммы к оплате —
+// обеспечительная часть идёт сверх неё (та же формула, что в каталоге и
+// корзине, requirement b6); раньше на этом экране её не видели ни оператор,
+// ни пайщик на следующей подписи (жалоба 2026-08-02).
 const totalFactCostWithFee = computed(() => applyMembershipFee(Number(totalFactCost.value), feePercent.value));
 const membershipFeeAmount = computed(() => totalFactCostWithFee.value - Number(totalFactCost.value));
 
@@ -241,6 +322,58 @@ const leftCount = computed(() => positionsCount.value - includedCount.value);
 const recipientName = computed(
   () => props.orders.find((o) => o.orderer_name)?.orderer_name || props.orders[0]?.orderer_account || '',
 );
+
+// Под именем — учётное имя, если имя пайщика известно (иначе оно уже в шапке).
+const recipientMeta = computed(() => {
+  const account = props.orders[0]?.orderer_account ?? '';
+  return account && account !== recipientName.value ? account : '';
+});
+
+function rub(value: number | string): string {
+  return `${formatAsset2Digits(Number(value).toFixed(4))} ₽`;
+}
+
+// Сводка справа: сначала сколько выдаётся и что остаётся на складе, затем
+// расчёт по пути денег — стоимость имущества, обеспечительная часть, возврат
+// или доплата по факту, докладка. Итог к оплате карточка ставит крупно.
+const summaryFacts = computed(() => {
+  const list = [
+    {
+      label: t('marketplace.issueActOpenDialog.selectedLabel'),
+      value: t('marketplace.issueActOpenDialog.selectedValue', { selected: includedCount.value, total: positionsCount.value }),
+    },
+  ];
+  if (leftCount.value > 0) {
+    list.push({
+      label: t('marketplace.issueActOpenDialog.leftOnStockLabel'),
+      value: t('marketplace.issueActOpenDialog.leftCountText', { count: leftCount.value }),
+    });
+  }
+  return list;
+});
+
+const summaryLines = computed(() => {
+  const lines: Array<{ label: string; value: string }> = [
+    { label: t('marketplace.issueActOpenDialog.costLabel'), value: rub(totalFactCost.value) },
+  ];
+  if (feePercent.value > 0) {
+    lines.push({
+      label: t('marketplace.issueActOpenDialog.targetFeeHeader', { percent: feePercent.value }),
+      value: rub(membershipFeeAmount.value),
+    });
+  }
+  // Строки о движении денег скрыты переключателем, описание — в money-flow-lines.ts.
+  if (SHOW_MONEY_FLOW_LINES && issuanceDiff.value.refund > 0) {
+    lines.push({ label: t('marketplace.issueActOpenDialog.refundToWalletLabel'), value: rub(issuanceDiff.value.refund) });
+  }
+  if (SHOW_MONEY_FLOW_LINES && issuanceDiff.value.surcharge > 0) {
+    lines.push({ label: t('marketplace.issueActOpenDialog.surchargeLabel'), value: rub(issuanceDiff.value.surcharge) });
+  }
+  if (restockLines.value.length) {
+    lines.push({ label: t('marketplace.issueActOpenDialog.restockLabel'), value: rub(restockTotal.value) });
+  }
+  return lines;
+});
 
 // Превышение склада среди выдаваемых: ввод выше принятого. Блокирует подпись.
 const anyOverStock = computed(() =>
@@ -289,6 +422,9 @@ watch(
     if (visible && props.orders.length) {
       initFacts();
       restockLines.value = [];
+      pickedLabels.value = {};
+      scanMessage.value = null;
+      scanCode.value = '';
       if (!feePercent.value) {
         getMembershipFeePercent()
           .then((p) => (feePercent.value = p))
@@ -299,39 +435,169 @@ watch(
   { immediate: false },
 );
 
-function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: number }): void {
-  const id = skuToId.value[payload.sku];
-  if (!id) return;
-  const order = props.orders.find((o) => o.id === id);
-  const f = facts.value[id] ?? { qty: 0, price: 0, included: true };
-  // Корректируем форму к потолку склада сразу при вводе: выдать больше
-  // принятого нельзя, акт на большее не сформируется (двойная защита с
-  // backend-гардом). Таблица показывает откорректированное значение.
-  const ceiling = order ? availableOf(order) : Number.POSITIVE_INFINITY;
-  // Таблица отдаёт факт в единицах отпуска — возвращаем его в базовую
-  // единицу, в которой заказ живёт в БД и на цепи.
-  const packageSize = order?.package_size ?? 0;
-  const factBase = packageSize > 0 ? Math.max(0, payload.fact) * packageSize : payload.fact;
-  f.qty = Math.min(Math.max(0, factBase), ceiling);
-  // Цену поднять нельзя — бэкенд и контракт откажут; снижение уйдёт уценкой.
-  // Форма поправляет ввод к потолку сразу, как и количество к складу.
-  if (payload.factPrice !== undefined) {
-    const priceCeiling = order ? defaultPriceOf(order) : Number.POSITIVE_INFINITY;
-    f.price = Math.min(Math.max(0, payload.factPrice), priceCeiling);
-  }
-  facts.value = { ...facts.value, [id]: f };
-  // Акты зависят от факта — сбрасываем устаревший превью.
+/**
+ * Правка количества в единицах отпуска. Упаковку не дробим: полторы упаковки
+ * не существует ни физически, ни на цепи. Ввод сразу прижимается к потолку
+ * склада — выдать больше принятого нельзя, акт на большее не сформируется
+ * (двойная защита с backend-гардом). Внутри формы факт хранится в базовой
+ * единице, как в БД и на цепи.
+ */
+function onFactInput(o: MarketplaceOrderIssuanceView, raw: unknown): void {
+  let units = Math.max(0, toNumber(raw));
+  if (isPackaged(o)) units = Math.floor(units);
+  const size = o.package_size ?? 0;
+  const base = size > 0 ? units * size : units;
+  const f = facts.value[o.id] ?? { qty: 0, price: defaultPriceOf(o), included: true };
+  facts.value = { ...facts.value, [o.id]: { ...f, qty: Math.min(base, availableOf(o)) } };
 }
 
-function onCorrectionToggle(payload: { sku: string; included: boolean }): void {
-  const id = skuToId.value[payload.sku];
-  if (!id) return;
-  const order = props.orders.find((o) => o.id === id);
+/**
+ * Правка цены за единицу отпуска. Цену поднять нельзя — бэкенд и контракт
+ * откажут; снижение проводится уценкой. Ввод прижимается к цене, с которой
+ * открылась выдача.
+ */
+function onPriceInput(o: MarketplaceOrderIssuanceView, raw: unknown): void {
+  const f = facts.value[o.id] ?? { qty: Math.min(o.quantity, availableOf(o)), price: 0, included: true };
+  const price = Math.min(Math.max(0, toNumber(raw)), defaultPriceOf(o));
+  facts.value = { ...facts.value, [o.id]: { ...f, price } };
+}
+
+function onToggle(o: MarketplaceOrderIssuanceView, included: boolean): void {
   // Позицию без склада включить нельзя — выдавать нечего.
-  if (payload.included && order && availableOf(order) <= 0) return;
-  const f = facts.value[id] ?? { qty: 0, price: 0, included: false };
-  f.included = payload.included;
-  facts.value = { ...facts.value, [id]: f };
+  if (included && availableOf(o) <= 0) return;
+  const f = facts.value[o.id] ?? { qty: Math.min(o.quantity, availableOf(o)), price: defaultPriceOf(o), included };
+  facts.value = { ...facts.value, [o.id]: { ...f, included } };
+}
+
+// ── Подбор по сканеру (99D-18). Режим мягкий: скан бокса подсказывает, где
+// лежит имущество, скан этикетки подтверждает, что это оно, и сам ставит
+// галку и количество. Ручная правка остаётся, отправку на подпись скан не
+// блокирует. Строгий режим — после решения по этикеткам на упаковках. ──
+const scanCode = ref('');
+const scanBusy = ref(false);
+const cameraOpen = ref(false);
+const scanInput = ref<{ focus: () => void } | null>(null);
+/** Отсканированные этикетки: позиция склада → заказ и количество под этикеткой. */
+const pickedLabels = ref<Record<string, { order_id: string; quantity: number }>>({});
+const scanMessage = ref<{ tone: 'pos' | 'neg' | 'info'; text: string } | null>(null);
+
+const pickStarted = computed(() => Object.keys(pickedLabels.value).length > 0);
+
+/** Найдено сканом по заказу, в базовой единице. */
+function pickedBaseOf(orderId: string): number {
+  return Object.values(pickedLabels.value)
+    .filter((l) => l.order_id === orderId)
+    .reduce((sum, l) => sum + l.quantity, 0);
+}
+
+/** Строка подбора под бейджем сверки; пусто, пока оператор не начал сканировать. */
+function pickLine(o: MarketplaceOrderIssuanceView): { done: boolean; text: string } | null {
+  if (!pickStarted.value || availableOf(o) <= 0) return null;
+  const found = saleUnitsOf(o, pickedBaseOf(o.id));
+  const target = saleUnitsOf(o, Math.min(o.quantity, availableOf(o)));
+  if (found <= 0) return { done: false, text: t('marketplace.issueActOpenDialog.pickNotFound') };
+  if (found >= target) return { done: true, text: t('marketplace.issueActOpenDialog.pickFound') };
+  return { done: false, text: t('marketplace.issueActOpenDialog.pickPartial', { found, total: target }) };
+}
+
+function orderName(id: string): string {
+  const o = props.orders.find((x) => x.id === id);
+  return o?.product_name || t('marketplace.issueActOpenDialog.productOfferFallback');
+}
+
+/** Куда идти за ещё не найденным: места хранения заказов без скана. */
+function remainingLocations(): string {
+  const places = new Set<string>();
+  for (const o of props.orders) {
+    if (pickedBaseOf(o.id) > 0) continue;
+    for (const l of o.warehouse_locations ?? []) places.add(l);
+  }
+  return [...places].join(', ');
+}
+
+function say(tone: 'pos' | 'neg' | 'info', text: string): void {
+  scanMessage.value = { tone, text };
+  playScanTone(tone === 'neg' ? 'error' : 'ok');
+}
+
+function applyLabel(r: IssuancePickScanView): void {
+  const name = r.product_name || t('marketplace.issueActOpenDialog.productOfferFallback');
+  if (!r.inventory_id || !r.order_id) return;
+  if (pickedLabels.value[r.inventory_id]) {
+    say('info', t('marketplace.issueActOpenDialog.pickDuplicate', { name }));
+    return;
+  }
+  pickedLabels.value = { ...pickedLabels.value, [r.inventory_id]: { order_id: r.order_id, quantity: r.quantity ?? 0 } };
+  const order = props.orders.find((o) => o.id === r.order_id);
+  if (order) {
+    // Количество следует за сканом: сколько этикеток найдено, столько и
+    // выдаётся. Потолок — остаток склада; ручная правка остаётся.
+    const f = facts.value[order.id] ?? { qty: 0, price: defaultPriceOf(order), included: true };
+    facts.value = {
+      ...facts.value,
+      [order.id]: { ...f, included: true, qty: Math.min(pickedBaseOf(order.id), availableOf(order)) },
+    };
+  }
+  say('pos', t('marketplace.issueActOpenDialog.pickLabelMatch', { name }));
+}
+
+/** Тексты отказов по итогу сверки; совпадение разбирается отдельно. */
+const PICK_REJECTS: Partial<Record<Zeus.MarketplaceIssuancePickVerdict, (r: IssuancePickScanView, name: string, box: string) => string>> = {
+  [Zeus.MarketplaceIssuancePickVerdict.OTHER_ORDER]: (_r, name) => t('marketplace.issueActOpenDialog.pickOtherOrder', { name }),
+  [Zeus.MarketplaceIssuancePickVerdict.NOT_ON_WAREHOUSE]: (_r, name) => t('marketplace.issueActOpenDialog.pickNotOnWarehouse', { name }),
+  [Zeus.MarketplaceIssuancePickVerdict.OTHER_BRANCH]: (r, name, box) =>
+    r.target === Zeus.MarketplaceIssuancePickTarget.CONTAINER
+      ? t('marketplace.issueActOpenDialog.pickBoxOtherBranch', { box })
+      : t('marketplace.issueActOpenDialog.pickLabelOtherBranch', { name }),
+  [Zeus.MarketplaceIssuancePickVerdict.BOX_EMPTY]: (_r, _name, box) => {
+    // Бокс не тот — подсказываем, где лежит ещё не найденное.
+    const where = remainingLocations();
+    return where
+      ? t('marketplace.issueActOpenDialog.pickBoxEmptyWhere', { box, where })
+      : t('marketplace.issueActOpenDialog.pickBoxEmpty', { box });
+  },
+};
+
+function applyPick(r: IssuancePickScanView): void {
+  if (r.verdict === Zeus.MarketplaceIssuancePickVerdict.MATCH) {
+    if (r.target === Zeus.MarketplaceIssuancePickTarget.CONTAINER) {
+      const box = r.container_code ?? '';
+      say('info', t('marketplace.issueActOpenDialog.pickBoxMatch', { box, names: r.order_ids.map(orderName).join(', ') }));
+    } else {
+      applyLabel(r);
+    }
+    return;
+  }
+  const name = r.product_name || t('marketplace.issueActOpenDialog.productOfferFallback');
+  const reject = PICK_REJECTS[r.verdict];
+  say('neg', reject ? reject(r, name, r.container_code ?? '') : t('marketplace.issueActOpenDialog.pickUnknown'));
+}
+
+async function onScan(raw: string): Promise<void> {
+  const code = raw.trim();
+  if (!code || scanBusy.value || !issueBraname.value) return;
+  scanBusy.value = true;
+  try {
+    const result = await issuancePickScan({
+      braname: issueBraname.value,
+      order_ids: props.orders.map((o) => o.id),
+      code,
+    });
+    applyPick(result);
+  } catch (e) {
+    playScanTone('error');
+    FailAlert(e, t('marketplace.issueActOpenDialog.pickError'));
+  } finally {
+    scanBusy.value = false;
+    scanCode.value = '';
+    // Ручной сканер вводит следующий код в то же поле — фокус держим.
+    scanInput.value?.focus();
+  }
+}
+
+function onCameraScan(code: string): void {
+  cameraOpen.value = false;
+  void onScan(code);
 }
 
 async function confirm(): Promise<void> {
@@ -401,148 +667,189 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
+//- Рабочая страница выдачи на холсте, как приёмка и подписи актов. Зоны:
+//- шапка (процесс, пайщик) → позиции слева (сверка и докладка со склада) →
+//- сводка справа (сколько выдаётся, расчёт, итог крупно, действия).
 BaseDialog(
-  :model-value="modelValue"
-  :title="$t('marketplace.issueActOpenDialog.dialogTitle')"
-  maximized
-  @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+  :model-value='modelValue',
+  maximized,
+  canvas,
+  hide-close-button,
+  @update:model-value='(v: boolean) => emit("update:modelValue", v)'
 )
-  //- Ширина под таблицу сверки: в 960px каркаса восемь колонок не помещаются,
-  //- а без предела (wide) поля факта уезжали от названий на весь монитор.
-  ActDialogLayout.issue-act__layout(wide)
-    template(#head)
-      .issue-act__who(v-if="recipientName")
-        span.issue-act__name {{ recipientName }}
-        span.issue-act__meta
-          | {{ $t('marketplace.issueActOpenDialog.selectedOfTotalText', { selected: includedCount, total: positionsCount }) }}
-          |  · {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
-          template(v-if="issuanceDiff.refund > 0")
-            |  {{ $t('marketplace.issueActOpenDialog.refundNote', { amount: formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }) }}
+  //- Во всю ширину окна: при выдаче в строке больше полей правки, чем у
+  //- приёмки, и в 1180px таблица рядом со сводкой не помещалась.
+  ActDialogLayout(
+    v-if='modelValue',
+    wide,
+    :eyebrow='$t("marketplace.issueActOpenDialog.dialogTitle")',
+    :title='recipientName',
+    :meta='recipientMeta',
+    :avatar-name='recipientName',
+    :panel-title='$t("marketplace.issueActOpenDialog.itemsHeader", { count: positionsCount })',
+    closable,
+    @close='cancel'
+  )
+    template(#panel-actions)
+      BaseButton(variant='secondary', size='sm', @click='stockPickOpen = true')
+        template(#icon-left)
+          q-icon(name='add_shopping_cart', size='18px')
+        | {{ $t('marketplace.issueActOpenDialog.addFromStockButton') }}
 
     template(#lead)
       | {{ $t('marketplace.issueActOpenDialog.instructionLine1') }}
       | {{ $t('marketplace.issueActOpenDialog.instructionLine2') }}
       | {{ $t('marketplace.issueActOpenDialog.instructionLine3') }}
 
-    //- Шапка панели: что в ней и сколько — слева, действие — справа. Одинокая
-    //- кнопка над таблицей оставляла всю строку пустой.
-    .issue-act__toolbar
-      span.issue-act__toolbar-title {{ $t('marketplace.issueActOpenDialog.itemsHeader', { count: positionsCount }) }}
-      BaseButton(variant="secondary", size="sm", @click="stockPickOpen = true")
-        template(#icon-left)
-          q-icon(name="add_shopping_cart", size="18px")
-        | {{ $t('marketplace.issueActOpenDialog.addFromStockButton') }}
-    CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
+    //- Подбор по сканеру: ручной сканер вводит код в поле и жмёт Enter,
+    //- камера — запасной путь. Ответ сервера — строкой под полем со звуком.
+    form.issue-act__scan(@submit.prevent='onScan(scanCode)')
+      BaseInput.issue-act__scan-input(
+        ref='scanInput',
+        v-model='scanCode',
+        :placeholder='$t("marketplace.issueActOpenDialog.scanPlaceholder")',
+        :disabled='scanBusy',
+        autocomplete='off'
+      )
+        template(#prepend)
+          q-icon(name='qr_code_scanner', size='20px')
+        //- Камера — запасной путь, поэтому значком внутри поля, а не
+        //- кнопкой рядом: основное — ручной сканер в этом же поле.
+        template(#append)
+          BaseButton(
+            variant='ghost',
+            size='sm',
+            icon-only,
+            type='button',
+            :aria-label='$t("marketplace.issueActOpenDialog.cameraButton")',
+            @click='cameraOpen = true'
+          )
+            template(#icon-left)
+              q-icon(name='photo_camera', size='20px')
+            q-tooltip {{ $t('marketplace.issueActOpenDialog.cameraButton') }}
+    .issue-act__scan-result(v-if='scanMessage', :class='`issue-act__scan-result--${scanMessage.tone}`')
+      q-icon(:name='scanMessage.tone === "neg" ? "error" : scanMessage.tone === "pos" ? "check_circle" : "inventory_2"', size='18px')
+      span {{ scanMessage.text }}
 
-    .issue-act__restock(v-if="restockLines.length")
+    ActLinesTable(:columns='issueColumns', :rows='issueRows')
+      template(#cell-check='{ row }')
+        BaseCheckbox(
+          :model-value='isIncluded(row.order)',
+          :disabled='availableOf(row.order) <= 0',
+          :aria-label='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
+          @update:model-value='(v) => onToggle(row.order, !!v)'
+        )
+        q-tooltip(v-if='availableOf(row.order) <= 0') {{ $t('marketplace.issueActOpenDialog.outOfStockHint') }}
+      template(#cell-item='{ row }')
+        ActLineItem(
+          :title='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
+          :meta='lineMeta(row.order)',
+          :image-url='row.order.image_url'
+        )
+      template(#cell-issue='{ row }')
+        BaseInput(
+          :model-value='factUnits(row.order)',
+          type='number',
+          :min='0',
+          :max='saleUnitsOf(row.order, availableOf(row.order))',
+          :step='stepFor(row.order)',
+          :disabled='!isIncluded(row.order)',
+          :suffix='saleUnitShort(row.order)',
+          :aria-label='$t("marketplace.issueActOpenDialog.issueQuantityAriaLabel")',
+          @update:model-value='(v) => onFactInput(row.order, v)'
+        )
+      template(#cell-price='{ row }')
+        BaseInput(
+          :model-value='factPrice(row.order)',
+          type='number',
+          :min='0',
+          :max='defaultPriceOf(row.order)',
+          :disabled='!isIncluded(row.order)',
+          :suffix='isPackaged(row.order) ? $t("marketplace.issueActOpenDialog.pricePerPackage") : $t("marketplace.issueActOpenDialog.pricePerUnit")',
+          :aria-label='isPackaged(row.order) ? $t("marketplace.issueActOpenDialog.priceForPackage") : $t("marketplace.issueActOpenDialog.priceForUnit")',
+          @update:model-value='(v) => onPriceInput(row.order, v)'
+        )
+      template(#cell-sum='{ row }') {{ rub(lineSum(row.order)) }}
+      template(#cell-status='{ row }')
+        .issue-act__status
+          BaseBadge(:variant='lineStatus(row.order).variant') {{ lineStatus(row.order).label }}
+          .issue-act__pick(
+            v-if='pickLine(row.order)',
+            :class='{ "issue-act__pick--done": pickLine(row.order)?.done }'
+          )
+            q-icon(:name='pickLine(row.order)?.done ? "check_circle" : "radio_button_unchecked"', size='14px')
+            span {{ pickLine(row.order)?.text }}
+
+    .issue-act__restock(v-if='restockLines.length')
       .issue-act__restock-head
-        BaseBadge(variant="info") {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
-      .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
+        BaseBadge(variant='info') {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
+      .issue-act__restock-row(v-for='l in restockLines', :key='l.offer_id')
         .issue-act__restock-info
-          span.issue-act__restock-name {{ l.product_name }}
-          span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ restockLineQuantityLabel(l) }}
+          ActLineItem(
+            :title='l.product_name',
+            :meta='`${formatAsset2Digits(l.price_per_unit)} ₽ × ${restockLineQuantityLabel(l)}`',
+            :image-url='l.image_url'
+          )
         .issue-act__restock-right
           span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
-          BaseButton(variant="ghost", @click="removeRestock(l.offer_id)")
-            q-icon(name="close", size="18px")
+          BaseButton(
+            variant='ghost',
+            icon-only,
+            :aria-label='$t("common.action.delete")',
+            @click='removeRestock(l.offer_id)'
+          )
+            template(#icon-left)
+              q-icon(name='close', size='18px')
 
-    template(#after)
-      .issue-act__totals
-        .issue-act__sum
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.costHeader', { included: includedCount, total: positionsCount }) }}
-          span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
-        .issue-act__sum(v-if="feePercent > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.targetFeeHeader', { percent: feePercent }) }}
-          span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
-        .issue-act__sum.issue-act__sum--total
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.totalToPayLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
-        .issue-act__sum(v-if="leftCount > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.leftOnStockLabel') }}
-          span.issue-act__sum-value {{ $t('marketplace.issueActOpenDialog.leftCountText', { count: leftCount }) }}
-        .issue-act__sum(v-if="issuanceDiff.refund > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.refundToWalletLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
-        .issue-act__sum(v-if="issuanceDiff.surcharge > 0")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.surchargeLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
-        .issue-act__sum(v-if="restockLines.length")
-          span.issue-act__sum-label {{ $t('marketplace.issueActOpenDialog.restockLabel') }}
-          span.issue-act__sum-value {{ formatAsset2Digits(restockTotal) }} ₽
+    template(#aside)
+      ActSummaryCard(
+        :eyebrow='$t("marketplace.issueActOpenDialog.asideTitle")',
+        :facts='summaryFacts',
+        :lines='summaryLines',
+        :total-label='$t("marketplace.issueActOpenDialog.totalToPayLabel")',
+        :total='rub(totalFactCostWithFee)'
+      )
+        .issue-act__blocker(v-if='blockReason')
+          q-icon(name='info', size='18px')
+          span {{ blockReason }}
+        template(#actions)
+          BaseButton(
+            block,
+            variant='primary',
+            :loading='signing',
+            :disabled='!allValid || signing',
+            @click='confirm'
+          )
+            template(#icon-left)
+              q-icon(name='send', size='18px')
+            | {{ $t('marketplace.issueActOpenDialog.sendForSignatureButton') }}
+          BaseButton(block, variant='secondary', @click='cancel') {{ $t('common.action.close') }}
 
-      .issue-act__blocker(v-if="blockReason")
-        q-icon(name="info", size="18px")
-        span {{ blockReason }}
-
-  StockPickDialog(
-    v-model="stockPickOpen"
-    :braname="issueBraname"
-    @add="onAddRestock"
+  ScannerDialog(
+    v-model='cameraOpen',
+    :title='$t("marketplace.issueActOpenDialog.cameraTitle")',
+    :formats='BARCODE_FORMATS',
+    @scanned='onCameraScan'
   )
 
-  template(#footer)
-    BaseButton(variant="ghost", @click="cancel") {{ $t('common.action.close') }}
-    BaseButton(
-      variant="primary"
-      :loading="signing"
-      :disabled="!allValid || signing"
-      @click="confirm"
-    )
-      template(#icon-left)
-        q-icon(name="send", size="18px")
-      | {{ $t('marketplace.issueActOpenDialog.sendForSignatureButton') }}
+  StockPickDialog(
+    v-model='stockPickOpen',
+    :braname='issueBraname',
+    @add='onAddRestock'
+  )
 </template>
 
 <style scoped lang="scss">
 .issue-act {
-  &__layout {
-    max-width: 1180px;
-    margin: 0 auto;
-  }
-
-  &__who {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__name {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-  }
-
-  &__toolbar-title {
-    font-size: var(--p-fs-meta, 12px);
-    letter-spacing: var(--p-ls-eyebrow, 0.08em);
-    text-transform: uppercase;
-    color: var(--p-ink-3);
-    font-variant-numeric: tabular-nums;
-  }
-
+  // Докладка со склада — раздел той же карточки позиций под таблицей сверки:
+  // линия сверху, без своей рамки (рамка в рамке канон запрещает), смысл
+  // раздела несёт бейдж в его шапке.
   &__restock {
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
-    padding: var(--p-3, 12px);
-    // Нейтральная рамка: цветные заливки карточек канон запрещает, смысл
-    // блока несёт бейдж в его шапке.
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-3, 12px) var(--p-3, 12px) 0;
+    border-top: 1px solid var(--p-line);
 
     &-head {
       display: flex;
@@ -562,18 +869,6 @@ BaseDialog(
       min-width: 0;
     }
 
-    &-name {
-      font-size: var(--p-fs-body-sm, 13px);
-      color: var(--p-ink);
-      overflow-wrap: break-word;
-    }
-
-    &-meta {
-      font-size: var(--p-fs-meta, 12px);
-      color: var(--p-ink-3);
-      font-variant-numeric: tabular-nums;
-    }
-
     &-right {
       display: flex;
       align-items: center;
@@ -585,56 +880,80 @@ BaseDialog(
       font-weight: 600;
       color: var(--p-ink);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
   }
 
-  // Итоги — колонкой у правого края той же ширины, что у сумм в актах:
-  // подписи слева, суммы справа по одной вертикали, итог отбит линией.
-  &__totals {
+  // Поле сканера над таблицей во всю ширину; камера — значком внутри поля.
+  // Резерв строки подсказки снят: поле стоит вплотную к ответу и таблице.
+  &__scan-input {
+    width: 100%;
+
+    &:deep(.q-field--with-bottom),
+    :deep(.q-field--with-bottom) {
+      padding-bottom: 0;
+    }
+
+    :deep(.q-field__bottom) {
+      display: none;
+    }
+  }
+
+  // Ответ сканера: цвет по итогу, текст крупнее подписи — его читают с
+  // полки, на ходу.
+  &__scan-result {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    border-radius: var(--p-r-sm, 8px);
+    font-size: var(--p-fs-body, 14px);
+    line-height: 1.4;
+
+    .q-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    &--pos {
+      background: var(--p-pos-soft);
+      color: var(--p-pos);
+    }
+
+    &--neg {
+      background: var(--p-neg-soft);
+      color: var(--p-neg);
+    }
+
+    &--info {
+      background: var(--p-info-soft);
+      color: var(--p-info);
+    }
+  }
+
+  &__status {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: var(--p-1, 4px);
-    width: min(100%, 440px);
-    margin-left: auto;
   }
 
-  &__sum {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
+  // Ход подбора под бейджем сверки: новое о строке, а не повтор бейджа.
+  &__pick {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+    white-space: nowrap;
 
-    &--total {
-      margin-top: var(--p-1, 4px);
-      padding-top: var(--p-2, 8px);
-      border-top: 1px solid var(--p-line);
-
-      .issue-act__sum-label {
-        color: var(--p-ink);
-        font-weight: 500;
-      }
-
-      .issue-act__sum-value {
-        font-size: var(--p-fs-h2, 18px);
-        font-weight: 700;
-      }
+    &--done {
+      color: var(--p-pos);
     }
   }
 
-  &__sum-label {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-  }
-
-  &__sum-value {
-    font-family: var(--p-mono);
-    font-weight: 600;
-    font-size: var(--p-fs-body, 14px);
-    color: var(--p-ink);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
+  // Причина, по которой отправка недоступна, — в сводке над итогом, рядом с
+  // кнопкой, которую она объясняет.
   &__blocker {
     display: flex;
     align-items: flex-start;
@@ -652,23 +971,5 @@ BaseDialog(
       margin-top: 1px;
     }
   }
-
-  &__preview {
-    max-height: 55vh;
-    overflow: auto;
-  }
-}
-
-:deep(.mp-issue-open-dialog__act-head) {
-  font-size: var(--p-fs-body, 14px);
-  font-weight: 600;
-  color: var(--p-ink);
-  margin: 0 0 var(--p-2, 8px);
-}
-
-:deep(.mp-issue-open-dialog__act-sep) {
-  border: none;
-  border-top: 1px solid var(--p-line);
-  margin: var(--p-4, 16px) 0;
 }
 </style>

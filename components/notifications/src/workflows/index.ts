@@ -38,6 +38,8 @@ import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
 import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
+import { workflow as marketplaceReviewInviteWorkflow } from './marketplace-review-invite';
+import { workflow as marketplaceIssuanceCloseReminderWorkflow } from './marketplace-issuance-close-reminder';
 import { workflow as marketplaceIssuanceDecidedWorkflow } from './marketplace-issuance-decided';
 import { workflow as marketplaceReturnCouncilDecidedWorkflow } from './marketplace-return-council-decided';
 import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
@@ -51,6 +53,7 @@ import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-w
 import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
 import { workflow as marketplaceSupplierClaimIssuedWorkflow } from './marketplace-supplier-claim-issued';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
+import { workflow as marketplaceSecurePartChargedWorkflow } from './marketplace-secure-part-charged';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
 import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
 import { workflow as marketplaceOfferApprovedWorkflow } from './marketplace-offer-approved';
@@ -118,6 +121,8 @@ export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
 export * as MarketplaceOrderReady from './marketplace-order-ready';
+export * as MarketplaceReviewInvite from './marketplace-review-invite';
+export * as MarketplaceIssuanceCloseReminder from './marketplace-issuance-close-reminder';
 export * as MarketplaceIssuanceDecided from './marketplace-issuance-decided';
 export * as MarketplaceReturnCouncilDecided from './marketplace-return-council-decided';
 export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
@@ -131,6 +136,7 @@ export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
 export * as MarketplaceSupplierClaimIssued from './marketplace-supplier-claim-issued';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
+export * as MarketplaceSecurePartCharged from './marketplace-secure-part-charged';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
 export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
 export * as MarketplaceOfferApproved from './marketplace-offer-approved';
@@ -194,6 +200,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
   marketplaceOrderReadyWorkflow,
+  marketplaceReviewInviteWorkflow,
+  marketplaceIssuanceCloseReminderWorkflow,
   marketplaceIssuanceDecidedWorkflow,
   marketplaceReturnCouncilDecidedWorkflow,
   marketplaceReturnClaimSubmittedWorkflow,
@@ -207,6 +215,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceNewOrderForSupplierWorkflow,
   marketplaceSupplierClaimIssuedWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
+  marketplaceSecurePartChargedWorkflow,
   marketplaceNewSupplierRequestWorkflow,
   marketplaceOfferOnModerationWorkflow,
   marketplaceOfferApprovedWorkflow,

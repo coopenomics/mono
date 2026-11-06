@@ -25,7 +25,13 @@ const TABLES = {
   ku: [...local('marketplace_ku_details'), liveTable(BranchContract, BranchContract.Tables.Branches)],
   catalog: local('marketplace_category', 'marketplace_vitrine', 'marketplace_supplier'),
   cart: local('marketplace_cart', 'marketplace_cart_item'),
-  supplier: local('marketplace_supplier', 'marketplace_supplier_claim', 'marketplace_supplier_settings'),
+  supplier: local(
+    'marketplace_supplier',
+    'marketplace_supplier_claim',
+    'marketplace_supplier_settings',
+    'marketplace_supplier_profile',
+  ),
+  review: local('marketplace_review'),
   economy: [
     liveTable(MarketContract, MarketContract.Tables.Config),
     liveTable(BranchContract, BranchContract.Tables.Weights),

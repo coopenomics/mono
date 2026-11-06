@@ -15,6 +15,9 @@ export interface CatalogOffer {
   status?: CatalogOfferStatus
   category?: string        // название категории — показывается над заголовком
   supplierName?: string    // ФИО / наименование поставщика
+  supplierAccount?: string // учётная запись поставщика — по ней открывается его страница
+  ratingAvg?: number | null // средняя оценка по отзывам; null — отзывов нет
+  reviewsCount?: number    // число отзывов о предложении
   coopStock?: boolean      // предложение кооператива со склада КУ — мгновенная выдача
   /**
    * Упаковки предложения при упаковочном отпуске: в чём приедет товар и

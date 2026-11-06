@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 336.
+Всего экспортов: 339.
 
 ## ACCOUNT_PORT
 
@@ -325,6 +325,18 @@
 - `initialize(username: string, wif: string): void`
 - `transact(action: InnerChainAction | InnerChainAction[], broadcast?: boolean): Promise<InnerTransactResult>`
 - `getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<T[]>`
+- `queryRows<T = any>(`
+- `code: string,`
+- `scope: string,`
+- `tableName: string,`
+- `options: {`
+- `indexPosition?: string`
+- `keyType?: string`
+- `from?: string | number`
+- `to?: string | number`
+- `maxRows?: number`
+- `}`
+- `): Promise<T[]>`
 - `getSingleRow<T = any>(`
 - `code: string,`
 - `scope: string,`
@@ -484,6 +496,7 @@
 - `overspendItem(coopname: string, proposalHash: string, itemHash: string, overspendAmount: string): Promise<void>`
 - `reportItem(coopname: string, proposalHash: string, itemHash: string): Promise<void>`
 - `getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve>`
+- `listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]>`
 - `attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void>`
 
 ## IExtensionConfigPort
@@ -1185,6 +1198,18 @@
 - `offset?: number`
 - `sortBy?: 'createdAt' | 'updatedAt'`
 - `sortOrder?: 'ASC' | 'DESC'`
+
+## InnerExpensePlan
+
+`interface` · cross-plugin-ports
+
+- `id: number`
+- `branchName: string | null`
+- `title: string`
+- `amount: string`
+- `dueDate: Date | null`
+- `proposalHash: string | null`
+- `paidAt: Date | null`
 
 ## InnerExpensePlannedReserve
 
@@ -1968,6 +1993,29 @@
 - `statementDate: string`
 - `lastProcessedPage: number`
 
+## InnerPayoutRequest
+
+`interface` · core-ports
+
+- `hash: string`
+- `coopname: string`
+- `username: string`
+- `quantity: number`
+- `symbol: string`
+- `type: PaymentType`
+- `payment_method_id?: string | null`
+- `status: InnerPayoutRequestStatus`
+- `created_at: Date`
+- `decided_at?: Date | null`
+
+## InnerPayoutRequestStatus
+
+`enum` · core-ports
+
+- `AWAITING = 'awaiting',`
+- `RELEASED = 'released',`
+- `DECLINED = 'declined',`
+
 ## InnerPrivateAccount
 
 `interface` · core-ports
@@ -2133,6 +2181,7 @@
 `interface` · core-ports
 
 - `phone: string`
+- `bank_name?: string`
 
 ## InnerSetPaymentStatusInput
 
@@ -2298,6 +2347,11 @@
 - `getPayments(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
 - `setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>`
 - `createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>`
+- `registerPayoutRequest(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayoutRequest>`
+- `releasePayoutRequest(hash: string): Promise<InnerPayment | null>`
+- `declinePayoutRequest(hash: string): Promise<void>`
+- `dropPayoutRequest(hash: string): Promise<void>`
+- `getPayoutRequest(hash: string): Promise<InnerPayoutRequest | null>`
 - `confirmers(): Promise<string[]>`
 
 ## IPaymentMethodPort
@@ -2331,6 +2385,7 @@
 - `create(payment: InnerPaymentDraft): Promise<InnerPayment>`
 - `update(id: string, data: Partial<InnerPayment>): Promise<InnerPayment | null>`
 - `list(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
+- `findPayoutRequestByHash(hash: string): Promise<InnerPayoutRequest | null>`
 
 ## IPaymentProvider
 

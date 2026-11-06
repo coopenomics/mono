@@ -25,6 +25,7 @@
       "emptyLabel": "План счетов не найден",
       "postingsEmptyLabel": "Проводок нет",
       "postingsHistoryTitle": "История проводок",
+      "walletsTitle": "Кошельки счёта",
       "status": {
         "active": "Активный",
         "passive": "Пассивный"
@@ -106,6 +107,7 @@
     "coopWalletsPage": {
       "availableLabel": "Доступно",
       "column": {
+        "account": "Счёт",
         "amount": "Сумма",
         "date": "Дата",
         "memo": "Примечание",
@@ -122,6 +124,70 @@
       "toOperationLabel": "К операции",
       "toOperationsLabel": "К операциям",
       "transferFromLabel": "Перевести с этого кошелька"
+    },
+    "fundsPage": {
+      "accountLabel": "Счёт",
+      "availableLabel": "Остаток фонда",
+      "cancelLabel": "Отмена",
+      "column": {
+        "available": "Остаток",
+        "fund": "Фонд",
+        "income": "Поступления",
+        "kind": "Вид",
+        "outcome": "Списания",
+        "percent": "Процент",
+        "wallet": "Кошелёк"
+      },
+      "descriptionField": "Описание",
+      "descriptionLabel": "Описание",
+      "editLabel": "Изменить",
+      "editTitle": "Изменить фонд",
+      "hint": "Фонды кооператива — кошельки счёта 86. В фонды накопления поступает часть членских взносов по процессам кооператива. Через фонды списания проходят выплаты: расходы кооператива — через фонд обеспечения хозяйственной деятельности, материальная помощь — через фонд взаимного обеспечения.",
+      "historyEmptyBody": "Движения по фонду появятся после поступления членских взносов и выплат через фонд.",
+      "historyEmptyTitle": "Движений за период нет",
+      "incomeLabel": "Поступления за период",
+      "kind": {
+        "accum": "Накопления",
+        "expend": "Списания"
+      },
+      "noDescription": "Описание не задано",
+      "outcomeLabel": "Списания за период",
+      "percentField": "Процент отчислений, %",
+      "percentFieldHint": "Остальные фонды накопления: {others}. Сумма процентов не выше 100 %.",
+      "percentInvalidError": "Процент — больше нуля и не выше 100.",
+      "percentLabel": "Процент отчислений",
+      "percentSumError": "Сумма процентов фондов накопления выше 100 %.",
+      "period": {
+        "month": "Текущий месяц",
+        "prevMonth": "Прошлый месяц",
+        "quarter": "Текущий квартал",
+        "year": "Текущий год",
+        "prevYear": "Прошлый год",
+        "all": "Всё время"
+      },
+      "periodSub": {
+        "month": "за текущий месяц",
+        "prevMonth": "за прошлый месяц",
+        "quarter": "за текущий квартал",
+        "year": "за текущий год",
+        "prevYear": "за прошлый год",
+        "all": "за всё время"
+      },
+      "saveLabel": "Сохранить",
+      "savedMessage": "Фонд обновлён",
+      "showMoreLabel": "Показать ещё",
+      "stats": {
+        "available": "Остаток фондов",
+        "availableSub": "на счёте 86",
+        "income": "Поступления",
+        "outcome": "Списания"
+      },
+      "tabs": {
+        "about": "О фонде",
+        "history": "История"
+      },
+      "walletLabel": "Кошелёк",
+      "walletLine": "Кошелёк {wallet} · счёт {account}"
     },
     "directionCell": {
       "direction": {
@@ -200,6 +266,7 @@
         "documentsCalendarTitle": "Календарь",
         "documentsFormsTitle": "Список форм",
         "documentsTitle": "Отчётность",
+        "fundsTitle": "Фонды",
         "ndflTitle": "НДФЛ",
         "operationsTitle": "Реестр операций",
         "postingsTitle": "Реестр проводок",

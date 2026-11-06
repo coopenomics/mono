@@ -51,9 +51,13 @@ function buildService(setup: StandSetup = {}) {
   } = setup;
 
   const chainPort = {
-    getBranchWeights: jest.fn().mockResolvedValue(weights),
-    getBranchWeightTotals: jest.fn().mockResolvedValue(totals),
-    listBranchWalletBalances: jest.fn().mockResolvedValue(balances),
+    // Цепь отдаёт веса по индексу участка и кошелёк по индексу владельца — заглушки отбирают так же.
+    getBranchWeights: jest.fn(async (_coopname: string, braname: string) => weights.filter((w) => w.braname === braname)),
+    getBranchWeightTotals: jest.fn(async (_coopname: string, braname: string) => totals.filter((t) => t.braname === braname)),
+    getUserWallet: jest.fn(
+      async (_coopname: string, walletName: string, username: string) =>
+        balances.find((b) => b.wallet_name === walletName && b.username === username) ?? null
+    ),
     getEconomyConfig: jest
       .fn()
       .mockResolvedValue(feePercent === null ? null : { membership_fee_percent: feePercent }),
@@ -86,7 +90,8 @@ function buildService(setup: StandSetup = {}) {
     {} as any, // coreGateway
     {} as any, // paymentMethodRepo
     {} as any, // orderRepo
-    expenseChassis
+    expenseChassis,
+    {} as any // aidStore — зеркало заявлений на матпомощь здесь не читается
   );
 
   return { service, chainPort, kuChairmanService, expenseChassis };
@@ -322,10 +327,10 @@ describe('Правка сетки весов', () => {
 });
 
 describe('Ставка членского взноса', () => {
-  it('кооператив ставку не задавал — действует умолчание 30%', async () => {
+  it('кооператив ставку не задавал — действует умолчание 38 % (решение владельца 02.11.2026)', async () => {
     const { service } = buildService({ feePercent: null });
 
-    expect(await service.getMembershipFeePercent(COOP)).toBe(30);
+    expect(await service.getMembershipFeePercent(COOP)).toBe(38);
   });
 
   it('заданная ставка переводится из контрактной шкалы в проценты', async () => {

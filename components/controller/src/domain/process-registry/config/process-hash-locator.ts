@@ -64,6 +64,12 @@ export const BACKEND_OVERRIDES: Readonly<Record<string, string>> = Object.freeze
 export const OPERATIONS_NOT_NAMING_PROCESS: ReadonlySet<string> = new Set([
   'o.brn.common',
   'o.brn.retfee',
+  // Отчисления в фонды (o.fnd.indiv / o.fnd.resrv / o.fnd.devel — кошелёк на
+  // каждый фонд, задача 99D-25) и o.mkt.initr идут в нитке поставки при списании
+  // по итогу месяца (задача 99D-22); имя нитке даёт заказ, а не отчисление.
+  'o.fnd.indiv',
+  'o.fnd.resrv',
+  'o.fnd.devel',
   // o.mkt.refund возвращает членский взнос и в нитке поставки (неиспользованная
   // часть по заказу), и в нитке гарантийного возврата (вторая нога, по хэшу
   // заявки). В реестре операций он объявлен под поставкой, поэтому без этой
@@ -223,6 +229,15 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 
   // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
   'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
+
+  // p.fnd.accum — отчисления в фонды накопления (задачи 99D-19, 99D-25): имя
+  // стандарта процесса, а не нитки. Операции o.fnd.indiv / o.fnd.resrv /
+  // o.fnd.devel идут в нитке источника (списание обеспечительной части —
+  // поставка по хэшу заказа), поэтому собственного якоря у процесса нет.
+  'p.fnd.accum': [],
+  // p.sov.spend — расход кооператива из фонда обеспечения хозяйственной
+  // деятельности (задача 99D-25): нитка шасси расходов по хэшу служебной записки.
+  'p.sov.spend': [{ code: 'expense', table: 'proposals', field: 'proposal_hash' }],
 
   // p.cap.pgexp — пополнение пула программных расходов (o.cap.pgtop, ISSUE
   // w.cap.pgexp). Одноактовый, process_hash синтетический (sha256 в контракте) —

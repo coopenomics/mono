@@ -82,14 +82,12 @@ const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
   council_authorized: t('marketplace.returnClaimStatus.boardCancelled'),
   council_declined: t('marketplace.returnClaimStatus.boardDeclinedShort'),
   hand_back: t('marketplace.returnClaimStatus.returnedToOrderer'),
-  fee_pending: t('marketplace.returnClaimStatus.refundPendingMemberFee'),
-  fee_settled: t('marketplace.returnClaimStatus.memberFeeReturned'),
 };
 
 /** Решения, которые читаются как отказ (для цвета в хронологии). */
 export const RETURN_CLAIM_NEGATIVE_DECISIONS = new Set(['reject_remote', 'reject_at_visit', 'council_declined']);
 /** Решения, которые читаются как успех. */
-export const RETURN_CLAIM_POSITIVE_DECISIONS = new Set(['council_authorized', 'fee_settled']);
+export const RETURN_CLAIM_POSITIVE_DECISIONS = new Set(['council_authorized']);
 
 export function returnClaimDecisionLabel(decision: string): string {
   return RETURN_CLAIM_DECISION_LABELS[decision] ?? decision;

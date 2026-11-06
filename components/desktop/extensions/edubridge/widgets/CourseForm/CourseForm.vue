@@ -219,8 +219,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 import { computed, ref, watch } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
-import { DataRow, IdentityCell } from 'src/shared/ui/domain';
-import { StatTile } from '../../shared/ui/StatStrip';
+import { DataRow, IdentityCell, StatTile } from 'src/shared/ui/domain';
 import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';

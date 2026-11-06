@@ -37,4 +37,8 @@
         wit = bybranch.erase(wit);
         apply_weight_total_delta(coopname, braname, w_contract, delta);
     }
+    // Резерв социально-экономического обеспечения снятого доверенного стирается
+    // (задача 99D-20): он больше не получатель материальной помощи участка, и
+    // его сумма не входит в расходы участка со следующего расчёта месяца.
+    Branch::erase_reserves(coopname, braname, trusted);
 }

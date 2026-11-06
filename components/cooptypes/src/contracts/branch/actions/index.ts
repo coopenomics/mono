@@ -18,6 +18,21 @@ export * as EditBranch from './editBranch'
 
 // ── Экономика кооперативного участка (requirement b6) ────────────────────
 export * as SetWeight from './setWeight'
+
+/**
+ * Потолок резерва социально-экономического обеспечения на получателя в месяц (задача 99D-20).
+ */
+export * as SetAidLimit from './setAidLimit'
+
+/**
+ * Резерв социально-экономического обеспечения получателя на участке (задача 99D-20).
+ */
+export * as SetReserve from './setReserve'
+
+/**
+ * Снять резерв получателя на участке (задача 99D-20).
+ */
+export * as DelReserve from './delReserve'
 export * as DelWeight from './delWeight'
 export * as Accrue from './accrue'
 export * as Retfee from './retfee'

@@ -24,7 +24,10 @@
   Branch::check_can_delete(coopname, braname);
 
   branches.erase(branch);
-  
+  // Строки резерва социально-экономического обеспечения участка стираются
+  // вместе с ним (задача 99D-20): получателей у удалённого участка нет.
+  Branch::erase_reserves(coopname, braname, eosio::name{});
+
   // отключаем участников кооператива от кооперативного участка
   action(
     permission_level{ _branch, "active"_n},

@@ -43,6 +43,10 @@ import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsRead
 import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
 import { SupplierOnboardingPage } from 'src/pages/Marketplace/SupplierOnboarding'
 import { SupplierRegistryPage } from 'src/pages/Marketplace/SupplierRegistry'
+import { SupplierProfilePage } from 'src/pages/Marketplace/SupplierProfile'
+import { SupplierMyProfilePage } from 'src/pages/Marketplace/SupplierMyProfile'
+import { CoopProfilePage } from 'src/pages/Marketplace/CoopProfile'
+import { AdminReviewsPage } from 'src/pages/Marketplace/AdminReviews'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerGlobalOverlay } from 'src/shared/lib/overlays'
@@ -192,6 +196,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Страница поставщика: кто он, что поставляет и что о нём говорят
+              // заказчики. Скрыта из меню — открывается с имени поставщика на
+              // карточке каталога и на странице предложения (задача 598-61).
+              path: 'supplier/:account',
+              name: 'marketplace-supplier-profile',
+              component: markRaw(SupplierProfilePage),
+              meta: {
+                title: t('market.install.supplierProfileTitle'),
+                icon: 'storefront',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+                menuKey: 'marketplace-catalog',
+              },
+              children: [],
+            },
+            {
               // Эпик 16 / Story 16.1-16.2: корзина заказчика и оформление.
               // Точка оформления: позиции (одна корзина — один КУ), правка
               // количества, «Оформить заказ» → заказ-агрегат под общим
@@ -331,6 +353,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: t('market.install.myOffersTitle'),
                 icon: 'fa-solid fa-clipboard-list',
                 requires: 'Offer:create:own',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // «Мой профиль»: что заказчик увидит на странице поставщика —
+              // обложка, название, рассказ о себе (задача 598-61).
+              path: 'profile',
+              name: 'marketplace-supplier-my-profile',
+              component: markRaw(SupplierMyProfilePage),
+              meta: {
+                title: t('market.install.mySupplierProfileTitle'),
+                icon: 'storefront',
+                requires: 'SupplierProfile:update:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -846,6 +883,55 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Страница поставщика на столе администратора — та же, что у
+              // заказчика, только для чтения: без корзины, предложения ведут в
+              // реестр. Открывается из карточки поставщика и из реестра отзывов.
+              path: 'supplier/:account',
+              name: 'marketplace-admin-supplier-profile',
+              component: markRaw(SupplierProfilePage),
+              meta: {
+                title: t('market.install.supplierProfileTitle'),
+                icon: 'storefront',
+                requires: 'SupplierProfile:read',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+                menuKey: 'marketplace-suppliers',
+                readonly: true,
+              },
+              children: [],
+            },
+            {
+              // Профиль кооператива: он поставщик имущества со своего склада,
+              // и заказчик открывает этот профиль с карточек «со склада».
+              path: 'coop-profile',
+              name: 'marketplace-coop-profile',
+              component: markRaw(CoopProfilePage),
+              meta: {
+                title: t('market.install.coopProfileTitle'),
+                icon: 'badge',
+                requires: 'SupplierProfile:manage',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Реестр отзывов заказчиков: все отзывы кооператива, в том числе
+              // скрытые; здесь их скрывают с причиной и возвращают в публикацию.
+              path: 'reviews',
+              name: 'marketplace-admin-reviews',
+              component: markRaw(AdminReviewsPage),
+              meta: {
+                title: t('market.install.adminReviewsTitle'),
+                icon: 'rate_review',
+                requires: 'Review:moderate',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               // Эпик 9 / Story 9.2: admin-стол склада кооператива — что лежит
               // на пунктах выдачи. «Сводный склад» переименован в «Склад»
               // (решение владельца 13.09.2026): сводный он и так, а слово
@@ -1008,13 +1094,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
 
 /**
  * Кошельки, которые «Стол заказов» приносит на стол пайщика (путь B).
- * Свободный паевой программы (`w.mkt.share`) — сюда возвращается паевой
- * взнос после выдачи, отказов и гарантийного возврата; отсюда резервируется
- * следующий заказ; в Кошелёк не отзывается. Членский
- * кошелёк программы (`w.mkt.member`) — сюда по заявлению о конвертации
- * переходит членский взнос участка и сюда же возвращается неиспользованная
- * его часть; остаток зачитывается при следующем заказе, обратно в паевой не
- * переводится. Паевой резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
+ * Свободный паевой программы (`w.mkt.share`) — на него возвращается паевой
+ * взнос после выдачи, отказов и гарантийного возврата; с него оплачиваются
+ * стоимость и обеспечительная часть следующего заказа. Обеспечительная часть
+ * паевого взноса к списанию (`w.mkt.due`, задача 99D-18) — после выдачи ждёт
+ * конца гарантийного срока и первого числа месяца по условиям программы
+ * списывается в членский взнос. Паевой резерв под заказы (`w.mkt.order`) —
+ * стоимость имущества заказов до их выдачи; обеспечительная часть под заказы
+ * (`w.mkt.secure`) — до выдачи отдельно от стоимости. Без них паевой взнос
+ * после оформления заказа не был виден ни на одном кошельке (владелец
+ * 05.11.2026). Порядок карточек — путь паевого взноса по заказу.
  */
 export const walletCards: DesktopWalletCard[] = [
   {
@@ -1025,10 +1114,24 @@ export const walletCards: DesktopWalletCard[] = [
     icon: 'savings',
   },
   {
-    wallet_name: 'w.mkt.member',
-    label: t('market.install.walletMemberLabel'),
+    wallet_name: 'w.mkt.order',
+    label: t('market.install.walletOrderLabel'),
     description: t('market.install.walletDescription'),
     accent: 'wallet',
-    icon: 'card_membership',
+    icon: 'shopping_bag',
+  },
+  {
+    wallet_name: 'w.mkt.secure',
+    label: t('market.install.walletSecureLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'verified_user',
+  },
+  {
+    wallet_name: 'w.mkt.due',
+    label: t('market.install.walletDueLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'lock_clock',
   },
 ]

@@ -35,24 +35,49 @@ namespace Marketplace::Memo {
     return "Паевой резерв под заказ имущества № " + std::to_string(order_id) + " со склада кооператива из свободного паевого Стола заказов";
   }
 
-  inline std::string get_convert_to_member_memo() {
-    return "Перевод паевого взноса в членский кошелёк Стола заказов по заявлению пайщика";
+  inline std::string get_translate_share_memo() {
+    return "Трансляция паевого взноса из Цифрового кошелька в Стол заказов по заявлению пайщика";
   }
 
-  inline std::string get_membership_fee_lock_memo(uint64_t order_id) {
-    return "Членский взнос по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
+  inline std::string get_secure_part_lock_memo(uint64_t order_id) {
+    return "Обеспечительная часть паевого взноса по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
 
-  inline std::string get_membership_fee_refund_memo(uint64_t order_id) {
-    return "Сторно членского взноса участка на членский кошелёк Стола заказов по заказу имущества № " + std::to_string(order_id);
+  inline std::string get_secure_part_refund_memo(uint64_t order_id) {
+    return "Возврат обеспечительной части паевого взноса на свободный паевой Стола заказов по заказу имущества № " + std::to_string(order_id);
   }
 
-  inline std::string get_membership_fee_topup_memo(uint64_t order_id) {
-    return "Доначисление членского взноса по фактической выдаче заказа имущества № " + std::to_string(order_id) + " в Столе заказов";
+  inline std::string get_secure_part_topup_memo(uint64_t order_id) {
+    return "Обеспечительная часть паевого взноса на доплату по фактической выдаче заказа имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
 
-  inline std::string get_membership_fee_distribute_memo(uint64_t order_id) {
-    return "Членский взнос по заказу имущества № " + std::to_string(order_id) + " в общий кошелёк кооперативного участка";
+  inline std::string get_secure_to_due_memo(uint64_t order_id) {
+    return "Обеспечительная часть паевого взноса по выданному заказу имущества № " + std::to_string(order_id) + " к списанию по условиям ЦПП";
+  }
+
+  inline std::string get_charge_due_memo() {
+    return "Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП «Стол заказов»";
+  }
+
+  inline std::string get_charge_due_distribute_memo() {
+    return "Членский взнос по условиям ЦПП «Стол заказов» в общий кошелёк кооперативного участка";
+  }
+
+  // Списание по итогу месяца участка (задача 99D-21): четыре части одного заказа.
+  inline std::string get_charge_period_memo() {
+    return "Списание обеспечительной части паевого взноса по итогу месяца кооперативного участка";
+  }
+
+  inline std::string get_charge_period_funds_memo() {
+    return "Отчисление в фонды накопления из членского взноса участка по итогу месяца";
+  }
+
+  inline std::string get_charge_period_initiator_memo() {
+    return "Вознаграждение инициатора участка из экономии месяца";
+  }
+
+  inline std::string get_charge_period_return_memo() {
+    return "Возврат части обеспечительной части паевого взноса по итогу месяца участка";
   }
 
   inline std::string get_markdown_loss_memo(uint64_t order_id) {
@@ -63,12 +88,8 @@ namespace Marketplace::Memo {
     return "Возврат резерва по отменённому заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
 
-  inline std::string get_refusal_penalty_transit_memo(uint64_t order_id) {
-    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
-  }
-
-  inline std::string get_refusal_penalty_distribute_memo(uint64_t order_id) {
-    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в общий кошелёк кооперативного участка";
+  inline std::string get_refusal_penalty_memo(uint64_t order_id) {
+    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в Столе заказов — к списанию по условиям ЦПП";
   }
 
   inline std::string get_decline_order_memo(uint64_t order_id) {
@@ -104,7 +125,7 @@ namespace Marketplace::Memo {
   }
 
   inline std::string get_consume_transit_close_memo(uint64_t order_id) {
-    return "Выдача имущества пайщику по заказу № " + std::to_string(order_id) + ": списание целевого назначения членского взноса";
+    return "Выдача имущества пайщику по заказу № " + std::to_string(order_id) + ": списание целевого назначения паевого взноса";
   }
 
   inline std::string get_recall_share_memo() {
@@ -117,12 +138,8 @@ namespace Marketplace::Memo {
     return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): восстановление паевого взноса по решению совета";
   }
 
-  inline std::string get_return_fee_from_common_memo(uint64_t return_request_id, uint64_t order_id) {
-    return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): возврат членского взноса из общего кошелька кооперативного участка";
-  }
-
-  inline std::string get_return_fee_to_member_memo(uint64_t return_request_id, uint64_t order_id) {
-    return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): сторно членского взноса участка на паевой";
+  inline std::string get_return_due_to_share_memo(uint64_t return_request_id, uint64_t order_id) {
+    return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): возврат обеспечительной части паевого взноса на свободный паевой Стола заказов";
   }
 
   inline std::string get_return_transit_close_memo(uint64_t return_request_id, uint64_t order_id) {

@@ -1,8 +1,6 @@
 import './i18n';
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, isStandTimeCompressed, describeStandTime } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   DOCUMENT_APPROVAL_PORT,
   type IDocumentApprovalPort,
@@ -101,6 +99,9 @@ export class MarketplaceExtension extends BaseExtensionModule {
     await this.initBucket();
     this.registerInAgreementRegistry();
 
+    // Сжатое время стенда меняет гарантийные сроки и «первое число» списания:
+    // пусть это будет видно в журнале сразу при запуске.
+    if (isStandTimeCompressed()) this.logger.warn(`[MARKETPLACE.TIME] ${describeStandTime()}; в работе время всегда настоящее`);
     this.logger.info('marketplace-extension готов');
   }
 

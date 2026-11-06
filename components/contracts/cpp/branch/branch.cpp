@@ -1,6 +1,9 @@
 #include "branch.hpp"
 
 #include "src/accrue.cpp"
+#include "src/setaidlimit.cpp"
+#include "src/setreserve.cpp"
+#include "src/delreserve.cpp"
 #include "src/addtrusted.cpp"
 #include "src/aidconfirm.cpp"
 #include "src/aiddecline.cpp"

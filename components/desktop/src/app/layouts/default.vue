@@ -88,6 +88,7 @@ q-layout(view='lHh LpR fff')
   //- регистрирует действие `marketplaceUniversalScan` (пункт меню «Сканировать
   //- QR»). Смонтирован один раз; камера стартует только при открытии диалога.
   UniversalScannerHost(v-if='loggedIn')
+  IssuanceCloserHost(v-if='loggedIn')
 </template>
 
 <script setup lang="ts">
@@ -106,6 +107,7 @@ import { CommandHost } from 'src/widgets/Desktop/CommandHost';
 import { useCommandShortcuts } from 'src/shared/lib/shortcuts';
 import { ContactsFooter } from 'src/shared/ui/Footer';
 import { UniversalScannerHost } from 'src/widgets/Marketplace/UniversalScanner';
+import { IssuanceCloserHost } from 'src/widgets/Marketplace/IssuanceCloserHost';
 
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';

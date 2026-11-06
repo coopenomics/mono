@@ -72,13 +72,14 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     }
   })
 
-  it('выход держат резерв под заказы, незакрытый подотчёт и материалы на хранении', () => {
-    expect(EXIT_BLOCKER_WALLET_RULES.map(r => r.wallet_name).sort()).toEqual(['w.edu.hold', 'w.exp.adv', 'w.mkt.order'])
+  it('выход держат резерв и обеспечительная часть под заказы, незакрытый подотчёт, материалы на хранении и остаток инициатора участка', () => {
+    expect(EXIT_BLOCKER_WALLET_RULES.map(r => r.wallet_name).sort()).toEqual(['w.edu.hold', 'w.exp.adv', 'w.mkt.invest', 'w.mkt.order', 'w.mkt.secure'])
     for (const r of EXIT_BLOCKER_WALLET_RULES) expect(r.note.length).toBeGreaterThan(0)
   })
 
-  it('членский взнос «Стола заказов» остаётся кооперативу', () => {
-    expect(exitRuleForWallet('w.mkt.member')?.policy).toBe('FORFEIT')
+  it('обеспечительная часть «Стола заказов» к списанию при выходе списывается в членский взнос', () => {
+    expect(exitRuleForWallet('w.mkt.due')?.policy).toBe('FORFEIT')
+    expect(exitRuleForWallet('w.mkt.member')).toBeUndefined()
     expect(exitRuleForWallet('w.edu.member')?.policy).toBe('RETURN_TO_MAIN')
     expect(exitRuleForWallet('w.edu.member')?.transfer_op).toBe('o.edu.retshr')
     // паевой взнос преподавателя по программе при выходе уходит на главный паевой

@@ -1,86 +1,81 @@
-
-
+/**
+ * @brief Правка настроек фонда председателем совета (задача 99D-25).
+ *
+ * У фонда накопления меняются описание и процент отчислений, у фонда списания —
+ * только описание. Название стандартного фонда и внешний контракт управления
+ * не меняются: набор фондов фиксирован Положением о фондах, кошельки заданы при
+ * сборке. Сумма процентов фондов накопления не превышает 100 %: при большей
+ * сумме `closeperiod` Стола заказов не смог бы разделить членский взнос.
+ *
+ * Отказы — с кодом, приложение проверяет те же правила до обращения в цепь:
+ *  - FUND_NOT_CHAIRMAN — подписал не председатель совета;
+ *  - FUND_KIND_INVALID — вид фонда не `accumulation` и не `expend`;
+ *  - FUND_NOT_FOUND — фонда с таким номером нет;
+ *  - FUND_KIND_MISMATCH — вид в вызове расходится с видом фонда;
+ *  - FUND_NAME_FIXED — название стандартного фонда не меняется;
+ *  - FUND_CONTRACT_FIXED — фонд не передаётся в управление контракту;
+ *  - FUND_PERCENT_INVALID — процент фонда накопления вне (0; 100 %], у фонда списания не ноль;
+ *  - FUND_PERCENT_SUM_EXCEEDED — сумма процентов фондов накопления выше 100 %.
+ *
+ * @param coopname Наименование кооператива
+ * @param username Председатель совета
+ * @param type Вид фонда: `accumulation` или `expend`
+ * @param fund_id Номер фонда (1…5)
+ * @param contract Должен быть пустым
+ * @param name Должно совпадать с названием фонда
+ * @param description Новое описание
+ * @param percent Новый процент ×10 000 (у фонда списания — 0)
+ * @ingroup public_actions
+ * @ingroup public_fund_actions
+ * @note Авторизация требуется от аккаунта: @p username (председатель совета)
+ */
 [[eosio::action]] void fund::editfund(eosio::name coopname,
                                       eosio::name username, eosio::name type,
                                       uint64_t fund_id, eosio::name contract,
                                       std::string name, std::string description,
                                       uint64_t percent) {
-  require_auth(username);
-
-  eosio::check(type == "accumulation"_n || type == "expend"_n,
-               "Неверный тип фонда");
-
-  auto cooperative = get_cooperative_or_fail(coopname);
-
-  auto soviet = get_board_by_type_or_fail(coopname, "soviet"_n);
-  auto chairman = soviet.get_chairman();
-  eosio::check(username == chairman,
-               "Только председатель может управлять фондами");
-
-  
-  if (fund_id <= 5){
-    /**
-    Фонд развития кооперации (3) и резервный фонд (2) проценты менять можно.
-    Названия фондов менять нельзя (id < 5).
-    */
-    
-    eosio::check(fund_id != 0, "Неделимый фонд не может быть отредактирован");
-  
+  // Подписывает либо председатель сам, либо кооператив от его имени: ИСТОК
+  // проверяет право председателя до отправки и передаёт его имя в `username`
+  // (как у setreserve участка, решение владельца 03.11.2026). В обоих случаях
+  // `username` обязан быть председателем совета — проверка ниже.
+  if (!has_auth(coopname)) {
+    require_auth(username);
   }
 
+  eosio::check(type == "accumulation"_n || type == "expend"_n,
+               "FUND_KIND_INVALID: Вид фонда — накопления (accumulation) или списания (expend)");
 
-  if (type == "accumulation"_n) {
-    accfunds_index accfunds(_fund, coopname.value);
-    auto afund = accfunds.find(fund_id);
-    eosio::check(afund != accfunds.end(), "Фонд не найден");
-    
-    if (fund_id <= 3){
-      eosio::check(fund_id == 1, "Нельзя изменить процент неделимого фонда накопления");
-      eosio::check(name == afund -> name, "Нельзя изменить имя обязательного фонда накопления");  
-      eosio::check(contract == ""_n, "Нельзя передать в управление обязательный фонд");
-    }
-    
-    eosio::check(
-        percent > 0 && percent <= HUNDR_PERCENTS,
-        "Процент фонда накопления должен быть больше нуля и меньше 100%");
-    uint64_t total_percent = 0;
+  get_cooperative_or_fail(coopname);
+  auto soviet = get_board_by_type_or_fail(coopname, "soviet"_n);
+  eosio::check(username == soviet.get_chairman(),
+               "FUND_NOT_CHAIRMAN: Настройки фондов меняет только председатель совета");
 
-    // получаем сумму процентов всех фондов
-    for (auto it = accfunds.begin(); it != accfunds.end(); it++) {
-      total_percent += it->percent;
-    }
+  funds_index funds(_fund, coopname.value);
+  auto row = funds.find(fund_id);
+  eosio::check(row != funds.end(), "FUND_NOT_FOUND: Фонд с таким номером не найден");
 
-    // вычитаем старый процент и добавляем новый
-    total_percent += percent - afund->percent;
+  const eosio::name kind = type == "accumulation"_n ? Fund::KIND_ACCUMULATION : Fund::KIND_EXPENDITURE;
+  eosio::check(row->kind == kind,
+               "FUND_KIND_MISMATCH: Вид фонда в вызове расходится с видом фонда в реестре");
+  eosio::check(name == row->name,
+               "FUND_NAME_FIXED: Название стандартного фонда не меняется");
+  eosio::check(contract == ""_n,
+               "FUND_CONTRACT_FIXED: Фонд не передаётся в управление контракту");
 
-    // сумма процентов не должна превышать 100%
-    check(total_percent <= HUNDR_PERCENTS,
-          "Сумма всех процентов превышает 100%");
+  if (kind == Fund::KIND_ACCUMULATION) {
+    eosio::check(percent > 0 && percent <= HUNDR_PERCENTS,
+                 "FUND_PERCENT_INVALID: Процент фонда накопления — от 0 до 100 % включительно, больше нуля");
+    // Сумма процентов всех фондов накопления с новым значением этого фонда.
+    const uint64_t others = Fund::accumulation_percent_sum(coopname) - row->percent;
+    eosio::check(others + percent <= HUNDR_PERCENTS,
+                 "FUND_PERCENT_SUM_EXCEEDED: Сумма процентов фондов накопления выше 100 %");
+  } else {
+    eosio::check(percent == 0,
+                 "FUND_PERCENT_INVALID: У фонда списания процента отчислений нет");
+  }
 
-    accfunds.modify(afund, RamPayer::of(accfunds, coopname), [&](auto &a) {
-      a.contract = contract;
-      a.name = name;
-      a.description = description;
-      a.percent = percent;
-    });
-  } else if (type == "expend"_n) {
-    eosio::check(
-        percent == 0,
-        "Процент для фонда списания должен быть равен нулю (не используется)");
-
-    expfunds_index expfunds(_fund, coopname.value);
-    auto efund = expfunds.find(fund_id);
-    eosio::check(efund != expfunds.end(), "Фонд не найден");
-  
-    if (fund_id <= 5){
-      eosio::check(name == efund -> name, "Нельзя изменить имя обязательного фонда списания");  
-      eosio::check(contract == ""_n, "Нельзя передать в управление обязательный фонд");
-    }
-
-    expfunds.modify(efund, RamPayer::of(expfunds, coopname), [&](auto &e) {
-      e.contract = contract;
-      e.name = name;
-      e.description = description;
-    });
-  };
-};
+  funds.modify(row, RamPayer::of(funds, coopname), [&](auto &r) {
+    r.description = description;
+    r.percent = percent;
+  });
+}

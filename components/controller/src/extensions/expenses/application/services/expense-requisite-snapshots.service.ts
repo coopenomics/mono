@@ -6,7 +6,7 @@ import { advancePaymentMemo } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record'
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
-import { DomainError } from '@coopenomics/extension-kit';
+import { DomainError, bankSafeText } from '@coopenomics/extension-kit';
 
 /**
  * Получатель в снимке. У организации аккаунта нет (recipient пуст) — её
@@ -123,7 +123,8 @@ export class ExpenseRequisiteSnapshotsService {
           method_type: null,
           data: null,
           requisites: it.requisites ?? '',
-          payment_purpose: it.paymentPurpose ?? null,
+          // Назначение платежа организации кассир копирует в банк — без «ё».
+          payment_purpose: bankSafeText(it.paymentPurpose) ?? null,
         })
 
         if (it.isOrganization) {

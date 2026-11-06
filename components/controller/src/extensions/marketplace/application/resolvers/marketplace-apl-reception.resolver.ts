@@ -320,6 +320,7 @@ export class MarketplaceAplReceptionResolver {
             f.order_id,
             {
               product_name: displayByOrderId.get(f.order_id)?.product_name ?? null,
+              image_url: displayByOrderId.get(f.order_id)?.image_url ?? null,
               unit_of_measure: displayByOrderId.get(f.order_id)?.unit_of_measure ?? null,
               package_size: displayByOrderId.get(f.order_id)?.package_size ?? null,
               orderer_account: displayByOrderId.get(f.order_id)?.orderer_account ?? null,

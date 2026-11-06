@@ -337,23 +337,24 @@ q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.
 
     //- Правая колонка: липкая сводка заказа.
     .col-12.col-md-4
+      //- Зоны сводки: что в заказе (заголовок и мета) → из чего складывается
+      //- сумма (строки) → сколько всего (итог) → действие. Сумма всегда целиком
+      //- в одну строку у правого края, длинная подпись переносится сама.
       BaseCard.mp-cart__summary
         .mp-cart__summary-title {{ $t('marketplace.cart.summaryTitle') }}
-        .mp-cart__summary-line
-          span {{ $t('marketplace.cart.itemsCountLabel') }}
-          span.mp-cart__summary-val {{ cartStore.positionsCount }}
-        .mp-cart__summary-line
-          span {{ $t('marketplace.cart.totalUnitsLabel') }}
-          span.mp-cart__summary-val {{ cartStore.totalQuantity }}
-        .mp-cart__summary-line
-          span {{ $t('marketplace.cart.costLabel') }}
-          span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
-        .mp-cart__summary-line(v-if="feePercent > 0")
-          span {{ $t('marketplace.cart.targetFeeLabel', { percent: feePercent }) }}
-          span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
+        .mp-cart__summary-meta {{ $t('marketplace.cart.summaryMeta', { positions: cartStore.positionsCount, units: cartStore.totalQuantity }) }}
+        .mp-cart__summary-lines
+          .mp-cart__summary-line
+            .mp-cart__summary-label {{ $t('marketplace.cart.costLabel') }}
+            .mp-cart__summary-val {{ money(cartStore.totalCost) }}&nbsp;{{ symbol }}
+          .mp-cart__summary-line(v-if="feePercent > 0")
+            .mp-cart__summary-label
+              | {{ $t('marketplace.cart.feeLabel') }}
+              .mp-cart__summary-note {{ $t('marketplace.cart.feeNote', { percent: feePercent }) }}
+            .mp-cart__summary-val {{ money(feeAmount) }}&nbsp;{{ symbol }}
         .mp-cart__summary-total
-          span {{ $t('marketplace.cart.totalLabel') }}
-          span {{ money(totalWithFee) }} {{ symbol }}
+          .mp-cart__summary-label {{ $t('marketplace.cart.totalLabel') }}
+          .mp-cart__summary-val {{ money(totalWithFee) }}&nbsp;{{ symbol }}
         BaseButton.mp-cart__checkout(
           variant="primary",
           :loading="cartStore.checkingOut",
@@ -549,19 +550,48 @@ q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.
 
   &__summary-title {
     font-size: var(--p-fs-h2);
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: var(--p-ls-h2);
     color: var(--p-ink);
-    margin-bottom: var(--p-3, 12px);
   }
 
+  &__summary-meta {
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__summary-lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    margin-top: var(--p-5, 20px);
+  }
+
+  // Подпись слева переносится, сумма справа — никогда: она целиком в одной
+  // строке и не сжимается, поэтому «30 / RUB» по двум строкам не бывает.
   &__summary-line {
     display: flex;
     justify-content: space-between;
-    padding: var(--p-1, 4px) 0;
+    align-items: baseline;
+    gap: var(--p-4, 16px);
+  }
+
+  &__summary-label {
+    min-width: 0;
     color: var(--p-ink-2);
   }
 
+  &__summary-note {
+    margin-top: 2px;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
   &__summary-val {
+    flex: 0 0 auto;
+    white-space: nowrap;
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
@@ -570,15 +600,20 @@ q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-top: var(--p-2, 8px);
-    padding-top: var(--p-3, 12px);
+    gap: var(--p-4, 16px);
+    margin-top: var(--p-4, 16px);
+    padding-top: var(--p-4, 16px);
     border-top: 1px solid var(--p-line);
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
-    color: var(--p-ink);
 
-    span:last-child {
-      font-variant-numeric: tabular-nums;
+    .mp-cart__summary-label {
+      font-weight: 600;
+      color: var(--p-ink);
+    }
+
+    .mp-cart__summary-val {
+      font-size: var(--p-fs-h2);
+      font-weight: 700;
+      letter-spacing: var(--p-ls-h2);
     }
   }
 

@@ -19,6 +19,10 @@ import { ReportsLiveFeedService } from './application/services/reports-live-feed
 import { WithheldTaxPayoutSyncService } from './application/services/withheld-tax-payout-sync.service';
 import { WithheldTaxBlockchainAdapter } from './infrastructure/adapters/withheld-tax-blockchain.adapter';
 import { WITHHELD_TAX_BLOCKCHAIN_PORT } from './domain/ports/withheld-tax-blockchain.port';
+import { FundRegistryBlockchainAdapter } from './infrastructure/adapters/fund-registry-blockchain.adapter';
+import { FUND_REGISTRY_BLOCKCHAIN_PORT } from './domain/ports/fund-registry-blockchain.port';
+import { FundsService } from './application/services/funds.service';
+import { FundsResolver } from './application/resolvers/funds.resolver';
 import { GeneratedReportKyselyRepository } from './infrastructure/repositories/generated-report.kysely-repository';
 import { BalanceCorrectionKyselyRepository } from './infrastructure/repositories/balance-correction.kysely-repository';
 import { ReportRequisitesKyselyRepository } from './infrastructure/repositories/report-requisites.kysely-repository';
@@ -62,6 +66,11 @@ import { ReportsRights } from './application/access/reports-rights';
     WithheldTaxPayoutSyncService,
     WithheldTaxBlockchainAdapter,
     { provide: WITHHELD_TAX_BLOCKCHAIN_PORT, useExisting: WithheldTaxBlockchainAdapter },
+    // Фонды кооператива на кошельках учётной книги (задача 99D-24).
+    FundsService,
+    FundsResolver,
+    FundRegistryBlockchainAdapter,
+    { provide: FUND_REGISTRY_BLOCKCHAIN_PORT, useExisting: FundRegistryBlockchainAdapter },
     {
       provide: GENERATED_REPORT_REPOSITORY,
       useClass: GeneratedReportKyselyRepository,

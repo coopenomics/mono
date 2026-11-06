@@ -320,6 +320,10 @@ body {
   transition: border-color var(--p-dur-base), background var(--p-dur-base);
 }
 .wallet:hover { border-color: var(--p-line-2); }
+/* Нажимаемая карточка — отбор по кошельку; выбранная — рамка акцентом. */
+.wallet--clickable { cursor: pointer; }
+.wallet--clickable:focus-visible { outline: 2px solid var(--p-primary-line); outline-offset: 2px; }
+.wallet--selected, .wallet--selected:hover { border-color: var(--p-primary); background: var(--p-primary-soft); }
 .wallet__icon {
   width: 40px; height: 40px;
   border-radius: var(--p-r-sm);

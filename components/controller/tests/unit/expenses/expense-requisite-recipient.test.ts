@@ -69,7 +69,7 @@ describe('Снимок реквизитов: получатель-организ
     expect(saved[0]).toMatchObject({
       recipient: 'ООО «Хостинг»',
       requisites: 'ИНН 9719026854, р/с 40702810600810037876',
-      payment_purpose: 'Пополнение лицевого счёта #53144',
+      payment_purpose: 'Пополнение лицевого счета #53144',
     });
   });
 
@@ -100,7 +100,11 @@ describe('Снимок реквизитов: получатель-организ
 
 describe('Назначение платежа аванса под отчёт', () => {
   it('номер — первые 8 знаков хэша позиции в нижнем регистре, затем оговорка НДС', () => {
-    expect(advancePaymentMemo('ABCDEF1234' + '0'.repeat(54))).toBe(`Аванс под отчёт №abcdef12. ${VAT_EXEMPT_NOTE}`);
+    expect(advancePaymentMemo('ABCDEF1234' + '0'.repeat(54))).toBe(`Аванс под отчет №abcdef12. ${VAT_EXEMPT_NOTE}`);
+  });
+
+  it('назначение передаётся в банк — без буквы «ё», банк её не принимает', () => {
+    expect(advancePaymentMemo('ABCDEF1234' + '0'.repeat(54))).not.toMatch(/[ёЁ]/);
   });
 
   it('снимок аванса пайщику хранит то же назначение', async () => {
@@ -109,10 +113,10 @@ describe('Назначение платежа аванса под отчёт', (
     expect(saved[0].payment_purpose).toBe(advancePaymentMemo(ITEM_MEMBER));
   });
 
-  it('у организации назначение остаётся введённым при подаче', async () => {
+  it('у организации назначение остаётся введённым при подаче, «ё» заменена на «е» — кассир копирует его в банк', async () => {
     const { service, saved } = snapshotService();
     await service.snapshot(COOP, [orgItem()]);
-    expect(saved[0].payment_purpose).toBe('Пополнение лицевого счёта #53144');
+    expect(saved[0].payment_purpose).toBe('Пополнение лицевого счета #53144');
   });
 });
 

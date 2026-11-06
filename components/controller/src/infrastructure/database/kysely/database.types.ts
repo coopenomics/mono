@@ -1800,6 +1800,8 @@ export interface MarketplaceAplReception {
   offerer_account: string;
   shipment_id: string;
   status: string;
+  step_claimed_at: Timestamp | null;
+  step_claimed_by: string | null;
   supplier_signed_at: Timestamp | null;
   supplier_signed_documents: Json | null;
   supplier_signsupp_tx_hash: string | null;
@@ -1807,6 +1809,48 @@ export interface MarketplaceAplReception {
   ttn_number: string | null;
   updated_at: Generated<Timestamp>;
   variant: string;
+}
+
+export interface MarketplaceBranchAid {
+  aid_hash: string;
+  amount: Generated<Numeric>;
+  braname: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  paid_at: Timestamp | null;
+  status: string;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
+export interface MarketplaceBranchPeriod {
+  aid_paid: Generated<Numeric>;
+  aid_reserve: Generated<Numeric>;
+  aid_unpaid: Generated<Numeric>;
+  braname: string;
+  branch_amount: Generated<Numeric>;
+  closed_at: Generated<Timestamp>;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  deficit: Generated<Numeric>;
+  deleted_at: Timestamp | null;
+  expenses: Generated<Numeric>;
+  funds_amount: Generated<Numeric>;
+  initiator: Generated<string>;
+  initiator_amount: Generated<Numeric>;
+  membership: Generated<Numeric>;
+  memos: Generated<Numeric>;
+  period: number;
+  planned: Generated<Numeric>;
+  rate_branch: Generated<Int8>;
+  rate_funds: Generated<Int8>;
+  rate_initiator: Generated<Int8>;
+  return_amount: Generated<Numeric>;
+  rows_charged: Generated<number>;
+  rows_total: Generated<number>;
+  secured: Generated<Numeric>;
+  turnover: Generated<Numeric>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface MarketplaceCart {
@@ -1883,6 +1927,15 @@ export interface MarketplaceContainerType {
   width_cm: Generated<number>;
 }
 
+export interface MarketplaceHandoffCode {
+  account: string;
+  coopname: string;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  issued_at: Generated<Timestamp>;
+  token: string;
+}
+
 export interface MarketplaceInventory {
   arrival_price: Numeric | null;
   barcode_format: string | null;
@@ -1921,6 +1974,7 @@ export interface MarketplaceIssuanceSaga {
   act2_document: Json | null;
   attempts: Generated<number>;
   braname: string;
+  close_reminded_at: Timestamp | null;
   closed_at: Timestamp | null;
   coopname: string;
   created_at: Generated<Timestamp>;
@@ -1938,6 +1992,8 @@ export interface MarketplaceIssuanceSaga {
   protocol_document: Json | null;
   stage: string;
   statement_document: Json | null;
+  step_claimed_at: Timestamp | null;
+  step_claimed_by: string | null;
   tx_hashes: Generated<Json>;
   updated_at: Generated<Timestamp>;
 }
@@ -2044,6 +2100,7 @@ export interface MarketplaceOrder {
   quantity: Numeric;
   ready_announced_at: Timestamp | null;
   received_at: Timestamp | null;
+  review_invited_at: Timestamp | null;
   shipment_id: string | null;
   status: string;
   supplier_account: string;
@@ -2105,6 +2162,41 @@ export interface MarketplaceReturnClaim {
   submretrn_tx_hash: string;
   supplier_account: string;
   updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceReview {
+  author_account: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  hidden_at: Timestamp | null;
+  hidden_by: string | null;
+  hidden_reason: string | null;
+  id: Generated<string>;
+  offer_id: string;
+  order_id: string;
+  stars: number;
+  status: Generated<string>;
+  supplier_account: string;
+  text: Generated<string>;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceSecureDue {
+  base_amount: Generated<Numeric>;
+  braname: string;
+  charge_sent_at: Timestamp | null;
+  charged_amount: Generated<Numeric>;
+  charged_at: Timestamp | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  due_amount: Generated<Numeric>;
+  due_from: Timestamp | null;
+  last_sequence: Generated<string>;
+  order_hash: string;
+  returned_amount: Generated<Numeric>;
+  run_period: number | null;
+  updated_at: Generated<Timestamp>;
+  username: string;
 }
 
 export interface MarketplaceShipment {
@@ -2186,6 +2278,17 @@ export interface MarketplaceSupplierClaim {
   reclamation: Json | null;
   return_claim_id: string;
   status: string;
+  supplier_account: string;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceSupplierProfile {
+  about: Generated<string>;
+  coopname: string;
+  cover: Json | null;
+  created_at: Generated<Timestamp>;
+  display_name: string | null;
+  id: Generated<string>;
   supplier_account: string;
   updated_at: Generated<Timestamp>;
 }
@@ -2431,6 +2534,35 @@ export interface PaymentState {
   lastProcessedPage: Generated<number>;
   statementDate: string;
   updated_at: Generated<Timestamp>;
+}
+
+export interface PayoutRequests {
+  blockchain_data: Json | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  expired_at: Timestamp | null;
+  /**
+   * Хэш заявки — им же станет хэш платежа
+   */
+  hash: string;
+  id: Generated<string>;
+  memo: string | null;
+  payment_details: Json | null;
+  payment_method_id: string | null;
+  provider: string | null;
+  quantity: Numeric;
+  related_entity_id: string | null;
+  related_extension: string | null;
+  statement: Json | null;
+  /**
+   * awaiting — ждёт решения совета, released — платёж создан, declined — совет отказал
+   */
+  status: Generated<string>;
+  symbol: string;
+  type: PaymentsTypeEnum;
+  updated_at: Generated<Timestamp>;
+  username: string;
 }
 
 export interface ProgramWallets {
@@ -2802,12 +2934,15 @@ export interface DB {
   ku_trust_requests: KuTrustRequests;
   ledger_operations: LedgerOperations;
   marketplace_apl_reception: MarketplaceAplReception;
+  marketplace_branch_aid: MarketplaceBranchAid;
+  marketplace_branch_period: MarketplaceBranchPeriod;
   marketplace_cart: MarketplaceCart;
   marketplace_cart_item: MarketplaceCartItem;
   marketplace_category: MarketplaceCategory;
   marketplace_consolidated_request: MarketplaceConsolidatedRequest;
   marketplace_container: MarketplaceContainer;
   marketplace_container_type: MarketplaceContainerType;
+  marketplace_handoff_code: MarketplaceHandoffCode;
   marketplace_inventory: MarketplaceInventory;
   marketplace_issuance_saga: MarketplaceIssuanceSaga;
   marketplace_ku_details: MarketplaceKuDetails;
@@ -2816,11 +2951,14 @@ export interface DB {
   marketplace_order: MarketplaceOrder;
   marketplace_outgoing_payment_request: MarketplaceOutgoingPaymentRequest;
   marketplace_return_claim: MarketplaceReturnClaim;
+  marketplace_review: MarketplaceReview;
+  marketplace_secure_due: MarketplaceSecureDue;
   marketplace_shipment: MarketplaceShipment;
   marketplace_stock_proposal: MarketplaceStockProposal;
   marketplace_storage_cell: MarketplaceStorageCell;
   marketplace_supplier: MarketplaceSupplier;
   marketplace_supplier_claim: MarketplaceSupplierClaim;
+  marketplace_supplier_profile: MarketplaceSupplierProfile;
   marketplace_supplier_settings: MarketplaceSupplierSettings;
   marketplace_supply_validation_log: MarketplaceSupplyValidationLog;
   marketplace_ttn_document: MarketplaceTtnDocument;
@@ -2838,6 +2976,7 @@ export interface DB {
   payment_files: PaymentFiles;
   payment_state: PaymentState;
   payments: Payments;
+  payout_requests: PayoutRequests;
   program_wallets: ProgramWallets;
   report_drafts: ReportDrafts;
   report_requisites: ReportRequisites;

@@ -84,6 +84,7 @@ function makeService({
   entityDeltasPerLocation,
   linkedActions = [],
   documentQueries = [],
+  deltasByTable,
 }: {
   actions: ActionEntity[];
   // Дельты по порядку локаций из PROCESS_HASH_LOCATOR[processType] —
@@ -94,11 +95,14 @@ function makeService({
   linkedActions?: ActionEntity[];
   // Сюда складываются запросы действий с документами — для проверки условий.
   documentQueries?: ProcessDocumentActionsQuery[];
+  // Дельты по таблице `code.table` — для поиска процесса до операций учётной книги.
+  deltasByTable?: Record<string, DeltaEntity[]>;
 }): ProcessRegistryService {
   let deltaCallIdx = 0;
   const journal: any = {
     findActionsByProcess: jest.fn(async () => actions),
-    findEntityDeltas: jest.fn(async () => {
+    findEntityDeltas: jest.fn(async (loc: { code: string; table: string }) => {
+      if (deltasByTable) return deltasByTable[`${loc.code}.${loc.table}`] ?? [];
       const rows = entityDeltasPerLocation[deltaCallIdx] ?? [];
       deltaCallIdx += 1;
       return rows;
@@ -455,6 +459,27 @@ describe('ProcessRegistryService.getProcess', () => {
   test('(f3) 404, если apply-якоря нет (actions пусты)', async () => {
     const svc = makeService({ actions: [], entityDeltasPerLocation: [] });
     await expect(svc.getProcess(HASH, COOP)).rejects.toThrow(/не найден/);
+  });
+
+  test('(f4) до операций учётной книги процесс находится по таблице сущности: матпомощь на рассмотрении совета', async () => {
+    // Решение владельца 04.11.2026: последовательность процесса видна с подачи
+    // заявления. Операций ledger2 ещё нет — есть строка branch.aids и действия
+    // с хэшем заявления (подача, вопрос совету).
+    const aidRow = makeDelta({ code: 'branch', table: 'aids', block_num: 10 as any, value: { hash: HASH, coopname: COOP } });
+    const createAid = makeAction({ account: 'branch', name: 'createaid', block_num: 10 as any, data: { aid_hash: HASH, coopname: COOP } });
+    const agenda = makeAction({ account: 'soviet', name: 'createagenda', block_num: 10 as any, global_sequence: '2', data: { hash: HASH, coopname: COOP } });
+    const svc = makeService({
+      actions: [],
+      entityDeltasPerLocation: [],
+      deltasByTable: { 'branch.aids': [aidRow] },
+      linkedActions: [createAid, agenda],
+    });
+
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.brn.aid');
+    expect(view.actions.map((a) => `${a.account}::${a.name}`)).toEqual(['branch::createaid', 'soviet::createagenda']);
+    expect(view.delta_history).toHaveLength(1);
   });
 
   test('(g1) нитка поставки с инлайновым взносом КУ называется поставкой', async () => {

@@ -85,6 +85,11 @@ namespace processes {
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
   }
 
+  // fund — фонды накопления кооператива (задача 99D-19)
+  namespace fund {
+    inline constexpr eosio::name ACCUM = "p.fnd.accum"_n; ///< Отчисления в фонды накопления (o.fnd.indiv, o.fnd.resrv, o.fnd.devel — по кошельку на фонд, задача 99D-25). Имя стандарта процесса; сами отчисления идут в нитке процесса-источника (списание обеспечительной части участка — p.mkt.supply), поэтому как имя нитки в apply не передаётся.
+  }
+
   // expense — шасси расходов (СЗ → авторизация → платёж → отчёт → закрытие)
   namespace expense {
     inline constexpr eosio::name PROPOSAL  = "p.exp.expns"_n;    ///< Цикл расхода по СЗ: o.exp.blgadv|blgdir (платёж) + опц. o.exp.over (перерасход) + o.exp.advrpt (отчёт ADVANCE) + опц. o.exp.advret (возврат). Анкер процесса — proposal_hash.
@@ -104,6 +109,7 @@ namespace processes {
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
     inline constexpr eosio::name TAX         = "p.sov.tax"_n;    ///< Перечисление удержанного налога в бюджет (заявка бухгалтера → платёж кассира → закрытие обязательства). Собственная нитка, а не продолжение выплаты: платёж гасит удержания всех программ сразу, и привязать его к одной выплате нельзя.
+    inline constexpr eosio::name SPEND       = "p.sov.spend"_n;  ///< Расход кооператива из фонда обеспечения хозяйственной деятельности (служебная записка → решение совета → платёж кассира → отчёт). Шасси расходов на кошельке w.sov.expns: пул и фонд — один кошелёк (задача 99D-25).
   }
 
   // billing (Epic 12 — контракт billing)
@@ -148,11 +154,12 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::WTHCAP,       capital::PGEXP,
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
   branch::FEES,          branch::AID,          branch::SPEND,
+  fund::ACCUM,
   expense::PROPOSAL,
   billing::CONVERT,      billing::PAY,
   edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
   edubridge::RETURN_SHARE, edubridge::WITHDRAW_SHARE,
-  soviet::AXN_CONVERT,   soviet::TAX,
+  soviet::AXN_CONVERT,   soviet::TAX,          soviet::SPEND,
   migration::TRANSIT,
   adjustment::CORRECTION,
 };

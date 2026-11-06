@@ -1,3 +1,4 @@
+import type { InnerPayoutRequest } from './payment-desk.port';
 import type { ISignedDocument } from './signed-document.port';
 
 /**
@@ -199,6 +200,12 @@ export interface IPaymentPort {
    * приходит без хэша платежа, и найти его удаётся только перебором ожидающих.
    */
   list(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>;
+
+  /**
+   * Заявка на выплату по хэшу: выплата, которую решает совет, до решения
+   * живёт заявкой, а не платежом. `null` — заявки нет.
+   */
+  findPayoutRequestByHash(hash: string): Promise<InnerPayoutRequest | null>;
 }
 
 export const PAYMENT_PORT = Symbol.for('Innercoop.CorePort.Payment');

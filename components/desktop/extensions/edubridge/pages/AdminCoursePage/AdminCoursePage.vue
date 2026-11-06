@@ -141,7 +141,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState, FieldHelp } from 'src/shared/ui/base';
-import { AccountBadge, DataRow, DetailsDrawer } from 'src/shared/ui/domain';
+import { AccountBadge, DataRow, DetailsDrawer, StatTile } from 'src/shared/ui/domain';
 import { cancelLesson, fetchLessonCalendar, type ICalendarLesson } from '../../entities/Lesson';
 import { fetchAssignments, type IAssignment } from '../../entities/Teacher';
 import { fetchCourseGroups, type IGroup } from '../../entities/Group';
@@ -161,7 +161,6 @@ import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy'
 import { CourseGroups } from '../../widgets/CourseGroups';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero } from '../../widgets/CourseHero';
-import { StatTile } from '../../shared/ui/StatStrip';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { programSpanCompact } from '../../shared/lib/courseMonths';
