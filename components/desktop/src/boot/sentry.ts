@@ -1,6 +1,8 @@
 import { boot } from 'quasar/wrappers';
 import * as Sentry from '@sentry/vue';
+import { watch } from 'vue';
 import { APP_VERSION, env } from 'src/shared/config';
+import { useSessionStore } from 'src/entities/Session';
 
 export default boot(({ app, router }) => {
   // Sentry (@sentry/vue + browserTracing) — браузерный SDK, работает только на клиенте.
@@ -62,13 +64,30 @@ export default boot(({ app, router }) => {
       // события там общий («Object captured as promise rejection with keys:
       // code, message») и спрятал бы и наши отклонения с такими же полями.
       beforeSend(event, hint) {
-        const rejected = hint?.originalException as { code?: unknown; message?: unknown } | undefined;
+        const rejected = hint?.originalException as { code?: unknown; message?: unknown; status?: unknown } | undefined;
         if (rejected?.code === -32603 && rejected?.message === 'Internal JSON-RPC error.') {
+          return null;
+        }
+        // «Цепь временно недоступна» — отказ узла с кодом BLOCKCHAIN_UNAVAILABLE
+        // и статусом 503. Пайщик видит «повторите чуть позже», кабинет ничего не
+        // теряет, а перерыв связи узла с цепью ловит тревога CoopNodeNotSynced.
+        // Шаблон ignoreErrors выше его не берёт: текст отказа русский (C28-95).
+        if (rejected?.status === 503 && rejected?.code === 'BLOCKCHAIN_UNAVAILABLE') {
           return null;
         }
         return event;
       },
     });
+
+    // Логин пайщика — в поле пользователя события: по нему видно, сколько
+    // пайщиков задела ошибка и кого именно. Сервер делает так же
+    // (graphql-exceptions.filter.ts). ФИО и почта не передаются.
+    const session = useSessionStore();
+    watch(
+      () => session.username,
+      (username) => Sentry.setUser(username ? { username } : null),
+      { immediate: true },
+    );
   } catch (error) {
     console.error('Failed to initialize Sentry:', error);
     return; // Выходим из функции, не блокируем загрузку приложения

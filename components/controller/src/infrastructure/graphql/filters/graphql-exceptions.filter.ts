@@ -179,8 +179,14 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     // предупреждением: всплеск 401 виден там, а журнал ошибок снова про ошибки.
     const isExpectedRefusal = statusCode < HttpStatus.INTERNAL_SERVER_ERROR;
 
+    // «Цепь временно недоступна» (503) — состояние связи узла с цепью, а не
+    // ошибка кода. Один перерыв 26–27.10.2026 дал 1 892 одинаковых события —
+    // 99 % журнала за две недели. Перерыв ловит тревога CoopNodeNotSynced, а
+    // причину пишет пул RPC в журнал контроллера (C28-95).
+    const isChainOutage = errorCode === 'BLOCKCHAIN_UNAVAILABLE';
+
     // Отправка ошибки в Sentry для отслеживания
-    if (!isExpectedRefusal) {
+    if (!isExpectedRefusal && !isChainOutage) {
       Sentry.withScope((scope) => {
         // Добавляем дополнительную информацию в scope
         scope.setTag('error_type', 'graphql');
