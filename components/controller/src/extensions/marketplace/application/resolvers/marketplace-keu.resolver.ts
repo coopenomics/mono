@@ -157,7 +157,7 @@ export class MarketplaceKeuResolver {
   @Query(() => paginatedBranchPeriods, {
     name: 'marketplaceListBranchPeriods',
     description:
-      'Итоги месяцев кооперативного участка: стоимость списанных заказов, расходы, фонды, доля инициатора, возврат пайщикам, дефицит и ставка списания. Новые месяцы первыми.',
+      'Итоги месяцев кооперативного участка: стоимость списанных заказов, расходы, фонды, доля инициатора, возврат пайщикам, дефицит и коэффициент экономического участия. Новые месяцы первыми.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })

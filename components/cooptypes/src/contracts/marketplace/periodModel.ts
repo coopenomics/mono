@@ -165,7 +165,7 @@ export function splitFunds(amount: bigint, percents: bigint[]): bigint[] {
   })
 }
 
-/** Ставка списания месяца: участку, в фонды и инициатору вместе — доля стоимости заказа. */
+/** Коэффициент экономического участия месяца: участку, в фонды и инициатору вместе — доля стоимости заказа. */
 export function chargeRate(rates: IPeriodRates): bigint {
   return rates.rateBranch + rates.rateFunds + rates.rateInitiator
 }

@@ -274,7 +274,7 @@ export class MarketplacePeriodService {
     return this.store.findOne({ coopname, braname, period });
   }
 
-  /** Ставка списания участка за месяц в процентах с двумя знаками: участку + фонды + инициатору. */
+  /** Коэффициент экономического участия за месяц в процентах с двумя знаками: участку + фонды + инициатору. */
   ratePercentOf(row: Pick<MarketplaceBranchPeriodEntity, 'rate_branch' | 'rate_funds' | 'rate_initiator'>): string {
     const total = BigInt(row.rate_branch || '0') + BigInt(row.rate_funds || '0') + BigInt(row.rate_initiator || '0');
     // Доли HUNDR_PERCENTS → проценты с двумя знаками: 156 666 → 15,67 %.

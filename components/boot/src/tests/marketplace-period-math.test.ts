@@ -114,7 +114,7 @@ describe('стол заказов — арифметика итога месяц
       await dropPeriod(period)
   })
 
-  it('mkt.order.keu.math.01 — двенадцать месяцев роста оборота: строка цепи равна эталону, ставка списания не растёт и не выше 38 %', async () => {
+  it('mkt.order.keu.math.01 — двенадцать месяцев роста оборота: строка цепи равна эталону, коэффициент экономического участия не растёт и не выше 38 %', async () => {
     const turnovers = [200_000, 500_000, 1_000_000, 1_500_000, 2_000_000, 3_000_000, 5_000_000, 8_000_000, 12_000_000, 20_000_000, 50_000_000, 400_000_000]
     const expenses = { planned: rub(200_000), memos: rub(30_000), aidPaid: AID_ABOVE_ANY_RESERVE }
     const months: Array<{ period: number, rate: bigint, deficit: bigint, branch: bigint, expensesTotal: bigint }> = []

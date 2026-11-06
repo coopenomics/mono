@@ -47,7 +47,7 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
   const claimRepo = {
     findByRequestHash: jest.fn(async (_c: string, hash: string) => (hash === 'c'.repeat(64) ? { order_hash: ORDER.toUpperCase() } : null)),
     listActiveOrderHashes: jest.fn(async () => opts.openClaimOrders ?? []),
-    // Открытой претензии по заказу нет: карточка заказа читает ставку списания без гарантийного спора.
+    // Открытой претензии по заказу нет: карточка заказа читает коэффициент экономического участия без гарантийного спора.
     findActiveByOrderId: jest.fn(async () => null),
   };
   const economy = { assetToUnits: (v: string) => toUnits(v), unitsToAsset: (u: bigint) => toAsset(u) };
@@ -472,7 +472,7 @@ describe('mkt.order.keu.14 — письмо после прогона по ст�
   });
 });
 
-describe('mkt.order.keu.15 — ставка списания в карточке заказа и заказы, которые созреют к первому числу', () => {
+describe('mkt.order.keu.15 — коэффициент экономического участия в карточке заказа и заказы, которые созреют к первому числу', () => {
   const NOVEMBER = 2026 * 12 + 11;
   const chargedAt = new Date('2026-11-30T21:30:00.000Z'); // 1 декабря 00:30 по Москве — списание за ноябрь
 

@@ -204,7 +204,7 @@ export class MarketplaceBranchPeriodDTO {
   @Field({ description: 'Дефицит участка: расходы без покрытия.' })
   deficit!: string;
 
-  @Field({ description: 'Ставка списания участка за месяц, проценты: участку, в фонды и инициатору вместе.' })
+  @Field({ description: 'Коэффициент экономического участия за месяц, проценты: участку, в фонды и инициатору вместе.' })
   rate_percent!: string;
 
   @Field({ description: 'Получатель доли инициатора в этом месяце.' })
