@@ -77,6 +77,7 @@ cases:
     test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+    # 07.11.2026 (C28-80): у бухгалтера пятое полномочие ведения — FundSettings:manage (99D-24, 5ac3366cb31)
 
   - id: access.roles.happy.06
     level: backend

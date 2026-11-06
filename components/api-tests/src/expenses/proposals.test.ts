@@ -49,6 +49,9 @@ const FILES_BY_ITEM = `query($c:String!,$h:String!,$i:String!){ expenseFilesByIt
 
 const ORG_REQUISITES = 'ООО «Поставщик-Тест», ИНН 7700000000, р/с 40702810900000000002, БИК 044525225'
 const ORG_PURPOSE = 'Оплата по счёту № 17 за канцелярские товары'
+// Назначение платежа записывается без «ё»: банк её не принимает (c66afca91b6,
+// 99D-20, 06.11.2026). Подаётся с «ё», в снимке и платеже — с «е».
+const ORG_PURPOSE_SAVED = 'Оплата по счету № 17 за канцелярские товары'
 const PHONE = '+79990001122'
 
 /** Ищет записку в постраничном списке кооператива. */
@@ -178,7 +181,7 @@ describe('expenses: служебная записка на расход', () => 
     expect(rows).toHaveLength(2)
     const org = rows.find(r => r.item_hash === orgItem)
     const adv = rows.find(r => r.item_hash === memberItem)
-    expect(org).toMatchObject({ requisites: ORG_REQUISITES, payment_purpose: ORG_PURPOSE })
+    expect(org).toMatchObject({ requisites: ORG_REQUISITES, payment_purpose: ORG_PURPOSE_SAVED })
     expect(adv?.recipient).toBe(recipient.account)
     expect(String(adv?.method_type).toLowerCase()).toBe('sbp')
     expect(JSON.stringify(adv?.data)).toContain(PHONE)
@@ -195,8 +198,8 @@ describe('expenses: служебная записка на расход', () => 
 
   it(caseName('exp.prop.side.advance-memo', 'назначение аванса пайщику — «Аванс под отчёт №<8 знаков хэша позиции>. НДС не облагается.»'), async () => {
     const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
-    expect(rows.find(r => r.item_hash === memberItem)?.payment_purpose).toBe(`Аванс под отчёт №${memberItem.slice(0, 8)}. НДС не облагается.`)
-    expect(rows.find(r => r.item_hash === orgItem)?.payment_purpose).toBe(ORG_PURPOSE)
+    expect(rows.find(r => r.item_hash === memberItem)?.payment_purpose).toBe(`Аванс под отчет №${memberItem.slice(0, 8)}. НДС не облагается.`)
+    expect(rows.find(r => r.item_hash === orgItem)?.payment_purpose).toBe(ORG_PURPOSE_SAVED)
   })
 
   // До 25.09.2026 отказ контракта в мутации приходил ответом 500 без кода:

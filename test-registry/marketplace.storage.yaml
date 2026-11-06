@@ -98,6 +98,7 @@ cases:
     expect: отказ по правам, боксы участка не меняются
     test: components/api-tests/src/marketplace/storage.test.ts
     status: written
+    # 07.11.2026 (C28-80): счёт боксов учитывает партию председателя кооператива (mkt.store.happy.08, 56790c5aed4)
 
   - id: mkt.store.happy.03
     level: backend
@@ -173,6 +174,7 @@ cases:
       выводятся из оборота и пропадают из действующих
     test: components/api-tests/src/marketplace/storage.test.ts
     status: written
+    # 07.11.2026 (C28-80): из оборота выводится и партия председателя кооператива (mkt.store.happy.08)
 
   - id: mkt.store.side.09
     level: backend

@@ -43,6 +43,9 @@ let member = ''
 let T = ''
 let type: any
 let boxes: any[] = []
+// Партия председателя кооператива того же типа (mkt.store.happy.08): с 01.11.2026
+// (56790c5aed4, 598-55) на участке стоят и её боксы — счёт и списание учитывают их.
+let coopBoxes: any[] = []
 let cells: any[] = []
 
 /** Отказ по правам Стола заказов приходит кодом 403 без доменного имени. */
@@ -149,6 +152,7 @@ describe('Стол заказов — боксы участка', () => {
     const fromCoop = (await gql<any>(chairman, CREATE_BOXES, {
       d: { braname: KRG, container_type_id: type.id, count: 2, label: `Закупка ${T}` },
     })).marketplaceCreateContainers
+    coopBoxes = fromCoop
     expect(fromCoop).toHaveLength(2)
     for (const box of fromCoop)
       expect(box).toMatchObject({ braname: KRG, container_type_id: type.id, label: `Закупка ${T}`, cell_id: null, is_active: true })
@@ -190,7 +194,8 @@ describe('Стол заказов — боксы участка', () => {
     denied(await gqlError(foreignOperator, UPDATE_BOX, { d: { container_id: boxes[0].id, label: 'чужая подпись' } }))
 
     const listed = (await gql<any>(operator, LIST_BOXES, { d: { braname: KRG, container_type_id: type.id } })).marketplaceListContainers
-    expect(listed).toHaveLength(3)
+    // Отказы ничего не завели: на участке три бокса оператора и партия председателя.
+    expect(listed).toHaveLength(boxes.length + coopBoxes.length)
     expect(listed.find((b: any) => b.id === boxes[0].id).label).toBe(`Партия ${T}`)
   })
 })
@@ -316,7 +321,7 @@ describe('Стол заказов — бокс на адресе', () => {
     expect(retired.every((c: any) => c.section === a && c.is_active === false)).toBe(true)
     expect((await cellsOf(a)).every(c => c.is_active === false)).toBe(true)
 
-    for (const box of boxes) {
+    for (const box of [...boxes, ...coopBoxes]) {
       const off = (await gql<any>(operator, UPDATE_BOX, { d: { container_id: box.id, is_active: false, label: `Списан ${T}` } })).marketplaceUpdateContainer
       expect(off).toMatchObject({ id: box.id, is_active: false, label: `Списан ${T}` })
     }
