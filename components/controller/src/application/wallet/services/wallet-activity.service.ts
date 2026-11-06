@@ -26,20 +26,21 @@ const DEFAULT_LIMIT = 20;
 const PENDING_SCAN_LIMIT = 50;
 
 /**
- * Название заявки или выплаты для пайщика. Общие подписи видов платежа
- * написаны для кассира («Оплата»), пайщику нужно, за что именно: выплата
- * поставщику за переданное имущество, возврат паевого взноса (решение
- * владельца 05.11.2026). Остальные виды — общей подписью.
+ * Название строки «В работе» — назначение платежа, то же, что видит кассир
+ * («Оплата по договору № …», «Паевой взнос по соглашению о ЦПП …»,
+ * «Материальная помощь № …»; решение владельца 06.11.2026). Своих подписей
+ * поверх назначения сервер не сочиняет. Назначения нет — вид платежа.
  */
-const MEMBER_TITLES: Partial<Record<string, string>> = {
+const TYPE_TITLES: Partial<Record<string, string>> = {
   [PaymentTypeEnum.DEPOSIT]: 'wallet.walletActivity.pendingTitle.deposit',
   [PaymentTypeEnum.WITHDRAWAL]: 'wallet.walletActivity.pendingTitle.withdrawal',
   [PaymentTypeEnum.AID]: 'wallet.walletActivity.pendingTitle.aid',
-  [PaymentTypeEnum.PAYMENT]: 'wallet.walletActivity.pendingTitle.payment',
 };
 
-function memberTitle(type: string): string {
-  const key = MEMBER_TITLES[type];
+function memberTitle(type: string, memo: string | null | undefined): string {
+  const purpose = memo?.trim();
+  if (purpose) return purpose;
+  const key = TYPE_TITLES[type];
   return key ? t(key) : (PAYMENT_TYPE_LABELS[type as PaymentTypeEnum] ?? String(type));
 }
 
@@ -112,7 +113,7 @@ export class WalletActivityService {
       ...requests.map((r) => ({
         hash: r.hash,
         type: r.type,
-        title: memberTitle(r.type),
+        title: memberTitle(r.type, r.memo),
         state: WalletPendingState.COUNCIL_REVIEW,
         quantity: `${r.quantity.toFixed(4)} ${r.symbol}`,
         payment_method_id: r.payment_method_id ?? null,
@@ -130,7 +131,7 @@ export class WalletActivityService {
     return {
       hash: p.hash,
       type: p.type,
-      title: memberTitle(p.type),
+      title: memberTitle(p.type, p.memo),
       state: p.direction === PaymentDirectionEnum.OUTGOING ? WalletPendingState.AWAITING_CASHIER : WalletPendingState.AWAITING_PAYMENT,
       quantity: `${Number(p.quantity).toFixed(4)} ${p.symbol}`,
       payment_method_id: p.payment_method_id ?? null,

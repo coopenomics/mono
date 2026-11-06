@@ -3305,7 +3305,6 @@ export type MessageKey =
   | 'validation.required'
   | 'wallet.walletActivity.pendingTitle.aid'
   | 'wallet.walletActivity.pendingTitle.deposit'
-  | 'wallet.walletActivity.pendingTitle.payment'
   | 'wallet.walletActivity.pendingTitle.withdrawal'
   | 'wallet.walletNotification.paymentTypeShareContribution'
   | 'yookassa.payment.defaultDescription';
