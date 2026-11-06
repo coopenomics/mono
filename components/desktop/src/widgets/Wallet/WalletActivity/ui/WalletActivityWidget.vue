@@ -231,14 +231,16 @@ function routeEnd(side: 'from' | 'to', wallet: string | null | undefined): Route
     };
   }
   const member = Ledger2.getWalletKind(wallet) === 'USER_SHARED';
-  const key = `wallet.walletActivity.wallets.${wallet.replace(/\./g, '_')}`;
-  const known = te(`${key}.title`);
+  // Ключ словаря пишется целиком в шаблонной строке: так проверка типов
+  // словаря узнаёт раздел `wallet.` и принимает ключ.
+  const slug = wallet.replace(/\./g, '_');
+  const known = te(`wallet.walletActivity.wallets.${slug}.title`);
   return {
     side,
     icon: member ? 'account_balance_wallet' : 'account_balance',
     owner: member ? t('wallet.walletActivity.route.memberBadge') : t('wallet.walletActivity.route.cooperativeBadge'),
-    title: known ? t(`${key}.title`) : (Ledger2.getWalletHumanName(wallet) ?? wallet),
-    description: known ? t(`${key}.description`) : '',
+    title: known ? t(`wallet.walletActivity.wallets.${slug}.title`) : (Ledger2.getWalletHumanName(wallet) ?? wallet),
+    description: known ? t(`wallet.walletActivity.wallets.${slug}.description`) : '',
   };
 }
 
