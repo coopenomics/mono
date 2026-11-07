@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
-import { t as i18nT, type MessageKey } from 'src/shared/i18n'
+import { t as i18nT } from 'src/shared/i18n'
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
@@ -13,6 +13,7 @@ import { DigitalDocument } from 'src/shared/lib/document'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
+import type { MarketplaceMessageKey } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
@@ -64,6 +65,7 @@ import {
  * Суммы к возврату считает контракт: страница показывает предварительный
  * расчёт сервера и не складывает деньги сама.
  */
+
 
 const route = useRoute()
 const session = useSessionStore()
@@ -196,7 +198,7 @@ const branchTiles = computed<StatStripItem[]>(() => {
   ]
 })
 
-const PHASE: Record<Zeus.MarketplaceInvestPhase, { label: MessageKey; variant: BaseBadgeVariant }> = {
+const PHASE: Record<Zeus.MarketplaceInvestPhase, { label: MarketplaceMessageKey; variant: BaseBadgeVariant }> = {
   [Zeus.MarketplaceInvestPhase.NONE]: { label: 'marketplace.initiatorsPage.phaseNone', variant: 'neutral' },
   [Zeus.MarketplaceInvestPhase.FUNDING]: { label: 'marketplace.initiatorsPage.phaseFunding', variant: 'warn' },
   [Zeus.MarketplaceInvestPhase.RETURNING]: { label: 'marketplace.initiatorsPage.phaseReturning', variant: 'info' },
@@ -204,14 +206,14 @@ const PHASE: Record<Zeus.MarketplaceInvestPhase, { label: MessageKey; variant: B
 }
 const phase = computed(() => PHASE[branchView.value?.phase ?? Zeus.MarketplaceInvestPhase.NONE])
 
-const PROPERTY_STAGE: Record<Zeus.MarketplaceInvestPropertyStatus, { label: MessageKey; variant: BaseBadgeVariant }> = {
+const PROPERTY_STAGE: Record<Zeus.MarketplaceInvestPropertyStatus, { label: MarketplaceMessageKey; variant: BaseBadgeVariant }> = {
   [Zeus.MarketplaceInvestPropertyStatus.CREATED]: { label: 'marketplace.initiatorsPage.stageCreated', variant: 'info' },
   [Zeus.MarketplaceInvestPropertyStatus.APPROVED]: { label: 'marketplace.initiatorsPage.stageApproved', variant: 'info' },
   [Zeus.MarketplaceInvestPropertyStatus.AUTHORIZED]: { label: 'marketplace.initiatorsPage.stageAuthorized', variant: 'warn' },
   [Zeus.MarketplaceInvestPropertyStatus.ACT1]: { label: 'marketplace.initiatorsPage.stageAct1', variant: 'warn' },
 }
 
-const HISTORY_KIND: Record<Zeus.MarketplaceInvestHistoryKind, MessageKey> = {
+const HISTORY_KIND: Record<Zeus.MarketplaceInvestHistoryKind, MarketplaceMessageKey> = {
   [Zeus.MarketplaceInvestHistoryKind.MONEY]: 'marketplace.initiatorsPage.kindMoney',
   [Zeus.MarketplaceInvestHistoryKind.PROPERTY]: 'marketplace.initiatorsPage.kindProperty',
   [Zeus.MarketplaceInvestHistoryKind.CLAIM]: 'marketplace.initiatorsPage.kindClaim',
@@ -323,7 +325,7 @@ function metaOf(doc: InvestDocumentView): Record<string, unknown> {
 }
 
 /** Действие с подписью: занятость, сообщение об успехе, перечитывание. */
-async function run(work: () => Promise<void>, success: MessageKey, failure: MessageKey): Promise<boolean> {
+async function run(work: () => Promise<void>, success: MarketplaceMessageKey, failure: MarketplaceMessageKey): Promise<boolean> {
   busy.value = true
   try {
     await work()

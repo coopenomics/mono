@@ -56,3 +56,4 @@ export {
 } from './turnover';
 export { marketLiveTables, type MarketLiveKind } from './marketplace-live';
 export { SHOW_MONEY_FLOW_LINES } from './money-flow-lines';
+export type { MarketplaceMessageKey } from './message-key';

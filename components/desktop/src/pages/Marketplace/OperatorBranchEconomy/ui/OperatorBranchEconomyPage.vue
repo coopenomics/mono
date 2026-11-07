@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { uiLocale, t as i18nT, type MessageKey } from 'src/shared/i18n';
+import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -28,7 +28,7 @@ import {
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
-import { NDFL_RATE_PERCENT, marketLiveTables, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
+import { NDFL_RATE_PERCENT, type MarketplaceMessageKey, marketLiveTables, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/shared/lib/payment'
@@ -95,6 +95,7 @@ import {
  *     месяц, сумма строк — расход участка в итоге месяца; кнопка «Добавить
  *     получателя» у председателя участка стоит справа в строке разделов.
  */
+
 
 const route = useRoute()
 const router = useRouter()
@@ -757,7 +758,7 @@ const investmentTiles = computed<StatStripItem[]>(() => {
 })
 
 /** Фаза участка по вложениям в месяце: бейдж в итогах месяцев. */
-const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: MessageKey; variant: BaseBadgeVariant } | null> = {
+const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: MarketplaceMessageKey; variant: BaseBadgeVariant } | null> = {
   [Zeus.MarketplacePeriodInvestPhase.NONE]: null,
   [Zeus.MarketplacePeriodInvestPhase.DEFICIT]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseDeficit', variant: 'warn' },
   [Zeus.MarketplacePeriodInvestPhase.REPAYING]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseRepaying', variant: 'info' },
