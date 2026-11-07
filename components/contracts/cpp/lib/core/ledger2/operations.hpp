@@ -131,6 +131,15 @@ namespace operations {
     inline constexpr eosio::name INVEST_REPAY_SURPLUS   = "o.mkt.rpsurp"_n;   ///< Переплата возмещения на границе завершения возврата — участку (TRANSFER w.mkt.repay → w.brn.common, без Dr/Cr — оба на 86, username = braname).
     inline constexpr eosio::name INVEST_BACK            = "o.mkt.iback"_n;    ///< Трансляция возвращённого и неиспользованного вложения инициатора в главный паевой (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80) по заявлению 1123.
     inline constexpr eosio::name INVEST_EXIT            = "o.mkt.iexit"_n;    ///< Перенос вложения инициатора на главный паевой при выходе из кооператива (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator.
+    // Оплата расходов и материальной помощи участка из пула средств инициаторов
+    // (задача 99D-28): счёт вложений X = 08, как у расходов «Благороста».
+    inline constexpr eosio::name INVEST_EXPENSE_ADVANCE   = "o.mkt.iadv"_n;   ///< Выдача аванса под отчёт по расходу участка из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 08 / Кт 51).
+    inline constexpr eosio::name INVEST_EXPENSE_DIRECT    = "o.mkt.idir"_n;   ///< Оплата расхода участка из пула инициаторов по реквизитам (BURN w.mkt.ipool, Дт 08 / Кт 51).
+    inline constexpr eosio::name INVEST_EXPENSE_REPORT    = "o.mkt.irpt"_n;   ///< Закрытие подотчёта по расходу из пула инициаторов (BURN w.exp.adv, без проводки — Дт 08 / Кт 51 сделан при выдаче аванса).
+    inline constexpr eosio::name INVEST_EXPENSE_RETURN    = "o.mkt.iret"_n;   ///< Возврат неиспользованного аванса в пул инициаторов (TRANSFER w.exp.adv → w.mkt.ipool, Дт 51 / Кт 08).
+    inline constexpr eosio::name INVEST_EXPENSE_OVERSPEND = "o.mkt.iovr"_n;   ///< Доплата сверх аванса из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 08 / Кт 51).
+    inline constexpr eosio::name INVEST_AID               = "o.mkt.iaid"_n;   ///< Материальная помощь из пула инициаторов участка, сумма к выплате за вычетом налога (BURN w.mkt.ipool, Дт 08 / Кт 51).
+    inline constexpr eosio::name INVEST_AID_TAX           = "o.mkt.iaidtx"_n; ///< Удержание НДФЛ из материальной помощи, выплаченной из пула инициаторов (TRANSFER w.mkt.ipool → w.sov.ndfl, Дт 08 / Кт 68).
   }
 
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
@@ -675,6 +684,39 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
     "Перенос вложения инициатора на главный паевой при выходе из кооператива" },
+
+  // 12j¹⁵–12j²¹. Расходы и материальная помощь участка из пула средств
+  //   инициаторов (задача 99D-28). Счёт вложений — INVEST_EXPENSE_ACCOUNT (08,
+  //   по аналогии с «Благоростом»; решение владельца 07.11.2026, до слова
+  //   бухгалтера). Транзита через фонд нет: средства инициаторов не фондовые.
+  { operations::marketplace::INVEST_EXPENSE_ADVANCE, processes::expense::PROPOSAL, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Выдача аванса под отчёт по расходу участка из средств инициаторов" },
+  { operations::marketplace::INVEST_EXPENSE_DIRECT, processes::expense::PROPOSAL, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, eosio::name{},
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Оплата расхода участка из средств инициаторов по реквизитам" },
+  { operations::marketplace::INVEST_EXPENSE_REPORT, processes::expense::PROPOSAL, WalletOp::BURN,
+    ledger2_wallets::ADVANCE_HOLD, eosio::name{},
+    0, 0,
+    "Закрытие подотчёта по расходу участка из средств инициаторов" },
+  { operations::marketplace::INVEST_EXPENSE_RETURN, processes::expense::PROPOSAL, WalletOp::TRANSFER,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::MARKETPLACE_INVEST_POOL,
+    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::INVEST_EXPENSE_ACCOUNT,
+    "Возврат неиспользованного аванса в средства инициаторов участка" },
+  { operations::marketplace::INVEST_EXPENSE_OVERSPEND, processes::expense::PROPOSAL, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Доплата сверх аванса по расходу участка из средств инициаторов" },
+  { operations::marketplace::INVEST_AID, processes::branch::AID, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, eosio::name{},
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Выплата материальной помощи из средств инициаторов участка" },
+  { operations::marketplace::INVEST_AID_TAX, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::NDFL_WITHHELD,
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::TAX_SETTLEMENTS,
+    "Удержание налога из материальной помощи, выплаченной из средств инициаторов" },
 
   // 12l. Консолидация свободного паевого «Стола заказов» в общий паевой при
   //      выходе из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr —
@@ -1588,6 +1630,18 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
     ledger2_wallets::SOV_EXPENSES,
     operations::edubridge::EXPENSE_TO_FUND,
     operations::edubridge::EXPENSE_FROM_FUND },
+
+  // Пул средств инициаторов участка Стола заказов (задача 99D-28): источник
+  // служебной записки участка, когда общего кошелька участка не хватает.
+  // Средства выделяет marketplace::fundipool при создании записки; проводки —
+  // по счёту вложений (08), без транзита через фонд.
+  { ledger2_wallets::MARKETPLACE_INVEST_POOL,
+    operations::marketplace::INVEST_EXPENSE_ADVANCE,
+    operations::marketplace::INVEST_EXPENSE_DIRECT,
+    operations::marketplace::INVEST_EXPENSE_REPORT,
+    operations::marketplace::INVEST_EXPENSE_RETURN,
+    operations::marketplace::INVEST_EXPENSE_OVERSPEND,
+    eosio::name{}, eosio::name{}, eosio::name{} },
 
   { ledger2_wallets::BRANCH_EXPENSE_POOL,
     operations::branch::EXPENSE_ADVANCE,

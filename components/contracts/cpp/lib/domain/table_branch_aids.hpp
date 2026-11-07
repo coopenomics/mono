@@ -63,6 +63,10 @@ struct [[eosio::table, eosio::contract(BRANCH)]] branch_aid {
   eosio::name        status;          ///< см. AidStatus
   document2          statement;       ///< заявление получателя (его подпись)
   document2          protocol;        ///< протокол совета о выплате (заполняется в onaidauth)
+  /// Источник выплаты (задача 99D-28): персональный кошелёк получателя
+  /// `w.brn.person` либо пул средств инициаторов участка `w.mkt.ipool`.
+  /// Выбирается при решении совета; пусто — персональный кошелёк.
+  eosio::binary_extension<eosio::name> source;
 
   uint64_t primary_key() const { return id; }
   eosio::checksum256 by_hash() const { return hash; }

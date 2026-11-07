@@ -50,6 +50,29 @@
   const eosio::asset tax = BranchNdfl::calc_tax(it->amount);
   const eosio::asset net = it->amount - tax;
 
+  // Выплата из средств инициаторов участка (задача 99D-28): налог и сумма на
+  // руки списываются с пула по счёту вложений (Дт 08), транзита через фонд
+  // взаимного обеспечения нет — средства не фондовые; затем вся сумма
+  // заявления входит в базу возврата вложений инициаторов.
+  if (it->source.has_value() && it->source.value() == ledger2_wallets::MARKETPLACE_INVEST_POOL) {
+    if (tax.amount > 0) {
+      Ledger2::apply(_branch, coopname,
+                     operations::marketplace::INVEST_AID_TAX,
+                     processes::branch::AID,
+                     tax, it->braname, it->hash,
+                     "Удержание налога на доходы физических лиц из материальной помощи, получатель " +
+                       it->username.to_string());
+    }
+    Ledger2::apply(_branch, coopname,
+                   operations::marketplace::INVEST_AID,
+                   processes::branch::AID,
+                   net, it->braname, it->hash,
+                   "Материальная помощь из средств инициаторов участка, получатель " + it->username.to_string());
+    MarketInvest::spent_pool(_branch, coopname, it->braname, it->amount, it->hash);
+    byhash.erase(it);
+    return;
+  }
+
   if (tax.amount > 0) {
     Ledger2::apply(_branch, coopname,
                    operations::branch::FINANCIAL_AID_TAX,

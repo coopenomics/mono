@@ -36,9 +36,22 @@
   // с авторизацией `soviet`, аккаунт кооператива это действие не подписывал —
   // расширять его RAM отсюда нельзя. Тот же приём в marketplace
   // (`update_writeoff_proposal` платит `_marketplace`).
+  // Источник выплаты (задача 99D-28): персональный кошелёк получателя; если
+  // распределённых средств на нём не хватает, а у инициаторов участка есть
+  // свободные, — средства инициаторов. Они выделяются под выплату сейчас и
+  // списываются в aidconfirm. Если не хватает и их, выплата идёт как прежде с
+  // персонального кошелька: решение совета не отменяется отказом цепи.
+  const eosio::asset person = Ledger2::get_user_available(coopname, ledger2_wallets::BRANCH_PERSONAL, it->username);
+  const bool from_investors = person < it->amount &&
+                              MarketInvest::free_of(coopname, it->braname) >= it->amount;
+  if (from_investors)
+    MarketInvest::fund_pool(_branch, coopname, it->braname, it->amount, it->hash);
+
   byhash.modify(it, RamPayer::of(byhash, coopname), [&](auto& a) {
     a.status   = AidStatus::AUTHORIZED;
     a.protocol = authorization;
+    a.source   = from_investors ? ledger2_wallets::MARKETPLACE_INVEST_POOL
+                                : ledger2_wallets::BRANCH_PERSONAL;
   });
 
   // Заявка передаётся кассиру: списание произойдёт в `aidconfirm` после

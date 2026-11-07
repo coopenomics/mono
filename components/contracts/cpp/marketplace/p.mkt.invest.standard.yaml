@@ -351,7 +351,7 @@ operations:
     wallet_from: null
     wallet_to: w.mkt.ipool
     amount_ref: сумма служебной записки или заявления на материальную помощь
-    triggered_by: marketplace::fundipool
+    triggered_by: branch::createexp, branch::onaidauth
     description: >
       Общего кошелька участка не хватает на расход — под него выделяются
       средства инициаторов. Деньги уже на расчётном счёте с их паевых
@@ -365,10 +365,108 @@ operations:
     wallet_from: w.mkt.ipool
     wallet_to: null
     amount_ref: неизрасходованный остаток
-    triggered_by: marketplace::unfundipool
+    triggered_by: branch::onexpdone
     description: >
       Расход отклонён или закрыт на меньшую сумму: неизрасходованное снова
       свободно для следующих расходов участка.
+
+  - ledger_code: o.mkt.iadv
+    human_name: Выдача аванса под отчёт по расходу участка из средств инициаторов
+    wallet_op: TRANSFER
+    debit: 8                       # Вложения — расход оплачен средствами инициаторов (до слова бухгалтера)
+    credit: 51                     # Расчётный счёт
+    wallet_from: w.mkt.ipool
+    wallet_to: w.exp.adv
+    user_wallet: w.exp.adv
+    user_ref: item.recipient
+    available_delta: +сумма аванса
+    blocked_delta: null
+    amount_ref: item.planned_amount
+    triggered_by: expense::payexp
+    description: >
+      Расход участка оплачивается средствами инициаторов: получатель берёт
+      аванс под отчёт. Паевой взнос инициаторов при этом не уменьшается.
+
+  - ledger_code: o.mkt.idir
+    human_name: Оплата расхода участка из средств инициаторов по реквизитам
+    wallet_op: BURN
+    debit: 8
+    credit: 51
+    wallet_from: w.mkt.ipool
+    wallet_to: null
+    amount_ref: item.planned_amount
+    triggered_by: expense::payexp
+    description: >
+      Расход участка оплачен организации напрямую из средств инициаторов.
+
+  - ledger_code: o.mkt.irpt
+    human_name: Закрытие подотчёта по расходу участка из средств инициаторов
+    wallet_op: BURN
+    debit: null
+    credit: null
+    wallet_from: w.exp.adv
+    wallet_to: null
+    user_wallet: w.exp.adv
+    user_ref: item.recipient
+    available_delta: -сумма отчёта
+    blocked_delta: null
+    amount_ref: item.actual_amount
+    triggered_by: expense::reportexp
+    description: Получатель аванса отчитался чеками; проводка сделана при выдаче аванса.
+
+  - ledger_code: o.mkt.iret
+    human_name: Возврат неиспользованного аванса в средства инициаторов участка
+    wallet_op: TRANSFER
+    debit: 51
+    credit: 8
+    wallet_from: w.exp.adv
+    wallet_to: w.mkt.ipool
+    user_wallet: w.exp.adv
+    user_ref: item.recipient
+    available_delta: -возвращено
+    blocked_delta: null
+    amount_ref: возвращённая часть аванса
+    triggered_by: expense::returnexp
+    description: Неиспользованный аванс вернулся на расчётный счёт и снова в средства инициаторов.
+
+  - ledger_code: o.mkt.iovr
+    human_name: Доплата сверх аванса по расходу участка из средств инициаторов
+    wallet_op: TRANSFER
+    debit: 8
+    credit: 51
+    wallet_from: w.mkt.ipool
+    wallet_to: w.exp.adv
+    user_wallet: w.exp.adv
+    user_ref: item.recipient
+    available_delta: +доплата
+    blocked_delta: null
+    amount_ref: сумма перерасхода
+    triggered_by: expense::overspendexp
+    description: Расход оказался больше аванса — доплата из средств инициаторов.
+
+  - ledger_code: o.mkt.iaid
+    human_name: Выплата материальной помощи из средств инициаторов участка
+    wallet_op: BURN
+    debit: 8
+    credit: 51
+    wallet_from: w.mkt.ipool
+    wallet_to: null
+    amount_ref: сумма заявления за вычетом налога
+    triggered_by: branch::aidconfirm
+    description: >
+      У получателя не хватило распределённых средств участка — материальная
+      помощь выплачена из средств инициаторов.
+
+  - ledger_code: o.mkt.iaidtx
+    human_name: Удержание налога из материальной помощи, выплаченной из средств инициаторов
+    wallet_op: TRANSFER
+    debit: 8
+    credit: 68
+    wallet_from: w.mkt.ipool
+    wallet_to: w.sov.ndfl
+    amount_ref: налог с суммы заявления
+    triggered_by: branch::aidconfirm
+    description: Кооператив удерживает налог с помощи и перечисляет его в бюджет.
 
   - ledger_code: o.mkt.iback
     human_name: Трансляция возвращённого вложения в главный паевой кошелёк
@@ -424,3 +522,14 @@ related:
     note: >
       Выход пайщика из кооператива снимает его с вложений в участки, а
       вложение переносится на главный паевой.
+  - process_type: p.brn.spend
+    relation: provides
+    note: >
+      Расход участка, на который не хватает общего кошелька, оплачивается из
+      средств инициаторов: под служебную записку выделяются их деньги,
+      оплаченное входит в возврат вложений.
+  - process_type: p.brn.aid
+    relation: provides
+    note: >
+      Материальная помощь при пустом персональном кошельке получателя
+      выплачивается из средств инициаторов участка.

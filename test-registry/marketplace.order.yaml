@@ -125,6 +125,45 @@ sources:
 cases:
 
   # ── Инвестиционный этап участка (99D-27) ──────────────────────────────
+  - id: mkt.order.invest.exp.01
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель участка подаёт служебную записку больше остатка общего кошелька участка; у инициаторов участка есть свободные деньги.
+    expect: >
+      источник записки — средства инициаторов (w.mkt.ipool): выделение o.mkt.ipool под хэш записки, резерв участка вырос на сумму, общий кошелёк не тронут, шасси расходов получило пул инициаторов источником
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: passing
+
+  - id: mkt.order.invest.exp.02
+    level: contract
+    kind: break
+    scenario: >
+      Записка больше и общего кошелька участка, и свободных средств инициаторов.
+    expect: BRANCH_EXPENSE_NO_FUNDS, записка не создаётся
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: passing
+
+  - id: mkt.order.invest.exp.03
+    level: contract
+    kind: happy
+    scenario: >
+      Записка из средств инициаторов проходит совет и оплачивается авансом и по реквизитам; остаток аванса возвращается, расход закрывается.
+    expect: >
+      проводки Дт 08 / Кт 51 (o.mkt.iadv, o.mkt.idir), возврат Дт 51 / Кт 08 (o.mkt.iret); по закрытию оплаченное входит в базу возврата вложений (spentipool), остаток снова свободен (o.mkt.iunpl)
+    test: ~
+    status: missing   # сквозной набор полигона — задача 99D-32
+
+  - id: mkt.order.invest.aid.01
+    level: contract
+    kind: happy
+    scenario: >
+      Совет одобряет материальную помощь доверенному при пустом персональном кошельке; у инициаторов есть свободные деньги; кассир выплачивает.
+    expect: >
+      источник помощи — средства инициаторов: налог Дт 08 / Кт 68 на w.sov.ndfl (o.mkt.iaidtx), на руки Дт 08 / Кт 51 (o.mkt.iaid), вся сумма заявления входит в базу возврата вложений; предел резерва получателя действует как прежде
+    test: ~
+    status: missing   # сквозной набор полигона — задача 99D-32
+
   - id: mkt.order.invest.01
     level: contract
     kind: break

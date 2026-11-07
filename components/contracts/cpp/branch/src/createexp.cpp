@@ -22,7 +22,9 @@
  *  - записка подписана создателем; хотя бы одна позиция; сумма > 0;
  *  - КУ существует, создатель — председатель этого участка;
  *  - расход с таким идентификатором ещё не подавался;
- *  - достаточность средств проверяет сам перевод в книге учёта.
+ *  - источник: общий кошелёк участка; не хватает — средства инициаторов
+ *    участка (пул w.mkt.ipool, задача 99D-28); не хватает и их —
+ *    BRANCH_EXPENSE_NO_FUNDS.
  *
  * @note Авторизация требуется от аккаунта: @p coopname.
  *
@@ -63,21 +65,42 @@
   eosio::check(byhash.find(expense_hash) == byhash.end(),
                "Расход с таким идентификатором уже подан");
 
+  // Источник расхода (задача 99D-28): сначала средства участка (общий
+  // кошелёк, ветка 86); не хватает — средства инициаторов участка (пул
+  // w.mkt.ipool, ветка вложений 08). Источник один на записку — деления нет.
+  // Председатель источник не выбирает: записка для него одна и та же.
+  const eosio::asset common = Ledger2::get_user_available(coopname, ledger2_wallets::BRANCH_COMMON, braname);
+  const bool from_investors = common < amount;
+  if (from_investors) {
+    const eosio::asset free = MarketInvest::free_of(coopname, braname);
+    eosio::check(free >= amount,
+                 std::string{"BRANCH_EXPENSE_NO_FUNDS: Средств участка и инициаторов не хватает на расход: нужно "} +
+                   amount.to_string() + ", на общем кошельке участка " + common.to_string() +
+                   ", свободных средств инициаторов " + free.to_string());
+  }
+  const eosio::name source = from_investors ? ledger2_wallets::MARKETPLACE_INVEST_POOL
+                                            : ledger2_wallets::BRANCH_EXPENSE_POOL;
+
   expenses.emplace(RamPayer::of(expenses, coopname), [&](auto& e) {
     e.id      = expenses.available_primary_key();
     e.hash    = expense_hash;
     e.braname = braname;
     e.creator = creator;
     e.amount  = amount;
+    e.source  = source;
   });
 
-  // Средства участка выделяются под расход до передачи записки в шасси:
-  // если перевод не прошёл, записка не создаётся.
-  Ledger2::apply(_branch, coopname,
-                 operations::branch::EXPENSE_FUND,
-                 processes::branch::SPEND,
-                 amount, braname, expense_hash,
-                 "Выделение средств кооперативного участка под расход");
+  // Средства выделяются под расход до передачи записки в шасси: если
+  // выделение не прошло, записка не создаётся.
+  if (from_investors) {
+    MarketInvest::fund_pool(_branch, coopname, braname, amount, expense_hash);
+  } else {
+    Ledger2::apply(_branch, coopname,
+                   operations::branch::EXPENSE_FUND,
+                   processes::branch::SPEND,
+                   amount, braname, expense_hash,
+                   "Выделение средств кооперативного участка под расход");
+  }
 
   // Callback завершения: по нему участок получает обратно неизрасходованное.
   // data пустой — запись резолвится по идентификатору расхода.
@@ -94,6 +117,6 @@
     _expense,
     Names::External::CREATE_EXPENSE_PROPOSAL,
     std::make_tuple(coopname, creator, expense_hash,
-                    ledger2_wallets::BRANCH_EXPENSE_POOL, items, callback, statement)
+                    source, items, callback, statement)
   ).send();
 }

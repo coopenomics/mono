@@ -39,7 +39,16 @@
                "Фактический расход превышает выделенные участком средства");
 
   const eosio::asset unspent = it->amount - total_actual;
-  if (unspent.amount > 0) {
+  const bool from_investors = it->source.has_value() &&
+                              it->source.value() == ledger2_wallets::MARKETPLACE_INVEST_POOL;
+  if (from_investors) {
+    // Расход из средств инициаторов (задача 99D-28): оплаченное входит в базу
+    // возврата их вложений, неизрасходованное снова свободно.
+    if (total_actual.amount > 0)
+      MarketInvest::spent_pool(_branch, coopname, it->braname, total_actual, expense_hash);
+    if (unspent.amount > 0)
+      MarketInvest::unfund_pool(_branch, coopname, it->braname, unspent, expense_hash);
+  } else if (unspent.amount > 0) {
     Ledger2::apply(_branch, coopname,
                    operations::branch::EXPENSE_UNFUND,
                    processes::branch::SPEND,

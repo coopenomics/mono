@@ -356,6 +356,43 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Перенос вложения инициатора на главный паевой при выходе из кооператива' },
 
+  // Расходы и материальная помощь участка из средств инициаторов (задача
+  // 99D-28): счёт вложений 08, без транзита через фонд.
+  { code: 'o.mkt.iadv',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
+    debit: 8, credit: 51,
+    human_name: 'Выдача аванса под отчёт по расходу участка из средств инициаторов' },
+
+  { code: 'o.mkt.idir',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_DIRECT', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
+    debit: 8, credit: 51,
+    human_name: 'Оплата расхода участка из средств инициаторов по реквизитам' },
+
+  { code: 'o.mkt.irpt',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта по расходу участка из средств инициаторов' },
+
+  { code: 'o.mkt.iret',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.mkt.ipool',
+    debit: 51, credit: 8,
+    human_name: 'Возврат неиспользованного аванса в средства инициаторов участка' },
+
+  { code: 'o.mkt.iovr',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
+    debit: 8, credit: 51,
+    human_name: 'Доплата сверх аванса по расходу участка из средств инициаторов' },
+
+  { code: 'o.mkt.iaid',    process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'INVEST_AID', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
+    debit: 8, credit: 51,
+    human_name: 'Выплата материальной помощи из средств инициаторов участка' },
+
+  { code: 'o.mkt.iaidtx',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'INVEST_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.sov.ndfl',
+    debit: 8, credit: 68,
+    human_name: 'Удержание налога из материальной помощи, выплаченной из средств инициаторов' },
+
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'CLAIM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.claim',

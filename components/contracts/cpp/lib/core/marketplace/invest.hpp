@@ -135,6 +135,37 @@ inline std::optional<mkt_invbranch> get_branch(eosio::name coopname, eosio::name
   return *it;
 }
 
+/// Свободные средства инициаторов участка: неиспользованное минус уже
+/// выделенное под расходы. По нему участок выбирает источник расхода и
+/// материальной помощи, когда своих средств не хватает (задача 99D-28).
+inline eosio::asset free_of(eosio::name coopname, eosio::name braname) {
+  const auto b = get_branch(coopname, braname);
+  if (!b.has_value()) return zero_asset();
+  const eosio::asset free = b->unused_total - b->reserved;
+  return free.amount > 0 ? free : zero_asset();
+}
+
+/// Выделить средства инициаторов под расход или помощь участка (marketplace::fundipool).
+inline void fund_pool(eosio::name actor, eosio::name coopname, eosio::name braname,
+                      eosio::asset amount, const checksum256& hash) {
+  eosio::action(eosio::permission_level{actor, "active"_n}, _marketplace, "fundipool"_n,
+                std::make_tuple(coopname, braname, amount, hash)).send();
+}
+
+/// Вернуть невыделенный остаток в средства инициаторов (marketplace::unfundipool).
+inline void unfund_pool(eosio::name actor, eosio::name coopname, eosio::name braname,
+                        eosio::asset amount, const checksum256& hash) {
+  eosio::action(eosio::permission_level{actor, "active"_n}, _marketplace, "unfundipool"_n,
+                std::make_tuple(coopname, braname, amount, hash)).send();
+}
+
+/// Расход из средств инициаторов оплачен — в базу возврата (marketplace::spentipool).
+inline void spent_pool(eosio::name actor, eosio::name coopname, eosio::name braname,
+                       eosio::asset amount, const checksum256& hash) {
+  eosio::action(eosio::permission_level{actor, "active"_n}, _marketplace, "spentipool"_n,
+                std::make_tuple(coopname, braname, amount, hash)).send();
+}
+
 /// Пайщик — оператор участка: председатель или доверенное лицо. В MVP вносить
 /// средства в участок могут только операторы (решение владельца 07.11.2026);
 /// правило держит одна функция, чтобы открыть внесение любому пайщику.

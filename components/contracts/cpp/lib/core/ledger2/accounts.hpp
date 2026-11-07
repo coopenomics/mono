@@ -91,6 +91,11 @@ struct ledger2_accounts {
 
   // Пассивы
   static constexpr uint64_t TAX_SETTLEMENTS           = 68 * 1000;   ///< 68 — Расчёты по налогам и сборам (П): удержанный НДФЛ до перечисления в бюджет
+  /// Счёт расходов и материальной помощи участка из средств инициаторов (X;
+  /// задача 99D-28). Сейчас — 08, по аналогии с вложениями «Благороста»
+  /// (решение владельца 07.11.2026); меняется здесь одной строкой после слова
+  /// бухгалтера.
+  static constexpr uint64_t INVEST_EXPENSE_ACCOUNT    = NON_CURRENT_INVESTMENTS;
   static constexpr uint64_t SHARE_FUND                = 80 * 1000;   ///< 80 — Паевой фонд (П)
   static constexpr uint64_t TARGET_RECEIPTS           = 86 * 1000;   ///< 86 — Целевое финансирование (П)
 
