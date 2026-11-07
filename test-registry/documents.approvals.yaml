@@ -85,6 +85,18 @@ sources:
     - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/api/index.ts
 
 cases:
+  - id: doc.appr.invest.01
+    level: backend
+    kind: side
+    scenario: >
+      В реестре шаблонов кооператива появляются документы инвестиционного этапа участка Стола заказов (1118–1123, задача 99D-29).
+    expect: >
+      договор участия и бланки требуют утверждения редакции советом, протокол 1121 — служебный и утверждения не требует
+    test: components/controller/tests/unit/onboarding/onboarding-keys-consistency.test.ts
+    status: passing
+    external: unreachable
+    external_reason: объявление документов — вызов порта реестра шаблонов при запуске расширения; снаружи видно только через утверждение редакций советом, его покрывает набор фабрики утверждений
+
   - id: doc.appr.happy.01
     level: contract
     kind: happy

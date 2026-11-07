@@ -262,19 +262,16 @@ documents:
     registry_id: 1118
     signed_by: [Инициатор]
     stored_in: invagreemnts.agreement
-    note: "TODO: шаблон 1118 — задача 99D-29 (рыба из PRD, текст даёт юрист)."
   - action: marketplace::investmoney
     title: Заявление о трансляции паевого взноса в договор участия
     registry_id: 1119
     signed_by: [Инициатор]
     stored_in: реестр документов, пакет — хэш вложения
-    note: "TODO: шаблон 1119 — задача 99D-29."
   - action: marketplace::createiprop
     title: Заявление о паевом взносе имуществом в кооперативный участок
     registry_id: 1120
     signed_by: [Инициатор]
     stored_in: invprops.statement
-    note: "TODO: шаблон 1120 по образцу 1070 — задача 99D-29."
   - action: marketplace::approveiprop
     title: Одобрение заявления председателем участка
     registry_id: 1120
@@ -285,13 +282,11 @@ documents:
     registry_id: 1121
     signed_by: [Совет]
     stored_in: invprops.decision
-    note: "TODO: шаблон 1121 по образцу 1071 — задача 99D-29."
   - action: marketplace::act1iprop
     title: Акт приёма-передачи имущества в кооператив (подпись инициатора)
     registry_id: 1122
     signed_by: [Инициатор]
     stored_in: invprops.act
-    note: "TODO: шаблон 1122 по образцу 1072 — задача 99D-29."
   - action: marketplace::act2iprop
     title: Акт приёма-передачи имущества в кооператив (подписи инициатора и председателя участка)
     registry_id: 1122
@@ -302,7 +297,6 @@ documents:
     registry_id: 1123
     signed_by: [Инициатор]
     stored_in: реестр документов, пакет — хэш заявления
-    note: "TODO: шаблон 1123 — задача 99D-29."
 
 # ── Секция 6. Операции ──────────────────────────────────────────────────────
 operations:
