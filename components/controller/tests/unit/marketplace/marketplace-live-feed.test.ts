@@ -4,7 +4,7 @@
  * Инварианты:
  *   - расширение объявляет свои таблицы в ленте: корзина — личная по
  *     заказчику, остальные открыты пайщикам кооператива; из цепи — настройки
- *     стола (сбор с оборота);
+ *     стола (сбор с оборота) и таблицы вложений инициаторов участка;
  *   - сигнал о записи шлёт слой базы, и ключ строки он берёт у таблицы базы:
  *     каждая объявленная таблица обязана быть таблицей расширения;
  *   - узел без порта ленты — объявление молчит и не падает;
@@ -35,7 +35,14 @@ describe('MarketplaceLiveFeedSubscriber', () => {
     new MarketplaceLiveFeedSubscriber(chainChanges);
 
     expect(chainChanges.declareTables).toHaveBeenCalledWith(MARKETPLACE_LIVE_CHAIN_TABLES);
-    expect(MARKETPLACE_LIVE_CHAIN_TABLES).toEqual([{ code: 'marketplace', table: 'config' }]);
+    expect(MARKETPLACE_LIVE_CHAIN_TABLES).toEqual([
+      { code: 'marketplace', table: 'config' },
+      // Инвестиционный этап участка (99D-30): страница «Инициаторы участка».
+      { code: 'marketplace', table: 'invagreemnts' },
+      { code: 'marketplace', table: 'invbranches' },
+      { code: 'marketplace', table: 'investors' },
+      { code: 'marketplace', table: 'invprops' },
+    ]);
 
     expect(chainChanges.declareLocalTables).toHaveBeenCalledWith(MARKETPLACE_LIVE_TABLES);
     const cart = MARKETPLACE_LIVE_TABLES.find((t) => t.table === 'marketplace_cart');

@@ -157,7 +157,7 @@ describe('mkt.order.keu.11 — факты месяца', () => {
     const [, , from, to] = aidMirror.paidWithin.mock.calls[0] as unknown as [string, string, Date, Date];
     expect(from.toISOString()).toBe('2026-10-31T21:00:00.000Z');
     expect(to.toISOString()).toBe('2026-11-30T21:00:00.000Z');
-    expect(ledger2History.getHistory).toHaveBeenCalledWith(expect.objectContaining({ coopname: COOP, username: BRANAME, operationCodes: ['o.brn.expfnd', 'o.brn.expunf'], dateFrom: from, dateTo: to }));
+    expect(ledger2History.getHistory).toHaveBeenCalledWith(expect.objectContaining({ coopname: COOP, username: BRANAME, operationCodes: ['o.brn.expfnd', 'o.brn.expunf', 'o.mkt.ipool', 'o.mkt.iunpl'], dateFrom: from, dateTo: to }));
   });
 
   it('служебные записки: выделено минус возвращено, записки по плану не удваивают планы, ниже нуля не бывает', async () => {
