@@ -228,6 +228,8 @@ cases:
     expect: боксы заведены на этом участке без адреса, оператор участка видит их в своём реестре
     test: components/api-tests/src/marketplace/storage.test.ts
     status: written
+    # 07.11.2026 (C28-80): право заведения — Container:create:all (было manage:all); перемещение
+    # и правку боксов председатель кооператива больше не ведёт — решение владельца 07.11.2026
 
   - id: mkt.store.side.12
     level: backend
