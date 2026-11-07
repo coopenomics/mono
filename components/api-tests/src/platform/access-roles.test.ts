@@ -67,7 +67,9 @@ describe('платформа: назначаемые роли и управле�
     // (d31100b77bb, 16.10.2026): чтение записок, выплата, отчёт по строке,
     // файлы и закрытие записки — кассир ведёт записку до закрытия.
     expect(access(ROLE)).toEqual(['READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
-    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
+    // Бухгалтер с 03.11.2026 ведёт и настройки фондов — право FundSettings:manage
+    // страницы «Фонды» (99D-24, 5ac3366cb31): пятое полномочие ведения.
+    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
   }, 60_000)
 
   it(caseName('core.acc.happy.12', 'страница управления доступом есть у председателя и закрыта совету и пайщику'), async () => {

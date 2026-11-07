@@ -2,14 +2,16 @@
  * Бандл у стойки: две строки докладки и заказ с фактом дороже заказанного
  * (test-registry/marketplace.stock.yaml, mkt.stock.side.07).
  *
- * Пайщик у стойки получает свой заказ, который кооператив принял дороже, и
- * добирает два товара из остатка. Обеспечительная часть и тело идут по
- * строкам бандла по порядку со свободного паевого программы (сначала
- * обеспечительная часть, затем тело): сначала докладка, затем доплата по
- * заказу. Свободного паевого хватает только на первую строку докладки —
- * недостающее по второй строке и доплата транслируются одним заявлением 1110
- * на весь бандл (задача 99D-18). На подписи суммы заявления сверяются по
- * свежему балансу.
+ * Пайщик у стойки получает свой заказ и добирает два товара из остатка.
+ * Обеспечительная часть и тело идут по строкам бандла по порядку со
+ * свободного паевого программы (сначала обеспечительная часть, затем тело).
+ * Свободного паевого хватает только на первую строку докладки — недостающее
+ * по второй строке транслируется одним заявлением 1110 на весь бандл (задача
+ * 99D-18). На подписи суммы заявления сверяются по свежему балансу.
+ *
+ * Заказ принят по цене заказа: с 02.11.2026 (48b6957a829, слово владельца)
+ * приёмка не берёт имущество дороже заказанного, и доплаты по заказу у стойки
+ * нет. Строка доплаты в плане сумм остаётся нулевой.
  *
  * Мир теста: остаток кооператива тест заводит сам недовыдачей двух заказов
  * (творог и томаты), остаток свободного паевого у получателя — отменённым
@@ -24,7 +26,8 @@ import { PUBLISH_STOCK, STOCK_ISSUANCE_PAYLOADS, completeIssuance, listStock } f
 
 const STOCK_PRODUCTS = ['Творог фермерский', 'Томаты сливовидные']
 const ORDER_PRODUCT = 'Мёд цветочный'
-const ARRIVAL_EXTRA = 100
+// Приёмка дороже заказа запрещена (48b6957a829): цена прибытия равна цене заказа.
+const ARRIVAL_EXTRA = 0
 
 const PAYLOADS = `query($d:MarketplaceResolveStockProposalInput!){
   marketplaceStockProposalSignablePayloads(data:$d){
@@ -87,7 +90,7 @@ describe('Стол заказов: бандл у стойки — две стр�
       stock.push(await leftover(product))
   }, 900_000)
 
-  it(caseName('mkt.stock.side.07', 'свободного паевого хватает только на первую строку докладки — одно заявление 1110 на бандл: недостающее по второй строке и доплата; суммы сверяются по свежему балансу'), async () => {
+  it(caseName('mkt.stock.side.07', 'свободного паевого хватает только на первую строку докладки — одно заявление 1110 на бандл: недостающее по второй строке; суммы сверяются по свежему балансу'), async () => {
     expect(feeRate, 'ставка обеспечительной части известна').toBeGreaterThan(0)
     const honey = await pickOffer(supplier.account, KRG, ORDER_PRODUCT)
     const honeyPrice = amount(honey.price_per_unit)
@@ -111,7 +114,7 @@ describe('Стол заказов: бандл у стойки — две стр�
     }
     await leave(withFee(first) + withFee(second) / 2)
 
-    // Кооператив принял заказ дороже заказанного — у стойки будет доплата.
+    // Кооператив принял заказ по цене заказа — доплаты у стойки нет, строка доплаты нулевая.
     const arrival = price2(honeyPrice + ARRIVAL_EXTRA)
     await acceptToCoop({ supplier, operator, orderId: placed.orderId, factQuantity: quantity, factUnitPrice: arrival })
     await labelInventory(operatorToken, placed.orderId)
@@ -154,7 +157,7 @@ describe('Стол заказов: бандл у стойки — две стр�
     expect(stale.convert, 'заявление 1110 одно на весь бандл').not.toBeNull()
     const expected = planFunding(share, lines)
     expect(Number(docMeta(stale.convert.document.meta).registry_id)).toBe(1110)
-    expect(amount(stale.convert.membership_fee), 'обеспечительная часть в заявлении: недостающее по второй строке и доплате').toBeCloseTo(expected.feeConvert, 2)
+    expect(amount(stale.convert.membership_fee), 'обеспечительная часть в заявлении: недостающее по второй строке').toBeCloseTo(expected.feeConvert, 2)
     expect(amount(stale.convert.amount)).toBeCloseTo(expected.transfer, 2)
     expect(amount(stale.convert.amount), 'первая строка в заявление не входит').toBeLessThan(withFee(second) + withFee(topup))
 
@@ -189,7 +192,7 @@ describe('Стол заказов: бандл у стойки — две стр�
     // свободном паевом.
     expect(mainBefore - await availableShare(buyer.account), 'на подписи транслирована вся сумма заявления').toBeCloseTo(now.transfer, 2)
     const after = await settledWallets(buyerToken)
-    expect(after['w.mkt.share'] ?? 0, 'на свободном паевом осталась только доплата по заказу').toBeCloseTo(withFee(topup), 2)
+    expect(after['w.mkt.share'] ?? 0, 'на свободном паевом ничего не осталось: доплаты по заказу нет').toBeCloseTo(withFee(topup), 2)
 
     // Выдачи доводятся до конца: стенд остаётся без висящих саг.
     for (const saga of done.sagas as any[])
