@@ -69,7 +69,7 @@ const tab = ref<'containers' | 'types'>('containers')
 /** Заводить типы тары может только председатель — у совета раздел читающий. */
 const canManageTypes = computed(() => desktop.hasGrant('market-admin', 'Container:manage:types'))
 /** Завести боксы на любом участке — тоже право председателя. */
-const canCreateBoxes = computed(() => desktop.hasGrant('market-admin', 'Container:manage:all'))
+const canCreateBoxes = computed(() => desktop.hasGrant('market-admin', 'Container:create:all'))
 
 function onSelectTab(selected: PageTab): void {
   tab.value = selected.key === 'types' ? 'types' : 'containers'
