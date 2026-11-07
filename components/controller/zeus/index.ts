@@ -12169,6 +12169,35 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceInvestAgreement']?: Omit<ValueTypes["MarketplaceInvestAgreement"], "...on MarketplaceInvestAgreement">
 }>;
+	/** Запись истории вложений пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: AliasType<{
+	/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	amount?:boolean | `@${string}`,
+	/** Когда операция проведена. */
+	created_at?:boolean | `@${string}`,
+	/** Номер операции учёта. */
+	global_sequence?:boolean | `@${string}`,
+	/** Вид записи. */
+	kind?:boolean | `@${string}`,
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestHistoryEntry']?: Omit<ValueTypes["MarketplaceInvestHistoryEntry"], "...on MarketplaceInvestHistoryEntry">
+}>;
+	/** Вид записи истории вложений: вложение деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceInvestHistoryEntry"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestHistoryPaginationResult']?: Omit<ValueTypes["MarketplaceInvestHistoryPaginationResult"], "...on MarketplaceInvestHistoryPaginationResult">
+}>;
 	["MarketplaceInvestMoneyInput"]: {
 	/** Сумма вложения деньгами. */
 	amount: number | Variable<any, string>,
@@ -17649,6 +17678,7 @@ marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffP
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?:ValueTypes["MarketplaceInvestAgreement"],
+marketplaceMyInvestHistory?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInvestHistoryPaginationResult"]],
 	/** Вложения текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
 	marketplaceMyInvestments?:ValueTypes["MarketplaceInvestor"],
 marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
@@ -31133,6 +31163,33 @@ export type ResolverInputTypes = {
 	signed_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Запись истории вложений пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: AliasType<{
+	/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	amount?:boolean | `@${string}`,
+	/** Когда операция проведена. */
+	created_at?:boolean | `@${string}`,
+	/** Номер операции учёта. */
+	global_sequence?:boolean | `@${string}`,
+	/** Вид записи. */
+	kind?:boolean | `@${string}`,
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид записи истории вложений: вложение деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceInvestHistoryEntry"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceInvestMoneyInput"]: {
 	/** Сумма вложения деньгами. */
 	amount: number,
@@ -36434,6 +36491,7 @@ marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListW
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?:ResolverInputTypes["MarketplaceInvestAgreement"],
+marketplaceMyInvestHistory?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceInvestHistoryPaginationResult"]],
 	/** Вложения текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
 	marketplaceMyInvestments?:ResolverInputTypes["MarketplaceInvestor"],
 marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
@@ -49451,6 +49509,30 @@ export type ModelTypes = {
 	/** Дата подписи. */
 	signed_at: string
 };
+	/** Запись истории вложений пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: {
+		/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	amount: string,
+	/** Когда операция проведена. */
+	created_at: ModelTypes["DateTime"],
+	/** Номер операции учёта. */
+	global_sequence: string,
+	/** Вид записи. */
+	kind: ModelTypes["MarketplaceInvestHistoryKind"],
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash: string
+};
+	["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceInvestHistoryEntry"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["MarketplaceInvestMoneyInput"]: {
 	/** Сумма вложения деньгами. */
 	amount: number,
@@ -55154,6 +55236,8 @@ export type ModelTypes = {
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?: ModelTypes["MarketplaceInvestAgreement"] | undefined | null,
+	/** История вложений текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми. */
+	marketplaceMyInvestHistory: ModelTypes["MarketplaceInvestHistoryPaginationResult"],
 	/** Вложения текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
 	marketplaceMyInvestments: Array<ModelTypes["MarketplaceInvestor"]>,
 	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
@@ -68778,6 +68862,35 @@ export type GraphQLTypes = {
 	signed_at: string,
 	['...on MarketplaceInvestAgreement']: Omit<GraphQLTypes["MarketplaceInvestAgreement"], "...on MarketplaceInvestAgreement">
 };
+	/** Запись истории вложений пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: {
+	__typename: "MarketplaceInvestHistoryEntry",
+	/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	amount: string,
+	/** Когда операция проведена. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Номер операции учёта. */
+	global_sequence: string,
+	/** Вид записи. */
+	kind: GraphQLTypes["MarketplaceInvestHistoryKind"],
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash: string,
+	['...on MarketplaceInvestHistoryEntry']: Omit<GraphQLTypes["MarketplaceInvestHistoryEntry"], "...on MarketplaceInvestHistoryEntry">
+};
+	/** Вид записи истории вложений: вложение деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+["MarketplaceInvestHistoryKind"]: MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: {
+	__typename: "MarketplaceInvestHistoryPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceInvestHistoryEntry"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceInvestHistoryPaginationResult']: Omit<GraphQLTypes["MarketplaceInvestHistoryPaginationResult"], "...on MarketplaceInvestHistoryPaginationResult">
+};
 	["MarketplaceInvestMoneyInput"]: {
 		/** Сумма вложения деньгами. */
 	amount: number,
@@ -74913,6 +75026,8 @@ export type GraphQLTypes = {
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?: GraphQLTypes["MarketplaceInvestAgreement"] | undefined | null,
+	/** История вложений текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми. */
+	marketplaceMyInvestHistory: GraphQLTypes["MarketplaceInvestHistoryPaginationResult"],
 	/** Вложения текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
 	marketplaceMyInvestments: Array<GraphQLTypes["MarketplaceInvestor"]>,
 	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
@@ -78329,6 +78444,13 @@ export enum MarketplaceInventoryStatus {
 	RETURNED = "RETURNED",
 	WRITTEN_OFF = "WRITTEN_OFF"
 }
+/** Вид записи истории вложений: вложение деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+export enum MarketplaceInvestHistoryKind {
+	CLAIM = "CLAIM",
+	EXIT = "EXIT",
+	MONEY = "MONEY",
+	PROPERTY = "PROPERTY"
+}
 /** Фаза кооперативного участка по вложениям инициаторов: вложений нет; вложения есть, возмещения ещё не было; доля инициаторов возмещает вложения; использованное возвращено. */
 export enum MarketplaceInvestPhase {
 	FUNDING = "FUNDING",
@@ -79448,6 +79570,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceInventoryOwnership"]: ValueTypes["MarketplaceInventoryOwnership"];
 	["MarketplaceInventorySplitEntryInput"]: ValueTypes["MarketplaceInventorySplitEntryInput"];
 	["MarketplaceInventoryStatus"]: ValueTypes["MarketplaceInventoryStatus"];
+	["MarketplaceInvestHistoryKind"]: ValueTypes["MarketplaceInvestHistoryKind"];
 	["MarketplaceInvestMoneyInput"]: ValueTypes["MarketplaceInvestMoneyInput"];
 	["MarketplaceInvestPhase"]: ValueTypes["MarketplaceInvestPhase"];
 	["MarketplaceInvestPropertyRefInput"]: ValueTypes["MarketplaceInvestPropertyRefInput"];

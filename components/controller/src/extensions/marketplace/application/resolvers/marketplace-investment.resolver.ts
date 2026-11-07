@@ -1,6 +1,16 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GeneratedDocumentDTO, GqlJwtAuthGuard, RightsGuard, RequireRight, SELF, platformSettings } from '@coopenomics/extension-kit';
+import {
+  GeneratedDocumentDTO,
+  GqlJwtAuthGuard,
+  PaginationInputDTO,
+  RightsGuard,
+  RequireRight,
+  SELF,
+  createPaginationResult,
+  platformSettings,
+  type PaginationResult,
+} from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -13,6 +23,7 @@ import {
   MarketplaceCreateInvestPropertyInputDTO,
   MarketplaceDeclineInvestPropertyInputDTO,
   MarketplaceInvestAgreementDTO,
+  MarketplaceInvestHistoryEntryDTO,
   MarketplaceInvestMoneyInputDTO,
   MarketplaceInvestPropertyRefInputDTO,
   MarketplaceInvestPropertyStatementInputDTO,
@@ -21,8 +32,11 @@ import {
   MarketplaceSignInvestAgreementInputDTO,
   MarketplaceSignInvestPropertyInputDTO,
   toMarketplaceBranchInvestmentDTO,
+  toMarketplaceInvestHistoryEntryDTO,
   toMarketplaceInvestorDTO,
 } from '../dto/marketplace-investment.dto';
+
+const paginatedInvestHistory = createPaginationResult(MarketplaceInvestHistoryEntryDTO, 'MarketplaceInvestHistory');
 
 /**
  * Инвестиционный этап кооперативного участка (задача 99D-30): договор
@@ -251,6 +265,20 @@ export class MarketplaceInvestmentResolver {
   @RequireRight('Economy', 'use:own', SELF)
   async marketplaceMyInvestments(@CurrentMarketplaceMember() member: IMarketplaceCurrentMember): Promise<MarketplaceInvestorDTO[]> {
     return (await this.investment.listMyInvestments(platformSettings().coopname, member.username)).map((v) => toMarketplaceInvestorDTO(v, this.toAsset));
+  }
+
+  @Query(() => paginatedInvestHistory, {
+    name: 'marketplaceMyInvestHistory',
+    description: 'История вложений текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Economy', 'use:own', SELF)
+  async marketplaceMyInvestHistory(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceInvestHistoryEntryDTO>> {
+    const result = await this.investment.listMyHistory(platformSettings().coopname, member.username, options);
+    return { ...result, items: result.items.map((v) => toMarketplaceInvestHistoryEntryDTO(v, this.toAsset)) };
   }
 
   @Query(() => MarketplaceBranchInvestmentDTO, {

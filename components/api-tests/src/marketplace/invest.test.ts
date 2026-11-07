@@ -17,6 +17,7 @@ import {
   BRANCH_INVESTMENT,
   INVEST_MONEY,
   MY_AGREEMENT,
+  MY_HISTORY,
   MY_INVESTMENTS,
   chainInvestment,
   contractClaimable,
@@ -76,6 +77,12 @@ describe('инвестиционный этап участка: договор, 
     const mineMoney = investorOf(viewMoney, chairkrg.account)
     expect(amount(mineMoney.money) - amount(mineBefore?.money ?? 0), 'внесено деньгами — ровно сумма').toBeCloseTo(SUM, 4)
     expect(amount(viewMoney.money_total) - amount(before.money_total)).toBeCloseTo(SUM, 4)
+
+    // История вложений: запись о деньгах с хэшем процесса из заявления (istok.09).
+    const page = (await gql<any>(krgToken, MY_HISTORY, { o: { page: 1, limit: 20, sortOrder: 'DESC' } })).marketplaceMyInvestHistory
+    const entry = (page.items as any[]).find(i => i.process_hash === String(afterMoney.investHash).toLowerCase())
+    expect(entry?.kind, 'вложение деньгами в истории').toBe('MONEY')
+    expect(amount(entry.amount)).toBeCloseTo(SUM, 4)
 
     await investPropertyAccepted({ investor: chairkrg, chairman: chairkrg, braname: KRG, sum: PROPERTY_SUM, name: `Холодильная витрина ${Date.now().toString(36)}` })
     const view = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment

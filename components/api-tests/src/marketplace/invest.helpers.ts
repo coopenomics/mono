@@ -22,6 +22,7 @@ export const BRANCH_INVESTMENT = `query($b:String!){ marketplaceBranchInvestment
   braname phase money_total property_total unused_total reserved spent_total repaid_total outstanding
   investors{ braname username active money property used returned claimed claimable unused }
   properties{ hash username amount status } } }`
+export const MY_HISTORY = 'query($o:PaginationInput){ marketplaceMyInvestHistory(options:$o){ items{ kind amount process_hash created_at global_sequence } totalCount } }'
 export const MY_INVESTMENTS = 'query{ marketplaceMyInvestments{ braname username active money property used returned claimed claimable unused } }'
 
 /** Договор участия пайщика: подписывает, если ещё не подписан. Возвращает номер договора. */
@@ -47,7 +48,8 @@ export async function investStatement(who: Who, braname: string, sum: number): P
 /** Вложение деньгами в участок по подписанному заявлению. */
 export async function investMoney(who: Who, braname: string, sum: number): Promise<any> {
   const { statement, investHash } = await investStatement(who, braname, sum)
-  return (await gql<any>(await tokenOf(who), INVEST_MONEY, { d: { braname, amount: sum, invest_hash: investHash, statement } })).marketplaceInvestMoney
+  const view = (await gql<any>(await tokenOf(who), INVEST_MONEY, { d: { braname, amount: sum, invest_hash: investHash, statement } })).marketplaceInvestMoney
+  return { ...view, investHash }
 }
 
 /** Строка заявления на имущество в цепи по идентификатору. */

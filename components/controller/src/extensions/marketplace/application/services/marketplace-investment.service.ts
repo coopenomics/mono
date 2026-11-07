@@ -5,15 +5,17 @@ import { Registry } from '@coopenomics/docs-templates';
 import {
   ACCOUNT_PORT,
   DOCUMENT_PORT,
+  LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   SOVIET_ROBOT_PORT,
   type IAccountPort,
   type IDocumentPort,
+  type ILedger2HistoryPort,
   type ILoggerPort,
   type ISovietRobotPort,
   type InnerGeneratedDocument,
 } from '@coopenomics/innercoop';
-import { DomainError, SignedDigitalDocumentInputDTO, rethrowChainError } from '@coopenomics/extension-kit';
+import { DomainError, SignedDigitalDocumentInputDTO, rethrowChainError, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT, type MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplaceKuChairmanService } from './marketplace-ku-chairman.service';
@@ -54,6 +56,35 @@ export enum MarketplaceInvestPhase {
   RETURNING = 'RETURNING',
   /** Использованное возвращено целиком: доля инициаторов направляется участку. */
   RETURNED = 'RETURNED',
+}
+
+/** Вид записи истории вложений пайщика — по операции учёта. */
+export enum MarketplaceInvestHistoryKind {
+  /** Вложение деньгами по заявлению 1119. */
+  MONEY = 'MONEY',
+  /** Имущество принято по акту 1122. */
+  PROPERTY = 'PROPERTY',
+  /** Возврат на главный паевой кошелёк по заявлению 1123. */
+  CLAIM = 'CLAIM',
+  /** Остаток перенесён на главный паевой кошелёк при выходе из кооператива. */
+  EXIT = 'EXIT',
+}
+
+/** Операции ledger2, из которых складывается история вложений пайщика. */
+const HISTORY_OPERATIONS: Readonly<Record<string, MarketplaceInvestHistoryKind>> = {
+  'o.mkt.inv': MarketplaceInvestHistoryKind.MONEY,
+  'o.mkt.iprop': MarketplaceInvestHistoryKind.PROPERTY,
+  'o.mkt.iback': MarketplaceInvestHistoryKind.CLAIM,
+  'o.mkt.iexit': MarketplaceInvestHistoryKind.EXIT,
+};
+
+/** Запись истории вложений. `process_hash` — хэш процесса: по нему находится документ в реестре. */
+export interface MarketplaceInvestHistoryEntryView {
+  kind: MarketplaceInvestHistoryKind;
+  amount: bigint;
+  process_hash: string;
+  created_at: Date;
+  global_sequence: string;
 }
 
 /** Строка инициатора по участку для столов. Суммы — в единицах актива. */
@@ -122,7 +153,8 @@ export class MarketplaceInvestmentService {
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Optional()
     @Inject(SOVIET_ROBOT_PORT)
-    private readonly robotPort: ISovietRobotPort | null | undefined
+    private readonly robotPort: ISovietRobotPort | null | undefined,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2History: ILedger2HistoryPort
   ) {
     this.logger.setContext(MarketplaceInvestmentService.name);
   }
@@ -303,7 +335,13 @@ export class MarketplaceInvestmentService {
       property_amount: String(prop.amount),
       skip_save: false,
     };
-    return this.documentPort.generate({ data });
+    const doc = await this.documentPort.generate({ data });
+    // Акт подписан вносящим: председатель участка подписывает тот же документ —
+    // хэш и мета берутся из акта в цепи (контракт сверяет хэш). Текст для
+    // показа собран заново из тех же данных.
+    const act = prop.status === MarketplaceInvestPropertyStatus.ACT1 ? prop.act : null;
+    if (act?.doc_hash && act.meta) return { ...doc, hash: String(act.doc_hash), meta: JSON.parse(String(act.meta)) };
+    return doc;
   }
 
   async signPropertyAct(
@@ -316,7 +354,14 @@ export class MarketplaceInvestmentService {
     const prop = await this.requireProperty(coopname, propertyHash);
     const act = new SignedDigitalDocumentInputDTO(signed).toDocument() as MarketContract.Actions.Act1IProp.IAct1IProp['act'];
     if (second) {
-      await this.submit(() => this.chainPort.signInvestPropertyAct2({ coopname, braname: prop.braname, property_hash: propertyHash, act }));
+      // Вторая подпись ложится на акт вносящего: подписи вносящего из цепи и
+      // подпись председателя участка — в одном документе.
+      if (!prop.act?.hash || String(prop.act.hash).toLowerCase() !== String(act.hash).toLowerCase()) {
+        throw DomainError.badRequest('MARKETPLACE_IPROP_ACT_MISMATCH');
+      }
+      const own = new Set(prop.act.signatures.map((sig) => Number(sig.id)));
+      const merged = { ...act, signatures: [...prop.act.signatures, ...act.signatures.filter((sig) => !own.has(Number(sig.id)))] };
+      await this.submit(() => this.chainPort.signInvestPropertyAct2({ coopname, braname: prop.braname, property_hash: propertyHash, act: merged }));
     } else {
       await this.submit(() => this.chainPort.signInvestPropertyAct1({ coopname, username: signer, property_hash: propertyHash, act }));
     }
@@ -408,6 +453,36 @@ export class MarketplaceInvestmentService {
       if (branch) views.push(this.investorView(this.crpsBranch(branch), row));
     }
     return views;
+  }
+
+  /**
+   * История вложений пайщика по операциям учёта: деньги, принятое имущество,
+   * возвраты и перенос при выходе — новые первыми. Участок в операции не
+   * записан, его называет документ процесса (`process_hash`) в реестре.
+   */
+  async listMyHistory(coopname: string, username: string, options?: PaginationInputDTO): Promise<PaginationResult<MarketplaceInvestHistoryEntryView>> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      username,
+      actionNames: ['apply'],
+      operationCodes: Object.keys(HISTORY_OPERATIONS),
+      page: options?.page ?? 1,
+      limit: options?.limit ?? 20,
+      sortOrder: 'DESC',
+    });
+    const items: MarketplaceInvestHistoryEntryView[] = [];
+    for (const op of result.items) {
+      const kind = op.operationCode ? HISTORY_OPERATIONS[op.operationCode] : undefined;
+      if (!kind) continue;
+      items.push({
+        kind,
+        amount: units(op.quantity, this.economyService),
+        process_hash: String(op.processHash ?? '').toLowerCase(),
+        created_at: op.createdAt,
+        global_sequence: op.globalSequence,
+      });
+    }
+    return { items, totalCount: result.totalCount, totalPages: result.totalPages, currentPage: result.currentPage };
   }
 
   /** Решение совета по имуществу: просим робота принять его сейчас; без робота — ждём совет. */

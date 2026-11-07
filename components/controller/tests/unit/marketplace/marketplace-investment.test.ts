@@ -15,6 +15,7 @@ jest.mock('@coopenomics/extension-kit', () => {
 
 import { MarketContract } from 'cooptypes';
 import {
+  MarketplaceInvestHistoryKind,
   MarketplaceInvestPhase,
   MarketplaceInvestmentService,
 } from '~/extensions/marketplace/application/services/marketplace-investment.service';
@@ -74,6 +75,18 @@ function world(opts: { operator?: boolean; walletExtra?: bigint; agreement?: boo
   const kuChairman = { isMemberOfBranch: jest.fn(async () => opts.operator !== false), getTrusteeOfBranch: jest.fn(async () => 'chair') };
   const accountPort = { getDisplayName: jest.fn(async (n: string) => n.toUpperCase()) };
   const logger = { setContext: jest.fn(), log: jest.fn(), warn: jest.fn() };
+  const ledger2History = {
+    getHistory: jest.fn(async () => ({
+      items: [
+        { globalSequence: '11', blockNum: 1, coopname: COOP, action: 'apply', operationCode: 'o.mkt.inv', processHash: 'AB'.repeat(32), username: 'anna', quantity: '5000.0000 RUB', createdAt: new Date('2026-11-07T10:00:00Z') },
+        { globalSequence: '10', blockNum: 1, coopname: COOP, action: 'apply', operationCode: 'o.mkt.iprop', processHash: 'cd'.repeat(32), username: 'anna', quantity: '600000.0000 RUB', createdAt: new Date('2026-11-06T10:00:00Z') },
+        { globalSequence: '9', blockNum: 1, coopname: COOP, action: 'apply', operationCode: 'o.mkt.repay', processHash: 'ef'.repeat(32), username: 'anna', quantity: '1.0000 RUB', createdAt: new Date('2026-11-05T10:00:00Z') },
+      ],
+      totalCount: 3,
+      totalPages: 1,
+      currentPage: 1,
+    })),
+  };
   const service = new MarketplaceInvestmentService(
     chainPort as any,
     documentPort as any,
@@ -81,9 +94,10 @@ function world(opts: { operator?: boolean; walletExtra?: bigint; agreement?: boo
     kuChairman as any,
     accountPort as any,
     logger as any,
-    null
+    null,
+    ledger2History as any
   );
-  return { service, chainPort, documentPort };
+  return { service, chainPort, documentPort, ledger2History };
 }
 
 describe('mkt.order.invest.istok — вложения инициаторов в ИСТОКЕ', () => {
@@ -170,5 +184,35 @@ describe('mkt.order.invest.istok — вложения инициаторов в 
     expect(workflowId).toBe('vlozhenie-vozmeshcheno');
     expect(payload.branchName).toBe('KRG');
     expect(payload.deepLinkUrl).toBe('https://coop.test/voskhod/market-pvz/initiators');
+  });
+
+  it('istok.09 — история вложений: деньги и имущество по операциям учёта пайщика, хэш процесса в нижнем регистре, чужие операции отброшены', async () => {
+    const { service, ledger2History } = world();
+    const page = await service.listMyHistory(COOP, 'anna', { page: 1, limit: 20 } as any);
+    expect(ledger2History.getHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'anna', actionNames: ['apply'], operationCodes: ['o.mkt.inv', 'o.mkt.iprop', 'o.mkt.iback', 'o.mkt.iexit'] })
+    );
+    expect(page.items.map((i) => i.kind)).toEqual([MarketplaceInvestHistoryKind.MONEY, MarketplaceInvestHistoryKind.PROPERTY]);
+    expect(page.items[0].amount).toBe(rub(5_000));
+    expect(page.items[0].process_hash).toBe('ab'.repeat(32));
+  });
+
+  it('istok.10 — вторая подпись акта ложится на акт вносящего: подписи соединяются; чужой акт отклоняется до цепи', async () => {
+    const { service, chainPort } = world();
+    const sig = (id: number, signer: string) => ({ id, signed_hash: 'S', signer, public_key: 'PUB', signature: 'SIG', signed_at: '2026-11-07T10:00:00', meta: '' });
+    const act1 = { version: '1', hash: 'H1', doc_hash: 'D1', meta_hash: 'M1', meta: '{}', signatures: [sig(1, 'anna')] };
+    Object.assign(chainPort, {
+      getInvestProperty: jest.fn(async () => ({ hash: 'ab', braname: 'krg', username: 'anna', status: 'act1', act: act1 })),
+      signInvestPropertyAct2: jest.fn(async () => ({})),
+    });
+    const chairman = { version: '1', hash: 'H1', doc_hash: 'D1', meta_hash: 'M1', meta: {}, signatures: [sig(2, 'chair')] };
+    await service.signPropertyAct(COOP, 'chair', 'ab', chairman as any, true);
+    const sent = (chainPort as any).signInvestPropertyAct2.mock.calls[0][0];
+    expect(sent.act.signatures.map((s: any) => s.signer)).toEqual(['anna', 'chair']);
+    expect(sent.act.hash).toBe('H1');
+
+    await expect(service.signPropertyAct(COOP, 'chair', 'ab', { ...chairman, hash: 'OTHER' } as any, true)).rejects.toMatchObject({
+      code: 'MARKETPLACE_IPROP_ACT_MISMATCH',
+    });
   });
 });

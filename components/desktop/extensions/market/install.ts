@@ -11,6 +11,7 @@ import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 // route'а 'trusted-persons' ниже — импорт временно отключён, файл страницы не удалён.
 // import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorBranchEconomyPage } from 'src/pages/Marketplace/OperatorBranchEconomy'
+import { OperatorBranchInitiatorsPage } from 'src/pages/Marketplace/OperatorBranchInitiators'
 import { OperatorBranchOrdersPage } from 'src/pages/Marketplace/OperatorBranchOrders'
 import { OperatorBranchOrderDetailPage } from 'src/pages/Marketplace/OperatorBranchOrderDetail'
 import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy'
@@ -679,6 +680,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Инициаторы участка (задача 99D-31, решение владельца
+              // 07.11.2026): договор участия, вложения деньгами и имуществом,
+              // одобрение и акт председателя участка, возврат из экономии.
+              path: 'initiators',
+              name: 'marketplace-pvz-initiators',
+              component: markRaw(OperatorBranchInitiatorsPage),
+              meta: {
+                title: t('market.install.branchInitiatorsTitle'),
+                icon: 'volunteer_activism',
+                requires: 'Economy:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // requirement (2026-08-03): реестр заказов своего участка —
               // та же вёрстка, что у администратора, отфильтрованная по
               // своему КУ; «Экономика участка» (движения по кошельку)
@@ -1133,5 +1149,14 @@ export const walletCards: DesktopWalletCard[] = [
     description: t('market.install.walletDescription'),
     accent: 'wallet',
     icon: 'lock_clock',
+  },
+  {
+    // Вложение инициатора в кооперативные участки (99D-31) — только у инициаторов.
+    wallet_name: 'w.mkt.invest',
+    label: t('market.install.walletInvestLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'volunteer_activism',
+    hideWhenEmpty: true,
   },
 ]

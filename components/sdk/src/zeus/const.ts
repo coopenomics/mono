@@ -1396,6 +1396,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceInventoryStatus: "enum" as const,
+	MarketplaceInvestHistoryKind: "enum" as const,
 	MarketplaceInvestMoneyInput:{
 		statement:"SignedDigitalDocumentInput"
 	},
@@ -3963,6 +3964,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListWriteoffProposals:{
 			data:"MarketplaceListWriteoffProposalsInput",
+			options:"PaginationInput"
+		},
+		marketplaceMyInvestHistory:{
 			options:"PaginationInput"
 		},
 		marketplaceMyReviewByOrder:{
@@ -7734,6 +7738,19 @@ export const ReturnTypes: Record<string,any> = {
 		number:"String",
 		signed_at:"String"
 	},
+	MarketplaceInvestHistoryEntry:{
+		amount:"String",
+		created_at:"DateTime",
+		global_sequence:"String",
+		kind:"MarketplaceInvestHistoryKind",
+		process_hash:"String"
+	},
+	MarketplaceInvestHistoryPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceInvestHistoryEntry",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	MarketplaceInvestProperty:{
 		amount:"String",
 		description:"String",
@@ -10051,6 +10068,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",
 		marketplaceMemberWallet:"MarketplaceMemberWallet",
 		marketplaceMyInvestAgreement:"MarketplaceInvestAgreement",
+		marketplaceMyInvestHistory:"MarketplaceInvestHistoryPaginationResult",
 		marketplaceMyInvestments:"MarketplaceInvestor",
 		marketplaceMyReviewByOrder:"MarketplaceReview",
 		marketplaceMySupplierState:"MarketplaceSupplier",

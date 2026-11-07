@@ -4,8 +4,10 @@ import { IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-valid
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
 import {
+  MarketplaceInvestHistoryKind,
   MarketplaceInvestPhase,
   MarketplaceInvestPropertyStatus,
+  type MarketplaceInvestHistoryEntryView,
   type MarketplaceInvestBranchView,
   type MarketplaceInvestorView,
 } from '../services/marketplace-investment.service';
@@ -20,6 +22,11 @@ registerEnumType(MarketplaceInvestPropertyStatus, {
   name: 'MarketplaceInvestPropertyStatus',
   description:
     'Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка.',
+});
+
+registerEnumType(MarketplaceInvestHistoryKind, {
+  name: 'MarketplaceInvestHistoryKind',
+  description: 'Вид записи истории вложений: вложение деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива.',
 });
 
 /** Перевод суммы в единицах актива в строку для ответа. */
@@ -121,6 +128,28 @@ export class MarketplaceBranchInvestmentDTO {
 
   @Field(() => [MarketplaceInvestPropertyDTO], { description: 'Заявления на имущество до приёма.' })
   properties!: MarketplaceInvestPropertyDTO[];
+}
+
+@ObjectType('MarketplaceInvestHistoryEntry', { description: 'Запись истории вложений пайщика в кооперативные участки.' })
+export class MarketplaceInvestHistoryEntryDTO {
+  @Field(() => MarketplaceInvestHistoryKind, { description: 'Вид записи.' })
+  kind!: MarketplaceInvestHistoryKind;
+
+  @Field({ description: 'Сумма: деньгами, по цене приёма имущества или возврата.' })
+  amount!: string;
+
+  @Field({ description: 'Идентификатор процесса: по нему находится документ в реестре документов.' })
+  process_hash!: string;
+
+  @Field(() => Date, { description: 'Когда операция проведена.' })
+  created_at!: Date;
+
+  @Field({ description: 'Номер операции учёта.' })
+  global_sequence!: string;
+}
+
+export function toMarketplaceInvestHistoryEntryDTO(v: MarketplaceInvestHistoryEntryView, toAsset: ToAsset): MarketplaceInvestHistoryEntryDTO {
+  return { kind: v.kind, amount: toAsset(v.amount), process_hash: v.process_hash, created_at: v.created_at, global_sequence: v.global_sequence };
 }
 
 export function toMarketplaceInvestorDTO(v: MarketplaceInvestorView, toAsset: ToAsset): MarketplaceInvestorDTO {

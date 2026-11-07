@@ -173,3 +173,13 @@ export * as SetAidLimit from './setAidLimit'
 export * as SetBranchInitiator from './setBranchInitiator'
 export * as SetBranchReserve from './setBranchReserve'
 export * as DeleteBranchReserve from './deleteBranchReserve'
+
+// Инвестиционный этап кооперативного участка (99D-30, 99D-31).
+export * as SignInvestAgreement from './signInvestAgreement'
+export * as InvestMoney from './investMoney'
+export * as CreateInvestProperty from './createInvestProperty'
+export * as ApproveInvestProperty from './approveInvestProperty'
+export * as SignInvestPropertyAct from './signInvestPropertyAct'
+export * as AcceptInvestProperty from './acceptInvestProperty'
+export * as DeclineInvestProperty from './declineInvestProperty'
+export * as ClaimInvestment from './claimInvestment'

@@ -122,6 +122,9 @@ sources:
   ui:
     - components/desktop/src/pages/Marketplace/AdminMarketEconomy/**
     - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/**
+    # Инвестиционный этап участка на столе ПВЗ (99D-31): страница «Инициаторы участка» и запросы вложений
+    - components/desktop/src/pages/Marketplace/OperatorBranchInitiators/**
+    - components/desktop/src/entities/MarketplaceInvestment/**
     - components/desktop/src/pages/Marketplace/AdminIssuancePoints/**
     - components/desktop/src/widgets/Marketplace/OrderSecurePartCard/**
     - components/desktop/src/pages/Marketplace/Cart/**
@@ -325,6 +328,78 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
     api: components/api-tests/src/marketplace/invest-cycle.test.ts
     status: passing
+
+  - id: mkt.order.invest.istok.09
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик открывает историю вложений: в журнале учёта его вложение деньгами, принятое имущество и чужая операция возмещения участка.
+    expect: >
+      две записи — «вложение деньгами» и «имущество принято» — с суммой и хэшем процесса в нижнем регистре; операции вне вложений отброшены
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.10
+    level: backend
+    kind: break
+    scenario: >
+      Председатель участка подписывает акт приёма-передачи второй подписью; затем — акт с другим хэшем.
+    expect: >
+      в цепь направляется акт вносящего с обеими подписями (вносящий, председатель); акт с другим хэшем — MARKETPLACE_IPROP_ACT_MISMATCH до цепи
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка без договора участия открывает «Инициаторы участка».
+    expect: >
+      вместо разделов — карточка договора с кнопкой «Подписать договор»; текст договора открывается на просмотр, после подписи появляются разделы
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/initiators-money.mjs
+    status: written
+
+  - id: mkt.order.invest.ui.02
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка вносит деньги в участок и открывает запись истории.
+    expect: >
+      плитки по пути денег и фаза участка; окно суммы формирует и подписывает заявление 1119; запись истории открывает панель с документом заявления
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/initiators-money.mjs
+    status: written
+
+  - id: mkt.order.invest.ui.03
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка открывает раздел «Инициаторы участка».
+    expect: >
+      итоги участка плитками и строки инициаторов с состоянием возврата; доверенное лицо раздела не видит
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/initiators-money.mjs
+    status: written
+
+  - id: mkt.order.invest.ui.04
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель участка вносит имущество и одобряет заявление.
+    expect: >
+      строка заявления с этапом «Заявление подано» и кнопками «Одобрить» и «Отклонить»; после одобрения — «На решении совета»
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/initiators-property.mjs
+    status: written
+
+  - id: mkt.order.invest.ui.05
+    level: ui
+    kind: happy
+    scenario: >
+      Совет принял решение о приёме имущества; вносящий подписывает акт, председатель участка подписывает тот же акт второй подписью.
+    expect: >
+      этап «Акт подписан вносящим», затем запись в «Принятом имуществе»; без робота совета сценарий заканчивается на решении совета
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/initiators-property.mjs
+    status: written
 
   # ── Прямой путь ──────────────────────────────────────────────────────────
   - id: mkt.order.happy.01

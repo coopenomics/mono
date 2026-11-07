@@ -2,15 +2,15 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
-import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { OperatorBranchBar, branchPersonName, branchPersonNames, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
+import { AmountInput, DataRow, DetailsDrawer, PageHint, StatStrip, type StatStripItem, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
@@ -20,6 +20,7 @@ import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverl
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
+import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/entities/MarketplaceInvestment'
 import {
   fetchOrdersForTurnover,
   type MarketplaceOrderListView,
@@ -96,6 +97,7 @@ import {
  */
 
 const route = useRoute()
+const router = useRouter()
 const orderOverlay = useQueryOverlay('order')
 const session = useSessionStore()
 const store = useOperatorBranchStore()
@@ -120,6 +122,8 @@ const reserves = ref<MarketplaceBranchReservesView | null>(null)
 const initiator = ref<MarketplaceBranchInitiatorView | null>(null)
 const periods = ref<MarketplaceBranchPeriodRow[]>([])
 const currentPeriod = ref<MarketplaceBranchCurrentPeriodView | null>(null)
+/** Вложения инициаторов участка (99D-31): средства инициаторов и возмещение. */
+const investment = ref<MarketplaceBranchInvestmentView | null>(null)
 
 // ─── Табы страницы (requirement — переверстка без изменения логики) ───
 
@@ -258,20 +262,8 @@ const aidSteps = computed(() => {
   return { items, active: 'cashier', completed: ['submitted', 'council'], errored: [] as string[] }
 })
 
-function personName(p: { first_name?: string; last_name?: string; middle_name?: string; username: string } | undefined): string {
-  if (!p) return ''
-  const full = [p.last_name, p.first_name, p.middle_name].filter(Boolean).join(' ').trim()
-  return full || p.username
-}
-
-const nameByUsername = computed<Record<string, string>>(() => {
-  const b = branch.value
-  if (!b) return {}
-  if (!b.trustee) return {}
-  const map: Record<string, string> = { [b.trustee.username]: personName(b.trustee) }
-  for (const t of b.trusted ?? []) map[t.username] = personName(t)
-  return map
-})
+const personName = branchPersonName
+const nameByUsername = computed<Record<string, string>>(() => branchPersonNames(branch.value))
 
 /** Сколько итогов месяцев показываем: год прогонов. */
 const PERIODS_LIMIT = 12
@@ -280,7 +272,7 @@ async function loadAll(): Promise<void> {
   if (!braname.value) return
   loading.value = true
   try {
-    const [branchEconomy, branchPlans, personal, myAids, history, personalHistory, branchReserves, branchInitiator, branchPeriods, current] = await Promise.all([
+    const [branchEconomy, branchPlans, personal, myAids, history, personalHistory, branchReserves, branchInitiator, branchPeriods, current, branchInvestment] = await Promise.all([
       getBranchEconomy(braname.value),
       listExpensePlans(braname.value),
       getPersonalEconomy(),
@@ -291,6 +283,7 @@ async function loadAll(): Promise<void> {
       getBranchInitiator(braname.value),
       listBranchPeriods(braname.value, { page: 1, limit: PERIODS_LIMIT, sortOrder: 'DESC' }),
       getBranchCurrentPeriod(braname.value),
+      getBranchInvestment(braname.value),
     ])
     economy.value = branchEconomy
     plans.value = branchPlans
@@ -302,6 +295,7 @@ async function loadAll(): Promise<void> {
     initiator.value = branchInitiator
     periods.value = branchPeriods.items
     currentPeriod.value = current
+    investment.value = branchInvestment
   } catch (e) {
     FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.loadEconomyFailedMessage'))
   } finally {
@@ -332,6 +326,7 @@ useLiveReload(
     { code: 'expenses', table: 'expense_plans' },
     { code: 'marketplace', table: 'marketplace_branch_period' },
     { code: 'marketplace', table: 'marketplace_branch_aid' },
+    { code: 'marketplace', table: 'invbranches' },
   ],
   loadAll,
 )
@@ -727,6 +722,7 @@ function monthLabel(period: number): string {
 
 const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
   { key: 'month', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnMonth'), width: '150px', nowrap: true },
+  { key: 'invest_phase', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnPhase'), width: '190px', nowrap: true },
   { key: 'turnover', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnTurnover'), width: '150px', numeric: true },
   { key: 'secured', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnSecured'), width: '140px', numeric: true },
   { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnExpenses'), width: '140px', numeric: true },
@@ -737,6 +733,36 @@ const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
   { key: 'deficit', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnDeficit'), width: '130px', numeric: true },
   { key: 'rate_percent', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnRate'), width: '110px', numeric: true },
 ]
+
+/**
+ * Средства инициаторов участка на «Кошельке участка»: выделено под незакрытые
+ * расходы, оплачено из средств инициаторов и возмещено им из экономии. У
+ * участка без вложений плиток нет.
+ */
+const hasInvestment = computed(() => Boolean(investment.value && investment.value.phase !== Zeus.MarketplaceInvestPhase.NONE))
+const investmentTiles = computed<StatStripItem[]>(() => {
+  const b = investment.value
+  const item = (key: string, caption: string, asset: string | undefined, sub: string): StatStripItem => ({
+    key,
+    caption,
+    value: assetAmount(asset ?? '').toFixed(2),
+    symbol: assetSymbol(asset ?? ''),
+    sub,
+  })
+  return [
+    item('reserved', i18nT('marketplace.operatorBranchEconomyPage.investPoolReserved'), b?.reserved, i18nT('marketplace.operatorBranchEconomyPage.investPoolReservedSub')),
+    item('spent', i18nT('marketplace.operatorBranchEconomyPage.investPoolSpent'), b?.spent_total, i18nT('marketplace.operatorBranchEconomyPage.investPoolSpentSub')),
+    item('repaid', i18nT('marketplace.operatorBranchEconomyPage.investRepaid'), b?.repaid_total, i18nT('marketplace.operatorBranchEconomyPage.investRepaidSub')),
+  ]
+})
+
+/** Фаза участка по вложениям в месяце: бейдж в итогах месяцев. */
+const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: string; variant: BaseBadgeVariant } | null> = {
+  [Zeus.MarketplacePeriodInvestPhase.NONE]: null,
+  [Zeus.MarketplacePeriodInvestPhase.DEFICIT]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseDeficit', variant: 'warn' },
+  [Zeus.MarketplacePeriodInvestPhase.REPAYING]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseRepaying', variant: 'info' },
+  [Zeus.MarketplacePeriodInvestPhase.BRANCH]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseBranch', variant: 'pos' },
+}
 
 const selectedPeriod = ref<MarketplaceBranchPeriodRow | null>(null)
 const periodDrawerOpen = computed({
@@ -905,6 +931,16 @@ q-page.economy
           :symbol='initiator ? assetSymbol(initiator.invest_balance) : ""',
           :loading='loading && !initiator'
         )
+
+      //- Средства инициаторов участка (99D-31): выделено, оплачено, возмещено.
+      .economy__section(v-if='hasInvestment')
+        .economy__section-head
+          .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.investTitle') }}
+          BaseButton(variant='secondary', size='sm', @click='router.push({ name: "marketplace-pvz-initiators", params: { coopname } })')
+            template(#icon-left)
+              q-icon(name='volunteer_activism', size='16px')
+            | {{ $t('marketplace.operatorBranchEconomyPage.investOpenAction') }}
+        StatStrip(:items='investmentTiles', :loading='firstLoad')
 
       .economy__section
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.walletMovementsTitle') }}
@@ -1260,6 +1296,9 @@ q-page.economy
           .economy__due-note(v-if='p.deficit && assetAmount(p.deficit) > 0')
             q-icon(name='trending_down', size='14px')
             | {{ $t('marketplace.operatorBranchEconomyPage.periodDeficitNote') }}
+        template(#cell-invest_phase='{ row: p }')
+          BaseBadge(v-if='PERIOD_PHASE[p.invest_phase]', :variant='PERIOD_PHASE[p.invest_phase].variant') {{ $t(PERIOD_PHASE[p.invest_phase].label) }}
+          span.t-muted(v-else) —
         template(#cell-turnover='{ row: p }')
           span.t-mono {{ formatAsset2Digits(p.turnover) }}
         template(#cell-secured='{ row: p }')
@@ -1313,6 +1352,14 @@ q-page.economy
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnBranch")', :value='formatAsset2Digits(selectedPeriod.branch_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnFunds")', :value='formatAsset2Digits(selectedPeriod.funds_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnInitiator")', :value='formatAsset2Digits(selectedPeriod.initiator_amount)', mono)
+        DataRow(
+          v-if='PERIOD_PHASE[selectedPeriod.invest_phase]',
+          align='spread',
+          :label='$t("marketplace.operatorBranchEconomyPage.periodInvestorRepaid")',
+          :value='formatAsset2Digits(selectedPeriod.investor_repaid)',
+          :hint='selectedPeriod.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING ? $t("marketplace.operatorBranchEconomyPage.periodInitiatorRepayHint") : $t("marketplace.operatorBranchEconomyPage.periodInitiatorBranchHint")',
+          mono
+        )
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnReturned")', :value='formatAsset2Digits(selectedPeriod.return_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnDeficit")', :value='formatAsset2Digits(selectedPeriod.deficit)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodInitiatorLine")', :value='nameByUsername[selectedPeriod.initiator] || selectedPeriod.initiator')
