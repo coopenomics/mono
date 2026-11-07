@@ -33,6 +33,12 @@ title: Адресное хранение склада участка — тип�
 # убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
 # отказ без кода). Набор случаев прежний.
 
+
+# Правка 07.11.2026 (598-55): заведение партии боксов принимает право
+# `Container:create:all` председателя кооператива вместо `manage:all`.
+# Перемещение и правка бокса снова только у участка (`manage:own-KU`):
+# строка `manage:all` покрывала и его, и председатель кооператива проходил
+# эти операции — поймал снимок матрицы прав. Случаи хранения прежние.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-container.resolver.ts

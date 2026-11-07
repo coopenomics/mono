@@ -148,9 +148,9 @@ describe('условия строк таблицы', () => {
   // mkt.rights.side.11
   it('завести боксы на любом участке вправе председатель кооператива; совет и оператор такого права не имеют', async () => {
     const on = { containers: true };
-    await expect(run({ resource: 'Container', action: 'manage:all' }, chairman, on)).resolves.toBeDefined();
+    await expect(run({ resource: 'Container', action: 'create:all' }, chairman, on)).resolves.toBeDefined();
     for (const actor of [council, operator]) {
-      await expect(run({ resource: 'Container', action: 'manage:all' }, actor, on)).rejects.toMatchObject({
+      await expect(run({ resource: 'Container', action: 'create:all' }, actor, on)).rejects.toMatchObject({
         code: 'KIT_INSUFFICIENT_RIGHTS',
       });
     }
