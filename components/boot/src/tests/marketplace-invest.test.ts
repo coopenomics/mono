@@ -37,6 +37,8 @@ import { acceptToCoop, issueOrder, pickOffer, placeOrder } from './marketplace/o
 import { CHAIRMAN, COOP, type Who, amount, ensureShareFunds, fromState, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
 import { accumulationFunds, asset, closeMonthAndCompare, coopPusher, investBranch, investorRow, rub, units, userWallet } from './marketplace/periodHelpers'
 import { processDecision } from './soviet/processDecision'
+import { signProgramAgreement } from './wallet/signProgramAgreement'
+import { fakeDocument } from './shared/fakeDocument'
 
 const { chargeOrder, crpsClaimable, crpsRoute } = MarketContract.PeriodModel
 
@@ -80,6 +82,22 @@ async function ensureAgreement(who: Who) {
   await push(MARKET, 'signinvagr', { coopname: COOP, username: who.account, agreement: await signed(who, 1118) })
 }
 
+/** Программа «Стол заказов» в цепи (`_marketplace_program_id`). */
+const MARKETPLACE_PROGRAM_ID = 2
+
+/**
+ * Соглашение программы «Стол заказов»: кошелёк вложения `w.mkt.invest`
+ * принадлежит этой программе, и ledger2 двигает его только у пайщика с
+ * подписанным соглашением. Доверенное лицо участка засевом стенда к программе
+ * не подключено — подписываем по черновику программы, как стол пайщика.
+ */
+async function ensureMarketplaceProgram(who: Who) {
+  const users: any[] = await bc.getTableRows('wallet', COOP, 'users', 1, who.account, who.account)
+  if (users.some(u => u.username === who.account && (u.programs ?? []).some((p: any) => Number(p.program_id) === MARKETPLACE_PROGRAM_ID))) return
+  const [program]: any[] = await bc.getTableRows('soviet', COOP, 'programs', 1, String(MARKETPLACE_PROGRAM_ID), String(MARKETPLACE_PROGRAM_ID))
+  await signProgramAgreement(bc, COOP, who.account, MARKETPLACE_PROGRAM_ID, Number(program.draft_id), fakeDocument)
+}
+
 /** Решение совета по повестке с этим хэшем — найти и утвердить голосами совета. */
 async function decideByHash(hash: string) {
   const rows: any[] = await bc.getTableRows('soviet', COOP, 'decisions', 1000)
@@ -111,6 +129,7 @@ describe('стол заказов — инвестиционный этап ко
       }), 'без договора').rejects.toThrow(/MARKETPLACE_INVAGR_REQUIRED/)
     }
     await ensureAgreement(chairkrg)
+    await ensureMarketplaceProgram(trustedkrg)
     await ensureAgreement(trustedkrg)
     await ensureAgreement(ekaterina)
     await expect(push(MARKET, 'signinvagr', { coopname: COOP, username: chairkrg.account, agreement: await signed(chairkrg, 1118) }), 'второй договор')
