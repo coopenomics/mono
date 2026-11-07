@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { uiLocale, t as i18nT } from 'src/shared/i18n';
+import { uiLocale, t as i18nT, type MessageKey } from 'src/shared/i18n';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -757,7 +757,7 @@ const investmentTiles = computed<StatStripItem[]>(() => {
 })
 
 /** Фаза участка по вложениям в месяце: бейдж в итогах месяцев. */
-const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: string; variant: BaseBadgeVariant } | null> = {
+const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: MessageKey; variant: BaseBadgeVariant } | null> = {
   [Zeus.MarketplacePeriodInvestPhase.NONE]: null,
   [Zeus.MarketplacePeriodInvestPhase.DEFICIT]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseDeficit', variant: 'warn' },
   [Zeus.MarketplacePeriodInvestPhase.REPAYING]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseRepaying', variant: 'info' },
