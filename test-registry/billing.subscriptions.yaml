@@ -48,6 +48,9 @@ sources:
     - components/desktop/src/widgets/ConnectionDashboard/ui/MembershipWallet.vue
 
 cases:
+  # 07.11.2026 (99D-27): в общие реестры ledger2 добавлены кошельки и операции
+  # инвестиционного этапа Стола заказов (w.mkt.ipool, w.mkt.repay, o.mkt.inv…);
+  # кошельки и операции этой фичи не менялись, проверки сборки реестров зелёные.
   # ── Хаб-крон: оплата подписок ───────────────────────────────────────────
   - id: bill.happy.01
     level: backend

@@ -313,6 +313,49 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Возврат части обеспечительной части паевого взноса по итогу месяца участка' },
 
+  // p.mkt.invest — инвестиционный этап участка (задача 99D-27). Паевой взнос
+  // инициатора на 80 не меняется; имущество Дт 10 / Кт 80; возмещение из
+  // экономии — Дт 80 / Кт 86 на кошелёк возмещения участка.
+  { code: 'o.mkt.inv',     process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_MONEY', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.invest',
+    debit: null, credit: null,
+    human_name: 'Трансляция паевого взноса в договор участия в хозяйственной деятельности' },
+
+  { code: 'o.mkt.iprop',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.invest',
+    debit: 10, credit: 80,
+    human_name: 'Приём имущества паевым взносом в кооперативный участок' },
+
+  { code: 'o.mkt.ipool',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_POOL_FUND', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.ipool',
+    debit: null, credit: null,
+    human_name: 'Выделение средств инициаторов под расход кооперативного участка' },
+
+  { code: 'o.mkt.iunpl',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_POOL_UNFUND', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Возврат невыделенных средств инициаторов из пула' },
+
+  { code: 'o.mkt.repay',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INVEST_REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.repay',
+    debit: 80, credit: 86,
+    human_name: 'Возмещение вложений инициаторов из экономии месяца участка' },
+
+  { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INVEST_REPAY_SURPLUS', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.repay', wallet_to: 'w.brn.common',
+    debit: null, credit: null,
+    human_name: 'Перевод переплаты возмещения вложений на общий кошелёк участка' },
+
+  { code: 'o.mkt.iback',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_BACK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Трансляция возвращённого вложения в главный паевой кошелёк' },
+
+  { code: 'o.mkt.iexit',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INVEST_EXIT', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Перенос вложения инициатора на главный паевой при выходе из кооператива' },
+
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
     name: 'CLAIM_SUPPLIER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.claim',

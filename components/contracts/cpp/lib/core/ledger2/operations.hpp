@@ -122,6 +122,15 @@ namespace operations {
     inline constexpr eosio::name DUE_TO_SHARE           = "o.mkt.undue"_n;    ///< Возврат обеспечительной части за возвращённое имущество при гарантийном возврате (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Списания до конца гарантийного срока нет, поэтому сумма всегда на w.mkt.due.
     inline constexpr eosio::name INITIATOR_SHARE        = "o.mkt.initr"_n;    ///< Вознаграждение инициатора участка из экономии месяца (TRANSFER w.mkt.fee → w.mkt.invest по инициатору, без Dr/Cr — паевой переходит между пайщиками внутри 80; решение владельца 03.11.2026). Третья нога chargeperiod после o.mkt.charge; получатель — из строки прогона kuperiods. Задача 99D-21.
     inline constexpr eosio::name RETURN_DUE             = "o.mkt.retdue"_n;   ///< Возврат части обеспечительной части паевого взноса пайщику по итогу месяца участка (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Остаток после частей участку, фондам и инициатору по ставкам прогона; средства остаются паевыми в Столе заказов и идут на следующие заказы. Задача 99D-21.
+    // Инвестиционный этап участка (задача 99D-27, решения владельца 06–07.11.2026).
+    inline constexpr eosio::name INVEST_MONEY           = "o.mkt.inv"_n;      ///< Трансляция паевого взноса инициатора в договор участия в хозяйственной деятельности по участку (TRANSFER w.wal.share → w.mkt.invest, без Dr/Cr — оба на 80). По заявлению 1119.
+    inline constexpr eosio::name INVEST_PROPERTY        = "o.mkt.iprop"_n;    ///< Приём имущества паевым взносом инициатора в кооперативный участок (ISSUE w.mkt.invest, Дт 10 / Кт 80) по акту 1122 после решения совета.
+    inline constexpr eosio::name INVEST_POOL_FUND       = "o.mkt.ipool"_n;    ///< Выделение средств инициаторов под расход или материальную помощь участка (ISSUE w.mkt.ipool, без Dr/Cr — деньги на 51 с паевого взноса инициатора).
+    inline constexpr eosio::name INVEST_POOL_UNFUND     = "o.mkt.iunpl"_n;  ///< Возврат невыделенного остатка средств инициаторов из пула (BURN w.mkt.ipool, без Dr/Cr) — отклонение записки или остаток после расхода.
+    inline constexpr eosio::name INVEST_REPAY           = "o.mkt.repay"_n;    ///< Возмещение вложений инициаторов из экономии месяца участка (TRANSFER w.mkt.fee → w.mkt.repay участка, Дт 80 / Кт 86). Заменяет o.mkt.initr, пока вложения участка не возвращены; нога chargeperiod.
+    inline constexpr eosio::name INVEST_REPAY_SURPLUS   = "o.mkt.rpsurp"_n;   ///< Переплата возмещения на границе завершения возврата — участку (TRANSFER w.mkt.repay → w.brn.common, без Dr/Cr — оба на 86, username = braname).
+    inline constexpr eosio::name INVEST_BACK            = "o.mkt.iback"_n;    ///< Трансляция возвращённого и неиспользованного вложения инициатора в главный паевой (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80) по заявлению 1123.
+    inline constexpr eosio::name INVEST_EXIT            = "o.mkt.iexit"_n;    ///< Перенос вложения инициатора на главный паевой при выходе из кооператива (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator.
   }
 
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
@@ -629,6 +638,43 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     0, 0,
     "Возврат части обеспечительной части паевого взноса по итогу месяца участка" },
+
+  // 12j⁷–12j¹⁴. p.mkt.invest: инвестиционный этап участка (задача 99D-27).
+  //   Паевой взнос инициатора на 80 операциями этапа не меняется: деньги
+  //   переходят между кошельками внутри 80, имущество приходит Дт 10 / Кт 80,
+  //   возмещение из экономии — членская часть Дт 80 / Кт 86 на кошелёк участка.
+  { operations::marketplace::INVEST_MONEY, processes::marketplace::INVEST, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_INITIATOR,
+    0, 0,
+    "Трансляция паевого взноса в договор участия в хозяйственной деятельности" },
+  { operations::marketplace::INVEST_PROPERTY, processes::marketplace::INVEST, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::MARKETPLACE_INITIATOR,
+    ledger2_accounts::MATERIALS, ledger2_accounts::SHARE_FUND,
+    "Приём имущества паевым взносом в кооперативный участок" },
+  { operations::marketplace::INVEST_POOL_FUND, processes::marketplace::INVEST, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::MARKETPLACE_INVEST_POOL,
+    0, 0,
+    "Выделение средств инициаторов под расход кооперативного участка" },
+  { operations::marketplace::INVEST_POOL_UNFUND, processes::marketplace::INVEST, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, eosio::name{},
+    0, 0,
+    "Возврат невыделенных средств инициаторов из пула" },
+  { operations::marketplace::INVEST_REPAY, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_INVEST_REPAY,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Возмещение вложений инициаторов из экономии месяца участка" },
+  { operations::marketplace::INVEST_REPAY_SURPLUS, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_REPAY, ledger2_wallets::BRANCH_COMMON,
+    0, 0,
+    "Перевод переплаты возмещения вложений на общий кошелёк участка" },
+  { operations::marketplace::INVEST_BACK, processes::marketplace::INVEST, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
+    0, 0,
+    "Трансляция возвращённого вложения в главный паевой кошелёк" },
+  { operations::marketplace::INVEST_EXIT, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
+    0, 0,
+    "Перенос вложения инициатора на главный паевой при выходе из кооператива" },
 
   // 12l. Консолидация свободного паевого «Стола заказов» в общий паевой при
   //      выходе из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr —

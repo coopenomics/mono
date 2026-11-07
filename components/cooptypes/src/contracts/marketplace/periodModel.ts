@@ -169,3 +169,89 @@ export function splitFunds(amount: bigint, percents: bigint[]): bigint[] {
 export function chargeRate(rates: IPeriodRates): bigint {
   return rates.rateBranch + rates.rateFunds + rates.rateInitiator
 }
+
+// ── Возврат вложений инициаторам (CRPS), задача 99D-27 ──────────────────
+//
+// Повторяет `lib/core/marketplace/invest.hpp` шаг в шаг: единицы инициатора —
+// использованное вложение (имущество с момента приёма, деньги по мере расхода
+// пула), база участка — сумма единиц активных инициаторов, счётчик `acc` —
+// возвращено на единицу базы × CRPS_SCALE. Деление вниз, uint128 → bigint.
+
+/** Точность счётчика возврата. */
+export const CRPS_SCALE = BigInt(1_000_000_000_000)
+
+/** Строка участка: то, что нужно расчёту из `invbranches`. */
+export interface ICrpsBranch {
+  base: bigint
+  acc: bigint
+  sJoin: bigint
+  sFixed: bigint
+  unusedTotal: bigint
+  reserved: bigint
+}
+
+/** Строка инициатора: то, что нужно расчёту из `investors`. */
+export interface ICrpsInvestor {
+  active: boolean
+  money: bigint
+  property: bigint
+  usedMoney: bigint
+  claimed: bigint
+  returnedFixed: bigint
+  accJoin: bigint
+}
+
+const unitsOf = (i: ICrpsInvestor): bigint => i.usedMoney + i.property
+
+/** Возвращено инициатору при текущем счётчике участка. */
+export function crpsReturned(i: ICrpsInvestor, acc: bigint): bigint {
+  const u = unitsOf(i)
+  if (!i.active || u <= ZERO)
+    return i.returnedFixed
+  return i.returnedFixed + (u * (acc - i.accJoin)) / CRPS_SCALE
+}
+
+/** Непогашенный остаток использованного по участку. */
+export function crpsOutstanding(b: ICrpsBranch): bigint {
+  if (b.base <= ZERO)
+    return ZERO
+  const left = b.base - b.sFixed - (b.base * b.acc - b.sJoin) / CRPS_SCALE
+  return left > ZERO ? left : ZERO
+}
+
+/**
+ * Доля инициаторов из списания: сколько возмещает вложения, сколько — на
+ * общий кошелёк участка, и новый счётчик (`route_initiator_share`).
+ */
+export function crpsRoute(b: ICrpsBranch, share: bigint): { repay: bigint, toBranch: bigint, acc: bigint } {
+  const left = crpsOutstanding(b)
+  const repay = b.base > ZERO ? (share < left ? share : left) : ZERO
+  const acc = repay > ZERO ? b.acc + (repay * CRPS_SCALE) / b.base : b.acc
+  return { repay, toBranch: share - repay, acc }
+}
+
+/**
+ * Сколько инициатор вправе транслировать в главный паевой сейчас
+ * (`claimable_of`): возвращённое минус забранное и, когда возврат завершён или
+ * участку нечего возвращать, неиспользованные деньги.
+ */
+export function crpsClaimable(b: ICrpsBranch, i: ICrpsInvestor): { returned: bigint, unused: bigint, total: bigint } {
+  const u = unitsOf(i)
+  let r = crpsReturned(i, b.acc)
+  if (r > u)
+    r = u
+  let returned = r - i.claimed
+  if (returned < ZERO)
+    returned = ZERO
+  let unused = ZERO
+  const unusedOwn = i.money - i.usedMoney
+  if ((!i.active || b.base <= ZERO) && unusedOwn > ZERO) {
+    unused = unusedOwn
+    if (i.active) {
+      const free = b.unusedTotal - b.reserved
+      if (unused > free)
+        unused = free > ZERO ? free : ZERO
+    }
+  }
+  return { returned, unused, total: returned + unused }
+}

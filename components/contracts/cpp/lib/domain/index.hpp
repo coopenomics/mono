@@ -89,6 +89,7 @@
 #include "table_marketplace_fee_config.hpp"
 #include "table_marketplace_initiators.hpp"
 #include "table_marketplace_periods.hpp"
+#include "table_marketplace_invest.hpp"
 #include "table_marketplace_orders.hpp"
 #include "table_marketplace_return_requests.hpp"
 #include "table_marketplace_warranty_claims.hpp"

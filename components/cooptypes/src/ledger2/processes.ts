@@ -46,6 +46,7 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.mkt.return',   contract: 'marketplace',  name: 'RETURN',      human_name: 'Гарантийный возврат имущества пайщиком' },
   { type: 'p.mkt.wroff',    contract: 'marketplace',  name: 'WRITEOFF',    human_name: 'Утилизация скоропорта со склада кооператива' },
   { type: 'p.mkt.claim',    contract: 'marketplace',  name: 'CLAIM',       human_name: 'Гарантийная претензия поставщику' },
+  { type: 'p.mkt.invest',   contract: 'marketplace',  name: 'INVEST',      human_name: 'Вложения инициаторов в кооперативный участок' },
 
   // branch — экономика кооперативного участка (requirement b6)
   { type: 'p.brn.fees',     contract: 'branch',       name: 'FEES',        human_name: 'Членские взносы кооперативного участка' },

@@ -55,6 +55,19 @@ sources:
     - components/controller/src/infrastructure/database/kysely/repositories/process-journal.kysely-repository.ts
 
 cases:
+  - id: l2.pnam.invest.01
+    level: contract
+    kind: happy
+    scenario: >
+      Инициатор вносит деньги и имущество в кооперативный участок и забирает
+      возвращённое заявлением (процесс p.mkt.invest, задача 99D-27).
+    expect: >
+      операции o.mkt.inv, o.mkt.iprop, o.mkt.iback идут под именем нитки
+      p.mkt.invest и хэшем вложения; у процесса есть человеческое название в
+      реестре процессов cooptypes
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
   # ── Уровень контракта ─────────────────────────────────────────────────────
 
   - id: l2.pnam.happy.01

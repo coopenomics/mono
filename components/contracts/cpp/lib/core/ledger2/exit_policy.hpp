@@ -85,8 +85,12 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
   // (решение владельца 05.11.2026).
   { ledger2_wallets::MARKETPLACE_SECURE_ORDER, ExitWalletPolicy::BLOCKER, eosio::name{},
     "под заказы Стола заказов внесена обеспечительная часть паевого взноса — завершите или отмените заказы" },
-  { ledger2_wallets::MARKETPLACE_INITIATOR, ExitWalletPolicy::BLOCKER, eosio::name{},
-    "на паевом кошельке инициатора участка есть остаток — его судьба решается договором участия в хозяйственной деятельности на инвестиционном этапе" },
+  // Вложение инициатора по договору участия возвращается пайщику с полным
+  // паевым взносом; marketplace вычитает его из базы возврата участка той же
+  // транзакцией выхода (решение владельца 07.11.2026, задача 99D-27).
+  { ledger2_wallets::MARKETPLACE_INITIATOR, ExitWalletPolicy::RETURN_TO_MAIN,
+    operations::marketplace::INVEST_EXIT,
+    "Вложение в кооперативный участок по договору участия в хозяйственной деятельности" },
   { ledger2_wallets::ADVANCE_HOLD, ExitWalletPolicy::BLOCKER, eosio::name{},
     "не закрыт подотчёт по служебной записке — отчитайтесь или верните аванс" },
   // Материалы занятий на ответственном хранении: гарантийный срок идёт, судьба
@@ -118,6 +122,8 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
     "Распределение кооперативного участка — назначает председатель участка" },
   { ledger2_wallets::BRANCH_COMMON, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
+  { ledger2_wallets::MARKETPLACE_INVEST_REPAY, ExitWalletPolicy::UNTOUCHED, eosio::name{},
+    "Возмещение вложений инициаторов участка: L3-разрез по участку, а не по пайщику" },
   { ledger2_wallets::REGISTRATION_PENDING, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Взнос кандидата до вступления — выходить ещё неоткуда" },
 };

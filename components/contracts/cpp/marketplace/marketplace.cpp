@@ -35,6 +35,23 @@
 #include "src/p.mkt.supply/issueact2.cpp"
 #include "src/p.mkt.supply/cancelissue.cpp"
 
+// ── p.mkt.invest ─── инвестиционный этап участка (задача 99D-27) ─────────
+#include "src/p.mkt.invest/iprop_helpers.hpp"
+#include "src/p.mkt.invest/signinvagr.cpp"
+#include "src/p.mkt.invest/investmoney.cpp"
+#include "src/p.mkt.invest/createiprop.cpp"
+#include "src/p.mkt.invest/approveiprop.cpp"
+#include "src/p.mkt.invest/declineiprop.cpp"
+#include "src/p.mkt.invest/onipropauth.cpp"
+#include "src/p.mkt.invest/onipropdecl.cpp"
+#include "src/p.mkt.invest/act1iprop.cpp"
+#include "src/p.mkt.invest/act2iprop.cpp"
+#include "src/p.mkt.invest/fundipool.cpp"
+#include "src/p.mkt.invest/unfundipool.cpp"
+#include "src/p.mkt.invest/spentipool.cpp"
+#include "src/p.mkt.invest/claiminv.cpp"
+#include "src/p.mkt.invest/exitinv.cpp"
+
 // ── p.mkt.return (5 actions) ──── Stories Эпика 7 ──────────────────────
 #include "src/p.mkt.return/submretrn.cpp"
 #include "src/p.mkt.return/aprretrem.cpp"

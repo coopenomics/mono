@@ -14,7 +14,8 @@
  *   • chargeperiod — четыре части одного заказа одной транзакцией: участку
  *     (o.brn.common), в фонды накопления по их процентам (o.fnd.indiv /
  *     o.fnd.resrv / o.fnd.devel — кошелёк на каждый фонд, задача 99D-25),
- *     инициатору (o.mkt.initr), пайщице обратно (o.mkt.retdue);
+ *     инициаторам — возмещение вложений участка (o.mkt.repay) либо участку
+ *     (o.brn.common), задача 99D-27; пайщице обратно (o.mkt.retdue);
  *     кошелёк к списанию обнуляется, остатки кошельков растут ровно на части;
  *   • повтор chargeperiod — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку,
  *     после чего chargeperiod отвечает MARKETPLACE_PERIOD_NOT_CLOSED.
@@ -31,6 +32,7 @@ import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder, pickOffer, placeOrder } from './marketplace/orderFlow'
 import { CHAIRMAN, COOP, type LedgerRow, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { investBranch } from './marketplace/periodHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -234,8 +236,9 @@ describe('стол заказов — итог месяца участка и с
     const dueBefore = await userWallet('w.mkt.due', ekaterina.account)
     const shareBefore = await userWallet('w.mkt.share', ekaterina.account)
     const commonBefore = await userWallet('w.brn.common', BRANAME)
-    const investBefore = await userWallet('w.mkt.invest', chairkrg.account)
+    const repayBefore = await userWallet('w.mkt.repay', BRANAME)
     const fundsBefore = await fundBalances()
+    const investBefore = await investBranch(bc, BRANAME)
 
     await push(MARKET, 'chargeperiod', {
       coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: orderHash,
@@ -247,31 +250,37 @@ describe('стол заказов — итог месяца участка и с
     const toInitiator = baseUnits * BigInt(periodRow.rate_initiator) / H
     const toReturn = dueUnits - toBranch - toFunds - toInitiator
     expect(toReturn >= 0n, 'ставка заказа совпадает со ставкой прогона — возврат не отрицателен').toBe(true)
+    // Доля инициаторов — по фазам инвестиционного этапа (задача 99D-27).
+    const route = MarketContract.PeriodModel.crpsRoute(investBefore, toInitiator)
 
     const expected = ['o.mkt.charge']
     if (toBranch > 0n) expected.push('o.brn.common')
     if (toFunds > 0n) expected.push('o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel')
-    if (toInitiator > 0n) expected.push('o.mkt.initr')
+    if (route.repay > 0n) expected.push('o.mkt.repay')
     if (toReturn > 0n) expected.push('o.mkt.retdue')
     const ops: LedgerRow[] = await waitForOps(chairmanToken, orderHash, expected)
     expect(units(sumOf(ops, 'o.mkt.charge').toFixed(4))).toBe(toBranch + toFunds + toInitiator)
-    expect(units(sumOf(ops, 'o.brn.common').toFixed(4)) - units(sumOf(ops, 'o.brn.retfee').toFixed(4))).toBeGreaterThanOrEqual(toBranch)
+    expect(units(sumOf(ops, 'o.brn.common').toFixed(4)) - units(sumOf(ops, 'o.brn.retfee').toFixed(4))).toBeGreaterThanOrEqual(toBranch + route.toBranch)
     const fundOpsSum = sumOf(ops, 'o.fnd.indiv') + sumOf(ops, 'o.fnd.resrv') + sumOf(ops, 'o.fnd.devel')
     expect(units(fundOpsSum.toFixed(4))).toBe(toFunds)
-    expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4))).toBe(toInitiator)
+    expect(units(sumOf(ops, 'o.mkt.repay').toFixed(4))).toBe(route.repay)
+    expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4)), 'доля инициатора больше не начисляется на его кошелёк').toBe(0n)
     expect(units(sumOf(ops, 'o.mkt.retdue').toFixed(4))).toBe(toReturn)
 
     // Все ноги — в нитке заказа и процессе поставки.
     const rows = await historyOfProcess(chairmanToken, orderHash)
-    const initr = rows.find(r => r.action === 'walletop' && r.operationCode === 'o.mkt.initr')
-    if (toInitiator > 0n) expect([initr?.walletFrom, initr?.walletTo]).toEqual(['w.mkt.fee', 'w.mkt.invest'])
+    const repay = rows.find(r => r.action === 'walletop' && r.operationCode === 'o.mkt.repay')
+    if (route.repay > 0n) expect([repay?.walletFrom, repay?.walletTo]).toEqual(['w.mkt.fee', 'w.mkt.repay'])
     const retdue = rows.find(r => r.action === 'walletop' && r.operationCode === 'o.mkt.retdue')
     if (toReturn > 0n) expect([retdue?.walletFrom, retdue?.walletTo]).toEqual(['w.mkt.due', 'w.mkt.share'])
 
     expect(await userWallet('w.mkt.due', ekaterina.account)).toBe(dueBefore - dueUnits)
     expect(await userWallet('w.mkt.share', ekaterina.account)).toBe(shareBefore + toReturn)
-    expect(await userWallet('w.brn.common', BRANAME)).toBe(commonBefore + toBranch)
-    expect(await userWallet('w.mkt.invest', chairkrg.account)).toBe(investBefore + toInitiator)
+    // Переплата завершивших возврат переводится с кошелька возмещения участку.
+    const commonDelta = await userWallet('w.brn.common', BRANAME) - commonBefore
+    const repayDelta = await userWallet('w.mkt.repay', BRANAME) - repayBefore
+    expect(commonDelta + repayDelta).toBe(toBranch + toInitiator)
+    expect(repayDelta <= route.repay).toBe(true)
 
     // Фонды: сумма долей равна части в фонды; доля каждого фонда — по его проценту,
     // остаток округления у последнего по номеру. У каждого фонда свой кошелёк

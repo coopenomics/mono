@@ -379,6 +379,93 @@ public:
                                        eosio::asset base,
                                        uint32_t period);
 
+  // ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
+  /**
+   * @brief Договор участия в хозяйственной деятельности по ЦПП «Стол заказов»
+   * (registry 1118): один на пайщика в кооперативе.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void signinvagr(eosio::name coopname, eosio::name username, document2 agreement);
+  /**
+   * @brief Вложение деньгами в участок: трансляция паевого взноса в договор
+   * участия по заявлению 1119.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void investmoney(eosio::name coopname, eosio::name username, eosio::name braname,
+                                      checksum256 invest_hash, eosio::asset amount, document2 statement);
+  /**
+   * @brief Заявление о паевом взносе имуществом в участок (registry 1120).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void createiprop(eosio::name coopname, eosio::name username, eosio::name braname,
+                                      checksum256 property_hash, eosio::asset amount,
+                                      std::string description, document2 statement);
+  /**
+   * @brief Одобрение заявления председателем участка и вопрос на повестку совета.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void approveiprop(eosio::name coopname, eosio::name braname,
+                                       checksum256 property_hash, document2 approved_statement,
+                                       std::string meta);
+  /**
+   * @brief Отказ председателя участка до передачи в совет.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void declineiprop(eosio::name coopname, eosio::name braname,
+                                       checksum256 property_hash, std::string reason);
+  /**
+   * @brief Решение совета о приёме имущества принято (только контракт совета).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onipropauth(eosio::name coopname, checksum256 hash, document2 authorization);
+  /**
+   * @brief Совет отказал в приёме имущества (только контракт совета).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void onipropdecl(eosio::name coopname, checksum256 hash, std::string reason);
+  /**
+   * @brief Акт приёма-передачи имущества: подпись вносящего (registry 1122).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void act1iprop(eosio::name coopname, eosio::name username,
+                                    checksum256 property_hash, document2 act);
+  /**
+   * @brief Акт приёма-передачи: подпись председателя участка — имущество принято.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void act2iprop(eosio::name coopname, eosio::name braname,
+                                    checksum256 property_hash, document2 act);
+  /**
+   * @brief Выделение средств инициаторов под расход участка (только branch).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void fundipool(eosio::name coopname, eosio::name braname, eosio::asset amount,
+                                    checksum256 hash);
+  /**
+   * @brief Возврат невыделенного остатка средств инициаторов (только branch).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void unfundipool(eosio::name coopname, eosio::name braname, eosio::asset amount,
+                                      checksum256 hash);
+  /**
+   * @brief Расход из пула оплачен: деньги инициаторов входят в базу возврата (только branch).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void spentipool(eosio::name coopname, eosio::name braname, eosio::asset amount,
+                                     checksum256 hash);
+  /**
+   * @brief Трансляция возвращённого вложения в главный паевой по заявлению 1123;
+   * сумму считает контракт.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void claiminv(eosio::name coopname, eosio::name username, eosio::name braname,
+                                   checksum256 claim_hash, document2 statement);
+  /**
+   * @brief Выход инициатора одобрен: снять его с базы возврата участков (только registrator).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void exitinv(eosio::name coopname, eosio::name username);
+
   // ── p.mkt.supply: выдача по заявлению, протоколу совета и акту (паевая модель) ──
   /**
    * @brief Оператор участка выдачи отмечает поступление имущества по заказу на

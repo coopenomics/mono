@@ -47,6 +47,21 @@ sources:
     - components/desktop/src/pages/User/MembershipExitConfirmPage/**
 
 cases:
+  # ── Вложение инициатора кооперативного участка (99D-27) ─────────────────
+  - id: mem.exit.invest.01
+    level: contract
+    kind: side
+    scenario: >
+      Пайщик с вложением в кооперативный участок по договору участия выходит
+      из кооператива; часть его денег выделена под незакрытый расход участка.
+    expect: >
+      пока расход не закрыт — выход отклоняется MARKETPLACE_INVEST_EXIT_RESERVED;
+      после закрытия вложение целиком переносится на главный паевой (o.mkt.iexit)
+      и возвращается с полным паевым взносом, строки инициатора стёрты, база
+      возврата участков уменьшена
+    test: ~
+    status: missing   # тест выхода инициатора — задача 99D-28 (ИНВ-2)
+
   - id: exit.doc.happy.01
     level: backend
     kind: happy

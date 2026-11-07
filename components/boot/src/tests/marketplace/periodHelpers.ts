@@ -186,3 +186,38 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
   expect(row.initiator, `${label}: получатель доли инициатора записан`).toBeTruthy()
   return { period, facts, totals: expected, row }
 }
+
+// ── Инвестиционный этап участка (задача 99D-27) ─────────────────────────────
+
+/** Строка вложений участка из цепи в виде, который понимает эталон CRPS. */
+export async function investBranch(bc: Blockchain, braname: string) {
+  const rows: any[] = await bc.getTableRows('marketplace', COOP, 'invbranches', 1, braname, braname)
+  const r = rows.find(x => x.braname === braname)
+  return {
+    raw: r,
+    base: BigInt(r?.base ?? 0),
+    acc: BigInt(r?.acc ?? 0),
+    sJoin: BigInt(r?.s_join ?? 0),
+    sFixed: BigInt(r?.s_fixed ?? 0),
+    unusedTotal: units(r?.unused_total),
+    reserved: units(r?.reserved),
+  }
+}
+
+/** Строка инициатора по участку из цепи в виде, который понимает эталон CRPS. */
+export async function investorRow(bc: Blockchain, braname: string, username: string) {
+  const rows: any[] = await bc.getTableRows('marketplace', COOP, 'investors', 1000)
+  const r = rows.find(x => x.braname === braname && x.username === username)
+  return r
+    ? {
+        raw: r,
+        active: r.status === 'active',
+        money: units(r.money),
+        property: units(r.property),
+        usedMoney: units(r.used_money),
+        claimed: units(r.claimed),
+        returnedFixed: BigInt(r.returned_fixed),
+        accJoin: BigInt(r.acc_join),
+      }
+    : null
+}

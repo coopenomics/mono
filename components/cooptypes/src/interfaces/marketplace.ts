@@ -712,3 +712,126 @@ export interface ISubmretrn {
   photos: IChecksum256[]
   statement: IDocument2
 }
+
+// ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
+
+export interface ISignInvAgr {
+  coopname: IName
+  username: IName
+  agreement: IDocument2
+}
+
+export interface IInvestMoney {
+  coopname: IName
+  username: IName
+  braname: IName
+  invest_hash: IChecksum256
+  amount: IAsset
+  statement: IDocument2
+}
+
+export interface ICreateIProp {
+  coopname: IName
+  username: IName
+  braname: IName
+  property_hash: IChecksum256
+  amount: IAsset
+  description: string
+  statement: IDocument2
+}
+
+export interface IApproveIProp {
+  coopname: IName
+  braname: IName
+  property_hash: IChecksum256
+  approved_statement: IDocument2
+  meta: string
+}
+
+export interface IDeclineIProp {
+  coopname: IName
+  braname: IName
+  property_hash: IChecksum256
+  reason: string
+}
+
+export interface IAct1IProp {
+  coopname: IName
+  username: IName
+  property_hash: IChecksum256
+  act: IDocument2
+}
+
+export interface IAct2IProp {
+  coopname: IName
+  braname: IName
+  property_hash: IChecksum256
+  act: IDocument2
+}
+
+export interface IClaimInv {
+  coopname: IName
+  username: IName
+  braname: IName
+  claim_hash: IChecksum256
+  statement: IDocument2
+}
+
+export interface IMktInvAgreement {
+  username: IName
+  signed_at: ITimePointSec
+  agreement: IDocument2
+}
+
+/** Вложения инициаторов участка и счётчик возврата (CRPS). */
+export interface IMktInvBranch {
+  braname: IName
+  money_total: IAsset
+  property_total: IAsset
+  unused_total: IAsset
+  reserved: IAsset
+  spent_total: IAsset
+  repaid_total: IAsset
+  surplus_total: IAsset
+  /** Σ использованного активных инициаторов, единицы актива. */
+  base: IUint64
+  /** Возвращено на единицу базы × 10^12. */
+  acc: IUint64
+  /** Σ units × acc_join по базе (uint128 строкой). */
+  s_join: string
+  s_fixed: IUint64
+  join_seq: IUint64
+}
+
+export interface IMktInvestor {
+  id: IUint64
+  braname: IName
+  username: IName
+  /** active | done */
+  status: IName
+  money: IAsset
+  property: IAsset
+  used_money: IAsset
+  claimed: IAsset
+  returned_fixed: IUint64
+  acc_join: IUint64
+  acc_done: IUint64
+  join_seq: IUint64
+  joined_at: ITimePointSec
+}
+
+export interface IMktInvProp {
+  id: IUint64
+  hash: IChecksum256
+  braname: IName
+  username: IName
+  /** created | approved | authorized | act1 */
+  status: IName
+  amount: IAsset
+  description: string
+  statement: IDocument2
+  approved_statement: IDocument2
+  decision: IDocument2
+  act: IDocument2
+  created_at: ITimePointSec
+}

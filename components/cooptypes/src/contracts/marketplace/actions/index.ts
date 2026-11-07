@@ -142,6 +142,16 @@ export * as DelPeriod from './delPeriod'
  */
 export * as ChargePeriod from './chargePeriod'
 
+// ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
+export * as SignInvAgr from './signInvAgr'
+export * as InvestMoney from './investMoney'
+export * as CreateIProp from './createIProp'
+export * as ApproveIProp from './approveIProp'
+export * as DeclineIProp from './declineIProp'
+export * as Act1IProp from './act1IProp'
+export * as Act2IProp from './act2IProp'
+export * as ClaimInv from './claimInv'
+
 /**
  * Отсечка персонального распределения членского взноса КУ (requirement b6).
  * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.

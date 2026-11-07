@@ -189,7 +189,9 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     }
     const initiator = (await gql<any>(krgToken, INITIATOR, { b: KRG })).marketplaceGetBranchInitiator
     expect(initiator.username, 'без назначения долю получает председатель участка').toBe(chairkrg.account)
-    if (units(periodRow.initiator_amount) > 0n) expect(amount(initiator.invest_balance)).toBeGreaterThan(0)
+    // С 99D-27 доля инициаторов возмещает вложения участка (кошелёк возмещения)
+    // либо направляется участку; кошелёк вложения пополняют только вложения.
+    expect(amount(initiator.invest_balance)).toBeGreaterThanOrEqual(0)
   }, 240_000)
 
   it(caseName('mkt.order.keu.api.06', 'строки прогонов в цепи — не больше двух на участок; на узле история остаётся'), async () => {

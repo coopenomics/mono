@@ -20,7 +20,10 @@
  *  - o.brn.common — w.mkt.fee → w.brn.common участка, Дт 80 / Кт 86 (branch::accrue);
  *  - o.fnd.indiv / o.fnd.resrv / o.fnd.devel — w.mkt.fee → кошелёк каждого фонда накопления,
  *    Дт 80 / Кт 86 (fund::accrue; кошелёк и есть субсчёт фонда, задача 99D-25);
- *  - o.mkt.initr  — w.mkt.fee → w.mkt.invest инициатора из строки прогона, без проводки;
+ *  - доля инициаторов (задача 99D-27): пока вложения участка не возвращены —
+ *    o.mkt.repay, w.mkt.fee → w.mkt.repay участка, Дт 80 / Кт 86, и рост
+ *    счётчика возврата; сверх непогашенного и без вложений — o.brn.common на
+ *    общий кошелёк участка; переплата завершивших возврат — o.mkt.rpsurp;
  *  - o.mkt.retdue — w.mkt.due → w.mkt.share пайщика, без проводки.
  * Части с нулевой суммой не проводятся.
  *
@@ -106,11 +109,11 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
                  Marketplace::Memo::get_charge_period_funds_memo());
   }
   if (to_initiator > 0) {
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::INITIATOR_SHARE,
-                   processes::marketplace::SUPPLY,
-                   eosio::asset(to_initiator, _root_govern_symbol), row.initiator, order_hash,
-                   Marketplace::Memo::get_charge_period_initiator_memo());
+    // Доля инициаторов возмещает их вложения в участок, пока они не
+    // возвращены; сверх непогашенного и без вложений — на общий кошелёк
+    // участка (инвестиционный этап, задача 99D-27).
+    Marketplace::route_initiator_share(_marketplace, coopname, braname,
+                                       eosio::asset(to_initiator, _root_govern_symbol), order_hash);
   }
   if (to_return > 0) {
     Ledger2::apply(_marketplace, coopname,

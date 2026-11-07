@@ -70,6 +70,7 @@ static constexpr eosio::name _product_return_action = "productrtrn"_n;
 static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
 static constexpr eosio::name _marketplace_issue_action = "mktissue"_n;        ///< Выдача имущества пайщику в паевой ветке Стола заказов по решению совета (p.mkt.supply)
 static constexpr eosio::name _marketplace_return_action = "mktretrn"_n;       ///< Гарантийный возврат: принятие имущества и восстановление паевого взноса по решению совета (p.mkt.return)
+static constexpr eosio::name _marketplace_iprop_action = "mktiprop"_n;       ///< Приём имущества паевым взносом инициатора в кооперативный участок по решению совета (p.mkt.invest, задача 99D-27)
 
 // edubridge linked actions
 static constexpr eosio::name _edubridge_rid_action = "eduacptrid"_n;          ///< Приём паевого взноса результатом интеллектуальной деятельности преподавателя по решению совета (p.edu.rid)
@@ -135,6 +136,7 @@ static const std::set<eosio::name> soviet_actions = {
     "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
     "mktissue"_n, //заявление о выдаче имущества пайщику в паевой ветке на повестку совета (p.mkt.supply)
     "mktretrn"_n, //заявление о внесении паевого взноса имуществом при гарантийном возврате на повестку совета (p.mkt.return)
+    "mktiprop"_n, //заявление инициатора о паевом взносе имуществом в кооперативный участок на повестку совета (p.mkt.invest)
 
     //EDUBRIDGE
     "eduacptrid"_n, //заявление преподавателя о паевом взносе результатом интеллектуальной деятельности на повестку совета (p.edu.rid)

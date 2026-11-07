@@ -1,0 +1,312 @@
+#pragma once
+
+#include <eosio/asset.hpp>
+#include <eosio/eosio.hpp>
+
+/**
+ * Инвестиционный этап кооперативного участка Стола заказов — общий слой
+ * (задача 99D-27). Расчёт возврата вложений инициаторам (CRPS) и проверки,
+ * которыми пользуются действия контракта marketplace и выход пайщика
+ * (registrator). Таблицы — lib/domain/table_marketplace_invest.hpp.
+ *
+ * Модель расчёта. Единицы инициатора `units = used_money + property` —
+ * использованное вложение: имущество с момента приёма, деньги по мере оплаты
+ * расходов из пула. Экономия участка, направленная инициаторам, увеличивает
+ * счётчик участка `acc` на `сумма × SCALE / base`; каждый инициатор получает
+ * `units × Δacc / SCALE` — пропорционально использованному. Инициатора
+ * фиксируют (`checkpoint`) перед любым изменением его единиц: накопленное
+ * переносится в `returned_fixed`, отметка `acc_join` догоняет счётчик.
+ * Прогон не перебирает инициаторов; перебор идёт только по тем, чей возврат
+ * завершился в этом списании (индекс `bydone`), и по тем, чьи деньги
+ * расходуются (индекс `byunused`).
+ */
+namespace MarketInvest {
+
+inline eosio::asset zero_asset() { return eosio::asset(0, _root_govern_symbol); }
+
+inline uint128_t mul(int64_t units, uint64_t acc) {
+  return static_cast<uint128_t>(units) * static_cast<uint128_t>(acc);
+}
+
+/// Возвращено инициатору при текущем счётчике участка, единицы актива.
+inline int64_t returned_of(const mkt_investor& i, uint64_t acc) {
+  const int64_t u = i.units();
+  if (i.status != Status::ACTIVE || u <= 0) return i.returned_fixed;
+  return i.returned_fixed + static_cast<int64_t>(mul(u, acc - i.acc_join) / SCALE);
+}
+
+/// Счётчик участка, при котором использованное инициатора вернётся целиком.
+inline uint64_t done_threshold(const mkt_investor& i) {
+  const int64_t u = i.units();
+  if (u <= 0) return OUT_OF_RANGE;
+  const int64_t remaining = u - i.returned_fixed;
+  if (remaining <= 0) return i.acc_join;
+  const uint128_t num = static_cast<uint128_t>(remaining) * SCALE;
+  const uint128_t step = (num + static_cast<uint128_t>(u) - 1) / static_cast<uint128_t>(u);
+  return i.acc_join + static_cast<uint64_t>(step);
+}
+
+/// Вывести инициатора из базы участка, зафиксировав накопленное.
+inline void leave_base(mkt_invbranch& b, mkt_investor& i) {
+  const int64_t u = i.units();
+  if (i.status == Status::ACTIVE && u > 0) {
+    // В s_fixed лежит прежний returned_fixed; приращение от acc_join до acc
+    // сидит в (acc × base − s_join) и вычитается вместе с base и s_join.
+    b.s_fixed -= i.returned_fixed;
+    b.base -= u;
+    b.s_join -= mul(u, i.acc_join);
+    i.returned_fixed = returned_of(i, b.acc);
+  }
+  i.acc_join = b.acc;
+}
+
+/// Ввести инициатора в базу участка с текущей отметкой счётчика.
+inline void enter_base(mkt_invbranch& b, mkt_investor& i) {
+  i.acc_join = b.acc;
+  const int64_t u = i.units();
+  if (i.status == Status::ACTIVE && u > 0) {
+    b.base += u;
+    b.s_join += mul(u, b.acc);
+    b.s_fixed += i.returned_fixed;
+  }
+  i.acc_done = done_threshold(i);
+}
+
+/// Непогашенный остаток использованного по участку (O(1), с округлением вниз
+/// по каждому инициатору не больше единицы актива на инициатора).
+inline int64_t outstanding(const mkt_invbranch& b) {
+  if (b.base <= 0) return 0;
+  const uint128_t accrued = mul(b.base, b.acc) - b.s_join;
+  const int64_t left = b.base - b.s_fixed - static_cast<int64_t>(accrued / SCALE);
+  return left > 0 ? left : 0;
+}
+
+/// Принять сумму возмещения в счётчик участка.
+inline void accept_repay(mkt_invbranch& b, int64_t amount) {
+  b.acc += static_cast<uint64_t>(static_cast<uint128_t>(amount) * SCALE /
+                                 static_cast<uint128_t>(b.base));
+}
+
+/// Завершить возврат инициатора: вывести из базы, вернуть переплату.
+inline int64_t complete(mkt_invbranch& b, mkt_investor& i) {
+  leave_base(b, i);
+  const int64_t u = i.units();
+  int64_t excess = i.returned_fixed - u;
+  if (excess < 0) excess = 0;
+  i.returned_fixed -= excess;
+  i.status = Status::DONE;
+  i.acc_done = OUT_OF_RANGE;
+  if (i.unused() > 0) b.unused_total.amount -= i.unused();
+  return excess;
+}
+
+/// Сколько инициатор вправе транслировать в главный паевой сейчас:
+/// возвращённое минус забранное и, когда возврат завершён или участку больше
+/// нечего возвращать, неиспользованные деньги.
+struct Claimable {
+  int64_t returned = 0;  ///< из возвращённого
+  int64_t unused = 0;    ///< из неиспользованных денег
+  int64_t total() const { return returned + unused; }
+};
+
+inline Claimable claimable_of(const mkt_invbranch& b, const mkt_investor& i) {
+  Claimable c;
+  int64_t r = returned_of(i, b.acc);
+  if (r > i.units()) r = i.units();
+  c.returned = r - i.claimed.amount;
+  if (c.returned < 0) c.returned = 0;
+  const bool release_unused = i.status == Status::DONE || b.base <= 0;
+  if (release_unused && i.unused() > 0) {
+    c.unused = i.unused();
+    // Деньги, выделенные в пул и ещё не израсходованные, держат неиспользованное.
+    if (i.status == Status::ACTIVE) {
+      const int64_t free = b.unused_total.amount - b.reserved.amount;
+      if (c.unused > free) c.unused = free > 0 ? free : 0;
+    }
+  }
+  return c;
+}
+
+/// Строка участка; без неё вложений в участке нет.
+inline std::optional<mkt_invbranch> get_branch(eosio::name coopname, eosio::name braname) {
+  mkt_invbranches_index branches(_marketplace, coopname.value);
+  auto it = branches.find(braname.value);
+  if (it == branches.end()) return std::nullopt;
+  return *it;
+}
+
+/// Пайщик — оператор участка: председатель или доверенное лицо. В MVP вносить
+/// средства в участок могут только операторы (решение владельца 07.11.2026);
+/// правило держит одна функция, чтобы открыть внесение любому пайщику.
+inline bool is_operator(eosio::name coopname, eosio::name braname, eosio::name username) {
+  const auto branch = get_branch_or_fail(coopname, braname);
+  return branch.trustee == username || branch.is_account_in_trusted(username);
+}
+
+/// Договор участия в хозяйственной деятельности подписан.
+inline bool has_agreement(eosio::name coopname, eosio::name username) {
+  mkt_invagreements_index agreements(_marketplace, coopname.value);
+  return agreements.find(username.value) != agreements.end();
+}
+
+/// Есть ли у пайщика строки инициатора: выходу нужно вычесть его из базы.
+inline bool has_investments(eosio::name coopname, eosio::name username) {
+  mkt_investors_index investors(_marketplace, coopname.value);
+  auto by_user = investors.get_index<"byuser"_n>();
+  return by_user.find(username.value) != by_user.end();
+}
+
+/// Выход инициатора не должен оставить без покрытия деньги, уже выделенные
+/// под расход участка: пока такой расход не закрыт, выход ждёт.
+inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
+  mkt_investors_index investors(_marketplace, coopname.value);
+  mkt_invbranches_index branches(_marketplace, coopname.value);
+  auto by_user = investors.get_index<"byuser"_n>();
+  for (auto it = by_user.lower_bound(username.value);
+       it != by_user.end() && it->username == username; ++it) {
+    if (it->status != Status::ACTIVE || it->unused() <= 0) continue;
+    auto bit = branches.find(it->braname.value);
+    if (bit == branches.end()) continue;
+    eosio::check(bit->unused_total.amount - it->unused() >= bit->reserved.amount,
+                 "MARKETPLACE_INVEST_EXIT_RESERVED: Выход из кооператива невозможен: средства инициатора выделены под расход участка — дождитесь его закрытия");
+  }
+}
+
+} // namespace MarketInvest
+
+namespace Marketplace {
+
+/// Записать вложение инициатора в участок: деньги становятся подушкой пула,
+/// имущество сразу входит в базу возврата. Строки участка и инициатора
+/// заводятся первым вложением; инициатор с завершённым возвратом снова
+/// становится активным.
+inline void add_investment(eosio::name coopname, eosio::name braname, eosio::name username,
+                           eosio::asset money, eosio::asset property) {
+  using namespace MarketInvest;
+  mkt_invbranches_index branches(_marketplace, coopname.value);
+  auto bit = branches.find(braname.value);
+  if (bit == branches.end()) {
+    bit = branches.emplace(RamPayer::of(branches, coopname), [&](auto& b) {
+      b.braname        = braname;
+      b.money_total    = zero_asset();
+      b.property_total = zero_asset();
+      b.unused_total   = zero_asset();
+      b.reserved       = zero_asset();
+      b.spent_total    = zero_asset();
+      b.repaid_total   = zero_asset();
+      b.surplus_total  = zero_asset();
+    });
+  }
+  mkt_invbranch b = *bit;
+
+  mkt_investors_index investors(_marketplace, coopname.value);
+  auto by_pair = investors.get_index<"bybruser"_n>();
+  auto it = by_pair.find(combine_ids(braname.value, username.value));
+  const bool fresh = it == by_pair.end();
+
+  mkt_investor row;
+  if (fresh) {
+    row.id         = investors.available_primary_key();
+    row.braname    = braname;
+    row.username   = username;
+    row.status     = Status::ACTIVE;
+    row.money      = zero_asset();
+    row.property   = zero_asset();
+    row.used_money = zero_asset();
+    row.claimed    = zero_asset();
+    row.join_seq   = ++b.join_seq;
+    row.joined_at  = eosio::time_point_sec(eosio::current_time_point());
+  } else {
+    row = *it;
+    leave_base(b, row);
+    if (row.status == Status::DONE) {
+      row.status = Status::ACTIVE;
+      if (row.unused() > 0) b.unused_total.amount += row.unused();
+    }
+  }
+
+  row.money          += money;
+  row.property       += property;
+  b.money_total      += money;
+  b.property_total   += property;
+  b.unused_total     += money;
+  enter_base(b, row);
+
+  branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
+  if (fresh) {
+    investors.emplace(RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
+  } else {
+    by_pair.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
+  }
+}
+
+/// Доля инициаторов из экономии участка в списании заказа (chargeperiod).
+/// Пока вложения участка не возвращены, она возмещает их: перевод на кошелёк
+/// возмещения участка (o.mkt.repay, Дт 80 / Кт 86) и рост счётчика возврата.
+/// Сверх непогашенного и когда возвращать нечего — на общий кошелёк участка
+/// (o.brn.common). Инициаторы, чей возврат завершился в этом списании,
+/// выбывают из базы; их переплата округления переводится участку
+/// (o.mkt.rpsurp). Решение владельца 07.11.2026, задача 99D-27.
+inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio::name braname,
+                                  eosio::asset amount, const checksum256& order_hash) {
+  using namespace MarketInvest;
+  int64_t to_repay = 0;
+
+  mkt_invbranches_index branches(_marketplace, coopname.value);
+  auto bit = branches.find(braname.value);
+  if (bit != branches.end() && bit->base > 0) {
+    const int64_t left = outstanding(*bit);
+    to_repay = amount.amount < left ? amount.amount : left;
+  }
+
+  if (to_repay > 0) {
+    Ledger2::apply(actor, coopname, operations::marketplace::INVEST_REPAY,
+                   processes::marketplace::SUPPLY, eosio::asset(to_repay, _root_govern_symbol),
+                   braname, order_hash, Memo::get_invest_repay_memo());
+
+    mkt_invbranch b = *bit;
+    accept_repay(b, to_repay);
+    b.repaid_total.amount += to_repay;
+
+    // Завершившие возврат — по индексу от наименьшего порога; каждый шаг
+    // меняет ключ строки на «вне базы», поэтому выборка начинается заново.
+    mkt_investors_index investors(_marketplace, coopname.value);
+    auto by_done = investors.get_index<"bydone"_n>();
+    const uint128_t from = combine_ids(braname.value, 0);
+    const uint128_t upto = combine_ids(braname.value, b.acc);
+    int64_t excess = 0;
+    for (auto it = by_done.lower_bound(from); it != by_done.end() && it->by_done() <= upto;
+         it = by_done.lower_bound(from)) {
+      mkt_investor row = *it;
+      excess += complete(b, row);
+      by_done.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
+    }
+
+    if (excess > 0) {
+      b.surplus_total.amount += excess;
+      Ledger2::apply(actor, coopname, operations::marketplace::INVEST_REPAY_SURPLUS,
+                     processes::marketplace::SUPPLY, eosio::asset(excess, _root_govern_symbol),
+                     braname, order_hash, Memo::get_invest_surplus_memo());
+    }
+    branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
+  }
+
+  const int64_t rest = amount.amount - to_repay;
+  if (rest > 0) {
+    Branch::accrue(actor, coopname, braname, eosio::asset(rest, _root_govern_symbol),
+                   processes::marketplace::SUPPLY, order_hash,
+                   Memo::get_charge_due_distribute_memo());
+  }
+}
+
+/// Выход пайщика одобрен: вложение по договору участия переносится на главный
+/// паевой политикой выхода (o.mkt.iexit), а marketplace той же транзакцией
+/// вычитает пайщика из базы возврата участков (решение владельца 07.11.2026).
+inline void release_investments_on_exit(eosio::name actor, eosio::name coopname,
+                                        eosio::name username) {
+  if (!MarketInvest::has_investments(coopname, username)) return;
+  eosio::action(eosio::permission_level{actor, "active"_n}, _marketplace, "exitinv"_n,
+                std::make_tuple(coopname, username)).send();
+}
+
+} // namespace Marketplace

@@ -76,6 +76,34 @@ namespace Marketplace::Memo {
     return "Вознаграждение инициатора участка из экономии месяца";
   }
 
+  inline std::string get_invest_repay_memo() {
+    return "Возмещение вложений инициаторов из экономии месяца участка";
+  }
+
+  inline std::string get_invest_surplus_memo() {
+    return "Переплата возмещения вложений инициаторов — на общий кошелёк участка";
+  }
+
+  inline std::string get_invest_money_memo() {
+    return "Трансляция паевого взноса в договор участия в хозяйственной деятельности";
+  }
+
+  inline std::string get_invest_property_memo() {
+    return "Приём имущества паевым взносом в кооперативный участок";
+  }
+
+  inline std::string get_invest_pool_fund_memo() {
+    return "Выделение средств инициаторов под расход кооперативного участка";
+  }
+
+  inline std::string get_invest_pool_unfund_memo() {
+    return "Возврат невыделенных средств инициаторов из пула";
+  }
+
+  inline std::string get_invest_back_memo() {
+    return "Трансляция возвращённого вложения в главный паевой кошелёк";
+  }
+
   inline std::string get_charge_period_return_memo() {
     return "Возврат части обеспечительной части паевого взноса по итогу месяца участка";
   }

@@ -327,3 +327,122 @@ describe('mkt.order.keu.model.04 — свойства расчёта на слу
     }
   })
 })
+
+// ── Возврат вложений инициаторам (CRPS), задача 99D-27 ──────────────────────
+// Мир из двух-трёх инициаторов, который ведёт базу участка так же, как
+// `lib/core/marketplace/invest.hpp`: вход в базу, фиксация, приём возмещения.
+describe('эталон возврата вложений инициаторам (CRPS)', () => {
+  const { CRPS_SCALE: S, crpsClaimable, crpsOutstanding, crpsReturned, crpsRoute } = MarketContract.PeriodModel
+  const R = BigInt(10_000) // 1 ₽ в единицах актива
+
+  interface Inv { active: boolean, money: bigint, property: bigint, usedMoney: bigint, claimed: bigint, returnedFixed: bigint, accJoin: bigint }
+  function world() {
+    const b = { base: 0n, acc: 0n, sJoin: 0n, sFixed: 0n, unusedTotal: 0n, reserved: 0n }
+    const units = (i: Inv) => i.usedMoney + i.property
+    const leave = (i: Inv) => {
+      const u = units(i)
+      if (i.active && u > 0n) {
+        b.sFixed -= i.returnedFixed
+        b.base -= u
+        b.sJoin -= u * i.accJoin
+        i.returnedFixed = crpsReturned(i, b.acc)
+      }
+      i.accJoin = b.acc
+    }
+    const enter = (i: Inv) => {
+      i.accJoin = b.acc
+      const u = units(i)
+      if (i.active && u > 0n) {
+        b.base += u
+        b.sJoin += u * b.acc
+        b.sFixed += i.returnedFixed
+      }
+    }
+    const investor = (): Inv => ({ active: true, money: 0n, property: 0n, usedMoney: 0n, claimed: 0n, returnedFixed: 0n, accJoin: b.acc })
+    const property = (i: Inv, amount: bigint) => { leave(i); i.property += amount; enter(i) }
+    const money = (i: Inv, amount: bigint) => { leave(i); i.money += amount; b.unusedTotal += amount; enter(i) }
+    const spend = (i: Inv, amount: bigint) => { leave(i); i.usedMoney += amount; b.unusedTotal -= amount; enter(i) }
+    const repay = (share: bigint) => {
+      const r = crpsRoute(b, share)
+      b.acc = r.acc
+      return r
+    }
+    return { b, investor, property, money, spend, repay }
+  }
+
+  it('два инициатора 600 000 и 400 000 ₽ получают возврат 60 % и 40 % до копейки', () => {
+    const w = world()
+    const a = w.investor()
+    const c = w.investor()
+    w.property(a, 600_000n * R)
+    w.property(c, 400_000n * R)
+    const r = w.repay(100_000n * R)
+    expect(r.repay).toBe(100_000n * R)
+    const kop = R / 100n
+    expect(60_000n * R - crpsReturned(a, w.b.acc) < kop, 'до копейки').toBe(true)
+    expect(40_000n * R - crpsReturned(c, w.b.acc) < kop, 'до копейки').toBe(true)
+  })
+
+  it('инициатор, вошедший позже, получает только возвраты после входа', () => {
+    const w = world()
+    const a = w.investor()
+    w.property(a, 100_000n * R)
+    w.repay(10_000n * R)
+    const late = w.investor()
+    w.property(late, 100_000n * R)
+    w.repay(20_000n * R)
+    const kop = R / 100n
+    expect(20_000n * R - crpsReturned(a, w.b.acc) < kop).toBe(true)
+    expect(10_000n * R - crpsReturned(late, w.b.acc) < kop).toBe(true)
+  })
+
+  it('доля сверх невозвращённого направляется участку; непогашенный остаток считается за O(1)', () => {
+    const w = world()
+    const a = w.investor()
+    w.property(a, 50_000n * R)
+    expect(crpsOutstanding(w.b)).toBe(50_000n * R)
+    const r = w.repay(80_000n * R)
+    expect(r.repay).toBe(50_000n * R)
+    expect(r.toBranch).toBe(30_000n * R)
+    expect(crpsOutstanding(w.b)).toBe(0n)
+  })
+
+  it('неиспользованные деньги держатся подушкой до полного возврата использованного', () => {
+    const w = world()
+    const a = w.investor()
+    w.money(a, 300_000n * R)
+    w.spend(a, 180_000n * R)
+    w.repay(60_000n * R)
+    const mid = crpsClaimable(w.b, a)
+    expect(60_000n * R - mid.returned < R / 100n).toBe(true)
+    expect(mid.unused, 'подушка закрыта, пока использованное не возвращено').toBe(0n)
+    // Возврат завершён: контракт выводит инициатора из базы (status done).
+    w.repay(120_000n * R)
+    const done = { ...a, active: false, returnedFixed: crpsReturned(a, w.b.acc) }
+    // Завершённому контракт фиксирует возвращённое ровно в использованное.
+    const fixed = { ...done, returnedFixed: 180_000n * R }
+    const all = crpsClaimable({ ...w.b, base: 0n }, fixed)
+    expect(180_000n * R - done.returnedFixed < R / 100n, 'возвращено до копейки').toBe(true)
+    expect(all.returned).toBe(180_000n * R)
+    expect(all.unused).toBe(120_000n * R)
+    expect(all.total, 'одним заявлением — всё вложенное').toBe(300_000n * R)
+  })
+
+  it('фиксация при изменении единиц не меняет возвращённое; сумма возвращённого не больше возмещённого', () => {
+    const w = world()
+    const a = w.investor()
+    const c = w.investor()
+    w.money(a, 1_000_000n * R)
+    w.money(c, 1_000_000n * R)
+    let repaid = 0n
+    for (let m = 1; m <= 24; m++) {
+      w.spend(m % 2 ? a : c, BigInt(13_337 + m * 101) * R)
+      const before = crpsReturned(a, w.b.acc)
+      w.spend(a, 1n)
+      expect(crpsReturned(a, w.b.acc), 'фиксация сохраняет накопленное').toBe(before)
+      repaid += w.repay(BigInt(7_777 + m * 37) * R).repay
+      expect(crpsReturned(a, w.b.acc) + crpsReturned(c, w.b.acc) <= repaid, 'возвращено не больше возмещённого').toBe(true)
+    }
+    expect(S).toBe(1_000_000_000_000n)
+  })
+})

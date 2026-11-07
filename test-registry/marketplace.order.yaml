@@ -107,6 +107,10 @@ sources:
     # Обеспечительная часть невыданных заказов на кошельке пайщика w.mkt.secure (05.11.2026).
     - components/contracts/cpp/marketplace/marketplace.cpp
     - components/contracts/cpp/lib/core/marketplace/marketplace.hpp
+    # Инвестиционный этап участка (99D-27): договор, вложения, пул, фазы, возврат CRPS
+    - components/contracts/cpp/marketplace/src/p.mkt.invest/**
+    - components/contracts/cpp/lib/core/marketplace/invest.hpp
+    - components/contracts/cpp/lib/domain/table_marketplace_invest.hpp
   ui:
     - components/desktop/src/pages/Marketplace/AdminMarketEconomy/**
     - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/**
@@ -119,6 +123,78 @@ sources:
     - components/desktop/src/pages/Marketplace/OffererIncomingOrders/**
 
 cases:
+
+  # ── Инвестиционный этап участка (99D-27) ──────────────────────────────
+  - id: mkt.order.invest.01
+    level: contract
+    kind: break
+    scenario: >
+      Пайщик без договора участия вносит деньги; председатель участка подписывает договор второй раз.
+    expect: >
+      без договора — MARKETPLACE_INVAGR_REQUIRED; повтор договора — MARKETPLACE_INVAGR_EXISTS
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.02
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель участка вносит деньги в участок заявлением о трансляции паевого взноса в договор участия.
+    expect: >
+      с главного паевого и на кошелёк вложения — ровно сумма; деньги в подушке пула участка, база возврата не меняется; паевой инициатора на счёте 80 не меняется
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.03
+    level: contract
+    kind: break
+    scenario: >
+      Вложение деньгами от пайщика без роли оператора участка, с подписью другого пайщика, больше паевого и с нулевой суммой.
+    expect: >
+      MARKETPLACE_INVEST_NOT_OPERATOR; отказ подписи обязательного подписанта; MARKETPLACE_INVEST_INSUFFICIENT; MARKETPLACE_INVEST_AMOUNT_INVALID
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.04
+    level: contract
+    kind: happy
+    scenario: >
+      Доверенное лицо вносит имущество: заявление, одобрение председателя участка, решение совета голосами, акт двумя подписями; попытки акта до решения и одобрения не председателем.
+    expect: >
+      имущество по цене приёма на кошелёк вложения (o.mkt.iprop, Дт 10 / Кт 80), сразу в базе возврата; заявление стёрто; акт до решения — MARKETPLACE_IPROP_STATUS_INVALID; одобрение не председателем — отказ подписи
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.05
+    level: contract
+    kind: side
+    scenario: >
+      Председатель участка отклоняет заявление на имущество до передачи в совет: без причины и с причиной.
+    expect: >
+      без причины — MARKETPLACE_IPROP_REASON_REQUIRED; с причиной заявление стёрто, движений нет
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.06
+    level: contract
+    kind: happy
+    scenario: >
+      Месяц с экономией у участка с использованным вложением: прогон, списание заказа, заявление инициатора о трансляции обратно и повтор.
+    expect: >
+      доля инициаторов — o.mkt.repay на кошелёк возмещения участка, счётчик возврата равен эталону PeriodModel.crpsRoute; на главный паевой — сумма эталона crpsClaimable (и прежние начисления); повтор — MARKETPLACE_INVEST_NOTHING_TO_CLAIM
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.07
+    level: contract
+    kind: break
+    scenario: >
+      Кооператив зовёт выделение, возврат и расход пула и снятие инициатора при выходе напрямую.
+    expect: >
+      пул — только контракт branch, выход — только registrator: отказ авторизации
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
   # ── Прямой путь ──────────────────────────────────────────────────────────
   - id: mkt.order.happy.01
     level: ui

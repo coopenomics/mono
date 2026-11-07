@@ -16,8 +16,9 @@
  *   • заказ, списанный двумя частями: остаток меньше доли участка — урезается
  *     доля инициатора, затем фондов; часть без стоимости возвращается целиком;
  *   • после четырёх заказов кошелёк к списанию пуст, а списанное и возвращённое
- *     в сумме равны собранному; остатки участка, фондов и инициатора выросли
- *     ровно на свои части;
+ *     в сумме равны собранному; остатки участка и фондов выросли ровно на свои
+ *     части; доля инициаторов — на кошелёк возмещения вложений участка, пока
+ *     они не возвращены, иначе участку (задача 99D-27);
  *   • отказы списания: больше остатка, нулевая стоимость, нет строки итога.
  *
  * Ожидания каждой части — из эталона `MarketContract.PeriodModel` по ставкам
@@ -39,13 +40,14 @@ import {
   closeMonthAndCompare,
   coopPusher,
   fundBalances,
+  investBranch,
   ratesOf,
   rub,
   units,
   userWallet,
 } from './marketplace/periodHelpers'
 
-const { chargeOrder, chargeRate, splitFunds, HUNDR_PERCENTS: H } = MarketContract.PeriodModel
+const { chargeOrder, chargeRate, crpsRoute, splitFunds, HUNDR_PERCENTS: H } = MarketContract.PeriodModel
 
 const bc = new Blockchain(config.network, config.private_keys)
 const push = coopPusher(bc)
@@ -120,16 +122,16 @@ interface Balances {
   due: bigint
   share: bigint
   common: bigint
-  invest: bigint
+  repay: bigint
   funds: Map<string, bigint>
 }
 
-async function balances(initiator: string): Promise<Balances> {
+async function balances(): Promise<Balances> {
   return {
     due: await userWallet(bc, 'w.mkt.due', ekaterina.account),
     share: await userWallet(bc, 'w.mkt.share', ekaterina.account),
     common: await userWallet(bc, 'w.brn.common', BRANAME),
-    invest: await userWallet(bc, 'w.mkt.invest', initiator),
+    repay: await userWallet(bc, 'w.mkt.repay', BRANAME),
     funds: await fundBalances(bc),
   }
 }
@@ -140,7 +142,11 @@ async function balances(initiator: string): Promise<Balances> {
  */
 async function chargeAndCompare(label: string, row: any, order: { orderHash: string, amount: bigint, base: bigint }) {
   const expected = chargeOrder(ratesOf(row), order.amount, order.base)
-  const before = await balances(row.initiator)
+  const before = await balances()
+  // Доля инициаторов идёт по фазам инвестиционного этапа (задача 99D-27): пока
+  // вложения участка не возвращены — на кошелёк возмещения, сверх непогашенного
+  // и без вложений — участку. Вложения в участок мог оставить соседний тест.
+  const route = crpsRoute(await investBranch(bc, BRANAME), expected.initiator)
 
   await push(MARKET, 'chargeperiod', {
     coopname: COOP,
@@ -152,11 +158,14 @@ async function chargeAndCompare(label: string, row: any, order: { orderHash: str
     period: Number(row.period),
   })
 
-  const after = await balances(row.initiator)
+  const after = await balances()
   expect(before.due - after.due, `${label}: с кошелька к списанию снят ровно остаток заказа`).toBe(order.amount)
   expect(after.share - before.share, `${label}: возврат пайщице на свободный паевой`).toBe(expected.returned)
-  expect(after.common - before.common, `${label}: участку`).toBe(expected.branch)
-  expect(after.invest - before.invest, `${label}: инициатору`).toBe(expected.initiator)
+  // Переплата завершивших возврат переводится с кошелька возмещения участку,
+  // поэтому сверяется сумма двух кошельков и верхняя граница возмещения.
+  expect((after.common - before.common) + (after.repay - before.repay), `${label}: участку и инициаторам`).toBe(expected.branch + expected.initiator)
+  expect(after.repay - before.repay <= route.repay, `${label}: возмещено не больше непогашенного`).toBe(true)
+  expect((await investBranch(bc, BRANAME)).acc, `${label}: счётчик возврата участка`).toBe(route.acc)
 
   const funds = await accumulationFunds(bc)
   const shares = splitFunds(expected.funds, funds.map(f => BigInt(f.percent)))

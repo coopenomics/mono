@@ -1,0 +1,426 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Стандарт «Вложения инициаторов в кооперативный участок» — инвестиционный
+# этап кооперативного участка Стола заказов (задача 99D-27, решения владельца
+# 06–07.11.2026).
+#
+# Пайщик-инициатор по договору участия в хозяйственной деятельности вносит в
+# участок деньги или имущество. Деньги оплачивают расходы и материальную
+# помощь участка, пока своих средств у участка не хватает; имущество
+# принимается на баланс. Экономия участка возвращает инициаторам
+# использованное, без выгоды; возвращённое инициатор забирает заявлением.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.mkt.invest
+id: public_marketplace_invest_process
+title: Вложения инициаторов в кооперативный участок
+slug: invest
+status: proposed
+contract: marketplace
+purpose: >
+  Пайщик, подписавший договор участия в хозяйственной деятельности, вносит в
+  кооперативный участок Стола заказов деньги или имущество. Вложение остаётся
+  его паевым взносом и не превращается в членский. Деньги участок тратит на
+  расходы и материальную помощь, пока собранного с заказов не хватает;
+  имущество принимается по цене, которую назвал пайщик, через решение совета и
+  акт. Когда участок выходит в плюс, доля инициаторов в экономии месяца
+  возвращает им использованное пропорционально вложенному; возвращённое и
+  неиспользованное пайщик переводит заявлением на главный паевой кошелёк.
+roles:
+  - initiator
+  - branch_chairman
+  - soviet
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: marketplace::signinvagr
+    human: Подписать договор
+    actor: Инициатор
+    role: opener
+    purpose: >
+      Пайщик подписывает договор участия в хозяйственной деятельности по
+      программе «Стол заказов». Договор один на пайщика в кооперативе: после
+      подписи он вносит средства в любой кооперативный участок.
+  - name: marketplace::investmoney
+    human: Внести деньги
+    actor: Инициатор
+    role: progress
+    purpose: >
+      Инициатор подписывает заявление о трансляции паевого взноса из
+      Цифрового Кошелька в договор участия по выбранному участку. Сумма
+      переходит на кошелёк вложения и лежит запасом участка на дефицитные
+      месяцы, пока участок её не израсходует.
+  - name: marketplace::createiprop
+    human: Подать заявление на имущество
+    actor: Инициатор
+    role: opener
+    purpose: >
+      Инициатор описывает имущество, которое передаёт участку, называет его
+      цену и подписывает заявление.
+  - name: marketplace::approveiprop
+    human: Одобрить
+    actor: Председатель участка
+    role: progress
+    purpose: >
+      Председатель участка одобряет заявление своей подписью, вопрос
+      выносится в повестку совета.
+  - name: marketplace::declineiprop
+    human: Отклонить
+    actor: Председатель участка
+    role: reject
+    purpose: >
+      Председатель участка отказывает в приёме имущества до передачи вопроса
+      в совет, с указанием причины.
+  - name: marketplace::onipropauth
+    human: Решение совета
+    actor: Совет
+    role: progress
+    purpose: Совет решает принять имущество в участок.
+  - name: marketplace::onipropdecl
+    human: Отказ совета
+    actor: Совет
+    role: reject
+    purpose: Совет отказывает в приёме имущества; заявление снимается.
+  - name: marketplace::act1iprop
+    human: Подписать акт
+    actor: Инициатор
+    role: progress
+    purpose: >
+      Инициатор подписывает акт приёма-передачи имущества первым.
+  - name: marketplace::act2iprop
+    human: Принять имущество
+    actor: Председатель участка
+    role: closer
+    purpose: >
+      Председатель участка на месте подписывает акт вторым. Имущество
+      ставится на баланс, его цена зачисляется инициатору паевым взносом по
+      договору участия и сразу участвует в возврате из экономии.
+  - name: marketplace::claiminv
+    human: Получить возврат
+    actor: Инициатор
+    role: closer
+    purpose: >
+      Инициатор подписывает заявление о трансляции средств с кошелька
+      договора участия на главный паевой кошелёк. Сумму считает кооператив
+      сам: возвращённое из экономии участка и, когда использованное
+      возвращено целиком, неиспользованные деньги.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+# Деньги и возврат — разовые действия без записи со статусом: их история —
+# операции учёта по хэшу вложения и заявления. Граф описывает вложение
+# имуществом: запись живёт до второй подписи акта.
+entity: marketplace::invprop
+entity_human: Вложение имуществом
+entity_source: cpp/marketplace/src/p.mkt.invest/
+
+states:
+  - name: created
+    human: Заявление подано
+    description: >
+      Инициатор подал заявление: описание имущества и цена. Заявление ждёт
+      одобрения председателя участка.
+    kind: initial
+  - name: approved
+    human: Председатель участка одобрил
+    description: Заявление одобрено и вынесено в повестку совета.
+    kind: normal
+  - name: authorized
+    human: Совет принял решение
+    description: Совет решил принять имущество. Инициатор подписывает акт.
+    kind: normal
+  - name: act1
+    human: Акт подписан инициатором
+    description: Акт ждёт подписи председателя участка на месте.
+    kind: normal
+
+transitions:
+  - from: "∅"
+    to: created
+    action: marketplace::createiprop
+    actor: Инициатор
+    guards:
+      - Договор участия в хозяйственной деятельности подписан.
+      - Инициатор — председатель или доверенное лицо участка.
+      - Цена больше нуля, описание не пустое.
+      - Заявление подписано самим инициатором.
+
+  - from: created
+    to: approved
+    action: marketplace::approveiprop
+    actor: Председатель участка
+    guards:
+      - Одобрение подписано председателем этого участка.
+
+  - from: approved
+    to: authorized
+    action: marketplace::onipropauth
+    actor: Совет
+    guards:
+      - Протокол решения совета утверждён.
+
+  - from: authorized
+    to: act1
+    action: marketplace::act1iprop
+    actor: Инициатор
+    guards:
+      - Акт подписан тем пайщиком, который подал заявление.
+
+  - from: act1
+    to: "∅"
+    action: marketplace::act2iprop
+    actor: Председатель участка
+    ledger_code: o.mkt.iprop
+    operations:
+      - o.mkt.iprop
+    guards:
+      - Председатель участка подписывает тот же акт, что подписал инициатор.
+
+  - from: created
+    to: "∅"
+    action: marketplace::declineiprop
+    actor: Председатель участка
+    guards:
+      - Указана причина отказа.
+
+  - from: approved
+    to: "∅"
+    action: marketplace::onipropdecl
+    actor: Совет
+
+# ── Секция 4. Сценарий ──────────────────────────────────────────────────────
+scenario:
+  steps:
+    - step: 1
+      title: Договор участия
+      actor: Инициатор
+      action: marketplace::signinvagr
+      description: >
+        Пайщик открывает страницу инициаторов участка и один раз подписывает
+        договор участия в хозяйственной деятельности.
+    - step: 2
+      title: Вложение деньгами
+      actor: Инициатор
+      action: marketplace::investmoney
+      description: >
+        Инициатор выбирает участок, указывает сумму и подписывает заявление о
+        трансляции паевого взноса в договор участия. Деньги остаются его
+        паевым взносом и ждут, когда понадобятся участку.
+    - step: 3
+      title: Заявление на имущество
+      actor: Инициатор
+      action: marketplace::createiprop
+      description: Инициатор описывает имущество и называет его цену.
+    - step: 4
+      title: Одобрение председателем участка
+      actor: Председатель участка
+      action: marketplace::approveiprop
+      description: Председатель участка одобряет, вопрос направляется в совет.
+    - step: 5
+      title: Решение совета
+      actor: Совет
+      action: marketplace::onipropauth
+      description: Совет принимает решение о приёме имущества.
+    - step: 6
+      title: Подпись акта инициатором
+      actor: Инициатор
+      action: marketplace::act1iprop
+      description: Инициатор подписывает акт приёма-передачи первым.
+    - step: 7
+      title: Приём имущества
+      actor: Председатель участка
+      action: marketplace::act2iprop
+      description: >
+        Председатель участка подписывает акт на месте. Имущество на балансе,
+        его цена — паевой взнос инициатора по договору участия.
+    - step: 8
+      title: Возврат вложения
+      actor: Инициатор
+      action: marketplace::claiminv
+      description: >
+        Когда участок выходит в плюс, доля инициаторов в экономии каждого
+        месяца возвращает им использованное пропорционально вложенному.
+        Инициатор в любой момент подписывает заявление и переводит
+        возвращённое на главный паевой кошелёк; неиспользованные деньги
+        становятся доступны, когда использованное возвращено целиком.
+
+  alternatives:
+    - branch: Отказ председателя участка
+      at_step: 4
+      action: marketplace::declineiprop
+      actor: Председатель участка
+      description: Председатель участка отказал — заявление снимается, движений нет.
+    - branch: Отказ совета
+      at_step: 5
+      action: marketplace::onipropdecl
+      actor: Совет
+      description: Совет отказал в приёме — заявление снимается, движений нет.
+
+# ── Секция 5. Документы и подписи ───────────────────────────────────────────
+documents:
+  - action: marketplace::signinvagr
+    title: Договор участия в хозяйственной деятельности по ЦПП «Стол заказов»
+    registry_id: 1118
+    signed_by: [Инициатор]
+    stored_in: invagreemnts.agreement
+    note: "TODO: шаблон 1118 — задача 99D-29 (рыба из PRD, текст даёт юрист)."
+  - action: marketplace::investmoney
+    title: Заявление о трансляции паевого взноса в договор участия
+    registry_id: 1119
+    signed_by: [Инициатор]
+    stored_in: реестр документов, пакет — хэш вложения
+    note: "TODO: шаблон 1119 — задача 99D-29."
+  - action: marketplace::createiprop
+    title: Заявление о паевом взносе имуществом в кооперативный участок
+    registry_id: 1120
+    signed_by: [Инициатор]
+    stored_in: invprops.statement
+    note: "TODO: шаблон 1120 по образцу 1070 — задача 99D-29."
+  - action: marketplace::approveiprop
+    title: Одобрение заявления председателем участка
+    registry_id: 1120
+    signed_by: [Председатель участка]
+    stored_in: invprops.approved_statement
+  - action: marketplace::onipropauth
+    title: Протокол решения совета о приёме имущества в кооперативный участок
+    registry_id: 1121
+    signed_by: [Совет]
+    stored_in: invprops.decision
+    note: "TODO: шаблон 1121 по образцу 1071 — задача 99D-29."
+  - action: marketplace::act1iprop
+    title: Акт приёма-передачи имущества в кооператив (подпись инициатора)
+    registry_id: 1122
+    signed_by: [Инициатор]
+    stored_in: invprops.act
+    note: "TODO: шаблон 1122 по образцу 1072 — задача 99D-29."
+  - action: marketplace::act2iprop
+    title: Акт приёма-передачи имущества в кооператив (подписи инициатора и председателя участка)
+    registry_id: 1122
+    signed_by: [Инициатор, Председатель участка]
+    stored_in: реестр документов, пакет — хэш вложения
+  - action: marketplace::claiminv
+    title: Заявление о трансляции средств с кошелька договора участия на главный паевой
+    registry_id: 1123
+    signed_by: [Инициатор]
+    stored_in: реестр документов, пакет — хэш заявления
+    note: "TODO: шаблон 1123 — задача 99D-29."
+
+# ── Секция 6. Операции ──────────────────────────────────────────────────────
+operations:
+  - ledger_code: o.mkt.inv
+    human_name: Трансляция паевого взноса в договор участия в хозяйственной деятельности
+    wallet_op: TRANSFER
+    debit: null                    # оба кошелька — паевой фонд, проводки нет
+    credit: null
+    wallet_from: w.wal.share
+    wallet_to: w.mkt.invest
+    l3:
+      - user_wallet: w.wal.share
+        user_ref: investor.username
+        available_delta: -amount
+      - user_wallet: w.mkt.invest
+        user_ref: investor.username
+        available_delta: +amount
+    amount_ref: amount
+    triggered_by: marketplace::investmoney
+    description: >
+      Паевой взнос инициатора переходит с главного паевого кошелька на
+      кошелёк вложения в участок. Паевой фонд не меняется.
+
+  - ledger_code: o.mkt.iprop
+    human_name: Приём имущества паевым взносом в кооперативный участок
+    wallet_op: ISSUE
+    debit: 10
+    credit: 80
+    wallet_from: null
+    wallet_to: w.mkt.invest
+    user_wallet: w.mkt.invest
+    user_ref: invprop.username
+    available_delta: +invprop.amount
+    blocked_delta: null
+    amount_ref: invprop.amount
+    triggered_by: marketplace::act2iprop
+    description: >
+      Имущество принято на баланс по цене, которую назвал инициатор; цена
+      учтена в паевом фонде и зачислена инициатору на кошелёк вложения.
+
+  - ledger_code: o.mkt.ipool
+    human_name: Выделение средств инициаторов под расход кооперативного участка
+    wallet_op: ISSUE
+    debit: null
+    credit: null
+    wallet_from: null
+    wallet_to: w.mkt.ipool
+    amount_ref: сумма служебной записки или заявления на материальную помощь
+    triggered_by: marketplace::fundipool
+    description: >
+      Общего кошелька участка не хватает на расход — под него выделяются
+      средства инициаторов. Деньги уже на расчётном счёте с их паевых
+      взносов; оплата расхода проводится со счёта вложений.
+
+  - ledger_code: o.mkt.iunpl
+    human_name: Возврат невыделенных средств инициаторов из пула
+    wallet_op: BURN
+    debit: null
+    credit: null
+    wallet_from: w.mkt.ipool
+    wallet_to: null
+    amount_ref: неизрасходованный остаток
+    triggered_by: marketplace::unfundipool
+    description: >
+      Расход отклонён или закрыт на меньшую сумму: неизрасходованное снова
+      свободно для следующих расходов участка.
+
+  - ledger_code: o.mkt.iback
+    human_name: Трансляция возвращённого вложения в главный паевой кошелёк
+    wallet_op: TRANSFER
+    debit: null
+    credit: null
+    wallet_from: w.mkt.invest
+    wallet_to: w.wal.share
+    l3:
+      - user_wallet: w.mkt.invest
+        user_ref: investor.username
+        available_delta: -сумма заявления
+      - user_wallet: w.wal.share
+        user_ref: investor.username
+        available_delta: +сумма заявления
+    amount_ref: сумма, рассчитанная кооперативом
+    triggered_by: marketplace::claiminv
+    description: >
+      Возвращённое и неиспользованное вложение переходит на главный паевой
+      кошелёк инициатора; деньгами он получает его обычным возвратом
+      паевого взноса.
+
+  - ledger_code: o.mkt.iexit
+    human_name: Перенос вложения инициатора на главный паевой при выходе из кооператива
+    wallet_op: TRANSFER
+    debit: null
+    credit: null
+    wallet_from: w.mkt.invest
+    wallet_to: w.wal.share
+    l3:
+      - user_wallet: w.mkt.invest
+        user_ref: exit.username
+        available_delta: -остаток
+      - user_wallet: w.wal.share
+        user_ref: exit.username
+        available_delta: +остаток
+    amount_ref: остаток кошелька вложения
+    triggered_by: registrator::confirmexit
+    description: >
+      Выход одобрен советом: вложение целиком переходит на главный паевой и
+      возвращается вместе с паевым взносом; возвраты из экономии участка ему
+      больше не начисляются.
+
+# ── Связи с другими процессами ──────────────────────────────────────────
+related:
+  - process_type: sov.authpkg
+    relation: consumes
+    note: >
+      Вопрос о приёме имущества выносится в повестку совета: голосование и
+      решение идут по типовому порядку решений совета.
+  - process_type: p.reg.exit
+    relation: provides
+    note: >
+      Выход пайщика из кооператива снимает его с вложений в участки, а
+      вложение переносится на главный паевой.

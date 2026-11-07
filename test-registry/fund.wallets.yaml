@@ -50,6 +50,9 @@ sources:
     - components/desktop/extensions/reports/pages/WalletsPage/ui/CoopWalletsPage.vue
 
 cases:
+  # 07.11.2026 (99D-27): в общие реестры ledger2 добавлены кошельки и операции
+  # инвестиционного этапа Стола заказов (w.mkt.ipool, w.mkt.repay, o.mkt.inv…);
+  # кошельки и операции этой фичи не менялись, проверки сборки реестров зелёные.
   # ── Уровень контракта ─────────────────────────────────────────────────────
 
   - id: fnd.wal.happy.01
