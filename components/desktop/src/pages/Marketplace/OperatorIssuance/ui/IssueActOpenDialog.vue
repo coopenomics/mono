@@ -284,8 +284,7 @@ const totalFactCost = computed<string>(() => {
   return sum.toFixed(4);
 });
 
-// Ставка обеспечительной части — для оценки возврата/доплаты при расхождении
-// факта и для показа состава суммы (стоимость имущества + обеспечительная
+// Ставка обеспечительной части — для оценки возврата при недовыдаче и для показа состава суммы (стоимость имущества + обеспечительная
 // часть) оператору и пайщику.
 const feePercent = ref(0);
 
@@ -297,8 +296,8 @@ const totalFactCostWithFee = computed(() => applyMembershipFee(Number(totalFactC
 const membershipFeeAmount = computed(() => totalFactCostWithFee.value - Number(totalFactCost.value));
 
 // Недосдача видна сразу: сколько вернётся пайщику в кошелёк Стола заказов
-// (остаток резерва + пропорциональная часть взноса), при факте больше заказа —
-// сколько спишется с паевого.
+// (остаток резерва + пропорциональная часть взноса). Доплаты по заказу нет
+// (07.11.2026): сумма выдачи не выше стоимости заказа.
 const issuanceDiff = computed(() =>
   computeIssuanceDiff(
     includedOrders.value.map((o) => {
@@ -335,7 +334,7 @@ function rub(value: number | string): string {
 
 // Сводка справа: сначала сколько выдаётся и что остаётся на складе, затем
 // расчёт по пути денег — стоимость имущества, обеспечительная часть, возврат
-// или доплата по факту, докладка. Итог к оплате карточка ставит крупно.
+// при недовыдаче, докладка. Итог к оплате карточка ставит крупно.
 const summaryFacts = computed(() => {
   const list = [
     {
@@ -365,9 +364,6 @@ const summaryLines = computed(() => {
   // Строки о движении денег скрыты переключателем, описание — в money-flow-lines.ts.
   if (SHOW_MONEY_FLOW_LINES && issuanceDiff.value.refund > 0) {
     lines.push({ label: t('marketplace.issueActOpenDialog.refundToWalletLabel'), value: rub(issuanceDiff.value.refund) });
-  }
-  if (SHOW_MONEY_FLOW_LINES && issuanceDiff.value.surcharge > 0) {
-    lines.push({ label: t('marketplace.issueActOpenDialog.surchargeLabel'), value: rub(issuanceDiff.value.surcharge) });
   }
   if (restockLines.value.length) {
     lines.push({ label: t('marketplace.issueActOpenDialog.restockLabel'), value: rub(restockTotal.value) });

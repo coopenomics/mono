@@ -1619,7 +1619,6 @@ export const AllTypesProps: Record<string,any> = {
 		signed_act:"MarketplaceShareReturnActSignedInput"
 	},
 	MarketplaceSignIssuanceStatementInput:{
-		signed_convert:"MarketplaceConvertStatementSignedInput",
 		signed_statement:"MarketplaceShareReturnStatementSignedInput"
 	},
 	MarketplaceSignOnboardingOfferInput:{
@@ -3779,9 +3778,6 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceIssuanceOrderInput"
 		},
 		marketplaceIssuanceClosePayload:{
-			data:"MarketplaceIssuanceOrderInput"
-		},
-		marketplaceIssuanceConvertPayload:{
 			data:"MarketplaceIssuanceOrderInput"
 		},
 		marketplaceIssuancePickScan:{
@@ -9880,7 +9876,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceHandoffCode:"MarketplaceHandoffCode",
 		marketplaceIssuanceActPayload:"GeneratedDocument",
 		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
-		marketplaceIssuanceConvertPayload:"GeneratedDocument",
 		marketplaceIssuancePickScan:"MarketplaceIssuancePickScan",
 		marketplaceIssuanceSaga:"MarketplaceIssuanceSaga",
 		marketplaceIssuanceStatementPayload:"GeneratedDocument",

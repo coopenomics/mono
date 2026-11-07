@@ -123,7 +123,7 @@ export interface MarketplaceStockAcceptOrderLine {
 /**
  * Полезная нагрузка к одной подписи пайщика: заявления по строкам и, если
  * свободного паевого «Стола заказов» не хватает на бандл (тела и
- * обеспечительные части докладки и доплаты), одно заявление 1110 о
+ * обеспечительные части докладки), одно заявление 1110 о
  * трансляции недостающего из Цифрового кошелька — на весь бандл.
  */
 export interface MarketplaceStockAcceptPayload {
@@ -194,8 +194,9 @@ export class MarketplaceStockProposalService {
   /**
    * План сумм по бандлу в порядке проведения (тот же, что в контракте и в
    * `finalizeStockIssuance`): сначала докладка — заказы из остатка рождаются
-   * первыми, обеспечительная часть и тело со свободного паевого программы;
-   * затем доплаты по существующим заказам при факте больше заказа.
+   * первыми, обеспечительная часть и тело со свободного паевого программы.
+   * Существующие заказы бандла средств не берут: доплаты по заказу нет
+   * (решение владельца 07.11.2026), факт выдачи не дороже заказа.
    * Нехватка каждой части — с Цифрового кошелька по заявлению 1110 на весь бандл.
    */
   private async planBundle(
@@ -212,11 +213,6 @@ export class MarketplaceStockProposalService {
       const { offer, resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
       const body_units = this.economyService.lineBodyUnits(resolved, offer.unit_of_measure);
       inputs.push({ body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) });
-      hashes.push(item.order_hash ?? '');
-    }
-    for (const item of proposal.items.filter((i) => !!i.order_id)) {
-      const t = await this.issuanceService.getFeeTopUp(coopname, item.order_id!, member_account);
-      inputs.push({ body_units: t.body_topup_units, fee_units: t.topup_units });
       hashes.push(item.order_hash ?? '');
     }
     const balances = await this.convertService.programBalances(coopname, member_account);
@@ -628,9 +624,6 @@ export class MarketplaceStockProposalService {
         member_account,
         order_id,
         signed_statement: signedByHash.get(item.order_hash!)!,
-        // Доплата по бандлу уже транслирована на свободный паевой выше одним заявлением.
-        signed_convert: null,
-        convert_settled_by_bundle: true,
       });
     });
 

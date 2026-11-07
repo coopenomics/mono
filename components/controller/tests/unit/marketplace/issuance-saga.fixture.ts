@@ -286,8 +286,6 @@ export function buildService(m: IssuanceMocks): MarketplaceIssuanceService {
     m.chainPort,
     m.assetConfig,
     m.documentPort,
-    m.convertService,
-    m.economyService,
     m.verificationPort,
     m.robotPort,
     m.eventBus,

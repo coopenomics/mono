@@ -69,9 +69,6 @@ import {
   type MarketplaceOrderReadyToReceiveEvent,
 } from '../events/marketplace-notification.events';
 import type { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
-import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
-import { MARKETPLACE_CONVERT_SERVICE, MarketplaceConvertService } from './marketplace-convert.service';
-import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import type { MarketplaceShareReturnActSignedInputDTO } from '../documents-dto/marketplace-share-return-act-document.dto';
 import { t } from '../../i18n';
 
@@ -90,29 +87,6 @@ export interface MarketplaceIssuanceSubmitStatementInput {
   member_account: string;
   order_id: string;
   signed_statement: MarketplaceShareReturnStatementSignedInputDTO;
-  /**
-   * Заявление 1110 на доплату по факту: при факте больше заказа и нехватке
-   * свободного паевого «Стола заказов» на доплату. Трансляция недостающего
-   * идёт отдельной транзакцией `convert` до заявления о выдаче. Нужно только
-   * когда `getConvertSignablePayload` вернул документ.
-   */
-  signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
-  /**
-   * Доплата по факту уже переведена общим заявлением бандла выдачи — второе
-   * заявление по этому заказу не требуется. Ставит только бандл у стойки;
-   * во входе API поля нет.
-   */
-  convert_settled_by_bundle?: boolean;
-}
-
-/** Доплата по факту (факт больше заказа), в минимальных единицах. */
-export interface MarketplaceIssuanceFeeTopUp {
-  /** Доплата тела: факт минус заказ; 0 — факт не больше заказа. */
-  body_topup_units: bigint;
-  /** Недостающий взнос участка сверх зафиксированного в заказе; 0 — довзноса нет. */
-  topup_units: bigint;
-  /** Полный взнос участка по факту выдачи. */
-  fact_fee_units: bigint;
 }
 
 export interface MarketplaceIssuanceSignAct1Input {
@@ -194,8 +168,6 @@ export class MarketplaceIssuanceService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(MARKETPLACE_CONVERT_SERVICE) private readonly convertService: MarketplaceConvertService,
-    @Inject(MARKETPLACE_ECONOMY_SERVICE) private readonly economyService: MarketplaceEconomyService,
     @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     @Optional()
     @Inject(SOVIET_ROBOT_PORT)
@@ -308,6 +280,13 @@ export class MarketplaceIssuanceService {
     if (compareMoney(input.actual_unit_price, priceCeiling, this.assetConfig.decimals) > 0) {
       throw DomainError.conflict('MARKETPLACE_ISSUANCE_PRICE_ABOVE_CEILING', { priceCeiling });
     }
+    // Доплаты по заказу нет (решение владельца 07.11.2026): сумма выдачи не выше
+    // стоимости заказа, имущество сверх заказа идёт докладкой из остатка. Тот же
+    // отказ держит контракт на issuestmt и issueact2.
+    const factCost = this.buildFact(order, input.actual_quantity, input.actual_unit_price).fact_cost;
+    if (compareMoney(factCost, order.total_cost, this.assetConfig.decimals) > 0) {
+      throw DomainError.conflict('MARKETPLACE_ISSUANCE_FACT_EXCEEDS_ORDER', { factCost, orderCost: order.total_cost });
+    }
     return order;
   }
 
@@ -320,72 +299,6 @@ export class MarketplaceIssuanceService {
       throw DomainError.conflict('MARKETPLACE_STATEMENT_ALREADY_SIGNED');
     }
     return this.generateStatementDocument(order, saga.fact);
-  }
-
-  /**
-   * Доплата обеспечительной части по факту: при факте больше заказа она
-   * пересчитывается пропорционально (та же формула, что `pro_rata` контракта,
-   * с округлением к ближайшему), и недостающее сверх зафиксированного в
-   * заказе доплачивается со свободного паевого программы на закрывающей подписи.
-   */
-  feeTopUp(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): MarketplaceIssuanceFeeTopUp {
-    const total = this.economyService.assetToUnits(order.total_cost);
-    const factCost = this.economyService.assetToUnits(fact.fact_cost);
-    const locked = order.membership_fee ? this.economyService.assetToUnits(order.membership_fee) : 0n;
-    if (total <= 0n || factCost <= total) {
-      return { body_topup_units: 0n, topup_units: 0n, fact_fee_units: locked };
-    }
-    const body_topup_units = factCost - total;
-    if (locked <= 0n) {
-      return { body_topup_units, topup_units: 0n, fact_fee_units: 0n };
-    }
-    const factFee = (locked * factCost + total / 2n) / total;
-    return { body_topup_units, topup_units: factFee > locked ? factFee - locked : 0n, fact_fee_units: factFee };
-  }
-
-  /** Доплата по факту для заказа в саге на этапе «факт зафиксирован» (для плана бандла у стойки). */
-  async getFeeTopUp(coopname: string, order_id: string, member_account: string): Promise<MarketplaceIssuanceFeeTopUp> {
-    const order = await this.loadOrder(coopname, order_id);
-    this.assertOrderer(order, member_account);
-    const saga = await this.requireSaga(coopname, order.id);
-    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) return { body_topup_units: 0n, topup_units: 0n, fact_fee_units: 0n };
-    return this.feeTopUp(order, saga.fact);
-  }
-
-  /**
-   * Заявление 1110 на доплату по факту к подписи заказчиком — только если
-   * факт больше заказа и свободного паевого «Стола заказов» не хватает на
-   * обеспечительную часть и тело доплаты; иначе null и подпись не требуется.
-   * Сумма — недостающее, транслируется из Цифрового кошелька.
-   */
-  async getConvertSignablePayload(coopname: string, order_id: string, member_account: string): Promise<InnerGeneratedDocument | null> {
-    const order = await this.loadOrder(coopname, order_id);
-    this.assertOrderer(order, member_account);
-    const saga = await this.requireSaga(coopname, order.id);
-    if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) return null;
-    const plan = await this.topUpPlan(coopname, order, saga.fact);
-    if (!plan) return null;
-    return this.convertService.generateStatement({
-      coopname,
-      username: order.orderer_account,
-      anchor_hash: order.order_hash,
-      amount_units: plan.amount_units,
-      fee_units: plan.fee_units,
-    });
-  }
-
-  /** Недостающее на доплату по факту: null — свободного паевого хватает или факт не больше заказа. */
-  private async topUpPlan(
-    coopname: string,
-    order: MarketplaceOrderDomainEntity,
-    fact: MarketplaceIssuanceSagaFact
-  ): Promise<{ amount_units: bigint; fee_units: bigint } | null> {
-    const topUp = this.feeTopUp(order, fact);
-    if (topUp.body_topup_units <= 0n && topUp.topup_units <= 0n) return null;
-    const balances = await this.convertService.programBalances(coopname, order.orderer_account);
-    const plan = this.convertService.planFunding(balances, [{ body_units: topUp.body_topup_units, fee_units: topUp.topup_units }]);
-    if (plan.transfer_units <= 0n) return null;
-    return { amount_units: plan.transfer_units, fee_units: plan.fee_convert_units };
   }
 
   // ── Этап 1: заявление ────────────────────────────────────────────────
@@ -411,12 +324,6 @@ export class MarketplaceIssuanceService {
     }
 
     this.assertStatementMatchesFact(input.signed_statement, order, saga);
-    // Бандл выдачи переводит доплату всех своих заказов одним заявлением 1110 до подачи
-    // заявлений о выдаче. Без этой отметки заказ бандла с доплатой тела требовал второе
-    // заявление, которого пайщику никто не показывал, и не подписывался (C28-85, находка 57).
-    if (!input.convert_settled_by_bundle) {
-      await this.translateTopUpShare(input, order, saga);
-    }
 
     const statement = new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.IssueStmt.IIssueStmt['statement'];
     let tx;
@@ -475,41 +382,6 @@ export class MarketplaceIssuanceService {
       throw DomainError.badRequest('MARKETPLACE_STATEMENT_CONTENT_MISMATCH');
     }
     this.verifyDocumentSignature(signed_statement, order.orderer_account);
-  }
-
-  /**
-   * Доплата по факту сверх свободного паевого «Стола заказов»: заявление 1110
-   * и трансляция недостающего из Цифрового кошелька отдельной транзакцией до
-   * заявления о выдаче — контракт на issuestmt проверит, что средств хватает
-   * (задача 99D-18). Вынесено из `submitStatement`: ветка нужна только когда
-   * факт больше заказа.
-   */
-  private async translateTopUpShare(
-    input: MarketplaceIssuanceSubmitStatementInput,
-    order: MarketplaceOrderDomainEntity,
-    saga: MarketplaceIssuanceSagaDomainEntity
-  ): Promise<void> {
-    const topUp = await this.topUpPlan(input.coopname, order, saga.fact);
-    if (!topUp) return;
-    const convert_statement = this.convertService.verifySigned(
-      input.signed_convert,
-      { anchor_hash: order.order_hash, amount_units: topUp.amount_units, fee_units: topUp.fee_units },
-      order.orderer_account
-    );
-    try {
-      await this.chainPort.convert({
-        coopname: order.coopname,
-        orderer: order.orderer_account,
-        // Доплата по факту адресуется своему заказу: o.mkt.conv ложится в нитку
-        // этого заказа, а не заводит отдельную нитку по хэшу заявления.
-        targets: [{ order_hash: order.order_hash, amount: this.economyService.unitsToAsset(topUp.amount_units) }],
-        convert_statement,
-      });
-    } catch (err) {
-      const message = this.errMessage(err);
-      await this.sagaRepo.update(saga.id, { last_error: message });
-      throw DomainError.conflict('MARKETPLACE_MEMBERSHIP_TRANSFER_CHAIN_FAILED', { message });
-    }
   }
 
   /**
@@ -1094,7 +966,7 @@ export class MarketplaceIssuanceService {
     return { actual_quantity, actual_unit_price: fact_unit_price, fact_cost };
   }
 
-  /** diff_state — по стоимости: именно она определяет ветку возврата/доплаты на issueact2. */
+  /** diff_state — по стоимости: именно она определяет возврат недовыданного на issueact2. */
   private toFactSnapshot(order: MarketplaceOrderDomainEntity, fact: MarketplaceIssuanceSagaFact): MarketplaceOrderIssuanceFactSnapshot {
     const cmp = compareMoney(fact.fact_cost, order.total_cost, this.assetConfig.decimals);
     return {

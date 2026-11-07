@@ -19,7 +19,6 @@ import {
   getStockProposalSignablePayloads,
   listIssuanceSagas,
   getIssuanceStatementPayload,
-  getIssuanceConvertPayload,
   signIssuanceStatement,
   getIssuanceActPayload,
   signIssuanceAct,
@@ -478,16 +477,9 @@ async function signSaga(task: MarketplaceIssuanceSagaView): Promise<void> {
       const signed_statement = (await signDocument(statement, global.username, 1)) as Parameters<
         typeof signIssuanceStatement
       >[0]['signed_statement'];
-      // Довзнос по факту сверх членского кошелька — заявление о конвертации (1110)
-      // подписывается тем же нажатием; в обычной выдаче его нет.
-      const convert = await getIssuanceConvertPayload(task.order_id);
-      const signed_convert = convert
-        ? ((await signDocument(convert, global.username, 1)) as NonNullable<
-            Parameters<typeof signIssuanceStatement>[0]['signed_convert']
-          >)
-        : null;
+      // Доплаты по заказу нет (07.11.2026): к заявлению о выдаче второе заявление не прикладывается.
       setFlow({ step: 'council' });
-      const saga = await signIssuanceStatement({ order_id: task.order_id, signed_statement, signed_convert });
+      const saga = await signIssuanceStatement({ order_id: task.order_id, signed_statement });
       if (saga.awaits_member_signature) {
         setFlow({ step: 'act' });
         await signActFor(task.order_id, global.username);
