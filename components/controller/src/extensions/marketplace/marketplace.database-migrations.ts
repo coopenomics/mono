@@ -7,6 +7,7 @@ import { MarketplaceSupplierProfileAndReview1791619859005 } from './migrations/d
 import { MarketplaceOrderReviewInvite1791723152953 } from './migrations/database/1791723152953-order-review-invite';
 import { MarketplaceKeuPeriod1793520000000 } from './migrations/database/1793520000000-keu-period';
 import { MarketplaceSecureDueRun1793880530030 } from './migrations/database/1793880530030-secure-due-run';
+import { MarketplaceInvestPeriod1794056162296 } from './migrations/database/1794056162296-invest-period';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -24,4 +25,5 @@ export const marketplaceDatabaseMigrations = [
   MarketplaceOrderReviewInvite1791723152953,
   MarketplaceKeuPeriod1793520000000,
   MarketplaceSecureDueRun1793880530030,
+  MarketplaceInvestPeriod1794056162296,
 ];

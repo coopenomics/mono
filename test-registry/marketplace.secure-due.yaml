@@ -10,6 +10,14 @@ title: Обеспечительная часть паевого взноса —
 # Контракт не хранит, кому и когда списывать; учёт ведёт узел по операциям
 # ledger2, которые провёл контракт, а контракт держит потолок остатка кошелька.
 
+
+# Правка 07.11.2026 (99D-30): списание строки по итогу месяца берёт
+# возмещение вложений инициаторов участка разницей `invbranches.repaid_total`
+# до и после `chargeperiod` и прибавляет его к итогу месяца
+# (`noteCharged`, колонка `investor_repaid`); проход, который возместил
+# вложения, шлёт событие `marketplace.invest.repaid` для уведомления
+# инициаторов. Суммы списания и возврата пайщику не менялись; случаи
+# возмещения — mkt.order.invest.istok.07 и .08 в marketplace.order.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-secure-due.service.ts

@@ -58,6 +58,10 @@ title: Экономика кооперативного участка — чле
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+
+# Правка 07.11.2026 (99D-30): резолвер экономики переводит сгенерированный
+# документ в ответ общим помощником `application/shared/generated-document.util.ts`.
+# Поведение и случаи не менялись.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts

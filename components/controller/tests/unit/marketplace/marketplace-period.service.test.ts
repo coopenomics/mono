@@ -13,6 +13,7 @@ jest.mock('@coopenomics/extension-kit', () => {
   };
 });
 
+import { MarketplacePeriodInvestPhase } from '~/extensions/marketplace/domain/entities/marketplace-branch-period.types';
 import { MarketplacePeriodService } from '~/extensions/marketplace/application/services/marketplace-period.service';
 import { useRealCalendar } from './helpers/real-calendar';
 
@@ -103,6 +104,8 @@ function build(opts: {
   const store = memoryStore();
   const chainRows = opts.chainRows ?? [chainRow()];
   const chainPort = {
+    // Вложений инициаторов у участка нет (задача 99D-30): фаза итога — NONE.
+    getInvestBranch: jest.fn(async () => null),
     closePeriod: jest.fn(async () => {
       if (opts.closeError) throw opts.closeError;
       return {};
@@ -304,6 +307,41 @@ describe('mkt.order.keu.11 — стирание старых строк и чт�
     expect(page.items.map((r) => r.period)).toEqual([NOVEMBER, NOVEMBER - 1]);
     expect(page.totalCount).toBe(3);
     expect(page.totalPages).toBe(2);
+  });
+
+  it('mkt.order.invest.istok.07 — фаза вложений фиксируется при первом зеркале итога: нет вложений, дефицит, возмещение, участку; повтор зеркала её не переписывает', async () => {
+    const branch = (over: Record<string, unknown> = {}) => ({
+      braname: BRANAME,
+      money_total: '0.0000 RUB',
+      property_total: '1000000.0000 RUB',
+      unused_total: '0.0000 RUB',
+      reserved: '0.0000 RUB',
+      base: '10000000000',
+      acc: '0',
+      s_join: '0',
+      s_fixed: '0',
+      ...over,
+    });
+    const phaseWith = async (row: unknown, deficit = '0.0000 RUB') => {
+      const { service, chainPort } = build();
+      chainPort.getInvestBranch.mockResolvedValue(row as never);
+      const mirrored = await service.mirror(COOP, chainRow({ deficit }) as never, 3);
+      return { mirrored, service, chainPort };
+    };
+    expect((await phaseWith(null)).mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.NONE);
+    expect((await phaseWith(branch(), '1000.0000 RUB')).mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.DEFICIT);
+    expect((await phaseWith(branch())).mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.REPAYING);
+    const { mirrored, service, chainPort } = await phaseWith(branch({ base: '0' }));
+    expect(mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.BRANCH);
+    expect(mirrored.investor_repaid).toBe('0.0000');
+
+    // Возмещение за прогон растёт по строкам; фаза — история месяца.
+    await service.noteCharged(COOP, BRANAME, NOVEMBER, 1, 15_000_000n);
+    await service.noteCharged(COOP, BRANAME, NOVEMBER, 1, 5_000_000n);
+    chainPort.getInvestBranch.mockResolvedValue(branch() as never);
+    const again = await service.mirror(COOP, chainRow() as never, 3);
+    expect(again.invest_phase).toBe(MarketplacePeriodInvestPhase.BRANCH);
+    expect(again.investor_repaid).toBe('2000.0000');
   });
 
   it('ratePercentOf: сумма трёх ставок в процентах с двумя знаками, округление половины вверх', () => {

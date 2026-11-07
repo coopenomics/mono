@@ -92,6 +92,14 @@ sources:
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-period.entity.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-aid.entity.ts
     - components/controller/src/extensions/marketplace/migrations/database/1793520000000-keu-period.ts
+    # Инвестиционный этап участка в ИСТОКЕ (99D-30): документы 1118–1123, действия контракта, чтения по индексу, уведомления
+    - components/controller/src/extensions/marketplace/application/services/marketplace-investment.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-investment.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-investment.dto.ts
+    - components/controller/src/extensions/marketplace/application/listeners/marketplace-investment-notification.listener.ts
+    - components/controller/src/extensions/marketplace/application/shared/generated-document.util.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-branch-period.types.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1794056162296-invest-period.ts
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/closeperiod.cpp
     - components/contracts/cpp/marketplace/src/p.mkt.supply/chargeperiod.cpp
@@ -232,6 +240,90 @@ cases:
     expect: >
       пул — только контракт branch, выход — только registrator: отказ авторизации
     test: components/boot/src/tests/marketplace-invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.01
+    level: backend
+    kind: happy
+    scenario: >
+      Два инициатора внесли имущество 600 000 и 400 000 ₽, участок возместил 100 000 ₽; инициатор открывает «Доступно к возврату».
+    expect: >
+      предпросмотр 60 000 и 40 000 ₽ — ровно эталон контракта PeriodModel.crpsReturned на тех же строках
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest-cycle.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.02
+    level: backend
+    kind: side
+    scenario: >
+      На кошельке вложения лежат прежние начисления доли инициатора сверх строк вложений.
+    expect: остаток сверх строк прибавляется к доступному (60 000 + 5 000 ₽)
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    external: unreachable
+    external_reason: "прежние начисления доли инициатора на кошелёк вложения сверх строк вложений остались от модели до 99D-27; новый стенд их не создаёт, а через API их не завести"
+    status: passing
+
+  - id: mkt.order.invest.istok.03
+    level: backend
+    kind: side
+    scenario: >
+      Фаза участка: строки участка нет; вложения есть без возмещения; возмещение идёт; база погашена после возмещения.
+    expect: NONE, FUNDING, RETURNING с остатком 900 000 ₽, RETURNED
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.04
+    level: backend
+    kind: break
+    scenario: >
+      Пайщик, который не председатель и не доверенное лицо участка, вносит деньги в участок.
+    expect: MARKETPLACE_INVEST_NOT_OPERATOR до обращения в цепь, действие контракта не вызывается
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.05
+    level: backend
+    kind: break
+    scenario: >
+      Пайщик без договора участия просит заявление о вложении деньгами.
+    expect: MARKETPLACE_INVAGR_REQUIRED, документ не формируется
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.06
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик с договором участия просит заявление о вложении 300 000 ₽ в участок.
+    expect: документ 1119 с номером договора пайщика, названием участка и суммой 300000.0000 RUB
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.07
+    level: backend
+    kind: side
+    scenario: >
+      Итог месяца участка зеркалится впервые: вложений нет; месяц с недостачей; вложения не погашены; вложения погашены. Затем списываются строки прогона и итог зеркалится повторно.
+    expect: >
+      фаза NONE, DEFICIT, REPAYING, BRANCH; возмещение за прогон растёт суммой по строкам (1 500 + 500 ₽); повторное зеркало фазу и возмещение не переписывает
+    test: components/controller/tests/unit/marketplace/marketplace-period.service.test.ts
+    api: components/api-tests/src/marketplace/invest-cycle.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.08
+    level: backend
+    kind: happy
+    scenario: >
+      Проход списания возместил вложения участка; у одного инициатора есть доступная сумма, у другого нет.
+    expect: >
+      уведомление vlozhenie-vozmeshcheno одному инициатору с названием участка и ссылкой на страницу «Инициаторы участка»; второму — нет
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest-cycle.test.ts
     status: passing
 
   # ── Прямой путь ──────────────────────────────────────────────────────────

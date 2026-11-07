@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GeneratedDocumentDTO,
@@ -17,7 +18,6 @@ import { canAccess } from '../access/marketplace-access-matrix';
 import { CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
@@ -46,15 +46,6 @@ const paginatedBranchWalletHistoryResult = createPaginationResult(
   'MarketplaceBranchWalletHistory'
 );
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * requirement b6 «Экономика КУ» (раунд 5 — приоритет общего кошелька):

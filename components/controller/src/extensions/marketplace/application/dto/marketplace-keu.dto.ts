@@ -1,6 +1,7 @@
-import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
 import type {
   MarketplaceBranchReservesView,
   MarketplaceBranchReserveView,
@@ -151,6 +152,12 @@ export class MarketplaceDeleteBranchReserveInputDTO {
 
 // ── Итоги месяцев участка ─────────────────────────────────────────────────
 
+registerEnumType(MarketplacePeriodInvestPhase, {
+  name: 'MarketplacePeriodInvestPhase',
+  description:
+    'Фаза участка по вложениям инициаторов в месяце: вложений нет; недостача — обеспечительная часть целиком участку, недостачу покрывают вложения; доля инициаторов возмещает вложения; вложения возвращены, доля инициаторов направляется участку.',
+});
+
 @ObjectType('MarketplaceBranchPeriod', {
   description:
     'Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками.',
@@ -209,6 +216,12 @@ export class MarketplaceBranchPeriodDTO {
 
   @Field({ description: 'Получатель доли инициатора в этом месяце.' })
   initiator!: string;
+
+  @Field(() => MarketplacePeriodInvestPhase, { description: 'Фаза участка по вложениям инициаторов на момент расчёта итога.' })
+  invest_phase!: MarketplacePeriodInvestPhase;
+
+  @Field({ description: 'Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня.' })
+  investor_repaid!: string;
 
   @Field(() => Int, { description: 'Заказов в прогоне.' })
   rows_total!: number;
@@ -289,6 +302,8 @@ export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity,
     deficit: row.deficit,
     rate_percent: ratePercent,
     initiator: row.initiator,
+    invest_phase: row.invest_phase,
+    investor_repaid: row.investor_repaid,
     rows_total: row.rows_total,
     rows_charged: row.rows_charged,
     closed_at: row.closed_at,

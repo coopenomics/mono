@@ -86,6 +86,15 @@ export class MarketplaceBranchAidMirrorService {
     await this.store.update({ aid_hash }, { status, paid_at: paidAt ?? row.paid_at });
   }
 
+  /**
+   * Хэш — заявление на материальную помощь (задача 99D-30). Выделение средств
+   * инициаторов идёт одной операцией и под служебную записку, и под помощь;
+   * помощь в итоге месяца считается как МП, поэтому её выделение не входит в СЗ.
+   */
+  async isAidHash(coopname: string, hash: string): Promise<boolean> {
+    return (await this.store.findOne({ coopname, aid_hash: hash.toLowerCase() })) !== null;
+  }
+
   /** Материальная помощь участка, выплаченная за отрезок времени [from, to). Сумма заявлений целиком, с налогом. */
   async paidWithin(coopname: string, braname: string, from: Date, to: Date): Promise<bigint> {
     // Отбор по дате делает база: строк за все прошлые месяцы узел не читает.

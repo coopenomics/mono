@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Ledger2Contract } from 'cooptypes';
 import { Workflows } from '@coopenomics/notifications';
@@ -14,6 +14,7 @@ import {
 } from '@coopenomics/innercoop';
 import { AmountFormatterUtils, TableStore, chainErrorCode, isNull, lessOrEqual, lessThan, moreThan, notNull, oneOf, platformSettings, standNextPeriodStart, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
 import { MARKETPLACE_SECURE_DUE_STORE } from '../../infrastructure/database/marketplace-stores';
+import { MARKETPLACE_INVEST_REPAID_EVENT, type MarketplaceInvestRepaidEvent } from '../events/marketplace-notification.events';
 import { MarketplaceSecureDueRunQueries } from '../../infrastructure/database/marketplace-secure-due-run.queries';
 import { periodBounds } from '../shared/period-bounds';
 import { MarketplaceSecureDueEntity } from '../../infrastructure/entities/marketplace-secure-due.entity';
@@ -79,6 +80,8 @@ interface ChargedSummary {
 class ChargedCollector {
   charged = 0;
   readonly byUser = new Map<string, ChargedSummary>();
+  /** Участки, где доля инициаторов в этом проходе возместила вложения. */
+  readonly repaidBranches = new Set<string>();
 
   note(row: MarketplaceSecureDueEntity, units: bigint, returned: bigint, rate: string): void {
     this.charged++;
@@ -174,7 +177,8 @@ export class MarketplaceSecureDueService {
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly periodService: MarketplacePeriodService,
-    private readonly runQueries: MarketplaceSecureDueRunQueries
+    private readonly runQueries: MarketplaceSecureDueRunQueries,
+    private readonly eventBus: EventEmitter2
   ) {
     this.logger.setContext(MarketplaceSecureDueService.name);
   }
@@ -533,6 +537,10 @@ export class MarketplaceSecureDueService {
 
     this.logger.info(`Списание обеспечительной части: списано ${charged}, не прошло ${failed} (coopname=${coopname})`);
     await this.notifyCharged(coopname, summary.byUser);
+    if (summary.repaidBranches.size > 0) {
+      const event: MarketplaceInvestRepaidEvent = { coopname, branames: [...summary.repaidBranches] };
+      this.eventBus.emit(MARKETPLACE_INVEST_REPAID_EVENT, event);
+    }
     return { charged, failed };
   }
 
@@ -558,6 +566,7 @@ export class MarketplaceSecureDueService {
     const result = await this.chargePeriodRow(coopname, row, period);
     if (result === null) return false;
     summary.note(row, result.charged, result.returned, this.periodService.ratePercentOf(periodRow));
+    if (result.repaid > 0n) summary.repaidBranches.add(row.braname);
     return true;
   }
 
@@ -737,8 +746,11 @@ export class MarketplaceSecureDueService {
     coopname: string,
     row: MarketplaceSecureDueEntity,
     period: number
-  ): Promise<{ charged: bigint; returned: bigint } | null> {
+  ): Promise<{ charged: bigint; returned: bigint; repaid: bigint } | null> {
     const amount = this.fromDecimal(row.due_amount);
+    // Возмещение вложений инициаторов по строке считает контракт; узел берёт его
+    // разницей счётчика участка до и после списания — строки списываются по одной.
+    const repaidBefore = await this.investorRepaidTotal(coopname, row.braname);
     const sent = await this.sendCharge(row, LOG_CHARGE_PERIOD, () =>
       this.chainPort.chargePeriod({
         coopname,
@@ -751,16 +763,19 @@ export class MarketplaceSecureDueService {
       })
     );
     if (!sent) return null;
-    await this.periodService.noteCharged(coopname, row.braname, period, 1);
+    const delta = (await this.investorRepaidTotal(coopname, row.braname)) - repaidBefore;
+    const repaid = delta > 0n ? delta : 0n;
+    await this.periodService.noteCharged(coopname, row.braname, period, 1, repaid);
     const after = await this.dueStore.findOne({ order_hash: row.order_hash });
     if (!after || this.fromDecimal(after.due_amount) === amount) {
       // Слушатель ещё не донёс операции — письмо получит сумму списания без деления.
       this.logger.warn(`Списание по итогу месяца по заказу ${row.order_hash}: учёт не успел обновиться к письму.`);
-      return { charged: amount, returned: 0n };
+      return { charged: amount, returned: 0n, repaid };
     }
     return {
       charged: this.fromDecimal(after.charged_amount) - this.fromDecimal(row.charged_amount),
       returned: this.fromDecimal(after.returned_amount) - this.fromDecimal(row.returned_amount),
+      repaid,
     };
   }
 
@@ -788,6 +803,12 @@ export class MarketplaceSecureDueService {
 
   private toDecimal(units: bigint): string {
     return this.economyService.unitsToAsset(units).split(' ')[0] ?? '0';
+  }
+
+  /** Возмещено инициаторам участка всего — строка участка `invbranches` по ключу; нет строки — ноль. */
+  private async investorRepaidTotal(coopname: string, braname: string): Promise<bigint> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    return branch ? this.economyService.assetToUnits(String(branch.repaid_total ?? '0')) : 0n;
   }
 
   private fromDecimal(value: string | null | undefined): bigint {

@@ -1838,6 +1838,8 @@ export interface MarketplaceBranchPeriod {
   funds_amount: Generated<Numeric>;
   initiator: Generated<string>;
   initiator_amount: Generated<Numeric>;
+  invest_phase: Generated<string>;
+  investor_repaid: Generated<Numeric>;
   membership: Generated<Numeric>;
   memos: Generated<Numeric>;
   period: number;

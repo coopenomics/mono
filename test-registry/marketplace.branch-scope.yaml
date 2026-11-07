@@ -47,6 +47,11 @@ title: Стол заказов — оператор распоряжается �
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+
+# Правка 07.11.2026 (99D-30): резолверы приёмки, гарантийного возврата и
+# списания переводят сгенерированный документ в ответ общим помощником
+# `application/shared/generated-document.util.ts` вместо пяти одинаковых
+# копий. Поля ответа и проверки участка не менялись, случаи прежние.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-inventory.resolver.ts

@@ -48,6 +48,12 @@ export const MARKETPLACE_LIVE_TABLES: InnerChainChangesTable[] = [
  */
 export const MARKETPLACE_LIVE_CHAIN_TABLES: InnerChainChangesTable[] = [
   { code: MarketContract.contractName.production, table: MarketContract.Tables.Config.tableName },
+  // Инвестиционный этап участка (задача 99D-30): страница «Инициаторы участка»
+  // обновляется по вложениям, заявлениям на имущество и счётчику возврата.
+  { code: MarketContract.contractName.production, table: MarketContract.Tables.InvAgreements.tableName },
+  { code: MarketContract.contractName.production, table: MarketContract.Tables.InvBranches.tableName },
+  { code: MarketContract.contractName.production, table: MarketContract.Tables.Investors.tableName },
+  { code: MarketContract.contractName.production, table: MarketContract.Tables.InvProps.tableName },
 ];
 
 

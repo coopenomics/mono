@@ -1,3 +1,5 @@
+import type { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
+
 /**
  * Итог месяца кооперативного участка — зеркало строки `kuperiods` контракта
  * marketplace (задача 99D-22, КЭУ-4).
@@ -65,6 +67,12 @@ export class MarketplaceBranchPeriodEntity {
 
   /** Получатель доли инициатора на момент прогона. */
   public initiator!: string;
+
+  /** Фаза участка по вложениям инициаторов на момент расчёта итога (`MarketplacePeriodInvestPhase`). */
+  public invest_phase!: MarketplacePeriodInvestPhase;
+
+  /** Сколько доли инициаторов за прогон возместило их вложения; растёт по мере списания строк. */
+  public investor_repaid!: string;
 
   /** Строк учёта в прогоне и сколько из них списано. */
   public rows_total!: number;

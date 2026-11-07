@@ -180,6 +180,9 @@ import { MarketplacePeriodService } from './services/marketplace-period.service'
 import { MarketplaceBranchAidMirrorService } from './services/marketplace-branch-aid-mirror.service';
 import { MarketplaceBranchReserveService } from './services/marketplace-branch-reserve.service';
 import { MarketplaceKeuResolver } from './resolvers/marketplace-keu.resolver';
+import { MarketplaceInvestmentService } from './services/marketplace-investment.service';
+import { MarketplaceInvestmentResolver } from './resolvers/marketplace-investment.resolver';
+import { MarketplaceInvestmentNotificationListener } from './listeners/marketplace-investment-notification.listener';
 import { MarketplaceIssuanceCloseReminderService } from './services/marketplace-issuance-close-reminder.service';
 // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
 import { MarketplaceChainRetryCronService } from './services/marketplace-chain-retry-cron.service';
@@ -492,6 +495,9 @@ import {
     MarketplacePeriodService,
     MarketplaceBranchReserveService,
     MarketplaceKeuResolver,
+    MarketplaceInvestmentService,
+    MarketplaceInvestmentResolver,
+    MarketplaceInvestmentNotificationListener,
     MarketplaceIssuanceCloseReminderService,
     // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
     MarketplaceChainRetryCronService,

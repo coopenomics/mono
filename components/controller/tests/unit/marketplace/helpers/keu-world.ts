@@ -208,6 +208,10 @@ export function createKeuWorld() {
   });
 
   const chainPort = {
+    // Вложений инициаторов у участков нет (задача 99D-30): фаза итога NONE, возмещения нет.
+    async getInvestBranch() {
+      return null;
+    },
     async closePeriod(data: any) {
       calls.closePeriod.push(data);
       const fault = faults.closePeriod.shift();
@@ -353,7 +357,8 @@ export function createKeuWorld() {
     notifications as never,
     logger as never,
     periodService,
-    runQueriesOver(dueStore) as never
+    runQueriesOver(dueStore) as never,
+    { emit: jest.fn() } as never
   );
 
   return {

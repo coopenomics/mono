@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Registry } from '@coopenomics/docs-templates';
 import {
@@ -33,17 +34,8 @@ import {
 } from '../dto/marketplace-writeoff.dto';
 import { MarketplaceWriteoffService } from '../services/marketplace-writeoff.service';
 import { toMarketplaceWriteoffProposalDTO } from './marketplace-writeoff.mapper';
-import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * Эпик 8: GraphQL-фасад для процесса списания скоропорта через решение

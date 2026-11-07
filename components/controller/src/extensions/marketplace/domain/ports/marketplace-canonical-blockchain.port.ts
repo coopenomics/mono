@@ -398,6 +398,36 @@ export interface MarketplaceCanonicalBlockchainPort {
   getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
   /** Фонды накопления кооператива с процентами и кошельками (fund::funds, вид `accum`). */
   listAccumulationFunds(coopname: string): Promise<FundContract.Tables.Funds.IFund[]>;
+
+  // ── Инвестиционный этап кооперативного участка (задача 99D-30) ──
+  /** Договор участия в хозяйственной деятельности (marketplace::signinvagr). */
+  signInvestAgreement(data: MarketContract.Actions.SignInvAgr.ISignInvAgr): Promise<InnerTransactResult>;
+  /** Вложение деньгами: трансляция паевого взноса в договор участия (marketplace::investmoney). */
+  investMoney(data: MarketContract.Actions.InvestMoney.IInvestMoney): Promise<InnerTransactResult>;
+  /** Заявление о паевом взносе имуществом в участок (marketplace::createiprop). */
+  createInvestProperty(data: MarketContract.Actions.CreateIProp.ICreateIProp): Promise<InnerTransactResult>;
+  /** Одобрение заявления председателем участка и повестка совета (marketplace::approveiprop). */
+  approveInvestProperty(data: MarketContract.Actions.ApproveIProp.IApproveIProp): Promise<InnerTransactResult>;
+  /** Отказ председателя участка до совета (marketplace::declineiprop). */
+  declineInvestProperty(data: MarketContract.Actions.DeclineIProp.IDeclineIProp): Promise<InnerTransactResult>;
+  /** Акт приёма-передачи: подпись вносящего (marketplace::act1iprop). */
+  signInvestPropertyAct1(data: MarketContract.Actions.Act1IProp.IAct1IProp): Promise<InnerTransactResult>;
+  /** Акт приёма-передачи: подпись председателя участка (marketplace::act2iprop). */
+  signInvestPropertyAct2(data: MarketContract.Actions.Act2IProp.IAct2IProp): Promise<InnerTransactResult>;
+  /** Трансляция возвращённого вложения в главный паевой; сумму считает контракт (marketplace::claiminv). */
+  claimInvestment(data: MarketContract.Actions.ClaimInv.IClaimInv): Promise<InnerTransactResult>;
+  /** Договор участия пайщика — по первичному ключу; null — не подписан. */
+  getInvestAgreement(coopname: string, username: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null>;
+  /** Вложения инициаторов участка и счётчик возврата — по первичному ключу; null — вложений нет. */
+  getInvestBranch(coopname: string, braname: string): Promise<MarketContract.Tables.InvBranches.IMktInvBranch | null>;
+  /** Инициаторы участка — по индексу участка. */
+  listBranchInvestors(coopname: string, braname: string): Promise<MarketContract.Tables.Investors.IMktInvestor[]>;
+  /** Вложения пайщика во все участки — по индексу пайщика. */
+  listUserInvestments(coopname: string, username: string): Promise<MarketContract.Tables.Investors.IMktInvestor[]>;
+  /** Заявления на имущество участка до второй подписи акта — по индексу участка. */
+  listBranchInvestProperties(coopname: string, braname: string): Promise<MarketContract.Tables.InvProps.IMktInvProp[]>;
+  /** Заявление на имущество по хэшу вложения; null — нет (принято или отклонено). */
+  getInvestProperty(coopname: string, hash: string): Promise<MarketContract.Tables.InvProps.IMktInvProp | null>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

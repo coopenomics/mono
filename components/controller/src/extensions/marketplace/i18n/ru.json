@@ -103,10 +103,16 @@
     "MARKETPLACE_FACT_UNIT_PRICE_MUST_BE_POSITIVE": "Фактическая цена за единицу должна быть больше нуля.",
     "MARKETPLACE_FOREIGN_COOP_REQUEST_REJECTED": "Controller обслуживает кооператив \"{servedCoopname}\", запрос для \"{requestedCoopname}\" отклонён",
     "MARKETPLACE_INITIATOR_SHARE_INVALID": "Доля инициатора участка должна быть от 0 до 100 процентов.",
+    "MARKETPLACE_INVAGR_REQUIRED": "Сначала подпишите договор участия в хозяйственной деятельности.",
     "MARKETPLACE_INVENTORY_INSUFFICIENT_FOR_RESERVE": "Свободного остатка недостаточно: не хватает {needed} ед. для резерва под заказ.",
     "MARKETPLACE_INVENTORY_ITEM_NOT_FOUND": "Позиция склада не найдена.",
     "MARKETPLACE_INVENTORY_ITEM_REQUIRED": "Не указана позиция склада.",
     "MARKETPLACE_INVENTORY_RELOCATE_ONLY_UNLABELED": "Перераскладывать можно только непромаркированную позицию (на складе, без штрих-кода).",
+    "MARKETPLACE_INVEST_AMOUNT_INVALID": "Сумма вложения должна быть больше нуля.",
+    "MARKETPLACE_INVEST_NOTHING_TO_CLAIM": "Возвращённых средств к трансляции пока нет.",
+    "MARKETPLACE_INVEST_NOT_OPERATOR": "Вносить в кооперативный участок может председатель или доверенное лицо участка.",
+    "MARKETPLACE_IPROP_DECISION_MISSING": "Решения совета о приёме имущества ещё нет: акт приёма-передачи формируется после решения.",
+    "MARKETPLACE_IPROP_NOT_FOUND": "Заявление о паевом взносе имуществом в участок не найдено.",
     "MARKETPLACE_ISSUANCE_ALREADY_STARTED": "Выдача по заказу уже начата (этап «{stage}») — дождитесь её завершения или отмените.",
     "MARKETPLACE_ISSUANCE_CANCEL_CHAIN_FAILED": "Отмена выдачи не принята цепью: {errorMessage}.",
     "MARKETPLACE_ISSUANCE_CANCEL_COUNCIL_PENDING": "Совет ещё рассматривает заявление — отменить выдачу можно после его ответа.",
@@ -554,6 +560,16 @@
       "cellOnly": "Ячейка {cellCode}",
       "noLocation": "Без места"
     },
+    "investment": {
+      "defaultUnit": "шт.",
+      "notifyPropertySubmittedWhat": "заявление на имущество",
+      "notifyPropertyDecidedWhat": "решение совета по имуществу",
+      "notifyRepaidWhat": "возмещение вложений",
+      "propertyAuthorized": "Совет принял решение о приёме имущества. Подпишите акт приёма-передачи.",
+      "propertyDeclined": "Совет отказал в приёме имущества.",
+      "repaidFully": "Использованное вложение возвращено целиком: доступна вся сумма, включая неиспользованные деньги.",
+      "repaidOngoing": "Возврат вложения продолжается из экономии участка."
+    },
     "issuance": {
       "actNotNeededAtStage": "Акт на этом этапе («{stage}») подписывать не нужно.",
       "actSignForbiddenAtStage": "Выдача на этапе «{stage}» — акт подписывать нельзя.",
@@ -608,7 +624,8 @@
       "shareFreeLabel": "Свободный паевой {'|'} Стол Заказов",
       "shareOrderReserveLabel": "Паевой резерв под заказы {'|'} Стол Заказов",
       "securePartDueLabel": "Обеспечительная часть к списанию {'|'} Стол Заказов",
-      "securePartOrderLabel": "Обеспечительная часть в заказах {'|'} Стол Заказов"
+      "securePartOrderLabel": "Обеспечительная часть в заказах {'|'} Стол Заказов",
+      "investLabel": "Вложение в участки {'|'} Стол Заказов"
     },
     "moderation": {
       "approvedStatusLabel": "одобрено",

@@ -1275,6 +1275,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCheckoutSignedLineInput:{
 
 	},
+	MarketplaceClaimInvestmentInput:{
+		statement:"SignedDigitalDocumentInput"
+	},
 	MarketplaceClearInventoryLabelInput:{
 
 	},
@@ -1303,6 +1306,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceCreateExpressReceptionInput:{
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
+	},
+	MarketplaceCreateInvestPropertyInput:{
+		statement:"SignedDigitalDocumentInput"
 	},
 	MarketplaceCreateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
@@ -1341,6 +1347,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceCreateWriteoffDraftInput:{
 		items:"MarketplaceWriteoffItemInput"
+	},
+	MarketplaceDeclineInvestPropertyInput:{
+
 	},
 	MarketplaceDeclineOrdersBatchInput:{
 
@@ -1387,6 +1396,20 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceInventoryStatus: "enum" as const,
+	MarketplaceInvestMoneyInput:{
+		statement:"SignedDigitalDocumentInput"
+	},
+	MarketplaceInvestPhase: "enum" as const,
+	MarketplaceInvestPropertyRefInput:{
+
+	},
+	MarketplaceInvestPropertyStatementInput:{
+
+	},
+	MarketplaceInvestPropertyStatus: "enum" as const,
+	MarketplaceInvestStatementInput:{
+
+	},
 	MarketplaceIssuanceDecisionMode: "enum" as const,
 	MarketplaceIssuanceOrderInput:{
 
@@ -1481,6 +1504,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
 	MarketplaceOutgoingPaymentRequestStatus: "enum" as const,
+	MarketplacePeriodInvestPhase: "enum" as const,
 	MarketplacePublishStockInput:{
 
 	},
@@ -1614,6 +1638,12 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSignAplReceptionInput:{
 		placements:"MarketplaceAplReceptionPlacementInput",
 		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
+	},
+	MarketplaceSignInvestAgreementInput:{
+		agreement:"SignedDigitalDocumentInput"
+	},
+	MarketplaceSignInvestPropertyInput:{
+		document:"SignedDigitalDocumentInput"
 	},
 	MarketplaceSignIssuanceActInput:{
 		signed_act:"MarketplaceShareReturnActSignedInput"
@@ -2557,6 +2587,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAcceptCpp:{
 			input:"MarketplaceAcceptCppInput"
 		},
+		marketplaceAcceptInvestProperty:{
+			data:"MarketplaceSignInvestPropertyInput"
+		},
 		marketplaceAcceptOrdersBatch:{
 			input:"MarketplaceAcceptOrdersBatchInput"
 		},
@@ -2577,6 +2610,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceAdmitSupplierClaim:{
 			data:"MarketplaceAdmitSupplierClaimInput"
+		},
+		marketplaceApproveInvestProperty:{
+			data:"MarketplaceSignInvestPropertyInput"
 		},
 		marketplaceApproveOffer:{
 			input:"MarketplaceApproveOfferInput"
@@ -2614,6 +2650,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCheckoutCart:{
 			input:"MarketplaceCheckoutCartInput"
 		},
+		marketplaceClaimInvestment:{
+			data:"MarketplaceClaimInvestmentInput"
+		},
 		marketplaceClearInventoryLabel:{
 			data:"MarketplaceClearInventoryLabelInput"
 		},
@@ -2644,6 +2683,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCreateExpressReception:{
 			data:"MarketplaceCreateExpressReceptionInput"
 		},
+		marketplaceCreateInvestProperty:{
+			data:"MarketplaceCreateInvestPropertyInput"
+		},
 		marketplaceCreateOffer:{
 			input:"MarketplaceCreateOfferInput"
 		},
@@ -2667,6 +2709,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceCreateWriteoffDraft:{
 			data:"MarketplaceCreateWriteoffDraftInput"
+		},
+		marketplaceDeclineInvestProperty:{
+			data:"MarketplaceDeclineInvestPropertyInput"
 		},
 		marketplaceDeclineOrdersBatch:{
 			input:"MarketplaceDeclineOrdersBatchInput"
@@ -2700,6 +2745,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceHandBackReturn:{
 			data:"MarketplaceHandBackReturnInput"
+		},
+		marketplaceInvestMoney:{
+			data:"MarketplaceInvestMoneyInput"
 		},
 		marketplaceMoveContainer:{
 			data:"MarketplaceMoveContainerInput"
@@ -2787,6 +2835,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSignAplReceptionAsSupplier:{
 			data:"MarketplaceSignAplReceptionInput"
+		},
+		marketplaceSignInvestAgreement:{
+			data:"MarketplaceSignInvestAgreementInput"
+		},
+		marketplaceSignInvestPropertyAct:{
+			data:"MarketplaceSignInvestPropertyInput"
 		},
 		marketplaceSignIssuanceAct:{
 			data:"MarketplaceSignIssuanceActInput"
@@ -3736,6 +3790,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAplReceptionSupplierSignablePayloads:{
 			data:"MarketplaceAplReceptionByIdInput"
 		},
+		marketplaceBranchInvestment:{
+
+		},
 		marketplaceCategoryOfferCounts:{
 
 		},
@@ -3774,6 +3831,21 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceHandoffCode:{
 			data:"MarketplaceHandoffCodeInput"
+		},
+		marketplaceInvestClaimSignablePayload:{
+
+		},
+		marketplaceInvestPropertyActSignablePayload:{
+			data:"MarketplaceInvestPropertyRefInput"
+		},
+		marketplaceInvestPropertyApprovalSignablePayload:{
+			data:"MarketplaceInvestPropertyRefInput"
+		},
+		marketplaceInvestPropertyStatementSignablePayload:{
+			data:"MarketplaceInvestPropertyStatementInput"
+		},
+		marketplaceInvestStatementSignablePayload:{
+			data:"MarketplaceInvestStatementInput"
 		},
 		marketplaceIssuanceActPayload:{
 			data:"MarketplaceIssuanceOrderInput"
@@ -7380,6 +7452,19 @@ export const ReturnTypes: Record<string,any> = {
 		invest_balance:"String",
 		username:"String"
 	},
+	MarketplaceBranchInvestment:{
+		braname:"String",
+		investors:"MarketplaceInvestor",
+		money_total:"String",
+		outstanding:"String",
+		phase:"MarketplaceInvestPhase",
+		properties:"MarketplaceInvestProperty",
+		property_total:"String",
+		repaid_total:"String",
+		reserved:"String",
+		spent_total:"String",
+		unused_total:"String"
+	},
 	MarketplaceBranchPeriod:{
 		aid_paid:"String",
 		aid_reserve:"String",
@@ -7393,6 +7478,8 @@ export const ReturnTypes: Record<string,any> = {
 		funds_amount:"String",
 		initiator:"String",
 		initiator_amount:"String",
+		invest_phase:"MarketplacePeriodInvestPhase",
+		investor_repaid:"String",
 		membership:"String",
 		memos:"String",
 		period:"Int",
@@ -7642,6 +7729,29 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceInventoryMutationResult:{
 		inventory:"MarketplaceInventoryItem"
+	},
+	MarketplaceInvestAgreement:{
+		number:"String",
+		signed_at:"String"
+	},
+	MarketplaceInvestProperty:{
+		amount:"String",
+		description:"String",
+		hash:"String",
+		status:"MarketplaceInvestPropertyStatus",
+		username:"String"
+	},
+	MarketplaceInvestor:{
+		active:"Boolean",
+		braname:"String",
+		claimable:"String",
+		claimed:"String",
+		money:"String",
+		property:"String",
+		returned:"String",
+		unused:"String",
+		used:"String",
+		username:"String"
 	},
 	MarketplaceIssuanceClosePayload:{
 		act_aggregate:"DocumentAggregate",
@@ -8758,6 +8868,7 @@ export const ReturnTypes: Record<string,any> = {
 		markNotificationRead:"InboxNotification",
 		markReportPeriod:"Boolean",
 		marketplaceAcceptCpp:"MarketplaceCppStatus",
+		marketplaceAcceptInvestProperty:"MarketplaceBranchInvestment",
 		marketplaceAcceptOrdersBatch:"MarketplaceSupplierBatchActionResult",
 		marketplaceAcceptReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceAddAvailableCategories:"MarketplaceAvailableCategory",
@@ -8765,6 +8876,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAddSupplier:"MarketplaceSupplier",
 		marketplaceAddToCart:"MarketplaceCart",
 		marketplaceAdmitSupplierClaim:"MarketplaceSupplierClaimResult",
+		marketplaceApproveInvestProperty:"MarketplaceBranchInvestment",
 		marketplaceApproveOffer:"MarketplaceOffer",
 		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
 		marketplaceApproveSupplier:"MarketplaceSupplier",
@@ -8777,6 +8889,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCancelStockProposal:"MarketplaceStockProposal",
 		marketplaceCancelWriteoffDraft:"Boolean",
 		marketplaceCheckoutCart:"MarketplaceCheckoutResult",
+		marketplaceClaimInvestment:"MarketplaceInvestor",
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceClearCart:"MarketplaceCart",
 		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
@@ -8789,6 +8902,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateContainers:"MarketplaceContainer",
 		marketplaceCreateCustomCategory:"MarketplaceCategory",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
+		marketplaceCreateInvestProperty:"MarketplaceBranchInvestment",
 		marketplaceCreateOffer:"MarketplaceOffer",
 		marketplaceCreateReturnClaim:"MarketplaceReturnClaimResult",
 		marketplaceCreateReview:"MarketplaceReview",
@@ -8797,6 +8911,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateStorageCell:"MarketplaceStorageCell",
 		marketplaceCreateStorageGrid:"MarketplaceStorageCell",
 		marketplaceCreateWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceDeclineInvestProperty:"MarketplaceBranchInvestment",
 		marketplaceDeclineOrdersBatch:"MarketplaceSupplierBatchActionResult",
 		marketplaceDeclineStockProposal:"MarketplaceStockProposal",
 		marketplaceDeleteBranchReserve:"MarketplaceBranchReserves",
@@ -8808,6 +8923,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceFixIssuanceFact:"MarketplaceIssuanceStatementPayload",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceHandBackReturn:"MarketplaceReturnClaimResult",
+		marketplaceInvestMoney:"MarketplaceBranchInvestment",
 		marketplaceMoveContainer:"MarketplaceContainer",
 		marketplacePublishStock:"MarketplaceOffer",
 		marketplaceReadyIssue:"MarketplaceOrder",
@@ -8837,6 +8953,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
+		marketplaceSignInvestAgreement:"MarketplaceInvestAgreement",
+		marketplaceSignInvestPropertyAct:"MarketplaceBranchInvestment",
 		marketplaceSignIssuanceAct:"MarketplaceIssuanceSaga",
 		marketplaceSignIssuanceStatement:"MarketplaceIssuanceSaga",
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
@@ -9854,6 +9972,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAidStatementSignablePayload:"GeneratedDocument",
 		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",
 		marketplaceAplReceptionSupplierSignablePayloads:"GeneratedDocument",
+		marketplaceBranchInvestment:"MarketplaceBranchInvestment",
 		marketplaceCategoryOfferCounts:"MarketplaceCategoryOfferCount",
 		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutPreview",
 		marketplaceCppStatus:"MarketplaceCppStatus",
@@ -9878,6 +9997,12 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
 		marketplaceHandoffCode:"MarketplaceHandoffCode",
+		marketplaceInvestAgreementSignablePayload:"GeneratedDocument",
+		marketplaceInvestClaimSignablePayload:"GeneratedDocument",
+		marketplaceInvestPropertyActSignablePayload:"GeneratedDocument",
+		marketplaceInvestPropertyApprovalSignablePayload:"GeneratedDocument",
+		marketplaceInvestPropertyStatementSignablePayload:"GeneratedDocument",
+		marketplaceInvestStatementSignablePayload:"GeneratedDocument",
 		marketplaceIssuanceActPayload:"GeneratedDocument",
 		marketplaceIssuanceClosePayload:"MarketplaceIssuanceClosePayload",
 		marketplaceIssuanceConvertPayload:"GeneratedDocument",
@@ -9925,6 +10050,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListWriteoffCandidates:"MarketplaceWriteoffCandidate",
 		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",
 		marketplaceMemberWallet:"MarketplaceMemberWallet",
+		marketplaceMyInvestAgreement:"MarketplaceInvestAgreement",
+		marketplaceMyInvestments:"MarketplaceInvestor",
 		marketplaceMyReviewByOrder:"MarketplaceReview",
 		marketplaceMySupplierState:"MarketplaceSupplier",
 		marketplaceOnboardingState:"MarketplaceOnboardingState",

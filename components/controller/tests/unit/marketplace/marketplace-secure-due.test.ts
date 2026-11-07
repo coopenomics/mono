@@ -69,6 +69,8 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
   };
   const chainPort = {
     chargeDue: jest.fn(async () => ({})),
+    // Вложений инициаторов у участка нет (задача 99D-30): возмещения при списании нет.
+    getInvestBranch: jest.fn(async () => null),
     // Списание по ставкам: как на стенде, строка учёта обновляется слушателем
     // до возврата транзакции — здесь это делает заглушка цепи по тем же ставкам.
     chargePeriod: jest.fn(async (data: { order_hash: string; amount: string; base: string }) => {
@@ -102,7 +104,8 @@ function build(opts: { warrantyUntil?: Date | null; openClaimOrders?: string[]; 
     notifications as never,
     logger as never,
     periodService as never,
-    runQueriesOver(store) as never
+    runQueriesOver(store) as never,
+    { emit: jest.fn() } as never
   );
   return { service, store, chainPort, notifications, logger, claimRepo, periodService };
 }

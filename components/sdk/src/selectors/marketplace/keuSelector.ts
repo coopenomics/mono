@@ -67,6 +67,8 @@ export const rawMarketplaceBranchPeriodSelector = {
   deficit: true,
   rate_percent: true,
   initiator: true,
+  invest_phase: true,
+  investor_repaid: true,
   rows_total: true,
   rows_charged: true,
   closed_at: true,

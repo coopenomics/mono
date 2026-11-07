@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { MarketContract } from 'cooptypes';
+import { MarketContract } from 'cooptypes';
 import {
   EXPENSE_CHASSIS_PORT,
   LEDGER2_HISTORY_PORT,
@@ -11,6 +11,7 @@ import {
 import { DomainError, TableStore, chainErrorCode, isNull, platformSettings, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_PERIOD_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -26,6 +27,13 @@ const PERIOD_NOT_CLOSED = 'MARKETPLACE_PERIOD_NOT_CLOSED';
 /** Операции служебных записок участка по общему кошельку: выделение под расход и возврат неизрасходованного. */
 const MEMO_FUND_CODE = 'o.brn.expfnd';
 const MEMO_UNFUND_CODE = 'o.brn.expunf';
+/**
+ * Те же записки, оплаченные из средств инициаторов участка (задача 99D-30):
+ * выделение и возврат остатка по пулу инициаторов. Выделение под
+ * материальную помощь идёт той же операцией — его отличает хэш заявления.
+ */
+const POOL_FUND_CODE = 'o.mkt.ipool';
+const POOL_UNFUND_CODE = 'o.mkt.iunpl';
 
 /** Сколько операций по общему кошельку участка читается за страницу истории; страницы читаются до последней. */
 const HISTORY_PAGE = 200;
@@ -110,13 +118,16 @@ export class MarketplacePeriodService {
         coopname,
         username: braname,
         actionNames: ['apply'],
-        operationCodes: [MEMO_FUND_CODE, MEMO_UNFUND_CODE],
+        operationCodes: [MEMO_FUND_CODE, MEMO_UNFUND_CODE, POOL_FUND_CODE, POOL_UNFUND_CODE],
         dateFrom: bounds.start,
         dateTo: bounds.end,
         page,
         limit: HISTORY_PAGE,
       });
-      for (const op of result.items) total += this.memoDelta(op, planHashes);
+      for (const op of result.items) {
+        if (op.operationCode === POOL_FUND_CODE && op.processHash && (await this.aidMirror.isAidHash(coopname, op.processHash))) continue;
+        total += this.memoDelta(op, planHashes);
+      }
       // Пустая страница — страховка от неверного числа страниц в ответе истории.
       if (page >= result.totalPages || result.items.length === 0) break;
     }
@@ -131,8 +142,8 @@ export class MarketplacePeriodService {
   private memoDelta(op: { processHash?: string | null; quantity?: unknown; operationCode?: string | null }, planHashes: Set<string>): bigint {
     if (op.processHash && planHashes.has(op.processHash.toLowerCase())) return 0n;
     const units = this.economyService.assetToUnits(String(op.quantity ?? '0'));
-    if (op.operationCode === MEMO_FUND_CODE) return units;
-    if (op.operationCode === MEMO_UNFUND_CODE) return -units;
+    if (op.operationCode === MEMO_FUND_CODE || op.operationCode === POOL_FUND_CODE) return units;
+    if (op.operationCode === MEMO_UNFUND_CODE || op.operationCode === POOL_UNFUND_CODE) return -units;
     return 0n;
   }
 
@@ -223,17 +234,41 @@ export class MarketplacePeriodService {
     };
     const existing = await this.store.findOne(key);
     if (existing) {
+      // Фаза и возмещение прогона — история этого месяца: повторное зеркало их не переписывает.
       await this.store.update(key, { ...fields, rows_total: Math.max(existing.rows_total, rowsTotal), rows_charged: existing.rows_charged });
       return { ...existing, ...fields, rows_total: Math.max(existing.rows_total, rowsTotal), rows_charged: existing.rows_charged };
     }
-    return this.store.insert(fields);
+    const invest_phase = await this.investPhaseOf(coopname, key.braname, this.economyService.assetToUnits(String(row.deficit ?? '0')));
+    return this.store.insert({ ...fields, invest_phase, investor_repaid: this.toDecimal(0n) });
   }
 
-  /** Строк прогона списано ещё `count`. */
-  async noteCharged(coopname: string, braname: string, period: number, count: number): Promise<void> {
+  /**
+   * Фаза участка по вложениям инициаторов при расчёте итога (задача 99D-30):
+   * по строке участка `invbranches` — вложения есть ли, остаток к возврату по
+   * формуле контракта (`PeriodModel.crpsOutstanding`) — и по недостаче месяца.
+   */
+  private async investPhaseOf(coopname: string, braname: string, deficit: bigint): Promise<MarketplacePeriodInvestPhase> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    const units = (asset: unknown) => this.economyService.assetToUnits(String(asset ?? '0'));
+    if (!branch || units(branch.money_total) + units(branch.property_total) <= 0n) return MarketplacePeriodInvestPhase.NONE;
+    if (deficit > 0n) return MarketplacePeriodInvestPhase.DEFICIT;
+    const outstanding = MarketContract.PeriodModel.crpsOutstanding({
+      base: BigInt(branch.base ?? 0),
+      acc: BigInt(branch.acc ?? 0),
+      sJoin: BigInt(branch.s_join ?? 0),
+      sFixed: BigInt(branch.s_fixed ?? 0),
+      unusedTotal: units(branch.unused_total),
+      reserved: units(branch.reserved),
+    });
+    return outstanding > 0n ? MarketplacePeriodInvestPhase.REPAYING : MarketplacePeriodInvestPhase.BRANCH;
+  }
+
+  /** Строк прогона списано ещё `count`; доля инициаторов по ним возместила вложения на `investorRepaid`. */
+  async noteCharged(coopname: string, braname: string, period: number, count: number, investorRepaid = 0n): Promise<void> {
     const row = await this.store.findOne({ coopname, braname, period });
     if (!row) return;
-    await this.store.update({ coopname, braname, period }, { rows_charged: row.rows_charged + count });
+    const repaid = this.economyService.assetToUnits(String(row.investor_repaid ?? '0')) + investorRepaid;
+    await this.store.update({ coopname, braname, period }, { rows_charged: row.rows_charged + count, investor_repaid: this.toDecimal(repaid) });
   }
 
   /**

@@ -64,6 +64,11 @@ title: Лента изменений цепи — живое обновлени�
 # `marketplace_supplier_profile` и `marketplace_review`; обе открыты пайщикам кооператива. Механика ленты
 # и набор случаев прежние.
 
+
+# Правка 07.11.2026 (99D-30): Стол заказов объявляет в ленте изменений
+# таблицы инвестиционного этапа участка `invagreemnts`, `invbranches`,
+# `investors`, `invprops` — страница «Инициаторы участка» перечитывается по
+# сигналу. Механизм ленты не менялся.
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
