@@ -17,7 +17,8 @@ import type { MarketplaceMessageKey } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, DocumentPreview, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { AmountInput, DataRow, DetailsDrawer, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader'
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import {
@@ -121,7 +122,10 @@ async function loadAll(): Promise<void> {
   loading.value = true
   try {
     agreement.value = await getMyAgreement()
-    if (!agreement.value) return
+    if (!agreement.value) {
+      void loadAgreementDoc()
+      return
+    }
     const [rows, view, page] = await Promise.all([
       listMyInvestments(),
       getBranchInvestment(braname.value),
@@ -340,19 +344,20 @@ async function run(work: () => Promise<void>, success: MarketplaceMessageKey, fa
   }
 }
 
-// Договор участия: просмотр текста, затем подпись.
-const agreementOpen = ref(false)
+// Договор участия — как регистрация в Благоросте: текст сформирован при
+// открытии и стоит на странице целиком, подпись — кнопкой в прилипшем подвале.
 const agreementDoc = ref<InvestDocumentView | null>(null)
 const agreementDocLoading = ref(false)
+const agreementDocError = ref(false)
 
-async function openAgreement(): Promise<void> {
-  agreementOpen.value = true
+async function loadAgreementDoc(): Promise<void> {
+  if (agreementDoc.value || agreementDocLoading.value) return
   agreementDocLoading.value = true
+  agreementDocError.value = false
   try {
     agreementDoc.value = await getAgreementPayload()
-  } catch (e) {
-    FailAlert(e, i18nT('marketplace.initiatorsPage.agreementLoadFailed'))
-    agreementOpen.value = false
+  } catch {
+    agreementDocError.value = true
   } finally {
     agreementDocLoading.value = false
   }
@@ -361,12 +366,11 @@ async function openAgreement(): Promise<void> {
 async function onSignAgreement(): Promise<void> {
   const doc = agreementDoc.value
   if (!doc) return
-  const ok = await run(
+  await run(
     async () => signAgreement({ agreement: await signed(doc) }),
     'marketplace.initiatorsPage.agreementSigned',
     'marketplace.initiatorsPage.agreementSignFailed',
   )
-  if (ok) agreementOpen.value = false
 }
 
 // Вложение деньгами: сумма → заявление 1119 → подпись.
@@ -532,17 +536,29 @@ q-page.initiators
     PageHint(storage-key='mp:operator-initiators:banner-dismissed')
       | {{ $t('marketplace.initiatorsPage.hint') }}
 
-    //- Без договора — только договор: подписать его — первый шаг инициатора.
-    BaseCard.initiators__agreement(v-if='!firstLoad && !agreement')
-      .initiators__agreement-body
-        q-icon.initiators__agreement-icon(name='handshake', size='28px')
-        .initiators__agreement-text
-          .initiators__agreement-title {{ $t('marketplace.initiatorsPage.agreementTitle') }}
-          .initiators__agreement-sub {{ $t('marketplace.initiatorsPage.agreementBody') }}
-        BaseButton(variant='primary', :loading='agreementDocLoading', @click='openAgreement')
-          template(#icon-left)
-            q-icon(name='draw', size='16px')
-          | {{ $t('marketplace.initiatorsPage.agreementAction') }}
+    //- Без договора — только договор: текст на странице, подпись — в подвале.
+    template(v-if='!firstLoad && !agreement')
+      .initiators__doc-loading(v-if='agreementDocLoading')
+        q-spinner(color='primary', size='28px')
+        span {{ $t('marketplace.initiatorsPage.agreementPreparing') }}
+      template(v-else-if='agreementDocError')
+        .banner.banner--neg
+          q-icon.banner__icon(name='error', size='20px')
+          .banner__body {{ $t('marketplace.initiatorsPage.agreementLoadFailed') }}
+        div
+          BaseButton(variant='primary', @click='loadAgreementDoc')
+            template(#icon-left)
+              q-icon(name='refresh', size='18px')
+            | {{ $t('common.action.retry') }}
+      template(v-else-if='agreementDoc')
+        BaseCard(:title='$t("marketplace.initiatorsPage.agreementTitle")', :subtitle='$t("marketplace.initiatorsPage.agreementBody")')
+          .initiators__doc
+            DocumentHtmlReader(:html='agreementDoc.html')
+        .initiators__foot
+          BaseButton(variant='primary', size='lg', :loading='busy', :disabled='busy', @click='onSignAgreement')
+            template(#icon-left)
+              q-icon(name='draw', size='18px')
+            | {{ $t('marketplace.initiatorsPage.agreementAction') }}
 
     template(v-else-if='agreement || firstLoad')
       PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
@@ -720,18 +736,6 @@ q-page.initiators
       BaseButton(v-else-if='canSignAct(selectedProperty)', variant='primary', :disabled='busy', @click='onAct(selectedProperty, false)') {{ $t('marketplace.initiatorsPage.actAction') }}
       BaseButton(v-else, variant='primary', :disabled='busy', @click='onAct(selectedProperty, true)') {{ $t('marketplace.initiatorsPage.acceptAction') }}
 
-  //- Договор участия: текст на просмотр, затем подпись.
-  BaseDialog(v-model='agreementOpen', :title='$t("marketplace.initiatorsPage.agreementTitle")', size='lg')
-    DocumentPreview(
-      :document='{ type: "html", html: agreementDoc?.html ?? "" }',
-      :loading='agreementDocLoading',
-      profile='document',
-      height='60vh'
-    )
-    template(#footer)
-      BaseButton(variant='ghost', @click='agreementOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(variant='primary', :loading='busy', :disabled='!agreementDoc', @click='onSignAgreement') {{ $t('marketplace.initiatorsPage.agreementAction') }}
-
   //- Вложение деньгами: паевой взнос переходит с главного кошелька на кошелёк договора участия.
   BaseDialog(v-model='moneyOpen', :title='$t("marketplace.initiatorsPage.moneyDialogTitle")', size='sm')
     BaseForm(:loading='busy', @submit='onInvestMoney')
@@ -788,24 +792,35 @@ q-page.initiators
   gap: var(--p-4);
 }
 
-.initiators__agreement-body {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--p-4);
+.initiators__doc-loading {
+  display: flex;
   align-items: center;
+  gap: var(--p-3);
+  color: var(--p-ink-2);
 }
 
-.initiators__agreement-icon {
-  color: var(--p-primary);
-}
-
-.initiators__agreement-title {
-  font-size: var(--p-fs-h3);
-  font-weight: 600;
+.initiators__doc {
+  max-height: 420px;
+  overflow: auto;
+  padding: var(--p-4);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
   color: var(--p-ink);
 }
 
-.initiators__agreement-sub,
+.initiators__foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--p-3);
+  padding: var(--p-3) 0;
+  background: var(--p-canvas);
+  border-top: 1px solid var(--p-line);
+}
+
 .initiators__muted,
 .initiators__phase-note {
   font-size: var(--p-fs-body-sm);
@@ -855,11 +870,5 @@ q-page.initiators
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
-}
-
-@media (max-width: 600px) {
-  .initiators__agreement-body {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
 }
 </style>

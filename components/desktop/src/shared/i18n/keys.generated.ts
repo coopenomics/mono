@@ -5068,6 +5068,7 @@ export type MessageKey =
   | 'marketplace.initiatorsPage.agreementAction'
   | 'marketplace.initiatorsPage.agreementBody'
   | 'marketplace.initiatorsPage.agreementLoadFailed'
+  | 'marketplace.initiatorsPage.agreementPreparing'
   | 'marketplace.initiatorsPage.agreementSignFailed'
   | 'marketplace.initiatorsPage.agreementSigned'
   | 'marketplace.initiatorsPage.agreementTitle'

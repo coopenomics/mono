@@ -54,24 +54,18 @@ export default async ({ page, shot, expect }) => {
   await dismissOnboardingDialogs(page);
   await openPage(page);
 
-  // Договор участия: без него страница показывает только договор.
-  const sign = page.locator('.initiators__agreement button:has-text("Подписать договор")').first();
+  // Договор участия: без него страница показывает только договор — текст на
+  // странице, кнопка подписи в прилипшем подвале.
+  const sign = page.locator('.initiators__foot button:has-text("Подписать договор")').first();
   if (await sign.count()) {
+    await page.locator('.initiators__doc').first().waitFor({ state: 'visible', timeout: 60000 });
+    await page.waitForTimeout(1000);
     await shot(
       page,
       '01-agreement',
-      'Без договора участия страница показывает только договор: он подписывается один раз и действует для всех кооперативных участков. После подписи доступны вложения деньгами и имуществом.',
+      'Без договора участия страница показывает сам договор: текст сформирован заранее и читается на странице, кнопка «Подписать договор» прилипла к низу экрана. Договор подписывается один раз и действует для всех кооперативных участков.',
     );
     await sign.click();
-    const dialog = page.locator('.q-dialog').last();
-    await dialog.locator('button:has-text("Подписать договор")').last().waitFor({ state: 'visible', timeout: 30000 });
-    await page.waitForTimeout(1500);
-    await shot(
-      page,
-      '02-agreement-dialog',
-      'Текст договора участия в хозяйственной деятельности открывается на просмотр; подпись ставится кнопкой «Подписать договор» в окне.',
-    );
-    await dialog.locator('button:has-text("Подписать договор")').last().click();
     await page.locator('text=Мои вложения').first().waitFor({ state: 'visible', timeout: 120000 });
     await page.waitForTimeout(1500);
   }
