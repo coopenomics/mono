@@ -29,6 +29,9 @@ import {
   type MarketplaceInvestorView,
   acceptProperty,
   approveProperty,
+  canAcceptProperty,
+  canApproveProperty,
+  canSignPropertyAct,
   claimInvestment,
   createProperty,
   declineProperty,
@@ -484,17 +487,10 @@ async function onClaim(): Promise<void> {
 }
 
 // Имущество: одобрение и отказ председателя участка, акт двумя подписями.
-function canApprove(p: MarketplaceInvestPropertyView): boolean {
-  return isTrustee.value && p.status === Zeus.MarketplaceInvestPropertyStatus.CREATED
-}
-
-function canSignAct(p: MarketplaceInvestPropertyView): boolean {
-  return p.username === session.username && p.status === Zeus.MarketplaceInvestPropertyStatus.AUTHORIZED
-}
-
-function canAccept(p: MarketplaceInvestPropertyView): boolean {
-  return isTrustee.value && p.status === Zeus.MarketplaceInvestPropertyStatus.ACT1
-}
+// Условия действий — общие со счётчиком дел на пункте меню.
+const canApprove = (p: MarketplaceInvestPropertyView): boolean => canApproveProperty(p, isTrustee.value)
+const canSignAct = (p: MarketplaceInvestPropertyView): boolean => canSignPropertyAct(p, session.username)
+const canAccept = (p: MarketplaceInvestPropertyView): boolean => canAcceptProperty(p, isTrustee.value)
 
 async function onApprove(p: MarketplaceInvestPropertyView): Promise<void> {
   const yes = await confirm({

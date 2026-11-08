@@ -1,5 +1,11 @@
 import './i18n';
 import { markRaw } from 'vue'
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges'
+import { registerLiveReload } from 'src/shared/lib/realtime'
+import { useSessionStore } from 'src/entities/Session'
+import { useSystemStore } from 'src/entities/System/model'
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { getBranchInvestment, propertyActionsCount } from 'src/entities/MarketplaceInvestment'
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
@@ -102,6 +108,18 @@ import { t } from './i18n';
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
   registerMarketplaceProcessInfoHandlers()
+
+  // Стол ПВЗ, «Инициаторы участка»: сколько заявлений на имущество ждут этого
+  // пайщика — одобрить, подписать акт, принять по акту (слово владельца
+  // 08.11.2026: иначе по меню не догадаться, что есть что подписать).
+  registerMenuBadge('marketplace-pvz-initiators', async () => {
+    const branches = useOperatorBranchStore()
+    await branches.ensureLoaded(useSystemStore().info.coopname)
+    if (!branches.activeBraname) return 0
+    const view = await getBranchInvestment(branches.activeBraname)
+    return propertyActionsCount(view.properties, useSessionStore().username, Boolean(branches.activeBranch?.isTrustee))
+  })
+  registerLiveReload([{ code: 'marketplace', table: 'invprops' }], () => refreshMenuBadges(['marketplace-pvz-initiators']))
 
   // Глобальный гейт подписи на месте (Фаза 1) — расширение само вкладывает свой
   // оверлей в универсальный реестр ядра, как и process-info-хендлеры выше. App

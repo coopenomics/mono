@@ -125,6 +125,7 @@ sources:
     # Инвестиционный этап участка на столе ПВЗ (99D-31): страница «Инициаторы участка» и запросы паевых взносов
     - components/desktop/src/pages/Marketplace/OperatorBranchInitiators/**
     - components/desktop/src/entities/MarketplaceInvestment/**
+    - components/desktop/src/widgets/Marketplace/InvestPropertyDecisionInfo/**
     - components/desktop/src/pages/Marketplace/AdminIssuancePoints/**
     - components/desktop/src/widgets/Marketplace/OrderSecurePartCard/**
     - components/desktop/src/pages/Marketplace/Cart/**
@@ -453,6 +454,16 @@ cases:
       этап «Акт подписан вносящим», затем запись в «Принятом имуществе»; без робота совета сценарий заканчивается на решении совета
     test: components/docs-harness/scenarios/marketplace/branch-chairman/initiators-property.mjs
     status: written
+
+  - id: mkt.order.invest.ui.badge
+    level: ui
+    kind: happy
+    scenario: >
+      У председателя участка есть поданное заявление на имущество и акт, подписанный вносящим; у вносящего — акт после решения совета.
+    expect: >
+      пункт меню «Инициаторы участка» показывает число заявлений, ждущих действия этого пайщика; вопрос в совете и чужие заявления не считаются; без дел бейджа нет
+    test: components/desktop/test/unit/invest-property-actions.test.ts
+    status: passing
 
   # ── Прямой путь ──────────────────────────────────────────────────────────
   - id: mkt.order.happy.01
