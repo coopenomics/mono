@@ -15,7 +15,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import type { MarketplaceMessageKey } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { AmountInput, DataRow, DetailsDrawer, DocumentSignSheet, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument'
@@ -53,8 +53,8 @@ import {
  *
  * Без договора участия страница показывает только договор: подписать его —
  * первый шаг инициатора. С договором — разделы:
- *  1. «Мои вложения» — что вложено, использовано, возвращено и доступно к
- *     возврату по выбранному участку; история вложений строками. Действия в
+ *  1. «Мои взносы» — что внесено, использовано, возвращено и доступно к
+ *     возврату по выбранному участку; история паевых взносов строками. Действия в
  *     строке разделов: внести деньгами, внести имуществом, получить возврат.
  *  2. «Имущество» — заявления на имущество до приёма с действием по этапу
  *     (председатель участка одобряет и подписывает акт второй подписью,
@@ -86,7 +86,7 @@ const myRows = ref<MarketplaceInvestorView[]>([])
 const branchView = ref<MarketplaceBranchInvestmentView | null>(null)
 const history = ref<MarketplaceInvestHistoryEntry[]>([])
 
-/** Сколько записей истории показываем: последние вложения и возвраты. */
+/** Сколько записей истории показываем: последние паевые взносы и возвраты. */
 const HISTORY_LIMIT = 50
 
 const mine = computed(() => myRows.value.find((r) => r.braname === braname.value) ?? null)
@@ -147,8 +147,8 @@ onMounted(async () => {
 
 watch(braname, () => void loadAll())
 
-// Договоры, вложения, заявления на имущество — таблицы контракта; кошелёк
-// вложения — ledger2; документы истории — реестр документов узла.
+// Договоры, паевые взносы, заявления на имущество — таблицы контракта; кошелёк
+// паевые взносы — ledger2; документы истории — реестр документов узла.
 useLiveReload(
   [
     { code: 'marketplace', table: 'invagreemnts' },
@@ -170,8 +170,8 @@ function symbolOf(asset: string | null | undefined): string {
   return String(asset ?? '').split(' ')[1] ?? ''
 }
 
-function tile(key: string, caption: string, asset: string | undefined, sub: string, icon?: string): StatStripItem {
-  return { key, caption, value: amountOf(asset).toFixed(2), symbol: symbolOf(asset), sub, icon }
+function tile(key: string, caption: string, asset: string | undefined, sub: string): StatStripItem {
+  return { key, caption, value: amountOf(asset).toFixed(2), symbol: symbolOf(asset), sub }
 }
 
 const symbol = computed(() => symbolOf(mine.value?.money ?? branchView.value?.money_total))
@@ -181,11 +181,11 @@ function sumAssets(a: string | undefined, b: string | undefined): string {
   return `${(amountOf(a) + amountOf(b)).toFixed(4)} ${symbolOf(a ?? b)}`
 }
 
-/** У пайщика есть вложения в выбранный участок. */
+/** У пайщика есть паевые взносы в выбранный участок. */
 const hasMine = computed(() => Boolean(mine.value && amountOf(mine.value.money) + amountOf(mine.value.property) > 0))
 
 /**
- * Сводка вложений пайщика — четыре плитки в один ряд по пути денег: внесено →
+ * Сводка паевых взносов пайщика — четыре плитки в один ряд по пути денег: внесено →
  * использовано участком → возвращено → доступно к возврату. Подробности
  * (деньгами и имуществом, не израсходовано) — подписью под числом.
  */
@@ -193,20 +193,23 @@ const myTiles = computed<StatStripItem[]>(() => {
   const m = mine.value
   return [
     tile('invested', i18nT('marketplace.initiatorsPage.tileInvested'), sumAssets(m?.money, m?.property),
-      i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money ?? ''), property: formatAsset2Digits(m?.property ?? '') }), 'savings'),
+      i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money ?? ''), property: formatAsset2Digits(m?.property ?? '') })),
     tile('used', i18nT('marketplace.initiatorsPage.tileUsed'), m?.used,
       i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(m?.unused ?? '') })),
     tile('returned', i18nT('marketplace.initiatorsPage.tileReturned'), m?.returned, i18nT('marketplace.initiatorsPage.tileReturnedSub')),
-    tile('claimable', i18nT('marketplace.initiatorsPage.tileClaimable'), m?.claimable, i18nT('marketplace.initiatorsPage.tileClaimableSub'), 'account_balance_wallet'),
+    tile('claimable', i18nT('marketplace.initiatorsPage.tileClaimable'), m?.claimable, i18nT('marketplace.initiatorsPage.tileClaimableSub')),
   ]
 })
+
+/** У участка есть инициаторы: без них итоги — одни нули, вкладка показывает пустое состояние. */
+const hasInvestors = computed(() => Boolean(branchView.value?.investors.length))
 
 /** Итоги участка — те же четыре шага для всех инициаторов. */
 const branchTiles = computed<StatStripItem[]>(() => {
   const b = branchView.value
   return [
     tile('invested', i18nT('marketplace.initiatorsPage.tileBranchInvested'), sumAssets(b?.money_total, b?.property_total),
-      i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') }), 'savings'),
+      i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') })),
     tile('spent', i18nT('marketplace.initiatorsPage.tileBranchSpent'), b?.spent_total,
       i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(b?.unused_total ?? '') })),
     tile('repaid', i18nT('marketplace.initiatorsPage.tileBranchRepaid'), b?.repaid_total, i18nT('marketplace.initiatorsPage.tileBranchRepaidSub')),
@@ -393,7 +396,7 @@ async function onSignAgreement(): Promise<void> {
   )
 }
 
-// Вложение деньгами: сумма → заявление 1119 → подпись.
+// Паевой взнос деньгами: сумма → заявление 1119 → подпись.
 const moneyOpen = ref(false)
 const moneySum = ref<number | null>(null)
 
@@ -414,7 +417,7 @@ async function onInvestMoney(): Promise<void> {
   }
 }
 
-// Вложение имуществом: наименование, описание, количество, цена → заявление 1120.
+// Паевой взнос имуществом: наименование, описание, количество, цена → заявление 1120.
 const propertyOpen = ref(false)
 const emptyProperty = () => ({ name: '', description: '', quantity: '1', unit: '', amount: null as number | null })
 const propertyForm = ref(emptyProperty())
@@ -593,8 +596,9 @@ q-page.initiators(:style-fn='pageStyle')
               q-icon(name='add', size='16px')
             | {{ $t('marketplace.initiatorsPage.propertyAction') }}
 
-      //- 1. Мои вложения: сводка карточкой (фаза участка — в её шапке), ниже история.
-      //- Пока взносов нет — одно пустое состояние вместо нулей; внести — кнопками в строке разделов.
+      //- 1. Мои взносы: строка раздела (подпись, справа фаза участка) и ряд плиток —
+      //- как «Средства инициаторов» на «Экономике участка»; ниже история. Пока взносов
+      //- нет — одно пустое состояние вместо нулей; внести — кнопками в строке разделов.
       template(v-if='activeKey === "mine"')
         EmptyState(
           v-if='!firstLoad && !hasMine',
@@ -605,13 +609,14 @@ q-page.initiators(:style-fn='pageStyle')
             q-icon(name='volunteer_activism', size='48px')
 
         template(v-else)
-          BaseCard(:title='$t("marketplace.initiatorsPage.mineSummaryTitle")')
-            template(#actions)
+          .initiators__section
+            .initiators__section-head
+              .initiators__section-title {{ $t('marketplace.initiatorsPage.mineSummaryTitle') }}
               .initiators__phase(v-if='branchView')
                 span.initiators__phase-note(v-if='amountOf(branchView.outstanding) > 0')
                   | {{ $t('marketplace.initiatorsPage.outstandingNote', { amount: formatAsset2Digits(branchView.outstanding) }) }}
                 BaseBadge(:variant='phase.variant') {{ $t(phase.label) }}
-            StatStrip(:items='myTiles', :loading='firstLoad', :framed='false')
+            StatStrip(:items='myTiles', :loading='firstLoad')
 
           .initiators__section
             .initiators__section-title {{ $t('marketplace.initiatorsPage.historyTitle') }}
@@ -634,9 +639,10 @@ q-page.initiators(:style-fn='pageStyle')
             .initiators__muted(v-else) {{ $t('marketplace.initiatorsPage.historyEmptyBody') }}
 
       //- 2. Имущество
+      //- Подпись раздела — только над таблицей: пустое состояние говорит само за себя.
       template(v-if='activeKey === "property"')
         .initiators__section
-          .initiators__section-title {{ $t('marketplace.initiatorsPage.pendingTitle') }}
+          .initiators__section-title(v-if='firstLoad || pendingProperties.length') {{ $t('marketplace.initiatorsPage.pendingTitle') }}
           BaseTable(
             v-if='firstLoad || pendingProperties.length',
             :columns='propertyColumns',
@@ -687,18 +693,20 @@ q-page.initiators(:style-fn='pageStyle')
             template(#cell-amount='{ row }')
               span.t-mono {{ formatAsset2Digits(row.amount) }}
 
-      //- 3. Инициаторы участка — председателю участка: итоги карточкой с фазой, ниже строки инициаторов.
+      //- 3. Инициаторы участка — председателю участка: строка итогов с фазой и ряд плиток,
+      //- ниже строки инициаторов. Участок без инициаторов — одно пустое состояние, без нулей.
       template(v-if='activeKey === "initiators" && isTrustee')
-        BaseCard(:title='$t("marketplace.initiatorsPage.branchSummaryTitle")')
-          template(#actions)
+        .initiators__section(v-if='firstLoad || hasInvestors')
+          .initiators__section-head
+            .initiators__section-title {{ $t('marketplace.initiatorsPage.branchSummaryTitle') }}
             .initiators__phase(v-if='branchView')
               BaseBadge(:variant='phase.variant') {{ $t(phase.label) }}
-          StatStrip(:items='branchTiles', :loading='firstLoad', :framed='false')
+          StatStrip(:items='branchTiles', :loading='firstLoad')
 
         .initiators__section
-          .initiators__section-title {{ $t('marketplace.initiatorsPage.investorsTitle') }}
+          .initiators__section-title(v-if='firstLoad || hasInvestors') {{ $t('marketplace.initiatorsPage.investorsTitle') }}
           BaseTable(
-            v-if='firstLoad || (branchView && branchView.investors.length)',
+            v-if='firstLoad || hasInvestors',
             :columns='investorColumns',
             :rows='branchView ? branchView.investors : []',
             row-key='username',
@@ -757,7 +765,7 @@ q-page.initiators(:style-fn='pageStyle')
       BaseButton(v-else-if='canSignAct(selectedProperty)', variant='primary', :disabled='busy', @click='onAct(selectedProperty, false)') {{ $t('marketplace.initiatorsPage.actAction') }}
       BaseButton(v-else, variant='primary', :disabled='busy', @click='onAct(selectedProperty, true)') {{ $t('marketplace.initiatorsPage.acceptAction') }}
 
-  //- Вложение деньгами: паевой взнос переходит с главного кошелька на кошелёк договора участия.
+  //- Паевой взнос деньгами: паевой взнос переходит с главного кошелька на кошелёк договора участия.
   BaseDialog(v-model='moneyOpen', :title='$t("marketplace.initiatorsPage.moneyDialogTitle")', size='sm')
     BaseForm(:loading='busy', @submit='onInvestMoney')
       .initiators__muted.q-mb-md {{ $t('marketplace.initiatorsPage.moneyDialogHint') }}
@@ -773,7 +781,7 @@ q-page.initiators(:style-fn='pageStyle')
         BaseButton(variant='ghost', @click='moneyOpen = false') {{ $t('common.action.cancel') }}
         BaseButton(variant='primary', type='submit', :loading='busy', :disabled='!(Number(moneySum) > 0)') {{ $t('marketplace.initiatorsPage.moneyAction') }}
 
-  //- Вложение имуществом: заявление председателю участка, затем совет и акт.
+  //- Паевой взнос имуществом: заявление председателю участка, затем совет и акт.
   BaseDialog(v-model='propertyOpen', :title='$t("marketplace.initiatorsPage.propertyDialogTitle")', size='md')
     BaseForm(:loading='busy', @submit='onCreateProperty')
       .initiators__muted.q-mb-md {{ $t('marketplace.initiatorsPage.propertyDialogHint') }}
@@ -828,6 +836,13 @@ q-page.initiators(:style-fn='pageStyle')
 .initiators__section {
   display: flex;
   flex-direction: column;
+  gap: var(--p-3);
+}
+
+.initiators__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--p-3);
 }
 
