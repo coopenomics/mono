@@ -51,6 +51,8 @@ export const marketplaceBranchReservesSelector = Selector('MarketplaceBranchRese
 export const rawMarketplaceBranchPeriodSelector = {
   braname: true,
   period: true,
+  starts_at: true,
+  ends_at: true,
   turnover: true,
   secured: true,
   planned: true,
@@ -87,6 +89,8 @@ export const marketplaceBranchPeriodsPaginationSelector = Selector('MarketplaceB
 export const rawMarketplaceBranchCurrentPeriodSelector = {
   braname: true,
   period: true,
+  starts_at: true,
+  ends_at: true,
   planned: true,
   memos: true,
   aid_paid: true,

@@ -7431,13 +7431,15 @@ export const ReturnTypes: Record<string,any> = {
 		aid_paid:"String",
 		aid_reserve:"String",
 		braname:"String",
+		ends_at:"DateTime",
 		expenses:"String",
 		memos:"String",
 		period:"Int",
 		planned:"String",
 		ripening_orders:"Int",
 		ripening_secured:"String",
-		ripening_turnover:"String"
+		ripening_turnover:"String",
+		starts_at:"DateTime"
 	},
 	MarketplaceBranchEconomy:{
 		available_to_distribute:"String",
@@ -7475,6 +7477,7 @@ export const ReturnTypes: Record<string,any> = {
 		branch_amount:"String",
 		closed_at:"DateTime",
 		deficit:"String",
+		ends_at:"DateTime",
 		expenses:"String",
 		funds_amount:"String",
 		initiator:"String",
@@ -7490,6 +7493,7 @@ export const ReturnTypes: Record<string,any> = {
 		rows_charged:"Int",
 		rows_total:"Int",
 		secured:"String",
+		starts_at:"DateTime",
 		turnover:"String"
 	},
 	MarketplaceBranchPeriodsPaginationResult:{

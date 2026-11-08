@@ -11194,6 +11194,8 @@ export type ValueTypes = {
 	aid_reserve?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
 	expenses?:boolean | `@${string}`,
 	/** Служебные записки участка сверх плана за текущий месяц. */
@@ -11208,6 +11210,8 @@ export type ValueTypes = {
 	ripening_secured?:boolean | `@${string}`,
 	/** Стоимость заказов, которые созреют к первому числу. */
 	ripening_turnover?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchCurrentPeriod']?: Omit<ValueTypes["MarketplaceBranchCurrentPeriod"], "...on MarketplaceBranchCurrentPeriod">
 }>;
@@ -11286,6 +11290,8 @@ export type ValueTypes = {
 	closed_at?:boolean | `@${string}`,
 	/** Дефицит участка: расходы без покрытия. */
 	deficit?:boolean | `@${string}`,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
 	/** Расходы участка за прогон. */
 	expenses?:boolean | `@${string}`,
 	/** В фонды накопления кооператива. */
@@ -11316,6 +11322,8 @@ export type ValueTypes = {
 	rows_total?:boolean | `@${string}`,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -30223,6 +30231,8 @@ export type ResolverInputTypes = {
 	aid_reserve?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
 	expenses?:boolean | `@${string}`,
 	/** Служебные записки участка сверх плана за текущий месяц. */
@@ -30237,6 +30247,8 @@ export type ResolverInputTypes = {
 	ripening_secured?:boolean | `@${string}`,
 	/** Стоимость заказов, которые созреют к первому числу. */
 	ripening_turnover?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
@@ -30311,6 +30323,8 @@ export type ResolverInputTypes = {
 	closed_at?:boolean | `@${string}`,
 	/** Дефицит участка: расходы без покрытия. */
 	deficit?:boolean | `@${string}`,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
 	/** Расходы участка за прогон. */
 	expenses?:boolean | `@${string}`,
 	/** В фонды накопления кооператива. */
@@ -30341,6 +30355,8 @@ export type ResolverInputTypes = {
 	rows_total?:boolean | `@${string}`,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -48611,6 +48627,8 @@ export type ModelTypes = {
 	aid_reserve: string,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: ModelTypes["DateTime"],
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
 	expenses: string,
 	/** Служебные записки участка сверх плана за текущий месяц. */
@@ -48624,7 +48642,9 @@ export type ModelTypes = {
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
 	ripening_secured: string,
 	/** Стоимость заказов, которые созреют к первому числу. */
-	ripening_turnover: string
+	ripening_turnover: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: ModelTypes["DateTime"]
 };
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
@@ -48695,6 +48715,8 @@ export type ModelTypes = {
 	closed_at: ModelTypes["DateTime"],
 	/** Дефицит участка: расходы без покрытия. */
 	deficit: string,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: ModelTypes["DateTime"],
 	/** Расходы участка за прогон. */
 	expenses: string,
 	/** В фонды накопления кооператива. */
@@ -48725,6 +48747,8 @@ export type ModelTypes = {
 	rows_total: number,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: ModelTypes["DateTime"],
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover: string
 };
@@ -67884,6 +67908,8 @@ export type GraphQLTypes = {
 	aid_reserve: string,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: GraphQLTypes["DateTime"],
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
 	expenses: string,
 	/** Служебные записки участка сверх плана за текущий месяц. */
@@ -67898,6 +67924,8 @@ export type GraphQLTypes = {
 	ripening_secured: string,
 	/** Стоимость заказов, которые созреют к первому числу. */
 	ripening_turnover: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceBranchCurrentPeriod']: Omit<GraphQLTypes["MarketplaceBranchCurrentPeriod"], "...on MarketplaceBranchCurrentPeriod">
 };
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
@@ -67976,6 +68004,8 @@ export type GraphQLTypes = {
 	closed_at: GraphQLTypes["DateTime"],
 	/** Дефицит участка: расходы без покрытия. */
 	deficit: string,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: GraphQLTypes["DateTime"],
 	/** Расходы участка за прогон. */
 	expenses: string,
 	/** В фонды накопления кооператива. */
@@ -68006,6 +68036,8 @@ export type GraphQLTypes = {
 	rows_total: number,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: GraphQLTypes["DateTime"],
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover: string,
 	['...on MarketplaceBranchPeriod']: Omit<GraphQLTypes["MarketplaceBranchPeriod"], "...on MarketplaceBranchPeriod">

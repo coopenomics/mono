@@ -1,6 +1,7 @@
 import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import type { PeriodBounds } from '../shared/period-bounds';
 import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
 import type {
   MarketplaceBranchReservesView,
@@ -169,6 +170,12 @@ export class MarketplaceBranchPeriodDTO {
   @Field(() => Int, { description: 'Номер месяца: год × 12 + месяц по часовому поясу кооператива.' })
   period!: number;
 
+  @Field(() => Date, { description: 'Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца.' })
+  starts_at!: Date;
+
+  @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
+  ends_at!: Date;
+
   @Field({ description: 'Стоимость заказов прогона, списанных по итогу месяца.' })
   turnover!: string;
 
@@ -247,6 +254,12 @@ export class MarketplaceBranchCurrentPeriodDTO {
   @Field(() => Int, { description: 'Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива.' })
   period!: number;
 
+  @Field(() => Date, { description: 'Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца.' })
+  starts_at!: Date;
+
+  @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
+  ends_at!: Date;
+
   @Field({ description: 'Плановые расходы участка со сроком в текущем месяце.' })
   planned!: string;
 
@@ -282,10 +295,12 @@ export function toMarketplaceBranchReservesDTO(view: MarketplaceBranchReservesVi
   return { braname: view.braname, limit: view.limit, rows: view.rows.map((r: MarketplaceBranchReserveView) => ({ ...r })) };
 }
 
-export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity, ratePercent: string): MarketplaceBranchPeriodDTO {
+export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity, ratePercent: string, bounds: PeriodBounds): MarketplaceBranchPeriodDTO {
   return {
     braname: row.braname,
     period: row.period,
+    starts_at: bounds.start,
+    ends_at: bounds.end,
     turnover: row.turnover,
     secured: row.secured,
     planned: row.planned,

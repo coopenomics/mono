@@ -10,7 +10,7 @@ import { OperatorBranchBar, branchPersonName, branchPersonNames, useOperatorBran
 import { DigitalDocument } from 'src/shared/lib/document'
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, PageHint, StatStrip, type StatStripItem, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
+import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
@@ -714,16 +714,25 @@ const initiatorName = computed(() => {
 
 // ─── Итоги месяцев участка ───
 
-/** Месяц по его номеру (год × 12 + месяц): «ноябрь 2026». */
-function monthLabel(period: number): string {
-  const year = Math.floor((period - 1) / 12)
-  const month = (period - 1) % 12
-  return new Date(Date.UTC(year, month, 1)).toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })
+/**
+ * Подпись месяца по его границам от сервера: календарный месяц — «ноябрь
+ * 2026», месяц стенда со сжатым временем (короче суток) — «08.11.2026
+ * 19:20–19:30». Номер месяца на стенде — номер отрезка, годом он не читается.
+ */
+function monthLabel(p: { starts_at: unknown; ends_at: unknown }): string {
+  const start = new Date(String(p.starts_at))
+  const end = new Date(String(p.ends_at))
+  if (end.getTime() - start.getTime() < 24 * 60 * 60 * 1000) {
+    const day = start.toLocaleDateString(uiLocale())
+    const time = (d: Date) => d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' })
+    return `${day} ${time(start)}–${time(end)}`
+  }
+  const label = start.toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '')
+  return label[0].toUpperCase() + label.slice(1)
 }
 
 const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
-  { key: 'month', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnMonth'), width: '150px', nowrap: true },
-  { key: 'invest_phase', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnPhase'), width: '190px', nowrap: true },
+  { key: 'month', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnMonth'), width: '210px', nowrap: true },
   { key: 'turnover', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnTurnover'), width: '150px', numeric: true },
   { key: 'secured', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnSecured'), width: '140px', numeric: true },
   { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnExpenses'), width: '140px', numeric: true },
@@ -741,19 +750,17 @@ const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
  * участка без паевых взносов плиток нет.
  */
 const hasInvestment = computed(() => Boolean(investment.value && investment.value.phase !== Zeus.MarketplaceInvestPhase.NONE))
-const investmentTiles = computed<StatStripItem[]>(() => {
+// Карточки — как кошельки выше и на странице «Инициаторы участка»: значок,
+// название, пояснение и сумма справа (слово владельца 08.11.2026).
+const investmentCards = computed(() => {
   const b = investment.value
-  const item = (key: string, caption: string, asset: string | undefined, sub: string): StatStripItem => ({
-    key,
-    caption,
-    value: assetAmount(asset ?? '').toFixed(2),
-    symbol: assetSymbol(asset ?? ''),
-    sub,
+  const card = (key: string, icon: string, title: string, subtitle: string, asset: string | undefined, label: string) => ({
+    key, icon, title, subtitle, balance: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? ''), label,
   })
   return [
-    item('reserved', i18nT('marketplace.operatorBranchEconomyPage.investPoolReserved'), b?.reserved, i18nT('marketplace.operatorBranchEconomyPage.investPoolReservedSub')),
-    item('spent', i18nT('marketplace.operatorBranchEconomyPage.investPoolSpent'), b?.spent_total, i18nT('marketplace.operatorBranchEconomyPage.investPoolSpentSub')),
-    item('repaid', i18nT('marketplace.operatorBranchEconomyPage.investRepaid'), b?.repaid_total, i18nT('marketplace.operatorBranchEconomyPage.investRepaidSub')),
+    card('reserved', 'lock_clock', i18nT('marketplace.operatorBranchEconomyPage.investPoolReserved'), i18nT('marketplace.operatorBranchEconomyPage.investPoolReservedSub'), b?.reserved, i18nT('marketplace.operatorBranchEconomyPage.investCardNow')),
+    card('spent', 'receipt_long', i18nT('marketplace.operatorBranchEconomyPage.investPoolSpent'), i18nT('marketplace.operatorBranchEconomyPage.investPoolSpentSub'), b?.spent_total, i18nT('marketplace.operatorBranchEconomyPage.investCardTotal')),
+    card('repaid', 'trending_up', i18nT('marketplace.operatorBranchEconomyPage.investRepaid'), i18nT('marketplace.operatorBranchEconomyPage.investRepaidSub'), b?.repaid_total, i18nT('marketplace.operatorBranchEconomyPage.investCardTotal')),
   ]
 })
 
@@ -941,7 +948,19 @@ q-page.economy
             template(#icon-left)
               q-icon(name='volunteer_activism', size='16px')
             | {{ $t('marketplace.operatorBranchEconomyPage.investOpenAction') }}
-        StatStrip(:items='investmentTiles', :loading='firstLoad')
+        .row.q-col-gutter-md
+          .col-12.col-md-4(v-for='c in investmentCards', :key='c.key')
+            WalletCard(
+              program='wallet',
+              stacked,
+              :icon='c.icon',
+              :title='c.title',
+              :subtitle='c.subtitle',
+              :balance='c.balance',
+              :symbol='c.symbol',
+              :balance-label='c.label',
+              :loading='firstLoad'
+            )
 
       .economy__section
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.walletMovementsTitle') }}
@@ -1267,7 +1286,7 @@ q-page.economy
       BaseCard.economy__current(v-if='currentPeriod')
         template(#head)
           div
-            .t-h3 {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodTitle', { month: monthLabel(currentPeriod.period) }) }}
+            .t-h3 {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodTitle', { month: monthLabel(currentPeriod) }) }}
             .t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
           BaseBadge(variant='info') {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodBadge') }}
         .economy__current-grid
@@ -1293,13 +1312,9 @@ q-page.economy
         @row-click='openPeriod'
       )
         template(#cell-month='{ row: p }')
-          .economy__name {{ monthLabel(p.period) }}
-          .economy__due-note(v-if='p.deficit && assetAmount(p.deficit) > 0')
-            q-icon(name='trending_down', size='14px')
-            | {{ $t('marketplace.operatorBranchEconomyPage.periodDeficitNote') }}
-        template(#cell-invest_phase='{ row: p }')
-          BaseBadge(v-if='PERIOD_PHASE[p.invest_phase]', :variant='PERIOD_PHASE[p.invest_phase].variant') {{ $t(PERIOD_PHASE[p.invest_phase].label) }}
-          span.t-muted(v-else) —
+          //- Месяц — одной строкой; недостача — своей колонкой, фаза паевых
+          //- взносов — в панели месяца: строки таблицы одной высоты.
+          .economy__name {{ monthLabel(p) }}
         template(#cell-turnover='{ row: p }')
           span.t-mono {{ formatAsset2Digits(p.turnover) }}
         template(#cell-secured='{ row: p }')
@@ -1329,7 +1344,7 @@ q-page.economy
 
   //- Состав итога месяца — правая панель: факты прогона, расчёт контракта,
   //- получатель доли инициатора.
-  DetailsDrawer(v-model='periodDrawerOpen', :title='selectedPeriod ? monthLabel(selectedPeriod.period) : ""')
+  DetailsDrawer(v-model='periodDrawerOpen', :title='selectedPeriod ? monthLabel(selectedPeriod) : ""')
     template(v-if='selectedPeriod')
       .economy__drawer-amount
         .t-muted {{ $t('marketplace.operatorBranchEconomyPage.periodMembership') }}

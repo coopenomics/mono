@@ -1368,7 +1368,6 @@
       "periodColumnReturned": "Возвращено пайщикам",
       "periodColumnSecured": "Собрано",
       "periodColumnTurnover": "Стоимость заказов",
-      "periodDeficitNote": "расходы без покрытия",
       "periodExpensesTitle": "Расходы участка",
       "periodFactsTitle": "Факты прогона",
       "periodInitiatorLine": "Получатель доли инициатора",
@@ -1439,18 +1438,19 @@
       "investTitle": "Средства инициаторов участка",
       "investOpenAction": "Инициаторы участка",
       "investPoolReserved": "Выделено",
-      "investPoolReservedSub": "под незакрытые расходы и помощь",
+      "investPoolReservedSub": "Под незакрытые расходы и помощь участка",
       "investPoolSpent": "Оплачено",
-      "investPoolSpentSub": "из средств инициаторов всего",
+      "investPoolSpentSub": "Расходы участка из средств инициаторов",
       "investRepaid": "Возмещено инициаторам",
-      "investRepaidSub": "из экономии участка всего",
-      "periodColumnPhase": "Взносы инициаторов",
+      "investRepaidSub": "Из экономии участка",
       "periodPhaseDeficit": "Месяц с недостачей",
       "periodPhaseRepaying": "Возмещение взносов",
       "periodPhaseBranch": "Доля участку",
       "periodInvestorRepaid": "Возмещено инициаторам",
       "periodInitiatorRepayHint": "Доля инициаторов возмещает их использованные паевые взносы.",
-      "periodInitiatorBranchHint": "Взносы возмещены или месяц с недостачей: доля инициаторов направляется участку."
+      "periodInitiatorBranchHint": "Взносы возмещены или месяц с недостачей: доля инициаторов направляется участку.",
+      "investCardNow": "Сейчас",
+      "investCardTotal": "Всего"
     },
     "operatorBranchOrderDetail": {
       "backToEconomy": "К экономике участка",
@@ -2639,7 +2639,10 @@
       "title": "Топ позиций по обороту",
       "totalAcceptedLabel": "Принято на склад",
       "totalFeeLabel": "Обеспечительная часть с выданного",
-      "totalIssuedLabel": "Выдано пайщикам"
+      "totalIssuedLabel": "Выдано пайщикам",
+      "totalAcceptedSub": "Стоимость имущества, принятого от поставщиков",
+      "totalIssuedSub": "Стоимость имущества, выданного пайщикам",
+      "totalFeeSub": "Паевой взнос сверх стоимости выданного"
     },
     "universalScannerHost": {
       "choiceHint": "На участке несколько дел. Выберите, с чего начать.",

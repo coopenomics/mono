@@ -29,6 +29,7 @@ import {
   toMarketplaceBranchReservesDTO,
   toMarketplaceEconomySettingsDTO,
 } from '../dto/marketplace-keu.dto';
+import { periodBounds } from '../shared/period-bounds';
 
 const paginatedBranchPeriods = createPaginationResult(MarketplaceBranchPeriodDTO, 'MarketplaceBranchPeriods');
 
@@ -168,7 +169,9 @@ export class MarketplaceKeuResolver {
     const result = await this.periods.listForBranch(platformSettings().coopname, braname, options);
     return {
       ...result,
-      items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row))),
+      // Границы месяца — по той же шкале, что списание: на стенде со сжатым
+      // временем месяц — отрезок STAND_MONTH_SECONDS, его номер годом не читается.
+      items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row), periodBounds(row.period, platformSettings().timezone || 'UTC'))),
     };
   }
 
@@ -190,9 +193,12 @@ export class MarketplaceKeuResolver {
     ]);
     const reserve = reserves.rows.reduce((sum, r) => sum + this.economyService.assetToUnits(r.amount), 0n);
     const asset = (units: bigint) => this.economyService.unitsToAsset(units);
+    const bounds = periodBounds(period, platformSettings().timezone || 'UTC');
     return {
       braname,
       period,
+      starts_at: bounds.start,
+      ends_at: bounds.end,
       planned: asset(facts.planned),
       memos: asset(facts.memos),
       aid_paid: asset(facts.aidPaid),
