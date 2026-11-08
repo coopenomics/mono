@@ -29,6 +29,16 @@ function metaOf(agg: IDocumentAggregate | null | undefined): Record<string, unkn
 
 const text = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v : undefined)
 
+/** Поле сведений — ключ меты документа, из которого оно берётся. */
+const FACT_KEYS: ReadonlyArray<[keyof InvestPropertyFacts, string]> = [
+  ['name', 'property_name'],
+  ['description', 'property_description'],
+  ['quantity', 'property_quantity'],
+  ['unit', 'property_unit'],
+  ['branchName', 'branch_name'],
+  ['chairmanName', 'branch_chairman_name'],
+]
+
 export function propertyFactsOf(pkg: IDocumentPackageAggregate | null | undefined): InvestPropertyFacts | null {
   if (!pkg) return null
   const aggregates = [
@@ -38,14 +48,10 @@ export function propertyFactsOf(pkg: IDocumentPackageAggregate | null | undefine
     ...(pkg.links ?? []),
   ]
   const facts: InvestPropertyFacts = {}
-  for (const agg of aggregates) {
-    const m = metaOf(agg)
-    facts.name ??= text(m.property_name)
-    facts.description ??= text(m.property_description)
-    facts.quantity ??= text(m.property_quantity)
-    facts.unit ??= text(m.property_unit)
-    facts.branchName ??= text(m.branch_name)
-    facts.chairmanName ??= text(m.branch_chairman_name)
+  const metas = aggregates.map(metaOf)
+  for (const [field, key] of FACT_KEYS) {
+    facts[field] = metas.map((m) => text(m[key])).find(Boolean)
   }
   return facts.name ? facts : null
 }
+
