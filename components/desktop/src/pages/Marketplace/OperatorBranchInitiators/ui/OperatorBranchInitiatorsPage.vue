@@ -284,6 +284,10 @@ const selectedProperty = ref<MarketplaceInvestPropertyView | null>(null)
 const selectedInvestor = ref<MarketplaceInvestorView | null>(null)
 const drawerPackage = ref<IDocumentPackageAggregate | null>(null)
 const drawerDocLoading = ref(false)
+/** Чтение документов упало — показать это прямо, а не «документ ещё не записан». */
+const drawerDocFailed = ref(false)
+/** Хэш процесса открытой записи — для повтора чтения. */
+const drawerProcessHash = ref('')
 
 const drawerOpen = computed({
   get: () => Boolean(selectedHistory.value || selectedProperty.value || selectedInvestor.value),
@@ -299,11 +303,15 @@ const drawerOpen = computed({
 /** Документ процесса — из реестра документов по хэшу процесса. */
 async function loadPackage(processHash: string): Promise<void> {
   drawerPackage.value = null
+  drawerDocFailed.value = false
+  drawerProcessHash.value = processHash
   drawerDocLoading.value = true
   try {
     drawerPackage.value = await documents.loadPackage(session.username, processHash)
   } catch {
-    // Документ дойдёт до реестра с лентой; панель покажет факты без него.
+    // Пустой ответ означает «документа ещё нет в реестре», сбой — отдельное
+    // состояние: иначе ошибка выглядит как ожидание записи в цепь.
+    drawerDocFailed.value = true
   } finally {
     drawerDocLoading.value = false
   }
@@ -750,6 +758,10 @@ q-page.initiators(:style-fn='pageStyle')
         .initiators__section-title {{ $t('marketplace.initiatorsPage.documentsTitle') }}
         q-skeleton(v-if='drawerDocLoading', type='rect', height='48px')
         ComplexDocument(v-else-if='drawerPackage', :documents='drawerPackage', collapsible)
+        template(v-else-if='drawerDocFailed')
+          .initiators__muted {{ $t('marketplace.initiatorsPage.documentLoadFailed') }}
+          div
+            BaseButton(variant='secondary', size='sm', @click='loadPackage(drawerProcessHash)') {{ $t('marketplace.initiatorsPage.documentRetry') }}
         .initiators__muted(v-else) {{ $t('marketplace.initiatorsPage.documentPending') }}
     template(v-else-if='selectedProperty')
       .initiators__drawer-amount.t-mono {{ formatAsset2Digits(selectedProperty.amount) }}
