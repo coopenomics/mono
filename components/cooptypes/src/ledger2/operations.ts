@@ -349,7 +349,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.iback',   process_type: 'p.mkt.invest',  contract: 'marketplace',
     name: 'INVEST_BACK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
     debit: null, credit: null,
-    human_name: 'Трансляция возвращённого паевого взноса в главный паевой кошелёк' },
+    human_name: 'Трансляция паевого взноса из договора участия в главный паевой кошелёк' },
 
   { code: 'o.mkt.iexit',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'INVEST_EXIT', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',

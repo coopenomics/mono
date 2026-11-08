@@ -249,7 +249,7 @@ cases:
     level: backend
     kind: happy
     scenario: >
-      Два инициатора внесли имущество 600 000 и 400 000 ₽, участок возместил 100 000 ₽; инициатор открывает «Доступно к возврату».
+      Два инициатора внесли имущество 600 000 и 400 000 ₽, участок возместил 100 000 ₽; инициатор открывает «Доступно для трансляции».
     expect: >
       предпросмотр 60 000 и 40 000 ₽ — ровно эталон контракта PeriodModel.crpsReturned на тех же строках
     test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts

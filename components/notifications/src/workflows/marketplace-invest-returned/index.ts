@@ -15,7 +15,7 @@ export const marketplaceInvestReturnedPayloadSchema = z.object({
   branchName: z.string(),
   /** Доступно к трансляции сейчас, два знака. */
   amount: z.string(),
-  /** Строка состояния: возврат идёт либо использованное возвращено целиком. */
+  /** Строка состояния: возмещение идёт либо использованное возмещено целиком. */
   status: z.string(),
   coopname: z.string(),
   deepLinkUrl: z.string().optional(),

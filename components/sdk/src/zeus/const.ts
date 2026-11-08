@@ -139,6 +139,22 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BillingConversionStatementGenerateDocumentInput:{
+
+	},
+	BillingConversionStatementSignedDocumentInput:{
+		meta:"BillingConversionStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BillingConversionStatementSignedMetaDocumentInput:{
+
+	},
+	BillingConvertInput:{
+		document:"BillingConversionStatementSignedDocumentInput"
+	},
+	BillingPayInput:{
+
+	},
 	BranchEstablishmentDecisionGenerateDocumentInput:{
 
 	},
@@ -1777,6 +1793,12 @@ export const AllTypesProps: Record<string,any> = {
 		authorizeForceRecovery:{
 			data:"AuthorizeForceRecoveryInput"
 		},
+		billingConvert:{
+			input:"BillingConvertInput"
+		},
+		billingPay:{
+			input:"BillingPayInput"
+		},
 		cancelMembershipExit:{
 
 		},
@@ -2383,6 +2405,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateBallotForAnnualGeneralMeetDocument:{
 			data:"AnnualGeneralMeetingVotingBallotGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateBillingConversionStatement:{
+			data:"BillingConversionStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateDocument:{
@@ -3576,6 +3602,9 @@ export const AllTypesProps: Record<string,any> = {
 			filters:"ActionFiltersInput",
 			pagination:"PaginationInput"
 		},
+		getBillingSummary:{
+
+		},
 		getBranches:{
 			data:"GetBranchesInput"
 		},
@@ -4538,10 +4567,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -4783,6 +4808,19 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ProjectStatus",
 		title:"String",
 		voting:"CapitalProjectVotingData"
+	},
+	BillingResult:{
+		paymentHash:"String",
+		transactionId:"String"
+	},
+	BillingSummary:{
+		coopname:"String",
+		currency:"String",
+		items:"BillingSummaryItem",
+		nextPaymentDue:"String",
+		paymentHash:"String",
+		periodDays:"Int",
+		totalAmount:"Float"
 	},
 	BillingSummaryItem:{
 		amount:"Float",
@@ -8597,6 +8635,8 @@ export const ReturnTypes: Record<string,any> = {
 		assignRole:"AssignableRole",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
+		billingConvert:"BillingResult",
+		billingPay:"BillingResult",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
@@ -8794,6 +8834,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
+		generateBillingConversionStatement:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateExpenseProposalDecisionDocument:"GeneratedDocument",
 		generateExpenseProposalStatementDocument:"GeneratedDocument",
@@ -9870,6 +9911,7 @@ export const ReturnTypes: Record<string,any> = {
 		getAgenda:"AgendaWithDocuments",
 		getAssignableRoles:"AssignableRole",
 		getAvailableReports:"AvailableReport",
+		getBillingSummary:"BillingSummary",
 		getBranches:"Branch",
 		getCandidateIntake:"CandidateIntake",
 		getCapabilitySets:"CapabilitySet",

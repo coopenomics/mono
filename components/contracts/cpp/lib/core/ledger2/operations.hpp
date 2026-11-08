@@ -679,7 +679,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::INVEST_BACK, processes::marketplace::INVEST, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
-    "Трансляция возвращённого паевого взноса в главный паевой кошелёк" },
+    "Трансляция паевого взноса из договора участия в главный паевой кошелёк" },
   { operations::marketplace::INVEST_EXIT, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,

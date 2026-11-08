@@ -2112,6 +2112,111 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on BaseCapitalProject']?: Omit<ValueTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 }>;
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ValueTypes["BillingConversionStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null | Variable<any, string>,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ValueTypes["BillingConversionStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Назначение платежа */
+	memo: string | Variable<any, string>,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string | Variable<any, string>,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string | Variable<any, string>
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingResult']?: Omit<ValueTypes["BillingResult"], "...on BillingResult">
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ValueTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on BillingSummary']?: Omit<ValueTypes["BillingSummary"], "...on BillingSummary">
+}>;
 	["BillingSummaryItem"]: AliasType<{
 	amount?:boolean | `@${string}`,
 	isFree?:boolean | `@${string}`,
@@ -2304,17 +2409,23 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ValueTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
@@ -3500,7 +3611,9 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ValueTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -3671,9 +3784,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3693,7 +3810,9 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ValueTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -3712,9 +3831,13 @@ export type ValueTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ValueTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -3726,7 +3849,9 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ValueTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -11116,7 +11241,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchInitiator']?: Omit<ValueTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
 }>;
-	/** Паевые взносы инициаторов кооперативного участка и ход их возврата. */
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: AliasType<{
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
@@ -11124,7 +11249,7 @@ export type ValueTypes = {
 	investors?:ValueTypes["MarketplaceInvestor"],
 	/** Внесено деньгами всего. */
 	money_total?:boolean | `@${string}`,
-	/** Осталось вернуть инициаторам из использованного. */
+	/** Осталось возместить инициаторам из использованного. */
 	outstanding?:boolean | `@${string}`,
 	/** Фаза участка по паевым взносам. */
 	phase?:boolean | `@${string}`,
@@ -12046,7 +12171,7 @@ export type ValueTypes = {
 }>;
 	/** Запись истории паевых взносов пайщика в кооперативные участки. */
 ["MarketplaceInvestHistoryEntry"]: AliasType<{
-	/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	/** Сумма: деньгами, по цене приёма имущества или трансляции. */
 	amount?:boolean | `@${string}`,
 	/** Когда операция проведена. */
 	created_at?:boolean | `@${string}`,
@@ -12059,7 +12184,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceInvestHistoryEntry']?: Omit<ValueTypes["MarketplaceInvestHistoryEntry"], "...on MarketplaceInvestHistoryEntry">
 }>;
-	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
 ["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
 	["MarketplaceInvestHistoryPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -12083,7 +12208,7 @@ export type ValueTypes = {
 	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
 	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
-	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возвращено. */
+	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
 ["MarketplaceInvestPhase"]:MarketplaceInvestPhase;
 	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
 ["MarketplaceInvestProperty"]: AliasType<{
@@ -12130,7 +12255,7 @@ export type ValueTypes = {
 };
 	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
 ["MarketplaceInvestor"]: AliasType<{
-	/** Возврат ещё идёт; ложь — использованное возвращено целиком. */
+	/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
 	active?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
@@ -12142,7 +12267,7 @@ export type ValueTypes = {
 	money?:boolean | `@${string}`,
 	/** Внесено имуществом по цене приёма. */
 	property?:boolean | `@${string}`,
-	/** Возвращено из экономии участка. */
+	/** Возмещено из экономии участка. */
 	returned?:boolean | `@${string}`,
 	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
 	unused?:boolean | `@${string}`,
@@ -14818,6 +14943,8 @@ assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable
 assignRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
+billingConvert?: [{	input: ValueTypes["BillingConvertInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
+billingPay?: [{	input: ValueTypes["BillingPayInput"] | Variable<any, string>},ValueTypes["BillingResult"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
@@ -15018,6 +15145,7 @@ generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeet
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateBillingConversionStatement?: [{	data: ValueTypes["BillingConversionStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalDecisionDocument?: [{	data: ValueTypes["ExpenseProposalDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ValueTypes["ExpenseProposalStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -17351,6 +17479,7 @@ getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | 
 	getAssignableRoles?:ValueTypes["AssignableRole"],
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ValueTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string | Variable<any, string>,	period?: number | undefined | null | Variable<any, string>},ValueTypes["BillingSummary"]],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
 getCandidateIntake?: [{	username: string | Variable<any, string>},ValueTypes["CandidateIntake"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
@@ -17550,7 +17679,7 @@ marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffP
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?:ValueTypes["MarketplaceInvestAgreement"],
 marketplaceMyInvestHistory?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInvestHistoryPaginationResult"]],
-	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
 	marketplaceMyInvestments?:ValueTypes["MarketplaceInvestor"],
 marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
 	order_id: string | Variable<any, string>},ValueTypes["MarketplaceReview"]],
@@ -21247,6 +21376,109 @@ export type ResolverInputTypes = {
 	voting?:ResolverInputTypes["CapitalProjectVotingData"],
 		__typename?: boolean | `@${string}`
 }>;
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ResolverInputTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ResolverInputTypes["BillingConversionStatementSignedDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: AliasType<{
+	paymentHash?:boolean | `@${string}`,
+	transactionId?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["BillingSummary"]: AliasType<{
+	coopname?:boolean | `@${string}`,
+	currency?:boolean | `@${string}`,
+	items?:ResolverInputTypes["BillingSummaryItem"],
+	nextPaymentDue?:boolean | `@${string}`,
+	paymentHash?:boolean | `@${string}`,
+	periodDays?:boolean | `@${string}`,
+	totalAmount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["BillingSummaryItem"]: AliasType<{
 	amount?:boolean | `@${string}`,
 	isFree?:boolean | `@${string}`,
@@ -21433,17 +21665,23 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -22607,7 +22845,9 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Статус из блокчейна */
 	blockchain_status?:boolean | `@${string}`,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?:ResolverInputTypes["DocumentAggregate"],
 	/** Вклад как автор */
 	contributed_as_author?:boolean | `@${string}`,
@@ -22775,9 +23015,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма долга */
 	amount?:boolean | `@${string}`,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -22797,7 +23041,9 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Дата погашения */
 	repaid_at?:boolean | `@${string}`,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?:ResolverInputTypes["DocumentAggregate"],
 	/** Статус долга */
 	status?:boolean | `@${string}`,
@@ -22815,9 +23061,13 @@ export type ResolverInputTypes = {
 	_updated_at?:boolean | `@${string}`,
 	/** Сумма расхода */
 	amount?:boolean | `@${string}`,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?:ResolverInputTypes["DocumentAggregate"],
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
@@ -22829,7 +23079,9 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Хеш расхода */
 	expense_hash?:boolean | `@${string}`,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?:ResolverInputTypes["DocumentAggregate"],
 	/** ID фонда */
 	fund_id?:boolean | `@${string}`,
@@ -30016,7 +30268,7 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Паевые взносы инициаторов кооперативного участка и ход их возврата. */
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: AliasType<{
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
@@ -30024,7 +30276,7 @@ export type ResolverInputTypes = {
 	investors?:ResolverInputTypes["MarketplaceInvestor"],
 	/** Внесено деньгами всего. */
 	money_total?:boolean | `@${string}`,
-	/** Осталось вернуть инициаторам из использованного. */
+	/** Осталось возместить инициаторам из использованного. */
 	outstanding?:boolean | `@${string}`,
 	/** Фаза участка по паевым взносам. */
 	phase?:boolean | `@${string}`,
@@ -30913,7 +31165,7 @@ export type ResolverInputTypes = {
 }>;
 	/** Запись истории паевых взносов пайщика в кооперативные участки. */
 ["MarketplaceInvestHistoryEntry"]: AliasType<{
-	/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	/** Сумма: деньгами, по цене приёма имущества или трансляции. */
 	amount?:boolean | `@${string}`,
 	/** Когда операция проведена. */
 	created_at?:boolean | `@${string}`,
@@ -30925,7 +31177,7 @@ export type ResolverInputTypes = {
 	process_hash?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
 ["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
 	["MarketplaceInvestHistoryPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -30948,7 +31200,7 @@ export type ResolverInputTypes = {
 	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
 	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
-	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возвращено. */
+	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
 ["MarketplaceInvestPhase"]:MarketplaceInvestPhase;
 	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
 ["MarketplaceInvestProperty"]: AliasType<{
@@ -30994,7 +31246,7 @@ export type ResolverInputTypes = {
 };
 	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
 ["MarketplaceInvestor"]: AliasType<{
-	/** Возврат ещё идёт; ложь — использованное возвращено целиком. */
+	/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
 	active?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
@@ -31006,7 +31258,7 @@ export type ResolverInputTypes = {
 	money?:boolean | `@${string}`,
 	/** Внесено имуществом по цене приёма. */
 	property?:boolean | `@${string}`,
-	/** Возвращено из экономии участка. */
+	/** Возмещено из экономии участка. */
 	returned?:boolean | `@${string}`,
 	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
 	unused?:boolean | `@${string}`,
@@ -33597,6 +33849,8 @@ assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},b
 assignRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
+billingConvert?: [{	input: ResolverInputTypes["BillingConvertInput"]},ResolverInputTypes["BillingResult"]],
+billingPay?: [{	input: ResolverInputTypes["BillingPayInput"]},ResolverInputTypes["BillingResult"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
@@ -33797,6 +34051,7 @@ generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGen
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateBillingConversionStatement?: [{	data: ResolverInputTypes["BillingConversionStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalDecisionDocument?: [{	data: ResolverInputTypes["ExpenseProposalDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ResolverInputTypes["ExpenseProposalStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -36037,6 +36292,7 @@ getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined |
 	getAssignableRoles?:ResolverInputTypes["AssignableRole"],
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
+getBillingSummary?: [{	coopname: string,	period?: number | undefined | null},ResolverInputTypes["BillingSummary"]],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
 getCandidateIntake?: [{	username: string},ResolverInputTypes["CandidateIntake"]],
 	/** Каталог наборов возможностей с правами, которые они открывают */
@@ -36236,7 +36492,7 @@ marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListW
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?:ResolverInputTypes["MarketplaceInvestAgreement"],
 marketplaceMyInvestHistory?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceInvestHistoryPaginationResult"]],
-	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
 	marketplaceMyInvestments?:ResolverInputTypes["MarketplaceInvestor"],
 marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
 	order_id: string},ResolverInputTypes["MarketplaceReview"]],
@@ -39819,6 +40075,107 @@ export type ModelTypes = {
 	/** Данные голосования по методу Водянова */
 	voting: ModelTypes["CapitalProjectVotingData"]
 };
+	["BillingConversionStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: ModelTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BillingConvertInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: ModelTypes["BillingConversionStatementSignedDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+	/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+		paymentHash?: string | undefined | null,
+	transactionId: string
+};
+	["BillingSummary"]: {
+		coopname: string,
+	currency: string,
+	items: Array<ModelTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number
+};
 	["BillingSummaryItem"]: {
 		amount: number,
 	isFree: boolean,
@@ -39999,17 +40356,23 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?: Array<ModelTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?: ModelTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?: Array<ModelTypes["IndividualCertificate"]> | undefined | null
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -41146,7 +41509,9 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -41311,9 +41676,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -41333,7 +41702,9 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: ModelTypes["DebtStatus"],
@@ -41350,9 +41721,13 @@ export type ModelTypes = {
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -41364,7 +41739,9 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -48277,7 +48654,7 @@ export type ModelTypes = {
 	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
 	username?: string | undefined | null
 };
-	/** Паевые взносы инициаторов кооперативного участка и ход их возврата. */
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: {
 		/** Кооперативный участок. */
 	braname: string,
@@ -48285,7 +48662,7 @@ export type ModelTypes = {
 	investors: Array<ModelTypes["MarketplaceInvestor"]>,
 	/** Внесено деньгами всего. */
 	money_total: string,
-	/** Осталось вернуть инициаторам из использованного. */
+	/** Осталось возместить инициаторам из использованного. */
 	outstanding: string,
 	/** Фаза участка по паевым взносам. */
 	phase: ModelTypes["MarketplaceInvestPhase"],
@@ -49134,7 +49511,7 @@ export type ModelTypes = {
 };
 	/** Запись истории паевых взносов пайщика в кооперативные участки. */
 ["MarketplaceInvestHistoryEntry"]: {
-		/** Сумма: деньгами, по цене приёма имущества или возврата. */
+		/** Сумма: деньгами, по цене приёма имущества или трансляции. */
 	amount: string,
 	/** Когда операция проведена. */
 	created_at: ModelTypes["DateTime"],
@@ -49209,7 +49586,7 @@ export type ModelTypes = {
 };
 	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
 ["MarketplaceInvestor"]: {
-		/** Возврат ещё идёт; ложь — использованное возвращено целиком. */
+		/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
 	active: boolean,
 	/** Кооперативный участок. */
 	braname: string,
@@ -49221,7 +49598,7 @@ export type ModelTypes = {
 	money: string,
 	/** Внесено имуществом по цене приёма. */
 	property: string,
-	/** Возвращено из экономии участка. */
+	/** Возмещено из экономии участка. */
 	returned: string,
 	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
 	unused: string,
@@ -51705,6 +52082,10 @@ export type ModelTypes = {
 	authorizeDecision: ModelTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
 	authorizeForceRecovery: ModelTypes["ForceRecoveryAuthorization"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement. */
+	billingConvert: ModelTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash. */
+	billingPay: ModelTypes["BillingResult"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте */
@@ -52099,6 +52480,8 @@ export type ModelTypes = {
 	generateAnnualGeneralMeetNotificationDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков */
 	generateBallotForAnnualGeneralMeetDocument: ModelTypes["GeneratedDocument"],
+	/** Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto. */
+	generateBillingConversionStatement: ModelTypes["GeneratedDocument"],
 	/** Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя. */
 	generateDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи. */
@@ -52241,7 +52624,7 @@ export type ModelTypes = {
 	marketplaceCancelWriteoffDraft: boolean,
 	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы выполняется отдельной транзакцией до заказов. */
 	marketplaceCheckoutCart: ModelTypes["MarketplaceCheckoutResult"],
-	/** Перевести доступный возврат паевого взноса на главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив. */
+	/** Транслировать доступный паевой взнос в главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив. */
 	marketplaceClaimInvestment: Array<ModelTypes["MarketplaceInvestor"]>,
 	/** Очистить все доступные категории (сделать доступными все) */
 	marketplaceClearAvailableCategories: boolean,
@@ -54540,6 +54923,8 @@ export type ModelTypes = {
 	getAssignableRoles: Array<ModelTypes["AssignableRole"]>,
 	/** Получить список доступных типов отчётов */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода. */
+	getBillingSummary: ModelTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
 	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
@@ -54693,7 +55078,7 @@ export type ModelTypes = {
 	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
-	/** Паевые взносы инициаторов кооперативного участка, фаза возврата и заявления на имущество до приёма. */
+	/** Паевые взносы инициаторов кооперативного участка, фаза возмещения и заявления на имущество до приёма. */
 	marketplaceBranchInvestment: ModelTypes["MarketplaceBranchInvestment"],
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
@@ -54745,7 +55130,7 @@ export type ModelTypes = {
 	marketplaceHandoffCode: ModelTypes["MarketplaceHandoffCode"],
 	/** Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком. */
 	marketplaceInvestAgreementSignablePayload: ModelTypes["GeneratedDocument"],
-	/** Сформировать заявление о трансляции доступного возврата с кошелька договора участия на главный паевой кошелёк. */
+	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
 	marketplaceInvestClaimSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Акт приёма-передачи имущества после решения совета: вносящий подписывает первым, председатель участка — вторым. */
 	marketplaceInvestPropertyActSignablePayload: ModelTypes["GeneratedDocument"],
@@ -54851,9 +55236,9 @@ export type ModelTypes = {
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?: ModelTypes["MarketplaceInvestAgreement"] | undefined | null,
-	/** История паевых взносов текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми. */
+	/** История паевых взносов текущего пайщика: деньги, принятое имущество, трансляции в Цифровой Кошелёк. Новые первыми. */
 	marketplaceMyInvestHistory: ModelTypes["MarketplaceInvestHistoryPaginationResult"],
-	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
 	marketplaceMyInvestments: Array<ModelTypes["MarketplaceInvestor"]>,
 	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
 	marketplaceMyReviewByOrder?: ModelTypes["MarketplaceReview"] | undefined | null,
@@ -58420,6 +58805,111 @@ export type GraphQLTypes = {
 	voting: GraphQLTypes["CapitalProjectVotingData"],
 	['...on BaseCapitalProject']: Omit<GraphQLTypes["BaseCapitalProject"], "...on BaseCapitalProject">
 };
+	["BillingConversionStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BillingConversionStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления на конвертацию паевого в биллинг-кошелёк */
+	meta: GraphQLTypes["BillingConversionStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BillingConversionStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Версия сборщика документа (major.minor); у документов, собранных до её появления, не задана */
+	builder?: string | undefined | null,
+	/** Сумма к конвертации паевого в членский на биллинг-кошелёк */
+	convert_amount: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BillingConvertInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Подписанное пайщиком заявление 1095.BillingConversionStatement (document2 с типизированной meta: convert_amount). */
+	document: GraphQLTypes["BillingConversionStatementSignedDocumentInput"],
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingPayInput"]: {
+		/** Сумма с символом, например "1500.0000 RUB" */
+	amount: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Назначение платежа */
+	memo: string,
+	/** Детерминированный идентификатор платежа (payment_hash из getBillingSummary провайдера) */
+	paymentHash: string,
+	/** Имя аккаунта пайщика — владельца биллинг-кошелька */
+	username: string
+};
+	["BillingResult"]: {
+	__typename: "BillingResult",
+	paymentHash?: string | undefined | null,
+	transactionId: string,
+	['...on BillingResult']: Omit<GraphQLTypes["BillingResult"], "...on BillingResult">
+};
+	["BillingSummary"]: {
+	__typename: "BillingSummary",
+	coopname: string,
+	currency: string,
+	items: Array<GraphQLTypes["BillingSummaryItem"]>,
+	nextPaymentDue?: string | undefined | null,
+	paymentHash: string,
+	periodDays: number,
+	totalAmount: number,
+	['...on BillingSummary']: Omit<GraphQLTypes["BillingSummary"], "...on BillingSummary">
+};
 	["BillingSummaryItem"]: {
 	__typename: "BillingSummaryItem",
 	amount: number,
@@ -58613,17 +59103,23 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему */
+	/** Доверенные аккаунты; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trusted?: Array<GraphQLTypes["Individual"]> | undefined | null,
 	/** Сертификаты доверенных лиц участка (ФИО) */
 	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
-	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему */
+	/** Председатель кооперативного участка; пусто, если состав участка недоступен запрашивающему
+
+Требуемые роли: chairman, member.  */
 	trustee?: GraphQLTypes["Individual"] | undefined | null,
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
-	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой */
+	/** Пайщики в белом списке приватного участка (ФИО); пусто, если участок не свой
+
+Требуемые роли: chairman, member.  */
 	whitelist_certificates?: Array<GraphQLTypes["IndividualCertificate"]> | undefined | null,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
@@ -59809,7 +60305,9 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
 	blockchain_status?: string | undefined | null,
-	/** Контракт участника */
+	/** Контракт участника
+
+Требуемые роли: chairman, member.  */
 	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вклад как автор */
 	contributed_as_author?: string | undefined | null,
@@ -59980,9 +60478,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
 	amount?: string | undefined | null,
-	/** Одобренное заявление */
+	/** Одобренное заявление
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Протокол решения совета */
+	/** Протокол решения совета
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -60002,7 +60504,9 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Дата погашения */
 	repaid_at?: string | undefined | null,
-	/** Заявление на получение ссуды */
+	/** Заявление на получение ссуды
+
+Требуемые роли: chairman, member.  */
 	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Статус долга */
 	status: GraphQLTypes["DebtStatus"],
@@ -60021,9 +60525,13 @@ export type GraphQLTypes = {
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма расхода */
 	amount?: string | undefined | null,
-	/** Одобренная записка */
+	/** Одобренная записка
+
+Требуемые роли: chairman, member.  */
 	approved_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
-	/** Авторизация расхода */
+	/** Авторизация расхода
+
+Требуемые роли: chairman, member.  */
 	authorization?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
@@ -60035,7 +60543,9 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Хеш расхода */
 	expense_hash: string,
-	/** Служебная записка о расходе */
+	/** Служебная записка о расходе
+
+Требуемые роли: chairman, member.  */
 	expense_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** ID фонда */
 	fund_id?: number | undefined | null,
@@ -67424,7 +67934,7 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on MarketplaceBranchInitiator']: Omit<GraphQLTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
 };
-	/** Паевые взносы инициаторов кооперативного участка и ход их возврата. */
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: {
 	__typename: "MarketplaceBranchInvestment",
 	/** Кооперативный участок. */
@@ -67433,7 +67943,7 @@ export type GraphQLTypes = {
 	investors: Array<GraphQLTypes["MarketplaceInvestor"]>,
 	/** Внесено деньгами всего. */
 	money_total: string,
-	/** Осталось вернуть инициаторам из использованного. */
+	/** Осталось возместить инициаторам из использованного. */
 	outstanding: string,
 	/** Фаза участка по паевым взносам. */
 	phase: GraphQLTypes["MarketplaceInvestPhase"],
@@ -68355,7 +68865,7 @@ export type GraphQLTypes = {
 	/** Запись истории паевых взносов пайщика в кооперативные участки. */
 ["MarketplaceInvestHistoryEntry"]: {
 	__typename: "MarketplaceInvestHistoryEntry",
-	/** Сумма: деньгами, по цене приёма имущества или возврата. */
+	/** Сумма: деньгами, по цене приёма имущества или трансляции. */
 	amount: string,
 	/** Когда операция проведена. */
 	created_at: GraphQLTypes["DateTime"],
@@ -68367,7 +68877,7 @@ export type GraphQLTypes = {
 	process_hash: string,
 	['...on MarketplaceInvestHistoryEntry']: Omit<GraphQLTypes["MarketplaceInvestHistoryEntry"], "...on MarketplaceInvestHistoryEntry">
 };
-	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
 ["MarketplaceInvestHistoryKind"]: MarketplaceInvestHistoryKind;
 	["MarketplaceInvestHistoryPaginationResult"]: {
 	__typename: "MarketplaceInvestHistoryPaginationResult",
@@ -68391,7 +68901,7 @@ export type GraphQLTypes = {
 	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
 	statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
-	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возвращено. */
+	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
 ["MarketplaceInvestPhase"]: MarketplaceInvestPhase;
 	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
 ["MarketplaceInvestProperty"]: {
@@ -68439,7 +68949,7 @@ export type GraphQLTypes = {
 	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
 ["MarketplaceInvestor"]: {
 	__typename: "MarketplaceInvestor",
-	/** Возврат ещё идёт; ложь — использованное возвращено целиком. */
+	/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
 	active: boolean,
 	/** Кооперативный участок. */
 	braname: string,
@@ -68451,7 +68961,7 @@ export type GraphQLTypes = {
 	money: string,
 	/** Внесено имуществом по цене приёма. */
 	property: string,
-	/** Возвращено из экономии участка. */
+	/** Возмещено из экономии участка. */
 	returned: string,
 	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
 	unused: string,
@@ -71140,6 +71650,10 @@ export type GraphQLTypes = {
 	authorizeDecision: GraphQLTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
 	authorizeForceRecovery: GraphQLTypes["ForceRecoveryAuthorization"],
+	/** Конвертация паевого взноса пайщика в членский на биллинг-кошелёк (operation o.bil.fund). Принимает подписанное пайщиком заявление 1095.BillingConversionStatement. */
+	billingConvert: GraphQLTypes["BillingResult"],
+	/** Списание стоимости подписок с биллинг-кошелька пайщика в инфраструктурный кошелёк кооператива (operation o.bil.pay). Идемпотентно по payment_hash. */
+	billingPay: GraphQLTypes["BillingResult"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте */
@@ -71534,6 +72048,8 @@ export type GraphQLTypes = {
 	generateAnnualGeneralMeetNotificationDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков */
 	generateBallotForAnnualGeneralMeetDocument: GraphQLTypes["GeneratedDocument"],
+	/** Генерирует заявление 1095.BillingConversionStatement (перед подписью пайщиком) — аналог generateConvertToAxonStatement, канон documents-dto. */
+	generateBillingConversionStatement: GraphQLTypes["GeneratedDocument"],
 	/** Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя. */
 	generateDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи. */
@@ -71676,7 +72192,7 @@ export type GraphQLTypes = {
 	marketplaceCancelWriteoffDraft: boolean,
 	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы выполняется отдельной транзакцией до заказов. */
 	marketplaceCheckoutCart: GraphQLTypes["MarketplaceCheckoutResult"],
-	/** Перевести доступный возврат паевого взноса на главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив. */
+	/** Транслировать доступный паевой взнос в главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив. */
 	marketplaceClaimInvestment: Array<GraphQLTypes["MarketplaceInvestor"]>,
 	/** Очистить все доступные категории (сделать доступными все) */
 	marketplaceClearAvailableCategories: boolean,
@@ -74197,6 +74713,8 @@ export type GraphQLTypes = {
 	getAssignableRoles: Array<GraphQLTypes["AssignableRole"]>,
 	/** Получить список доступных типов отчётов */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
+	/** Сумма к оплате кооператива за период (стоимость платных подписок, разбивка, дата следующего платежа, payment_hash). Источник — provider backend оператора. Для реестра кооперативов Восхода. */
+	getBillingSummary: GraphQLTypes["BillingSummary"],
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
 	/** Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета. */
@@ -74350,7 +74868,7 @@ export type GraphQLTypes = {
 	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
-	/** Паевые взносы инициаторов кооперативного участка, фаза возврата и заявления на имущество до приёма. */
+	/** Паевые взносы инициаторов кооперативного участка, фаза возмещения и заявления на имущество до приёма. */
 	marketplaceBranchInvestment: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
@@ -74402,7 +74920,7 @@ export type GraphQLTypes = {
 	marketplaceHandoffCode: GraphQLTypes["MarketplaceHandoffCode"],
 	/** Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком. */
 	marketplaceInvestAgreementSignablePayload: GraphQLTypes["GeneratedDocument"],
-	/** Сформировать заявление о трансляции доступного возврата с кошелька договора участия на главный паевой кошелёк. */
+	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
 	marketplaceInvestClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Акт приёма-передачи имущества после решения совета: вносящий подписывает первым, председатель участка — вторым. */
 	marketplaceInvestPropertyActSignablePayload: GraphQLTypes["GeneratedDocument"],
@@ -74508,9 +75026,9 @@ export type GraphQLTypes = {
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
 	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
 	marketplaceMyInvestAgreement?: GraphQLTypes["MarketplaceInvestAgreement"] | undefined | null,
-	/** История паевых взносов текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми. */
+	/** История паевых взносов текущего пайщика: деньги, принятое имущество, трансляции в Цифровой Кошелёк. Новые первыми. */
 	marketplaceMyInvestHistory: GraphQLTypes["MarketplaceInvestHistoryPaginationResult"],
-	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу. */
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
 	marketplaceMyInvestments: Array<GraphQLTypes["MarketplaceInvestor"]>,
 	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
 	marketplaceMyReviewByOrder?: GraphQLTypes["MarketplaceReview"] | undefined | null,
@@ -77926,14 +78444,14 @@ export enum MarketplaceInventoryStatus {
 	RETURNED = "RETURNED",
 	WRITTEN_OFF = "WRITTEN_OFF"
 }
-/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива. */
+/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
 export enum MarketplaceInvestHistoryKind {
 	CLAIM = "CLAIM",
 	EXIT = "EXIT",
 	MONEY = "MONEY",
 	PROPERTY = "PROPERTY"
 }
-/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возвращено. */
+/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
 export enum MarketplaceInvestPhase {
 	FUNDING = "FUNDING",
 	NONE = "NONE",
@@ -78605,6 +79123,11 @@ type ZEUS_VARIABLES = {
 	["AuthorizeForceRecoveryInput"]: ValueTypes["AuthorizeForceRecoveryInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BillingConversionStatementGenerateDocumentInput"]: ValueTypes["BillingConversionStatementGenerateDocumentInput"];
+	["BillingConversionStatementSignedDocumentInput"]: ValueTypes["BillingConversionStatementSignedDocumentInput"];
+	["BillingConversionStatementSignedMetaDocumentInput"]: ValueTypes["BillingConversionStatementSignedMetaDocumentInput"];
+	["BillingConvertInput"]: ValueTypes["BillingConvertInput"];
+	["BillingPayInput"]: ValueTypes["BillingPayInput"];
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionSignedDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"];

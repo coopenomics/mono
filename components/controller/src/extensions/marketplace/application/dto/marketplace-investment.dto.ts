@@ -15,7 +15,7 @@ import {
 registerEnumType(MarketplaceInvestPhase, {
   name: 'MarketplaceInvestPhase',
   description:
-    'Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возвращено.',
+    'Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено.',
 });
 
 registerEnumType(MarketplaceInvestPropertyStatus, {
@@ -26,7 +26,7 @@ registerEnumType(MarketplaceInvestPropertyStatus, {
 
 registerEnumType(MarketplaceInvestHistoryKind, {
   name: 'MarketplaceInvestHistoryKind',
-  description: 'Вид записи истории паевых взносов: взнос деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива.',
+  description: 'Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива.',
 });
 
 /** Перевод суммы в единицах актива в строку для ответа. */
@@ -51,7 +51,7 @@ export class MarketplaceInvestorDTO {
   @Field({ description: 'Пайщик-инициатор.' })
   username!: string;
 
-  @Field({ description: 'Возврат ещё идёт; ложь — использованное возвращено целиком.' })
+  @Field({ description: 'Возмещение ещё идёт; ложь — использованное возмещено целиком.' })
   active!: boolean;
 
   @Field({ description: 'Внесено деньгами.' })
@@ -63,7 +63,7 @@ export class MarketplaceInvestorDTO {
   @Field({ description: 'Использовано участком: имущество и израсходованные деньги.' })
   used!: string;
 
-  @Field({ description: 'Возвращено из экономии участка.' })
+  @Field({ description: 'Возмещено из экономии участка.' })
   returned!: string;
 
   @Field({ description: 'Уже переведено на главный паевой кошелёк.' })
@@ -94,7 +94,7 @@ export class MarketplaceInvestPropertyDTO {
   status!: MarketplaceInvestPropertyStatus;
 }
 
-@ObjectType('MarketplaceBranchInvestment', { description: 'Паевые взносы инициаторов кооперативного участка и ход их возврата.' })
+@ObjectType('MarketplaceBranchInvestment', { description: 'Паевые взносы инициаторов кооперативного участка и ход их возмещения.' })
 export class MarketplaceBranchInvestmentDTO {
   @Field({ description: 'Кооперативный участок.' })
   braname!: string;
@@ -120,7 +120,7 @@ export class MarketplaceBranchInvestmentDTO {
   @Field({ description: 'Возмещено инициаторам из экономии участка всего.' })
   repaid_total!: string;
 
-  @Field({ description: 'Осталось вернуть инициаторам из использованного.' })
+  @Field({ description: 'Осталось возместить инициаторам из использованного.' })
   outstanding!: string;
 
   @Field(() => [MarketplaceInvestorDTO], { description: 'Инициаторы участка.' })
@@ -135,7 +135,7 @@ export class MarketplaceInvestHistoryEntryDTO {
   @Field(() => MarketplaceInvestHistoryKind, { description: 'Вид записи.' })
   kind!: MarketplaceInvestHistoryKind;
 
-  @Field({ description: 'Сумма: деньгами, по цене приёма имущества или возврата.' })
+  @Field({ description: 'Сумма: деньгами, по цене приёма имущества или трансляции.' })
   amount!: string;
 
   @Field({ description: 'Идентификатор процесса: по нему находится документ в реестре документов.' })

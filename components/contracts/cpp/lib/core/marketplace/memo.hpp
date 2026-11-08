@@ -101,7 +101,7 @@ namespace Marketplace::Memo {
   }
 
   inline std::string get_invest_back_memo() {
-    return "Трансляция возвращённого паевого взноса в главный паевой кошелёк";
+    return "Трансляция паевого взноса из договора участия в главный паевой кошелёк";
   }
 
   inline std::string get_charge_period_return_memo() {
