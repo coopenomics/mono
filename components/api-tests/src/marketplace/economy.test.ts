@@ -25,7 +25,7 @@ import {
   waitFor,
 } from '../core'
 import { KRG, pickOffer } from './flow'
-import { type BranchEconomy, branchEconomy, chargeSecurePart, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
+import { type BranchEconomy, branchEconomy, chargeSecurePart, ensurePersonalFunds, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
 
 const ODN = 'odn'
 const TRUSTED_KRG = 'trustedkrg'
@@ -379,11 +379,17 @@ describe('экономика участка: общий кошелёк, сетк
 
   it(caseName('mkt.eco.happy.04', 'заявление на материальную помощь — на сумму до налога; до решения совета — заявка на выплату за вычетом налога, платежа у кассира нет'), async () => {
     const gross = 100
-    expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
+    const personalBefore = personalOf(await branchEconomy(krgToken, KRG), chairkrg.account)
+    expect(personalBefore, 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
     const { aidHash } = await submitAid(gross)
 
-    // Заявление на повестке совета — на всю сумму: её спишут с персонального
-    // кошелька при выплате.
+    // Сумма заявления переходит с персонального кошелька на кошелёк заявлений
+    // при подаче (решение владельца 08.11.2026): свободный остаток меньше сразу,
+    // второе заявление на те же деньги подать нельзя.
+    const personalAfter = personalOf(await branchEconomy(krgToken, KRG), chairkrg.account)
+    expect(personalBefore - personalAfter, 'при подаче персональный остаток уменьшился на сумму заявления').toBeCloseTo(gross, 4)
+
+    // Заявление на повестке совета — на всю сумму до налога.
     const aids = await gql<any>(krgToken, 'query{ marketplaceListAids{ hash username braname amount stage } }')
     const aid = (aids.marketplaceListAids as any[]).find(a => a.hash.toLowerCase() === aidHash)
     expect(aid, 'заявление видно доверенному').toBeTruthy()
@@ -405,6 +411,9 @@ describe('экономика участка: общий кошелёк, сетк
     // До 25.09.2026 сумма платежа хранилась целым числом, и выплата 87,50 ₽
     // падала «invalid input syntax for type integer».
     const gross = 100.5
+    // Предыдущее заявление уже забрало свою сумму с персонального кошелька —
+    // пополняем его распределением общего кошелька участка.
+    await ensurePersonalFunds(gross, chairkrg)
     expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
     const { aidHash } = await submitAid(gross)
     const request = await payoutRequest(aidHash)

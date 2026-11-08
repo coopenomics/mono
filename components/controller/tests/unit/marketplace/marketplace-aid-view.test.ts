@@ -35,7 +35,14 @@ function aid(over: Aid = {}): Aid {
   };
 }
 
-function build(opts: { aids: Aid[]; payment?: Record<string, unknown> | null; mirror?: Record<string, unknown> | null; paymentsFail?: boolean }) {
+function build(opts: {
+  aids: Aid[];
+  payment?: Record<string, unknown> | null;
+  mirror?: Record<string, unknown> | null;
+  paymentsFail?: boolean;
+  /** Выплаченные заявления из зеркала узла: в цепи их строк уже нет. */
+  paid?: Record<string, unknown>[];
+}) {
   // Заявления одного получателя цепь отдаёт по индексу получателя — заглушка отбирает так же.
   const chainPort = {
     listAids: jest.fn(async (_coopname: string, username?: string) => (username ? opts.aids.filter((a) => a.username === username) : opts.aids)),
@@ -48,7 +55,10 @@ function build(opts: { aids: Aid[]; payment?: Record<string, unknown> | null; mi
   const paymentMethodRepo = {
     get: jest.fn().mockResolvedValue({ method_type: 'sbp', data: { phone: '+79990001231' } }),
   } as any;
-  const aidStore = { findOne: jest.fn().mockResolvedValue(opts.mirror ?? null) } as any;
+  const aidStore = {
+    findOne: jest.fn().mockResolvedValue(opts.mirror ?? null),
+    find: jest.fn().mockResolvedValue(opts.paid ?? []),
+  } as any;
   const service = new MarketplaceEconomyService(
     chainPort,
     {} as any,
@@ -129,5 +139,33 @@ describe('mkt.aid.view — заявление на матпомощь: нало�
     const views = await service.listAids(COOP, 'ivanpetrov');
 
     expect(views.map((v) => v.username)).toEqual(['ivanpetrov']);
+  });
+
+  it('выплаченное заявление: строки в цепи нет, вид собирается из зеркала со стадией «Выплачено»; повтор из цепи не дублируется', async () => {
+    const paidHash = 'ef'.repeat(32);
+    const paidRow = {
+      aid_hash: paidHash,
+      username: 'ivanpetrov',
+      braname: 'krg',
+      amount: '345',
+      status: 'paid',
+      created_at: new Date('2026-11-03T09:00:00Z'),
+      paid_at: new Date('2026-11-05T09:00:00Z'),
+    };
+    // Вторая строка зеркала совпадает с живым заявлением цепи — в списке оно одно.
+    const { service, aidStore } = build({ aids: [aid()], paid: [paidRow, { ...paidRow, aid_hash: HASH.toLowerCase() }] });
+
+    const views = await service.listAids(COOP, 'ivanpetrov');
+
+    expect(aidStore.find).toHaveBeenCalledWith(
+      expect.objectContaining({ coopname: COOP, username: 'ivanpetrov' }),
+      expect.objectContaining({ order: { paid_at: 'DESC' } })
+    );
+    expect(views.map((v) => v.hash.toLowerCase())).toEqual([HASH.toLowerCase(), paidHash]);
+    const paid = views[1];
+    expect(paid.stage).toBe(MarketplaceAidStage.PAID);
+    expect(paid.amount).toBe('345.0000 RUB');
+    expect(paid.ndfl_tax).toBe(`${calcNdflTax(345, 4).toFixed(4)} RUB`);
+    expect(paid.submitted_at).toEqual(paidRow.created_at);
   });
 });

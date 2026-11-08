@@ -9,7 +9,8 @@ import { type GqlError, gql, gqlRaw } from '../core/client'
 import { transact } from '../core/chain'
 import { COOP } from '../core/env'
 import { COOP_SIGNER, amount, ensureShareFunds, rub } from '../core/wallet'
-import { KRG, acceptToCoop, getOrder, issueOrder, placeOrder } from './flow'
+import { ROLES } from '../core/roles'
+import { KRG, acceptToCoop, getOrder, issueOrder, pickOffer, placeOrder } from './flow'
 
 /** Минимальный валидный PNG 1×1: фото к заявлениям о возврате обязательны. */
 export const PIXEL_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
@@ -117,4 +118,57 @@ export async function branchEconomy(token: string, braname: string): Promise<Bra
 /** Персональный баланс участника из экономики участка (0, если его нет в сетке). */
 export function personalOf(eco: BranchEconomy, username: string): number {
   return amount(eco.weights.find(w => w.username === username)?.personal_balance)
+}
+
+/**
+ * Членские взносы в общий кошелёк участка — настоящим путём: заказ пайщика
+ * выдаётся, и его обеспечительная часть списывается участку (chargedue).
+ * Обеспечительная часть невыданных заказов лежит на кошельке пайщика под
+ * заказы (05.11.2026), общий пул открытыми заказами не наполняется — брать
+ * взнос для участка из пула больше нечем.
+ */
+export async function chargeToBranch(need: number): Promise<void> {
+  const member = ROLES.member()
+  const offer = await pickOffer(ROLES.supplier().account, KRG, 'Мёд цветочный')
+  const price = amount(offer.price_per_unit)
+  // Ставка обеспечительной части не ниже 10 % — заказ с запасом покрывает нужное.
+  const quantity = Math.max(1, Math.ceil(need / (price * 0.1)))
+  const order = await issuedOrder({ member, supplier: ROLES.supplier(), operator: ROLES.branchChairman(), offer, quantity })
+  const charged = await chargeSecurePart({ member, orderId: order.orderId, orderHash: order.orderHash })
+  if (charged < need)
+    throw new Error(`списание заказа ${order.orderId} дало участку ${charged} RUB, нужно ${need}`)
+}
+
+/**
+ * Персональный кошелёк получателя на участке krg не меньше нужного. Вес в
+ * распределении задаёт председатель участка; по умолчанию получатель — он сам.
+ */
+export async function ensurePersonalFunds(need: number, recipient: Who = ROLES.branchChairman()): Promise<void> {
+  const chair = ROLES.branchChairman()
+  const token = await tokenOf(chair)
+  for (let round = 0; round < 3; round++) {
+    const eco = await branchEconomy(token, KRG)
+    const mine = eco.weights.find(w => w.username === recipient.account)
+    const have = amount(mine?.personal_balance)
+    if (have >= need)
+      return
+    if (!mine) {
+      await gql(token, 'mutation($d:MarketplaceSetTrusteeWeightInput!){ marketplaceSetTrusteeWeight(data:$d) }', {
+        d: { braname: KRG, username: recipient.account, weight: 1 },
+      })
+      continue
+    }
+    const total = Number(eco.total_weight) || Number(mine.weight)
+    const toDistribute = Math.ceil((need - have) * total / Number(mine.weight)) + 1
+    const reserve = amount(eco.reserve_amount)
+    const common = amount(eco.common_balance)
+    const shortage = toDistribute + reserve - common
+    if (shortage > 0) {
+      await chargeToBranch(Math.ceil(shortage) + 1)
+    }
+    await gql(token, 'mutation($d:MarketplaceDistributeBranchFundsInput!){ marketplaceDistributeBranchFunds(data:$d) }', {
+      d: { braname: KRG, amount: toDistribute },
+    })
+  }
+  throw new Error(`персональный кошелёк ${recipient.account} на участке не набрал ${need} RUB`)
 }
