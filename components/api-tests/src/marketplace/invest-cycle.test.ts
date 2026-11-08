@@ -1,14 +1,14 @@
 /**
- * Возмещение вложений инициаторов участка из экономии — снаружи, на стенде
+ * Возмещение паевых взносов инициаторов участка из экономии — снаружи, на стенде
  * со сжатым временем (реестр marketplace.order, mkt.order.invest.istok.01,
  * .07, .08; задачи 99D-30, 99D-32).
  *
  * Набор идёт фазой keu полигона вместе с period-cycle (scripts/blackbox/stack.sh):
  * прогон первого числа делает крон узла по шкале STAND_MONTH_SECONDS. У
- * председателя участка krg должно быть использованное вложение — имущество в
+ * председателя участка krg должно быть использованный паевой взнос — имущество в
  * базе возврата; если его нет, набор вносит имущество через совет сам. Резерв
  * председателя участка набор снимает до заказа, поэтому месяц без недостачи
- * и доля инициаторов идёт на возмещение вложений.
+ * и доля инициаторов идёт на возмещение паевых взносов.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, ROLES, amount, availableShare, caseName, docMeta, gql, signDocument, tokenOf, waitFor } from '../core'
@@ -51,7 +51,7 @@ let ordersPeriod = 0
 let periodRow: any = null
 let repaidBefore = 0
 
-describe.skipIf(!COMPRESSED)('возмещение вложений инициаторов участка — прогон на стенде со сжатым временем', () => {
+describe.skipIf(!COMPRESSED)('возмещение паевых взносов инициаторов участка — прогон на стенде со сжатым временем', () => {
   beforeAll(async () => {
     krgToken = await tokenOf(chairkrg)
     memberToken = await tokenOf(ekaterina)
@@ -59,7 +59,7 @@ describe.skipIf(!COMPRESSED)('возмещение вложений инициа
     await gql(chairmanToken, SET_INITIATOR_SHARE, { d: { initiator_share_percent: 61.8 } })
     await gql(krgToken, DEL_RESERVE, { d: { braname: KRG, username: chairkrg.account } }).catch(() => {})
     await ensureAgreement(chairkrg)
-    // В базе возврата нужно использованное вложение самого председателя участка:
+    // В базе возврата нужен использованный паевой взнос самого председателя участка:
     // имущество входит в базу сразу. Деньги без расхода в базу не входят.
     const view = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
     const own = (view.investors as any[]).find(i => i.username === chairkrg.account)
@@ -68,7 +68,7 @@ describe.skipIf(!COMPRESSED)('возмещение вложений инициа
     repaidBefore = amount((await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment.repaid_total)
   }, 600_000)
 
-  it(caseName('mkt.order.invest.istok.07', 'итог месяца участка с вложениями: фаза возмещения, возмещение за прогон растёт по списанным строкам'), async () => {
+  it(caseName('mkt.order.invest.istok.07', 'итог месяца участка с паевыми взносами: фаза возмещения, возмещение за прогон растёт по списанным строкам'), async () => {
     const offer = await pickOffer(sidorov.account, KRG)
     if (secondsLeftInStandMonth() < ORDER_BUDGET_SECONDS) {
       // timing: schedule — ждём первое число стенда, чтобы заказ выдали внутри одного месяца
@@ -83,7 +83,7 @@ describe.skipIf(!COMPRESSED)('возмещение вложений инициа
       return (d.marketplaceListBranchPeriods.items as any[]).find(r => Number(r.period) === ordersPeriod) ?? null
     }, { timeoutMs: STAND_MONTH_SECONDS * 2_500, intervalMs: 3_000, label: 'итог месяца участка krg' })
     expect(amount(periodRow.deficit), 'резерва и записок нет — месяц без недостачи').toBe(0)
-    expect(periodRow.invest_phase, 'вложения не возвращены — доля инициаторов возмещает их').toBe('REPAYING')
+    expect(periodRow.invest_phase, 'паевые взносы не возвращены — доля инициаторов возмещает их').toBe('REPAYING')
     expect(amount(periodRow.initiator_amount), 'доля инициаторов за месяц есть').toBeGreaterThan(0)
 
     await waitFor(async () => {
@@ -111,7 +111,7 @@ describe.skipIf(!COMPRESSED)('возмещение вложений инициа
     const note = await waitFor(async () => {
       const d = await gql<any>(krgToken, INBOX, { c: COOP, p: { page: 1, limit: 50, sortOrder: 'DESC' } })
       return (d.getInboxNotifications.items as any[]).find(i => i.workflowId === RETURNED_WORKFLOW) ?? null
-    }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'уведомление о возмещении вложения' })
+    }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'уведомление о возмещении паевых взносов' })
     const payload = typeof note.payload === 'string' ? JSON.parse(note.payload) : note.payload
     expect(String(payload.deepLinkUrl ?? '')).toContain('/market-pvz/initiators')
     expect(String(payload.amount ?? '')).not.toBe('')

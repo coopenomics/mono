@@ -1,5 +1,5 @@
 /**
- * @brief Инициатор транслирует возвращённое вложение в главный паевой
+ * @brief Инициатор транслирует возвращённый паевой взнос в главный паевой
  * кошелёк по заявлению 1123 (задача 99D-27).
  *
  * Сумму считает контракт, ИСТОК её не передаёт:
@@ -9,7 +9,7 @@
  *    целиком либо участку больше нечего возвращать (подушка на дефицитные
  *    месяцы держится до этого момента, решение владельца 07.11.2026);
  *  - прежние начисления доли инициатора (o.mkt.initr до 99D-27), которые
- *    лежат на том же кошельке вне строк вложений.
+ *    лежат на том же кошельке вне строк паевых взносов.
  * Всё доступное забирается одним заявлением: перевод `w.mkt.invest →
  * w.wal.share` без проводки (o.mkt.iback). Паевой взнос инициатора остаётся
  * на счёте 80; деньгами он получает его обычным возвратом паевого взноса.
@@ -36,7 +36,7 @@ void marketplace::claiminv(eosio::name coopname, eosio::name username, eosio::na
   auto by_pair = investors.get_index<"bybruser"_n>();
   auto it = by_pair.find(combine_ids(braname.value, username.value));
   eosio::check(bit != branches.end() && it != by_pair.end(),
-               "MARKETPLACE_INVEST_NOT_FOUND: Вложений пайщика в этот участок нет");
+               "MARKETPLACE_INVEST_NOT_FOUND: Паевых взносов пайщика в этот участок нет");
 
   // Прежние начисления: остаток кошелька сверх того, что числится в строках.
   int64_t in_rows = 0;
@@ -58,7 +58,7 @@ void marketplace::claiminv(eosio::name coopname, eosio::name username, eosio::na
   eosio::check(total > 0,
                "MARKETPLACE_INVEST_NOTHING_TO_CLAIM: Возвращённых средств к трансляции пока нет");
   eosio::check(wallet.available.amount >= total,
-               "MARKETPLACE_INVEST_WALLET_SHORT: На кошельке вложения меньше суммы к трансляции");
+               "MARKETPLACE_INVEST_WALLET_SHORT: На кошельке паевого взноса в участки меньше суммы к трансляции");
 
   row.claimed.amount += c.returned;
   if (c.unused > 0) {

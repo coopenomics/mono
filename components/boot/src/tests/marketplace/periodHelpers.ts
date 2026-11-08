@@ -189,7 +189,7 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
 
 // ── Инвестиционный этап участка (задача 99D-27) ─────────────────────────────
 
-/** Строка вложений участка из цепи в виде, который понимает эталон CRPS. */
+/** Строка паевых взносов участка из цепи в виде, который понимает эталон CRPS. */
 export async function investBranch(bc: Blockchain, braname: string) {
   const rows: any[] = await bc.getTableRows('marketplace', COOP, 'invbranches', 1, braname, braname)
   const r = rows.find(x => x.braname === braname)

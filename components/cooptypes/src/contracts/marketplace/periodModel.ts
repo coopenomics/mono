@@ -170,10 +170,10 @@ export function chargeRate(rates: IPeriodRates): bigint {
   return rates.rateBranch + rates.rateFunds + rates.rateInitiator
 }
 
-// ── Возврат вложений инициаторам (CRPS), задача 99D-27 ──────────────────
+// ── Возврат паевых взносов инициаторам (CRPS), задача 99D-27 ──────────────────
 //
 // Повторяет `lib/core/marketplace/invest.hpp` шаг в шаг: единицы инициатора —
-// использованное вложение (имущество с момента приёма, деньги по мере расхода
+// использованный паевой взнос (имущество с момента приёма, деньги по мере расхода
 // пула), база участка — сумма единиц активных инициаторов, счётчик `acc` —
 // возвращено на единицу базы × CRPS_SCALE. Деление вниз, uint128 → bigint.
 
@@ -220,7 +220,7 @@ export function crpsOutstanding(b: ICrpsBranch): bigint {
 }
 
 /**
- * Доля инициаторов из списания: сколько возмещает вложения, сколько — на
+ * Доля инициаторов из списания: сколько возмещает паевые взносы, сколько — на
  * общий кошелёк участка, и новый счётчик (`route_initiator_share`).
  */
 export function crpsRoute(b: ICrpsBranch, share: bigint): { repay: bigint, toBranch: bigint, acc: bigint } {

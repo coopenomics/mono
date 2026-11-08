@@ -783,7 +783,7 @@ export interface IMktInvAgreement {
   agreement: IDocument2
 }
 
-/** Вложения инициаторов участка и счётчик возврата (CRPS). */
+/** Паевые взносы инициаторов участка и счётчик возврата (CRPS). */
 export interface IMktInvBranch {
   braname: IName
   money_total: IAsset

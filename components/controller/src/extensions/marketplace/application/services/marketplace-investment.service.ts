@@ -23,7 +23,7 @@ import { t } from '../../i18n';
 
 const { crpsClaimable, crpsOutstanding } = MarketContract.PeriodModel;
 
-/** Кошелёк вложения инициатора в ledger2 (счёт 80). */
+/** Кошелёк договора участия инициатора в ledger2 (счёт 80). */
 const INVEST_WALLET = 'w.mkt.invest';
 /** Тип решения совета о приёме имущества в участок. */
 const DECISION_TYPE = 'mktiprop';
@@ -46,21 +46,21 @@ export enum MarketplaceInvestPropertyStatus {
   ACT1 = 'act1',
 }
 
-/** Фаза участка по вложениям инициаторов (задача 99D-30, PRD «Фазы»). */
+/** Фаза участка по паевым взносам инициаторов (задача 99D-30, PRD «Фазы»). */
 export enum MarketplaceInvestPhase {
-  /** У участка нет вложений инициаторов. */
+  /** У участка нет паевых взносов инициаторов. */
   NONE = 'NONE',
-  /** Вложения есть, из экономии участка ещё ничего не возмещено. */
+  /** Паевые взносы есть, из экономии участка ещё ничего не возмещено. */
   FUNDING = 'FUNDING',
-  /** Доля инициаторов возмещает их вложения. */
+  /** Доля инициаторов возмещает их паевые взносы. */
   RETURNING = 'RETURNING',
   /** Использованное возвращено целиком: доля инициаторов направляется участку. */
   RETURNED = 'RETURNED',
 }
 
-/** Вид записи истории вложений пайщика — по операции учёта. */
+/** Вид записи истории паевых взносов пайщика — по операции учёта. */
 export enum MarketplaceInvestHistoryKind {
-  /** Вложение деньгами по заявлению 1119. */
+  /** Паевой взнос деньгами по заявлению 1119. */
   MONEY = 'MONEY',
   /** Имущество принято по акту 1122. */
   PROPERTY = 'PROPERTY',
@@ -70,7 +70,7 @@ export enum MarketplaceInvestHistoryKind {
   EXIT = 'EXIT',
 }
 
-/** Операции ledger2, из которых складывается история вложений пайщика. */
+/** Операции ledger2, из которых складывается история паевых взносов пайщика. */
 const HISTORY_OPERATIONS: Readonly<Record<string, MarketplaceInvestHistoryKind>> = {
   'o.mkt.inv': MarketplaceInvestHistoryKind.MONEY,
   'o.mkt.iprop': MarketplaceInvestHistoryKind.PROPERTY,
@@ -78,7 +78,7 @@ const HISTORY_OPERATIONS: Readonly<Record<string, MarketplaceInvestHistoryKind>>
   'o.mkt.iexit': MarketplaceInvestHistoryKind.EXIT,
 };
 
-/** Запись истории вложений. `process_hash` — хэш процесса: по нему находится документ в реестре. */
+/** Запись истории паевых взносов. `process_hash` — хэш процесса: по нему находится документ в реестре. */
 export interface MarketplaceInvestHistoryEntryView {
   kind: MarketplaceInvestHistoryKind;
   amount: bigint;
@@ -103,7 +103,7 @@ export interface MarketplaceInvestorView {
   unused: bigint;
 }
 
-/** Вложения участка для столов. Суммы — в единицах актива. */
+/** Паевые взносы участка для столов. Суммы — в единицах актива. */
 export interface MarketplaceInvestBranchView {
   braname: string;
   phase: MarketplaceInvestPhase;
@@ -134,10 +134,10 @@ const units = (asset: unknown, economy: MarketplaceEconomyService): bigint => ec
  * Инвестиционный этап кооперативного участка Стола заказов — ИСТОК
  * (задача 99D-30, PRD компонента 68).
  *
- * Сервис генерирует документы договора участия, вложения деньгами и
+ * Сервис генерирует документы договора участия, паевые взносы деньгами и
  * имуществом и заявления обратно (фабрика 1118–1123), отправляет действия
  * контракта marketplace и читает его таблицы по индексу. Денежных расчётов
- * здесь нет: суммы вложений называет пайщик, а доступное к возврату считает
+ * здесь нет: суммы паевых взносов называет пайщик, а доступное к возврату считает
  * контракт; `previewClaim` повторяет его формулу для показа (эталон
  * `MarketContract.PeriodModel.crpsClaimable`).
  */
@@ -193,7 +193,7 @@ export class MarketplaceInvestmentService {
     );
   }
 
-  // ── Вложение деньгами ──────────────────────────────────────────────────
+  // ── Паевой взнос деньгами ──────────────────────────────────────────────────
 
   async generateInvestStatement(coopname: string, username: string, braname: string, amount: number): Promise<InnerGeneratedDocument> {
     const agreement = await this.requireAgreement(coopname, username);
@@ -227,7 +227,7 @@ export class MarketplaceInvestmentService {
     );
   }
 
-  // ── Вложение имуществом ───────────────────────────────────────────────
+  // ── Паевой взнос имуществом ───────────────────────────────────────────────
 
   async generatePropertyStatement(
     coopname: string,
@@ -372,7 +372,7 @@ export class MarketplaceInvestmentService {
   /**
    * Предпросмотр: сколько инициатор вправе транслировать сейчас. Формула
    * контракта (`claimable_of`) плюс прежние начисления доли инициатора на
-   * кошельке вложения сверх строк вложений. Показ, не расчёт: заявление
+   * кошельке договора участия сверх строк паевых взносов. Показ, не расчёт: заявление
    * контракт пересчитывает сам.
    */
   async previewClaim(coopname: string, braname: string, username: string): Promise<bigint> {
@@ -456,7 +456,7 @@ export class MarketplaceInvestmentService {
   }
 
   /**
-   * История вложений пайщика по операциям учёта: деньги, принятое имущество,
+   * История паевых взносов пайщика по операциям учёта: деньги, принятое имущество,
    * возвраты и перенос при выходе — новые первыми. Участок в операции не
    * записан, его называет документ процесса (`process_hash`) в реестре.
    */

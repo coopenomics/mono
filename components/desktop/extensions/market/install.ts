@@ -681,7 +681,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               // Инициаторы участка (задача 99D-31, решение владельца
-              // 07.11.2026): договор участия, вложения деньгами и имуществом,
+              // 07.11.2026): договор участия, паевые взносы деньгами и имуществом,
               // одобрение и акт председателя участка, возврат из экономии.
               path: 'initiators',
               name: 'marketplace-pvz-initiators',
@@ -1151,7 +1151,7 @@ export const walletCards: DesktopWalletCard[] = [
     icon: 'lock_clock',
   },
   {
-    // Вложение инициатора в кооперативные участки (99D-31) — только у инициаторов.
+    // Паевой взнос инициатора в кооперативные участки (99D-31) — только у инициаторов.
     wallet_name: 'w.mkt.invest',
     label: t('market.install.walletInvestLabel'),
     description: t('market.install.walletDescription'),

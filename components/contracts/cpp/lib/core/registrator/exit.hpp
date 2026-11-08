@@ -65,8 +65,8 @@ inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
 
 /// Выход одобрен советом: перед консолидацией кошельков на главный паевой
 /// программы снимают пайщика со своих учётных строк. Стол заказов вычитает
-/// вложения инициатора из базы возврата участков (задача 99D-27); сам перенос
-/// вложения на главный паевой делает политика выхода (o.mkt.iexit).
+/// паевые взносы инициатора из базы возврата участков (задача 99D-27); сам перенос
+/// паевого взноса на главный паевой делает политика выхода (o.mkt.iexit).
 inline void release_program_rows_on_exit(eosio::name actor, eosio::name coopname,
                                          eosio::name username) {
   Marketplace::release_investments_on_exit(actor, coopname, username);

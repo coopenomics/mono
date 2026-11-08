@@ -13,6 +13,6 @@ export const scope = Actors._coopname
 
 /**
  * @interface
- * Вложения инициаторов кооперативного участка и счётчик возврата (CRPS); первичный ключ — участок. Задача 99D-27.
+ * Паевые взносы инициаторов кооперативного участка и счётчик возврата (CRPS); первичный ключ — участок. Задача 99D-27.
  */
 export type IMktInvBranch = Marketplace.IMktInvBranch

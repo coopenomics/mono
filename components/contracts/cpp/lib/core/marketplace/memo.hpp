@@ -77,11 +77,11 @@ namespace Marketplace::Memo {
   }
 
   inline std::string get_invest_repay_memo() {
-    return "Возмещение вложений инициаторов из экономии месяца участка";
+    return "Возмещение паевых взносов инициаторов из экономии месяца участка";
   }
 
   inline std::string get_invest_surplus_memo() {
-    return "Переплата возмещения вложений инициаторов — на общий кошелёк участка";
+    return "Переплата возмещения паевых взносов инициаторов — на общий кошелёк участка";
   }
 
   inline std::string get_invest_money_memo() {
@@ -101,7 +101,7 @@ namespace Marketplace::Memo {
   }
 
   inline std::string get_invest_back_memo() {
-    return "Трансляция возвращённого вложения в главный паевой кошелёк";
+    return "Трансляция возвращённого паевого взноса в главный паевой кошелёк";
   }
 
   inline std::string get_charge_period_return_memo() {

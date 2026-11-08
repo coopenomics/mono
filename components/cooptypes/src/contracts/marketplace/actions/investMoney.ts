@@ -3,7 +3,7 @@ import type * as Marketplace from '../../../interfaces/marketplace'
 import { Actors } from '../../../common'
 
 /**
- * Вложение деньгами в кооперативный участок: трансляция паевого взноса в договор участия по заявлению 1119 (o.mkt.inv). Задача 99D-27.
+ * Паевой взнос деньгами в кооперативный участок: трансляция паевого взноса в договор участия по заявлению 1119 (o.mkt.inv). Задача 99D-27.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 

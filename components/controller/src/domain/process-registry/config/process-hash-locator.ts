@@ -186,8 +186,8 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
   'p.mkt.claim':  [{ code: 'marketplace', table: 'claims',      field: 'hash' }],
-  // Инвестиционный этап участка (99D-27): вложение имуществом живёт в
-  // `invprops.hash` до второй подписи акта; вложение деньгами и заявление
+  // Инвестиционный этап участка (99D-27): паевой взнос имуществом живёт в
+  // `invprops.hash` до второй подписи акта; паевой взнос деньгами и заявление
   // обратно — одноактовые, без строки (история — по операциям ledger2).
   'p.mkt.invest': [{ code: 'marketplace', table: 'invprops',    field: 'hash' }],
 

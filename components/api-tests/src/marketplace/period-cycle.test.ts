@@ -189,8 +189,8 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     }
     const initiator = (await gql<any>(krgToken, INITIATOR, { b: KRG })).marketplaceGetBranchInitiator
     expect(initiator.username, 'без назначения долю получает председатель участка').toBe(chairkrg.account)
-    // С 99D-27 доля инициаторов возмещает вложения участка (кошелёк возмещения)
-    // либо направляется участку; кошелёк вложения пополняют только вложения.
+    // С 99D-27 доля инициаторов возмещает паевые взносы участка (кошелёк возмещения)
+    // либо направляется участку; кошелёк договора участия пополняют только паевые взносы.
     expect(amount(initiator.invest_balance)).toBeGreaterThanOrEqual(0)
   }, 240_000)
 

@@ -80,7 +80,7 @@ interface ChargedSummary {
 class ChargedCollector {
   charged = 0;
   readonly byUser = new Map<string, ChargedSummary>();
-  /** Участки, где доля инициаторов в этом проходе возместила вложения. */
+  /** Участки, где доля инициаторов в этом проходе возместила паевые взносы. */
   readonly repaidBranches = new Set<string>();
 
   note(row: MarketplaceSecureDueEntity, units: bigint, returned: bigint, rate: string): void {
@@ -748,7 +748,7 @@ export class MarketplaceSecureDueService {
     period: number
   ): Promise<{ charged: bigint; returned: bigint; repaid: bigint } | null> {
     const amount = this.fromDecimal(row.due_amount);
-    // Возмещение вложений инициаторов по строке считает контракт; узел берёт его
+    // Возмещение паевых взносов инициаторов по строке считает контракт; узел берёт его
     // разницей счётчика участка до и после списания — строки списываются по одной.
     const repaidBefore = await this.investorRepaidTotal(coopname, row.braname);
     const sent = await this.sendCharge(row, LOG_CHARGE_PERIOD, () =>

@@ -1,7 +1,7 @@
 /**
  * Инвестиционный этап кооперативного участка снаружи, в настоящем времени
  * (реестр marketplace.order, случаи mkt.order.invest.istok.*): договор
- * участия, заявление о вложении деньгами, вложение председателем участка и
+ * участия, заявление о паевом взносе деньгами, паевой взнос председателем участка и
  * имуществом через совет, отказы постороннему и пайщику без договора.
  *
  * Возмещение из экономии участка требует прогона первого числа — его ведёт
@@ -40,7 +40,7 @@ let outsiderToken = ''
 
 const investorOf = (view: any, username: string) => (view.investors as any[]).find(i => i.username === username)
 
-describe('инвестиционный этап участка: договор, вложения деньгами и имуществом', () => {
+describe('инвестиционный этап участка: договор, паевые взносы деньгами и имуществом', () => {
   beforeAll(async () => {
     krgToken = await tokenOf(chairkrg)
     outsider = freshMember({ prefix: 'inv' })
@@ -69,23 +69,23 @@ describe('инвестиционный этап участка: договор, 
     expect(String(meta.invest_hash)).toMatch(/^[0-9a-f]{64}$/)
   })
 
-  it(caseName('mkt.order.invest.istok.03', 'вложение деньгами и имуществом: фаза участка и строки инициатора; предпросмотр равен формуле контракта'), async () => {
+  it(caseName('mkt.order.invest.istok.03', 'паевой взнос деньгами и имуществом: фаза участка и строки инициатора; предпросмотр равен формуле контракта'), async () => {
     await ensureAgreement(chairkrg)
     await ensureShareFunds(chairkrg.account, SUM, krgToken)
     const before = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
     const mineBefore = investorOf(before, chairkrg.account)
 
     const afterMoney = await investMoney(chairkrg, KRG, SUM)
-    expect(afterMoney.phase, 'после вложения деньгами вложения у участка есть').not.toBe('NONE')
+    expect(afterMoney.phase, 'после паевого взноса деньгами паевые взносы у участка есть').not.toBe('NONE')
     const viewMoney = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
     const mineMoney = investorOf(viewMoney, chairkrg.account)
     expect(amount(mineMoney.money) - amount(mineBefore?.money ?? 0), 'внесено деньгами — ровно сумма').toBeCloseTo(SUM, 4)
     expect(amount(viewMoney.money_total) - amount(before.money_total)).toBeCloseTo(SUM, 4)
 
-    // История вложений: запись о деньгах с хэшем процесса из заявления (istok.09).
+    // История паевых взносов: запись о деньгах с хэшем процесса из заявления (istok.09).
     const page = (await gql<any>(krgToken, MY_HISTORY, { o: { page: 1, limit: 20, sortOrder: 'DESC' } })).marketplaceMyInvestHistory
     const entry = (page.items as any[]).find(i => i.process_hash === String(afterMoney.investHash).toLowerCase())
-    expect(entry?.kind, 'вложение деньгами в истории').toBe('MONEY')
+    expect(entry?.kind, 'паевой взнос деньгами в истории').toBe('MONEY')
     expect(amount(entry.amount)).toBeCloseTo(SUM, 4)
 
     await investPropertyAccepted({ investor: chairkrg, chairman: chairkrg, braname: KRG, sum: PROPERTY_SUM, name: `Холодильная витрина ${Date.now().toString(36)}` })
@@ -103,7 +103,7 @@ describe('инвестиционный этап участка: договор, 
 
   it(caseName('mkt.order.invest.istok.04', 'вносит только оператор своего участка: пайщику без роли и председателю чужого участка — отказ, строки участка не меняются'), async () => {
     const before = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
-    // Пайщик без роли оператора: вложения ему недоступны с договора — отказ правом.
+    // Пайщик без роли оператора: паевые взносы ему недоступны с договора — отказ правом.
     const agreement = await refusal(outsiderToken, 'query{ marketplaceInvestAgreementSignablePayload{ hash } }')
     expect(agreement?.codeText ?? '', 'договор участия — только операторам участка').toMatch(/KIT_INSUFFICIENT_RIGHTS/)
     // Председатель участка odn вносит в участок krg: участок не его — отказ до цепи.

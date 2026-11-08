@@ -111,7 +111,7 @@ describe('MarketplaceMemberWalletResolver', () => {
       'w.mkt.share',
       'w.mkt.secure',
       'w.mkt.due',
-      // Вложение инициатора в кооперативные участки (99D-30).
+      // Паевой взнос инициатора в кооперативные участки (99D-30).
       'w.mkt.invest',
     ]);
   });

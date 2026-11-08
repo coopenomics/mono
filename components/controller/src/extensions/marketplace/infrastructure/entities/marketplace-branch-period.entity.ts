@@ -68,10 +68,10 @@ export class MarketplaceBranchPeriodEntity {
   /** Получатель доли инициатора на момент прогона. */
   public initiator!: string;
 
-  /** Фаза участка по вложениям инициаторов на момент расчёта итога (`MarketplacePeriodInvestPhase`). */
+  /** Фаза участка по паевым взносам инициаторов на момент расчёта итога (`MarketplacePeriodInvestPhase`). */
   public invest_phase!: MarketplacePeriodInvestPhase;
 
-  /** Сколько доли инициаторов за прогон возместило их вложения; растёт по мере списания строк. */
+  /** Сколько доли инициаторов за прогон возместило их паевые взносы; растёт по мере списания строк. */
   public investor_repaid!: string;
 
   /** Строк учёта в прогоне и сколько из них списано. */

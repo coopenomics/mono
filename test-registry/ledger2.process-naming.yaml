@@ -63,7 +63,7 @@ cases:
       возвращённое заявлением (процесс p.mkt.invest, задача 99D-27).
     expect: >
       операции o.mkt.inv, o.mkt.iprop, o.mkt.iback идут под именем нитки
-      p.mkt.invest и хэшем вложения; у процесса есть человеческое название в
+      p.mkt.invest и хэшем паевого взноса; у процесса есть человеческое название в
       реестре процессов cooptypes
     test: components/boot/src/tests/marketplace-invest.test.ts
     status: passing

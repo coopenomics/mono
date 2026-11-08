@@ -88,7 +88,7 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     expect(exitRuleForWallet('w.sov.fund')).toBeUndefined()
   })
 
-  it('вложение инициатора в участок при выходе переносится на главный паевой (99D-27)', () => {
+  it('паевой взнос инициатора в участок при выходе переносится на главный паевой (99D-27)', () => {
     expect(exitRuleForWallet('w.mkt.invest')?.policy).toBe('RETURN_TO_MAIN')
     expect(exitRuleForWallet('w.mkt.invest')?.transfer_op).toBe('o.mkt.iexit')
     expect(exitRuleForWallet('w.mkt.repay')?.policy).toBe('UNTOUCHED')

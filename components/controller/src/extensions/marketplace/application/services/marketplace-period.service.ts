@@ -243,8 +243,8 @@ export class MarketplacePeriodService {
   }
 
   /**
-   * Фаза участка по вложениям инициаторов при расчёте итога (задача 99D-30):
-   * по строке участка `invbranches` — вложения есть ли, остаток к возврату по
+   * Фаза участка по паевым взносам инициаторов при расчёте итога (задача 99D-30):
+   * по строке участка `invbranches` — паевые взносы есть ли, остаток к возврату по
    * формуле контракта (`PeriodModel.crpsOutstanding`) — и по недостаче месяца.
    */
   private async investPhaseOf(coopname: string, braname: string, deficit: bigint): Promise<MarketplacePeriodInvestPhase> {
@@ -263,7 +263,7 @@ export class MarketplacePeriodService {
     return outstanding > 0n ? MarketplacePeriodInvestPhase.REPAYING : MarketplacePeriodInvestPhase.BRANCH;
   }
 
-  /** Строк прогона списано ещё `count`; доля инициаторов по ним возместила вложения на `investorRepaid`. */
+  /** Строк прогона списано ещё `count`; доля инициаторов по ним возместила паевые взносы на `investorRepaid`. */
   async noteCharged(coopname: string, braname: string, period: number, count: number, investorRepaid = 0n): Promise<void> {
     const row = await this.store.findOne({ coopname, braname, period });
     if (!row) return;

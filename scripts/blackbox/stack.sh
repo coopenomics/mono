@@ -332,7 +332,7 @@ cmd_keu() {
   local failed=0
   (
     cd components/api-tests
-    # Возмещение вложений инициаторов участка (99D-30) — тот же прогон первого числа.
+    # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
     pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"

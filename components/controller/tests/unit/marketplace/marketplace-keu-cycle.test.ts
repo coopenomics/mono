@@ -511,8 +511,8 @@ describe('mkt.order.keu.cycle.05 — какие строки входят в п�
   });
 });
 
-describe('mkt.order.invest.cycle.01 — год прогонов участка с вложениями инициаторов', () => {
-  // Расходы 30 000 ₽ в месяц, как в годе роста оборота; инициаторы вложили имущество
+describe('mkt.order.invest.cycle.01 — год прогонов участка с паевыми взносами инициаторов', () => {
+  // Расходы 30 000 ₽ в месяц, как в годе роста оборота; инициаторы внесли имущество
   // 60 000 ₽ (в базе возврата сразу) и в первом месяце оплатили записку 5 000 ₽ из своих средств.
   const ORDERS_PER_MONTH = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18, 22, 26];
 
@@ -577,11 +577,11 @@ describe('mkt.order.invest.cycle.01 — год прогонов участка �
     // завершении возврата (o.mkt.rpsurp).
     expect(repaidSum - base <= 12n).toBe(true);
     if (repaidSum >= base) expect(world.investOutstanding('branch1') <= 12n).toBe(true);
-    // Собранное разошлось без остатка: участку, в фонды, инициатору, на возмещение вложений и пайщикам.
+    // Собранное разошлось без остатка: участку, в фонды, инициатору, на возмещение паевых взносов и пайщикам.
     const distributed =
       walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.repay) + walletTotal(world.wallets.share);
     expect(distributed).toBe(collected);
-    // Пока вложения не возвращены, доля инициатора возмещает их, а не начисляется инициатору.
+    // Пока паевые взносы не возвращены, доля инициатора возмещает их, а не начисляется инициатору.
     expect(walletTotal(world.wallets.invest)).toBe(0n);
     expect(world.logger.error).not.toHaveBeenCalled();
   });

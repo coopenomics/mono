@@ -1,6 +1,6 @@
 /**
  * Инвестиционный этап кооперативного участка снаружи (задачи 99D-30, 99D-32):
- * договор участия, вложение деньгами и имуществом через API узла, решение
+ * договор участия, паевой взнос деньгами и имуществом через API узла, решение
  * совета по имуществу — через цепь, как в остальных наборах с советом.
  */
 import { MarketContract } from 'cooptypes'
@@ -37,7 +37,7 @@ export async function ensureAgreement(who: Who): Promise<string> {
   return signed.number
 }
 
-/** Подписанное заявление о вложении деньгами и его идентификатор. */
+/** Подписанное заявление о паевом взносе деньгами и его идентификатор. */
 export async function investStatement(who: Who, braname: string, sum: number): Promise<{ statement: any, investHash: string, meta: Record<string, any> }> {
   const token = await tokenOf(who)
   const doc = (await gql<any>(token, INVEST_STATEMENT, { d: { braname, amount: sum } })).marketplaceInvestStatementSignablePayload
@@ -45,7 +45,7 @@ export async function investStatement(who: Who, braname: string, sum: number): P
   return { statement: await signDocument(who.wif, doc, who.account, 1), investHash: String(meta.invest_hash), meta }
 }
 
-/** Вложение деньгами в участок по подписанному заявлению. */
+/** Паевой взнос деньгами в участок по подписанному заявлению. */
 export async function investMoney(who: Who, braname: string, sum: number): Promise<any> {
   const { statement, investHash } = await investStatement(who, braname, sum)
   const view = (await gql<any>(await tokenOf(who), INVEST_MONEY, { d: { braname, amount: sum, invest_hash: investHash, statement } })).marketplaceInvestMoney

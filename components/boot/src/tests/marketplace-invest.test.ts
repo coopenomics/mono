@@ -4,16 +4,16 @@
  * marketplace.order, случаи mkt.order.invest.*).
  *
  * Инициаторы участка — его председатель и доверенное лицо. Тест проходит путь
- * вложения целиком и сверяет состояние цепи с эталоном
+ * паевые взносы целиком и сверяет состояние цепи с эталоном
  * `MarketContract.PeriodModel` (crps*):
  *
  *   • договор участия подписывается один раз, второй раз — отказ;
- *   • деньги транслируются с главного паевого на кошелёк вложения без
+ *   • деньги транслируются с главного паевого на кошелёк договора участия без
  *     проводки; паевой взнос инициатора на счёте 80 не меняется, деньги лежат
  *     подушкой вне базы возврата;
  *   • имущество проходит заявление → одобрение председателя участка → решение
  *     совета → акт двумя подписями и сразу входит в базу возврата (Дт 10 / Кт 80);
- *   • прогон месяца с экономией: доля инициаторов возмещает вложения
+ *   • прогон месяца с экономией: доля инициаторов возмещает паевые взносы
  *     (o.mkt.repay на кошелёк возмещения участка), счётчик возврата растёт
  *     ровно как в эталоне;
  *   • заявление обратно переводит на главный паевой ровно столько, сколько
@@ -86,7 +86,7 @@ async function ensureAgreement(who: Who) {
 const MARKETPLACE_PROGRAM_ID = 2
 
 /**
- * Соглашение программы «Стол заказов»: кошелёк вложения `w.mkt.invest`
+ * Соглашение программы «Стол заказов»: кошелёк договора участия `w.mkt.invest`
  * принадлежит этой программе, и ledger2 двигает его только у пайщика с
  * подписанным соглашением. Доверенное лицо участка засевом стенда к программе
  * не подключено — подписываем по черновику программы, как стол пайщика.
@@ -121,7 +121,7 @@ describe('стол заказов — инвестиционный этап ко
     await push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period }).catch(() => {})
   })
 
-  it('mkt.order.invest.01 — договор участия подписывается один раз; без договора вложение не принимается', async () => {
+  it('mkt.order.invest.01 — договор участия подписывается один раз; без договора паевой взнос не принимается', async () => {
     const rows: any[] = await bc.getTableRows(MARKET, COOP, 'invagreemnts', 1, ekaterina.account, ekaterina.account)
     if (!rows.some(r => r.username === ekaterina.account)) {
       await expect(push(MARKET, 'investmoney', {
@@ -136,7 +136,7 @@ describe('стол заказов — инвестиционный этап ко
       .rejects.toThrow(/MARKETPLACE_INVAGR_EXISTS/)
   }, 300_000)
 
-  it('mkt.order.invest.02 — деньги в участок: с главного паевого на кошелёк вложения, подушка вне базы возврата', async () => {
+  it('mkt.order.invest.02 — деньги в участок: с главного паевого на кошелёк договора участия, подушка вне базы возврата', async () => {
     const amountUnits = rub(5_000)
     const shareBefore = await userWallet(bc, 'w.wal.share', chairkrg.account)
     const investBefore = await userWallet(bc, 'w.mkt.invest', chairkrg.account)
@@ -148,7 +148,7 @@ describe('стол заказов — инвестиционный этап ко
     })
 
     expect(shareBefore - await userWallet(bc, 'w.wal.share', chairkrg.account), 'с главного паевого — ровно сумма заявления').toBe(amountUnits)
-    expect(await userWallet(bc, 'w.mkt.invest', chairkrg.account) - investBefore, 'на кошелёк вложения — ровно сумма').toBe(amountUnits)
+    expect(await userWallet(bc, 'w.mkt.invest', chairkrg.account) - investBefore, 'на кошелёк договора участия — ровно сумма').toBe(amountUnits)
     const branchAfter = await investBranch(bc, BRANAME)
     expect(branchAfter.unusedTotal - branchBefore.unusedTotal, 'деньги — подушка пула').toBe(amountUnits)
     expect(branchAfter.base, 'неиспользованные деньги в базу возврата не входят').toBe(branchBefore.base)
@@ -156,7 +156,7 @@ describe('стол заказов — инвестиционный этап ко
     expect(row!.money - (rowBefore?.money ?? 0n)).toBe(amountUnits)
   }, 300_000)
 
-  it('mkt.order.invest.03 — отказы вложения деньгами: не оператор участка, чужой подписант, больше паевого, нулевая сумма', async () => {
+  it('mkt.order.invest.03 — отказы паевого взноса деньгами: не оператор участка, чужой подписант, больше паевого, нулевая сумма', async () => {
     const base = { coopname: COOP, braname: BRANAME, invest_hash: hex() }
     await expect(push(MARKET, 'investmoney', { ...base, username: ekaterina.account, amount: asset(rub(100)), statement: await signed(ekaterina, 1119) }), 'не оператор')
       .rejects.toThrow(/MARKETPLACE_INVEST_NOT_OPERATOR/)
@@ -195,7 +195,7 @@ describe('стол заказов — инвестиционный этап ко
     const act2 = chainDoc(await signAs(chairkrg.wif, actDraft, chairkrg.account, 2, [act1]))
     await push(MARKET, 'act2iprop', { coopname: COOP, braname: BRANAME, property_hash: propertyHash, act: act2 })
 
-    expect(await userWallet(bc, 'w.mkt.invest', trustedkrg.account) - investBefore, 'цена приёма — паевым взносом на кошелёк вложения').toBe(price)
+    expect(await userWallet(bc, 'w.mkt.invest', trustedkrg.account) - investBefore, 'цена приёма — паевым взносом на кошелёк договора участия').toBe(price)
     const branchAfter = await investBranch(bc, BRANAME)
     expect(branchAfter.base - branchBefore.base, 'имущество сразу в базе возврата').toBe(price)
     const after: any[] = await bc.getTableRows(MARKET, COOP, 'invprops', 1000)
@@ -216,7 +216,7 @@ describe('стол заказов — инвестиционный этап ко
     expect(props.some(p => p.hash.toLowerCase() === propertyHash)).toBe(false)
   }, 300_000)
 
-  it('mkt.order.invest.06 — прогон с экономией: доля инициаторов возмещает вложения, счётчик — как в эталоне; заявление обратно — сумма эталона', async () => {
+  it('mkt.order.invest.06 — прогон с экономией: доля инициаторов возмещает паевые взносы, счётчик — как в эталоне; заявление обратно — сумма эталона', async () => {
     const offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     const unitPrice = amount(offer.price_per_unit)
     await ensureShareFunds(ekaterina.account, unitPrice * 4, ekaterinaToken)
@@ -243,7 +243,7 @@ describe('стол заказов — инвестиционный этап ко
     const parts = chargeOrder({ rateBranch: BigInt(month.row.rate_branch), rateFunds: BigInt(month.row.rate_funds), rateInitiator: BigInt(month.row.rate_initiator) }, due, base)
 
     const branchBefore = await investBranch(bc, BRANAME)
-    expect(branchBefore.base > 0n, 'у участка есть использованное вложение — имущество из случая 04').toBe(true)
+    expect(branchBefore.base > 0n, 'у участка есть использованный паевой взнос — имущество из случая 04').toBe(true)
     const route = crpsRoute(branchBefore, parts.initiator)
     const repayBefore = await userWallet(bc, 'w.mkt.repay', BRANAME)
 
@@ -268,7 +268,7 @@ describe('стол заказов — инвестиционный этап ко
       await push(MARKET, 'claiminv', { coopname: COOP, username: trustedkrg.account, braname: BRANAME, claim_hash: hex(), statement: await signed(trustedkrg, 1123) })
       const moved = await userWallet(bc, 'w.wal.share', trustedkrg.account) - shareBefore
       expect(moved >= expected.total, 'на главный паевой — не меньше насчитанного эталоном (плюс прежние начисления)').toBe(true)
-      expect(investBefore - await userWallet(bc, 'w.mkt.invest', trustedkrg.account), 'с кошелька вложения — та же сумма').toBe(moved)
+      expect(investBefore - await userWallet(bc, 'w.mkt.invest', trustedkrg.account), 'с кошелька договора участия — та же сумма').toBe(moved)
     }
     await expect(push(MARKET, 'claiminv', { coopname: COOP, username: trustedkrg.account, braname: BRANAME, claim_hash: hex(), statement: await signed(trustedkrg, 1123) }),
       'повтор без новой экономии').rejects.toThrow(/MARKETPLACE_INVEST_NOTHING_TO_CLAIM/)

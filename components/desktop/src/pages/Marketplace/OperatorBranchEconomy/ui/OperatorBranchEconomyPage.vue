@@ -123,7 +123,7 @@ const reserves = ref<MarketplaceBranchReservesView | null>(null)
 const initiator = ref<MarketplaceBranchInitiatorView | null>(null)
 const periods = ref<MarketplaceBranchPeriodRow[]>([])
 const currentPeriod = ref<MarketplaceBranchCurrentPeriodView | null>(null)
-/** Вложения инициаторов участка (99D-31): средства инициаторов и возмещение. */
+/** Паевые взносы инициаторов участка (99D-31): средства инициаторов и возмещение. */
 const investment = ref<MarketplaceBranchInvestmentView | null>(null)
 
 // ─── Табы страницы (requirement — переверстка без изменения логики) ───
@@ -738,7 +738,7 @@ const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
 /**
  * Средства инициаторов участка на «Кошельке участка»: выделено под незакрытые
  * расходы, оплачено из средств инициаторов и возмещено им из экономии. У
- * участка без вложений плиток нет.
+ * участка без паевых взносов плиток нет.
  */
 const hasInvestment = computed(() => Boolean(investment.value && investment.value.phase !== Zeus.MarketplaceInvestPhase.NONE))
 const investmentTiles = computed<StatStripItem[]>(() => {
@@ -757,7 +757,7 @@ const investmentTiles = computed<StatStripItem[]>(() => {
   ]
 })
 
-/** Фаза участка по вложениям в месяце: бейдж в итогах месяцев. */
+/** Фаза участка по паевым взносам в месяце: бейдж в итогах месяцев. */
 const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: MarketplaceMessageKey; variant: BaseBadgeVariant } | null> = {
   [Zeus.MarketplacePeriodInvestPhase.NONE]: null,
   [Zeus.MarketplacePeriodInvestPhase.DEFICIT]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseDeficit', variant: 'warn' },

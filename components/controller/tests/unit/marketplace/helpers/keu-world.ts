@@ -110,13 +110,13 @@ export function createKeuWorld() {
     share: new Map<string, bigint>(),
     branch: new Map<string, bigint>(),
     invest: new Map<string, bigint>(),
-    /** Кошелёк возмещения вложений участка `w.mkt.repay` (99D-27). */
+    /** Кошелёк возмещения паевых взносов участка `w.mkt.repay` (99D-27). */
     repay: new Map<string, bigint>(),
     funds: 0n,
   };
   /**
-   * Вложения инициаторов участка (`invbranches`, 99D-27): база возврата,
-   * счётчик CRPS и возмещено всего. Участок без строки — вложений нет, доля
+   * Паевые взносы инициаторов участка (`invbranches`, 99D-27): база возврата,
+   * счётчик CRPS и возмещено всего. Участок без строки — паевых взносов нет, доля
    * инициатора как прежде направляется инициатору участка.
    */
   const invest = new Map<string, { base: bigint; acc: bigint; sJoin: bigint; sFixed: bigint; unusedTotal: bigint; reserved: bigint; property: bigint; repaid: bigint }>();
@@ -220,7 +220,7 @@ export function createKeuWorld() {
   });
 
   const chainPort = {
-    // Строка участка по вложениям инициаторов; нет строки — вложений нет.
+    // Строка участка по паевым взносам инициаторов; нет строки — паевых взносов нет.
     async getInvestBranch(_coopname?: string, braname?: string) {
       const b = braname ? invest.get(braname) : undefined;
       if (!b) return null;
@@ -313,7 +313,7 @@ export function createKeuWorld() {
       wallets.funds += parts.funds;
       const inv = invest.get(data.braname);
       if (inv && inv.base > 0n) {
-        // Как route_initiator_share: доля инициаторов возмещает вложения, сверх остатка — участку.
+        // Как route_initiator_share: доля инициаторов возмещает паевые взносы, сверх остатка — участку.
         const route = Model.crpsRoute(inv, parts.initiator);
         inv.acc = route.acc;
         inv.repaid += route.repay;
@@ -437,7 +437,7 @@ export function createKeuWorld() {
       await deliver([{ code: MarketplaceSecureDueOperation.PENALTY, units: order.due, username: order.username, hash: order.hash, at: order.issuedAt }]);
     },
 
-    /** Вложения инициаторов участка: имущество по цене приёма сразу в базе возврата. */
+    /** Паевые взносы инициаторов участка: имущество по цене приёма сразу в базе возврата. */
     investProperty(braname: string, units: bigint): void {
       const b = invest.get(braname) ?? { base: 0n, acc: 0n, sJoin: 0n, sFixed: 0n, unusedTotal: 0n, reserved: 0n, property: 0n, repaid: 0n };
       b.base += units;

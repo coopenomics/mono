@@ -9,7 +9,7 @@
  * подписи акта.
  *
  * Guards: авторизация кооператива; договор участия подписан; участок есть;
- * пайщик — оператор участка; заявление подписано пайщиком; хэш вложения
+ * пайщик — оператор участка; заявление подписано пайщиком; хэш паевого взноса
  * новый; цена больше нуля; описание не пустое.
  *
  * @ingroup public_marketplace_actions
@@ -23,7 +23,7 @@ void marketplace::createiprop(eosio::name coopname, eosio::name username, eosio:
   eosio::check(!description.empty(),
                "MARKETPLACE_IPROP_DESCRIPTION_REQUIRED: Опишите вносимое имущество");
   eosio::check(property_hash != checksum256{},
-               "MARKETPLACE_IPROP_HASH_MISSING: Не указан идентификатор вложения имуществом");
+               "MARKETPLACE_IPROP_HASH_MISSING: Не указан идентификатор паевого взноса имуществом");
   eosio::check(!is_empty_document(statement),
                "MARKETPLACE_IPROP_STATEMENT_MISSING: Отсутствует заявление о паевом взносе имуществом");
   verify_document_or_fail(statement, { username });

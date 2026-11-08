@@ -2,7 +2,7 @@
  * Инвестиционный этап кооперативного участка — ИСТОК (задача 99D-30):
  * предпросмотр доступного возврата повторяет формулу контракта (эталон
  * PeriodModel.crpsClaimable) и прибавляет прежние начисления на кошельке
- * вложения; фазы участка; правило «вносит оператор участка» до цепи;
+ * паевые взносы; фазы участка; правило «вносит оператор участка» до цепи;
  * документы требуют договора участия. Реестр: mkt.order.invest.istok.*.
  */
 jest.mock('@coopenomics/extension-kit', () => {
@@ -100,7 +100,7 @@ function world(opts: { operator?: boolean; walletExtra?: bigint; agreement?: boo
   return { service, chainPort, documentPort, ledger2History };
 }
 
-describe('mkt.order.invest.istok — вложения инициаторов в ИСТОКЕ', () => {
+describe('mkt.order.invest.istok — паевые взносы инициаторов в ИСТОКЕ', () => {
   it('istok.01 — предпросмотр возврата 60 / 40 % совпадает с эталоном контракта до копейки', async () => {
     const { service } = world();
     const anna = await service.previewClaim(COOP, 'krg', 'anna');
@@ -112,13 +112,13 @@ describe('mkt.order.invest.istok — вложения инициаторов в 
     expect(model.crpsReturned({ active: true, money: 0n, property: rub(600_000), usedMoney: 0n, claimed: 0n, returnedFixed: 0n, accJoin: 0n }, (rub(100_000) * S) / rub(1_000_000))).toBe(anna);
   });
 
-  it('istok.02 — прежние начисления на кошельке вложения сверх строк прибавляются к доступному', async () => {
+  it('istok.02 — прежние начисления на кошельке договора участия сверх строк прибавляются к доступному', async () => {
     const { service } = world({ walletExtra: rub(5_000) });
     const anna = await service.previewClaim(COOP, 'krg', 'anna');
     expect(anna).toBe(rub(65_000));
   });
 
-  it('istok.03 — фаза: вложения есть, возмещения нет — FUNDING; возмещение идёт — RETURNING', async () => {
+  it('istok.03 — фаза: паевые взносы есть, возмещения нет — FUNDING; возмещение идёт — RETURNING', async () => {
     expect((await world({ repaid: 0n }).service.getBranchInvestment(COOP, 'krg')).phase).toBe(MarketplaceInvestPhase.FUNDING);
     const view = await world().service.getBranchInvestment(COOP, 'krg');
     expect(view.phase).toBe(MarketplaceInvestPhase.RETURNING);
@@ -146,13 +146,13 @@ describe('mkt.order.invest.istok — вложения инициаторов в 
     expect(chainPort.investMoney).not.toHaveBeenCalled();
   });
 
-  it('istok.05 — заявление о вложении без договора участия не формируется', async () => {
+  it('istok.05 — заявление о паевом взносе без договора участия не формируется', async () => {
     const { service, documentPort } = world({ agreement: false });
     await expect(service.generateInvestStatement(COOP, 'anna', 'krg', 1000)).rejects.toMatchObject({ code: 'MARKETPLACE_INVAGR_REQUIRED' });
     expect(documentPort.generate).not.toHaveBeenCalled();
   });
 
-  it('istok.06 — заявление о вложении: номер договора, участок и сумма в данных документа', async () => {
+  it('istok.06 — заявление о паевом взносе: номер договора, участок и сумма в данных документа', async () => {
     const { service, documentPort } = world();
     await service.generateInvestStatement(COOP, 'anna', 'krg', 300_000);
     const data = documentPort.generate.mock.calls[0][0].data;
@@ -162,7 +162,7 @@ describe('mkt.order.invest.istok — вложения инициаторов в 
     expect(data.amount).toBe('300000.0000 RUB');
   });
 
-  it('istok.08 — проход списания возместил вложения: инициаторам с доступной суммой — уведомление со ссылкой на страницу, без суммы — нет', async () => {
+  it('istok.08 — проход списания возместил паевые взносы: инициаторам с доступной суммой — уведомление со ссылкой на страницу, без суммы — нет', async () => {
     const w = world();
     w.chainPort.listUserInvestments.mockImplementation(async (_c: string, u: string) =>
       u === 'boris' ? [] : [{ braname: 'krg', username: u, status: 'active', money: toAsset(0n), property: toAsset(rub(600_000)), used_money: toAsset(0n), claimed: toAsset(0n), returned_fixed: '0', acc_join: '0' } as any]
@@ -186,7 +186,7 @@ describe('mkt.order.invest.istok — вложения инициаторов в 
     expect(payload.deepLinkUrl).toBe('https://coop.test/voskhod/market-pvz/initiators');
   });
 
-  it('istok.09 — история вложений: деньги и имущество по операциям учёта пайщика, хэш процесса в нижнем регистре, чужие операции отброшены', async () => {
+  it('istok.09 — история паевых взносов: деньги и имущество по операциям учёта пайщика, хэш процесса в нижнем регистре, чужие операции отброшены', async () => {
     const { service, ledger2History } = world();
     const page = await service.listMyHistory(COOP, 'anna', { page: 1, limit: 20 } as any);
     expect(ledger2History.getHistory).toHaveBeenCalledWith(

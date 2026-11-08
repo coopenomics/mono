@@ -73,7 +73,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.mkt.topay",
   },
   {
-    "program_label": "Marketplace — вложение по договору участия в хозяйственной деятельности программы «Стол заказов» (99D-27)",
+    "program_label": "Marketplace — паевой взнос по договору участия в хозяйственной деятельности программы «Стол заказов» (99D-27)",
     "required_program_id": 2,
     "wallet_name": "w.mkt.invest",
   },
@@ -202,13 +202,13 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
   },
   {
     "account": 80000,
-    "human_name": "ЦПП «Стол Заказов» — вложение инициатора в кооперативный участок",
+    "human_name": "ЦПП «Стол Заказов» — паевой взнос инициатора в кооперативный участок",
     "kind": "USER_SHARED",
     "name": "w.mkt.invest",
   },
   {
     "account": 86000,
-    "human_name": "ЦПП «Стол Заказов» — возмещение вложений инициаторов участка",
+    "human_name": "ЦПП «Стол Заказов» — возмещение паевых взносов инициаторов участка",
     "kind": "USER_SHARED",
     "name": "w.mkt.repay",
   },

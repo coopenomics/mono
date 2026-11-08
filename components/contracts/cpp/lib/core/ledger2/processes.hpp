@@ -76,7 +76,7 @@ namespace processes {
     inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
     inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
-    inline constexpr eosio::name INVEST    = "p.mkt.invest"_n;   ///< Инвестиционный этап участка: договор участия, вложения деньгами и имуществом, пул средств инициаторов, возврат вложений заявлением (o.mkt.inv, o.mkt.iprop, o.mkt.ipool, o.mkt.iunpool, o.mkt.iback). Задача 99D-27.
+    inline constexpr eosio::name INVEST    = "p.mkt.invest"_n;   ///< Инвестиционный этап участка: договор участия, паевые взносы деньгами и имуществом, пул средств инициаторов, возврат паевых взносов заявлением (o.mkt.inv, o.mkt.iprop, o.mkt.ipool, o.mkt.iunpool, o.mkt.iback). Задача 99D-27.
   }
 
   // branch — экономика кооперативного участка (requirement b6)

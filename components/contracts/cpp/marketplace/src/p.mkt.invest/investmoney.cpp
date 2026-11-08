@@ -9,9 +9,9 @@
  * в базу возврата не входят и доступны пулу участка, когда его общего кошелька
  * не хватит на расход или материальную помощь.
  *
- * Строка инициатора по участку создаётся первым вложением (очередь расхода —
+ * Строка инициатора по участку создаётся первым паевым взносом (очередь расхода —
  * по порядку входа) или пополняется. Инициатор, у которого возврат уже
- * завершён, новым вложением снова становится активным.
+ * завершён, новым паевым взносом снова становится активным.
  *
  * Guards: авторизация кооператива; договор участия подписан; участок есть;
  * пайщик — оператор участка (председатель или доверенное лицо); заявление
@@ -24,9 +24,9 @@ void marketplace::investmoney(eosio::name coopname, eosio::name username, eosio:
                               checksum256 invest_hash, eosio::asset amount, document2 statement) {
   require_auth(coopname);
   eosio::check(amount.is_valid() && amount.amount > 0 && amount.symbol == _root_govern_symbol,
-               "MARKETPLACE_INVEST_AMOUNT_INVALID: Сумма вложения должна быть больше нуля и в валюте кооператива");
+               "MARKETPLACE_INVEST_AMOUNT_INVALID: Сумма паевого взноса должна быть больше нуля и в валюте кооператива");
   eosio::check(invest_hash != checksum256{},
-               "MARKETPLACE_INVEST_HASH_MISSING: Не указан идентификатор вложения");
+               "MARKETPLACE_INVEST_HASH_MISSING: Не указан идентификатор паевого взноса");
   eosio::check(!is_empty_document(statement),
                "MARKETPLACE_INVEST_STATEMENT_MISSING: Отсутствует заявление о трансляции паевого взноса в договор участия");
   verify_document_or_fail(statement, { username });

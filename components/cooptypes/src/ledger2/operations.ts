@@ -339,25 +339,25 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mkt.repay',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'INVEST_REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.repay',
     debit: 80, credit: 86,
-    human_name: 'Возмещение вложений инициаторов из экономии месяца участка' },
+    human_name: 'Возмещение паевых взносов инициаторов из экономии месяца участка' },
 
   { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'INVEST_REPAY_SURPLUS', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.repay', wallet_to: 'w.brn.common',
     debit: null, credit: null,
-    human_name: 'Перевод переплаты возмещения вложений на общий кошелёк участка' },
+    human_name: 'Перевод переплаты возмещения паевых взносов на общий кошелёк участка' },
 
   { code: 'o.mkt.iback',   process_type: 'p.mkt.invest',  contract: 'marketplace',
     name: 'INVEST_BACK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
     debit: null, credit: null,
-    human_name: 'Трансляция возвращённого вложения в главный паевой кошелёк' },
+    human_name: 'Трансляция возвращённого паевого взноса в главный паевой кошелёк' },
 
   { code: 'o.mkt.iexit',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'INVEST_EXIT', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
     debit: null, credit: null,
-    human_name: 'Перенос вложения инициатора на главный паевой при выходе из кооператива' },
+    human_name: 'Перенос паевого взноса инициатора на главный паевой при выходе из кооператива' },
 
   // Расходы и материальная помощь участка из средств инициаторов (задача
-  // 99D-28): счёт вложений 08, без транзита через фонд.
+  // 99D-28): счёт 08, без транзита через фонд.
   { code: 'o.mkt.iadv',    process_type: 'p.exp.expns',   contract: 'expense',
     name: 'INVEST_EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
     debit: 8, credit: 51,

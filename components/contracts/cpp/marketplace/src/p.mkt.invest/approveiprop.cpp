@@ -2,7 +2,7 @@
  * @brief Председатель участка одобряет заявление о паевом взносе имуществом и
  * передаёт вопрос в совет (задача 99D-27). Одобрение — та же форма заявления
  * 1120 с подписью председателя участка. Контракт сам ставит вопрос на
- * повестку совета (тип `mktiprop`, hash = хэш вложения); решение совета
+ * повестку совета (тип `mktiprop`, hash = хэш паевого взноса); решение совета
  * приходит обратно вызовами `onipropauth` / `onipropdecl`.
  *
  * Guards: авторизация кооператива; заявление в статусе «подано»; одобрение
@@ -32,7 +32,7 @@ void marketplace::approveiprop(eosio::name coopname, eosio::name braname,
 
   // Повестка совета: marketplace в contracts_whitelist, createagenda
   // авторизуется от permission_level{_marketplace, active}; hash = хэш
-  // вложения, чтобы обратные вызовы нашли заявление.
+  // паевого взноса, чтобы обратные вызовы нашли заявление.
   action(permission_level{_marketplace, "active"_n}, _soviet, "createagenda"_n,
     std::make_tuple(
       coopname,

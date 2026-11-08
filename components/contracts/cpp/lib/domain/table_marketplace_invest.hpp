@@ -41,7 +41,7 @@ static constexpr uint64_t SCALE = 1'000'000'000'000ULL;
 static constexpr uint64_t OUT_OF_RANGE = UINT64_MAX;
 
 namespace Status {
-  static constexpr eosio::name ACTIVE = "active"_n;  ///< вложение возвращается из экономии участка
+  static constexpr eosio::name ACTIVE = "active"_n;  ///< паевой взнос возвращается из экономии участка
   static constexpr eosio::name DONE   = "done"_n;    ///< использованное возвращено, неиспользованное доступно к заявлению
 }
 
@@ -75,12 +75,12 @@ typedef eosio::multi_index<"invagreemnts"_n, mkt_invagreement> mkt_invagreements
 RAM_PAYER_CLASS(mkt_invagreement, contract);
 
 /**
- * @brief Вложения инициаторов одного кооперативного участка и счётчик
- * возврата (CRPS). Строка заводится первым вложением и живёт, пока у участка
+ * @brief Паевые взносы инициаторов одного кооперативного участка и счётчик
+ * возврата (CRPS). Строка заводится первым паевым взносом и живёт, пока у участка
  * есть инициаторы.
  *
  * Обозначения: единицы инициатора `units_i = used_money_i + property_i`
- * (использованное вложение), база `base = Σ units_i` по инициаторам в статусе
+ * (использованный паевой взнос), база `base = Σ units_i` по инициаторам в статусе
  * active, возвращено инициатору `returned_i = returned_fixed_i +
  * units_i × (acc − acc_join_i) / SCALE`. Суммы `s_join = Σ units_i × acc_join_i`
  * и `s_fixed = Σ returned_fixed_i` по базе дают непогашенный остаток участка
@@ -132,7 +132,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_investor {
   uint64_t     acc_join = 0;     ///< счётчик участка на момент последней фиксации
   uint64_t     acc_done = 0;     ///< счётчик участка, при котором использованное будет возвращено целиком
   uint64_t     join_seq = 0;     ///< порядок входа в участок
-  eosio::time_point_sec joined_at; ///< время первого вложения
+  eosio::time_point_sec joined_at; ///< время первого паевого взноса
 
   uint64_t primary_key() const { return id; }
   uint64_t by_branch() const { return braname.value; }
@@ -177,7 +177,7 @@ RAM_PAYER_CLASS(mkt_investor, contract);
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_invprop {
   uint64_t     id;             ///< суррогатный ключ
-  checksum256  hash;           ///< хэш вложения имуществом (процесс p.mkt.invest)
+  checksum256  hash;           ///< хэш паевого взноса имуществом (процесс p.mkt.invest)
   eosio::name  braname;        ///< кооперативный участок
   eosio::name  username;       ///< вносящий пайщик
   eosio::name  status;         ///< created | approved | authorized | act1

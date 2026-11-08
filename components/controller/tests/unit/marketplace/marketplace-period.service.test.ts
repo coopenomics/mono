@@ -104,7 +104,7 @@ function build(opts: {
   const store = memoryStore();
   const chainRows = opts.chainRows ?? [chainRow()];
   const chainPort = {
-    // Вложений инициаторов у участка нет (задача 99D-30): фаза итога — NONE.
+    // Паевых взносов инициаторов у участка нет (задача 99D-30): фаза итога — NONE.
     getInvestBranch: jest.fn(async () => null),
     closePeriod: jest.fn(async () => {
       if (opts.closeError) throw opts.closeError;
@@ -309,7 +309,7 @@ describe('mkt.order.keu.11 — стирание старых строк и чт�
     expect(page.totalPages).toBe(2);
   });
 
-  it('mkt.order.invest.istok.07 — фаза вложений фиксируется при первом зеркале итога: нет вложений, дефицит, возмещение, участку; повтор зеркала её не переписывает', async () => {
+  it('mkt.order.invest.istok.07 — фаза паевых взносов фиксируется при первом зеркале итога: нет паевых взносов, дефицит, возмещение, участку; повтор зеркала её не переписывает', async () => {
     const branch = (over: Record<string, unknown> = {}) => ({
       braname: BRANAME,
       money_total: '0.0000 RUB',

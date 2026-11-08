@@ -3,7 +3,7 @@ import { paginationSelector } from '../../utils/paginationSelector'
 import { Selector, type ValueTypes } from '../../zeus/index'
 
 // Инвестиционный этап кооперативного участка (задачи 99D-30, 99D-31):
-// договор участия, вложения инициаторов, заявления на имущество и участок.
+// договор участия, паевые взносы инициаторов, заявления на имущество и участок.
 
 export const rawMarketplaceInvestAgreementSelector = {
   number: true,
