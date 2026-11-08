@@ -437,8 +437,8 @@ public:
   [[eosio::action]] void apprvipact(eosio::name coopname, eosio::name username,
                                      checksum256 property_hash, document2 approved_document);
   /**
-   * @brief Председатель совета отказал в подписи акта приёма имущества
-   * (только контракт совета): акт возвращается вносящему.
+   * @brief Отказ председателя совета в подписи акта приёма имущества не
+   * допускается (только контракт совета): действие всегда отклоняет отказ.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void dclipact(eosio::name coopname, eosio::name username,

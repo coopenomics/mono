@@ -169,7 +169,7 @@ describe('стол заказов — инвестиционный этап ко
       .rejects.toThrow(/MARKETPLACE_INVEST_AMOUNT_INVALID/)
   }, 300_000)
 
-  it('mkt.order.invest.04 — имущество: заявление → одобрение председателем участка → совет → акт вносящего → одобрение председателем совета (отказ возвращает акт); сразу в базу возмещения', async () => {
+  it('mkt.order.invest.04 — имущество: заявление → одобрение председателем участка → совет → акт вносящего → подпись председателем совета через одобрение (отказа нет); сразу в базу возмещения', async () => {
     const price = rub(3_000)
     const propertyHash = hex()
     const investBefore = await userWallet(bc, 'w.mkt.invest', trustedkrg.account)
@@ -198,11 +198,10 @@ describe('стол заказов — инвестиционный этап ко
     const approvals: any[] = await bc.getTableRows('soviet', COOP, 'approvals', 1000)
     expect(approvals.some(a => a.approval_hash.toLowerCase() === propertyHash && a.callback_action_approve === 'apprvipact'), 'акт в запросах одобрения председателя').toBe(true)
 
-    // Отказ председателя совета возвращает акт вносящему: подпись заново, новое одобрение.
-    await push('soviet', 'declineapprv', { coopname: COOP, username: CHAIRMAN.account, approval_hash: propertyHash, reason: 'Уточнить описание' })
-    const declined: any[] = await bc.getTableRows(MARKET, COOP, 'invprops', 1000)
-    expect(declined.find(p => p.hash.toLowerCase() === propertyHash)?.status, 'после отказа — снова подпись вносящего').toBe('authorized')
-    await push(MARKET, 'act1iprop', { coopname: COOP, username: trustedkrg.account, property_hash: propertyHash, act: act1 })
+    // Отказа в подписи акта нет: решение принял совет, подпись председателя —
+    // техническое исполнение (решение владельца 08.11.2026).
+    await expect(push('soviet', 'declineapprv', { coopname: COOP, username: CHAIRMAN.account, approval_hash: propertyHash, reason: 'Уточнить описание' }),
+      'отказ председателя совета в подписи акта').rejects.toThrow(/MARKETPLACE_IPROP_ACT_DECLINE_FORBIDDEN/)
 
     const act2 = chainDoc(await signAs(CHAIRMAN.wif, actDraft, CHAIRMAN.account, 2, [act1]))
     await push('soviet', 'confirmapprv', { coopname: COOP, username: CHAIRMAN.account, approval_hash: propertyHash, approved_document: act2 })

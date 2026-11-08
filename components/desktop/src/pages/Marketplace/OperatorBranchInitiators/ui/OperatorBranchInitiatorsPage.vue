@@ -688,7 +688,8 @@ q-page.initiators(:style-fn='pageStyle')
                 :coopname='coopname',
                 :approval-hash='row.hash',
                 :title='$t("marketplace.initiatorsPage.actApprovalTitle", { name: propertyTitle(row) })',
-                @decided='onApprovalDecided'
+                :declinable='false',
+        @decided='onApprovalDecided'
               )
         EmptyState(
           v-else,
@@ -798,6 +799,7 @@ q-page.initiators(:style-fn='pageStyle')
         :coopname='coopname',
         :approval-hash='selectedProperty.hash',
         :title='$t("marketplace.initiatorsPage.actApprovalTitle", { name: propertyTitle(selectedProperty) })',
+        :declinable='false',
         @decided='onApprovalDecided'
       )
 

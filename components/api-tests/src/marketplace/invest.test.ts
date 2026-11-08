@@ -9,7 +9,7 @@
  * сверяются приращениями.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { ROLES, type Who, amount, caseName, ensureShareFunds, freshMember, gql, tokenOf } from '../core'
+import { ROLES, type Who, amount, caseName, ensureShareFunds, freshMember, gql, tokenOf, waitFor } from '../core'
 import { KRG } from './flow'
 import { refusal } from './mkt-flows.helpers'
 import { onboardOrderer } from './onboarding.helpers'
@@ -94,7 +94,12 @@ describe('инвестиционный этап участка: договор, 
     // (documents.package-filter.01–03): хэш заявления в пакете другой.
     const packageOf = async (token: string, username: string, filter: Record<string, unknown>) =>
       (await gql<any>(token, DOCUMENTS, { d: { username, filter, type: 'newsubmitted', page: 1, limit: 5 } })).getDocuments
-    const own = await packageOf(krgToken, chairkrg.account, { package: entry.process_hash.toUpperCase() })
+    // Реестр документов наполняется из действий цепи, а они выходят после
+    // разбора блока — позже ответа мутации; ждём появления документа.
+    const own = await waitFor(async () => {
+      const page = await packageOf(krgToken, chairkrg.account, { package: entry.process_hash.toUpperCase() })
+      return page.totalCount > 0 ? page : null
+    }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'заявление 1119 в реестре документов' })
     expect(own.totalCount, 'заявление 1119 находится по хэшу процесса из истории').toBe(1)
     expect(JSON.stringify(own.items[0]), 'в пакете — заявление о трансляции паевого взноса').toContain('1119')
     const foreign = await packageOf(outsiderToken, outsider.account, { package: entry.process_hash.toUpperCase(), receiver: chairkrg.account })
