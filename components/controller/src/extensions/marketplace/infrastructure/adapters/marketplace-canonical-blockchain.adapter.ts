@@ -605,6 +605,12 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.WeightTotals.tableName, 'tertiary', braname);
   }
 
+  async getAidMonth(coopname: string, username: string): Promise<BranchContract.Tables.AidMonths.IBranchAidmonth | null> {
+    return this.blockchainService.getSingleRow<BranchContract.Tables.AidMonths.IBranchAidmonth>(
+      BranchContract.contractName.production, coopname, BranchContract.Tables.AidMonths.tableName, username, 'primary', 'name'
+    );
+  }
+
   async listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
     // Заявления одного получателя — по третьему индексу (получатель).
     if (username) {

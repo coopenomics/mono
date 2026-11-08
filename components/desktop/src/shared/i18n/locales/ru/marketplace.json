@@ -1451,7 +1451,8 @@
       "investCardTotal": "Всего",
       "currentPeriodEyebrow": "Текущий месяц",
       "currentExpensesGroup": "Расходы месяца",
-      "currentOrdersGroup": "Заказы к первому числу"
+      "currentOrdersGroup": "Заказы к первому числу",
+      "statusAidPaid": "Выплачено"
     },
     "operatorBranchOrderDetail": {
       "backToEconomy": "К экономике участка",

@@ -379,6 +379,8 @@ export interface MarketplaceCanonicalBlockchainPort {
    * администратора (выплаченные и отклонённые строки цепь стирает).
    */
   listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+  /** Накопитель материальной помощи получателя за календарный месяц по UTC (branch::aidmonths); null — заявлений не было. */
+  getAidMonth(coopname: string, username: string): Promise<BranchContract.Tables.AidMonths.IBranchAidmonth | null>;
 
   /**
    * Кошелёк пайщика либо участка в ledger2 по имени кошелька (w.brn.person,

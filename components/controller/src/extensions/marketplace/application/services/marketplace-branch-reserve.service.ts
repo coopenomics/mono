@@ -1,13 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DomainError, platformSettings, rethrowChainError } from '@coopenomics/extension-kit';
+import { DomainError, rethrowChainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplaceKuChairmanService } from './marketplace-ku-chairman.service';
-import { MarketplaceBranchAidMirrorService } from './marketplace-branch-aid-mirror.service';
-import { periodBounds, periodKeyOf } from '../shared/period-bounds';
 import { t as i18nT } from '../../i18n';
 
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1 000 000) = 100 %. */
@@ -84,8 +82,7 @@ export class MarketplaceBranchReserveService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ECONOMY_SERVICE)
     private readonly economyService: MarketplaceEconomyService,
-    private readonly kuChairmanService: MarketplaceKuChairmanService,
-    private readonly aidMirror: MarketplaceBranchAidMirrorService
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   // ── Настройки администратора ───────────────────────────────────────────
@@ -166,11 +163,10 @@ export class MarketplaceBranchReserveService {
       this.chainPort.listBranchReserves(coopname, braname),
       this.chainPort.getBranchConfig(coopname),
     ]);
-    const bounds = this.currentMonth(now);
     const views: MarketplaceBranchReserveView[] = [];
     for (const r of rows) {
       const amount = this.economyService.assetToUnits(String(r.amount));
-      const submitted = await this.aidMirror.submittedWithin(coopname, r.username, bounds.start, bounds.end);
+      const submitted = await this.submittedThisMonth(coopname, r.username, now);
       const remaining = amount > submitted ? amount - submitted : 0n;
       views.push({
         username: r.username,
@@ -212,8 +208,8 @@ export class MarketplaceBranchReserveService {
   /**
    * Предварительная проверка предела материальной помощи — то же правило, что
    * в `createaid` контракта: при потолке больше нуля у получателя есть резерв
-   * на участке, и сумма заявлений за месяц не выше резерва. Месяц — по
-   * часовому поясу кооператива; контракт считает по UTC.
+   * на участке, и сумма заявлений за месяц не выше резерва. Поданное — из
+   * накопителя контракта, тот же календарный месяц по UTC, что в `createaid`.
    */
   async assertAidWithinReserve(coopname: string, braname: string, username: string, amountHuman: number, now = new Date()): Promise<void> {
     const branchConfig = await this.chainPort.getBranchConfig(coopname);
@@ -221,8 +217,7 @@ export class MarketplaceBranchReserveService {
     if (limit <= 0n) return;
     const reserve = (await this.chainPort.listBranchReserves(coopname, braname)).find((r) => r.username === username);
     if (!reserve) throw DomainError.badRequest('MARKETPLACE_AID_NO_RESERVE');
-    const bounds = this.currentMonth(now);
-    const submitted = await this.aidMirror.submittedWithin(coopname, username, bounds.start, bounds.end);
+    const submitted = await this.submittedThisMonth(coopname, username, now);
     const requested = this.economyService.assetToUnits(amountHuman.toFixed(4));
     const reserveUnits = this.economyService.assetToUnits(String(reserve.amount));
     if (submitted + requested > reserveUnits) {
@@ -234,9 +229,18 @@ export class MarketplaceBranchReserveService {
     }
   }
 
-  private currentMonth(now: Date) {
-    const timeZone = platformSettings().timezone || 'UTC';
-    return periodBounds(periodKeyOf(now, timeZone), timeZone);
+  /**
+   * Материальная помощь, поданная получателем в текущем месяце, — из
+   * накопителя контракта `branch::aidmonths`. Контракт ведёт его по
+   * календарному месяцу UTC (год × 12 + месяц) и по нему отказывает
+   * «превысит резерв»; стол показывает то же число. Прежний расчёт по месяцу
+   * стенда со сжатым временем расходился с контрактом (владелец 08.11.2026).
+   */
+  private async submittedThisMonth(coopname: string, username: string, now: Date): Promise<bigint> {
+    const row = await this.chainPort.getAidMonth(coopname, username);
+    if (!row) return 0n;
+    const period = now.getUTCFullYear() * 12 + now.getUTCMonth() + 1;
+    return Number(row.period) === period ? this.economyService.assetToUnits(String(row.total)) : 0n;
   }
 
   private toContractPercent(human: number, label: string): number {

@@ -43,10 +43,12 @@ import { PAYMENT_DESK_PORT, type IPaymentDeskPort, type InnerPayment, VAT_EXEMPT
 import { t as i18nT } from '../../i18n';
 import { TableStore } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_AID_STORE } from '../../infrastructure/database/marketplace-stores';
-import type { MarketplaceBranchAidEntity } from '../../infrastructure/entities/marketplace-branch-aid.entity';
+import { MarketplaceBranchAidStatus, type MarketplaceBranchAidEntity } from '../../infrastructure/entities/marketplace-branch-aid.entity';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
+/** Сколько выплаченных заявлений показывать в списке — последние по дате выплаты. */
+const PAID_AIDS_LIMIT = 50;
 
 export const MARKETPLACE_ECONOMY_SERVICE = Symbol('MARKETPLACE_ECONOMY_SERVICE');
 
@@ -112,11 +114,13 @@ export enum MarketplaceAidStage {
   ON_COUNCIL = 'ON_COUNCIL',
   /** Совет одобрил выплату — заявка передана кассиру. */
   AWAITING_PAYOUT = 'AWAITING_PAYOUT',
+  /** Кассир подтвердил перевод — помощь выплачена, строка цепи стёрта. */
+  PAID = 'PAID',
 }
 
 registerEnumType(MarketplaceAidStage, {
   name: 'MarketplaceAidStage',
-  description: 'Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты.',
+  description: 'Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено.',
 });
 
 /** Заявление на материальную помощь со стадией и статусом выплаты у кассира. */
@@ -793,9 +797,59 @@ export class MarketplaceEconomyService {
     }
   }
 
+  /**
+   * Заявления в работе — из цепи, выплаченные — из зеркала узла: после
+   * выплаты контракт стирает строку, а пайщик должен видеть, что ему
+   * выплачено (владелец 08.11.2026). Выплаченные — последние по дате выплаты.
+   */
   async listAids(coopname: string, username?: string): Promise<MarketplaceAidView[]> {
-    const aids = await this.chainPort.listAids(coopname, username);
-    return Promise.all(aids.map((aid) => this.toAidView(coopname, aid)));
+    const [aids, paid] = await Promise.all([
+      this.chainPort.listAids(coopname, username),
+      this.aidStore
+        .find(
+          { coopname, status: MarketplaceBranchAidStatus.PAID, ...(username ? { username } : {}) },
+          { order: { paid_at: 'DESC' }, limit: PAID_AIDS_LIMIT }
+        )
+        .catch(() => [] as MarketplaceBranchAidEntity[]),
+    ]);
+    const active = await Promise.all(aids.map((aid) => this.toAidView(coopname, aid)));
+    const activeHashes = new Set(active.map((a) => a.hash.toLowerCase()));
+    const done = await Promise.all(
+      paid.filter((row) => !activeHashes.has(row.aid_hash)).map((row) => this.toPaidAidView(coopname, row))
+    );
+    return [...active, ...done];
+  }
+
+  /** Выплаченное заявление из зеркала: сумма, налог, реквизиты и даты платежа. */
+  private async toPaidAidView(coopname: string, row: MarketplaceBranchAidEntity): Promise<MarketplaceAidView> {
+    const payment = await this.aidPayment(coopname, row.aid_hash);
+    let payment_destination: string | null = null;
+    if (payment?.payment_method_id) {
+      try {
+        const method = await this.paymentMethodRepo.get({ username: row.username, method_id: payment.payment_method_id });
+        payment_destination = formatPayoutDestination(method);
+      } catch {
+        // Реквизиты удалены получателем — строка всё равно показывается.
+      }
+    }
+    const symbol = this.assetConfig.symbol;
+    const amount = Number(row.amount);
+    const ndfl = ndflBreakdown(amount, this.assetConfig.decimals);
+    return {
+      hash: row.aid_hash,
+      username: row.username,
+      braname: row.braname,
+      amount: `${amount.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      stage: MarketplaceAidStage.PAID,
+      payment_status: payment?.status ?? null,
+      payment_destination,
+      ndfl_tax: `${ndfl.tax.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      net_amount: `${ndfl.net.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      submitted_at: row.created_at ? new Date(row.created_at) : null,
+      decided_at: null,
+      payment_completed_at: payment?.completed_at ?? (row.paid_at ? new Date(row.paid_at) : null),
+      payment_failed_at: payment?.failed_at ?? null,
+    };
   }
 
   /**
@@ -844,14 +898,20 @@ export class MarketplaceEconomyService {
     };
   }
 
-  /** Платёж ядра по хэшу заявки; не найден — null, статус выплаты неизвестен. */
+  /**
+   * Платёж ядра по хэшу заявки; не найден — null, статус выплаты неизвестен.
+   * У одной заявки бывает несколько строк платежа: отмена кассиром оставляет
+   * отменённую строку, а выплата в шлюзе цепи остаётся в ожидании (контракт
+   * отказ от выплаты не принимает). Показываем действующую строку, а
+   * отменённую — только если других нет.
+   */
   private async aidPayment(coopname: string, hash: string): Promise<InnerPayment | null> {
     try {
       const found = await this.coreGateway.getPayments(
         { coopname, hash: hash.toLowerCase() },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
+        { page: 1, limit: 5, sortOrder: 'DESC' }
       );
-      return found.items[0] ?? null;
+      return found.items.find((p) => p.status !== PaymentStatus.CANCELLED) ?? found.items[0] ?? null;
     } catch {
       return null;
     }

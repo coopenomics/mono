@@ -205,11 +205,14 @@ function assetSymbol(asset: string): string {
 // src/shared/lib/payment (тот же, что у стола кассира — ListOfPaymentsWidget).
 function aidStageLabel(aid: MarketplaceAidView): string {
   if (aid.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview')
+  // Выплаченное заявление контракт стирает; строку отдаёт зеркало узла.
+  if (aid.stage === Zeus.MarketplaceAidStage.PAID) return i18nT('marketplace.operatorBranchEconomyPage.statusAidPaid')
   return paymentStatusLabel(aid.payment_status)
 }
 
 function aidStageVariant(aid: MarketplaceAidView): BaseBadgeVariant {
   if (aid.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return 'info'
+  if (aid.stage === Zeus.MarketplaceAidStage.PAID) return 'pos'
   return paymentStatusVariant(aid.payment_status)
 }
 
@@ -251,7 +254,7 @@ const aidSteps = computed(() => {
     { key: 'cashier', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepCashier'), description: a?.payment_failed_at ? i18nT('marketplace.operatorBranchEconomyPage.aidStepFailed') : undefined },
     { key: 'paid', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepPaid'), description: at(a?.payment_completed_at) },
   ]
-  if (a?.payment_completed_at) return { items, active: 'paid', completed: ['submitted', 'council', 'cashier', 'paid'], errored: [] as string[] }
+  if (a?.payment_completed_at || a?.stage === Zeus.MarketplaceAidStage.PAID) return { items, active: 'paid', completed: ['submitted', 'council', 'cashier', 'paid'], errored: [] as string[] }
   if (a?.payment_failed_at) return { items, active: 'cashier', completed: ['submitted', 'council'], errored: ['cashier'] }
   if (a?.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return { items, active: 'council', completed: ['submitted'], errored: [] as string[] }
   return { items, active: 'cashier', completed: ['submitted', 'council'], errored: [] as string[] }

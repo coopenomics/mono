@@ -10944,7 +10944,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAid']?: Omit<ValueTypes["MarketplaceAid"], "...on MarketplaceAid">
 }>;
-	/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+	/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 ["MarketplaceAidStage"]:MarketplaceAidStage;
 	["MarketplaceAidStatementSignablePayloadInput"]: {
 	/** Сумма материальной помощи. */
@@ -29986,7 +29986,7 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+	/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 ["MarketplaceAidStage"]:MarketplaceAidStage;
 	["MarketplaceAidStatementSignablePayloadInput"]: {
 	/** Сумма материальной помощи. */
@@ -67657,7 +67657,7 @@ export type GraphQLTypes = {
 	username: string,
 	['...on MarketplaceAid']: Omit<GraphQLTypes["MarketplaceAid"], "...on MarketplaceAid">
 };
-	/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+	/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 ["MarketplaceAidStage"]: MarketplaceAidStage;
 	["MarketplaceAidStatementSignablePayloadInput"]: {
 		/** Сумма материальной помощи. */
@@ -78400,10 +78400,11 @@ export enum ManagedRoomKind {
 	MEMBERS = "MEMBERS",
 	SECRETARY = "SECRETARY"
 }
-/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 export enum MarketplaceAidStage {
 	AWAITING_PAYOUT = "AWAITING_PAYOUT",
-	ON_COUNCIL = "ON_COUNCIL"
+	ON_COUNCIL = "ON_COUNCIL",
+	PAID = "PAID"
 }
 /** Статус АПП приёмки на КУ. */
 export enum MarketplaceAplReceptionStatus {

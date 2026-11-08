@@ -5936,6 +5936,7 @@ export type MessageKey =
   | 'marketplace.operatorBranchEconomyPage.reserveTitle'
   | 'marketplace.operatorBranchEconomyPage.reserveTotalSubtitle'
   | 'marketplace.operatorBranchEconomyPage.reserveTotalTitle'
+  | 'marketplace.operatorBranchEconomyPage.statusAidPaid'
   | 'marketplace.operatorBranchEconomyPage.statusPaid'
   | 'marketplace.operatorBranchEconomyPage.statusUnderCouncilReview'
   | 'marketplace.operatorBranchEconomyPage.submitAidFailedMessage'

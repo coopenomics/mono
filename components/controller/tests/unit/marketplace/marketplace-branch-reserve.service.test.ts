@@ -34,6 +34,7 @@ function build(opts: {
   initiators?: Array<{ braname: string; username: string }>;
   config?: { membership_fee_percent: number; initiator_share_percent?: number } | null;
   submitted?: Record<string, string>;
+  aidPeriod?: number;
   trusted?: string[];
 } = {}) {
   const chainPort = {
@@ -71,11 +72,15 @@ function build(opts: {
     isMemberOfBranch: jest.fn(async (_c: string, _b: string, u: string) => (opts.trusted ?? ['chairkrg', 'oper1']).includes(u)),
     getTrusteeOfBranch: jest.fn(async () => 'chairkrg'),
   };
-  const aidMirror = {
-    submittedWithin: jest.fn(async (_c: string, username: string) => toUnits(opts.submitted?.[username] ?? '0')),
-  };
-  const service = new MarketplaceBranchReserveService(chainPort as never, economy as never, kuChairman as never, aidMirror as never);
-  return { service, chainPort, aidMirror };
+  // Накопитель контракта branch::aidmonths: месяц — год × 12 + месяц по UTC.
+  Object.assign(chainPort, {
+    getAidMonth: jest.fn(async (_c: string, username: string) => {
+      const total = opts.submitted?.[username];
+      return total === undefined ? null : { username, period: opts.aidPeriod ?? 2026 * 12 + 11, total: `${total} RUB` };
+    }),
+  });
+  const service = new MarketplaceBranchReserveService(chainPort as never, economy as never, kuChairman as never);
+  return { service, chainPort };
 }
 
 describe('mkt.order.keu.10 — настройки экономики для администратора', () => {
@@ -162,9 +167,9 @@ describe('mkt.order.keu.10 — предел материальной помощ�
   const now = new Date('2026-11-10T10:00:00.000Z');
 
   it('потолок ноль — предела нет', async () => {
-    const { service, aidMirror } = build({ limit: '0.0000 RUB' });
+    const { service, chainPort } = build({ limit: '0.0000 RUB' });
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 999999, now)).resolves.toBeUndefined();
-    expect(aidMirror.submittedWithin).not.toHaveBeenCalled();
+    expect((chainPort as any).getAidMonth).not.toHaveBeenCalled();
   });
 
   it('без строки резерва — MARKETPLACE_AID_NO_RESERVE', async () => {
@@ -181,11 +186,16 @@ describe('mkt.order.keu.10 — предел материальной помощ�
     });
   });
 
-  it('поданное считается за месяц по часовому поясу кооператива', async () => {
-    const { service, aidMirror } = build({ reserves: [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB' }] });
-    await service.assertAidWithinReserve(COOP, 'krg', 'oper1', 1, new Date('2026-10-31T21:30:00.000Z')); // 1 ноября 00:30 по Москве
-    const [, , from, to] = aidMirror.submittedWithin.mock.calls[0] as unknown as [string, string, Date, Date];
-    expect(from.toISOString()).toBe('2026-10-31T21:00:00.000Z');
-    expect(to.toISOString()).toBe('2026-11-30T21:00:00.000Z');
+  // Поданное — из накопителя контракта за тот же календарный месяц UTC, по
+  // которому контракт отказывает «превысит резерв»; накопитель прошлого
+  // месяца не считается (владелец 08.11.2026: стол показывал 0, контракт — 9 590).
+  it('поданное — из накопителя контракта за текущий месяц UTC; прошлый месяц не считается', async () => {
+    const reserves = [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB' }];
+    const current = build({ reserves, submitted: { oper1: '99999.0000' } });
+    await expect(current.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 2, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_OVER_RESERVE' });
+    const stale = build({ reserves, submitted: { oper1: '99999.0000' }, aidPeriod: 2026 * 12 + 10 });
+    await expect(stale.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 2, now)).resolves.toBeUndefined();
+    const view = await current.service.getReserves(COOP, 'krg', now);
+    expect(view.rows[0]).toMatchObject({ submitted: '99999.0000 RUB', remaining: '1.0000 RUB' });
   });
 });
