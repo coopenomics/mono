@@ -243,13 +243,13 @@ interface SumCard {
 const myCards = computed<SumCard[]>(() => {
   const m = mine.value
   return [
-    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileInvested'), asset: sumAssets(m?.money, m?.property), label: i18nT('marketplace.initiatorsPage.cardTotal'),
+    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.mineCardInvested'), asset: sumAssets(m?.money, m?.property), label: i18nT('marketplace.initiatorsPage.cardTotal'),
       subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money ?? ''), property: formatAsset2Digits(m?.property ?? '') }) },
-    { key: 'used', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileUsed'), asset: m?.used, label: i18nT('marketplace.initiatorsPage.cardSpent'),
+    { key: 'used', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.mineCardUsed'), asset: m?.used, label: i18nT('marketplace.initiatorsPage.cardSpent'),
       subtitle: i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(m?.unused ?? '') }) },
-    { key: 'returned', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.tileReturned'), asset: m?.returned, label: i18nT('marketplace.initiatorsPage.cardTotal'),
+    { key: 'returned', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.mineCardReturned'), asset: m?.returned, label: i18nT('marketplace.initiatorsPage.cardTotal'),
       subtitle: i18nT('marketplace.initiatorsPage.tileReturnedSub') },
-    { key: 'claimable', icon: 'account_balance_wallet', title: i18nT('marketplace.initiatorsPage.tileClaimable'), asset: m?.claimable, label: i18nT('marketplace.initiatorsPage.cardNow'),
+    { key: 'claimable', icon: 'account_balance_wallet', title: i18nT('marketplace.initiatorsPage.mineCardClaimable'), asset: m?.claimable, label: i18nT('marketplace.initiatorsPage.cardNow'),
       subtitle: i18nT('marketplace.initiatorsPage.tileClaimableSub') },
   ]
 })
@@ -264,7 +264,7 @@ const branchCards = computed<SumCard[]>(() => {
     { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileBranchInvested'), asset: sumAssets(b?.money_total, b?.property_total), label: i18nT('marketplace.initiatorsPage.cardTotal'),
       subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') }) },
     { key: 'spent', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileBranchSpent'), asset: b?.spent_total, label: i18nT('marketplace.initiatorsPage.cardSpent'),
-      subtitle: i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(b?.unused_total ?? '') }) },
+      subtitle: i18nT('marketplace.initiatorsPage.branchSpentSub', { reserved: formatAsset2Digits(b?.reserved ?? ''), unused: formatAsset2Digits(b?.unused_total ?? '') }) },
     { key: 'repaid', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.tileBranchRepaid'), asset: b?.repaid_total, label: i18nT('marketplace.initiatorsPage.cardTotal'),
       subtitle: i18nT('marketplace.initiatorsPage.tileBranchRepaidSub') },
     { key: 'outstanding', icon: 'hourglass_bottom', title: i18nT('marketplace.initiatorsPage.tileBranchOutstanding'), asset: b?.outstanding, label: i18nT('marketplace.initiatorsPage.cardLeft'),

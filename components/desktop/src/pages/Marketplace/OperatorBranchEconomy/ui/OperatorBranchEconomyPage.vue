@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
@@ -20,7 +20,6 @@ import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverl
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
-import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/entities/MarketplaceInvestment'
 import {
   fetchOrdersForTurnover,
   type MarketplaceOrderListView,
@@ -36,7 +35,6 @@ import {
   type ExpensePlanView,
   type MarketplaceAidView,
   type MarketplaceBranchCurrentPeriodView,
-  type MarketplaceBranchInitiatorView,
   type MarketplaceBranchPeriodRow,
   type MarketplaceBranchReserveRow,
   type MarketplaceBranchReservesView,
@@ -54,7 +52,6 @@ import {
   getAidStatementSignablePayload,
   getBranchCurrentPeriod,
   getBranchEconomy,
-  getBranchInitiator,
   getBranchReserves,
   getBranchWalletHistory,
   getPersonalEconomy,
@@ -98,7 +95,6 @@ import {
 
 
 const route = useRoute()
-const router = useRouter()
 const orderOverlay = useQueryOverlay('order')
 const session = useSessionStore()
 const store = useOperatorBranchStore()
@@ -120,11 +116,9 @@ const aids = ref<MarketplaceAidView[]>([])
 const walletHistory = ref<MarketplaceBranchWalletHistoryView['items']>([])
 const personalWalletHistory = ref<MarketplacePersonalWalletHistoryView['items']>([])
 const reserves = ref<MarketplaceBranchReservesView | null>(null)
-const initiator = ref<MarketplaceBranchInitiatorView | null>(null)
 const periods = ref<MarketplaceBranchPeriodRow[]>([])
 const currentPeriod = ref<MarketplaceBranchCurrentPeriodView | null>(null)
 /** Паевые взносы инициаторов участка (99D-31): средства инициаторов и возмещение. */
-const investment = ref<MarketplaceBranchInvestmentView | null>(null)
 
 // ─── Табы страницы (requirement — переверстка без изменения логики) ───
 
@@ -273,7 +267,7 @@ async function loadAll(): Promise<void> {
   if (!braname.value) return
   loading.value = true
   try {
-    const [branchEconomy, branchPlans, personal, myAids, history, personalHistory, branchReserves, branchInitiator, branchPeriods, current, branchInvestment] = await Promise.all([
+    const [branchEconomy, branchPlans, personal, myAids, history, personalHistory, branchReserves, branchPeriods, current] = await Promise.all([
       getBranchEconomy(braname.value),
       listExpensePlans(braname.value),
       getPersonalEconomy(),
@@ -281,10 +275,8 @@ async function loadAll(): Promise<void> {
       getBranchWalletHistory(braname.value, { page: 1, limit: 20, sortOrder: 'DESC' }),
       getPersonalWalletHistory({ page: 1, limit: 20, sortOrder: 'DESC' }),
       getBranchReserves(braname.value),
-      getBranchInitiator(braname.value),
       listBranchPeriods(braname.value, { page: 1, limit: PERIODS_LIMIT, sortOrder: 'DESC' }),
       getBranchCurrentPeriod(braname.value),
-      getBranchInvestment(braname.value),
     ])
     economy.value = branchEconomy
     plans.value = branchPlans
@@ -293,10 +285,8 @@ async function loadAll(): Promise<void> {
     walletHistory.value = history.items
     personalWalletHistory.value = personalHistory.items
     reserves.value = branchReserves
-    initiator.value = branchInitiator
     periods.value = branchPeriods.items
     currentPeriod.value = current
-    investment.value = branchInvestment
   } catch (e) {
     FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.loadEconomyFailedMessage'))
   } finally {
@@ -704,14 +694,6 @@ async function onDeleteReserve(row: MarketplaceBranchReserveRow): Promise<void> 
 const myReserve = computed(() => reserveRows.value.find((r) => r.username === session.username) ?? null)
 const myReserveRemaining = computed(() => (myReserve.value ? assetAmount(myReserve.value.remaining) : 0))
 
-// ─── Инициатор участка и его паевой кошелёк ───
-
-const initiatorName = computed(() => {
-  const u = initiator.value?.username
-  if (!u) return ''
-  return nameByUsername.value[u] || u
-})
-
 // ─── Итоги месяцев участка ───
 
 /**
@@ -743,26 +725,6 @@ const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
   { key: 'deficit', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnDeficit'), width: '130px', numeric: true },
   { key: 'rate_percent', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnRate'), width: '110px', numeric: true },
 ]
-
-/**
- * Средства инициаторов участка на «Кошельке участка»: выделено под незакрытые
- * расходы, оплачено из средств инициаторов и возмещено им из экономии. У
- * участка без паевых взносов плиток нет.
- */
-const hasInvestment = computed(() => Boolean(investment.value && investment.value.phase !== Zeus.MarketplaceInvestPhase.NONE))
-// Карточки — как кошельки выше и на странице «Инициаторы участка»: значок,
-// название, пояснение и сумма справа (слово владельца 08.11.2026).
-const investmentCards = computed(() => {
-  const b = investment.value
-  const card = (key: string, icon: string, title: string, subtitle: string, asset: string | undefined, label: string) => ({
-    key, icon, title, subtitle, balance: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? ''), label,
-  })
-  return [
-    card('reserved', 'lock_clock', i18nT('marketplace.operatorBranchEconomyPage.investPoolReserved'), i18nT('marketplace.operatorBranchEconomyPage.investPoolReservedSub'), b?.reserved, i18nT('marketplace.operatorBranchEconomyPage.investCardNow')),
-    card('spent', 'receipt_long', i18nT('marketplace.operatorBranchEconomyPage.investPoolSpent'), i18nT('marketplace.operatorBranchEconomyPage.investPoolSpentSub'), b?.spent_total, i18nT('marketplace.operatorBranchEconomyPage.investCardTotal')),
-    card('repaid', 'trending_up', i18nT('marketplace.operatorBranchEconomyPage.investRepaid'), i18nT('marketplace.operatorBranchEconomyPage.investRepaidSub'), b?.repaid_total, i18nT('marketplace.operatorBranchEconomyPage.investCardTotal')),
-  ]
-})
 
 /** Фаза участка по паевым взносам в месяце: бейдж в итогах месяцев. */
 const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: MarketplaceMessageKey; variant: BaseBadgeVariant } | null> = {
@@ -926,41 +888,6 @@ q-page.economy
           :symbol='economy ? assetSymbol(economy.common_balance) : ""',
           :loading='loading && !economy'
         )
-        //- Паевой кошелёк инициатора участка — доля инициатора в экономии
-        //- месяцев. В общий кошелёк участка он не входит: это паевой взнос
-        //- пайщика по договору участия в хозяйственной деятельности.
-        WalletCard(
-          neutral,
-          icon='trending_up',
-          :title='$t("marketplace.operatorBranchEconomyPage.initiatorWalletTitle")',
-          :subtitle='initiatorName',
-          :hint='$t("marketplace.operatorBranchEconomyPage.initiatorWalletHint")',
-          :balance='initiator ? assetAmount(initiator.invest_balance).toFixed(2) : "0.00"',
-          :symbol='initiator ? assetSymbol(initiator.invest_balance) : ""',
-          :loading='loading && !initiator'
-        )
-
-      //- Средства инициаторов участка (99D-31): выделено, оплачено, возмещено.
-      .economy__section(v-if='hasInvestment')
-        .economy__section-head
-          .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.investTitle') }}
-          BaseButton(variant='secondary', size='sm', @click='router.push({ name: "marketplace-pvz-initiators", params: { coopname } })')
-            template(#icon-left)
-              q-icon(name='volunteer_activism', size='16px')
-            | {{ $t('marketplace.operatorBranchEconomyPage.investOpenAction') }}
-        .row.q-col-gutter-md
-          .col-12.col-md-4(v-for='c in investmentCards', :key='c.key')
-            WalletCard(
-              program='wallet',
-              stacked,
-              :icon='c.icon',
-              :title='c.title',
-              :subtitle='c.subtitle',
-              :balance='c.balance',
-              :symbol='c.symbol',
-              :balance-label='c.label',
-              :loading='firstLoad'
-            )
 
       .economy__section
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.walletMovementsTitle') }}
