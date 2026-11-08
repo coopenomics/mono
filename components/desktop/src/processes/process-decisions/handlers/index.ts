@@ -12,6 +12,7 @@ import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateRe
 import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstablishmentDecision';
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 import { t } from 'src/shared/i18n';
+import { InvestPropertyDecisionInfo } from 'src/widgets/Marketplace/InvestPropertyDecisionInfo';
 
 /** Поля метаданных заявления, которые фабрика документов проставляет сама. */
 const META_SERVICE_KEYS = new Set([
@@ -231,6 +232,54 @@ export function registerBaseDecisionHandlers() {
         lang: 'ru',
       });
     },
+  });
+
+  // Обработчик для MarketplaceInvestPropertyDecision (протокол совета о приёме
+  // имущества паевым взносом в кооперативный участок, 1121). Протокол
+  // собирается из заявления 1120, которое одобрил председатель участка, плюс
+  // decision_id — так же, как его собирает робот совета. Карточка вопроса
+  // показывает имущество, участок и одобрившего председателя без открытия
+  // документа (слово владельца 08.11.2026).
+  decisionFactory.registerHandler('mktiprop', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error(t('processDecisions.error.mktipropMetaMissing'));
+      }
+
+      const statementMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Registry.MarketplaceInvestPropertyStatement.Action;
+
+      if (!statementMeta.property_hash || !statementMeta.braname || !statementMeta.property_amount) {
+        throw new Error(t('processDecisions.error.mktipropMetaInvalid'));
+      }
+
+      const { info } = useSystemStore();
+
+      const protocolAction: Registry.MarketplaceInvestPropertyDecision.Action = {
+        registry_id: Registry.MarketplaceInvestPropertyDecision.registry_id,
+        coopname: info.coopname,
+        username,
+        lang: 'ru',
+        decision_id,
+        braname: statementMeta.braname,
+        branch_name: statementMeta.branch_name,
+        agreement_number: statementMeta.agreement_number,
+        agreement_created_at: statementMeta.agreement_created_at,
+        property_form: statementMeta.property_form,
+        property_hash: statementMeta.property_hash,
+        property_name: statementMeta.property_name,
+        property_description: statementMeta.property_description,
+        property_quantity: statementMeta.property_quantity,
+        property_unit: statementMeta.property_unit,
+        property_amount: statementMeta.property_amount,
+      };
+
+      return await new DigitalDocument().generate(protocolAction, {
+        lang: 'ru',
+      });
+    },
+    infoComponent: InvestPropertyDecisionInfo,
   });
 
   // Обработчик для BranchFinancialAidProtocol (протокол совета о выплате

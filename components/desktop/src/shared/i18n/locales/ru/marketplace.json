@@ -2949,6 +2949,14 @@
       "cardSpent": "Израсходовано",
       "cardNow": "Сейчас",
       "cardLeft": "Остаток"
+    },
+    "investPropertyDecisionInfo": {
+      "title": "Имущество в кооперативный участок",
+      "applicantLabel": "Вносит",
+      "quantityLabel": "Количество",
+      "branchLabel": "Кооперативный участок",
+      "approvedByLabel": "Одобрил председатель участка",
+      "descriptionLabel": "Описание"
     }
   }
 }
