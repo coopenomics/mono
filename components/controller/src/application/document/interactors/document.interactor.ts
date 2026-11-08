@@ -43,6 +43,7 @@ export class DocumentInteractor {
       actions: actions && actions.length > 0 ? (actions as unknown as string[]) : undefined,
       username: this.extractReceiverScope(query),
       hash: this.extractHashFilter(query),
+      package: this.extractPackageFilter(query),
       afterBlock: after_block,
       beforeBlock: before_block,
       page,
@@ -83,6 +84,14 @@ export class DocumentInteractor {
     const document = query['document'] as Record<string, unknown> | undefined;
     const hash = (document?.['hash'] ?? query['hash']) as unknown;
     return typeof hash === 'string' && hash.length > 0 ? hash : undefined;
+  }
+
+  // Фильтр по пакету документов (хэшу процесса): страницы, которые идут от операции
+  // учёта к её документам, знают хэш процесса, а не хэш документа. Охват пайщика
+  // (`receiver`) ставит сервис поверх фильтра, чужой пакет так не открыть.
+  private extractPackageFilter(query: Record<string, unknown>): string | undefined {
+    const pkg = query['package'];
+    return typeof pkg === 'string' && pkg.length > 0 ? pkg : undefined;
   }
 
   /**

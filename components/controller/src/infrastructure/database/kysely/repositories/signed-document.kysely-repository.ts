@@ -191,6 +191,10 @@ export class SignedDocumentKyselyRepository implements SignedDocumentRepository 
       // Фронт шлёт хэш в верхнем регистре, в реестре он хранится как пришёл из агрегата — сверка без учёта регистра.
       query = query.where(sql<boolean>`upper(hash) = upper(${params.hash})`);
     }
+    if (params.package) {
+      // Пакет — хэш процесса: история операций учёта знает его, а хэш самого документа — нет.
+      query = query.where(sql<boolean>`upper(package) = upper(${params.package})`);
+    }
     if (params.afterBlock != null) query = query.where('block_num', '>=', String(params.afterBlock));
     if (params.beforeBlock != null) query = query.where('block_num', '<=', String(params.beforeBlock));
 

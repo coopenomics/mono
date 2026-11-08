@@ -301,7 +301,7 @@ async function loadPackage(processHash: string): Promise<void> {
   drawerPackage.value = null
   drawerDocLoading.value = true
   try {
-    drawerPackage.value = await documents.loadDocument(session.username, processHash)
+    drawerPackage.value = await documents.loadPackage(session.username, processHash)
   } catch {
     // Документ дойдёт до реестра с лентой; панель покажет факты без него.
   } finally {

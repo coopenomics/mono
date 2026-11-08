@@ -68,6 +68,8 @@ export interface SignedDocumentListParams {
   username?: string;
   /** фильтр по хэшу конкретного документа-заявления */
   hash?: string;
+  /** фильтр по пакету документов — хэшу процесса, которым операции учёта ссылаются на документы */
+  package?: string;
   afterBlock?: number;
   beforeBlock?: number;
   page: number;
