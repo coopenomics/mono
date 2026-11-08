@@ -17,7 +17,7 @@ import type { MarketplaceMessageKey } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, DocumentSignSheet, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { AmountInput, DataRow, DetailsDrawer, DocumentSignSheet, PageHint, WalletCard } from 'src/shared/ui/domain'
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import {
@@ -170,10 +170,6 @@ function symbolOf(asset: string | null | undefined): string {
   return String(asset ?? '').split(' ')[1] ?? ''
 }
 
-function tile(key: string, caption: string, asset: string | undefined, sub: string): StatStripItem {
-  return { key, caption, value: amountOf(asset).toFixed(2), symbol: symbolOf(asset), sub }
-}
-
 const symbol = computed(() => symbolOf(mine.value?.money ?? branchView.value?.money_total))
 
 /** Сумма двух активов строкой с символом первого — «внесено деньгами и имуществом». */
@@ -185,45 +181,50 @@ function sumAssets(a: string | undefined, b: string | undefined): string {
 const hasMine = computed(() => Boolean(mine.value && amountOf(mine.value.money) + amountOf(mine.value.property) > 0))
 
 /**
- * Сводка паевых взносов пайщика — четыре плитки в один ряд по пути денег: внесено →
- * использовано участком → возвращено → доступно к возврату. Подробности
- * (деньгами и имуществом, не израсходовано) — подписью под числом.
+ * Карточка суммы — та же, что у кошельков на «Экономике участка»: значок,
+ * название, пояснение под ним и сумма справа с подписью. Порядок карточек —
+ * путь денег: внесено → использовано участком → возмещено → доступно.
  */
-const myTiles = computed<StatStripItem[]>(() => {
+interface SumCard {
+  key: string
+  icon: string
+  title: string
+  subtitle: string
+  asset: string | undefined
+  label: string
+}
+
+const myCards = computed<SumCard[]>(() => {
   const m = mine.value
   return [
-    tile('invested', i18nT('marketplace.initiatorsPage.tileInvested'), sumAssets(m?.money, m?.property),
-      i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money ?? ''), property: formatAsset2Digits(m?.property ?? '') })),
-    tile('used', i18nT('marketplace.initiatorsPage.tileUsed'), m?.used,
-      i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(m?.unused ?? '') })),
-    tile('returned', i18nT('marketplace.initiatorsPage.tileReturned'), m?.returned, i18nT('marketplace.initiatorsPage.tileReturnedSub')),
-    tile('claimable', i18nT('marketplace.initiatorsPage.tileClaimable'), m?.claimable, i18nT('marketplace.initiatorsPage.tileClaimableSub')),
+    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileInvested'), asset: sumAssets(m?.money, m?.property), label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money ?? ''), property: formatAsset2Digits(m?.property ?? '') }) },
+    { key: 'used', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileUsed'), asset: m?.used, label: i18nT('marketplace.initiatorsPage.cardSpent'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(m?.unused ?? '') }) },
+    { key: 'returned', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.tileReturned'), asset: m?.returned, label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileReturnedSub') },
+    { key: 'claimable', icon: 'account_balance_wallet', title: i18nT('marketplace.initiatorsPage.tileClaimable'), asset: m?.claimable, label: i18nT('marketplace.initiatorsPage.cardNow'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileClaimableSub') },
   ]
 })
 
 /** У участка есть инициаторы: без них итоги — одни нули, вкладка показывает пустое состояние. */
 const hasInvestors = computed(() => Boolean(branchView.value?.investors.length))
 
-/** Итоги участка — те же четыре шага для всех инициаторов. */
-const branchTiles = computed<StatStripItem[]>(() => {
+/** Итоги участка — те же четыре шага по всем инициаторам. */
+const branchCards = computed<SumCard[]>(() => {
   const b = branchView.value
   return [
-    tile('invested', i18nT('marketplace.initiatorsPage.tileBranchInvested'), sumAssets(b?.money_total, b?.property_total),
-      i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') })),
-    tile('spent', i18nT('marketplace.initiatorsPage.tileBranchSpent'), b?.spent_total,
-      i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(b?.unused_total ?? '') })),
-    tile('repaid', i18nT('marketplace.initiatorsPage.tileBranchRepaid'), b?.repaid_total, i18nT('marketplace.initiatorsPage.tileBranchRepaidSub')),
-    tile('outstanding', i18nT('marketplace.initiatorsPage.tileBranchOutstanding'), b?.outstanding, i18nT('marketplace.initiatorsPage.tileBranchOutstandingSub')),
+    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileBranchInvested'), asset: sumAssets(b?.money_total, b?.property_total), label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') }) },
+    { key: 'spent', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileBranchSpent'), asset: b?.spent_total, label: i18nT('marketplace.initiatorsPage.cardSpent'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(b?.unused_total ?? '') }) },
+    { key: 'repaid', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.tileBranchRepaid'), asset: b?.repaid_total, label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileBranchRepaidSub') },
+    { key: 'outstanding', icon: 'hourglass_bottom', title: i18nT('marketplace.initiatorsPage.tileBranchOutstanding'), asset: b?.outstanding, label: i18nT('marketplace.initiatorsPage.cardLeft'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileBranchOutstandingSub') },
   ]
 })
-
-const PHASE: Record<Zeus.MarketplaceInvestPhase, { label: MarketplaceMessageKey; variant: BaseBadgeVariant }> = {
-  [Zeus.MarketplaceInvestPhase.NONE]: { label: 'marketplace.initiatorsPage.phaseNone', variant: 'neutral' },
-  [Zeus.MarketplaceInvestPhase.FUNDING]: { label: 'marketplace.initiatorsPage.phaseFunding', variant: 'warn' },
-  [Zeus.MarketplaceInvestPhase.RETURNING]: { label: 'marketplace.initiatorsPage.phaseReturning', variant: 'info' },
-  [Zeus.MarketplaceInvestPhase.RETURNED]: { label: 'marketplace.initiatorsPage.phaseReturned', variant: 'pos' },
-}
-const phase = computed(() => PHASE[branchView.value?.phase ?? Zeus.MarketplaceInvestPhase.NONE])
 
 const PROPERTY_STAGE: Record<Zeus.MarketplaceInvestPropertyStatus, { label: MarketplaceMessageKey; variant: BaseBadgeVariant }> = {
   [Zeus.MarketplaceInvestPropertyStatus.CREATED]: { label: 'marketplace.initiatorsPage.stageCreated', variant: 'info' },
@@ -596,91 +597,40 @@ q-page.initiators(:style-fn='pageStyle')
               q-icon(name='add', size='16px')
             | {{ $t('marketplace.initiatorsPage.propertyAction') }}
 
-      //- 1. Мои взносы: строка раздела (подпись, справа фаза участка) и ряд плиток —
-      //- как «Средства инициаторов» на «Экономике участка»; ниже история. Пока взносов
-      //- нет — одно пустое состояние вместо нулей; внести — кнопками в строке разделов.
+      //- Вкладка уже называет раздел, поэтому подписей разделов над карточками и
+      //- таблицами нет. Первая загрузка — нейтральный скелетон; затем либо пустое
+      //- состояние, либо карточки сумм (как кошельки на «Экономике участка») и таблица.
+
+      //- 1. Мои взносы
       template(v-if='activeKey === "mine"')
+        template(v-if='firstLoad')
+          .row.q-col-gutter-md
+            .col-12.col-md-6(v-for='n in 4', :key='n')
+              q-skeleton.initiators__skel-card(type='rect')
+          q-skeleton.initiators__skel-table(type='rect')
         EmptyState(
-          v-if='!firstLoad && !hasMine',
+          v-else-if='!hasMine',
           :title='$t("marketplace.initiatorsPage.mineEmptyTitle")',
           :body='$t("marketplace.initiatorsPage.mineEmptyBody")'
         )
           template(#icon)
             q-icon(name='volunteer_activism', size='48px')
-
         template(v-else)
-          .initiators__section
-            .initiators__section-head
-              .initiators__section-title {{ $t('marketplace.initiatorsPage.mineSummaryTitle') }}
-              .initiators__phase(v-if='branchView')
-                span.initiators__phase-note(v-if='amountOf(branchView.outstanding) > 0')
-                  | {{ $t('marketplace.initiatorsPage.outstandingNote', { amount: formatAsset2Digits(branchView.outstanding) }) }}
-                BaseBadge(:variant='phase.variant') {{ $t(phase.label) }}
-            StatStrip(:items='myTiles', :loading='firstLoad')
-
-          .initiators__section
-            .initiators__section-title {{ $t('marketplace.initiatorsPage.historyTitle') }}
-            BaseTable(
-              v-if='firstLoad || history.length',
-              :columns='historyColumns',
-              :rows='history',
-              row-key='global_sequence',
-              :loading='firstLoad',
-              min-width='640px',
-              clickable-rows,
-              @row-click='openHistory'
-            )
-              template(#cell-date='{ row }')
-                span.t-mono {{ dateOf(row.created_at) }}
-              template(#cell-kind='{ row }')
-                | {{ $t(HISTORY_KIND[row.kind]) }}
-              template(#cell-amount='{ row }')
-                span.t-mono {{ formatAsset2Digits(row.amount) }}
-            .initiators__muted(v-else) {{ $t('marketplace.initiatorsPage.historyEmptyBody') }}
-
-      //- 2. Имущество
-      //- Подпись раздела — только над таблицей: пустое состояние говорит само за себя.
-      template(v-if='activeKey === "property"')
-        .initiators__section
-          .initiators__section-title(v-if='firstLoad || pendingProperties.length') {{ $t('marketplace.initiatorsPage.pendingTitle') }}
+          .row.q-col-gutter-md
+            .col-12.col-md-6(v-for='c in myCards', :key='c.key')
+              WalletCard(
+                program='wallet',
+                :icon='c.icon',
+                :title='c.title',
+                :subtitle='c.subtitle',
+                :balance='amountOf(c.asset).toFixed(2)',
+                :symbol='symbolOf(c.asset)',
+                :balance-label='c.label'
+              )
           BaseTable(
-            v-if='firstLoad || pendingProperties.length',
-            :columns='propertyColumns',
-            :rows='pendingProperties',
-            row-key='hash',
-            :loading='firstLoad',
-            min-width='960px',
-            clickable-rows,
-            @row-click='openProperty'
-          )
-            template(#cell-title='{ row }')
-              .initiators__name {{ propertyTitle(row) }}
-            template(#cell-investor='{ row }')
-              | {{ names[row.username] || row.username }}
-            template(#cell-amount='{ row }')
-              span.t-mono {{ formatAsset2Digits(row.amount) }}
-            template(#cell-stage='{ row }')
-              BaseBadge(:variant='PROPERTY_STAGE[row.status].variant') {{ $t(PROPERTY_STAGE[row.status].label) }}
-            template(#cell-actions='{ row }')
-              .initiators__row-actions(@click.stop)
-                template(v-if='canApprove(row)')
-                  BaseButton(variant='secondary', size='sm', :disabled='busy', @click='openDecline(row)') {{ $t('marketplace.initiatorsPage.declineAction') }}
-                  BaseButton(variant='primary', size='sm', :disabled='busy', @click='onApprove(row)') {{ $t('marketplace.initiatorsPage.approveAction') }}
-                BaseButton(v-else-if='canSignAct(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row, false)') {{ $t('marketplace.initiatorsPage.actAction') }}
-                BaseButton(v-else-if='canAccept(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row, true)') {{ $t('marketplace.initiatorsPage.acceptAction') }}
-          EmptyState(
-            v-else,
-            :title='$t("marketplace.initiatorsPage.pendingEmptyTitle")',
-            :body='$t("marketplace.initiatorsPage.pendingEmptyBody")'
-          )
-            template(#icon)
-              q-icon(name='inventory_2', size='40px')
-
-        .initiators__section(v-if='acceptedProperties.length')
-          .initiators__section-title {{ $t('marketplace.initiatorsPage.acceptedTitle') }}
-          BaseTable(
+            v-if='history.length',
             :columns='historyColumns',
-            :rows='acceptedProperties',
+            :rows='history',
             row-key='global_sequence',
             min-width='640px',
             clickable-rows,
@@ -692,25 +642,89 @@ q-page.initiators(:style-fn='pageStyle')
               | {{ $t(HISTORY_KIND[row.kind]) }}
             template(#cell-amount='{ row }')
               span.t-mono {{ formatAsset2Digits(row.amount) }}
+          .initiators__muted(v-else) {{ $t('marketplace.initiatorsPage.historyEmptyBody') }}
 
-      //- 3. Инициаторы участка — председателю участка: строка итогов с фазой и ряд плиток,
-      //- ниже строки инициаторов. Участок без инициаторов — одно пустое состояние, без нулей.
+      //- 2. Имущество: заявления до приёма, ниже — принятое имущество из истории.
+      template(v-if='activeKey === "property"')
+        BaseTable(
+          v-if='firstLoad || pendingProperties.length',
+          :columns='propertyColumns',
+          :rows='pendingProperties',
+          row-key='hash',
+          :loading='firstLoad',
+          min-width='960px',
+          clickable-rows,
+          @row-click='openProperty'
+        )
+          template(#cell-title='{ row }')
+            .initiators__name {{ propertyTitle(row) }}
+          template(#cell-investor='{ row }')
+            | {{ names[row.username] || row.username }}
+          template(#cell-amount='{ row }')
+            span.t-mono {{ formatAsset2Digits(row.amount) }}
+          template(#cell-stage='{ row }')
+            BaseBadge(:variant='PROPERTY_STAGE[row.status].variant') {{ $t(PROPERTY_STAGE[row.status].label) }}
+          template(#cell-actions='{ row }')
+            .initiators__row-actions(@click.stop)
+              template(v-if='canApprove(row)')
+                BaseButton(variant='secondary', size='sm', :disabled='busy', @click='openDecline(row)') {{ $t('marketplace.initiatorsPage.declineAction') }}
+                BaseButton(variant='primary', size='sm', :disabled='busy', @click='onApprove(row)') {{ $t('marketplace.initiatorsPage.approveAction') }}
+              BaseButton(v-else-if='canSignAct(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row, false)') {{ $t('marketplace.initiatorsPage.actAction') }}
+              BaseButton(v-else-if='canAccept(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row, true)') {{ $t('marketplace.initiatorsPage.acceptAction') }}
+        EmptyState(
+          v-else,
+          :title='$t("marketplace.initiatorsPage.pendingEmptyTitle")',
+          :body='$t("marketplace.initiatorsPage.pendingEmptyBody")'
+        )
+          template(#icon)
+            q-icon(name='inventory_2', size='40px')
+
+        BaseTable(
+          v-if='acceptedProperties.length',
+          :columns='historyColumns',
+          :rows='acceptedProperties',
+          row-key='global_sequence',
+          min-width='640px',
+          clickable-rows,
+          @row-click='openHistory'
+        )
+          template(#cell-date='{ row }')
+            span.t-mono {{ dateOf(row.created_at) }}
+          template(#cell-kind='{ row }')
+            | {{ $t(HISTORY_KIND[row.kind]) }}
+          template(#cell-amount='{ row }')
+            span.t-mono {{ formatAsset2Digits(row.amount) }}
+
+      //- 3. Инициаторы участка — председателю участка: итоги карточками, ниже строки инициаторов.
       template(v-if='activeKey === "initiators" && isTrustee')
-        .initiators__section(v-if='firstLoad || hasInvestors')
-          .initiators__section-head
-            .initiators__section-title {{ $t('marketplace.initiatorsPage.branchSummaryTitle') }}
-            .initiators__phase(v-if='branchView')
-              BaseBadge(:variant='phase.variant') {{ $t(phase.label) }}
-          StatStrip(:items='branchTiles', :loading='firstLoad')
-
-        .initiators__section
-          .initiators__section-title(v-if='firstLoad || hasInvestors') {{ $t('marketplace.initiatorsPage.investorsTitle') }}
+        template(v-if='firstLoad')
+          .row.q-col-gutter-md
+            .col-12.col-md-6(v-for='n in 4', :key='n')
+              q-skeleton.initiators__skel-card(type='rect')
+          q-skeleton.initiators__skel-table(type='rect')
+        EmptyState(
+          v-else-if='!hasInvestors',
+          :title='$t("marketplace.initiatorsPage.investorsEmptyTitle")',
+          :body='$t("marketplace.initiatorsPage.investorsEmptyBody")'
+        )
+          template(#icon)
+            q-icon(name='groups', size='40px')
+        template(v-else)
+          .row.q-col-gutter-md
+            .col-12.col-md-6(v-for='c in branchCards', :key='c.key')
+              WalletCard(
+                program='wallet',
+                :icon='c.icon',
+                :title='c.title',
+                :subtitle='c.subtitle',
+                :balance='amountOf(c.asset).toFixed(2)',
+                :symbol='symbolOf(c.asset)',
+                :balance-label='c.label'
+              )
           BaseTable(
-            v-if='firstLoad || hasInvestors',
             :columns='investorColumns',
             :rows='branchView ? branchView.investors : []',
             row-key='username',
-            :loading='firstLoad',
             min-width='860px',
             clickable-rows,
             @row-click='openInvestor'
@@ -725,13 +739,6 @@ q-page.initiators(:style-fn='pageStyle')
               span.t-mono {{ formatAsset2Digits(row.returned) }}
             template(#cell-status='{ row }')
               BaseBadge(:variant='row.active ? "info" : "pos"') {{ row.active ? $t('marketplace.initiatorsPage.investorActive') : $t('marketplace.initiatorsPage.investorDone') }}
-          EmptyState(
-            v-else,
-            :title='$t("marketplace.initiatorsPage.investorsEmptyTitle")',
-            :body='$t("marketplace.initiatorsPage.investorsEmptyBody")'
-          )
-            template(#icon)
-              q-icon(name='groups', size='40px')
 
   //- Правая панель: запись истории, заявление на имущество или инициатор.
   DetailsDrawer(v-model='drawerOpen', :title='drawerTitle', :width='480')
@@ -821,29 +828,19 @@ q-page.initiators(:style-fn='pageStyle')
   gap: var(--p-4);
 }
 
-.initiators__muted,
-.initiators__phase-note {
+.initiators__muted {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-3);
 }
 
-.initiators__phase {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3);
+.initiators__skel-card {
+  height: calc(var(--p-10) + var(--p-5));
+  border-radius: var(--p-r-lg);
 }
 
-.initiators__section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.initiators__section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
+.initiators__skel-table {
+  height: calc(var(--p-10) * 3);
+  border-radius: var(--p-r-lg);
 }
 
 .initiators__section-title {
