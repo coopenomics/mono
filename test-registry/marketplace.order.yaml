@@ -362,6 +362,17 @@ cases:
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
 
+  - id: mkt.order.invest.istok.12
+    level: backend
+    kind: break
+    scenario: >
+      Вносящий подписал акт приёма имущества; председатель участка открывает тот же акт для второй подписи.
+    expect: >
+      акт отдаётся с хэшем документа заглавными и метой акта вносящего — итоговый хэш подписи совпадает с цепью, отказа MARKETPLACE_IPROP_ACT_MISMATCH нет
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
   - id: mkt.order.invest.model.01
     level: contract
     kind: side

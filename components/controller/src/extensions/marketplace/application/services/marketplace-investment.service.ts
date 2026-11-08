@@ -339,8 +339,12 @@ export class MarketplaceInvestmentService {
     // Акт подписан вносящим: председатель участка подписывает тот же документ —
     // хэш и мета берутся из акта в цепи (контракт сверяет хэш). Текст для
     // показа собран заново из тех же данных.
+    // Регистр хэша важен: итоговый хэш подписи — sha256(meta_hash + хэш документа)
+    // строкой, а фабрика отдаёт хэш документа заглавными, цепь же хранит его
+    // строчными. Хэш из цепи без приведения давал председателю другой итоговый
+    // хэш и отказ MARKETPLACE_IPROP_ACT_MISMATCH (стенд 4, 08.11.2026).
     const act = prop.status === MarketplaceInvestPropertyStatus.ACT1 ? prop.act : null;
-    if (act?.doc_hash && act.meta) return { ...doc, hash: String(act.doc_hash), meta: JSON.parse(String(act.meta)) };
+    if (act?.doc_hash && act.meta) return { ...doc, hash: String(act.doc_hash).toUpperCase(), meta: JSON.parse(String(act.meta)) };
     return doc;
   }
 
