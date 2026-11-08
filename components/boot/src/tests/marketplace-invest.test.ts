@@ -169,7 +169,7 @@ describe('стол заказов — инвестиционный этап ко
       .rejects.toThrow(/MARKETPLACE_INVEST_AMOUNT_INVALID/)
   }, 300_000)
 
-  it('mkt.order.invest.04 — имущество: заявление → одобрение → совет → акт двумя подписями; сразу в базу возврата', async () => {
+  it('mkt.order.invest.04 — имущество: заявление → одобрение председателем участка → совет → акт вносящего → одобрение председателем совета (отказ возвращает акт); сразу в базу возмещения', async () => {
     const price = rub(3_000)
     const propertyHash = hex()
     const investBefore = await userWallet(bc, 'w.mkt.invest', trustedkrg.account)
@@ -189,11 +189,23 @@ describe('стол заказов — инвестиционный этап ко
     const props: any[] = await bc.getTableRows(MARKET, COOP, 'invprops', 1000)
     expect(props.find(p => p.hash.toLowerCase() === propertyHash)?.status, 'совет принял решение').toBe('authorized')
 
+    // Акт: вносящий подписывает первым — контракт создаёт одобрение в совете;
+    // председатель совета подписывает тот же акт второй подписью, совет
+    // вызывает marketplace::apprvipact (решение владельца 08.11.2026).
     const actDraft = draft(1122)
     const act1 = chainDoc(await signAs(trustedkrg.wif, actDraft, trustedkrg.account, 1))
     await push(MARKET, 'act1iprop', { coopname: COOP, username: trustedkrg.account, property_hash: propertyHash, act: act1 })
-    const act2 = chainDoc(await signAs(chairkrg.wif, actDraft, chairkrg.account, 2, [act1]))
-    await push(MARKET, 'act2iprop', { coopname: COOP, braname: BRANAME, property_hash: propertyHash, act: act2 })
+    const approvals: any[] = await bc.getTableRows('soviet', COOP, 'approvals', 1000)
+    expect(approvals.some(a => a.approval_hash.toLowerCase() === propertyHash && a.callback_action_approve === 'apprvipact'), 'акт в запросах одобрения председателя').toBe(true)
+
+    // Отказ председателя совета возвращает акт вносящему: подпись заново, новое одобрение.
+    await push('soviet', 'declineapprv', { coopname: COOP, username: CHAIRMAN.account, approval_hash: propertyHash, reason: 'Уточнить описание' })
+    const declined: any[] = await bc.getTableRows(MARKET, COOP, 'invprops', 1000)
+    expect(declined.find(p => p.hash.toLowerCase() === propertyHash)?.status, 'после отказа — снова подпись вносящего').toBe('authorized')
+    await push(MARKET, 'act1iprop', { coopname: COOP, username: trustedkrg.account, property_hash: propertyHash, act: act1 })
+
+    const act2 = chainDoc(await signAs(CHAIRMAN.wif, actDraft, CHAIRMAN.account, 2, [act1]))
+    await push('soviet', 'confirmapprv', { coopname: COOP, username: CHAIRMAN.account, approval_hash: propertyHash, approved_document: act2 })
 
     expect(await userWallet(bc, 'w.mkt.invest', trustedkrg.account) - investBefore, 'цена приёма — паевым взносом на кошелёк договора участия').toBe(price)
     const branchAfter = await investBranch(bc, BRANAME)

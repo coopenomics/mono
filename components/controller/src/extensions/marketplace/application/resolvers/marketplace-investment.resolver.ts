@@ -208,22 +208,7 @@ export class MarketplaceInvestmentResolver {
     @Args('data') data: MarketplaceSignInvestPropertyInputDTO
   ): Promise<MarketplaceBranchInvestmentDTO> {
     const coopname = platformSettings().coopname;
-    await this.investment.signPropertyAct(coopname, member.username, data.property_hash, data.document, false);
-    return toMarketplaceBranchInvestmentDTO(await this.investment.getBranchInvestment(coopname, data.braname), this.toAsset);
-  }
-
-  @Mutation(() => MarketplaceBranchInvestmentDTO, {
-    name: 'marketplaceAcceptInvestProperty',
-    description: 'Подписать акт приёма-передачи второй подписью председателя участка — имущество принято. Доступно председателю участка.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
-  @RequireRight('Economy', 'configure:chaired-KU', { ku: 'data.braname' })
-  async marketplaceAcceptInvestProperty(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceSignInvestPropertyInputDTO
-  ): Promise<MarketplaceBranchInvestmentDTO> {
-    const coopname = platformSettings().coopname;
-    await this.investment.signPropertyAct(coopname, member.username, data.property_hash, data.document, true);
+    await this.investment.signPropertyAct(coopname, member.username, data.property_hash, data.document);
     return toMarketplaceBranchInvestmentDTO(await this.investment.getBranchInvestment(coopname, data.braname), this.toAsset);
   }
 

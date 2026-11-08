@@ -20,6 +20,8 @@ import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { AmountInput, DataRow, DetailsDrawer, DocumentSignSheet, PageHint, WalletCard } from 'src/shared/ui/domain'
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
+import { ChairmanApprovalActions } from 'src/features/ChairmanApproval'
+import { refreshMenuBadges } from 'src/shared/lib/menuBadges'
 import {
   type InvestDocumentView,
   type MarketplaceBranchInvestmentView,
@@ -27,9 +29,7 @@ import {
   type MarketplaceInvestHistoryEntry,
   type MarketplaceInvestPropertyView,
   type MarketplaceInvestorView,
-  acceptProperty,
   approveProperty,
-  canAcceptProperty,
   canApproveProperty,
   canSignPropertyAct,
   claimInvestment,
@@ -490,7 +490,14 @@ async function onClaim(): Promise<void> {
 // Условия действий — общие со счётчиком дел на пункте меню.
 const canApprove = (p: MarketplaceInvestPropertyView): boolean => canApproveProperty(p, isTrustee.value)
 const canSignAct = (p: MarketplaceInvestPropertyView): boolean => canSignPropertyAct(p, session.username)
-const canAccept = (p: MarketplaceInvestPropertyView): boolean => canAcceptProperty(p, isTrustee.value)
+/** Акт ждёт второй подписи председателя совета — одобрение в совете. */
+const isAwaitingChairman = (p: MarketplaceInvestPropertyView): boolean => p.status === Zeus.MarketplaceInvestPropertyStatus.ACT1
+
+/** Председатель совета подписал или отклонил акт — перечитать страницу и число в меню. */
+function onApprovalDecided(): void {
+  void loadAll()
+  void refreshMenuBadges(['marketplace-pvz-initiators'])
+}
 
 async function onApprove(p: MarketplaceInvestPropertyView): Promise<void> {
   const yes = await confirm({
@@ -534,15 +541,17 @@ async function onDecline(): Promise<void> {
 }
 
 /** Акт: вносящий подписывает первым, председатель участка — тот же акт вторым. */
-async function onAct(p: MarketplaceInvestPropertyView, second: boolean): Promise<void> {
+// Вносящий подписывает акт первой подписью; вторую ставит председатель совета
+// в одобрении (строка и панель показывают его кнопки, остальным — ожидание).
+async function onAct(p: MarketplaceInvestPropertyView): Promise<void> {
   const ref_ = { braname: braname.value, property_hash: p.hash }
   await run(
     async () => {
       const doc = await getPropertyActPayload(ref_)
-      const document = await signed(doc, second ? 2 : 1)
-      await (second ? acceptProperty({ ...ref_, document }) : signPropertyAct({ ...ref_, document }))
+      const document = await signed(doc, 1)
+      await signPropertyAct({ ...ref_, document })
     },
-    second ? 'marketplace.initiatorsPage.acceptDone' : 'marketplace.initiatorsPage.actDone',
+    'marketplace.initiatorsPage.actDone',
     'marketplace.initiatorsPage.actFailed',
   )
 }
@@ -673,8 +682,14 @@ q-page.initiators(:style-fn='pageStyle')
               template(v-if='canApprove(row)')
                 BaseButton(variant='secondary', size='sm', :disabled='busy', @click='openDecline(row)') {{ $t('marketplace.initiatorsPage.declineAction') }}
                 BaseButton(variant='primary', size='sm', :disabled='busy', @click='onApprove(row)') {{ $t('marketplace.initiatorsPage.approveAction') }}
-              BaseButton(v-else-if='canSignAct(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row, false)') {{ $t('marketplace.initiatorsPage.actAction') }}
-              BaseButton(v-else-if='canAccept(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row, true)') {{ $t('marketplace.initiatorsPage.acceptAction') }}
+              BaseButton(v-else-if='canSignAct(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row)') {{ $t('marketplace.initiatorsPage.actAction') }}
+              ChairmanApprovalActions(
+                v-else-if='isAwaitingChairman(row)',
+                :coopname='coopname',
+                :approval-hash='row.hash',
+                :title='$t("marketplace.initiatorsPage.actApprovalTitle", { name: propertyTitle(row) })',
+                @decided='onApprovalDecided'
+              )
         EmptyState(
           v-else,
           :title='$t("marketplace.initiatorsPage.pendingEmptyTitle")',
@@ -773,12 +788,18 @@ q-page.initiators(:style-fn='pageStyle')
       DataRow(:label='$t("marketplace.initiatorsPage.tileClaimed")', :value='formatAsset2Digits(selectedInvestor.claimed)', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.tileClaimable")', :value='formatAsset2Digits(selectedInvestor.claimable)', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.tileUnused")', :value='formatAsset2Digits(selectedInvestor.unused)', align='spread')
-    template(v-if='selectedProperty && (canApprove(selectedProperty) || canSignAct(selectedProperty) || canAccept(selectedProperty))', #footer)
+    template(v-if='selectedProperty && (canApprove(selectedProperty) || canSignAct(selectedProperty) || isAwaitingChairman(selectedProperty))', #footer)
       template(v-if='canApprove(selectedProperty)')
         BaseButton(variant='secondary', :disabled='busy', @click='openDecline(selectedProperty)') {{ $t('marketplace.initiatorsPage.declineAction') }}
         BaseButton(variant='primary', :disabled='busy', @click='onApprove(selectedProperty)') {{ $t('marketplace.initiatorsPage.approveAction') }}
-      BaseButton(v-else-if='canSignAct(selectedProperty)', variant='primary', :disabled='busy', @click='onAct(selectedProperty, false)') {{ $t('marketplace.initiatorsPage.actAction') }}
-      BaseButton(v-else, variant='primary', :disabled='busy', @click='onAct(selectedProperty, true)') {{ $t('marketplace.initiatorsPage.acceptAction') }}
+      BaseButton(v-else-if='canSignAct(selectedProperty)', variant='primary', :disabled='busy', @click='onAct(selectedProperty)') {{ $t('marketplace.initiatorsPage.actAction') }}
+      ChairmanApprovalActions(
+        v-else,
+        :coopname='coopname',
+        :approval-hash='selectedProperty.hash',
+        :title='$t("marketplace.initiatorsPage.actApprovalTitle", { name: propertyTitle(selectedProperty) })',
+        @decided='onApprovalDecided'
+      )
 
   //- Паевой взнос деньгами: паевой взнос переходит с главного кошелька на кошелёк договора участия.
   BaseDialog(v-model='moneyOpen', :title='$t("marketplace.initiatorsPage.moneyDialogTitle")', size='sm')

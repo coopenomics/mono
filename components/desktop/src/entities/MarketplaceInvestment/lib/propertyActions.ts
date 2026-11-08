@@ -18,12 +18,20 @@ export function canSignPropertyAct(p: MarketplaceInvestPropertyView, username: s
   return p.username === username && p.status === Zeus.MarketplaceInvestPropertyStatus.AUTHORIZED
 }
 
-/** Председатель участка принимает имущество второй подписью акта. */
-export function canAcceptProperty(p: MarketplaceInvestPropertyView, isTrustee: boolean): boolean {
-  return isTrustee && p.status === Zeus.MarketplaceInvestPropertyStatus.ACT1
+/**
+ * Председатель совета подписывает акт второй подписью — в «Запросах одобрения»
+ * или кнопкой на странице: одобрение одно (решение владельца 08.11.2026).
+ */
+export function canAcceptProperty(p: MarketplaceInvestPropertyView, isChairman: boolean): boolean {
+  return isChairman && p.status === Zeus.MarketplaceInvestPropertyStatus.ACT1
 }
 
 /** Сколько заявлений ждут действия этого пайщика — число на пункте меню. */
-export function propertyActionsCount(properties: MarketplaceInvestPropertyView[], username: string, isTrustee: boolean): number {
-  return properties.filter((p) => canApproveProperty(p, isTrustee) || canSignPropertyAct(p, username) || canAcceptProperty(p, isTrustee)).length
+export function propertyActionsCount(
+  properties: MarketplaceInvestPropertyView[],
+  who: { username: string; isTrustee: boolean; isChairman: boolean },
+): number {
+  return properties.filter(
+    (p) => canApproveProperty(p, who.isTrustee) || canSignPropertyAct(p, who.username) || canAcceptProperty(p, who.isChairman),
+  ).length
 }

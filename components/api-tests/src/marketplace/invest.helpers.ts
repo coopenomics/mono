@@ -4,7 +4,7 @@
  * совета по имуществу — через цепь, как в остальных наборах с советом.
  */
 import { MarketContract } from 'cooptypes'
-import { COOP, type Who, authorizeDecisionOnChain, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
+import { COOP, ROLES, type Who, authorizeDecisionOnChain, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
 
 export const MY_AGREEMENT = 'query{ marketplaceMyInvestAgreement{ number signed_at } }'
 const AGREEMENT_DOC = 'query{ marketplaceInvestAgreementSignablePayload{ full_title html hash meta binary } }'
@@ -17,7 +17,9 @@ const APPROVAL_DOC = 'query($d:MarketplaceInvestPropertyRefInput!){ marketplaceI
 const APPROVE_PROPERTY = 'mutation($d:MarketplaceSignInvestPropertyInput!){ marketplaceApproveInvestProperty(data:$d){ phase } }'
 const ACT_DOC = 'query($d:MarketplaceInvestPropertyRefInput!){ marketplaceInvestPropertyActSignablePayload(data:$d){ full_title html hash meta binary } }'
 const SIGN_ACT = 'mutation($d:MarketplaceSignInvestPropertyInput!){ marketplaceSignInvestPropertyAct(data:$d){ phase } }'
-const ACCEPT_PROPERTY = 'mutation($d:MarketplaceSignInvestPropertyInput!){ marketplaceAcceptInvestProperty(data:$d){ phase } }'
+// Вторую подпись акта ставит председатель совета, подтверждая одобрение, которое
+// контракт создал на подписи вносящего (решение владельца 08.11.2026).
+const CONFIRM_APPROVE = 'mutation($d:ConfirmApproveInput!){ chairmanConfirmApprove(data:$d){ approval_hash } }'
 export const BRANCH_INVESTMENT = `query($b:String!){ marketplaceBranchInvestment(braname:$b){
   braname phase money_total property_total unused_total reserved spent_total repaid_total outstanding
   investors{ braname username active money property used returned claimed claimable unused }
@@ -93,12 +95,14 @@ export async function investPropertyAccepted(opts: { investor: Who, chairman: Wh
   }
   await waitFor(async () => ((await authorized()) ? true : null), { timeoutMs: 60_000, intervalMs: 1_000, label: `решение совета о приёме ${name}` })
 
-  // Акт один на обе подписи: председатель подписывает тот же документ второй подписью.
+  // Акт один на обе подписи: вносящий подписывает первым, контракт создаёт
+  // одобрение, председатель совета подписывает тот же документ второй подписью.
   const actDoc = (await gql<any>(investorToken, ACT_DOC, { d: { braname, property_hash: propertyHash } })).marketplaceInvestPropertyActSignablePayload
   const act1 = await signDocument(investor.wif, actDoc, investor.account, 1)
   await gql(investorToken, SIGN_ACT, { d: { braname, property_hash: propertyHash, document: act1 } })
-  const act2 = await signDocument(chairman.wif, actDoc, chairman.account, 2, [act1])
-  await gql(chairmanToken, ACCEPT_PROPERTY, { d: { braname, property_hash: propertyHash, document: act2 } })
+  const coopChairman = ROLES.chairman()
+  const act2 = await signDocument(coopChairman.wif, actDoc, coopChairman.account, 2, [act1])
+  await gql(await tokenOf(coopChairman), CONFIRM_APPROVE, { d: { coopname: COOP, approval_hash: propertyHash.toLowerCase(), approved_document: act2 } })
   return propertyHash
 }
 

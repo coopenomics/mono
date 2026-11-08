@@ -15196,7 +15196,6 @@ markAllNotificationsRead?: [{	coopname: string | Variable<any, string>},ValueTyp
 markNotificationRead?: [{	id: string | Variable<any, string>},ValueTypes["InboxNotification"]],
 markReportPeriod?: [{	data: ValueTypes["MarkReportPeriodInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceAcceptCpp?: [{	input: ValueTypes["MarketplaceAcceptCppInput"] | Variable<any, string>},ValueTypes["MarketplaceCppStatus"]],
-marketplaceAcceptInvestProperty?: [{	data: ValueTypes["MarketplaceSignInvestPropertyInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceAcceptOrdersBatch?: [{	input: ValueTypes["MarketplaceAcceptOrdersBatchInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceAcceptReturnAtVisit?: [{	data: ValueTypes["MarketplaceAcceptReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
@@ -34102,7 +34101,6 @@ markAllNotificationsRead?: [{	coopname: string},ResolverInputTypes["UnreadNotifi
 markNotificationRead?: [{	id: string},ResolverInputTypes["InboxNotification"]],
 markReportPeriod?: [{	data: ResolverInputTypes["MarkReportPeriodInput"]},boolean | `@${string}`],
 marketplaceAcceptCpp?: [{	input: ResolverInputTypes["MarketplaceAcceptCppInput"]},ResolverInputTypes["MarketplaceCppStatus"]],
-marketplaceAcceptInvestProperty?: [{	data: ResolverInputTypes["MarketplaceSignInvestPropertyInput"]},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceAcceptOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceAcceptOrdersBatchInput"]},ResolverInputTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceAcceptReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceAcceptReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
@@ -52582,8 +52580,6 @@ export type ModelTypes = {
 	markReportPeriod: boolean,
 	/** Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета. */
 	marketplaceAcceptCpp: ModelTypes["MarketplaceCppStatus"],
-	/** Подписать акт приёма-передачи второй подписью председателя участка — имущество принято. Доступно председателю участка. */
-	marketplaceAcceptInvestProperty: ModelTypes["MarketplaceBranchInvestment"],
 	/** Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом. */
 	marketplaceAcceptOrdersBatch: ModelTypes["MarketplaceSupplierBatchActionResult"],
 	/** Оператор принял имущество у стойки: вторая подпись на заявлении о внесении паевого взноса имуществом, заявление уходит на повестку совета. Робот решений совета зовётся напрямую и ждётся у стойки; без решения заявление остаётся в спокойном ожидании — деньги двигаются только по решению совета. */
@@ -72150,8 +72146,6 @@ export type GraphQLTypes = {
 	markReportPeriod: boolean,
 	/** Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета. */
 	marketplaceAcceptCpp: GraphQLTypes["MarketplaceCppStatus"],
-	/** Подписать акт приёма-передачи второй подписью председателя участка — имущество принято. Доступно председателю участка. */
-	marketplaceAcceptInvestProperty: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом. */
 	marketplaceAcceptOrdersBatch: GraphQLTypes["MarketplaceSupplierBatchActionResult"],
 	/** Оператор принял имущество у стойки: вторая подпись на заявлении о внесении паевого взноса имуществом, заявление уходит на повестку совета. Робот решений совета зовётся напрямую и ждётся у стойки; без решения заявление остаётся в спокойном ожидании — деньги двигаются только по решению совета. */

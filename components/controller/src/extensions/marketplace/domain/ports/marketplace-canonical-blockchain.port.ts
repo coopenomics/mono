@@ -412,8 +412,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   declineInvestProperty(data: MarketContract.Actions.DeclineIProp.IDeclineIProp): Promise<InnerTransactResult>;
   /** Акт приёма-передачи: подпись вносящего (marketplace::act1iprop). */
   signInvestPropertyAct1(data: MarketContract.Actions.Act1IProp.IAct1IProp): Promise<InnerTransactResult>;
-  /** Акт приёма-передачи: подпись председателя участка (marketplace::act2iprop). */
-  signInvestPropertyAct2(data: MarketContract.Actions.Act2IProp.IAct2IProp): Promise<InnerTransactResult>;
   /** Трансляция возвращённого паевого взноса в главный паевой; сумму считает контракт (marketplace::claiminv). */
   claimInvestment(data: MarketContract.Actions.ClaimInv.IClaimInv): Promise<InnerTransactResult>;
   /** Договор участия пайщика — по первичному ключу; null — не подписан. */

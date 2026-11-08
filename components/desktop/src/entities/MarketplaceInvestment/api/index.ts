@@ -128,10 +128,6 @@ export async function signPropertyAct(data: ISignInvestPropertyInput): Promise<v
   await client.Mutation(Mutations.Marketplace.SignInvestPropertyAct.mutation, { variables: { data } });
 }
 
-export async function acceptProperty(data: ISignInvestPropertyInput): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.AcceptInvestProperty.mutation, { variables: { data } });
-}
-
 export async function claimInvestment(data: IClaimInvestmentInput): Promise<void> {
   await client.Mutation(Mutations.Marketplace.ClaimInvestment.mutation, { variables: { data } });
 }

@@ -762,11 +762,18 @@ export interface IAct1IProp {
   act: IDocument2
 }
 
-export interface IAct2IProp {
+export interface IApprvIpAct {
   coopname: IName
-  braname: IName
+  username: IName
   property_hash: IChecksum256
-  act: IDocument2
+  approved_document: IDocument2
+}
+
+export interface IDclIpAct {
+  coopname: IName
+  username: IName
+  property_hash: IChecksum256
+  reason: string
 }
 
 export interface IClaimInv {

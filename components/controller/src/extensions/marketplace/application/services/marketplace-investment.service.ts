@@ -308,7 +308,7 @@ export class MarketplaceInvestmentService {
     await this.submit(() => this.chainPort.declineInvestProperty({ coopname, braname, property_hash: propertyHash, reason }));
   }
 
-  /** Акт 1122 к подписи: вносящему первой подписью, председателю участка — второй, тот же документ. */
+  /** Акт 1122 к первой подписи вносящего; вторую ставит председатель совета в одобрении. */
   async generatePropertyAct(coopname: string, propertyHash: string): Promise<InnerGeneratedDocument> {
     const prop = await this.requireProperty(coopname, propertyHash);
     const decisionId = await this.propertyDecisionId(coopname, prop);
@@ -339,36 +339,19 @@ export class MarketplaceInvestmentService {
     // Акт подписан вносящим: председатель участка подписывает тот же документ —
     // хэш и мета берутся из акта в цепи (контракт сверяет хэш). Текст для
     // показа собран заново из тех же данных.
-    // Регистр хэша важен: итоговый хэш подписи — sha256(meta_hash + хэш документа)
-    // строкой, а фабрика отдаёт хэш документа заглавными, цепь же хранит его
-    // строчными. Хэш из цепи без приведения давал председателю другой итоговый
-    // хэш и отказ MARKETPLACE_IPROP_ACT_MISMATCH (стенд 4, 08.11.2026).
-    const act = prop.status === MarketplaceInvestPropertyStatus.ACT1 ? prop.act : null;
-    if (act?.doc_hash && act.meta) return { ...doc, hash: String(act.doc_hash).toUpperCase(), meta: JSON.parse(String(act.meta)) };
     return doc;
   }
 
-  async signPropertyAct(
-    coopname: string,
-    signer: string,
-    propertyHash: string,
-    signed: SignedDigitalDocumentInputDTO,
-    second: boolean
-  ): Promise<void> {
-    const prop = await this.requireProperty(coopname, propertyHash);
+  /**
+   * Вносящий подписывает акт первой подписью. Вторую подпись ставит
+   * председатель совета в «Запросах одобрения» (или кнопкой на странице
+   * «Инициаторы участка»): контракт создаёт одобрение сам, совет по нему
+   * вызывает marketplace::apprvipact (решение владельца 08.11.2026).
+   */
+  async signPropertyAct(coopname: string, signer: string, propertyHash: string, signed: SignedDigitalDocumentInputDTO): Promise<void> {
+    await this.requireProperty(coopname, propertyHash);
     const act = new SignedDigitalDocumentInputDTO(signed).toDocument() as MarketContract.Actions.Act1IProp.IAct1IProp['act'];
-    if (second) {
-      // Вторая подпись ложится на акт вносящего: подписи вносящего из цепи и
-      // подпись председателя участка — в одном документе.
-      if (!prop.act?.hash || String(prop.act.hash).toLowerCase() !== String(act.hash).toLowerCase()) {
-        throw DomainError.badRequest('MARKETPLACE_IPROP_ACT_MISMATCH');
-      }
-      const own = new Set(prop.act.signatures.map((sig) => Number(sig.id)));
-      const merged = { ...act, signatures: [...prop.act.signatures, ...act.signatures.filter((sig) => !own.has(Number(sig.id)))] };
-      await this.submit(() => this.chainPort.signInvestPropertyAct2({ coopname, braname: prop.braname, property_hash: propertyHash, act: merged }));
-    } else {
-      await this.submit(() => this.chainPort.signInvestPropertyAct1({ coopname, username: signer, property_hash: propertyHash, act }));
-    }
+    await this.submit(() => this.chainPort.signInvestPropertyAct1({ coopname, username: signer, property_hash: propertyHash, act }));
   }
 
   // ── Трансляция ───────────────────────────────────────────────────────

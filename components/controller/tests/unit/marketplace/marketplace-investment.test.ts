@@ -197,23 +197,19 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
     expect(page.items[0].process_hash).toBe('ab'.repeat(32));
   });
 
-  it('istok.10 — вторая подпись акта ложится на акт вносящего: подписи соединяются; чужой акт отклоняется до цепи', async () => {
+  // Вторую подпись акта ставит председатель совета в «Запросах одобрения»:
+  // контракт создаёт одобрение на подписи вносящего (решение владельца 08.11.2026).
+  it('istok.10 — вносящий подписывает акт первой подписью: в цепь act1iprop, второй подписи на сервере нет', async () => {
     const { service, chainPort } = world();
-    const sig = (id: number, signer: string) => ({ id, signed_hash: 'S', signer, public_key: 'PUB', signature: 'SIG', signed_at: '2026-11-07T10:00:00', meta: '' });
-    const act1 = { version: '1', hash: 'H1', doc_hash: 'D1', meta_hash: 'M1', meta: '{}', signatures: [sig(1, 'anna')] };
     Object.assign(chainPort, {
-      getInvestProperty: jest.fn(async () => ({ hash: 'ab', braname: 'krg', username: 'anna', status: 'act1', act: act1 })),
-      signInvestPropertyAct2: jest.fn(async () => ({})),
+      getInvestProperty: jest.fn(async () => ({ hash: 'ab', braname: 'krg', username: 'anna', status: 'authorized' })),
+      signInvestPropertyAct1: jest.fn(async () => ({})),
     });
-    const chairman = { version: '1', hash: 'H1', doc_hash: 'D1', meta_hash: 'M1', meta: {}, signatures: [sig(2, 'chair')] };
-    await service.signPropertyAct(COOP, 'chair', 'ab', chairman as any, true);
-    const sent = (chainPort as any).signInvestPropertyAct2.mock.calls[0][0];
-    expect(sent.act.signatures.map((s: any) => s.signer)).toEqual(['anna', 'chair']);
-    expect(sent.act.hash).toBe('H1');
-
-    await expect(service.signPropertyAct(COOP, 'chair', 'ab', { ...chairman, hash: 'OTHER' } as any, true)).rejects.toMatchObject({
-      code: 'MARKETPLACE_IPROP_ACT_MISMATCH',
-    });
+    const act = { version: '1.1.0', hash: 'H1', doc_hash: 'D1', meta_hash: 'M1', meta: {}, signatures: [] };
+    await service.signPropertyAct(COOP, 'anna', 'ab', act as any);
+    const sent = (chainPort as any).signInvestPropertyAct1.mock.calls[0][0];
+    expect(sent).toMatchObject({ coopname: COOP, username: 'anna', property_hash: 'ab' });
+    expect('signInvestPropertyAct2' in chainPort).toBe(false);
   });
 
   // Робот исполняет решение совета и стирает его строку в soviet::decisions;
@@ -231,26 +227,5 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
 
     (chainPort as any).getInvestProperty.mockResolvedValue({ ...prop, status: 'created', decision: { meta: '' } });
     await expect(service.generatePropertyAct(COOP, 'ab')).rejects.toMatchObject({ code: 'MARKETPLACE_IPROP_DECISION_MISSING' });
-  });
-
-  // Цепь хранит хэш документа строчными, фабрика отдаёт его заглавными, а итоговый
-  // хэш подписи считается от строки. Данные акта со стенда 4 (08.11.2026): тот же
-  // документ, подписанный вносящим, — hash 42a7…; со строчным хэшем документа
-  // председатель получал другой итоговый хэш и отказ MARKETPLACE_IPROP_ACT_MISMATCH.
-  it('istok.12 — акт для второй подписи: хэш документа заглавными и мета акта вносящего — итоговый хэш совпадает с цепью', async () => {
-    const { service, chainPort } = world();
-    const metaHash = '1318c5ce787042effdc5226110fcef8ccbe631fe791ab8bd11b072da2f6aaa87';
-    const docHash = '4ad19190335ed982f7f7ba7f4143f3fbce97067c4cd63ea067189ccbe967660d';
-    const act = { version: '1.1.0', hash: '42a71c028d844d7943cb5a944a27cd0602b1ba84587695119663f0b2cee4f9ba', doc_hash: docHash, meta_hash: metaHash, meta: '{"registry_id":1122}', signatures: [] };
-    Object.assign(chainPort, {
-      getInvestProperty: jest.fn(async () => ({ hash: 'ab', braname: 'krg', username: 'anna', status: 'act1', amount: '100.0000 RUB', statement: { meta: '{}' }, decision: { meta: '{"decision_id":17}' }, act })),
-      findCouncilDecisionByHash: jest.fn(async () => null),
-    });
-    const doc = await service.generatePropertyAct(COOP, 'ab');
-    expect(doc.hash).toBe(docHash.toUpperCase());
-    expect(doc.meta).toEqual({ registry_id: 1122 });
-    // Та же формула, что у подписи на столе: sha256(meta_hash + хэш документа).
-    const { createHash } = await import('crypto');
-    expect(createHash('sha256').update(metaHash + doc.hash).digest('hex')).toBe(act.hash);
   });
 });

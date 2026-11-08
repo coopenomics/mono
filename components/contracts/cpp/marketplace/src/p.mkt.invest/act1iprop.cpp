@@ -1,7 +1,10 @@
 /**
  * @brief Вносящий подписывает акт приёма-передачи имущества первой подписью
- * (registry 1122; задача 99D-27). Движений нет: имущество принимается второй
- * подписью председателя участка.
+ * (registry 1122; задача 99D-27). Движений нет: акт направляется на вторую подпись
+ * председателю совета через одобрение (`Soviet::create_approval` → стол
+ * председателя, «Запросы одобрения» → `soviet::confirmapprv` → `apprvipact`),
+ * как акт РИД в «Образовании». Заявление одобряет председатель участка,
+ * акт подписывает председатель совета (решение владельца 08.11.2026).
  *
  * Guards: авторизация кооператива; решение совета принято; акт подписан
  * вносящим.
@@ -24,4 +27,18 @@ void marketplace::act1iprop(eosio::name coopname, eosio::name username,
     row.status = MarketInvest::PropertyStatus::ACT1;
     row.act    = act;
   });
+  // Вторая подпись — председатель совета со стола «Запросы одобрения» или со
+  // страницы «Инициаторы участка»: одобрение одно, решение закрывает его везде.
+  ::Soviet::create_approval(
+    _marketplace,
+    coopname,
+    username,
+    act,
+    Names::Marketplace::SIGN_PROPERTY_ACT,
+    property_hash,
+    _marketplace,
+    Names::Marketplace::APPROVE_PROPERTY_ACT,
+    Names::Marketplace::DECLINE_PROPERTY_ACT,
+    std::string("")
+  );
 }

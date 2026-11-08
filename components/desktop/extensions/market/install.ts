@@ -110,14 +110,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   registerMarketplaceProcessInfoHandlers()
 
   // Стол ПВЗ, «Инициаторы участка»: сколько заявлений на имущество ждут этого
-  // пайщика — одобрить, подписать акт, принять по акту (слово владельца
+  // пайщика — одобрить (председатель участка), подписать акт (вносящий), подписать
+  // акт второй подписью (председатель совета) (слово владельца
   // 08.11.2026: иначе по меню не догадаться, что есть что подписать).
   registerMenuBadge('marketplace-pvz-initiators', async () => {
     const branches = useOperatorBranchStore()
     await branches.ensureLoaded(useSystemStore().info.coopname)
     if (!branches.activeBraname) return 0
     const view = await getBranchInvestment(branches.activeBraname)
-    return propertyActionsCount(view.properties, useSessionStore().username, Boolean(branches.activeBranch?.isTrustee))
+    const session = useSessionStore()
+    return propertyActionsCount(view.properties, { username: session.username, isTrustee: Boolean(branches.activeBranch?.isTrustee), isChairman: session.isChairman })
   })
   registerLiveReload([{ code: 'marketplace', table: 'invprops' }], () => refreshMenuBadges(['marketplace-pvz-initiators']))
 

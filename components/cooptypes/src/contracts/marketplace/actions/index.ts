@@ -149,7 +149,8 @@ export * as CreateIProp from './createIProp'
 export * as ApproveIProp from './approveIProp'
 export * as DeclineIProp from './declineIProp'
 export * as Act1IProp from './act1IProp'
-export * as Act2IProp from './act2IProp'
+export * as ApprvIpAct from './apprvIpAct'
+export * as DclIpAct from './dclIpAct'
 export * as ClaimInv from './claimInv'
 
 /**

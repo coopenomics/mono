@@ -2588,9 +2588,6 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAcceptCpp:{
 			input:"MarketplaceAcceptCppInput"
 		},
-		marketplaceAcceptInvestProperty:{
-			data:"MarketplaceSignInvestPropertyInput"
-		},
 		marketplaceAcceptOrdersBatch:{
 			input:"MarketplaceAcceptOrdersBatchInput"
 		},
@@ -8885,7 +8882,6 @@ export const ReturnTypes: Record<string,any> = {
 		markNotificationRead:"InboxNotification",
 		markReportPeriod:"Boolean",
 		marketplaceAcceptCpp:"MarketplaceCppStatus",
-		marketplaceAcceptInvestProperty:"MarketplaceBranchInvestment",
 		marketplaceAcceptOrdersBatch:"MarketplaceSupplierBatchActionResult",
 		marketplaceAcceptReturnAtVisit:"MarketplaceReturnClaimResult",
 		marketplaceAddAvailableCategories:"MarketplaceAvailableCategory",

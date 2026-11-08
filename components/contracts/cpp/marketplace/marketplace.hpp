@@ -430,11 +430,19 @@ public:
   [[eosio::action]] void act1iprop(eosio::name coopname, eosio::name username,
                                     checksum256 property_hash, document2 act);
   /**
-   * @brief Акт приёма-передачи: подпись председателя участка — имущество принято.
+   * @brief Председатель совета подписал акт приёма имущества второй подписью
+   * в «Запросах одобрения» — имущество принято (только контракт совета).
    * @ingroup public_marketplace_actions
    */
-  [[eosio::action]] void act2iprop(eosio::name coopname, eosio::name braname,
-                                    checksum256 property_hash, document2 act);
+  [[eosio::action]] void apprvipact(eosio::name coopname, eosio::name username,
+                                     checksum256 property_hash, document2 approved_document);
+  /**
+   * @brief Председатель совета отказал в подписи акта приёма имущества
+   * (только контракт совета): акт возвращается вносящему.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void dclipact(eosio::name coopname, eosio::name username,
+                                   checksum256 property_hash, std::string reason);
   /**
    * @brief Выделение средств инициаторов под расход участка (только branch).
    * @ingroup public_marketplace_actions

@@ -2893,11 +2893,10 @@
       "stageCreated": "Заявление подано",
       "stageApproved": "На решении совета",
       "stageAuthorized": "Совет принял решение",
-      "stageAct1": "Акт подписан вносящим",
+      "stageAct1": "Акт на подписи председателя совета",
       "approveAction": "Одобрить",
       "declineAction": "Отклонить",
       "actAction": "Подписать акт",
-      "acceptAction": "Принять по акту",
       "approveConfirmTitle": "Одобрить заявление на имущество?",
       "approveConfirmMessage": "{name} по цене {amount}. Вопрос о приёме имущества выносится на совет.",
       "approveDone": "Заявление одобрено, вопрос вынесен на совет",
@@ -2907,7 +2906,6 @@
       "declineDone": "Заявление отклонено",
       "declineFailed": "Не удалось отклонить заявление",
       "actDone": "Акт подписан, ожидается подпись председателя участка",
-      "acceptDone": "Имущество принято в участок",
       "actFailed": "Не удалось подписать акт",
       "investorActive": "Возмещение идёт",
       "investorDone": "Возмещено",
@@ -2948,7 +2946,8 @@
       "cardTotal": "Всего",
       "cardSpent": "Израсходовано",
       "cardNow": "Сейчас",
-      "cardLeft": "Остаток"
+      "cardLeft": "Остаток",
+      "actApprovalTitle": "акт приёма-передачи имущества «{name}»"
     },
     "investPropertyDecisionInfo": {
       "title": "Имущество в кооперативный участок",
