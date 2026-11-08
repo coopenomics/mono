@@ -13,6 +13,7 @@ import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstabl
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 import { t } from 'src/shared/i18n';
 import { InvestPropertyDecisionInfo } from 'src/widgets/Marketplace/InvestPropertyDecisionInfo';
+import { BranchAidDecisionInfo } from 'src/widgets/Marketplace/BranchAidDecisionInfo';
 
 /** Поля метаданных заявления, которые фабрика документов проставляет сама. */
 const META_SERVICE_KEYS = new Set([
@@ -327,6 +328,8 @@ export function registerBaseDecisionHandlers() {
         lang: 'ru',
       });
     },
+    // Основание, участок, получатель и сумма — в карточке вопроса (слово владельца 08.11.2026).
+    infoComponent: BranchAidDecisionInfo,
   });
 
   // Обработчик для DecisionOfParticipantExit (решение о выходе пайщика)

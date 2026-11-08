@@ -2959,6 +2959,13 @@
       "descriptionLabel": "Описание",
       "nameLabel": "Имущество",
       "amountLabel": "Цена приёма"
+    },
+    "branchAidDecisionInfo": {
+      "sourceLabel": "Основание",
+      "sourceValue": "Материальная помощь из средств кооперативного участка по ЦПП «Стол заказов»",
+      "branchLabel": "Кооперативный участок",
+      "receiverLabel": "Получатель",
+      "amountLabel": "Сумма выплаты"
     }
   }
 }
