@@ -381,41 +381,48 @@ watch(
 </script>
 
 <template lang="pug">
-//- Идёт получение: обычное окно посередине экрана, а не полноэкранный холст —
-//- ход дела одной карточкой, без кнопок (слово владельца 02.11.2026).
+//- Идёт получение: холст на весь экран, чтобы под ним не мелькала страница,
+//- пока подписываются заявления и акт; ход дела — одной карточкой колонкой
+//- по центру по горизонтали, у верха экрана (слово владельца 08.11.2026).
 BaseDialog(
   :model-value='!!activeFlow',
-  size='lg',
-  :title='dialogTitle',
+  :maximized='true',
+  :canvas='true',
   :hide-close-button='true',
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
-  .onsite-gate__flow
-    p.onsite-gate__lead {{ $t('marketplace.onsiteSignatureGateOverlay.leadTextActive') }}
-    .onsite-gate__head
-      q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
-      q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
-      q-icon(v-else, name='inventory_2', size='28px')
-      .onsite-gate__ident
-        span.onsite-gate__name {{ flowTitle }}
-        span.onsite-gate__sub {{ flowSub }}
-
-    VerticalStepper(
-      :steps='FLOW_STEPS',
-      :active-key='flowActiveKey',
-      :completed='flowCompleted',
-      :errored='flowErrored'
+  .onsite-gate__center
+    ActDialogLayout(
+      bare,
+      :title='dialogTitle',
+      :lead='$t("marketplace.onsiteSignatureGateOverlay.leadTextActive")'
     )
-      template(#active)
-        q-linear-progress.onsite-gate__bar(
-          v-if='flowRunning',
-          indeterminate,
-          color='primary',
-          track-color='grey-9',
-          size='4px',
-          rounded
+      BaseCard
+        template(#head)
+          .onsite-gate__head
+            q-icon(v-if='flowStep === "done"', name='task_alt', size='28px')
+            q-icon(v-else-if='flowStep === "declined"', name='block', size='28px')
+            q-icon(v-else, name='inventory_2', size='28px')
+            .onsite-gate__ident
+              span.onsite-gate__name {{ flowTitle }}
+              span.onsite-gate__sub {{ flowSub }}
+
+        VerticalStepper(
+          :steps='FLOW_STEPS',
+          :active-key='flowActiveKey',
+          :completed='flowCompleted',
+          :errored='flowErrored'
         )
+          template(#active)
+            q-linear-progress.onsite-gate__bar(
+              v-if='flowRunning',
+              indeterminate,
+              color='primary',
+              track-color='grey-9',
+              size='4px',
+              rounded
+            )
 
 //- Задачи на подпись — рабочая страница на холсте, как окно приёмки у
 //- оператора: шапка, затем по ряду на задачу — позиции слева, сводка с
@@ -566,17 +573,11 @@ BaseDialog(
 <style scoped lang="scss">
 .onsite-gate {
   // Ход получения в обычном окне: подсказка, шапка дела и шаги столбиком.
-  &__flow {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-4, 16px);
-  }
-
-  &__lead {
-    margin: 0;
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: 1.45;
-    color: var(--p-ink-3);
+  // Ход получения — колонка по центру холста по горизонтали, у верха экрана.
+  &__center {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
   }
 
   &__head {
