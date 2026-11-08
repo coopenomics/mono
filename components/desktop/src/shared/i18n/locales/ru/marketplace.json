@@ -2948,7 +2948,8 @@
       "cardNow": "Сейчас",
       "cardLeft": "Остаток",
       "actApprovalTitle": "акт приёма-передачи имущества «{name}»",
-      "kindPropertyNamed": "Имущество принято ({name})"
+      "kindPropertyNamed": "Имущество принято ({name})",
+      "stageAccepted": "Принято"
     },
     "investPropertyDecisionInfo": {
       "applicantLabel": "Вносит",

@@ -107,6 +107,46 @@ const pendingProperties = computed<MarketplaceInvestPropertyView[]>(() => {
 })
 const acceptedProperties = computed(() => history.value.filter((h) => h.kind === Zeus.MarketplaceInvestHistoryKind.PROPERTY))
 
+/**
+ * Вкладка «Имущество» — одна таблица имущества: сверху заявления в работе,
+ * ниже принятое (этап «Принято»). Принятое берётся из истории операций учёта,
+ * наименование — из документов его пакета (заявление после приёма стёрто).
+ */
+interface PropertyListRow {
+  key: string
+  name: string
+  investor: string
+  amount: string
+  date: string
+  pending: MarketplaceInvestPropertyView | null
+  accepted: MarketplaceInvestHistoryEntry | null
+}
+const propertyRows = computed<PropertyListRow[]>(() => [
+  ...pendingProperties.value.map((p) => ({
+    key: p.hash,
+    name: propertyTitle(p),
+    investor: names.value[p.username] || p.username,
+    amount: p.amount,
+    date: '',
+    pending: p,
+    accepted: null,
+  })),
+  ...acceptedProperties.value.map((h) => ({
+    key: h.process_hash,
+    name: propertyFacts.value[h.process_hash]?.name ?? i18nT('marketplace.initiatorsPage.kindProperty'),
+    investor: names.value[session.username] || session.username,
+    amount: h.amount,
+    date: dateOf(h.created_at),
+    pending: null,
+    accepted: h,
+  })),
+])
+
+function openPropertyRow(row: PropertyListRow): void {
+  if (row.pending) openProperty(row.pending)
+  else if (row.accepted) openHistory(row.accepted)
+}
+
 const tabs = computed<PageTab[]>(() => [
   { key: 'mine', label: i18nT('marketplace.initiatorsPage.mineTab') },
   { key: 'property', label: i18nT('marketplace.initiatorsPage.propertyTab'), count: pendingProperties.value.length || undefined },
@@ -263,7 +303,7 @@ const historyColumns = computed<BaseTableColumn<MarketplaceInvestHistoryEntry>[]
   { key: 'amount', label: i18nT('marketplace.initiatorsPage.columnAmount'), width: '180px', numeric: true },
 ])
 
-const propertyColumns = computed<BaseTableColumn<MarketplaceInvestPropertyView>[]>(() => [
+const propertyColumns = computed<BaseTableColumn<PropertyListRow>[]>(() => [
   { key: 'title', label: i18nT('marketplace.initiatorsPage.columnProperty') },
   { key: 'investor', label: i18nT('marketplace.initiatorsPage.columnInvestor'), width: '220px' },
   { key: 'amount', label: i18nT('marketplace.initiatorsPage.columnPrice'), width: '160px', numeric: true },
@@ -697,62 +737,46 @@ q-page.initiators(:style-fn='pageStyle')
       //- 2. Имущество: заявления до приёма, ниже — принятое имущество из истории.
       template(v-if='activeKey === "property"')
         BaseTable(
-          v-if='firstLoad || pendingProperties.length',
+          v-if='firstLoad || propertyRows.length',
           :columns='propertyColumns',
-          :rows='pendingProperties',
-          row-key='hash',
+          :rows='propertyRows',
+          row-key='key',
           :loading='firstLoad',
           min-width='960px',
           clickable-rows,
-          @row-click='openProperty'
+          @row-click='openPropertyRow'
         )
           template(#cell-title='{ row }')
-            .initiators__name {{ propertyTitle(row) }}
+            .initiators__name {{ row.name }}
+            .initiators__muted(v-if='row.date') {{ row.date }}
           template(#cell-investor='{ row }')
-            | {{ names[row.username] || row.username }}
+            | {{ row.investor }}
           template(#cell-amount='{ row }')
             span.t-mono {{ formatAsset2Digits(row.amount) }}
           template(#cell-stage='{ row }')
-            BaseBadge(:variant='PROPERTY_STAGE[row.status].variant') {{ $t(PROPERTY_STAGE[row.status].label) }}
+            BaseBadge(v-if='row.pending', :variant='PROPERTY_STAGE[row.pending.status].variant') {{ $t(PROPERTY_STAGE[row.pending.status].label) }}
+            BaseBadge(v-else, variant='pos') {{ $t('marketplace.initiatorsPage.stageAccepted') }}
           template(#cell-actions='{ row }')
-            .initiators__row-actions(@click.stop)
-              template(v-if='canApprove(row)')
-                BaseButton(variant='secondary', size='sm', :disabled='busy', @click='openDecline(row)') {{ $t('marketplace.initiatorsPage.declineAction') }}
-                BaseButton(variant='primary', size='sm', :disabled='busy', @click='onApprove(row)') {{ $t('marketplace.initiatorsPage.approveAction') }}
-              BaseButton(v-else-if='canSignAct(row)', variant='primary', size='sm', :disabled='busy', @click='onAct(row)') {{ $t('marketplace.initiatorsPage.actAction') }}
+            .initiators__row-actions(v-if='row.pending', @click.stop)
+              template(v-if='canApprove(row.pending)')
+                BaseButton(variant='secondary', size='sm', :disabled='busy', @click='openDecline(row.pending)') {{ $t('marketplace.initiatorsPage.declineAction') }}
+                BaseButton(variant='primary', size='sm', :disabled='busy', @click='onApprove(row.pending)') {{ $t('marketplace.initiatorsPage.approveAction') }}
+              BaseButton(v-else-if='canSignAct(row.pending)', variant='primary', size='sm', :disabled='busy', @click='onAct(row.pending)') {{ $t('marketplace.initiatorsPage.actAction') }}
               ChairmanApprovalActions(
-                v-else-if='isAwaitingChairman(row)',
+                v-else-if='isAwaitingChairman(row.pending)',
                 :coopname='coopname',
-                :approval-hash='row.hash',
-                :title='$t("marketplace.initiatorsPage.actApprovalTitle", { name: propertyTitle(row) })',
+                :approval-hash='row.pending.hash',
+                :title='$t("marketplace.initiatorsPage.actApprovalTitle", { name: row.name })',
                 :declinable='false',
-        @decided='onApprovalDecided'
+                @decided='onApprovalDecided'
               )
-        //- Пустое состояние — только когда нет ни заявлений, ни принятого имущества:
-        //- при принятом имуществе вкладка показывает его, новое заявление встаёт сверху.
         EmptyState(
-          v-else-if='!acceptedProperties.length',
+          v-else,
           :title='$t("marketplace.initiatorsPage.pendingEmptyTitle")',
           :body='$t("marketplace.initiatorsPage.pendingEmptyBody")'
         )
           template(#icon)
             q-icon(name='inventory_2', size='40px')
-
-        BaseTable(
-          v-if='acceptedProperties.length',
-          :columns='historyColumns',
-          :rows='acceptedProperties',
-          row-key='global_sequence',
-          min-width='640px',
-          clickable-rows,
-          @row-click='openHistory'
-        )
-          template(#cell-date='{ row }')
-            span.t-mono {{ dateOf(row.created_at) }}
-          template(#cell-kind='{ row }')
-            | {{ historyKindLabel(row) }}
-          template(#cell-amount='{ row }')
-            span.t-mono {{ formatAsset2Digits(row.amount) }}
 
       //- 3. Инициаторы участка — председателю участка: итоги карточками, ниже строки инициаторов.
       template(v-if='activeKey === "initiators" && isTrustee')

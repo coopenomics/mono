@@ -5145,6 +5145,7 @@ export type MessageKey =
   | 'marketplace.initiatorsPage.propertySubmit'
   | 'marketplace.initiatorsPage.propertyTab'
   | 'marketplace.initiatorsPage.propertyUnitLabel'
+  | 'marketplace.initiatorsPage.stageAccepted'
   | 'marketplace.initiatorsPage.stageAct1'
   | 'marketplace.initiatorsPage.stageApproved'
   | 'marketplace.initiatorsPage.stageAuthorized'
