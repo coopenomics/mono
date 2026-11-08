@@ -311,8 +311,8 @@ export class MarketplaceInvestmentService {
   /** Акт 1122 к подписи: вносящему первой подписью, председателю участка — второй, тот же документ. */
   async generatePropertyAct(coopname: string, propertyHash: string): Promise<InnerGeneratedDocument> {
     const prop = await this.requireProperty(coopname, propertyHash);
-    const decision = await this.chainPort.findCouncilDecisionByHash(coopname, propertyHash);
-    if (!decision) throw DomainError.badRequest('MARKETPLACE_IPROP_DECISION_MISSING');
+    const decisionId = await this.propertyDecisionId(coopname, prop);
+    if (decisionId === null) throw DomainError.badRequest('MARKETPLACE_IPROP_DECISION_MISSING');
     const meta = this.statementMeta(prop);
     const agreement = await this.requireAgreement(coopname, prop.username);
     const data: Registry.MarketplaceInvestPropertyAct.Action = {
@@ -320,7 +320,7 @@ export class MarketplaceInvestmentService {
       coopname,
       username: prop.username,
       lang: 'ru',
-      decision_id: Number(decision.id),
+      decision_id: decisionId,
       braname: prop.braname,
       branch_name: await this.branchName(prop.braname),
       branch_chairman_name: await this.chairmanName(coopname, prop.braname),
@@ -575,6 +575,22 @@ export class MarketplaceInvestmentService {
     const agreement = await this.getAgreement(coopname, username);
     if (!agreement) throw DomainError.badRequest('MARKETPLACE_INVAGR_REQUIRED');
     return agreement;
+  }
+
+  /**
+   * Номер решения совета о приёме имущества. Робот исполняет решение, и строка
+   * в soviet::decisions стирается, поэтому после решения номер берётся из
+   * протокола 1121, который контракт кладёт в заявление (поле `decision`).
+   * Таблица совета — только пока решение ещё не исполнено.
+   */
+  private async propertyDecisionId(coopname: string, prop: MarketContract.Tables.InvProps.IMktInvProp): Promise<number | null> {
+    const raw = prop.decision?.meta;
+    if (raw) {
+      const parsed = (typeof raw === 'string' ? JSON.parse(raw) : raw) as { decision_id?: number | string };
+      if (parsed.decision_id !== undefined && parsed.decision_id !== null && String(parsed.decision_id) !== '') return Number(parsed.decision_id);
+    }
+    const decision = await this.chainPort.findCouncilDecisionByHash(coopname, prop.hash);
+    return decision ? Number(decision.id) : null;
   }
 
   private async requireProperty(coopname: string, hash: string): Promise<MarketContract.Tables.InvProps.IMktInvProp> {

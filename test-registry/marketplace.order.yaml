@@ -351,6 +351,17 @@ cases:
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
 
+  - id: mkt.order.invest.istok.11
+    level: backend
+    kind: break
+    scenario: >
+      Совет принял решение о приёме имущества, робот исполнил его и строка решения в таблице совета стёрта; вносящий открывает акт. Затем — акт по заявлению без решения.
+    expect: >
+      акт формируется с номером решения из протокола 1121 в заявлении; без протокола и без строки совета — MARKETPLACE_IPROP_DECISION_MISSING
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
   - id: mkt.order.invest.model.01
     level: contract
     kind: side

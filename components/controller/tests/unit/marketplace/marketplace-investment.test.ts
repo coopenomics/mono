@@ -215,4 +215,21 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
       code: 'MARKETPLACE_IPROP_ACT_MISMATCH',
     });
   });
+
+  // Робот исполняет решение совета и стирает его строку в soviet::decisions;
+  // акт после этого всё равно формируется — номер решения берётся из протокола
+  // 1121 в заявлении. Без протокола и без строки совета акта нет.
+  it('istok.11 — акт приёма имущества после исполненного решения: номер решения из протокола в заявлении; без решения — отказ с кодом', async () => {
+    const { service, chainPort, documentPort } = world();
+    const prop = { hash: 'ab', braname: 'krg', username: 'anna', status: 'authorized', amount: '600000.0000 RUB', statement: { meta: '{}' }, decision: { meta: JSON.stringify({ decision_id: 42 }) }, act: null };
+    Object.assign(chainPort, {
+      getInvestProperty: jest.fn(async () => prop),
+      findCouncilDecisionByHash: jest.fn(async () => null),
+    });
+    await service.generatePropertyAct(COOP, 'ab');
+    expect(documentPort.generate.mock.calls[0][0].data.decision_id).toBe(42);
+
+    (chainPort as any).getInvestProperty.mockResolvedValue({ ...prop, status: 'created', decision: { meta: '' } });
+    await expect(service.generatePropertyAct(COOP, 'ab')).rejects.toMatchObject({ code: 'MARKETPLACE_IPROP_DECISION_MISSING' });
+  });
 });
