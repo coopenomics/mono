@@ -15,7 +15,7 @@ import {
 registerEnumType(MarketplaceInvestPhase, {
   name: 'MarketplaceInvestPhase',
   description:
-    'Фаза кооперативного участка по вложениям инициаторов: вложений нет; вложения есть, возмещения ещё не было; доля инициаторов возмещает вложения; использованное возвращено.',
+    'Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возвращено.',
 });
 
 registerEnumType(MarketplaceInvestPropertyStatus, {
@@ -26,7 +26,7 @@ registerEnumType(MarketplaceInvestPropertyStatus, {
 
 registerEnumType(MarketplaceInvestHistoryKind, {
   name: 'MarketplaceInvestHistoryKind',
-  description: 'Вид записи истории вложений: вложение деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива.',
+  description: 'Вид записи истории паевых взносов: взнос деньгами; имущество принято; возврат на главный паевой кошелёк; перенос остатка при выходе из кооператива.',
 });
 
 /** Перевод суммы в единицах актива в строку для ответа. */
@@ -43,7 +43,7 @@ export class MarketplaceInvestAgreementDTO {
   signed_at!: string;
 }
 
-@ObjectType('MarketplaceInvestor', { description: 'Вложения пайщика-инициатора в кооперативный участок.' })
+@ObjectType('MarketplaceInvestor', { description: 'Паевые взносы пайщика-инициатора в кооперативный участок.' })
 export class MarketplaceInvestorDTO {
   @Field({ description: 'Кооперативный участок.' })
   braname!: string;
@@ -78,7 +78,7 @@ export class MarketplaceInvestorDTO {
 
 @ObjectType('MarketplaceInvestProperty', { description: 'Заявление о паевом взносе имуществом в кооперативный участок до приёма.' })
 export class MarketplaceInvestPropertyDTO {
-  @Field({ description: 'Идентификатор вложения имуществом.' })
+  @Field({ description: 'Идентификатор паевого взноса имуществом.' })
   hash!: string;
 
   @Field({ description: 'Вносящий пайщик.' })
@@ -94,12 +94,12 @@ export class MarketplaceInvestPropertyDTO {
   status!: MarketplaceInvestPropertyStatus;
 }
 
-@ObjectType('MarketplaceBranchInvestment', { description: 'Вложения инициаторов кооперативного участка и ход их возврата.' })
+@ObjectType('MarketplaceBranchInvestment', { description: 'Паевые взносы инициаторов кооперативного участка и ход их возврата.' })
 export class MarketplaceBranchInvestmentDTO {
   @Field({ description: 'Кооперативный участок.' })
   braname!: string;
 
-  @Field(() => MarketplaceInvestPhase, { description: 'Фаза участка по вложениям.' })
+  @Field(() => MarketplaceInvestPhase, { description: 'Фаза участка по паевым взносам.' })
   phase!: MarketplaceInvestPhase;
 
   @Field({ description: 'Внесено деньгами всего.' })
@@ -130,7 +130,7 @@ export class MarketplaceBranchInvestmentDTO {
   properties!: MarketplaceInvestPropertyDTO[];
 }
 
-@ObjectType('MarketplaceInvestHistoryEntry', { description: 'Запись истории вложений пайщика в кооперативные участки.' })
+@ObjectType('MarketplaceInvestHistoryEntry', { description: 'Запись истории паевых взносов пайщика в кооперативные участки.' })
 export class MarketplaceInvestHistoryEntryDTO {
   @Field(() => MarketplaceInvestHistoryKind, { description: 'Вид записи.' })
   kind!: MarketplaceInvestHistoryKind;
@@ -204,7 +204,7 @@ export class MarketplaceInvestStatementInputDTO {
   @IsNotEmpty()
   braname!: string;
 
-  @Field(() => Float, { description: 'Сумма вложения деньгами.' })
+  @Field(() => Float, { description: 'Сумма паевого взноса деньгами.' })
   @IsNumber()
   @Min(0.0001)
   amount!: number;
@@ -212,7 +212,7 @@ export class MarketplaceInvestStatementInputDTO {
 
 @InputType('MarketplaceInvestMoneyInput')
 export class MarketplaceInvestMoneyInputDTO extends MarketplaceInvestStatementInputDTO {
-  @Field({ description: 'Идентификатор вложения из подписанного заявления.' })
+  @Field({ description: 'Идентификатор паевого взноса из подписанного заявления.' })
   @IsString()
   @IsNotEmpty()
   invest_hash!: string;
@@ -258,7 +258,7 @@ export class MarketplaceInvestPropertyStatementInputDTO {
 
 @InputType('MarketplaceCreateInvestPropertyInput')
 export class MarketplaceCreateInvestPropertyInputDTO extends MarketplaceInvestPropertyStatementInputDTO {
-  @Field({ description: 'Идентификатор вложения имуществом из подписанного заявления.' })
+  @Field({ description: 'Идентификатор паевого взноса имуществом из подписанного заявления.' })
   @IsString()
   @IsNotEmpty()
   property_hash!: string;
@@ -276,7 +276,7 @@ export class MarketplaceInvestPropertyRefInputDTO {
   @IsNotEmpty()
   braname!: string;
 
-  @Field({ description: 'Идентификатор вложения имуществом.' })
+  @Field({ description: 'Идентификатор паевого взноса имуществом.' })
   @IsString()
   @IsNotEmpty()
   property_hash!: string;

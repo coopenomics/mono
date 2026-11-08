@@ -155,7 +155,7 @@ export class MarketplaceDeleteBranchReserveInputDTO {
 registerEnumType(MarketplacePeriodInvestPhase, {
   name: 'MarketplacePeriodInvestPhase',
   description:
-    'Фаза участка по вложениям инициаторов в месяце: вложений нет; недостача — обеспечительная часть целиком участку, недостачу покрывают вложения; доля инициаторов возмещает вложения; вложения возвращены, доля инициаторов направляется участку.',
+    'Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку.',
 });
 
 @ObjectType('MarketplaceBranchPeriod', {
@@ -217,7 +217,7 @@ export class MarketplaceBranchPeriodDTO {
   @Field({ description: 'Получатель доли инициатора в этом месяце.' })
   initiator!: string;
 
-  @Field(() => MarketplacePeriodInvestPhase, { description: 'Фаза участка по вложениям инициаторов на момент расчёта итога.' })
+  @Field(() => MarketplacePeriodInvestPhase, { description: 'Фаза участка по паевым взносам инициаторов на момент расчёта итога.' })
   invest_phase!: MarketplacePeriodInvestPhase;
 
   @Field({ description: 'Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня.' })

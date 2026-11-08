@@ -17,7 +17,7 @@ const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
 export const meta = {
-  title: 'Инициаторы участка — вложение имуществом, одобрение и акт',
+  title: 'Инициаторы участка — паевой взнос имуществом, одобрение и акт',
   docPath: 'new/marketplace/branch-chairman/initiators-property.md',
   assetsDir: 'assets/new/marketplace/branch-chairman/initiators-property',
   role: 'user',
@@ -55,7 +55,7 @@ export default async ({ page, shot, expect }) => {
   if (await sign.count()) {
     await page.locator('.doc-sign__text').first().waitFor({ state: 'visible', timeout: 60000 });
     await sign.click();
-    await page.locator('text=Мои вложения').first().waitFor({ state: 'visible', timeout: 120000 });
+    await page.locator('text=Мои взносы').first().waitFor({ state: 'visible', timeout: 120000 });
   }
 
   await openTab(page, 'Имущество');
@@ -72,7 +72,7 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '01-property-dialog',
-    'Окно вложения имуществом: наименование, описание и состояние, количество, единица и цена приёма. Заявление одобряет председатель участка, решение о приёме принимает совет, затем акт подписывают вносящий и председатель участка.',
+    'Окно паевого взноса имуществом: наименование, описание и состояние, количество, единица и цена приёма. Заявление одобряет председатель участка, решение о приёме принимает совет, затем акт подписывают вносящий и председатель участка.',
   );
   await dialog.locator('button[type="submit"]').last().click();
 
@@ -124,6 +124,6 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '05-property-accepted',
-    'Имущество принято по акту: заявление снято из списка этапов, запись появилась в «Принятом имуществе» — цена приёма входит во вложения инициатора и в базу возврата из экономии участка.',
+    'Имущество принято по акту: заявление снято из списка этапов, запись появилась в «Принятом имуществе» — цена приёма входит в паевые взносы инициатора и в базу возврата из экономии участка.',
   );
 };

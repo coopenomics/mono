@@ -108,7 +108,7 @@
     "MARKETPLACE_INVENTORY_ITEM_NOT_FOUND": "Позиция склада не найдена.",
     "MARKETPLACE_INVENTORY_ITEM_REQUIRED": "Не указана позиция склада.",
     "MARKETPLACE_INVENTORY_RELOCATE_ONLY_UNLABELED": "Перераскладывать можно только непромаркированную позицию (на складе, без штрих-кода).",
-    "MARKETPLACE_INVEST_AMOUNT_INVALID": "Сумма вложения должна быть больше нуля.",
+    "MARKETPLACE_INVEST_AMOUNT_INVALID": "Сумма паевого взноса должна быть больше нуля.",
     "MARKETPLACE_INVEST_NOTHING_TO_CLAIM": "Возвращённых средств к трансляции пока нет.",
     "MARKETPLACE_INVEST_NOT_OPERATOR": "Вносить в кооперативный участок может председатель или доверенное лицо участка.",
     "MARKETPLACE_IPROP_ACT_MISMATCH": "Акт для второй подписи не совпадает с актом, который подписал вносящий: сформируйте акт заново.",
@@ -565,11 +565,11 @@
       "defaultUnit": "шт.",
       "notifyPropertySubmittedWhat": "заявление на имущество",
       "notifyPropertyDecidedWhat": "решение совета по имуществу",
-      "notifyRepaidWhat": "возмещение вложений",
+      "notifyRepaidWhat": "возмещение паевых взносов",
       "propertyAuthorized": "Совет принял решение о приёме имущества. Подпишите акт приёма-передачи.",
       "propertyDeclined": "Совет отказал в приёме имущества.",
-      "repaidFully": "Использованное вложение возвращено целиком: доступна вся сумма, включая неиспользованные деньги.",
-      "repaidOngoing": "Возврат вложения продолжается из экономии участка."
+      "repaidFully": "Использованный паевой взнос возвращён целиком: доступна вся сумма, включая неиспользованные деньги.",
+      "repaidOngoing": "Возврат паевого взноса продолжается из экономии участка."
     },
     "issuance": {
       "actNotNeededAtStage": "Акт на этом этапе («{stage}») подписывать не нужно.",
@@ -626,7 +626,7 @@
       "shareOrderReserveLabel": "Паевой резерв под заказы {'|'} Стол Заказов",
       "securePartDueLabel": "Обеспечительная часть к списанию {'|'} Стол Заказов",
       "securePartOrderLabel": "Обеспечительная часть в заказах {'|'} Стол Заказов",
-      "investLabel": "Вложение в участки {'|'} Стол Заказов"
+      "investLabel": "Паевой взнос в участки {'|'} Стол Заказов"
     },
     "moderation": {
       "approvedStatusLabel": "одобрено",

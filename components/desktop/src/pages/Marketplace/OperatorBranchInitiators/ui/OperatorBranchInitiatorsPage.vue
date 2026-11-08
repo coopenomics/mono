@@ -594,7 +594,7 @@ q-page.initiators(:style-fn='pageStyle')
             | {{ $t('marketplace.initiatorsPage.propertyAction') }}
 
       //- 1. Мои вложения: сводка карточкой (фаза участка — в её шапке), ниже история.
-      //- Пока вложений нет — одно приглашение с кнопками внесения вместо нулей.
+      //- Пока взносов нет — одно пустое состояние вместо нулей; внести — кнопками в строке разделов.
       template(v-if='activeKey === "mine"')
         EmptyState(
           v-if='!firstLoad && !hasMine',
@@ -603,16 +603,6 @@ q-page.initiators(:style-fn='pageStyle')
         )
           template(#icon)
             q-icon(name='volunteer_activism', size='48px')
-          template(#action)
-            .initiators__empty-actions
-              BaseButton(variant='secondary', :disabled='busy', @click='propertyOpen = true')
-                template(#icon-left)
-                  q-icon(name='inventory_2', size='18px')
-                | {{ $t('marketplace.initiatorsPage.propertyAction') }}
-              BaseButton(variant='primary', :disabled='busy', @click='moneyOpen = true')
-                template(#icon-left)
-                  q-icon(name='payments', size='18px')
-                | {{ $t('marketplace.initiatorsPage.moneyAction') }}
 
         template(v-else)
           BaseCard(:title='$t("marketplace.initiatorsPage.mineSummaryTitle")')
@@ -827,13 +817,6 @@ q-page.initiators(:style-fn='pageStyle')
 .initiators__phase-note {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-3);
-}
-
-.initiators__empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--p-3);
 }
 
 .initiators__phase {

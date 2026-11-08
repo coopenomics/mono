@@ -40,8 +40,8 @@ const paginatedInvestHistory = createPaginationResult(MarketplaceInvestHistoryEn
 
 /**
  * Инвестиционный этап кооперативного участка (задача 99D-30): договор
- * участия, вложения деньгами и имуществом, решение совета по имуществу и
- * возврат вложений. Вносить могут операторы участка (председатель и
+ * участия, паевые взносы деньгами и имуществом, решение совета по имуществу и
+ * возврат паевых взносов. Вносить могут операторы участка (председатель и
  * доверенные лица), одобряет и принимает имущество председатель участка.
  * Суммы к возврату считает контракт; запросы отдают предварительный расчёт.
  */
@@ -93,7 +93,7 @@ export class MarketplaceInvestmentResolver {
     return this.investment.getAgreement(coopname, member.username);
   }
 
-  // ── Вложение деньгами ──────────────────────────────────────────────────
+  // ── Паевой взнос деньгами ──────────────────────────────────────────────────
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceInvestStatementSignablePayload',
@@ -123,7 +123,7 @@ export class MarketplaceInvestmentResolver {
     return toMarketplaceBranchInvestmentDTO(await this.investment.getBranchInvestment(coopname, data.braname), this.toAsset);
   }
 
-  // ── Вложение имуществом ───────────────────────────────────────────────
+  // ── Паевой взнос имуществом ───────────────────────────────────────────────
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceInvestPropertyStatementSignablePayload',
@@ -244,7 +244,7 @@ export class MarketplaceInvestmentResolver {
 
   @Mutation(() => [MarketplaceInvestorDTO], {
     name: 'marketplaceClaimInvestment',
-    description: 'Перевести доступный возврат вложения на главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив.',
+    description: 'Перевести доступный возврат паевого взноса на главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
@@ -259,7 +259,7 @@ export class MarketplaceInvestmentResolver {
 
   @Query(() => [MarketplaceInvestorDTO], {
     name: 'marketplaceMyInvestments',
-    description: 'Вложения текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу.',
+    description: 'Паевые взносы текущего пайщика по участкам: внесено, использовано, возвращено и доступно к переводу.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
@@ -269,7 +269,7 @@ export class MarketplaceInvestmentResolver {
 
   @Query(() => paginatedInvestHistory, {
     name: 'marketplaceMyInvestHistory',
-    description: 'История вложений текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми.',
+    description: 'История паевых взносов текущего пайщика: деньги, принятое имущество, возвраты на главный паевой кошелёк. Новые первыми.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
@@ -283,7 +283,7 @@ export class MarketplaceInvestmentResolver {
 
   @Query(() => MarketplaceBranchInvestmentDTO, {
     name: 'marketplaceBranchInvestment',
-    description: 'Вложения инициаторов кооперативного участка, фаза возврата и заявления на имущество до приёма.',
+    description: 'Паевые взносы инициаторов кооперативного участка, фаза возврата и заявления на имущество до приёма.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
