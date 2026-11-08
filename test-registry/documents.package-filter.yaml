@@ -24,6 +24,8 @@ cases:
     scenario: Пайщик открывает запись истории паевых взносов; стол просит документы по хэшу процесса
     expect: фильтр package доходит до реестра вместе с охватом пайщика
     test: components/controller/tests/unit/document/document-package-filter.test.ts
+    # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
+    api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
 
   - id: documents.package-filter.02
@@ -32,6 +34,8 @@ cases:
     scenario: Пайщик подставляет в фильтр чужого получателя рядом с пакетом
     expect: охват берётся из запроса пайщика, чужой пакет фильтром не открыть
     test: components/controller/tests/unit/document/document-package-filter.test.ts
+    # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
+    api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
 
   - id: documents.package-filter.03
@@ -40,4 +44,6 @@ cases:
     scenario: Список документов без фильтра пакета
     expect: реестр не ограничивается пакетом — прежние списки не меняются
     test: components/controller/tests/unit/document/document-package-filter.test.ts
+    # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
+    api: components/api-tests/src/marketplace/invest.test.ts
     status: passing

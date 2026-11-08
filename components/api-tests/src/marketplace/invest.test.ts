@@ -31,6 +31,8 @@ import {
 const chairkrg = ROLES.branchChairman()
 const chairodn = ROLES.foreignBranchChairman()
 const ODN = 'odn'
+// Реестр документов пайщика: число и сырые агрегаты (ищем номер шаблона в тексте).
+const DOCUMENTS = 'query($d: GetDocumentsInput!){ getDocuments(data:$d){ totalCount items { statement { documentAggregate { document { meta } } } } } }'
 const SUM = 1_000
 const PROPERTY_SUM = 25_000
 
@@ -87,6 +89,18 @@ describe('инвестиционный этап участка: договор, 
     const entry = (page.items as any[]).find(i => i.process_hash === String(afterMoney.investHash).toLowerCase())
     expect(entry?.kind, 'паевой взнос деньгами в истории').toBe('MONEY')
     expect(amount(entry.amount)).toBeCloseTo(SUM, 4)
+
+    // Документы записи истории — по пакету, то есть по хэшу процесса
+    // (documents.package-filter.01–03): хэш заявления в пакете другой.
+    const packageOf = async (token: string, username: string, filter: Record<string, unknown>) =>
+      (await gql<any>(token, DOCUMENTS, { d: { username, filter, type: 'newsubmitted', page: 1, limit: 5 } })).getDocuments
+    const own = await packageOf(krgToken, chairkrg.account, { package: entry.process_hash.toUpperCase() })
+    expect(own.totalCount, 'заявление 1119 находится по хэшу процесса из истории').toBe(1)
+    expect(JSON.stringify(own.items[0]), 'в пакете — заявление о трансляции паевого взноса').toContain('1119')
+    const foreign = await packageOf(outsiderToken, outsider.account, { package: entry.process_hash.toUpperCase(), receiver: chairkrg.account })
+    expect(foreign.totalCount, 'чужой пакет фильтром не открыть: охват — пайщик запроса').toBe(0)
+    const all = await packageOf(krgToken, chairkrg.account, {})
+    expect(all.totalCount, 'без фильтра пакета список не сужается до пакета').toBeGreaterThan(own.totalCount)
 
     await investPropertyAccepted({ investor: chairkrg, chairman: chairkrg, braname: KRG, sum: PROPERTY_SUM, name: `Холодильная витрина ${Date.now().toString(36)}` })
     const view = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
