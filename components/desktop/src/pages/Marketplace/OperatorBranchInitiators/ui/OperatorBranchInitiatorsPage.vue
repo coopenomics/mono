@@ -32,6 +32,8 @@ import {
   approveProperty,
   canApproveProperty,
   canSignPropertyAct,
+  propertyFactsOf,
+  type InvestPropertyFacts,
   claimInvestment,
   createProperty,
   declineProperty,
@@ -136,6 +138,7 @@ async function loadAll(): Promise<void> {
     myRows.value = rows
     branchView.value = view
     history.value = page.items
+    void loadPropertyFacts(page.items)
   } catch (e) {
     FailAlert(e, i18nT('marketplace.initiatorsPage.loadFailed'))
   } finally {
@@ -336,8 +339,37 @@ function openInvestor(row: MarketplaceInvestorView): void {
   selectedInvestor.value = row
 }
 
+// ─── Сведения о принятом имуществе ───
+// После приёма заявление стирается из цепи; что за имущество и кто его одобрил,
+// берётся из документов пакета (акт, протокол) — по строкам «Имущество принято».
+const propertyFacts = ref<Record<string, InvestPropertyFacts>>({})
+
+async function loadPropertyFacts(rows: MarketplaceInvestHistoryEntry[]): Promise<void> {
+  const todo = rows.filter((r) => r.kind === Zeus.MarketplaceInvestHistoryKind.PROPERTY && !propertyFacts.value[r.process_hash])
+  await Promise.all(
+    todo.map(async (r) => {
+      try {
+        const facts = propertyFactsOf(await documents.loadPackage(session.username, r.process_hash))
+        if (facts) propertyFacts.value = { ...propertyFacts.value, [r.process_hash]: facts }
+      } catch {
+        // Без документов строка остаётся «Имущество принято» — сведения не обязательны.
+      }
+    }),
+  )
+}
+
+/** Подпись строки истории: для принятого имущества — с наименованием. */
+function historyKindLabel(row: MarketplaceInvestHistoryEntry): string {
+  const name = row.kind === Zeus.MarketplaceInvestHistoryKind.PROPERTY ? propertyFacts.value[row.process_hash]?.name : undefined
+  return name ? i18nT('marketplace.initiatorsPage.kindPropertyNamed', { name }) : i18nT(HISTORY_KIND[row.kind])
+}
+
+const selectedFacts = computed<InvestPropertyFacts | null>(() =>
+  selectedHistory.value ? propertyFacts.value[selectedHistory.value.process_hash] ?? propertyFactsOf(drawerPackage.value) : null,
+)
+
 const drawerTitle = computed(() => {
-  if (selectedHistory.value) return i18nT(HISTORY_KIND[selectedHistory.value.kind])
+  if (selectedHistory.value) return historyKindLabel(selectedHistory.value)
   if (selectedProperty.value) return propertyTitle(selectedProperty.value)
   if (selectedInvestor.value) return names.value[selectedInvestor.value.username] || selectedInvestor.value.username
   return ''
@@ -604,6 +636,11 @@ q-page.initiators(:style-fn='pageStyle')
             template(#icon-left)
               q-icon(name='account_balance_wallet', size='16px')
             | {{ $t('marketplace.initiatorsPage.claimAction') }}
+        template(v-else-if='activeKey === "initiators"', #actions)
+          BaseButton(variant='primary', size='sm', :disabled='busy || claimable <= 0', :loading='busy', @click='onClaim')
+            template(#icon-left)
+              q-icon(name='account_balance_wallet', size='16px')
+            | {{ $t('marketplace.initiatorsPage.claimAction') }}
         template(v-else-if='activeKey === "property"', #actions)
           BaseButton(variant='primary', size='sm', :disabled='busy', @click='propertyOpen = true')
             template(#icon-left)
@@ -652,7 +689,7 @@ q-page.initiators(:style-fn='pageStyle')
             template(#cell-date='{ row }')
               span.t-mono {{ dateOf(row.created_at) }}
             template(#cell-kind='{ row }')
-              | {{ $t(HISTORY_KIND[row.kind]) }}
+              | {{ historyKindLabel(row) }}
             template(#cell-amount='{ row }')
               span.t-mono {{ formatAsset2Digits(row.amount) }}
           .initiators__muted(v-else) {{ $t('marketplace.initiatorsPage.historyEmptyBody') }}
@@ -713,7 +750,7 @@ q-page.initiators(:style-fn='pageStyle')
           template(#cell-date='{ row }')
             span.t-mono {{ dateOf(row.created_at) }}
           template(#cell-kind='{ row }')
-            | {{ $t(HISTORY_KIND[row.kind]) }}
+            | {{ historyKindLabel(row) }}
           template(#cell-amount='{ row }')
             span.t-mono {{ formatAsset2Digits(row.amount) }}
 
@@ -768,6 +805,13 @@ q-page.initiators(:style-fn='pageStyle')
       .initiators__drawer-amount.t-mono {{ formatAsset2Digits(selectedHistory.amount) }}
       DataRow(:label='$t("marketplace.initiatorsPage.columnDate")', :value='dateOf(selectedHistory.created_at)', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.operationNumber")', :value='selectedHistory.global_sequence', align='spread', mono)
+      //- Принятое имущество: что это и кто одобрил заявление — из документов пакета.
+      template(v-if='selectedFacts')
+        DataRow(:label='$t("marketplace.investPropertyDecisionInfo.nameLabel")', :value='selectedFacts.name', align='spread')
+        DataRow(v-if='selectedFacts.quantity', :label='$t("marketplace.investPropertyDecisionInfo.quantityLabel")', :value='[selectedFacts.quantity, selectedFacts.unit].filter(Boolean).join(" ")', align='spread')
+        DataRow(v-if='selectedFacts.branchName', :label='$t("marketplace.investPropertyDecisionInfo.branchLabel")', :value='selectedFacts.branchName', align='spread')
+        DataRow(v-if='selectedFacts.chairmanName', :label='$t("marketplace.investPropertyDecisionInfo.approvedByLabel")', :value='selectedFacts.chairmanName', align='spread')
+        DataRow(v-if='selectedFacts.description', :label='$t("marketplace.investPropertyDecisionInfo.descriptionLabel")', :value='selectedFacts.description', align='vertical')
       .initiators__drawer-docs
         .initiators__section-title {{ $t('marketplace.initiatorsPage.documentsTitle') }}
         q-skeleton(v-if='drawerDocLoading', type='rect', height='48px')

@@ -2947,15 +2947,17 @@
       "cardSpent": "Израсходовано",
       "cardNow": "Сейчас",
       "cardLeft": "Остаток",
-      "actApprovalTitle": "акт приёма-передачи имущества «{name}»"
+      "actApprovalTitle": "акт приёма-передачи имущества «{name}»",
+      "kindPropertyNamed": "Имущество принято ({name})"
     },
     "investPropertyDecisionInfo": {
-      "title": "Имущество в кооперативный участок",
       "applicantLabel": "Вносит",
       "quantityLabel": "Количество",
       "branchLabel": "Кооперативный участок",
       "approvedByLabel": "Одобрил председатель участка",
-      "descriptionLabel": "Описание"
+      "descriptionLabel": "Описание",
+      "nameLabel": "Имущество",
+      "amountLabel": "Цена приёма"
     }
   }
 }

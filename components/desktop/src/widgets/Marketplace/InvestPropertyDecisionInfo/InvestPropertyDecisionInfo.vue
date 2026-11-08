@@ -1,25 +1,16 @@
 <template lang="pug">
 //- Вопрос совета о приёме имущества в кооперативный участок (заявление 1120,
-//- одобренное председателем участка). Совет видит, что и на какую сумму
-//- вносится, в какой участок и кто одобрил заявление, — без открытия
-//- документа. Зоны: что вносится (наименование, цена приёма) → подробности
-//- (вносящий, количество, описание) → участок и одобривший председатель.
-.invest-property
-  .invest-property__label
-    q-icon(name='inventory_2', size='18px')
-    span.t-eyebrow {{ $t('marketplace.investPropertyDecisionInfo.title') }}
-  .invest-property__panel
-    .invest-property__name {{ meta.property_name || '______' }}
-    .invest-property__amount.t-mono {{ amount }}
-    DataRow(:label='$t("marketplace.investPropertyDecisionInfo.applicantLabel")', :value='applicantName', align='spread')
-    DataRow(:label='$t("marketplace.investPropertyDecisionInfo.quantityLabel")', :value='quantity', align='spread')
-    DataRow(:label='$t("marketplace.investPropertyDecisionInfo.branchLabel")', :value='meta.branch_name || meta.braname || "______"', align='spread')
-    DataRow(:label='$t("marketplace.investPropertyDecisionInfo.approvedByLabel")', :value='meta.branch_chairman_name || "______"', align='spread')
-    DataRow(
-      :label='$t("marketplace.investPropertyDecisionInfo.descriptionLabel")',
-      :value='meta.property_description || "______"',
-      align='vertical'
-    )
+//- одобренное председателем участка): что вносится, по какой цене, в какой
+//- участок и кто одобрил заявление. Строками сведений, как у вопросов
+//- «Образования», — совет читает их рядом с заявлением.
+.invest-property-info
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.nameLabel")', :value='meta.property_name || "______"')
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.amountLabel")', :value='amount')
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.applicantLabel")', :value='applicantName')
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.quantityLabel")', :value='quantity')
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.branchLabel")', :value='meta.branch_name || meta.braname || "______"')
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.approvedByLabel")', :value='meta.branch_chairman_name || "______"')
+  DataRow(:label='$t("marketplace.investPropertyDecisionInfo.descriptionLabel")', :value='meta.property_description || "______"')
 </template>
 
 <script lang="ts" setup>
@@ -70,46 +61,7 @@ const amount = computed(() => (meta.value.property_amount ? formatAsset2Digits(m
 </script>
 
 <style lang="scss" scoped>
-.invest-property {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
+.invest-property-info {
   margin-top: var(--p-3);
-  min-width: 0;
-
-  &__label {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--p-1);
-    color: var(--p-ink-2);
-
-    .q-icon {
-      color: var(--p-primary);
-    }
-  }
-
-  &__panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1);
-    padding: var(--p-4) var(--p-5);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md);
-    background: var(--p-surface-2);
-    min-width: 0;
-  }
-
-  &__name {
-    font-size: var(--p-fs-h3);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__amount {
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
-    color: var(--p-ink);
-    margin-bottom: var(--p-2);
-  }
 }
 </style>
