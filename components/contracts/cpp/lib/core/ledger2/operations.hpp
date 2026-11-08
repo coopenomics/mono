@@ -185,8 +185,10 @@ namespace operations {
     inline constexpr eosio::name FINANCIAL_AID       = "o.brn.aid"_n;     ///< Материальная помощь доверенному КУ, сумма К ВЫПЛАТЕ за вычетом налога (BURN с w.brn.person, Dr 86 / Cr 51 — выплата с расчётного счёта по заявлению, после подтверждения кассиром). Парная операция удержания — FINANCIAL_AID_TAX, применяется той же транзакцией.
     inline constexpr eosio::name EXPENSE_TO_FUND     = "o.brn.tofund"_n;  ///< Направление расхода участка в фонд обеспечения хозяйственной деятельности (TRANSFER w.brn.expns → w.sov.expns, без Dr/Cr — внутри 86). Первая нога выплаты: расход выходит из кооператива только с кошелька фонда (задача 99D-25).
     inline constexpr eosio::name EXPENSE_FROM_FUND   = "o.brn.fmfund"_n;  ///< Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов участка (TRANSFER w.sov.expns → w.brn.expns, без Dr/Cr — внутри 86). Вторая нога возврата после o.brn.expret.
-    inline constexpr eosio::name AID_TO_FUND         = "o.brn.aidfnd"_n;  ///< Направление материальной помощи в фонд взаимного обеспечения (TRANSFER w.brn.person → w.fnd.mutual, без Dr/Cr — внутри 86). Первая нога выплаты: сумма на руки выходит из кооператива только с кошелька фонда (задача 99D-25); разрез по получателю остаётся на w.brn.person.
-    inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки уходит остаток. Деньги при этом с расчётного счёта не уходят — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
+    inline constexpr eosio::name AID_REQUEST         = "o.brn.aidreq"_n;  ///< Заявление на материальную помощь подано: сумма заявления переходит с персонального кошелька на кошелёк заявлений (TRANSFER w.brn.person → w.brn.aidreq, без Dr/Cr — внутри 86). Свободные средства уменьшаются сразу (решение владельца 08.11.2026).
+    inline constexpr eosio::name AID_RETURN          = "o.brn.aidret"_n;  ///< Совет отказал в материальной помощи: сумма заявления возвращается на персональный кошелёк (TRANSFER w.brn.aidreq → w.brn.person, без Dr/Cr — внутри 86).
+    inline constexpr eosio::name AID_TO_FUND         = "o.brn.aidfnd"_n;  ///< Направление материальной помощи в фонд взаимного обеспечения (TRANSFER w.brn.aidreq → w.fnd.mutual, без Dr/Cr — внутри 86). Первая нога выплаты: сумма на руки выходит из кооператива только с кошелька фонда (задача 99D-25); разрез по получателю остаётся на w.brn.person.
+    inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.aidreq → w.sov.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки выплачивается остаток. Деньги при этом с расчётного счёта не списываются — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
   }
 
   // fund — фонды накопления кооператива (задачи 99D-19 и 99D-25, решения владельца 02–03.11.2026).
@@ -1070,12 +1072,28 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   //      обеспечения (TRANSFER w.brn.person → w.fnd.mutual, без Dr/Cr — внутри
   //      86). Первая нога выплаты: сумма на руки выходит из кооператива только с
   //      кошелька фонда, оборот фонда — выплаченная помощь по факту (решение
-  //      владельца 03.11.2026, задача 99D-25). Разрез по получателю остаётся
-  //      на w.brn.person: с него и списывается резерв получателя.
+  //      владельца 03.11.2026, задача 99D-25). Источник — кошелёк заявлений
+  //      w.brn.aidreq: сумма заявления лежит на нём с подачи (08.11.2026).
   { operations::branch::AID_TO_FUND, processes::branch::AID, WalletOp::TRANSFER,
-    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::FUND_MUTUAL,
+    ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::FUND_MUTUAL,
     0, 0,
     "Направление материальной помощи в фонд взаимного обеспечения" },
+
+  // 13a-bis. p.brn.aid: Заявление подано — сумма заявления переходит с
+  //      персонального кошелька на кошелёк заявлений (без Dr/Cr — оба 86).
+  //      Как резерв паевого под возврат (o.wal.wthreq): деньги двигаются
+  //      между кошельками, блокировки нет (решение владельца 08.11.2026).
+  { operations::branch::AID_REQUEST, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::BRANCH_AID_REQUEST,
+    0, 0,
+    "Перевод суммы заявления на материальную помощь на кошелёк заявлений" },
+
+  // 13a-ter. p.brn.aid: Отказ совета — сумма возвращается на персональный
+  //      кошелёк (зеркало AID_REQUEST).
+  { operations::branch::AID_RETURN, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::BRANCH_PERSONAL,
+    0, 0,
+    "Возврат суммы заявления на материальную помощь после отказа совета" },
 
   // 13c. p.brn.aid: Материальная помощь доверенному КУ — сумма К ВЫПЛАТЕ
   //      (BURN с кошелька фонда w.fnd.mutual, Dr 86 / Cr 51 — деньги списываются
@@ -1090,14 +1108,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Выплата материальной помощи доверенному кооперативного участка" },
 
   // 13c-bis. p.brn.aid: Удержание НДФЛ из материальной помощи
-  //      (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив —
+  //      (TRANSFER w.brn.aidreq → w.sov.ndfl, Dr 86 / Cr 68). Кооператив —
   //      налоговый агент: с персонального кошелька списывается вся сумма
   //      заявления (выплата + налог), но с расчётного счёта уходит только
   //      выплата — удержанное повисает долгом перед бюджетом на счёте 68.
   //      Операция остаётся за программой-источником: удерживает тот, кто
   //      выплачивает доход, а кошелёк-получатель общий для кооператива.
   { operations::branch::FINANCIAL_AID_TAX, processes::branch::AID, WalletOp::TRANSFER,
-    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::NDFL_WITHHELD,
+    ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::NDFL_WITHHELD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::TAX_SETTLEMENTS,
     "Удержание налога на доходы физических лиц из материальной помощи" },
 

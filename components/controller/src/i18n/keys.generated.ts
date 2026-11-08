@@ -1387,6 +1387,7 @@ export type MessageKey =
   | 'errors.BLOCKCHAIN_RPC_TIMEOUT'
   | 'errors.BLOCKCHAIN_UNAVAILABLE'
   | 'errors.BRANCH_ACTION_SELF_ONLY'
+  | 'errors.BRANCH_AID_INSUFFICIENT'
   | 'errors.BRANCH_AID_LIMIT_INVALID'
   | 'errors.BRANCH_AID_NO_RESERVE'
   | 'errors.BRANCH_AID_OVER_RESERVE'

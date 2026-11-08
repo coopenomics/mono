@@ -14,7 +14,10 @@
  *
  * Суммы крошечные: заявление проходит на 1 ₽, чтобы накопитель за реальный
  * месяц UTC не упёрся в резерв за тысячу прогонов. Заявление остаётся на
- * повестке совета стенда — оно никуда не выплачивается. После теста потолок
+ * повестке совета стенда и не выплачивается, но сумму контракт переводит при
+ * подаче: с персонального кошелька получателя на кошелёк заявлений, а если его
+ * не хватает — из свободных средств инициаторов. Поэтому перед заявлением тест
+ * обеспечивает средства (ensureAidFunds). После теста потолок
  * возвращается в ноль: иначе остальные наборы стенда, подающие материальную
  * помощь, потребовали бы резерва.
  *
@@ -22,12 +25,13 @@
  * и его председатель chairkrg).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import ecc from 'eosjs-ecc'
 import { BranchContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
-import { COOP, fromState } from './marketplace/chainHelpers'
+import { COOP, fromState, loginAs } from './marketplace/chainHelpers'
+import { aidStatement, ensureAidFunds } from './marketplace/investHelpers'
+import { rub } from './marketplace/periodHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -57,29 +61,17 @@ async function rows(table: string, limit = 200): Promise<any[]> {
   return bc.getTableRows(BRANCH, COOP, table, limit)
 }
 
-/** Заявление на материальную помощь, подписанное ключом получателя (контракт сверяет ключ подписанта). */
-function statementBy(who: { wif: string, account: string }, hash: string) {
-  return {
-    version: '1.0.0',
-    hash,
-    doc_hash: hash,
-    meta_hash: hash,
-    meta: '{}',
-    signatures: [{
-      id: 1,
-      signed_hash: hash,
-      signer: who.account,
-      public_key: ecc.privateToPublic(who.wif),
-      signature: ecc.signHash(hash, who.wif),
-      signed_at: new Date().toISOString().slice(0, 19),
-      meta: '{}',
-    }],
-  }
+let chairkrgToken = ''
+
+/** Заявление на 1 RUB проходит, только если на него есть средства: персональный кошелёк либо средства инициаторов. */
+async function fundSmallAid() {
+  await ensureAidFunds(bc, chairkrg, chairkrg, chairkrgToken, BRANAME, rub(1))
 }
 
 describe('экономика участка — резерв социально-экономического обеспечения и предел материальной помощи (contract, живая цепь)', () => {
   beforeAll(async () => {
     await bc.update_pass_instance()
+    chairkrgToken = await loginAs(chairkrg)
     const branches = await rows('branches')
     const krg = branches.find((b: any) => b.braname === BRANAME)
     expect(krg, 'участок krg заведён сидом стенда').toBeDefined()
@@ -128,10 +120,16 @@ describe('экономика участка — резерв социально-
 
   it('createaid: в пределах резерва проходит и пишется в накопитель месяца; сверх резерва — BRANCH_AID_OVER_RESERVE', async () => {
     const before = (await rows('aidmonths')).find((m: any) => m.username === chairkrg.account)
+    await fundSmallAid()
     const hash = generateRandomSHA256()
     await push('createaid', {
-      coopname: COOP, username: chairkrg.account, braname: BRANAME, aid_hash: hash,
-      amount: SMALL_AID, statement: statementBy(chairkrg, hash), meta: '{}',
+      coopname: COOP,
+      username: chairkrg.account,
+      braname: BRANAME,
+      aid_hash: hash,
+      amount: SMALL_AID,
+      statement: aidStatement(chairkrg, hash),
+      meta: '{}',
     })
     const after = (await rows('aidmonths')).find((m: any) => m.username === chairkrg.account)
     expect(after, 'накопитель месяца появился').toBeDefined()
@@ -140,8 +138,13 @@ describe('экономика участка — резерв социально-
 
     const overHash = generateRandomSHA256()
     await expect(push('createaid', {
-      coopname: COOP, username: chairkrg.account, braname: BRANAME, aid_hash: overHash,
-      amount: OVER_AID, statement: statementBy(chairkrg, overHash), meta: '{}',
+      coopname: COOP,
+      username: chairkrg.account,
+      braname: BRANAME,
+      aid_hash: overHash,
+      amount: OVER_AID,
+      statement: aidStatement(chairkrg, overHash),
+      meta: '{}',
     })).rejects.toThrow(/BRANCH_AID_OVER_RESERVE/)
   })
 
@@ -154,8 +157,13 @@ describe('экономика участка — резерв социально-
 
     const hash = generateRandomSHA256()
     await expect(push('createaid', {
-      coopname: COOP, username: chairkrg.account, braname: BRANAME, aid_hash: hash,
-      amount: SMALL_AID, statement: statementBy(chairkrg, hash), meta: '{}',
+      coopname: COOP,
+      username: chairkrg.account,
+      braname: BRANAME,
+      aid_hash: hash,
+      amount: SMALL_AID,
+      statement: aidStatement(chairkrg, hash),
+      meta: '{}',
     })).rejects.toThrow(/BRANCH_AID_NO_RESERVE/)
   })
 
@@ -163,10 +171,16 @@ describe('экономика участка — резерв социально-
     await push('setaidlimit', { coopname: COOP, limit: '0.0000 RUB' })
     await expect(push('setreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account, amount: '10.0000 RUB' }))
       .rejects.toThrow(/BRANCH_RESERVE_DISABLED/)
+    await fundSmallAid()
     const hash = generateRandomSHA256()
     await push('createaid', {
-      coopname: COOP, username: chairkrg.account, braname: BRANAME, aid_hash: hash,
-      amount: SMALL_AID, statement: statementBy(chairkrg, hash), meta: '{}',
+      coopname: COOP,
+      username: chairkrg.account,
+      braname: BRANAME,
+      aid_hash: hash,
+      amount: SMALL_AID,
+      statement: aidStatement(chairkrg, hash),
+      meta: '{}',
     })
   })
 })

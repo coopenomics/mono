@@ -17,25 +17,26 @@
  *     реквизитам (o.mkt.idir, Дт 08 / Кт 51) и закрывается: оплаченное
  *     снимается с выделенного и входит в базу возврата паевых взносов.
  *
- * Аванс под отчёт с возвратом остатка и материальная помощь из средств
- * инициаторов идут через кассира и отчёт пайщика — их проверяет полигон.
+ * Материальная помощь: источник выбирается при подаче заявления — персональный
+ * кошелёк доверенного (сумма переходит на кошелёк заявлений), а если его не
+ * хватает — средства инициаторов (выделение под хэш заявления). Отказ совета
+ * возвращает сумму в источник, выбранный при подаче; не хватает ни того, ни другого —
+ * BRANCH_AID_INSUFFICIENT. Аванс под отчёт с возвратом остатка проверяет полигон.
  *
  * Требует стенда после `reboot:extra` с сид-фазами docs-harness.
  */
-import crypto from 'node:crypto'
-import ecc from 'eosjs-ecc'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { GatewayContract, MarketContract } from 'cooptypes'
+import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
-import { CHAIRMAN, COOP, type Who, ensureShareFunds, fromState, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { CHAIRMAN, COOP, fromState, loginAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { aidStatement, coopWallet, ensurePoolFree as ensurePoolFreeBy, hex, signedDoc as signed } from './marketplace/investHelpers'
 import { asset, coopPusher, investBranch, rub, units, userWallet } from './marketplace/periodHelpers'
-import { processDecision } from './soviet/processDecision'
+import { declineDecision, processDecision } from './soviet/processDecision'
 
 const bc = new Blockchain(config.network, config.private_keys)
 const push = coopPusher(bc)
 
-const MARKET = MarketContract.contractName.production
 const BRANAME = 'krg'
 
 const chairkrg = fromState('chairkrg')
@@ -44,18 +45,16 @@ const trustedkrg = fromState('trustedkrg')
 let chairmanToken = ''
 let chairkrgToken = ''
 
-const hex = () => crypto.randomBytes(32).toString('hex')
-
-async function signed(who: Who, registry_id: number) {
-  const doc = { hash: hex(), meta: { registry_id }, html: '', binary: '', format: 'pdf', full_title: '' }
-  const s: any = await signAs(who.wif, doc, who.account, 1)
-  return { ...s, meta: JSON.stringify(s.meta) }
-}
-
 function item(amount: bigint) {
   return {
-    item_hash: hex(), mechanics: 1, recipient_type: 2, recipient: 'voskhod',
-    description: 'Аренда помещения участка', planned_amount: asset(amount), actual_amount: asset(0n), status: 0,
+    item_hash: hex(),
+    mechanics: 1,
+    recipient_type: 2,
+    recipient: 'voskhod',
+    description: 'Аренда помещения участка',
+    planned_amount: asset(amount),
+    actual_amount: asset(0n),
+    status: 0,
   }
 }
 
@@ -66,36 +65,28 @@ async function createExpense(amount: bigint) {
   const expense_hash = hex()
   const it = item(amount)
   await push('branch', 'createexp', {
-    coopname: COOP, braname: BRANAME, creator: chairkrg.account, expense_hash, items: [it], statement: await signed(chairkrg, 2010),
+    coopname: COOP,
+    braname: BRANAME,
+    creator: chairkrg.account,
+    expense_hash,
+    items: [it],
+    statement: await signed(chairkrg, 2010),
   })
   poolExpense = { hash: expense_hash, itemHash: it.item_hash, amount }
   return expense_hash
 }
 
-/** Заявление на материальную помощь, подписанное ключом получателя (контракт сверяет ключ подписанта). */
-function aidStatement(who: Who, hash: string) {
-  return {
-    version: '1.0.0', hash, doc_hash: hash, meta_hash: hash, meta: '{}',
-    signatures: [{
-      id: 1, signed_hash: hash, signer: who.account, public_key: ecc.privateToPublic(who.wif),
-      signature: ecc.signHash(hash, who.wif), signed_at: new Date().toISOString().slice(0, 19), meta: '{}',
-    }],
-  }
-}
-
 /** Свободных средств инициаторов участка не меньше суммы: председатель участка вносит недостающее. */
 async function ensurePoolFree(amount: bigint) {
-  const b = await investBranch(bc, BRANAME)
-  const free = b.unusedTotal - b.reserved
-  if (free >= amount) return
-  const need = amount - free
-  await ensureShareFunds(chairkrg.account, Number(need / 10_000n) + 1_000, chairkrgToken)
-  const agreements: any[] = await bc.getTableRows(MARKET, COOP, 'invagreemnts', 1, chairkrg.account, chairkrg.account)
-  if (!agreements.some(r => r.username === chairkrg.account))
-    await push(MARKET, 'signinvagr', { coopname: COOP, username: chairkrg.account, agreement: await signed(chairkrg, 1118) })
-  await push(MARKET, 'investmoney', {
-    coopname: COOP, username: chairkrg.account, braname: BRANAME, invest_hash: hex(), amount: asset(need), statement: await signed(chairkrg, 1119),
-  })
+  await ensurePoolFreeBy(bc, chairkrg, chairkrgToken, BRANAME, amount)
+}
+
+/** Решение совета по повестке с этим хэшем — найти и отклонить большинством голосов совета. */
+async function declineByHash(hash: string) {
+  const rows: any[] = await bc.getTableRows('soviet', COOP, 'decisions', 1000)
+  const decision = rows.reverse().find(r => String(r.hash ?? '').toLowerCase() === hash.toLowerCase())
+  expect(decision, 'заявление вынесено на совет').toBeTruthy()
+  await declineDecision(bc, Number(decision.id))
 }
 
 /** Решение совета по повестке с этим хэшем — найти и утвердить голосами совета. */
@@ -111,7 +102,8 @@ async function poll<T>(probe: () => Promise<T | null>, label: string, timeoutMs 
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     const v = await probe()
-    if (v !== null) return v
+    if (v !== null)
+      return v
     // timing: backoff — опрос цепи до появления состояния
     await new Promise(r => setTimeout(r, 1500))
   }
@@ -121,6 +113,36 @@ async function poll<T>(probe: () => Promise<T | null>, label: string, timeoutMs 
 async function proposalOf(hash: string): Promise<any | undefined> {
   const rows: any[] = await bc.getTableRows('expense', COOP, 'proposals', 1000)
   return rows.find(p => String(p.proposal_hash).toLowerCase() === hash.toLowerCase())
+}
+
+/** Строка заявления на материальную помощь по хэшу; после отказа совета её нет. */
+async function aidRow(hash: string): Promise<any | undefined> {
+  const rows: any[] = await bc.getTableRows('branch', COOP, 'aids', 1000)
+  return rows.find(r => String(r.hash).toLowerCase() === hash)
+}
+
+/**
+ * Предел материальной помощи доверенному не мешает заявлению на эту сумму:
+ * потолок и резерв поднимаются на уже заявленное в этом месяце плюс сумму.
+ */
+async function allowAid(amount: bigint) {
+  const months: any[] = await bc.getTableRows('branch', COOP, 'aidmonths', 1000)
+  const already = units(months.find(m => m.username === trustedkrg.account)?.total)
+  const cap = asset(already + amount + rub(1))
+  await push('branch', 'setaidlimit', { coopname: COOP, limit: cap })
+  await push('branch', 'setreserve', { coopname: COOP, braname: BRANAME, username: trustedkrg.account, amount: cap })
+}
+
+async function fileAid(hash: string, amount: bigint) {
+  return push('branch', 'createaid', {
+    coopname: COOP,
+    username: trustedkrg.account,
+    braname: BRANAME,
+    aid_hash: hash,
+    amount: asset(amount),
+    statement: aidStatement(trustedkrg, hash),
+    meta: '{}',
+  })
 }
 
 describe('стол заказов — служебная записка участка из средств инициаторов (contract, живая цепь)', () => {
@@ -166,7 +188,8 @@ describe('стол заказов — служебная записка учас
 
     // Робот совета мог утвердить записку сам и стереть строку решения.
     const authorized = async () => Number((await proposalOf(hash))?.status ?? -1) >= 1
-    if (!(await authorized())) await decideByHash(hash)
+    if (!(await authorized()))
+      await decideByHash(hash)
     await poll(async () => ((await authorized()) ? true : null), 'совет утвердил записку')
     // Прямая оплата организации: подотчёта нет, позиция сразу закрыта отчётом.
     await push('expense', 'payexp', { coopname: COOP, proposal_hash: hash, item_hash: itemHash, actual_amount: asset(amount) })
@@ -189,18 +212,17 @@ describe('стол заказов — служебная записка учас
     const amount = personal + rub(100)
     await ensurePoolFree(amount)
     // Резерв получателя — предел материальной помощи за месяц.
-    await push('branch', 'setaidlimit', { coopname: COOP, limit: asset(amount) })
-    await push('branch', 'setreserve', { coopname: COOP, braname: BRANAME, username: trustedkrg.account, amount: asset(amount) })
+    await allowAid(amount)
     const before = await investBranch(bc, BRANAME)
 
     const aidHash = hex()
-    await push('branch', 'createaid', {
-      coopname: COOP, username: trustedkrg.account, braname: BRANAME, aid_hash: aidHash, amount: asset(amount), statement: aidStatement(trustedkrg, aidHash), meta: '{}',
-    })
-    const aidRow = async () => ((await bc.getTableRows('branch', COOP, 'aids', 1000)) as any[]).find(r => String(r.hash).toLowerCase() === aidHash)
-    if ((await aidRow())?.status !== 'authorized') await decideByHash(aidHash)
+    await fileAid(aidHash, amount)
+    // Средства выделяются при подаче: свободные средства инициаторов меньше уже до решения совета.
+    expect((await investBranch(bc, BRANAME)).reserved - before.reserved, 'при подаче выделены средства инициаторов').toBe(amount)
+    if ((await aidRow(aidHash))?.status !== 'authorized')
+      await decideByHash(aidHash)
     const authorized = await poll(async () => {
-      const r = await aidRow()
+      const r = await aidRow(aidHash)
       return r?.status === 'authorized' ? r : null
     }, 'совет одобрил помощь')
     expect(authorized.source, 'источник помощи — средства инициаторов').toBe('w.mkt.ipool')
@@ -220,6 +242,76 @@ describe('стол заказов — служебная записка учас
     }, 'помощь вошла в базу возврата паевых взносов')
     expect(after.reserved, 'выделенное под помощь снято').toBe(before.reserved)
   }, 900_000)
+
+  it('mkt.order.invest.aid.02 — совет отказал в помощи из средств инициаторов: выделенное при подаче снимается, заявление закрыто', async () => {
+    const personal = await userWallet(bc, 'w.brn.person', trustedkrg.account)
+    const amount = personal + rub(50)
+    await ensurePoolFree(amount)
+    await allowAid(amount)
+    const before = await investBranch(bc, BRANAME)
+
+    const aidHash = hex()
+    await fileAid(aidHash, amount)
+    expect((await aidRow(aidHash))?.source, 'источник выбран при подаче — средства инициаторов').toBe('w.mkt.ipool')
+    expect((await investBranch(bc, BRANAME)).reserved - before.reserved, 'при подаче выделены средства инициаторов').toBe(amount)
+
+    await declineByHash(aidHash)
+    await poll(async () => ((await aidRow(aidHash)) ? null : true), 'заявление закрыто отказом совета')
+    expect((await investBranch(bc, BRANAME)).reserved, 'выделенное под помощь вернулось в свободные средства инициаторов').toBe(before.reserved)
+    expect(await userWallet(bc, 'w.brn.person', trustedkrg.account), 'персональный кошелёк не тронут').toBe(personal)
+  }, 900_000)
+
+  it('mkt.order.invest.aid.03 — персонального кошелька хватает: сумма при подаче переходит на кошелёк заявлений, отказ совета возвращает её', async (ctx) => {
+    const amount = rub(1)
+    if (await userWallet(bc, 'w.brn.person', trustedkrg.account) < amount) {
+      // Персональный кошелёк пополняется распределением общего кошелька участка
+      // по отдельной группе весов, где доверенный один и получает всю сумму.
+      if (await userWallet(bc, 'w.brn.common', BRANAME) < amount) {
+        ctx.skip()
+        return
+      }
+      const group = { coopname: COOP, braname: BRANAME, contract: 'aidtest', username: trustedkrg.account }
+      await push('branch', 'setweight', { ...group, weight: 1 })
+      await push('branch', 'distribute', {
+        coopname: COOP,
+        braname: BRANAME,
+        source_contract: 'aidtest',
+        round_hash: hex(),
+        amount: asset(amount),
+        memo: 'Пополнение персонального кошелька для проверки материальной помощи',
+      })
+      await push('branch', 'delweight', group)
+    }
+    await allowAid(amount)
+    const personal = await userWallet(bc, 'w.brn.person', trustedkrg.account)
+    const pending = await coopWallet(bc, 'w.brn.aidreq')
+    const before = await investBranch(bc, BRANAME)
+
+    const aidHash = hex()
+    await fileAid(aidHash, amount)
+    expect((await aidRow(aidHash))?.source, 'источник выбран при подаче — персональный кошелёк').toBe('w.brn.aidreq')
+    expect(await userWallet(bc, 'w.brn.person', trustedkrg.account), 'свободный остаток персонального кошелька уменьшился при подаче').toBe(personal - amount)
+    expect(await coopWallet(bc, 'w.brn.aidreq'), 'сумма заявления на кошельке заявлений').toBe(pending + amount)
+    expect((await investBranch(bc, BRANAME)).reserved, 'средства инициаторов не тронуты').toBe(before.reserved)
+    const ops = await waitForOps(chairmanToken, aidHash, ['o.brn.aidreq'])
+    expect(units(sumOf(ops, 'o.brn.aidreq').toFixed(4))).toBe(amount)
+
+    await declineByHash(aidHash)
+    await poll(async () => ((await aidRow(aidHash)) ? null : true), 'заявление закрыто отказом совета')
+    expect(await userWallet(bc, 'w.brn.person', trustedkrg.account), 'отказ совета вернул сумму на персональный кошелёк').toBe(personal)
+    expect(await coopWallet(bc, 'w.brn.aidreq'), 'кошелёк заявлений вернулся к прежнему остатку').toBe(pending)
+  }, 900_000)
+
+  it('mkt.order.invest.aid.04 — не хватает ни персонального кошелька, ни средств инициаторов: BRANCH_AID_INSUFFICIENT, заявление не создаётся', async () => {
+    const personal = await userWallet(bc, 'w.brn.person', trustedkrg.account)
+    const b = await investBranch(bc, BRANAME)
+    const free = b.unusedTotal - b.reserved
+    const amount = (personal > free ? personal : free) + rub(1_000)
+    await allowAid(amount)
+    const aidHash = hex()
+    await expect(fileAid(aidHash, amount)).rejects.toThrow(/BRANCH_AID_INSUFFICIENT/)
+    expect(await aidRow(aidHash), 'заявления нет').toBeUndefined()
+  }, 300_000)
 
   it('mkt.order.invest.exp.02 — не хватает ни общего кошелька, ни средств инициаторов: BRANCH_EXPENSE_NO_FUNDS', async () => {
     const common = await userWallet(bc, 'w.brn.common', BRANAME)

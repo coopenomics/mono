@@ -627,8 +627,21 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   // Транзит материальной помощи через фонд взаимного обеспечения (задача 99D-25):
   // разрез по получателю остаётся на w.brn.person, выплата идёт с кошелька фонда.
+  // Материальная помощь движется по кошелькам, без блокировки (решение
+  // владельца 08.11.2026): при подаче сумма переходит на кошелёк заявлений,
+  // отказ совета её возвращает, выплата идёт с кошелька заявлений.
+  { code: 'o.brn.aidreq',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'AID_REQUEST',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.brn.aidreq',
+    debit: null, credit: null,
+    human_name: 'Перевод суммы заявления на материальную помощь на кошелёк заявлений' },
+
+  { code: 'o.brn.aidret',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'AID_RETURN',     wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.brn.person',
+    debit: null, credit: null,
+    human_name: 'Возврат суммы заявления на материальную помощь после отказа совета' },
+
   { code: 'o.brn.aidfnd',  process_type: 'p.brn.aid',     contract: 'branch',
-    name: 'AID_TO_FUND',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.fnd.mutual',
+    name: 'AID_TO_FUND',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.fnd.mutual',
     debit: null, credit: null,
     human_name: 'Направление материальной помощи в фонд взаимного обеспечения' },
 
@@ -638,7 +651,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Выплата материальной помощи доверенному кооперативного участка' },
 
   { code: 'o.brn.aidtax',  process_type: 'p.brn.aid',     contract: 'branch',
-    name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.sov.ndfl',
+    name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.sov.ndfl',
     debit: 86, credit: 68,
     human_name: 'Удержание налога на доходы физических лиц из материальной помощи' },
 

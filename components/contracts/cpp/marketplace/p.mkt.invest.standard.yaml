@@ -351,7 +351,7 @@ operations:
     wallet_from: null
     wallet_to: w.mkt.ipool
     amount_ref: сумма служебной записки или заявления на материальную помощь
-    triggered_by: branch::createexp, branch::onaidauth
+    triggered_by: branch::createexp, branch::createaid
     description: >
       Общего кошелька участка не хватает на расход — под него выделяются
       средства инициаторов. Деньги уже на расчётном счёте с их паевых

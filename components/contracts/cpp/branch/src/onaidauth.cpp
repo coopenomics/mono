@@ -8,8 +8,10 @@
  * записи, и только теперь регистрируется исходящий платёж в gateway — заявка
  * появляется у кассира в реестре исходящих платежей.
  *
- * Само списание o.brn.aid (Дт 86 / Кт 51) и удержание налога o.brn.aidtax
- * (Дт 86 / Кт 68) произойдут ещё позже — в callback'е `aidconfirm`, после
+ * Деньги здесь не двигаются: сумма заявления уже переведена при подаче
+ * (`createaid`) — на кошелёк заявлений w.brn.aidreq либо выделена из средств
+ * инициаторов. Списание o.brn.aid (Дт 86 / Кт 51) и удержание налога
+ * o.brn.aidtax (Дт 86 / Кт 68) произойдут в callback'е `aidconfirm`, после
  * фактического банковского перевода кассиром.
  *
  * Guards:
@@ -32,26 +34,11 @@
   eosio::check(it->status == AidStatus::PROPOSED,
                "Заявление на материальную помощь не находится на повестке совета");
 
-  // RAM оплачивает сам контракт участка: решение совета приходит inline-вызовом
-  // с авторизацией `soviet`, аккаунт кооператива это действие не подписывал —
-  // расширять его RAM отсюда нельзя. Тот же приём в marketplace
-  // (`update_writeoff_proposal` платит `_marketplace`).
-  // Источник выплаты (задача 99D-28): персональный кошелёк получателя; если
-  // распределённых средств на нём не хватает, а у инициаторов участка есть
-  // свободные, — средства инициаторов. Они выделяются под выплату сейчас и
-  // списываются в aidconfirm. Если не хватает и их, выплата идёт как прежде с
-  // персонального кошелька: решение совета не отменяется отказом цепи.
-  const eosio::asset person = Ledger2::get_user_available(coopname, ledger2_wallets::BRANCH_PERSONAL, it->username);
-  const bool from_investors = person < it->amount &&
-                              MarketInvest::free_of(coopname, it->braname) >= it->amount;
-  if (from_investors)
-    MarketInvest::fund_pool(_branch, coopname, it->braname, it->amount, it->hash);
-
+  // Источник выбран и средства переведены при подаче (createaid, решение
+  // владельца 08.11.2026); решение совета переводит заявление к выплате.
   byhash.modify(it, RamPayer::of(byhash, coopname), [&](auto& a) {
     a.status   = AidStatus::AUTHORIZED;
     a.protocol = authorization;
-    a.source   = from_investors ? ledger2_wallets::MARKETPLACE_INVEST_POOL
-                                : ledger2_wallets::BRANCH_PERSONAL;
   });
 
   // Заявка передаётся кассиру: списание произойдёт в `aidconfirm` после

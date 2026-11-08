@@ -109,6 +109,9 @@ sources:
     - components/contracts/cpp/branch/src/setreserve.cpp
     - components/contracts/cpp/branch/src/delreserve.cpp
     - components/contracts/cpp/branch/src/setaidlimit.cpp
+    - components/contracts/cpp/branch/src/createaid.cpp
+    - components/contracts/cpp/branch/src/onaidauth.cpp
+    - components/contracts/cpp/branch/src/onaiddecl.cpp
     - components/contracts/cpp/fund/src/accrue.cpp
     # Эталон расчёта итога месяца и списания по ставкам — повторяет арифметику контрактов (аудит 05.11.2026).
     - components/cooptypes/src/contracts/marketplace/periodModel.ts
@@ -172,7 +175,36 @@ cases:
     scenario: >
       Совет одобряет материальную помощь доверенному при пустом персональном кошельке; у инициаторов есть свободные деньги; кассир выплачивает.
     expect: >
-      источник помощи — средства инициаторов: налог Дт 08 / Кт 68 на w.sov.ndfl (o.mkt.iaidtx), на руки Дт 08 / Кт 51 (o.mkt.iaid), вся сумма заявления входит в базу возврата паевых взносов; предел резерва получателя действует как прежде
+      источник помощи — средства инициаторов, выбран и выделен при подаче заявления (резерв участка вырос до решения совета): налог Дт 08 / Кт 68 на w.sov.ndfl (o.mkt.iaidtx), на руки Дт 08 / Кт 51 (o.mkt.iaid), вся сумма заявления входит в базу возврата паевых взносов; предел резерва получателя действует как прежде
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: written
+
+  - id: mkt.order.invest.aid.02
+    level: contract
+    kind: side
+    scenario: >
+      Совет отказывает в материальной помощи, которая при подаче взята из средств инициаторов.
+    expect: >
+      при подаче резерв участка вырос на сумму заявления; после отказа совета заявление стёрто, резерв участка вернулся к прежнему, персональный кошелёк не тронут
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: written
+
+  - id: mkt.order.invest.aid.03
+    level: contract
+    kind: happy
+    scenario: >
+      Персонального кошелька доверенного хватает на заявление; затем совет отказывает.
+    expect: >
+      при подаче o.brn.aidreq переводит сумму с w.brn.person на w.brn.aidreq, источник заявления w.brn.aidreq, средства инициаторов не тронуты; отказ совета (o.brn.aidret) возвращает сумму на персональный кошелёк, кошелёк заявлений — к прежнему остатку
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: written
+
+  - id: mkt.order.invest.aid.04
+    level: contract
+    kind: break
+    scenario: >
+      Заявление больше и персонального кошелька, и свободных средств инициаторов.
+    expect: BRANCH_AID_INSUFFICIENT, заявление не создаётся
     test: components/boot/src/tests/marketplace-invest-expense.test.ts
     status: written
 

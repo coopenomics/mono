@@ -108,6 +108,7 @@ struct ledger2_wallets {
   static constexpr eosio::name BRANCH_PERSONAL        = "w.brn.person"_n;  ///< Персональный кошелёк доверенного/председателя КУ (USER_SHARED по доверенному, счёт 86). Пополняется ручным распределением председателя КУ из общего кошелька (o.brn.release + o.brn.person); расходуется на материальную помощь (o.brn.aid).
   static constexpr eosio::name BRANCH_COMMON          = "w.brn.common"_n;  ///< Общий кошелёк членских взносов кооперативного участка (USER_SHARED с разрезом по braname КУ, счёт 86). Принимает 100% членского взноса при финализации заказа (o.brn.common); далее — ручное распределение доверенным (o.brn.release), оплата расходов КУ (o.brn.spend), закупка впрок. Плановый резерв расходов (30 дней) контролирует бэкенд.
   static constexpr eosio::name BRANCH_DISTRIBUTION_POOL = "w.brn.pool"_n;  ///< Транзитный пул ручного распределения КУ (COOPERATIVE; баланс нулевой вне транзакции). Нужен из-за инварианта walletop «один username на обе стороны»: прямой TRANSFER w.brn.common (разрез по braname) → w.brn.person (разрез по доверенному) невозможен; двухходовка o.brn.release (username = braname) + o.brn.person (username = доверенный) внутри одной транзакции распределения.
+  static constexpr eosio::name BRANCH_AID_REQUEST     = "w.brn.aidreq"_n; ///< Материальная помощь по заявлению (COOPERATIVE, счёт 86): сумма заявления переходит на этот кошелёк с w.brn.person при подаче (o.brn.aidreq), возвращается при отказе совета (o.brn.aidret), выплачивается с этого кошелька кассиром (o.brn.aidtax, o.brn.aidfnd). Заменяет механику blocked — свободные средства уменьшаются сразу (решение владельца 08.11.2026).
   static constexpr eosio::name BRANCH_EXPENSE_POOL    = "w.brn.expns"_n;  ///< Пул расходов кооперативного участка (COOPERATIVE) — источник средств шасси расходов для КУ. Наполняется под конкретный расход при создании служебной записки (o.brn.expfnd, username = braname), расходуется прямой оплатой по реквизитам (o.brn.spend) либо выдачей аванса под отчёт (o.brn.expadv); неизрасходованный остаток возвращается в общий кошелёк участка (o.brn.expunf). Транзит нужен и по существу (видно, сколько средств участка отдано под расходы), и технически: шасси расходов требует COOPERATIVE-пул, а w.brn.common ведёт L3-разрез по braname.
 
 
@@ -148,7 +149,7 @@ struct Ledger2WalletMeta {
   uint64_t         account;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 47> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 48> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (20) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
@@ -177,7 +178,7 @@ inline constexpr std::array<Ledger2WalletMeta, 47> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::EDU_RID_HOLD,          "ЦПП «Образование» — материалы преподавателя на ответственном хранении", WalletKind::USER_SHARED, ledger2_accounts::OTHER_SETTLEMENTS },
   { ledger2_wallets::EDU_SHARE_FUND,        "ЦПП «Образование» — паевой взнос преподавателя по договору", WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
 
-  // COOPERATIVE (23) — единый кооперативный баланс, без L3
+  // COOPERATIVE (24) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
   // CRPS-распределение между сегментами проекта не поддерживает per-user
   // компенсирующие TRANSFER на approvecmmt, поэтому L3-проверка walletop
@@ -199,6 +200,7 @@ inline constexpr std::array<Ledger2WalletMeta, 47> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::SUPPLIER_PAYMENTS, "Выплаты поставщикам",                                      WalletKind::COOPERATIVE, ledger2_accounts::OTHER_SETTLEMENTS },
   { ledger2_wallets::MARKETPLACE_FEE_POOL, "Транзитный пул списанной обеспечительной части «Стола заказов»", WalletKind::COOPERATIVE, ledger2_accounts::SHARE_FUND },
   { ledger2_wallets::BRANCH_DISTRIBUTION_POOL, "Транзитный пул ручного распределения кооперативного участка", WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
+  { ledger2_wallets::BRANCH_AID_REQUEST,    "Материальная помощь по заявлению",                          WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::BRANCH_EXPENSE_POOL,   "Пул расходов кооперативного участка",                       WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::PROGRAM_EXPENSE_POOL, "Пул программных расходов ЦПП «Благорост»",              WalletKind::COOPERATIVE, 0 },
   { ledger2_wallets::MARKETPLACE_INVEST_POOL, "Пул средств инициаторов кооперативных участков Стола заказов", WalletKind::COOPERATIVE, 0 },

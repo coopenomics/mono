@@ -8,9 +8,9 @@
  * кооператив удерживает НДФЛ, поэтому сумма заявления расходится надвое:
  *
  *  - Ledger2::apply(o.brn.aidtax, tax, …, hash=aid.hash) — TRANSFER
- *    w.brn.person → w.sov.ndfl, Дт 86 / Кт 68 (удержанный налог);
+ *    w.brn.aidreq → w.sov.ndfl, Дт 86 / Кт 68 (удержанный налог);
  *  - Ledger2::apply(o.brn.aidfnd, net, …, hash=aid.hash) — TRANSFER
- *    w.brn.person → w.fnd.mutual, без проводки (транзит через фонд взаимного
+ *    w.brn.aidreq → w.fnd.mutual, без проводки (транзит через фонд взаимного
  *    обеспечения, задача 99D-25);
  *  - Ledger2::apply(o.brn.aid, net, …, hash=aid.hash) — BURN с кошелька
  *    фонда w.fnd.mutual, Дт 86 / Кт 51 (выплата на руки).
@@ -73,6 +73,13 @@
     return;
   }
 
+  // Заявление, поданное до кошелька заявлений (08.11.2026), переводит сумму
+  // с персонального кошелька в момент выплаты; дальше путь общий.
+  if (!(it->source.has_value() && it->source.value() == ledger2_wallets::BRANCH_AID_REQUEST)) {
+    Ledger2::apply(_branch, coopname, operations::branch::AID_REQUEST, processes::branch::AID,
+                   it->amount, it->username, it->hash,
+                   "Сумма заявления на материальную помощь переведена на кошелёк заявлений");
+  }
   if (tax.amount > 0) {
     Ledger2::apply(_branch, coopname,
                    operations::branch::FINANCIAL_AID_TAX,

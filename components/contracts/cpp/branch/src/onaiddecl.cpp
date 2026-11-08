@@ -46,5 +46,13 @@
     }
   }
 
+  // Совет отказал: сумма заявления возвращается на персональный кошелёк либо в средства инициаторов — по источнику, выбранному при подаче.
+  if (it->source.has_value() && it->source.value() == ledger2_wallets::BRANCH_AID_REQUEST) {
+    Ledger2::apply(_branch, coopname, operations::branch::AID_RETURN, processes::branch::AID,
+                   it->amount, it->username, it->hash,
+                   "Сумма заявления на материальную помощь возвращена после отказа совета");
+  } else if (it->source.has_value() && it->source.value() == ledger2_wallets::MARKETPLACE_INVEST_POOL) {
+    MarketInvest::unfund_pool(_branch, coopname, it->braname, it->amount, it->hash);
+  }
   byhash.erase(it);
 }

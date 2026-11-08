@@ -358,6 +358,12 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
   },
   {
     "account": 86000,
+    "human_name": "Материальная помощь по заявлению",
+    "kind": "COOPERATIVE",
+    "name": "w.brn.aidreq",
+  },
+  {
+    "account": 86000,
     "human_name": "Пул расходов кооперативного участка",
     "kind": "COOPERATIVE",
     "name": "w.brn.expns",
