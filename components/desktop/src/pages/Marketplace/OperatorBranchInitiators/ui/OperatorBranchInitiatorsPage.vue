@@ -539,15 +539,31 @@ async function onCreateProperty(): Promise<void> {
 // Возврат: сумму считает контракт; заявление 1123 несёт предварительный расчёт.
 const claimable = computed(() => amountOf(mine.value?.claimable))
 
-async function onClaim(): Promise<void> {
+/**
+ * Из чего складывается сумма к возмещению: возмещённое из экономии участка и
+ * ещё не переведённое, плюс неиспользованная часть денежного взноса — она
+ * становится доступной, когда использованное возмещено целиком. Разбивка — для
+ * показа; сумму заявления контракт считает сам по тем же строкам.
+ */
+const claimParts = computed(() => {
+  const m = mine.value
+  const total = amountOf(m?.claimable)
+  const fromEconomy = Math.min(Math.max(amountOf(m?.returned) - amountOf(m?.claimed), 0), total)
+  const unused = Math.max(total - fromEconomy, 0)
+  const sym = symbolOf(m?.claimable ?? m?.money)
+  const asset = (v: number) => `${v.toFixed(4)} ${sym}`
+  return { total: asset(total), fromEconomy: asset(fromEconomy), unused: asset(unused), hasUnused: unused > 0 }
+})
+
+const claimOpen = ref(false)
+
+function onClaim(): void {
   if (claimable.value <= 0 || !braname.value) return
-  const yes = await confirm({
-    title: i18nT('marketplace.initiatorsPage.claimConfirmTitle'),
-    message: i18nT('marketplace.initiatorsPage.claimConfirmMessage', { amount: formatAsset2Digits(mine.value?.claimable ?? '') }),
-    note: i18nT('marketplace.initiatorsPage.claimConfirmNote'),
-    confirmLabel: i18nT('marketplace.initiatorsPage.claimAction'),
-  })
-  if (!yes) return
+  claimOpen.value = true
+}
+
+async function onClaimConfirm(): Promise<void> {
+  claimOpen.value = false
   await run(
     async () => {
       const doc = await getClaimPayload(braname.value)
@@ -912,6 +928,19 @@ q-page.initiators(:style-fn='pageStyle')
         BaseButton(variant='ghost', @click='propertyOpen = false') {{ $t('common.action.cancel') }}
         BaseButton(variant='primary', type='submit', :loading='busy', :disabled='!propertyValid') {{ $t('marketplace.initiatorsPage.propertySubmit') }}
 
+  //- Возмещение на главный паевой кошелёк: сумма и из чего она складывается —
+  //- строками сведений; когда сумма может измениться — одной строкой ниже.
+  BaseDialog(v-model='claimOpen', :title='$t("marketplace.initiatorsPage.claimConfirmTitle")', size='sm')
+    .initiators__claim
+      DataRow(:label='$t("marketplace.initiatorsPage.claimFromEconomy")', :value='formatAsset2Digits(claimParts.fromEconomy)', align='spread')
+      DataRow(v-if='claimParts.hasUnused', :label='$t("marketplace.initiatorsPage.claimUnused")', :value='formatAsset2Digits(claimParts.unused)', align='spread')
+      .initiators__claim-total
+        DataRow(:label='$t("marketplace.initiatorsPage.claimTotal")', :value='formatAsset2Digits(claimParts.total)', align='spread')
+      .initiators__muted {{ $t('marketplace.initiatorsPage.claimWhenChanges') }}
+    template(#footer)
+      BaseButton(variant='ghost', @click='claimOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', :loading='busy', @click='onClaimConfirm') {{ $t('marketplace.initiatorsPage.claimAction') }}
+
   //- Отказ председателя участка: причина обязательна, вопрос в совет не выносится.
   BaseDialog(v-model='declineOpen', :title='$t("marketplace.initiatorsPage.declineDialogTitle")', size='sm')
     BaseForm(:loading='busy', @submit='onDecline')
@@ -932,6 +961,18 @@ q-page.initiators(:style-fn='pageStyle')
 .initiators__muted {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-3);
+}
+
+.initiators__claim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.initiators__claim-total {
+  padding-top: var(--p-2);
+  border-top: 1px solid var(--p-line);
+  font-weight: 600;
 }
 
 .initiators__skel-card {

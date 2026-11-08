@@ -78,7 +78,6 @@ const columns = computed<BaseTableColumn<TurnoverTableRow>[]>(() => {
     list.push({ key: 'branch', label: t('marketplace.turnoverTop.column.deliveryPoint'), width: '240px' })
   }
   list.push(
-    { key: 'accepted', label: t('marketplace.turnoverTop.column.accepted'), width: '170px', numeric: true },
     { key: 'issued', label: t('marketplace.turnoverTop.column.issued'), width: '170px', numeric: true },
     { key: 'fee', label: t('marketplace.turnoverTop.column.fee'), width: '200px', numeric: true },
   )
@@ -106,10 +105,10 @@ function units(value: number, row: TurnoverRow): string {
 
 /**
  * Итоги оборота — карточками сумм, как кошельки на «Экономике участка»:
- * значок, название, пояснение и сумма справа. Порядок — путь имущества.
+ * значок, название, пояснение и сумма справа. Оборот считается по выдаче
+ * пайщикам, приём на склад не показывается (слово владельца 08.11.2026).
  */
 const totals = computed(() => [
-  { key: 'accepted', icon: 'inventory_2', title: t('marketplace.turnoverTop.totalAcceptedLabel'), subtitle: t('marketplace.turnoverTop.totalAcceptedSub'), amount: turnover.value.totals.acceptedAmount },
   { key: 'issued', icon: 'local_shipping', title: t('marketplace.turnoverTop.totalIssuedLabel'), subtitle: t('marketplace.turnoverTop.totalIssuedSub'), amount: turnover.value.totals.issuedAmount },
   { key: 'fee', icon: 'savings', title: t('marketplace.turnoverTop.totalFeeLabel'), subtitle: t('marketplace.turnoverTop.totalFeeSub'), amount: turnover.value.totals.feeAmount },
 ])
@@ -132,7 +131,7 @@ section.turnover
     MenuSelectButton(v-model='period' :options='TURNOVER_PERIODS' icon='date_range')
 
   .row.q-col-gutter-md
-    .col-12.col-md-4(v-for='c in totals' :key='c.key')
+    .col-12.col-md-6(v-for='c in totals' :key='c.key')
       WalletCard(
         program='wallet'
         stacked
@@ -159,10 +158,6 @@ section.turnover
       .turnover__branch
         span.turnover__branch-name {{ row.branchName }}
         span.turnover__branch-addr(v-if='row.branchAddress') {{ row.branchAddress }}
-    template(#cell-accepted='{ row }')
-      .turnover__amount
-        strong {{ money(row.acceptedAmount) }}
-        span.turnover__units {{ units(row.acceptedUnits, row) }}
     template(#cell-issued='{ row }')
       .turnover__amount
         strong {{ money(row.issuedAmount) }}

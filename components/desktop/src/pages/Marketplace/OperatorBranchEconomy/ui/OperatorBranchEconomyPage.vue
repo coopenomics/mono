@@ -1210,23 +1210,29 @@ q-page.economy
     //- расходов и прогона справа. Текущий месяц идёт — расходы на сегодня,
     //- резерв и заказы, которые созреют к первому числу; ставок у него нет.
     template(v-if='activeKey === "periods"')
+      //- Текущий месяц: подпись-указатель, крупная дата, пояснение отдельной
+      //- строкой; ниже две группы сведений со своими подписями — расходы
+      //- месяца и заказы к первому числу, итог группы выделен.
       BaseCard.economy__current(v-if='currentPeriod')
-        template(#head)
-          div
-            .t-h3 {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodTitle', { month: monthLabel(currentPeriod) }) }}
-            .t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
-          BaseBadge(variant='info') {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodBadge') }}
+        .economy__current-head
+          .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodEyebrow') }}
+          .economy__current-title {{ monthLabel(currentPeriod) }}
+          .economy__current-sub {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
         .economy__current-grid
           .economy__current-col
+            .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentExpensesGroup') }}
             DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(currentPeriod.planned)', mono)
             DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(currentPeriod.memos)', mono)
             DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(currentPeriod.aid_reserve)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnExpenses")', :value='formatAsset2Digits(currentPeriod.expenses)', mono)
-          .economy__current-col
             DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(currentPeriod.aid_paid)', mono)
+            .economy__current-total
+              DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnExpenses")', :value='formatAsset2Digits(currentPeriod.expenses)', mono)
+          .economy__current-col
+            .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentOrdersGroup') }}
             DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.currentRipeningOrders")', :value='currentPeriod.ripening_orders', mono)
             DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnTurnover")', :value='formatAsset2Digits(currentPeriod.ripening_turnover)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnSecured")', :value='formatAsset2Digits(currentPeriod.ripening_secured)', mono)
+            .economy__current-total
+              DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnSecured")', :value='formatAsset2Digits(currentPeriod.ripening_secured)', mono)
 
       BaseTable(
         v-if='firstLoad || periods.length',
@@ -1540,15 +1546,43 @@ q-page.economy
     font-size: var(--p-fs-body-sm, 13px);
   }
 
+  &__current-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1);
+    padding-bottom: var(--p-5);
+    border-bottom: 1px solid var(--p-line);
+  }
+
+  &__current-title {
+    font-size: var(--p-fs-h2);
+    font-weight: 700;
+    color: var(--p-ink);
+  }
+
+  &__current-sub {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-3);
+    max-width: 720px;
+  }
+
   &__current-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0 var(--p-6, 24px);
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--p-5) var(--p-8);
+    margin-top: var(--p-5);
   }
 
   &__current-col {
     display: flex;
     flex-direction: column;
+    gap: var(--p-1);
+  }
+
+  // Итог группы — полужирным, отделён от строк сверху.
+  &__current-total {
+    margin-top: var(--p-2);
+    font-weight: 600;
   }
 
   &__drawer-amount {

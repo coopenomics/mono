@@ -1308,9 +1308,7 @@
       "commonWalletSubtitle": "Расходы, закупка впрок и распределения",
       "commonWalletTitle": "Общий кошелёк участка",
       "completedLabel": "Выполнено",
-      "currentPeriodBadge": "Идёт",
-      "currentPeriodSubtitle": "Текущий месяц: расходы на сегодня, резерв и заказы, которые созреют к первому числу. Ставки появятся после расчёта.",
-      "currentPeriodTitle": "{month}",
+      "currentPeriodSubtitle": "Расходы на сегодня, резерв и заказы, которые созреют к первому числу. Ставки появятся после расчёта.",
       "currentRipeningOrders": "Заказов созреет к первому числу",
       "deleteExpenseAction": "Удалить расход",
       "deleteExpenseFailedMessage": "Не удалось удалить плановый расход",
@@ -1450,7 +1448,10 @@
       "periodInitiatorRepayHint": "Доля инициаторов возмещает их использованные паевые взносы.",
       "periodInitiatorBranchHint": "Взносы возмещены или месяц с недостачей: доля инициаторов направляется участку.",
       "investCardNow": "Сейчас",
-      "investCardTotal": "Всего"
+      "investCardTotal": "Всего",
+      "currentPeriodEyebrow": "Текущий месяц",
+      "currentExpensesGroup": "Расходы месяца",
+      "currentOrdersGroup": "Заказы к первому числу"
     },
     "operatorBranchOrderDetail": {
       "backToEconomy": "К экономике участка",
@@ -2625,7 +2626,6 @@
     },
     "turnoverTop": {
       "column": {
-        "accepted": "Принято",
         "deliveryPoint": "Пункт выдачи",
         "fee": "Обеспечительная часть",
         "issued": "Выдано",
@@ -2637,10 +2637,8 @@
       "emptyBody": "Здесь появится рейтинг позиций по суммам прихода и выдачи. Выберите период подлиннее, если приёмок и выдач давно не было.",
       "emptyTitle": "Оборота за период нет",
       "title": "Топ позиций по обороту",
-      "totalAcceptedLabel": "Принято на склад",
       "totalFeeLabel": "Обеспечительная часть с выданного",
       "totalIssuedLabel": "Выдано пайщикам",
-      "totalAcceptedSub": "Стоимость имущества, принятого от поставщиков",
       "totalIssuedSub": "Стоимость имущества, выданного пайщикам",
       "totalFeeSub": "Паевой взнос сверх стоимости выданного"
     },
@@ -2934,9 +2932,7 @@
       "propertySubmit": "Подать заявление",
       "propertyDone": "Заявление подано председателю участка",
       "propertyFailed": "Не удалось подать заявление",
-      "claimConfirmTitle": "Возместить на главный паевой кошелёк?",
-      "claimConfirmMessage": "По предварительному расчёту доступно {amount}.",
-      "claimConfirmNote": "Сумму считает кооператив по заявлению; она может отличаться от расчёта, если экономия участка изменилась.",
+      "claimConfirmTitle": "Возмещение на главный паевой кошелёк",
       "claimDone": "Возмещение переведено на главный паевой кошелёк",
       "claimFailed": "Не удалось возместить",
       "agreementPreparing": "Готовим договор участия…",
@@ -2957,7 +2953,11 @@
       "mineCardUsed": "Использовано из моего взноса",
       "mineCardReturned": "Возмещено мне",
       "mineCardClaimable": "Доступно мне к возмещению",
-      "branchSpentSub": "Выделено под незакрытые расходы {reserved} · не израсходовано {unused}"
+      "branchSpentSub": "Выделено под незакрытые расходы {reserved} · не израсходовано {unused}",
+      "claimFromEconomy": "Возмещено из экономии участка",
+      "claimUnused": "Неиспользованная часть денежного взноса",
+      "claimTotal": "Будет переведено",
+      "claimWhenChanges": "Сумма считается на момент подписи заявления. Она вырастет, если до подписи закроется месяц участка с экономией, и уменьшится, если участок оплатит расход из средств инициаторов."
     },
     "investPropertyDecisionInfo": {
       "applicantLabel": "Вносит",
