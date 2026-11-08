@@ -691,8 +691,10 @@ q-page.initiators(:style-fn='pageStyle')
                 :declinable='false',
         @decided='onApprovalDecided'
               )
+        //- Пустое состояние — только когда нет ни заявлений, ни принятого имущества:
+        //- при принятом имуществе вкладка показывает его, новое заявление встаёт сверху.
         EmptyState(
-          v-else,
+          v-else-if='!acceptedProperties.length',
           :title='$t("marketplace.initiatorsPage.pendingEmptyTitle")',
           :body='$t("marketplace.initiatorsPage.pendingEmptyBody")'
         )
