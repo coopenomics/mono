@@ -15,10 +15,9 @@ import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import type { MarketplaceMessageKey } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
-import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader'
+import { AmountInput, DataRow, DetailsDrawer, DocumentSignSheet, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import {
@@ -363,6 +362,14 @@ async function loadAgreementDoc(): Promise<void> {
   }
 }
 
+/** Лист подписи договора на экране: страница высотой до низа экрана, лист растягивается на остаток. */
+const signView = computed(() => !firstLoad.value && !agreement.value && store.isOperator)
+
+function pageStyle(offset: number, height: number): Record<string, string> {
+  const rest = `${height - offset}px`
+  return signView.value ? { height: rest } : { minHeight: rest }
+}
+
 async function onSignAgreement(): Promise<void> {
   const doc = agreementDoc.value
   if (!doc) return
@@ -521,7 +528,7 @@ async function onAct(p: MarketplaceInvestPropertyView, second: boolean): Promise
 </script>
 
 <template lang="pug">
-q-page.initiators
+q-page.initiators(:style-fn='pageStyle')
   OperatorBranchBar
 
   EmptyState(
@@ -536,29 +543,21 @@ q-page.initiators
     PageHint(storage-key='mp:operator-initiators:banner-dismissed')
       | {{ $t('marketplace.initiatorsPage.hint') }}
 
-    //- Без договора — только договор: текст на странице, подпись — в подвале.
-    template(v-if='!firstLoad && !agreement')
-      .initiators__doc-loading(v-if='agreementDocLoading')
-        q-spinner(color='primary', size='28px')
-        span {{ $t('marketplace.initiatorsPage.agreementPreparing') }}
-      template(v-else-if='agreementDocError')
-        .banner.banner--neg
-          q-icon.banner__icon(name='error', size='20px')
-          .banner__body {{ $t('marketplace.initiatorsPage.agreementLoadFailed') }}
-        div
-          BaseButton(variant='primary', @click='loadAgreementDoc')
-            template(#icon-left)
-              q-icon(name='refresh', size='18px')
-            | {{ $t('common.action.retry') }}
-      template(v-else-if='agreementDoc')
-        BaseCard(:title='$t("marketplace.initiatorsPage.agreementTitle")', :subtitle='$t("marketplace.initiatorsPage.agreementBody")')
-          .initiators__doc
-            DocumentHtmlReader(:html='agreementDoc.html')
-        .initiators__foot
-          BaseButton(variant='primary', size='lg', :loading='busy', :disabled='busy', @click='onSignAgreement')
-            template(#icon-left)
-              q-icon(name='draw', size='18px')
-            | {{ $t('marketplace.initiatorsPage.agreementAction') }}
+    //- Без договора — только договор: текст на всю высоту экрана, подпись — внизу.
+    DocumentSignSheet(
+      v-if='!firstLoad && !agreement',
+      :title='$t("marketplace.initiatorsPage.agreementTitle")',
+      :subtitle='$t("marketplace.initiatorsPage.agreementBody")',
+      :html='agreementDoc ? agreementDoc.html : null',
+      :loading='agreementDocLoading',
+      :error='agreementDocError',
+      :signing='busy',
+      :sign-label='$t("marketplace.initiatorsPage.agreementAction")',
+      :loading-text='$t("marketplace.initiatorsPage.agreementPreparing")',
+      :error-text='$t("marketplace.initiatorsPage.agreementLoadFailed")',
+      @sign='onSignAgreement',
+      @retry='loadAgreementDoc'
+    )
 
     template(v-else-if='agreement || firstLoad')
       PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
@@ -790,35 +789,6 @@ q-page.initiators
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-}
-
-.initiators__doc-loading {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3);
-  color: var(--p-ink-2);
-}
-
-.initiators__doc {
-  max-height: 420px;
-  overflow: auto;
-  padding: var(--p-4);
-  background: var(--p-surface);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-sm);
-  color: var(--p-ink);
-}
-
-.initiators__foot {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--p-3);
-  padding: var(--p-3) 0;
-  background: var(--p-canvas);
-  border-top: 1px solid var(--p-line);
 }
 
 .initiators__muted,

@@ -51,9 +51,9 @@ export default async ({ page, shot, expect }) => {
   }
   await cleanViteOverlays(page);
 
-  const sign = page.locator('.initiators__foot button:has-text("Подписать договор")').first();
+  const sign = page.locator('.doc-sign__foot button:has-text("Подписать договор")').first();
   if (await sign.count()) {
-    await page.locator('.initiators__doc').first().waitFor({ state: 'visible', timeout: 60000 });
+    await page.locator('.doc-sign__text').first().waitFor({ state: 'visible', timeout: 60000 });
     await sign.click();
     await page.locator('text=Мои вложения').first().waitFor({ state: 'visible', timeout: 120000 });
   }

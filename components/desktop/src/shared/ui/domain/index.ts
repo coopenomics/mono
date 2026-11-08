@@ -10,6 +10,7 @@ export * from './DataRow';
 export * from './DetailsDrawer';
 export * from './DocumentPreview';
 export * from './DocumentRow';
+export * from './DocumentSignSheet';
 export * from './DocumentSignatures';
 export * from './ExpenseCreateDialog';
 export * from './ExpenseProposalDecisionInfo';
