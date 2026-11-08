@@ -321,9 +321,10 @@ export function checkInvariantI1SupplierThreads(rows: readonly MarketplaceLedger
 // I2 — Счёт 86 в marketplace: только списание обеспечительной части.
 //
 // В паевой модели и тело заказа, и обеспечительная часть паевого взноса живут
-// на счёте 80 (задача 99D-18). На 86 в нитке Стола заказов пишется ровно одна
-// операция — o.brn.common (Кт 86): списание обеспечительной части в членский
-// взнос участка по условиям ЦПП (chargedue, выход пайщика). Дебета 86 у Стола
+// на счёте 80 (задача 99D-18). На 86 в нитке Стола заказов пишется списание
+// обеспечительной части в членский взнос участка по условиям ЦПП — o.brn.common
+// (Кт 86, chargedue, выход пайщика), с отчислением в фонды и возмещением
+// вложений инициаторов (o.mkt.repay) при списании по итогу месяца. Дебета 86 у Стола
 // заказов нет: списание скоропорта относится на прочие расходы (Дт 91), как
 // уценка (решение владельца 10.09.2026), а гарантийный возврат идёт до
 // списания. Любая другая проводка по 86 в нитке Стола заказов — чужая либо
@@ -333,7 +334,9 @@ const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
   debit: { codes: [], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
   // Задача 99D-22: при списании по итогу месяца в кредит 86 ложится и
   // отчисление в фонды накопления (o.fnd.accrue) — вторая нога chargeperiod.
-  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
+  // Задача 99D-27: доля инициаторов возмещает их вложения (o.mkt.repay,
+  // Дт 80 / Кт 86) — та же нога chargeperiod, пока вложения участка не возвращены.
+  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel', 'o.mkt.repay'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {

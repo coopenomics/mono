@@ -168,6 +168,15 @@ const GROUPS = [
     scenarios: ['marketplace/operator/branch-economy'],
   },
   {
+    // Инвестиционный этап участка (99D-31): договор участия и вложение
+    // деньгами раньше имущества — имущество вносится по подписанному договору.
+    name: 'Инициаторы участка',
+    scenarios: [
+      'marketplace/branch-chairman/initiators-money',
+      'marketplace/branch-chairman/initiators-property',
+    ],
+  },
+  {
     name: 'Обзорные экраны (состояние не меняют)',
     scenarios: [
       'marketplace/chairman/dashboard-overview',

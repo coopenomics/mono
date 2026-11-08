@@ -159,11 +159,11 @@ cases:
     level: contract
     kind: happy
     scenario: >
-      Записка из средств инициаторов проходит совет и оплачивается авансом и по реквизитам; остаток аванса возвращается, расход закрывается.
+      Записка из средств инициаторов проходит совет, оплачивается организации по реквизитам и закрывается.
     expect: >
-      проводки Дт 08 / Кт 51 (o.mkt.iadv, o.mkt.idir), возврат Дт 51 / Кт 08 (o.mkt.iret); по закрытию оплаченное входит в базу возврата вложений (spentipool), остаток снова свободен (o.mkt.iunpl)
-    test: ~
-    status: missing   # сквозной набор полигона — задача 99D-32
+      проводка Дт 08 / Кт 51 (o.mkt.idir); общий кошелёк участка не тронут; по закрытию оплаченное снято с выделенного, неизрасходованное уменьшилось и вошло в базу возврата вложений (spentipool)
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: written
 
   - id: mkt.order.invest.aid.01
     level: contract
@@ -172,8 +172,8 @@ cases:
       Совет одобряет материальную помощь доверенному при пустом персональном кошельке; у инициаторов есть свободные деньги; кассир выплачивает.
     expect: >
       источник помощи — средства инициаторов: налог Дт 08 / Кт 68 на w.sov.ndfl (o.mkt.iaidtx), на руки Дт 08 / Кт 51 (o.mkt.iaid), вся сумма заявления входит в базу возврата вложений; предел резерва получателя действует как прежде
-    test: ~
-    status: missing   # сквозной набор полигона — задача 99D-32
+    test: components/boot/src/tests/marketplace-invest-expense.test.ts
+    status: written
 
   - id: mkt.order.invest.01
     level: contract
@@ -350,6 +350,37 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
+
+  - id: mkt.order.invest.model.01
+    level: contract
+    kind: side
+    scenario: >
+      Эталон возврата вложений (CRPS): два инициатора, поздний вход, граница завершения, подушка неиспользованных денег, фиксация при изменении единиц и две тысячи случайных месяцев вложений, расходов и возмещений.
+    expect: >
+      возврат 60 / 40 % до копейки; поздний инициатор получает только возвраты после входа; доля сверх невозвращённого — участку; на случайных месяцах возвращённое не убывает и не больше использованного, возвращено с переплатой не больше возмещённого, вложенное возмещением не меняется, остаток участка за O(1) сходится с суммой строк
+    test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.invest.cycle.01
+    level: backend
+    kind: happy
+    scenario: >
+      Год прогонов участка с имуществом инициаторов 60 000 ₽ при расходах 30 000 ₽ в месяц и растущем обороте; в первом месяце — записка из средств инициаторов и выделение под помощь.
+    expect: >
+      фаза каждого месяца по формуле (недостача → возмещение → доля участку, назад не возвращается); возмещение за прогон в зеркале равно росту счётчика участка в цепи, не больше доли инициаторов и остатка; записка из средств инициаторов — в служебных записках, выделение под помощь — нет; собранное разошлось без остатка
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    api: components/api-tests/src/marketplace/invest-cycle.test.ts
+    status: passing
+
+  - id: mkt.order.invest.cycle.02
+    level: backend
+    kind: happy
+    scenario: >
+      После прогона с возмещением инициатор подаёт заявление о трансляции возвращённого на главный паевой кошелёк; затем повторное заявление.
+    expect: >
+      главный паевой кошелёк в цепи вырос ровно на предпросмотр, строка инициатора — «переведено» на ту же сумму, доступное ноль; повтор — MARKETPLACE_INVEST_NOTHING_TO_CLAIM
+    test: components/api-tests/src/marketplace/invest-cycle.test.ts
+    status: written
 
   - id: mkt.order.invest.ui.01
     level: ui

@@ -367,7 +367,9 @@ describe('эталон возврата вложений инициаторам 
       b.acc = r.acc
       return r
     }
-    return { b, investor, property, money, spend, repay }
+    /** Выход из базы для завершения: возвращённое фиксируется, единицы снимаются. */
+    const leaveAll = (i: Inv) => leave(i)
+    return { b, investor, property, money, spend, repay, leaveAll }
   }
 
   it('два инициатора 600 000 и 400 000 ₽ получают возврат 60 % и 40 % до копейки', () => {
@@ -445,4 +447,74 @@ describe('эталон возврата вложений инициаторам 
     }
     expect(S).toBe(1_000_000_000_000n)
   })
+
+  it('две тысячи случайных месяцев: возвращённое не убывает, не больше использованного; возвращено и переплата не больше возмещённого; вложенное не меняется', () => {
+    // Детерминированный генератор: случай повторяется в любом прогоне.
+    let seed = 0x9E3779B9
+    const rnd = (n: number): number => {
+      seed = (seed + 0x6D2B79F5) | 0
+      let x = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x
+      return ((x ^ (x >>> 14)) >>> 0) % n
+    }
+    const w = world()
+    const people = [w.investor(), w.investor(), w.investor(), w.investor()]
+    const invested = people.map(() => 0n)
+    const lastReturned = people.map(() => 0n)
+    let repaid = 0n
+    let surplus = 0n
+    for (let month = 0; month < 2_000; month++) {
+      const k = rnd(people.length)
+      const p = people[k]!
+      const step = rnd(4)
+      // Завершивший возврат в базу не возвращается: вложения принимает строка активного инициатора.
+      if (p.active && step === 0) {
+        const amount = BigInt(1 + rnd(50_000)) * R
+        w.money(p, amount)
+        invested[k]! += amount
+      } else if (p.active && step === 1) {
+        const amount = BigInt(1 + rnd(30_000)) * R
+        w.property(p, amount)
+        invested[k]! += amount
+      } else if (p.active && step === 2) {
+        const free = p.money - p.usedMoney
+        if (free > 0n) w.spend(p, free / BigInt(1 + rnd(4)))
+      }
+      repaid += w.repay(BigInt(rnd(20_000)) * R).repay
+      // Как контракт после возмещения: завершившие выходят из базы, возвращённое
+      // фиксируется ровно в использованное, переплата на границе — участку.
+      for (const q of people) {
+        const u = q.usedMoney + q.property
+        const r = crpsReturned(q, w.b.acc)
+        if (!q.active || u <= 0n || r < u) continue
+        w.leaveAll(q)
+        q.active = false
+        q.returnedFixed = u
+        surplus += r - u
+      }
+
+      let usedActive = 0n
+      let returnedActive = 0n
+      let returnedAll = 0n
+      people.forEach((q, i) => {
+        const u = q.usedMoney + q.property
+        const r = crpsReturned(q, w.b.acc)
+        expect(r >= lastReturned[i]!, 'возвращённое не убывает').toBe(true)
+        expect(r <= u, 'возвращённое не больше использованного').toBe(true)
+        expect(q.money + q.property, 'вложенное возмещением не меняется').toBe(invested[i])
+        lastReturned[i] = r
+        returnedAll += r
+        if (q.active) {
+          usedActive += u
+          returnedActive += r
+        }
+      })
+      expect(returnedAll + surplus <= repaid, 'возвращено и переплата не больше возмещённого').toBe(true)
+      // Непогашенный остаток считается за O(1) и сходится с суммой по строкам до округления.
+      const gap = crpsOutstanding(w.b) - (usedActive - returnedActive)
+      expect(gap >= -BigInt(people.length) && gap <= BigInt(people.length), 'остаток участка = использовано − возвращено').toBe(true)
+    }
+    expect(people.some((q) => !q.active), 'за две тысячи месяцев кто-то завершил возврат').toBe(true)
+  })
 })
+

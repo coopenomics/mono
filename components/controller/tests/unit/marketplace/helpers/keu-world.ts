@@ -110,8 +110,16 @@ export function createKeuWorld() {
     share: new Map<string, bigint>(),
     branch: new Map<string, bigint>(),
     invest: new Map<string, bigint>(),
+    /** Кошелёк возмещения вложений участка `w.mkt.repay` (99D-27). */
+    repay: new Map<string, bigint>(),
     funds: 0n,
   };
+  /**
+   * Вложения инициаторов участка (`invbranches`, 99D-27): база возврата,
+   * счётчик CRPS и возмещено всего. Участок без строки — вложений нет, доля
+   * инициатора как прежде направляется инициатору участка.
+   */
+  const invest = new Map<string, { base: bigint; acc: bigint; sJoin: bigint; sFixed: bigint; unusedTotal: bigint; reserved: bigint; property: bigint; repaid: bigint }>();
   const add = (map: Map<string, bigint>, key: string, units: bigint) => map.set(key, (map.get(key) ?? 0n) + units);
   const periods: ChainPeriod[] = [];
   const orders = new Map<string, IssuedOrder>();
@@ -126,6 +134,10 @@ export function createKeuWorld() {
     aidPaid: new Map<string, bigint>(),
     initiator: new Map<string, string>(),
     openClaims: new Set<string>(),
+    /** Журнал учёта участков для фактов месяца: служебные записки (o.brn.expfnd, o.mkt.ipool и возвраты). */
+    ledger: [] as Array<{ operationCode: string; username: string; quantity: string; processHash: string; createdAt: Date }>,
+    /** Хэши заявлений на материальную помощь: их выделение из средств инициаторов — не записка. */
+    aidHashes: new Set<string>(),
   };
   const faults = {
     /** Очередь сбоев расчёта итога месяца: каждый вызов забирает один. */
@@ -208,9 +220,25 @@ export function createKeuWorld() {
   });
 
   const chainPort = {
-    // Вложений инициаторов у участков нет (задача 99D-30): фаза итога NONE, возмещения нет.
-    async getInvestBranch() {
-      return null;
+    // Строка участка по вложениям инициаторов; нет строки — вложений нет.
+    async getInvestBranch(_coopname?: string, braname?: string) {
+      const b = braname ? invest.get(braname) : undefined;
+      if (!b) return null;
+      return {
+        braname,
+        money_total: toAsset(0n),
+        property_total: toAsset(b.property),
+        unused_total: toAsset(b.unusedTotal),
+        reserved: toAsset(b.reserved),
+        spent_total: toAsset(0n),
+        repaid_total: toAsset(b.repaid),
+        surplus_total: toAsset(0n),
+        base: String(b.base),
+        acc: String(b.acc),
+        s_join: String(b.sJoin),
+        s_fixed: String(b.sFixed),
+        join_seq: 1,
+      };
     },
     async closePeriod(data: any) {
       calls.closePeriod.push(data);
@@ -283,7 +311,17 @@ export function createKeuWorld() {
       add(wallets.due, data.username, -amount);
       add(wallets.branch, data.braname, parts.branch);
       wallets.funds += parts.funds;
-      add(wallets.invest, period.initiator, parts.initiator);
+      const inv = invest.get(data.braname);
+      if (inv && inv.base > 0n) {
+        // Как route_initiator_share: доля инициаторов возмещает вложения, сверх остатка — участку.
+        const route = Model.crpsRoute(inv, parts.initiator);
+        inv.acc = route.acc;
+        inv.repaid += route.repay;
+        add(wallets.repay, data.braname, route.repay);
+        add(wallets.branch, data.braname, route.toBranch);
+      } else {
+        add(wallets.invest, period.initiator, parts.initiator);
+      }
       add(wallets.share, data.username, parts.returned);
 
       if (faults.lostEvents.has(data.order_hash)) return {};
@@ -329,13 +367,21 @@ export function createKeuWorld() {
       return settings.plans.filter((p) => p.branchName === braname);
     },
   };
-  const ledger2History = { getHistory: async () => ({ items: [], totalCount: 0, totalPages: 1, currentPage: 1 }) };
+  const ledger2History = {
+    getHistory: async (filter: { username?: string; operationCodes?: string[]; dateFrom?: Date; dateTo?: Date }) => {
+      const items = settings.ledger
+        .filter((op) => op.username === filter.username && (filter.operationCodes ?? []).includes(op.operationCode))
+        .filter((op) => (!filter.dateFrom || op.createdAt >= filter.dateFrom) && (!filter.dateTo || op.createdAt < filter.dateTo));
+      return { items, totalCount: items.length, totalPages: 1, currentPage: 1 };
+    },
+  };
   const aidMirror = {
     paidWithin: async (_coop: string, braname: string, from: Date) => {
       // Начало месяца по Москве: спустя сутки календарная дата уже внутри этого месяца.
       const inside = new Date(from.getTime() + 24 * 60 * 60 * 1000);
       return settings.aidPaid.get(`${braname}/${periodOf(inside.getUTCFullYear(), inside.getUTCMonth() + 1)}`) ?? 0n;
     },
+    isAidHash: async (_coop: string, hash: string) => settings.aidHashes.has(hash),
   };
 
   const periodService = new MarketplacePeriodService(
@@ -389,6 +435,25 @@ export function createKeuWorld() {
       orders.set(order.hash, { ...order, base: 0n });
       add(wallets.due, order.username, order.due);
       await deliver([{ code: MarketplaceSecureDueOperation.PENALTY, units: order.due, username: order.username, hash: order.hash, at: order.issuedAt }]);
+    },
+
+    /** Вложения инициаторов участка: имущество по цене приёма сразу в базе возврата. */
+    investProperty(braname: string, units: bigint): void {
+      const b = invest.get(braname) ?? { base: 0n, acc: 0n, sJoin: 0n, sFixed: 0n, unusedTotal: 0n, reserved: 0n, property: 0n, repaid: 0n };
+      b.base += units;
+      b.sJoin += units * b.acc;
+      b.property += units;
+      invest.set(braname, b);
+    },
+
+    /** Остаток к возврату инициаторам участка по формуле контракта. */
+    investOutstanding(braname: string): bigint {
+      const b = invest.get(braname);
+      return b ? Model.crpsOutstanding(b) : 0n;
+    },
+
+    investRepaid(braname: string): bigint {
+      return invest.get(braname)?.repaid ?? 0n;
     },
 
     /** Проход крона в заданный момент. */

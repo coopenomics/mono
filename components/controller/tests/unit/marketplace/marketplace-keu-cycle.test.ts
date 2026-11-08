@@ -510,3 +510,79 @@ describe('mkt.order.keu.cycle.05 — какие строки входят в п�
     expect(await world.periodService.findOne('voskhod', 'branch1', periodOf(2027, 1))).toMatchObject({ rows_total: 250, rows_charged: 250 });
   });
 });
+
+describe('mkt.order.invest.cycle.01 — год прогонов участка с вложениями инициаторов', () => {
+  // Расходы 30 000 ₽ в месяц, как в годе роста оборота; инициаторы вложили имущество
+  // 60 000 ₽ (в базе возврата сразу) и в первом месяце оплатили записку 5 000 ₽ из своих средств.
+  const ORDERS_PER_MONTH = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18, 22, 26];
+
+  it('фаза каждого месяца — по формуле, возмещение за прогон сходится с цепью, записка из средств инициаторов — в фактах месяца, деньги сходятся', async () => {
+    const world = createKeuWorld();
+    world.settings.reserve.set('branch1', rub(10_000));
+    world.investProperty('branch1', rub(60_000));
+    const base = rub(60_000);
+    for (let month = 1; month <= 12; month++) {
+      world.settings.plans.push({ branchName: 'branch1', dueDate: dayOf(2027, month, 20), amount: '20000.0000 RUB' });
+      world.settings.aidPaid.set(`branch1/${periodOf(2027, month)}`, rub(10_000));
+    }
+    // Записка участка, оплаченная из средств инициаторов, и выделение под помощь (не записка).
+    world.settings.ledger.push(
+      { operationCode: 'o.mkt.ipool', username: 'branch1', quantity: '5000.0000 RUB', processHash: hashOf(9001), createdAt: dayOf(2027, 1, 10) },
+      { operationCode: 'o.mkt.ipool', username: 'branch1', quantity: '3000.0000 RUB', processHash: hashOf(9002), createdAt: dayOf(2027, 1, 12) },
+    );
+    world.settings.aidHashes.add(hashOf(9002));
+
+    let collected = 0n;
+    let repaidSum = 0n;
+    const phases: string[] = [];
+
+    for (let month = 1; month <= 12; month++) {
+      const count = ORDERS_PER_MONTH[month - 1];
+      const orders = Array.from({ length: count }, (_, i) => order(`member${(i % 7) + 1}`, 5_000 + 1_000 * i, dayOf(2027, month, 1 + (i % 25))));
+      for (const o of orders) await world.issue(o);
+      collected += sum(orders.map((o) => o.due));
+      // Итог месяца считается в начале прохода, до списаний: остаток к возврату на этот момент.
+      const outstandingAtClose = world.investOutstanding('branch1');
+      const repaidBefore = world.investRepaid('branch1');
+
+      const next = month === 12 ? firstOfMonth(2028, 1) : firstOfMonth(2027, month + 1);
+      expect(await world.run(next)).toEqual({ charged: count, failed: 0 });
+
+      const period = periodOf(2027, month);
+      const chain = world.chainPeriod('branch1', period)!;
+      // Записка из средств инициаторов — в служебных записках месяца; выделение под помощь — нет.
+      if (month === 1) expect(chain.facts.memos).toBe(rub(5_000));
+      const expectedPhase = chain.totals.deficit > 0n ? 'DEFICIT' : outstandingAtClose > 0n ? 'REPAYING' : 'BRANCH';
+      const mirror = (await world.periodService.findOne('voskhod', 'branch1', period))!;
+      expect({ month, phase: mirror.invest_phase }).toEqual({ month, phase: expectedPhase });
+      phases.push(mirror.invest_phase);
+
+      const repaidMonth = world.investRepaid('branch1') - repaidBefore;
+      // Возмещение за прогон в зеркале = рост счётчика участка в цепи.
+      expect(toUnits(mirror.investor_repaid)).toBe(repaidMonth);
+      // Доля инициаторов возмещает не больше их доли за месяц и не больше остатка.
+      expect(repaidMonth <= chain.totals.initiator).toBe(true);
+      expect(repaidMonth <= outstandingAtClose).toBe(true);
+      if (expectedPhase === 'DEFICIT') expect(repaidMonth).toBe(0n);
+      repaidSum += repaidMonth;
+    }
+
+    // Фазы идут по порядку: дефицит → возмещение → доля участку; назад не возвращаются при росте оборота.
+    const order_ = ['DEFICIT', 'REPAYING', 'BRANCH'];
+    for (let i = 1; i < phases.length; i++) expect({ phases, ok: order_.indexOf(phases[i]) >= order_.indexOf(phases[i - 1]) }).toEqual({ phases, ok: true });
+    expect(phases).toContain('REPAYING');
+    expect(repaidSum).toBe(world.investRepaid('branch1'));
+    // Счётчик возврата округляется вниз, поэтому возмещено может превысить базу
+    // на единицу актива за прогон; контракт переводит такую переплату участку при
+    // завершении возврата (o.mkt.rpsurp).
+    expect(repaidSum - base <= 12n).toBe(true);
+    if (repaidSum >= base) expect(world.investOutstanding('branch1') <= 12n).toBe(true);
+    // Собранное разошлось без остатка: участку, в фонды, инициатору, на возмещение вложений и пайщикам.
+    const distributed =
+      walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.repay) + walletTotal(world.wallets.share);
+    expect(distributed).toBe(collected);
+    // Пока вложения не возвращены, доля инициатора возмещает их, а не начисляется инициатору.
+    expect(walletTotal(world.wallets.invest)).toBe(0n);
+    expect(world.logger.error).not.toHaveBeenCalled();
+  });
+});

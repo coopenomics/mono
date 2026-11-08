@@ -29,6 +29,8 @@ import {
 } from './invest.helpers'
 
 const chairkrg = ROLES.branchChairman()
+const chairodn = ROLES.foreignBranchChairman()
+const ODN = 'odn'
 const SUM = 1_000
 const PROPERTY_SUM = 25_000
 
@@ -46,9 +48,11 @@ describe('инвестиционный этап участка: договор, 
     outsiderToken = await tokenOf(outsider)
   }, 600_000)
 
-  it(caseName('mkt.order.invest.istok.05', 'пайщик без договора участия: заявление не формируется, договора нет'), async () => {
-    expect((await gql<any>(outsiderToken, MY_AGREEMENT)).marketplaceMyInvestAgreement, 'договора у нового пайщика нет').toBeNull()
-    const r = await refusal(outsiderToken, 'query($b:String!){ marketplaceInvestClaimSignablePayload(braname:$b){ hash } }', { b: KRG })
+  it(caseName('mkt.order.invest.istok.05', 'оператор участка без договора участия: заявления не формируются, договора нет'), async () => {
+    // Председатель чужого участка — оператор своего участка odn, договора не подписывал.
+    const token = await tokenOf(chairodn)
+    expect((await gql<any>(token, MY_AGREEMENT)).marketplaceMyInvestAgreement, 'договора у председателя участка odn нет').toBeNull()
+    const r = await refusal(token, 'query($b:String!){ marketplaceInvestClaimSignablePayload(braname:$b){ hash } }', { b: ODN })
     expect(r?.codeText ?? '').toMatch(/MARKETPLACE_INVAGR_REQUIRED/)
   })
 
@@ -97,25 +101,19 @@ describe('инвестиционный этап участка: договор, 
     expect(unitsOf(mineList.claimable)).toBe(contractClaimable(branch, investor))
   }, 600_000)
 
-  it(caseName('mkt.order.invest.istok.04', 'пайщик не оператор участка вносит деньги: отказ, строки инициатора участка не меняются'), async () => {
-    await ensureAgreement(outsider)
-    await ensureShareFunds(outsider.account, SUM, outsiderToken)
+  it(caseName('mkt.order.invest.istok.04', 'вносит только оператор своего участка: пайщику без роли и председателю чужого участка — отказ, строки участка не меняются'), async () => {
     const before = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
-    // Сервер отказывает до цепи: правом участка уже на заявлении либо правилом
-    // «вносит председатель или доверенное лицо» на самом вложении.
-    let prepared: Awaited<ReturnType<typeof investStatement>> | null = null
-    try {
-      prepared = await investStatement(outsider, KRG, SUM)
-    }
-    catch {
-      // Заявление не сформировано: у постороннего нет права на участок.
-    }
-    if (prepared) {
-      const r = await refusal(outsiderToken, INVEST_MONEY, { d: { braname: KRG, amount: SUM, invest_hash: prepared.investHash, statement: prepared.statement } })
-      expect(r?.codeText ?? '', 'вносит председатель или доверенное лицо участка').toMatch(/MARKETPLACE_INVEST_NOT_OPERATOR/)
-    }
+    // Пайщик без роли оператора: вложения ему недоступны с договора — отказ правом.
+    const agreement = await refusal(outsiderToken, 'query{ marketplaceInvestAgreementSignablePayload{ hash } }')
+    expect(agreement?.codeText ?? '', 'договор участия — только операторам участка').toMatch(/KIT_INSUFFICIENT_RIGHTS/)
+    // Председатель участка odn вносит в участок krg: участок не его — отказ до цепи.
+    const foreign = await refusal(await tokenOf(chairodn), INVEST_MONEY, {
+      d: { braname: KRG, amount: SUM, invest_hash: 'a'.repeat(64), statement: { hash: 'a'.repeat(64), doc_hash: 'a'.repeat(64), meta_hash: 'a'.repeat(64), meta: {}, signatures: [], version: '1' } },
+    })
+    expect(foreign, 'чужой участок').toBeTruthy()
     const after = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
     expect(investorOf(after, outsider.account)).toBeUndefined()
+    expect(investorOf(after, chairodn.account)).toBeUndefined()
     expect(amount(after.money_total)).toBeCloseTo(amount(before.money_total), 4)
   })
 })

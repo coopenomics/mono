@@ -4,7 +4,7 @@
  * совета по имуществу — через цепь, как в остальных наборах с советом.
  */
 import { MarketContract } from 'cooptypes'
-import { COOP, type Who, authorizeDecisionOnChain, awaitDecision, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
+import { COOP, type Who, authorizeDecisionOnChain, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
 
 export const MY_AGREEMENT = 'query{ marketplaceMyInvestAgreement{ number signed_at } }'
 const AGREEMENT_DOC = 'query{ marketplaceInvestAgreementSignablePayload{ full_title html hash meta binary } }'
@@ -79,10 +79,15 @@ export async function investPropertyAccepted(opts: { investor: Who, chairman: Wh
   const approval = await signDocument(chairman.wif, approvalDoc, chairman.account, 1)
   await gql(chairmanToken, APPROVE_PROPERTY, { d: { braname, property_hash: propertyHash, document: approval } })
 
-  // Робот совета мог принять решение сам; иначе — голоса и утверждение в цепи.
-  const decision = await awaitDecision(propertyHash, `повестка совета по имуществу ${name}`)
+  // Робот совета принимает решение сам и стирает строку решения после
+  // исполнения — тогда заявление уже «authorized». Без робота решение ждёт в
+  // повестке: голоса членов совета и утверждение председателем в цепи.
   const authorized = async () => String((await propertyRow(propertyHash))?.status ?? '') === 'authorized'
-  if (!(await authorized())) {
+  const decision = await waitFor(
+    async () => ((await authorized()) ? { robot: true } : ((await decisionByHash(propertyHash)) ?? null)),
+    { timeoutMs: 60_000, intervalMs: 1_000, label: `повестка совета по имуществу ${name}` },
+  )
+  if (!('robot' in decision) && !(await authorized())) {
     await voteOnDecision(Number(decision.id))
     await authorizeDecisionOnChain(Number(decision.id))
   }

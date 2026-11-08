@@ -5,15 +5,15 @@
  *
  * Набор идёт фазой keu полигона вместе с period-cycle (scripts/blackbox/stack.sh):
  * прогон первого числа делает крон узла по шкале STAND_MONTH_SECONDS. У
- * участка krg должно быть использованное вложение — имущество в базе
- * возврата; если его нет, набор вносит имущество через совет сам. Резерв
+ * председателя участка krg должно быть использованное вложение — имущество в
+ * базе возврата; если его нет, набор вносит имущество через совет сам. Резерв
  * председателя участка набор снимает до заказа, поэтому месяц без недостачи
  * и доля инициаторов идёт на возмещение вложений.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, amount, caseName, gql, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, ROLES, amount, availableShare, caseName, docMeta, gql, signDocument, tokenOf, waitFor } from '../core'
 import { KRG, pickOffer } from './flow'
-import { type IssuedOrder, issuedOrder } from './mkt-flows.helpers'
+import { type IssuedOrder, issuedOrder, refusal } from './mkt-flows.helpers'
 import { BRANCH_INVESTMENT, MY_INVESTMENTS, chainInvestment, contractClaimable, ensureAgreement, investPropertyAccepted, unitsOf } from './invest.helpers'
 
 const STAND_MONTH_SECONDS = Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0
@@ -59,8 +59,11 @@ describe.skipIf(!COMPRESSED)('возмещение вложений инициа
     await gql(chairmanToken, SET_INITIATOR_SHARE, { d: { initiator_share_percent: 61.8 } })
     await gql(krgToken, DEL_RESERVE, { d: { braname: KRG, username: chairkrg.account } }).catch(() => {})
     await ensureAgreement(chairkrg)
+    // В базе возврата нужно использованное вложение самого председателя участка:
+    // имущество входит в базу сразу. Деньги без расхода в базу не входят.
     const view = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
-    if (amount(view.outstanding) <= 0)
+    const own = (view.investors as any[]).find(i => i.username === chairkrg.account)
+    if (!own || amount(own.property) <= 0)
       await investPropertyAccepted({ investor: chairkrg, chairman: chairkrg, braname: KRG, sum: PROPERTY_SUM, name: `Весы торговые ${Date.now().toString(36)}` })
     repaidBefore = amount((await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment.repaid_total)
   }, 600_000)
@@ -112,5 +115,31 @@ describe.skipIf(!COMPRESSED)('возмещение вложений инициа
     const payload = typeof note.payload === 'string' ? JSON.parse(note.payload) : note.payload
     expect(String(payload.deepLinkUrl ?? '')).toContain('/market-pvz/initiators')
     expect(String(payload.amount ?? '')).not.toBe('')
+  })
+
+  it(caseName('mkt.order.invest.cycle.02', 'заявление обратно: возвращённое переведено на главный паевой кошелёк ровно суммой предпросмотра; повтор — отказ'), async () => {
+    const CLAIM_DOC = 'query($b:String!){ marketplaceInvestClaimSignablePayload(braname:$b){ full_title html hash meta binary } }'
+    const CLAIM = 'mutation($d:MarketplaceClaimInvestmentInput!){ marketplaceClaimInvestment(data:$d){ braname claimed claimable } }'
+    const before = (await gql<any>(krgToken, MY_INVESTMENTS)).marketplaceMyInvestments.find((i: any) => i.braname === KRG)
+    const preview = unitsOf(before.claimable)
+    expect(preview > 0n).toBe(true)
+    const shareBefore = await availableShare(chairkrg.account)
+
+    const doc = (await gql<any>(krgToken, CLAIM_DOC, { b: KRG })).marketplaceInvestClaimSignablePayload
+    const statement = await signDocument(chairkrg.wif, doc, chairkrg.account, 1)
+    const after = (await gql<any>(krgToken, CLAIM, { d: { braname: KRG, claim_hash: String(docMeta(doc.meta).claim_hash), statement } })).marketplaceClaimInvestment
+      .find((i: any) => i.braname === KRG)
+
+    // Деньги — по кошельку цепи, не по ответу API.
+    const shareAfter = await waitFor(async () => {
+      const v = await availableShare(chairkrg.account)
+      return v > shareBefore ? v : null
+    }, { timeoutMs: 60_000, intervalMs: 1_000, label: 'главный паевой кошелёк после заявления обратно' })
+    expect(BigInt(Math.round((shareAfter - shareBefore) * 10_000))).toBe(preview)
+    expect(unitsOf(after.claimed) - unitsOf(before.claimed)).toBe(preview)
+    expect(unitsOf(after.claimable)).toBe(0n)
+
+    const again = await refusal(krgToken, CLAIM_DOC, { b: KRG })
+    expect(again?.codeText ?? '').toMatch(/MARKETPLACE_INVEST_NOTHING_TO_CLAIM/)
   })
 })
