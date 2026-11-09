@@ -333,9 +333,12 @@ cmd_keu() {
   (
     cd components/api-tests
     # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
-    # Экономика участка (economy) ждёт списания обеспечительной части по итогу
-    # периода (99D-33): в настоящем времени его не дождаться.
+    # Экономика участка (economy) и отчёты по выплатам помощи (ndfl6,
+    # withheld-tax: участок пополняется списанием заказа) ждут списания
+    # обеспечительной части по итогу периода (99D-33): в настоящем времени
+    # его не дождаться.
     pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts \
+      src/reports/ndfl6.test.ts src/reports/withheld-tax.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
   ) || failed=1

@@ -111,8 +111,8 @@ cases:
   - id: mkt.secure.due.side.8
     level: backend
     kind: side
-    scenario: У пайщика открыт гарантийный возврат
-    expect: контракт отвечает MARKETPLACE_DUE_RETURN_PENDING, узел считает это нормой и ждёт решения совета
+    scenario: По заказу строки пайщика открыт гарантийный возврат; у того же пайщика открыт возврат по заказу другого периода
+    expect: строку с заказом под возвратом контракт не списывает (MARKETPLACE_DUE_RETURN_PENDING), узел считает это нормой и ждёт решения совета; строку другого периода возврат не держит — она списывается
     test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
     external: unreachable
     external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"

@@ -442,6 +442,21 @@ describe('mkt.order.keu.cycle.05 — какие строки входят в п�
     expect((await world.periodService.findOne('voskhod', 'branch1', periodOf(2027, 1)))).toMatchObject({ rows_total: 2, rows_charged: 2 });
   });
 
+  it('возврат по заказу другого периода строку пайщика не держит: январская строка списывается, мартовская ждёт решения совета', async () => {
+    const world = createKeuWorld();
+    const january = order('boris', 10_000, dayOf(2027, 1, 5));
+    const march = order('boris', 20_000, dayOf(2027, 1, 6), { warrantyUntil: dayOf(2027, 3, 3) });
+    await world.issue(january);
+    await world.issue(march);
+    world.settings.openClaims.add(march.hash);
+
+    expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 1, failed: 0 });
+    expectMemberSettled(world, [january], periodOf(2027, 1));
+    // На кошельке к списанию — только заказ под возвратом.
+    expect(world.wallets.due.get('boris')).toBe(march.due);
+    expect(world.chainDue('boris', 'branch1', periodOf(2027, 3))).toBeDefined();
+  });
+
   it('удержание при отказе: в итог участка не входит, строка без стоимости списывается целиком участку и итога не ждёт', async () => {
     const world = createKeuWorld();
     const o = order('anna', 10_000, dayOf(2027, 1, 5));

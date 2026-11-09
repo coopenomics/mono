@@ -591,6 +591,29 @@ inline bool has_open_return_request(eosio::name coopname, eosio::name username) 
   return by_orderer.find(username.value) != by_orderer.end();
 }
 
+/**
+ * Открыто ли заявление на гарантийный возврат по заказу, который учтён в
+ * строке счётчика `(пайщик, участок, период)` (задача 99D-33).
+ *
+ * Строку счётчика держит только возврат по её собственному заказу: решение
+ * совета вернёт его часть с кошелька к списанию и уменьшит именно эту строку.
+ * Заявление по заказу другого участка или другого периода строку не держит.
+ * Перебор — по индексу заявлений самого пайщика, их единицы.
+ */
+inline bool has_open_return_in_due(eosio::name coopname, eosio::name username,
+                                   eosio::name braname, uint32_t period) {
+  return_requests_index requests(_marketplace, coopname.value);
+  auto by_orderer = requests.get_index<"byorderer"_n>();
+  for (auto it = by_orderer.lower_bound(username.value);
+       it != by_orderer.end() && it->orderer == username; ++it) {
+    const auto o = get_order_by_hash(coopname, it->original_order_hash);
+    if (!o.has_value()) continue;
+    if (o->delivery_braname == braname &&
+        Dues::maturity_period(coopname, o->warranty_until) == period) return true;
+  }
+  return false;
+}
+
 inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
   eosio::check(!has_open_return_request(coopname, username),
                "Выход из кооператива невозможен: открыто заявление на гарантийный возврат в Столе заказов — дождитесь его рассмотрения");

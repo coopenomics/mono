@@ -36,8 +36,9 @@
  *  - require_auth(coopname);
  *  - участок существует; строка счётчика есть (MARKETPLACE_DUE_NOT_FOUND);
  *  - период закончился (MARKETPLACE_PERIOD_OPEN);
- *  - у пайщика нет открытого заявления на гарантийный возврат
- *    (MARKETPLACE_DUE_RETURN_PENDING): решение совета вернёт часть с кошелька;
+ *  - по заказам этой строки нет открытого заявления на гарантийный возврат
+ *    (MARKETPLACE_DUE_RETURN_PENDING): решение совета вернёт часть с кошелька
+ *    и уменьшит строку; заявления по заказам других строк списание не держат;
  *  - у строки со стоимостью есть строка итога участка (MARKETPLACE_PERIOD_NOT_CLOSED);
  *  - остаток w.mkt.due пайщика не меньше суммы строки (MARKETPLACE_DUE_EXCEEDS) —
  *    страховка: счётчики пишутся теми же транзакциями, что и кошелёк.
@@ -54,8 +55,8 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
                "MARKETPLACE_DUE_NOT_FOUND: У пайщика нет обеспечительной части к списанию на этом участке за этот период");
   eosio::check(period < Marketplace::Dues::current_period(coopname),
                "MARKETPLACE_PERIOD_OPEN: Период списания ещё идёт — строка списывается после его окончания");
-  eosio::check(!Marketplace::has_open_return_request(coopname, username),
-               "MARKETPLACE_DUE_RETURN_PENDING: У пайщика открыто заявление на гарантийный возврат — списание после решения совета");
+  eosio::check(!Marketplace::has_open_return_in_due(coopname, username, braname, period),
+               "MARKETPLACE_DUE_RETURN_PENDING: По заказу этого периода открыто заявление на гарантийный возврат — списание после решения совета");
 
   kudues_index dues(_marketplace, coopname.value);
   const kudue row = dues.get(*row_id);

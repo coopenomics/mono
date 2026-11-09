@@ -45,7 +45,8 @@ jobs:
     # хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
     # Собранное под glibc 2.39 (24.04) в нём могло бы не загрузиться.
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    # Фаза КЭУ со сжатым временем выросла до 75 минут (99D-33) — запас задаче.
+    timeout-minutes: 210
 
     env:
       COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
@@ -195,7 +196,10 @@ jobs:
       - name: Коэффициент экономического участия — прогон первого числа (сжатое время)
         id: keu
         if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
-        timeout-minutes: 45
+        # Наборы со списанием по итогу периода (99D-33) ждут смены периода
+        # стенда: экономика участка, отчёты по выплатам помощи, контрактные
+        # тесты boot — фазе нужно больше 45 минут.
+        timeout-minutes: 75
         run: bash scripts/blackbox/stack.sh keu
 
       - name: База — снимок после прогона первого числа

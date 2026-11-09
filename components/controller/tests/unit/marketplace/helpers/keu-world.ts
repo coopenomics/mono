@@ -197,7 +197,12 @@ export function createKeuWorld() {
     }
     return d;
   }
-  const hasOpenClaim = (username: string) => [...settings.openClaims].some((hash) => orders.get(hash)?.username === username);
+  /** Как контракт: строку держит только возврат по заказу этой строки — тот же пайщик, участок и период гарантии. */
+  const hasOpenClaim = (username: string, braname: string, period: number) =>
+    [...settings.openClaims].some((hash) => {
+      const o = orders.get(hash);
+      return o?.username === username && o.braname === braname && periodOfDate(o.warrantyUntil ?? o.issuedAt) === period;
+    });
 
   // ── Слушатель операций ────────────────────────────────────────────────
   /** Операции одной транзакции отдаются слушателю разом — так их выпускает шина. */
@@ -380,7 +385,7 @@ export function createKeuWorld() {
       const row = dues.get(key);
       if (!row) throw refusal('MARKETPLACE_DUE_NOT_FOUND', 'У пайщика нет обеспечительной части к списанию за этот период');
       if (!(data.period < currentPeriod())) throw refusal('MARKETPLACE_PERIOD_OPEN', 'Период списания ещё идёт');
-      if (hasOpenClaim(data.username)) throw refusal('MARKETPLACE_DUE_RETURN_PENDING', 'У пайщика открыто заявление на гарантийный возврат');
+      if (hasOpenClaim(data.username, data.braname, data.period)) throw refusal('MARKETPLACE_DUE_RETURN_PENDING', 'По заказу этого периода открыто заявление на гарантийный возврат');
       const period = periods.find((p) => p.braname === data.braname && p.period === data.period);
       if (row.turnover > 0n && !period) throw refusal('MARKETPLACE_PERIOD_NOT_CLOSED', 'Итог участка за период не рассчитан');
       const total = row.due + row.retained;

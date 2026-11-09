@@ -45,7 +45,15 @@ function delta(after: Tax, before: Tax): Tax {
   }
 }
 
-describe('отчёты: 6-НДФЛ и уведомление по НДФЛ из выплат материальной помощи', () => {
+/**
+ * Выплата помощи пополняет участок списанием обеспечительной части заказа, а
+ * контракт списывает её только после окончания периода (задача 99D-33). В
+ * настоящем времени период — календарный месяц, поэтому набор идёт в фазе
+ * полигона со сжатым временем (stack.sh keu) и без неё пропускается.
+ */
+const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
+
+describe.skipIf(!COMPRESSED)('отчёты: 6-НДФЛ и уведомление по НДФЛ из выплат материальной помощи', () => {
   const now = mskParts(new Date().toISOString())
   const Y = now.year
   const Q = Math.ceil(now.month / 3)
@@ -275,7 +283,7 @@ describe('отчёты: 6-НДФЛ и уведомление по НДФЛ из 
   })
 })
 
-describe('отчёты: справки 6-НДФЛ по данным профиля получателя', () => {
+describe.skipIf(!COMPRESSED)('отчёты: справки 6-НДФЛ по данным профиля получателя', () => {
   const Y = mskParts(new Date().toISOString()).year
   let zeroSeries: Who
   let noPassport: Who
