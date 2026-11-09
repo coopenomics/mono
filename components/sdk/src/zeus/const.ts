@@ -3803,6 +3803,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetBranchInitiator:{
 
 		},
+		marketplaceGetBranchMovementParts:{
+
+		},
 		marketplaceGetBranchReserves:{
 
 		},
@@ -7526,7 +7529,8 @@ export const ReturnTypes: Record<string,any> = {
 		operation_code:"String",
 		order_hash:"String",
 		order_id:"String",
-		quantity:"String"
+		quantity:"String",
+		username:"String"
 	},
 	MarketplaceCancelOrderResult:{
 		order:"MarketplaceOrder",
@@ -10000,6 +10004,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetBranchCurrentPeriod:"MarketplaceBranchCurrentPeriod",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
 		marketplaceGetBranchInitiator:"MarketplaceBranchInitiator",
+		marketplaceGetBranchMovementParts:"MarketplaceBranchWalletOperation",
 		marketplaceGetBranchReserves:"MarketplaceBranchReserves",
 		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetCart:"MarketplaceCart",

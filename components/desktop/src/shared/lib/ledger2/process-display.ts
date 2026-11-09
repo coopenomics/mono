@@ -55,6 +55,9 @@ export function processTypeLabel(type: string | null | undefined): string {
   return Ledger2.getProcessHumanName(type) ?? type
 }
 
+/** Описание операции из реестра ledger2: кошелёк-источник, кошелёк-приёмник, проводка. */
+export const getOperationMeta = Ledger2.getOperationMeta
+
 /**
  * Человекочитаемое название операции. Запись apply несёт operation_code;
  * корректировки walmove/revert его не несут — название берётся по action через

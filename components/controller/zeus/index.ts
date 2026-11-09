@@ -11393,6 +11393,8 @@ export type ValueTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Сумма движения. */
 	quantity?:boolean | `@${string}`,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchWalletOperation']?: Omit<ValueTypes["MarketplaceBranchWalletOperation"], "...on MarketplaceBranchWalletOperation">
 }>;
@@ -17600,6 +17602,7 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 marketplaceGetBranchCurrentPeriod?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchInitiator?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchInitiator"]],
+marketplaceGetBranchMovementParts?: [{	braname: string | Variable<any, string>,	process_hash: string | Variable<any, string>},ValueTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
@@ -30421,6 +30424,8 @@ export type ResolverInputTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Сумма движения. */
 	quantity?:boolean | `@${string}`,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Параметры отмены своего заказа пайщиком. */
@@ -36420,6 +36425,7 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 marketplaceGetBranchCurrentPeriod?: [{	braname: string},ResolverInputTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string},ResolverInputTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchInitiator?: [{	braname: string},ResolverInputTypes["MarketplaceBranchInitiator"]],
+marketplaceGetBranchMovementParts?: [{	braname: string,	process_hash: string},ResolverInputTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string},ResolverInputTypes["MarketplaceBranchReserves"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
@@ -48807,7 +48813,9 @@ export type ModelTypes = {
 	/** Идентификатор заказа-источника — для перехода на страницу заказа. Пусто для движений без заказа. */
 	order_id?: string | undefined | null,
 	/** Сумма движения. */
-	quantity?: string | undefined | null
+	quantity?: string | undefined | null,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?: string | undefined | null
 };
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
@@ -55120,6 +55128,8 @@ export type ModelTypes = {
 	marketplaceGetBranchEconomy: ModelTypes["MarketplaceBranchEconomy"],
 	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
 	marketplaceGetBranchInitiator: ModelTypes["MarketplaceBranchInitiator"],
+	/** Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается. */
+	marketplaceGetBranchMovementParts: Array<ModelTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
 	marketplaceGetBranchReserves: ModelTypes["MarketplaceBranchReserves"],
 	/** Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов. */
@@ -68107,6 +68117,8 @@ export type GraphQLTypes = {
 	order_id?: string | undefined | null,
 	/** Сумма движения. */
 	quantity?: string | undefined | null,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?: string | undefined | null,
 	['...on MarketplaceBranchWalletOperation']: Omit<GraphQLTypes["MarketplaceBranchWalletOperation"], "...on MarketplaceBranchWalletOperation">
 };
 	/** Параметры отмены своего заказа пайщиком. */
@@ -74916,6 +74928,8 @@ export type GraphQLTypes = {
 	marketplaceGetBranchEconomy: GraphQLTypes["MarketplaceBranchEconomy"],
 	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
 	marketplaceGetBranchInitiator: GraphQLTypes["MarketplaceBranchInitiator"],
+	/** Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается. */
+	marketplaceGetBranchMovementParts: Array<GraphQLTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
 	marketplaceGetBranchReserves: GraphQLTypes["MarketplaceBranchReserves"],
 	/** Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов. */

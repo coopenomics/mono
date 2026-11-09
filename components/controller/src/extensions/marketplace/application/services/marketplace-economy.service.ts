@@ -105,8 +105,29 @@ export interface MarketplaceBranchWalletOperationView {
   order_hash: string | null;
   /** Идентификатор заказа-источника — прямая ссылка на страницу заказа. Null, если движение не связано с заказом. */
   order_id: string | null;
+  /** Чьё это движение: участок для общего кошелька, пайщик для персонального. */
+  username?: string | null;
   created_at: Date;
 }
+
+/**
+ * Операции участка, которые показываются в составе одного процесса на панели
+ * движения по общему кошельку: поступление и возврат членского взноса,
+ * распределение (изъятие и зачисление доверенным), выделение под расход и
+ * возврат неизрасходованного, излишек возмещения инициаторам.
+ */
+const BRANCH_MOVEMENT_OPERATIONS = [
+  'o.brn.common',
+  'o.brn.retfee',
+  'o.brn.release',
+  'o.brn.person',
+  'o.brn.expfnd',
+  'o.brn.expunf',
+  'o.mkt.rpsurp',
+];
+
+/** Сколько движений процесса показывает панель: распределение — пара на доверенного. */
+const BRANCH_MOVEMENT_PARTS_LIMIT = 100;
 
 /** Стадия заявления на материальную помощь. */
 export enum MarketplaceAidStage {
@@ -401,6 +422,33 @@ export class MarketplaceEconomyService {
    * поставки, а ссылка «Заказ» ведёт на страницу заказа по его
    * идентификатору — резолвим хэши страницы одним батчем.
    */
+  /**
+   * Движения участка в одном процессе — для панели строки «Движения по
+   * кошельку»: у распределения это изъятие из общего кошелька и зачисление
+   * каждому доверенному (кто сколько получил), у заказа — взнос участку.
+   * Отдаются только операции участка из `BRANCH_MOVEMENT_OPERATIONS`: прочие
+   * движения процесса (кошельки пайщика по заказу) панели участка не нужны.
+   * Процесс чужого участка не раскрывается — в нём нет движения этого участка.
+   */
+  async getBranchMovementParts(
+    coopname: string,
+    braname: string,
+    processHash: string
+  ): Promise<MarketplaceBranchWalletOperationView[]> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      processHash,
+      actionNames: ['apply'],
+      operationCodes: BRANCH_MOVEMENT_OPERATIONS,
+      page: 1,
+      limit: BRANCH_MOVEMENT_PARTS_LIMIT,
+      sortOrder: 'ASC',
+    });
+    if (!result.items.some((op) => op.username === braname)) return [];
+    const view = await this.toWalletHistoryResult(coopname, result);
+    return view.items;
+  }
+
   private async toWalletHistoryResult(
     coopname: string,
     result: InnerLedger2HistoryResult
@@ -420,6 +468,7 @@ export class MarketplaceEconomyService {
         order_id: op.processHash
           ? (orderIdByHash.get(op.processHash.toLowerCase()) ?? null)
           : null,
+        username: op.username ?? null,
         created_at: op.createdAt,
       })),
       totalCount: result.totalCount,

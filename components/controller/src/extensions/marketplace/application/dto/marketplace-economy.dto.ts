@@ -112,6 +112,9 @@ export class MarketplaceBranchWalletOperationDTO {
   @Field(() => String, { nullable: true, description: 'Идентификатор заказа-источника — для перехода на страницу заказа. Пусто для движений без заказа.' })
   order_id?: string | null;
 
+  @Field(() => String, { nullable: true, description: 'Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька.' })
+  username?: string | null;
+
   @Field(() => Date, { description: 'Дата и время операции.' })
   created_at!: Date;
 }

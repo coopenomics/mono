@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { uiLocale, t as i18nT } from 'src/shared/i18n';
-import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
+import { useConfirm, useFirstLoad, useTabQuery } from 'src/shared/lib/composables'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
@@ -26,7 +26,7 @@ import {
 } from 'src/entities/MarketplaceOrder'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
-import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
+import { getOperationMeta, getWalletHumanName, operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
 import { NDFL_RATE_PERCENT, type MarketplaceMessageKey, marketLiveTables, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
@@ -53,6 +53,7 @@ import {
   getBranchCurrentPeriod,
   getBranchEconomy,
   getBranchReserves,
+  getBranchMovementParts,
   getBranchWalletHistory,
   getPersonalEconomy,
   getPersonalWalletHistory,
@@ -122,7 +123,9 @@ const currentPeriod = ref<MarketplaceBranchCurrentPeriodView | null>(null)
 
 // ─── Табы страницы (requirement — переверстка без изменения логики) ───
 
-const activeKey = ref<'wallet' | 'turnover' | 'expenses' | 'reserve' | 'distribution' | 'personal' | 'periods'>('wallet')
+// Раздел страницы — в адресе (?tab=): ссылка открывает тот же раздел.
+const TAB_KEYS = ['wallet', 'turnover', 'expenses', 'reserve', 'distribution', 'personal', 'periods'] as const
+const activeKey = useTabQuery<(typeof TAB_KEYS)[number]>(TAB_KEYS, 'wallet')
 
 const tabs = computed<PageTab[]>(() => [
   { key: 'wallet', label: i18nT('marketplace.operatorBranchEconomyPage.walletTabLabel') },
@@ -182,12 +185,84 @@ function goToOrder(orderId: string): void {
  * в ячейке назначения: кнопка отнимала место у текста и заставляла целиться в
  * неё вместо строки.
  */
-function hasOrder(row: WalletHistoryRow): boolean {
-  return Boolean(row.order_id)
+// ─── Панель движения по общему кошельку участка ───
+// Любая строка «Движений по кошельку» открывает правую панель (слово владельца
+// 09.11.2026: «изъятие на распределение — какое распределение, куда пошло?»):
+// сумма и направление, путь денег — с какого кошелька на какой, смысл
+// операции, у распределения — кто из доверенных сколько получил, у взноса по
+// заказу — кнопка «Открыть заказ».
+
+const BRANCH_COMMON_WALLET = 'w.brn.common'
+const DISTRIBUTION_RELEASE = 'o.brn.release'
+const DISTRIBUTION_PERSONAL = 'o.brn.person'
+
+/** Код операции → ключ пояснения «что это» в словаре. */
+const MOVEMENT_DESCRIPTION_KEYS: Record<string, string> = {
+  'o.brn.common': 'common',
+  'o.brn.retfee': 'retfee',
+  'o.brn.release': 'release',
+  'o.brn.expfnd': 'expfnd',
+  'o.brn.expunf': 'expunf',
+  'o.mkt.rpsurp': 'rpsurp',
 }
 
-function openHistoryOrder(row: WalletHistoryRow): void {
-  if (row.order_id) goToOrder(row.order_id)
+type MovementPart = Awaited<ReturnType<typeof getBranchMovementParts>>[number]
+
+const movementDrawerOpen = ref(false)
+const selectedMovement = ref<WalletHistoryRow | null>(null)
+const movementParts = ref<MovementPart[]>([])
+const movementPartsLoading = ref(false)
+
+const movementMeta = computed(() => (selectedMovement.value ? getOperationMeta(selectedMovement.value.operation_code) : undefined))
+/** Поступление на общий кошелёк участка — иначе списание с него. */
+const movementIncoming = computed(() => movementMeta.value?.wallet_to === BRANCH_COMMON_WALLET)
+const movementDescription = computed(() => {
+  const key = selectedMovement.value ? MOVEMENT_DESCRIPTION_KEYS[selectedMovement.value.operation_code] : undefined
+  return key ? i18nT(`marketplace.operatorBranchEconomyPage.movementDescription.${key}` as MarketplaceMessageKey) : ''
+})
+const isDistribution = computed(() => selectedMovement.value?.operation_code === DISTRIBUTION_RELEASE)
+const movementRecipients = computed(() => movementParts.value.filter((p) => p.operation_code === DISTRIBUTION_PERSONAL))
+const movementRecipientsTotal = computed(() =>
+  movementRecipients.value.reduce((sum, p) => sum + assetAmount(p.quantity ?? ''), 0),
+)
+/** Доля, которой соответствует открытая строка изъятия: зачисление сразу за ней в той же транзакции. */
+const movementOwnShare = computed(() => {
+  const row = selectedMovement.value
+  if (!row || !isDistribution.value) return null
+  const after = movementRecipients.value.filter((p) => BigInt(p.global_sequence) > BigInt(row.global_sequence))
+  return after.length ? after[0].global_sequence : null
+})
+
+function walletTitle(name: string | null | undefined): string {
+  if (!name) return '—'
+  return getWalletHumanName(name) ?? name
+}
+
+function recipientLabel(username: string | null | undefined): string {
+  if (!username) return '—'
+  return nameByUsername.value[username] || username
+}
+
+async function openMovement(row: WalletHistoryRow): Promise<void> {
+  selectedMovement.value = row
+  movementParts.value = []
+  movementDrawerOpen.value = true
+  if (row.operation_code !== DISTRIBUTION_RELEASE || !row.order_hash || !braname.value) return
+  movementPartsLoading.value = true
+  try {
+    movementParts.value = await getBranchMovementParts({ braname: braname.value, process_hash: row.order_hash })
+  } catch (e) {
+    FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.movementPartsFailed'))
+  } finally {
+    movementPartsLoading.value = false
+  }
+}
+
+function openMovementOrder(): void {
+  const orderId = selectedMovement.value?.order_id
+  if (!orderId) return
+  movementDrawerOpen.value = false
+  goToOrder(orderId)
 }
 
 function assetAmount(asset: string): number {
@@ -902,8 +977,8 @@ q-page.economy
           row-key='global_sequence',
           :loading='firstLoad',
           min-width='900px',
-          :clickable-rows='hasOrder',
-          @row-click='openHistoryOrder'
+          clickable-rows,
+          @row-click='openMovement'
         )
           template(#cell-date='{ row }')
             span.t-mono {{ formatDateToLocalTimezone(row.created_at, 'DD.MM.YYYY HH:mm') }}
@@ -1278,6 +1353,52 @@ q-page.economy
         template(#icon)
           q-icon(name='event_repeat', size='48px')
 
+  //- Движение по общему кошельку участка: сумма и направление, путь денег
+  //- (с какого кошелька на какой), что это за операция, у распределения —
+  //- получатели долей, у взноса по заказу — кнопка «Открыть заказ» внизу.
+  DetailsDrawer(
+    v-model='movementDrawerOpen',
+    :title='selectedMovement ? operationLabel({ operationCode: selectedMovement.operation_code, action: "apply" }) : ""',
+    :width='520'
+  )
+    template(v-if='selectedMovement')
+      .economy__drawer-amount
+        .t-muted {{ movementIncoming ? $t('marketplace.operatorBranchEconomyPage.movementIncoming') : $t('marketplace.operatorBranchEconomyPage.movementOutgoing') }}
+        .economy__drawer-sum {{ movementIncoming ? '+' : '−' }} {{ formatAsset2Digits(selectedMovement.quantity ?? '') }}
+        .t-muted {{ formatDateToLocalTimezone(selectedMovement.created_at, 'DD.MM.YYYY HH:mm') }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.movementPathTitle') }}
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.movementFrom")', :value='walletTitle(movementMeta?.wallet_from)')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.movementTo")', :value='walletTitle(movementMeta?.wallet_to)')
+      .economy__drawer-group(v-if='movementDescription')
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.movementWhatTitle') }}
+        p.economy__drawer-text {{ movementDescription }}
+      .economy__drawer-group(v-if='isDistribution')
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.movementRecipientsTitle') }}
+        template(v-if='movementPartsLoading')
+          q-skeleton(v-for='n in 3', :key='n', type='text')
+        template(v-else-if='movementRecipients.length')
+          DataRow(
+            v-for='p in movementRecipients',
+            :key='p.global_sequence',
+            align='spread',
+            :label='recipientLabel(p.username)',
+            :value='formatAsset2Digits(p.quantity ?? "")',
+            :hint='p.global_sequence === movementOwnShare ? $t("marketplace.operatorBranchEconomyPage.movementOwnShareHint") : undefined',
+            mono
+          )
+          DataRow(
+            align='spread',
+            :label='$t("marketplace.operatorBranchEconomyPage.movementRecipientsTotal")',
+            :value='formatAsset2Digits(`${movementRecipientsTotal.toFixed(4)} ${assetSymbol(selectedMovement.quantity ?? "")}`)',
+            mono
+          )
+        .t-muted(v-else) {{ $t('marketplace.operatorBranchEconomyPage.movementRecipientsEmpty') }}
+      .economy__drawer-group(v-if='selectedMovement.memo')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.columnPurpose")', :value='selectedMovement.memo')
+    template(v-if='selectedMovement?.order_id', #footer)
+      BaseButton(variant='secondary', @click='openMovementOrder') {{ $t('marketplace.operatorBranchEconomyPage.movementOpenOrder') }}
+
   //- Состав итога месяца — правая панель: факты прогона, расчёт контракта,
   //- получатель доли инициатора.
   DetailsDrawer(v-model='periodDrawerOpen', :title='selectedPeriod ? monthLabel(selectedPeriod) : ""')
@@ -1617,6 +1738,13 @@ q-page.economy
 
   &__drawer-badge {
     align-self: flex-start;
+  }
+
+  &__drawer-text {
+    margin: 0;
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body, 1.5);
   }
 
   &__get-funds-note {

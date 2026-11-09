@@ -129,6 +129,21 @@ export class MarketplaceEconomyResolver {
     };
   }
 
+  @Query(() => [MarketplaceBranchWalletOperationDTO], {
+    name: 'marketplaceGetBranchMovementParts',
+    description:
+      'Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
+  async marketplaceGetBranchMovementParts(
+    @Args('braname') braname: string,
+    @Args('process_hash') processHash: string
+  ): Promise<MarketplaceBranchWalletOperationDTO[]> {
+    const parts = await this.economyService.getBranchMovementParts(platformSettings().coopname, braname, processHash);
+    return parts.map(toMarketplaceBranchWalletOperationDTO);
+  }
+
   @Mutation(() => Boolean, {
     name: 'marketplaceDistributeBranchFunds',
     description:

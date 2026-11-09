@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { t as i18nT } from 'src/shared/i18n'
-import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
+import { useConfirm, useFirstLoad, useTabQuery } from 'src/shared/lib/composables'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, branchPersonNames, useOperatorBranchStore } from 'src/entities/OperatorBranch'
@@ -99,7 +99,8 @@ const mine = computed(() => myRows.value.find((r) => r.braname === braname.value
 // ─── Разделы страницы ───
 
 type TabKey = 'mine' | 'property' | 'initiators'
-const activeKey = ref<TabKey>('mine')
+// Раздел страницы — в адресе (?tab=): ссылка открывает тот же раздел.
+const activeKey = useTabQuery<TabKey>(['mine', 'property', 'initiators'], 'mine')
 
 const pendingProperties = computed<MarketplaceInvestPropertyView[]>(() => {
   const rows = branchView.value?.properties ?? []

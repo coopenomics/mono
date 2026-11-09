@@ -49,6 +49,7 @@ export const rawMarketplaceBranchWalletOperationSelector = {
   memo: true,
   order_hash: true,
   order_id: true,
+  username: true,
   created_at: true,
 }
 export const marketplaceBranchWalletOperationSelector = Selector('MarketplaceBranchWalletOperation')(
