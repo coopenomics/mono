@@ -25,7 +25,7 @@ import {
   waitFor,
 } from '../core'
 import { KRG, pickOffer } from './flow'
-import { type BranchEconomy, branchEconomy, chargeSecurePart, ensurePersonalFunds, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
+import { type BranchEconomy, branchEconomy, chargeIntoCommon, ensureAidFunds, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
 
 const ODN = 'odn'
 const TRUSTED_KRG = 'trustedkrg'
@@ -114,7 +114,7 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
     const onIssue = amount((await branchEconomy(krgToken, KRG)).common_balance)
     expect(onIssue, 'на выдаче членского взноса участку ещё нет').toBeCloseTo(before, 2)
     partBeforeCharge = await securePartWhen(issued.orderId, 'DUE')
-    await chargeSecurePart({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
+    await chargeIntoCommon({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
     partAfterCharge = await securePartWhen(issued.orderId, 'CHARGED')
     const after = amount((await branchEconomy(krgToken, KRG)).common_balance)
     expect(after, 'списанная обеспечительная часть обязана попасть в общий кошелёк участка').toBeGreaterThan(before)
@@ -418,10 +418,10 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
     // До 25.09.2026 сумма платежа хранилась целым числом, и выплата 87,50 ₽
     // падала «invalid input syntax for type integer».
     const gross = 100.5
-    // Предыдущее заявление уже забрало свою сумму с персонального кошелька —
-    // пополняем его распределением общего кошелька участка.
-    await ensurePersonalFunds(gross, chairkrg)
-    expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
+    // Предыдущее заявление уже забрало свою сумму с персонального кошелька.
+    // Случай проверяет округление налога, а не источник денег: при нехватке
+    // контракт берёт помощь из свободных средств инициаторов участка.
+    await ensureAidFunds(gross, chairkrg)
     const { aidHash } = await submitAid(gross)
     const request = await payoutRequest(aidHash)
     expect(request, 'заявка на выплату материальной помощи у получателя').toBeTruthy()

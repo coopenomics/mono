@@ -8,7 +8,7 @@
  * реестр общий для всего прогона.
  */
 import crypto from 'node:crypto'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, ROLES, caseName, gql, gqlError, tokenOf } from '../core'
 
 const KRG = 'krg'
@@ -37,6 +37,19 @@ function planInput(over: Record<string, unknown> = {}): Record<string, unknown> 
   }
 }
 
+/**
+ * Планы, заведённые набором. Неоплаченный план со сроком в ближайшие 30 дней
+ * держит резерв расходов участка: оставленные планы (4 × 1234,5 ₽) закрывали
+ * распределение средств участка в следующих наборах. Набор стирает их за собой.
+ */
+const created: number[] = []
+
+async function createTracked(token: string, variables: Record<string, unknown>): Promise<any> {
+  const d = await gql<any>(token, CREATE, variables)
+  created.push(Number(d.createExpensePlan.id))
+  return d
+}
+
 async function listed(token: string, id: number, braname?: string): Promise<any | undefined> {
   const d = await gql<any>(token, LIST, { d: braname ? { braname } : null })
   return d.listExpensePlans.find((p: any) => p.id === id)
@@ -55,9 +68,14 @@ describe('expenses: реестр плановых расходов', () => {
     chairman = await tokenOf(CHAIRMAN)
   })
 
+  afterAll(async () => {
+    // Уже удалённые случаями набора планы отвечают «не найден» — это не ошибка.
+    for (const id of created) await gql(branchChair, DELETE, { d: { plan_id: id } }).catch(() => {})
+  })
+
   it(caseName('exp.plan.happy.01', 'председатель участка заводит плановый расход, реестр отдаёт его с суммой, сроком и реквизитами'), async () => {
     const input = planInput()
-    const d = await gql<any>(branchChair, CREATE, { d: input })
+    const d = await createTracked(branchChair, { d: input })
     const plan = d.createExpensePlan
     expect(plan.id).toBeGreaterThan(0)
     expect(plan.braname).toBe(KRG)
@@ -77,14 +95,14 @@ describe('expenses: реестр плановых расходов', () => {
   })
 
   it(caseName('exp.plan.happy.02', 'регулярный расход сохраняет периодичность'), async () => {
-    const d = await gql<any>(branchChair, CREATE, { d: planInput({ recurrence: 'MONTHLY', due_date: inDays(20) }) })
+    const d = await createTracked(branchChair, { d: planInput({ recurrence: 'MONTHLY', due_date: inDays(20) }) })
     expect(d.createExpensePlan.recurrence).toBe('MONTHLY')
     const row = await listed(branchChair, d.createExpensePlan.id, KRG)
     expect(row?.recurrence).toBe('MONTHLY')
   })
 
   it(caseName('exp.plan.happy.03', 'председатель участка удаляет плановый расход — из реестра он пропадает'), async () => {
-    const d = await gql<any>(branchChair, CREATE, { d: planInput() })
+    const d = await createTracked(branchChair, { d: planInput() })
     const id = d.createExpensePlan.id
     expect(await listed(branchChair, id, KRG)).toBeDefined()
     const del = await gql<any>(branchChair, DELETE, { d: { plan_id: id } })
@@ -110,7 +128,7 @@ describe('expenses: реестр плановых расходов', () => {
     const err = await gqlError(foreignChair, CREATE, { d: input })
     expect(err?.code).toBe('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN')
 
-    const own = await gql<any>(branchChair, CREATE, { d: planInput() })
+    const own = await createTracked(branchChair, { d: planInput() })
     const id = own.createExpensePlan.id
     const delErr = await gqlError(foreignChair, DELETE, { d: { plan_id: id } })
     expect(delErr?.code).toBe('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN')
@@ -141,7 +159,7 @@ describe('expenses: реестр плановых расходов', () => {
   // До 25.09.2026 реестр с реквизитами получателей был открыт любому пайщику
   // (решение владельца 25.09: закрыть, C28-80).
   it(caseName('exp.plan.side.08', 'реестр с реквизитами видят совет и операторы участка — пайщику и чужому участку отказ'), async () => {
-    const plan = (await gql<any>(branchChair, CREATE, { d: planInput() })).createExpensePlan
+    const plan = (await createTracked(branchChair, { d: planInput() })).createExpensePlan
 
     for (const [who, token] of [['пайщик', member], ['председатель чужого участка', foreignChair]] as const) {
       expect((await gqlError(token, LIST, { d: { braname: KRG } }))?.code, who).toBe('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN')

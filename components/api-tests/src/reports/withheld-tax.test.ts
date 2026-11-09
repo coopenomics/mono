@@ -28,15 +28,7 @@ import { chainChangesOf, settleSubscriptions, waitSignal, wsAs } from '../platfo
 const PAY = 'mutation($d:PayWithheldTaxInput!){ payWithheldTax(data:$d) }'
 const OUTCOMES = { code: 'gateway', table: 'outcomes' }
 
-/**
- * Выплата помощи пополняет участок списанием обеспечительной части заказа, а
- * контракт списывает её только после окончания периода (задача 99D-33). В
- * настоящем времени период — календарный месяц, поэтому набор идёт в фазе
- * полигона со сжатым временем (stack.sh keu) и без неё пропускается.
- */
-const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
-
-describe.skipIf(!COMPRESSED)('отчёты: перечисление удержанного НДФЛ в бюджет', () => {
+describe('отчёты: перечисление удержанного НДФЛ в бюджет', () => {
   let chair: string
   /** Платёж, от которого кассир откажется, и платёж, который он проведёт. */
   let declinedHash = ''

@@ -307,15 +307,17 @@ KEU_MONTH_SECONDS="${KEU_MONTH_SECONDS:-600}"
 KEU_DAY_SECONDS="${KEU_DAY_SECONDS:-60}"
 
 # Шкала времени стенда: длины суток и месяца в окружении контроллера и его
-# пересоздание. Пустые значения — настоящее время.
+# пересоздание. Пустые значения — настоящее время. Пятый аргумент — шаг фоновых
+# обходов (STAND_WORKER_PACE_SECONDS); пусто — минута.
 keu_stand_time() {
-  local day="$1" month="$2" label="$3" saved_log="$4"
+  local day="$1" month="$2" label="$3" saved_log="$4" pace="${5:-}"
   # Пересоздание контейнера стирает его журнал: сохраняем прожитое до него,
   # иначе по артефактам прогона не разобрать ни сценарные наборы, ни саму фазу.
   mkdir -p "$OUT/logs"
   docker compose logs --no-color --timestamps coopback > "$OUT/logs/$saved_log" 2>&1 || true
   set_env components/controller/.env STAND_DAY_SECONDS "$day"
   set_env components/controller/.env STAND_MONTH_SECONDS "$month"
+  set_env components/controller/.env STAND_WORKER_PACE_SECONDS "$pace"
   echo "▸ ${label} — пересоздаём контроллер..."
   docker compose up -d --no-deps --force-recreate coopback
   if ! stack_wait_for "API контроллера" 300 3 api_ready; then
@@ -333,17 +335,18 @@ cmd_keu() {
   (
     cd components/api-tests
     # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
-    # Экономика участка (economy) и отчёты по выплатам помощи (ndfl6,
-    # withheld-tax: участок пополняется списанием заказа) ждут списания
-    # обеспечительной части по итогу периода (99D-33): в настоящем времени
-    # его не дождаться.
+    # Экономика участка (economy) ждёт списания обеспечительной части по
+    # итогу периода (99D-33): в настоящем времени его не дождаться.
     pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts \
-      src/reports/ndfl6.test.ts src/reports/withheld-tax.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
   ) || failed=1
   # Контрактные тесты счётчиков списания (99D-33): итог участка и списание строки
-  # пайщика после окончания периода стенда — та же сжатая шкала, своя цепь.
+  # пайщика после окончания периода стенда — та же сжатая шкала. Тесты сами
+  # считают итог и списывают строку и сверяют кошельки до и после, поэтому
+  # крон списания узла на это время молчит: шаг обходов — год. Иначе узел
+  # списывает строку раньше теста, и проверять нечего.
+  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Контрактные тесты — обходы узла остановлены" coopback-keu-api.log 31536000
   (
     CHAIN_ID="$(chain_id)"
     export CHAIN_ID

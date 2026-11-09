@@ -20,7 +20,7 @@ import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
 import { amount } from '../core/wallet'
-import { ensurePersonalFunds } from '../marketplace/mkt-flows.helpers'
+import { ensureAidFunds } from '../marketplace/mkt-flows.helpers'
 import { paymentByHash as paymentSeenBy } from '../payments/payments.helpers'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
@@ -322,7 +322,7 @@ export interface AidPayout {
 export async function payAid(gross: number, recipient: Who = ROLES.branchChairman()): Promise<AidPayout> {
   const chair = recipient
   const token = await tokenOf(chair)
-  await ensurePersonalFunds(gross, recipient)
+  await ensureAidFunds(gross, recipient)
   const methodId = await paymentMethodOf(recipient)
 
   const pl = await gql<any>(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){

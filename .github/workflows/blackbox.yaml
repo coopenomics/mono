@@ -197,8 +197,9 @@ jobs:
         id: keu
         if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
         # Наборы со списанием по итогу периода (99D-33) ждут смены периода
-        # стенда: экономика участка, отчёты по выплатам помощи, контрактные
-        # тесты boot — фазе нужно больше 45 минут.
+        # стенда: экономика участка и контрактные тесты boot (перед ними
+        # контроллер пересоздаётся с остановленными обходами) — фазе нужно
+        # больше 45 минут.
         timeout-minutes: 75
         run: bash scripts/blackbox/stack.sh keu
 
