@@ -24,6 +24,7 @@ void soviet::unblock(eosio::name coopname, eosio::name admin, eosio::name userna
     
   participants_index participants(_soviet, coopname.value);
   auto participant = participants.find(username.value);
+  eosio::check(participant != participants.end(), "SOVIET_PARTICIPANT_NOT_FOUND: Пайщик не найден в кооперативе");
   
   eosio::asset minimum = participant -> type.value() == "organization"_n ? cooperative.org_minimum.value() : cooperative.minimum;
   eosio::asset initial = participant -> type.value() == "organization"_n ? cooperative.org_initial.value() : cooperative.initial;
@@ -48,6 +49,11 @@ void soviet::unblock(eosio::name coopname, eosio::name admin, eosio::name userna
   //   ).send();      
   // } 
   
+  // Пайщик возвращается в счётчик активных пайщиков, только если выпадал из
+  // него: блокировка вычитала его через decparticpnt. Повторная разблокировка
+  // уже активного пайщика счётчик не трогает.
+  const bool returns_to_count = !(participant->is_active() && participant->has_vote);
+
   participants.modify(participant, RamPayer::of(participants, coopname), [&](auto &row){
     row.status = "accepted"_n;
     row.is_initial = true;
@@ -56,5 +62,14 @@ void soviet::unblock(eosio::name coopname, eosio::name admin, eosio::name userna
     row.minimum_amount = minimum;
     row.initial_amount = initial;   
   });
+
+  if (returns_to_count) {
+    action(
+      permission_level{_soviet, "active"_n},
+      _registrator,
+      "incparticpnt"_n,
+      std::make_tuple(coopname, username)
+    ).send();
+  }
   
 };

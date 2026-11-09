@@ -1,0 +1,81 @@
+feature: registrator.participants-counter
+title: Счётчик активных пайщиков и минимальные взносы ранних пайщиков
+
+# Счётчик registrator::coops.active_participants_count — знаменатель кворума
+# общего собрания (meet::vote). Его ведут приращения: приём (confirmreg,
+# adduser) прибавляет, блокировка (block) и выход (delpartcpnt) вычитают через
+# decparticpnt. До 09.11.2026 разблокировка не прибавляла обратно, и у ВОСХОДа
+# счётчик разошёлся с реестром совета: 45 при 46 пайщиках с правом голоса
+# (C28-42). Исправление — incparticpnt из soviet::unblock и пересчёт счётчика по
+# реестру совета в registrator::migrate.
+#
+# Там же разовые правки боевого ВОСХОДа: удаление тестового пайщика hwpzzazaupgh
+# (soviet::migrate, registrator::migrate) и перенос минимальных взносов 33
+# ранних пайщиков с кооперативного кошелька w.sov.mnused на личные строки
+# w.reg.minshr (ledger2::migrate), без проводок. Без личной строки выход
+# (registrator::confirmexit) минимальный взнос не возвращал.
+
+sources:
+  contract:
+    - components/contracts/cpp/registrator/src/coop/incparticpnt.cpp
+    - components/contracts/cpp/registrator/src/coop/decparticpnt.cpp
+    - components/contracts/cpp/registrator/src/system/migrate.cpp
+    - components/contracts/cpp/soviet/src/participant/unblock.cpp
+    - components/contracts/cpp/soviet/src/participant/block.cpp
+    - components/contracts/cpp/soviet/src/system/migrate.cpp
+    - components/contracts/cpp/ledger2/src/migrate/migrate.cpp
+
+cases:
+  - id: counter.happy.01
+    level: contract
+    kind: happy
+    scenario: Председатель блокирует пайщика и снимает блокировку.
+    expect: Блокировка вычитает пайщика из счётчика, разблокировка возвращает; счётчик равен числу принятых пайщиков с правом голоса.
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: counter.side.01
+    level: contract
+    kind: side
+    scenario: Повторная разблокировка уже активного пайщика.
+    expect: Счётчик не меняется.
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: counter.break.01
+    level: contract
+    kind: break
+    scenario: Разблокировка пайщика, которого нет в реестре.
+    expect: Отказ с кодом SOVIET_PARTICIPANT_NOT_FOUND.
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: counter.break.02
+    level: contract
+    kind: break
+    scenario: Счётчик пытается увеличить не контракт совета.
+    expect: Отказ «missing authority of soviet».
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: counter.side.02
+    level: contract
+    kind: side
+    scenario: Раскатка вызывает registrator::migrate, в том числе повторно.
+    expect: Счётчик равен числу принятых пайщиков с правом голоса; повторный вызов ничего не меняет.
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: minshare.side.01
+    level: contract
+    kind: side
+    scenario: Раскатка вызывает ledger2::migrate на цепи без кошелька w.sov.mnused.
+    expect: Кошелёк и личные строки минимальных взносов не меняются.
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: minshare.happy.01
+    level: contract
+    kind: happy
+    scenario: Раскатка на боевом ВОСХОДе переносит минимальные взносы ранних пайщиков на личные строки.
+    expect: У 33 пайщиков появляется строка w.reg.minshr на сумму взноса из реестра совета; w.sov.mnused уменьшается на 31 500 RUB, w.reg.minshr растёт на столько же; тестер исключён.
+    test: ~
+    status: missing
+    note: >
+      Состояние w.sov.mnused на стенде не воспроизводится: ни одна операция на
+      этот кошелёк не пишет, он заведён только миграцией боевого ВОСХОДа.
+      Проверяется чтением боевой цепи после раскатки.

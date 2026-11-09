@@ -173,4 +173,102 @@ void ledger2::migrate() {
                    eosio::sha256(seed.data(), seed.size()),
                    "Хозяйственные расходы, произведённые до цифрового учёта (миграция 10.05.2026, сверено с бухгалтером)");
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Минимальные паевые взносы ранних пайщиков — на личные кошельки (C28-42,
+  // 09.11.2026).
+  //
+  // При переходе ВОСХОДа на ledger2 (migrate_voskhod_facts, 13.05.2026)
+  // минимальные взносы 34 пайщиков, принятых до перехода, легли общей суммой на
+  // кооперативный кошелёк w.sov.mnused («использованные минимальные паевые
+  // взносы»: деньги к тому времени вложены в активы, счёт 08) — без личных
+  // строк. Долг перед пайщиками остался на счёте 80, а выход его не видел:
+  // registrator::confirmexit возвращает минимальный взнос только с личной строки
+  // w.reg.minshr, и у этих пайщиков он молча не возвращался бы. Пайщики,
+  // принятые после перехода, получают личную строку при приёме (o.reg.setmin).
+  //
+  // Приводим ранних пайщиков к тому же виду: личная строка w.reg.minshr на сумму
+  // взноса из реестра совета (minimum_amount — сумма, внесённая при приёме), и
+  // ровно столько же переносится с w.sov.mnused на w.reg.minshr на уровне
+  // кошельков кооператива. Проводок нет: обязательство уже стоит на счёте 80,
+  // меняется только разбивка по пайщикам; Σ L3 == L2 у w.reg.minshr сохраняется.
+  //
+  // Кого переносим — всё сразу:
+  //   • пайщик принят советом (accepted) до перехода на ledger2;
+  //   • личной строки w.reg.minshr у него нет;
+  //   • выхода в работе нет: confirmexit уже снял строку на главный паевой, и
+  //     повторное заведение вернуло бы взнос дважды;
+  //   • сумма помещается в остаток w.sov.mnused — переносим только то, что лежит
+  //     на кошельке, и никогда не уводим его в минус.
+  // Тестовый пайщик hwpzzazaupgh денег не вносил и исключён (список
+  // синхронизирован с registrator::migrate и soviet::migrate); его 300 RUB
+  // остаются на w.sov.mnused без проводок — решение председателя.
+  //
+  // Кооператив без w.sov.mnused не затрагивается (на всех сетях, кроме боевого
+  // ВОСХОДа, кошелька нет). Перебор реестра — разовая работа раскатки, пайщиков
+  // в кооперативе десятки. Идемпотентно: перенесённые получают строку и больше
+  // под условие не попадают.
+  {
+    const eosio::name MINSHR = ledger2_wallets::MIN_SHARE_FUND;  // w.reg.minshr
+    const eosio::name MNUSED = ledger2_wallets::MIN_SHARE_USED;  // w.sov.mnused
+    const eosio::name TEST_PARTICIPANT = "hwpzzazaupgh"_n;
+    // Переход ВОСХОДа на ledger2: 13.05.2026 00:00 UTC.
+    const eosio::time_point_sec LEDGER2_SWITCH(1778630400);
+
+    for (auto c = coops.begin(); c != coops.end(); ++c) {
+      const eosio::name coopname = c->username;
+
+      wallets2_index wallets(get_self(), coopname.value);
+      auto mnused = wallets.find(MNUSED.value);
+      if (mnused == wallets.end() || mnused->available.amount <= 0) continue;
+
+      eosio::asset remaining = mnused->available;
+      eosio::asset moved(0, remaining.symbol);
+
+      userwallets_index user_wallets(get_self(), coopname.value);
+      auto by_userwallet = user_wallets.get_index<"byuserwallet"_n>();
+      participants_index participants(_soviet, coopname.value);
+      Registrator::exits_index exits(_registrator, coopname.value);
+
+      for (auto p = participants.begin(); p != participants.end(); ++p) {
+        if (p->username == TEST_PARTICIPANT) continue;
+        if (!p->is_active() || p->created_at >= LEDGER2_SWITCH) continue;
+        if (!p->minimum_amount.has_value()) continue;
+
+        const eosio::asset amount = p->minimum_amount.value();
+        if (amount.amount <= 0 || amount.symbol != remaining.symbol || amount > remaining) continue;
+        if (exits.find(p->username.value) != exits.end()) continue;
+        if (by_userwallet.find(combine_ids(MINSHR.value, p->username.value)) != by_userwallet.end()) continue;
+
+        const uint64_t new_id = user_wallets.available_primary_key();
+        user_wallets.emplace(RamPayer::of(user_wallets, coopname), [&](auto& uw) {
+          uw.id          = new_id;
+          uw.wallet_name = MINSHR;
+          uw.username    = p->username;
+          uw.available   = amount;
+          uw.blocked     = eosio::asset(0, amount.symbol);
+        });
+        moved     += amount;
+        remaining -= amount;
+      }
+
+      if (moved.amount == 0) continue;
+
+      // L2: w.sov.mnused → w.reg.minshr на перенесённую сумму.
+      wallets.modify(mnused, RamPayer::of(wallets), [&](auto& w) { w.available -= moved; });
+      if (mnused->is_empty()) wallets.erase(mnused);
+
+      auto minshr = wallets.find(MINSHR.value);
+      if (minshr == wallets.end()) {
+        wallets.emplace(RamPayer::of(wallets), [&](auto& w) {
+          w.id        = MINSHR;
+          w.name      = std::string(ledger2_get_wallet_human_name(MINSHR));
+          w.available = moved;
+          w.blocked   = eosio::asset(0, moved.symbol);
+        });
+      } else {
+        wallets.modify(minshr, RamPayer::of(wallets), [&](auto& w) { w.available += moved; });
+      }
+    }
+  }
 }
