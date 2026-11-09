@@ -312,23 +312,7 @@ public:
   [[eosio::action]] void setfee(eosio::name coopname,
                                  uint64_t membership_fee_percent);
 
-  /**
-   * @brief Списание обеспечительной части паевого взноса в членский взнос
-   * кооперативного участка по условиям ЦПП (задача 99D-18). Когда и сколько
-   * списывать, называет бэкенд по своему учёту заказов (первое число месяца
-   * после окончания гарантийного срока); контракт держит только потолок —
-   * не больше остатка w.mkt.due пайщика. Одной транзакцией: o.mkt.charge
-   * (w.mkt.due → w.mkt.fee) и o.brn.common (w.mkt.fee → w.brn.common,
-   * Дт 80 / Кт 86). `order_hash` — хэш процесса заказа. Авторизация: кооператив.
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void chargedue(eosio::name coopname,
-                                    eosio::name username,
-                                    eosio::name braname,
-                                    checksum256 order_hash,
-                                    eosio::asset amount);
-
-  // ── Коэффициент экономического участия (задача 99D-21, КЭУ-3) ──
+  // ── Коэффициент экономического участия (задачи 99D-21, 99D-33; процесс p.mkt.due) ──
   /**
    * @brief Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100%);
    * остальное возвращается пайщикам. По умолчанию 61,8 %. Ставит администратор.
@@ -345,17 +329,16 @@ public:
                                        eosio::name braname,
                                        eosio::name username);
   /**
-   * @brief Расчёт итога прогона участка по пяти фактам ИСТОКА: стоимость
-   * заказов прогона, собранная обеспечительная часть, плановые расходы,
-   * служебные записки, выплаченная материальная помощь. Контракт считает
-   * членский взнос участка, фонды, долю инициатора, возврат и ставки прогона.
+   * @brief Расчёт итога периода участка: стоимость заказов и собранная
+   * обеспечительная часть — из счётчика участка в цепи; узел передаёт только
+   * факты о расходах, которых в цепи нет: плановые расходы, служебные записки,
+   * выплаченная материальная помощь. Контракт считает членский взнос участка,
+   * фонды, долю инициатора, возврат и ставки прогона.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void closeperiod(eosio::name coopname,
                                       eosio::name braname,
                                       uint32_t period,
-                                      eosio::asset turnover,
-                                      eosio::asset secured,
                                       eosio::asset planned,
                                       eosio::asset memos,
                                       eosio::asset aid_paid);
@@ -367,17 +350,37 @@ public:
                                     eosio::name braname,
                                     uint32_t period);
   /**
-   * @brief Списание обеспечительной части заказа по ставкам прогона: участку,
-   * в фонды накопления, инициатору, остаток — пайщику на свободный паевой.
+   * @brief Списание строки счётчика пайщика за период по ставкам итога:
+   * участку, в фонды накопления, инициатору, остаток — пайщику на свободный
+   * паевой; удержания при отказе — участку целиком. Суммы — из счётчика в
+   * цепи, узел называет пайщика, участок и период. Строка стирается.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void chargeperiod(eosio::name coopname,
                                        eosio::name username,
                                        eosio::name braname,
-                                       checksum256 order_hash,
-                                       eosio::asset amount,
-                                       eosio::asset base,
                                        uint32_t period);
+  /**
+   * @brief Выход пайщика состоялся (зовёт registrator): остаток обеспечительной
+   * части к списанию — в членский взнос участка пайщика немедленно, строки его
+   * счётчиков стираются.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void exitdue(eosio::name coopname,
+                                  eosio::name username,
+                                  checksum256 exit_hash);
+  /**
+   * @brief Переходное: перенос незакрытой строки зеркала узла в счётчики
+   * списания при первом старте после обновления; под потолком остатка кошелька.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void migratedue(eosio::name coopname,
+                                     eosio::name username,
+                                     eosio::name braname,
+                                     uint32_t period,
+                                     eosio::asset turnover,
+                                     eosio::asset due,
+                                     eosio::asset retained);
 
   // ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
   /**

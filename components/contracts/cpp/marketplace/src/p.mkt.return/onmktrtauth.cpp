@@ -49,14 +49,11 @@ void marketplace::onmktrtauth(eosio::name coopname,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
   // Обеспечительная часть за возвращённое — с кошелька к списанию на
-  // свободный паевой. Бэкенд не списывает её до конца гарантии, поэтому
-  // нехватка означает расхождение учёта бэкенда с контрактом.
+  // свободный паевой. Счётчики списания (задача 99D-33) уменьшаются на
+  // возвращённое; строки счётчика нет — обеспечительная часть по заказу уже
+  // списана по итогу периода, и решение совета не исполняется (отказ с кодом).
   if (r.fee_refund.amount > 0) {
-    const auto due = Marketplace::get_user_wallet_balance(
-        coopname, ledger2_wallets::MARKETPLACE_SECURE_DUE, r.orderer);
-    eosio::check(due.available >= r.fee_refund,
-                 std::string{"MARKETPLACE_DUE_EXCEEDS: На кошельке обеспечительной части меньше суммы возврата: требуется "} +
-                   r.fee_refund.to_string() + ", доступно " + due.available.to_string());
+    Marketplace::Dues::note_return(coopname, o, r.fact_cost, r.fee_refund);
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::DUE_TO_SHARE,
                    processes::marketplace::RETURN,

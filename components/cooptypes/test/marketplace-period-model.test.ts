@@ -7,7 +7,7 @@ import { MarketContract } from '../src'
  * разделы 8, 9, 16; реестр marketplace.order, случаи mkt.order.keu.model.*).
  *
  * Эталон повторяет арифметику контрактов `closeperiod`, `chargeperiod` и
- * `fund::accrue`. Тест цепи `boot/src/tests/marketplace-period-math.test.ts`
+ * `fund::accrue`. Тест цепи `boot/src/tests/marketplace-period.test.ts`
  * сверяет с ним строки, которые посчитал контракт; здесь проверяются свойства
  * самой модели на сотнях ситуаций, без цепи:
  *  - контрольные примеры документа (участки А и Б);
@@ -518,3 +518,27 @@ describe('эталон возврата паевых взносов инициа
   })
 })
 
+
+// ── Списание строки счётчика пайщика (задача 99D-33) ─────────────────────────
+describe('mkt.order.keu.model.05 — деление строки счётчика пайщика: ставки по стоимости, удержание целиком участку', () => {
+  const { chargeRow, chargeProcessSeed } = MarketContract.PeriodModel
+  const rates = { rateBranch: 166_666n, rateFunds: 44_303n, rateInitiator: 104_460n }
+
+  it('строка со стоимостью и без удержаний равна делению заказа; удержание прибавляется участку и списанному', () => {
+    const plain = chargeRow(rates, rub(3_800), rub(10_000), 0n)
+    expect(plain).toEqual(chargeOrder(rates, rub(3_800), rub(10_000)))
+    const withRetained = chargeRow(rates, rub(3_800), rub(10_000), rub(500))
+    expect(withRetained.branch).toBe(plain.branch + rub(500))
+    expect(withRetained.charged).toBe(plain.charged + rub(500))
+    expect([withRetained.funds, withRetained.initiator, withRetained.returned]).toEqual([plain.funds, plain.initiator, plain.returned])
+  })
+
+  it('строка без стоимости: удержание участку целиком, ставки не нужны, возврат — вся часть к списанию', () => {
+    expect(chargeRow(rates, 0n, 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, returned: 0n, charged: rub(500) })
+    expect(chargeRow(rates, rub(10), 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, returned: rub(10), charged: rub(500) })
+  })
+
+  it('основание хэша нитки списания — строка с кооперативом, пайщиком, участком и периодом, как в контракте', () => {
+    expect(chargeProcessSeed('voskhod', 'ekaterina', 'krg', 24311)).toBe('p.mkt.due:voskhod:ekaterina:krg:24311')
+  })
+})

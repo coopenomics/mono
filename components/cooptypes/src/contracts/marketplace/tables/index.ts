@@ -26,6 +26,12 @@ export * as Config from './config'
 export * as Periods from './periods'
 
 /**
+ * Счётчики обеспечительной части к списанию: по пайщику и по участку за период (задача 99D-33).
+ */
+export * as Dues from './dues'
+export * as Counters from './counters'
+
+/**
  * Инициаторы кооперативных участков Стола заказов (задача 99D-21).
  */
 export * as Initiators from './initiators'

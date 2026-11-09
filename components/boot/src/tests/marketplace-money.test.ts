@@ -22,8 +22,11 @@
  *   • o.mkt.unlock — недовыдача разблокирует невыданный остаток заказчицы;
  *   • o.mkt.refund — неиспользованная обеспечительная часть возвращается пропорционально;
  *   • o.mkt.todue  — факт обеспечительной части ложится на кошелёк пайщика к
- *                    списанию НИТКОЙ ПОСТАВКИ по хэшу заказа; членским взносом
- *                    участка она станет после гарантийного срока (chargedue).
+ *                    списанию НИТКОЙ ПОСТАВКИ по хэшу заказа и встаёт в счётчики
+ *                    списания контракта (задача 99D-33); членским взносом участка
+ *                    она станет после окончания периода конца гарантийного срока
+ *                    (chargeperiod по строке счётчика пайщика, нитка p.mkt.due —
+ *                    тест marketplace-period.test.ts).
  *
  * Суммы не захардкожены: эталон берётся из самого заказа (`total_cost`,
  * `membership_fee`), поэтому тест не ломается от смены ставки взноса или
@@ -41,9 +44,12 @@ import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder, pickOffer } from './marketplace/orderFlow'
+import { branchCounter, coopPusher, currentPeriod, memberDues, units } from './marketplace/periodHelpers'
 import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, docMeta, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror } from './marketplace/chainHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
+const push = coopPusher(bc)
+const MARKET = 'marketplace'
 
 const BRANAME = 'krg'
 const ORDER_QTY = 4 // заказано единиц
@@ -346,41 +352,32 @@ describe('стол заказов — денежные места поставк
     expect(rowsAfter.filter(r => (r.action === 'debit' || r.action === 'credit') && r.accountId === ACC.TARGET).length, 'до списания счёт 86 не задет').toBe(0)
   }, 300_000)
 
-  it('mkt.secure.due: списание по условиям ЦПП (chargedue) — Дт 80 / Кт 86 в общий кошелёк участка ниткой поставки; больше остатка — отказ', async () => {
+  it('mkt.secure.due: выдача пополнила счётчики списания контракта — строку пайщицы и строку участка за период конца гарантии; до конца периода списания нет', async () => {
     const factFee = membershipFee * (ISSUED_QTY / ORDER_QTY)
-    const charge = (sum: number) => bc.transactWithLogs([{
-      account: 'marketplace',
-      name: 'chargedue',
-      authorization: [{ actor: COOP, permission: 'active' }],
-      data: { coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: orderHash, amount: `${sum.toFixed(4)} RUB` },
-    }])
+    const dues = await memberDues(bc, ekaterina.account, BRANAME)
+    expect(dues.size, 'у пайщицы есть строка счётчика на участке выдачи').toBeGreaterThan(0)
+    // Период строки — ближайший к концу гарантии: ищем строку, в которой лежит не меньше факта этого заказа.
+    const period = [...dues.entries()].filter(([, due]) => due >= units(factFee.toFixed(4))).map(([p]) => p).sort((a, b) => b - a)[0]
+    expect(period, 'строка пайщицы вмещает факт обеспечительной части заказа').toBeDefined()
+    const counter = await branchCounter(bc, BRANAME, period)
+    expect(counter, 'строка участка за тот же период').toBeDefined()
+    expect(units(counter.secured) >= units(factFee.toFixed(4))).toBe(true)
 
-    // Контракт держит потолок остатка кошелька к списанию.
-    await expect(charge(1_000_000)).rejects.toThrow(/MARKETPLACE_DUE_EXCEEDS/)
-
-    // Бэкенд списывает первого числа после гарантии; здесь зовём действие
-    // напрямую ключом кооператива — контракт сроки не проверяет.
-    await charge(Number(factFee.toFixed(4)))
-    ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.charge', 'o.brn.common'])
-    expect(sumOf(ops, 'o.mkt.charge'), 'списано ровно названное').toBeCloseTo(factFee, 2)
-    expect(sumOf(ops, 'o.brn.common'), 'вся списанная сумма зачислена участку').toBeCloseTo(factFee, 2)
-    expect(ops.find(r => r.operationCode === 'o.brn.common')!.username, 'зачисление на кошелёк участка выдачи').toBe(BRANAME)
-
+    // Период ещё идёт — контракт не списывает; у границы периода проверка не относится.
+    if (await currentPeriod(bc) === period) {
+      await expect(push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: BRANAME, period })).rejects.toThrow(/MARKETPLACE_PERIOD_OPEN/)
+    }
+    // В нитке заказа списания нет и быть не может: оно идёт ниткой строки счётчика (p.mkt.due).
     const rows = await historyOfProcess(chairmanToken, orderHash)
-    expect(postingsFor(rows, 'debit', ACC.SHARE, factFee).length, 'списание обязано лечь Дт 80').toBeGreaterThan(0)
-    expect(postingsFor(rows, 'credit', ACC.TARGET, factFee).length, 'списание обязано лечь Кт 86').toBeGreaterThan(0)
-    const toBranch = rows.filter(r => r.action === 'walletop' && r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.brn.common')
-    expect(toBranch.length, 'членский взнос обязан физически поступить на общий кошелёк участка').toBeGreaterThan(0)
+    expect(rows.some(r => r.operationCode === 'o.mkt.charge'), 'в нитке заказа списания нет').toBe(false)
+    expect(rows.filter(r => (r.action === 'debit' || r.action === 'credit') && r.accountId === ACC.TARGET).length, 'до списания счёт 86 не задет').toBe(0)
   }, 300_000)
 
-  it('l2.pnam.side.01: списание и зачисление участку идут ниткой ПОСТАВКИ по хэшу заказа, а не ниткой экономики участка', async () => {
+  it('l2.pnam.side.01: приход, выдача и обеспечительная часть идут ниткой ПОСТАВКИ по хэшу заказа, а не ниткой экономики участка', async () => {
     const byOp = await processTypeByOperation(chairmanToken, orderHash)
 
-    expect(byOp['o.brn.common'], 'инлайн-зачисление экономики КУ обязано называть нитку именем контракта-источника (поставка), '
-    + 'иначе процесс заказа на столе бухгалтера подписывается «Членские взносы кооперативного участка»').toBe('p.mkt.supply')
-
-    // Вся нитка заказа — одно имя: приход, выдача, обеспечительная часть, её возврат и списание.
-    for (const code of ['o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund', 'o.mkt.todue', 'o.mkt.charge']) {
+    // Вся нитка заказа — одно имя: приход, выдача, обеспечительная часть и её возврат.
+    for (const code of ['o.mkt.fee', 'o.mkt.purch', 'o.mkt.consum', 'o.mkt.unlock', 'o.mkt.refund', 'o.mkt.todue']) {
       expect(byOp[code], `проводка ${code} обязана идти ниткой поставки`).toBe('p.mkt.supply')
     }
     for (const code of ['o.mkt.lock', 'o.mkt.lockp']) {
@@ -407,8 +404,6 @@ describe('стол заказов — денежные места поставк
       'o.mkt.unlock',
       'o.mkt.refund',
       'o.mkt.todue',
-      'o.mkt.charge',
-      'o.brn.common',
     ])
     // Трансляция по заявлению живёт в нитке заказа (уточнение владельца 08.09.2026,
     // проверка оформления выше) — она запланирована, если заявление было.

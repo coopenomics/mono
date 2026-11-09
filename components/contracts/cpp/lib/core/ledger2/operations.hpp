@@ -118,7 +118,7 @@ namespace operations {
     inline constexpr eosio::name ADMIT_CLAIM            = "o.mkt.admit"_n;    ///< Поставщик признал претензию: TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — дебиторка поставщика признана прочим доходом; далее гасится удержанием из выплат.
     inline constexpr eosio::name DEDUCT_DEBT            = "o.mkt.deduct"_n;   ///< Удержание признанного гарантийного долга из выплаты поставщику (BURN с w.mkt.debt, без проводки: обязательство перед поставщиком и его дебиторка на одном счёте 76 сворачиваются). Идёт в нитке заказа при инициации выплаты (`payout`) вместе с OFFSET_PAYABLE на ту же сумму.
     inline constexpr eosio::name SECURE_TO_DUE          = "o.mkt.todue"_n;    ///< Обеспечительная часть к списанию (TRANSFER w.mkt.fee → w.mkt.due по заказчику, без Dr/Cr — оба на 80). issueact2 — факт обеспечительной части выданного заказа; отказ после акцепта — удержанная половина. Задача 99D-18.
-    inline constexpr eosio::name CHARGE_DUE             = "o.mkt.charge"_n;   ///< Списание обеспечительной части в членский взнос по условиям ЦПП (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr). Первая нога действия chargedue; вторая — o.brn.common (w.mkt.fee → w.brn.common, Дт 80 / Кт 86). Когда и сколько, называет бэкенд; контракт держит потолок остатка w.mkt.due.
+    inline constexpr eosio::name CHARGE_DUE             = "o.mkt.charge"_n;   ///< Списание обеспечительной части в членский взнос по условиям ЦПП (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr). Первая нога действия chargeperiod — нитка p.mkt.due строки счётчика пайщика за период; вторая — o.brn.common (w.mkt.fee → w.brn.common, Дт 80 / Кт 86). Сколько списать, контракт берёт из своих счётчиков (задача 99D-33), узел называет только пайщика, участок и период.
     inline constexpr eosio::name DUE_TO_SHARE           = "o.mkt.undue"_n;    ///< Возврат обеспечительной части за возвращённое имущество при гарантийном возврате (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Списания до конца гарантийного срока нет, поэтому сумма всегда на w.mkt.due.
     inline constexpr eosio::name INITIATOR_SHARE        = "o.mkt.initr"_n;    ///< Вознаграждение инициатора участка из экономии месяца (TRANSFER w.mkt.fee → w.mkt.invest по инициатору, без Dr/Cr — паевой переходит между пайщиками внутри 80; решение владельца 03.11.2026). Третья нога chargeperiod после o.mkt.charge; получатель — из строки прогона kuperiods. Задача 99D-21.
     inline constexpr eosio::name RETURN_DUE             = "o.mkt.retdue"_n;   ///< Возврат части обеспечительной части паевого взноса пайщику по итогу месяца участка (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Остаток после частей участку, фондам и инициатору по ставкам прогона; средства остаются паевыми в Столе заказов и идут на следующие заказы. Задача 99D-21.
@@ -619,10 +619,11 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Постановка обеспечительной части паевого взноса на списание" },
 
-  // 12j³. p.mkt.supply: Списание обеспечительной части по условиям ЦПП — первая
-  //       нога chargedue (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr); проводку
+  // 12j³. p.mkt.due: Списание обеспечительной части по итогу периода — первая
+  //       нога chargeperiod (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr); проводку
   //       Дт 80 / Кт 86 делает вторая нога o.brn.common в той же транзакции.
-  { operations::marketplace::CHARGE_DUE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+  //       Нитка — строка счётчика пайщика за период (задача 99D-33).
+  { operations::marketplace::CHARGE_DUE, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_FEE_POOL,
     0, 0,
     "Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП" },
@@ -642,10 +643,10 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Вознаграждение инициатора кооперативного участка из экономии месяца" },
 
-  // 12j⁶. p.mkt.supply: Возврат части обеспечительной части пайщику по итогу
-  //       месяца участка — остаток после частей участку, фондам и инициатору
-  //       (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Задача 99D-21.
-  { operations::marketplace::RETURN_DUE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+  // 12j⁶. p.mkt.due: Возврат части обеспечительной части пайщику по итогу
+  //       периода участка — остаток после частей участку, фондам и инициатору
+  //       (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Задачи 99D-21, 99D-33.
+  { operations::marketplace::RETURN_DUE, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     0, 0,
     "Возврат части обеспечительной части паевого взноса по итогу месяца участка" },

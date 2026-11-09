@@ -6,7 +6,7 @@
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { type GqlError, gql, gqlRaw } from '../core/client'
-import { transact } from '../core/chain'
+import { chainMessage, tableRows, transact } from '../core/chain'
 import { COOP } from '../core/env'
 import { COOP_SIGNER, amount, ensureShareFunds, rub } from '../core/wallet'
 import { ROLES } from '../core/roles'
@@ -77,21 +77,67 @@ export async function issuedOrder(args: {
   return { orderId: placed.orderId, orderHash: placed.orderHash, unitPrice, quantity }
 }
 
+/** Длина периода списания из настроек участков, секунд; ноль — календарный месяц UTC. */
+async function periodSeconds(): Promise<number> {
+  const rows = await tableRows<any>('branch', COOP, 'brnconfig')
+  return Number(rows[0]?.aid_period_seconds ?? 0)
+}
+
+/** Номер периода момента — так же, как контракт (`Branch::aid_period`). */
+function periodOf(seconds: number, at: Date): number {
+  return seconds > 0 ? Math.floor(at.getTime() / 1000 / seconds) : at.getUTCFullYear() * 12 + at.getUTCMonth() + 1
+}
+
 /**
  * Списание обеспечительной части выданного заказа в членский взнос участка
- * (задача 99D-18). Узел делает это сам первого числа месяца после окончания
- * гарантийного срока; набору ждать нельзя, поэтому он зовёт то же действие
- * цепи ключом кооператива — контракт сроки не проверяет, держит только
- * потолок остатка кошелька к списанию.
+ * (задачи 99D-18, 99D-33). Суммы контракт берёт из своих счётчиков: узел и
+ * набор называют только пайщика, участок и период. Контракт списывает после
+ * окончания периода конца гарантии, поэтому набор дожидается смены периода
+ * стенда (на стенде период короткий), при нужде считает итог участка и зовёт
+ * списание ключом кооператива — как крон узла.
  */
 export async function chargeSecurePart(args: { member: Who, orderId: string, orderHash: string, braname?: string }): Promise<number> {
+  const braname = args.braname ?? KRG
   const order = await getOrder(await tokenOf(args.member), args.orderId)
   const securePart = amount(order.total_cost_with_fee) - amount(order.total_cost)
+
+  // Строка пайщика с наибольшим периодом — заказ, выданный последним.
+  const dues = await tableRows<any>('marketplace', COOP, 'kudues', { lower: args.member.account, upper: args.member.account, index: 2, keyType: 'name' })
+  const periods = dues.filter(r => r.username === args.member.account && r.braname === braname).map(r => Number(r.period))
+  if (!periods.length)
+    throw new Error(`у пайщика ${args.member.account} нет строки счётчика списания на участке ${braname}`)
+  const period = Math.max(...periods)
+
+  const seconds = await periodSeconds()
+  if (seconds === 0)
+    throw new Error('период списания — календарный месяц: дождаться его окончания в наборе нельзя, задайте brnconfig.aid_period_seconds на стенде')
+  const deadline = Date.now() + 25 * 60_000
+  while (periodOf(seconds, new Date()) <= period) {
+    if (Date.now() > deadline)
+      throw new Error(`период ${period} не закончился за 25 минут`)
+    // timing: schedule — ждём смены периода стенда, факта в цепи нет: период — функция времени
+    await new Promise(r => setTimeout(r, 5_000))
+  }
+
+  // Итог участка за период: если крон узла его ещё не рассчитал — считаем сами с нулевыми фактами о расходах.
+  const closed = await tableRows<any>('marketplace', COOP, 'kuperiods')
+  if (!closed.some(r => r.braname === braname && Number(r.period) === period)) {
+    await transact(COOP_SIGNER, [{
+      account: 'marketplace',
+      name: 'closeperiod',
+      authorization: [{ actor: COOP, permission: 'active' }],
+      data: { coopname: COOP, braname, period, planned: rub(0), memos: rub(0), aid_paid: rub(0) },
+    }]).catch((e) => {
+      // Крон узла рассчитал итог между чтением и отправкой — списание идёт по его ставкам.
+      if (!chainMessage(e).includes('MARKETPLACE_PERIOD_EXISTS'))
+        throw e
+    })
+  }
   await transact(COOP_SIGNER, [{
     account: 'marketplace',
-    name: 'chargedue',
+    name: 'chargeperiod',
     authorization: [{ actor: COOP, permission: 'active' }],
-    data: { coopname: COOP, username: args.member.account, braname: args.braname ?? KRG, order_hash: args.orderHash, amount: rub(securePart) },
+    data: { coopname: COOP, username: args.member.account, braname, period },
   }])
   return securePart
 }
@@ -122,7 +168,8 @@ export function personalOf(eco: BranchEconomy, username: string): number {
 
 /**
  * Членские взносы в общий кошелёк участка — настоящим путём: заказ пайщика
- * выдаётся, и его обеспечительная часть списывается участку (chargedue).
+ * выдаётся, и его обеспечительная часть списывается участку по окончании
+ * периода (chargeperiod по строке счётчика пайщика, задача 99D-33).
  * Обеспечительная часть невыданных заказов лежит на кошельке пайщика под
  * заказы (05.11.2026), общий пул открытыми заказами не наполняется — брать
  * взнос для участка из пула больше нечем.

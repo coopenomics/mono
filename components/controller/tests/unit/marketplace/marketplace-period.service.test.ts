@@ -184,16 +184,16 @@ describe('mkt.order.keu.11 — факты месяца', () => {
 });
 
 describe('mkt.order.keu.11 — расчёт контрактом и зеркало', () => {
-  it('ensureClosed передаёт пять фактов активами, читает строку цепи и зеркалирует её с числом строк прогона', async () => {
+  it('ensureClosed передаёт три факта о расходах активами — без стоимости и собранного, читает строку цепи и зеркалирует её с числом строк', async () => {
     const { service, chainPort, store } = build({
       plans: [{ id: 1, branchName: BRANAME, title: 'Аренда', amount: '200000.0000 RUB', dueDate: new Date('2026-11-15T10:00:00.000Z'), proposalHash: null, paidAt: null }],
       history: [{ globalSequence: '2', action: 'apply', operationCode: 'o.brn.expfnd', processHash: 'm1', quantity: '50000.0000 RUB' }],
       aidPaid: '250000.0000',
     });
-    const row = await service.ensureClosed(COOP, BRANAME, NOVEMBER, toUnits('3000000.0000'), toUnits('1140000.0000'), 2);
+    const row = await service.ensureClosed(COOP, BRANAME, NOVEMBER, 2);
+    // Стоимость заказов и собранная обеспечительная часть — из счётчика участка в цепи (задача 99D-33).
     expect(chainPort.closePeriod).toHaveBeenCalledWith({
       coopname: COOP, braname: BRANAME, period: NOVEMBER,
-      turnover: '3000000.0000 RUB', secured: '1140000.0000 RUB',
       planned: '200000.0000 RUB', memos: '50000.0000 RUB', aid_paid: '250000.0000 RUB',
     });
     expect(row).toMatchObject({
@@ -207,23 +207,23 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('повтор в том же месяце: зеркало есть — контракт не зовётся', async () => {
     const { service, chainPort } = build();
-    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1);
-    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1);
+    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1);
+    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1);
     expect(chainPort.closePeriod).toHaveBeenCalledTimes(1);
   });
 
   it('контракт отвечает MARKETPLACE_PERIOD_EXISTS — строка читается из цепи и зеркалируется; другой отказ — наверх', async () => {
     const tolerant = build({ closeError: new Error('MARKETPLACE_PERIOD_EXISTS: Итог участка за период уже рассчитан') });
-    const row = await tolerant.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 3);
+    const row = await tolerant.service.ensureClosed(COOP, BRANAME, NOVEMBER, 3);
     expect(row.membership).toBe('632911.3924');
 
-    const failing = build({ closeError: new Error('MARKETPLACE_PERIOD_AMOUNT_INVALID: ноль') });
-    await expect(failing.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 3)).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/);
+    const failing = build({ closeError: new Error('MARKETPLACE_PERIOD_EMPTY: за период нет заказов') });
+    await expect(failing.service.ensureClosed(COOP, BRANAME, NOVEMBER, 3)).rejects.toThrow(/MARKETPLACE_PERIOD_EMPTY/);
   });
 
   it('строки в цепи нет после расчёта — ошибка с именем участка и периода', async () => {
     const { service } = build({ chainRows: [] });
-    await expect(service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1)).rejects.toMatchObject({
+    await expect(service.ensureClosed(COOP, BRANAME, NOVEMBER, 1)).rejects.toMatchObject({
       code: 'MARKETPLACE_PERIOD_NOT_IN_CHAIN',
       params: { braname: BRANAME, period: NOVEMBER },
     });
@@ -231,7 +231,7 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('итог прежнего прохода: зеркало есть — цепь не читается; зеркала нет — строка цепи участка зеркалируется с числом строк прогона; нет нигде — null', async () => {
     const mirrored = build();
-    await mirrored.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 2);
+    await mirrored.service.ensureClosed(COOP, BRANAME, NOVEMBER, 2);
     mirrored.chainPort.listBranchPeriods.mockClear();
     expect(await mirrored.service.adoptClosed(COOP, BRANAME, NOVEMBER, 9)).toMatchObject({ period: NOVEMBER, rows_total: 2 });
     expect(mirrored.chainPort.listBranchPeriods).not.toHaveBeenCalled();
@@ -266,7 +266,7 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('noteCharged увеличивает число списанных строк', async () => {
     const { service, store } = build();
-    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 2);
+    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 2);
     await service.noteCharged(COOP, BRANAME, NOVEMBER, 1);
     await service.noteCharged(COOP, BRANAME, NOVEMBER, 1);
     expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER}`)?.rows_charged).toBe(2);
@@ -274,14 +274,16 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 });
 
 describe('mkt.order.keu.11 — стирание старых строк и чтение', () => {
-  it('pruneOld стирает из цепи строки старше прошлого месяца и отмечает их; текущий и прошлый остаются', async () => {
+  it('pruneOld стирает из цепи строки старше прошлого месяца и отмечает их; текущий, прошлый и период с несписанными строками остаются', async () => {
     const { service, chainPort, store } = build();
-    for (const period of [NOVEMBER - 3, NOVEMBER - 2, NOVEMBER - 1]) {
+    for (const period of [NOVEMBER - 4, NOVEMBER - 3, NOVEMBER - 2, NOVEMBER - 1]) {
       await store.insert({ coopname: COOP, braname: BRANAME, period, deleted_at: null, rows_total: 1, rows_charged: 1 });
     }
-    await service.pruneOld(COOP, BRANAME, NOVEMBER);
-    expect(chainPort.deletePeriod.mock.calls.map((c: any[]) => c[0].period).sort()).toEqual([NOVEMBER - 3, NOVEMBER - 2]);
-    expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 3}`)?.deleted_at).not.toBeNull();
+    // За период NOVEMBER − 3 в цепи ещё есть строка счётчика пайщика: его ставки нужны для её списания (задача 99D-33).
+    await service.pruneOld(COOP, BRANAME, NOVEMBER, new Set([NOVEMBER - 3]));
+    expect(chainPort.deletePeriod.mock.calls.map((c: any[]) => c[0].period).sort()).toEqual([NOVEMBER - 4, NOVEMBER - 2]);
+    expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 4}`)?.deleted_at).not.toBeNull();
+    expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 3}`)?.deleted_at).toBeNull();
     expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 1}`)?.deleted_at).toBeNull();
   });
 

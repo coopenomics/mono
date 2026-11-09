@@ -11,12 +11,8 @@
 #include "src/p.mkt.supply/stockorder.cpp"
 #include "src/p.mkt.supply/markdown.cpp"
 #include "src/p.mkt.supply/setfee.cpp"
-#include "src/p.mkt.supply/chargedue.cpp"
 #include "src/p.mkt.supply/setshares.cpp"
 #include "src/p.mkt.supply/setinitiator.cpp"
-#include "src/p.mkt.supply/closeperiod.cpp"
-#include "src/p.mkt.supply/delperiod.cpp"
-#include "src/p.mkt.supply/chargeperiod.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"
 #include "src/p.mkt.supply/expireorder.cpp"
 #include "src/p.mkt.supply/closeorder.cpp"
@@ -34,6 +30,13 @@
 #include "src/p.mkt.supply/issueact1.cpp"
 #include "src/p.mkt.supply/issueact2.cpp"
 #include "src/p.mkt.supply/cancelissue.cpp"
+
+// ── p.mkt.due — списание обеспечительной части по итогу периода (задачи 99D-21, 99D-33)
+#include "src/p.mkt.due/closeperiod.cpp"
+#include "src/p.mkt.due/delperiod.cpp"
+#include "src/p.mkt.due/chargeperiod.cpp"
+#include "src/p.mkt.due/exitdue.cpp"
+#include "src/p.mkt.due/migratedue.cpp"
 
 // ── p.mkt.invest ─── инвестиционный этап участка (задача 99D-27) ─────────
 #include "src/p.mkt.invest/iprop_helpers.hpp"

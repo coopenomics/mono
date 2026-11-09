@@ -467,11 +467,7 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
   }
 
-  async chargeDue(data: MarketContract.Actions.ChargeDue.IChargeDue): Promise<InnerTransactResult> {
-    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ChargeDue.actionName, data, 'chargedue');
-  }
-
-  // ── Коэффициент экономического участия (задача 99D-22) ──
+  // ── Коэффициент экономического участия (задачи 99D-22, 99D-33) ──
 
   async closePeriod(data: MarketContract.Actions.ClosePeriod.IClosePeriod): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ClosePeriod.actionName, data, 'closeperiod');
@@ -483,6 +479,10 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
   async chargePeriod(data: MarketContract.Actions.ChargePeriod.IChargePeriod): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ChargePeriod.actionName, data, 'chargeperiod');
+  }
+
+  async migrateDue(data: MarketContract.Actions.MigrateDue.IMigrateDue): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.MigrateDue.actionName, data, 'migratedue');
   }
 
   async setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult> {
@@ -631,6 +631,32 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
   async listBranchPeriods(coopname: string, braname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
     return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Periods.tableName, 'secondary', braname);
+  }
+
+  async listAllBranchPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
+    // В цепи у каждого участка не больше двух строк итога: таблица не растёт с историей.
+    return this.blockchainService.getAllRows(MarketContract.contractName.production, coopname, MarketContract.Tables.Periods.tableName);
+  }
+
+  async listDueCounters(coopname: string): Promise<MarketContract.Tables.Counters.IKuCounter[]> {
+    // Строк — по числу участков на каждый открытый период; таблица не растёт с историей.
+    return this.blockchainService.getAllRows(MarketContract.contractName.production, coopname, MarketContract.Tables.Counters.tableName);
+  }
+
+  async listBranchDues(coopname: string, braname: string): Promise<MarketContract.Tables.Dues.IKuDue[]> {
+    // Индексы `kudues`: byuser — второй, bybranch — третий (lib/domain/table_marketplace_dues.hpp).
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, 'tertiary', braname);
+  }
+
+  async listMemberDues(coopname: string, username: string): Promise<MarketContract.Tables.Dues.IKuDue[]> {
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, 'secondary', username);
+  }
+
+  async hasAnyDues(coopname: string): Promise<boolean> {
+    const rows = await this.blockchainService.queryRows<MarketContract.Tables.Dues.IKuDue>(
+      MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, { maxRows: 1 }
+    );
+    return rows.length > 0;
   }
 
   async getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null> {

@@ -101,14 +101,6 @@ export interface ISetFee {
   membership_fee_percent: IUint64
 }
 
-export interface IChargeDue {
-  coopname: IName
-  username: IName
-  braname: IName
-  order_hash: IChecksum256
-  amount: IAsset
-}
-
 export interface IMktConfig {
   membership_fee_percent: IUint64
   /** Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
@@ -135,17 +127,13 @@ export interface IMktInitiator {
 export interface IClosePeriod {
   coopname: IName
   braname: IName
-  /** Номер прогона: год × 12 + месяц по часовому поясу кооператива. */
+  /** Период списания — номер, который считает контракт (`Branch::aid_period`): календарный месяц UTC либо отрезок стенда. */
   period: IUint32
-  /** T — стоимость заказов прогона. */
-  turnover: IAsset
-  /** C — собранная обеспечительная часть прогона. */
-  secured: IAsset
-  /** ПР — плановые расходы участка за месяц. */
+  /** ПР — плановые расходы участка за период (реестр планов узла). */
   planned: IAsset
-  /** СЗ — служебные записки сверх плана за месяц. */
+  /** СЗ — служебные записки сверх плана за период. */
   memos: IAsset
-  /** МП — материальная помощь, выплаченная за месяц. */
+  /** МП — материальная помощь, выплаченная за период. */
   aid_paid: IAsset
 }
 
@@ -155,16 +143,66 @@ export interface IDelPeriod {
   period: IUint32
 }
 
+/** Списание строки счётчика пайщика за период (задача 99D-33): суммы контракт берёт из `kudues`. */
 export interface IChargePeriod {
   coopname: IName
   username: IName
   braname: IName
-  order_hash: IChecksum256
-  /** Остаток обеспечительной части заказа. */
-  amount: IAsset
-  /** Стоимость заказа (факт выдачи). */
-  base: IAsset
   period: IUint32
+}
+
+/** Выход пайщика состоялся (зовёт registrator): остаток к списанию — участку, строки счётчиков стираются. */
+export interface IExitDue {
+  coopname: IName
+  username: IName
+  exit_hash: IChecksum256
+}
+
+/** Переходный перенос строки зеркала узла в счётчики списания (задача 99D-33, п. 6). */
+export interface IMigrateDue {
+  coopname: IName
+  username: IName
+  braname: IName
+  period: IUint32
+  /** Стоимость выданных заказов строки (ноль у удержания при отказе). */
+  turnover: IAsset
+  /** Обеспечительная часть к списанию по ставкам итога. */
+  due: IAsset
+  /** Удержание при отказе — участку целиком. */
+  retained: IAsset
+}
+
+/** Счётчик пайщика за период списания — таблица `kudues` (задача 99D-33). */
+export interface IKuDue {
+  id: IUint64
+  username: IName
+  braname: IName
+  period: IUint32
+  /** Стоимость выданных заказов периода за вычетом возвращённого. */
+  turnover: IAsset
+  /** Обеспечительная часть к списанию по ставкам итога за вычетом возвращённого. */
+  due: IAsset
+  /** Удержание при отказе от получения — участку целиком. */
+  retained: IAsset
+  /** Выданных заказов в строке. */
+  orders: IUint32
+}
+
+/** Счётчик участка за период списания — таблица `kucounters` (задача 99D-33). */
+export interface IKuCounter {
+  id: IUint64
+  braname: IName
+  period: IUint32
+  /** T — стоимость выданных заказов периода за вычетом возвращённого. */
+  turnover: IAsset
+  /** C — обеспечительная часть к списанию по ставкам за вычетом возвращённого. */
+  secured: IAsset
+  /** Удержания при отказе за период (в формулу итога не входят). */
+  retained: IAsset
+  /** Выданных заказов за период. */
+  orders: IUint32
+  /** Строк счётчиков пайщиков за период — столько транзакций списания предстоит. */
+  members: IUint32
 }
 
 export interface IKuPeriod {

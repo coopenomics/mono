@@ -35,19 +35,18 @@ import Blockchain from '../blockchain'
 import config from '../configs'
 import { acceptToCoop, issueOrder, pickOffer, placeOrder } from './marketplace/orderFlow'
 import { CHAIRMAN, COOP, type Who, amount, ensureShareFunds, fromState, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
-import { accumulationFunds, asset, closeMonthAndCompare, coopPusher, investBranch, investorRow, rub, units, userWallet } from './marketplace/periodHelpers'
+import { accumulationFunds, asset, chargeHash, closeMonthAndCompare, coopPusher, grownPeriod, investBranch, investorRow, memberDue, memberDues, rub, units, userWallet, waitPeriodEnd } from './marketplace/periodHelpers'
 import { processDecision } from './soviet/processDecision'
 import { signProgramAgreement } from './wallet/signProgramAgreement'
 import { fakeDocument } from './shared/fakeDocument'
 
-const { chargeOrder, crpsClaimable, crpsRoute } = MarketContract.PeriodModel
+const { chargeRow, crpsClaimable, crpsRoute } = MarketContract.PeriodModel
 
 const bc = new Blockchain(config.network, config.private_keys)
 const push = coopPusher(bc)
 
 const MARKET = MarketContract.contractName.production
 const BRANAME = 'krg'
-const PERIOD_FLOOR = 4_280_000_000
 
 const chairkrg = fromState('chairkrg')
 const trustedkrg = fromState('trustedkrg')
@@ -114,7 +113,6 @@ describe('стол заказов — инвестиционный этап ко
     ekaterinaToken = await loginAs(ekaterina)
     sidorovToken = await loginAs(sidorov)
     await ensureShareFunds(chairkrg.account, 20_000, chairkrgToken)
-    period = PERIOD_FLOOR + (Math.floor(Date.now() / 1000) % 10_000_000)
   }, 600_000)
 
   afterAll(async () => {
@@ -237,37 +235,44 @@ describe('стол заказов — инвестиционный этап ко
       orderId: placed.orderId, braname: BRANAME, factQuantity: 1, factUnitPrice: unitPrice,
     })
     await waitForOps(chairmanToken, placed.orderHash, ['o.mkt.purch'])
+    const duesBefore = await memberDues(bc, ekaterina.account, BRANAME)
     await issueOrder({
       blockchain: bc, operatorToken: chairkrgToken, operator: chairkrg, memberToken: ekaterinaToken, member: ekaterina,
       orderId: placed.orderId, braname: BRANAME, actualQuantity: 1, actualUnitPrice: unitPrice,
     })
     const ops = await waitForOps(chairmanToken, placed.orderHash, ['o.mkt.consum', 'o.mkt.todue'])
     const due = units(sumOf(ops, 'o.mkt.todue').toFixed(4))
-    const base = units(sumOf(ops, 'o.mkt.consum').toFixed(4))
+    // Период строки пайщицы — по концу гарантии (счётчики списания, задача 99D-33); итог и списание — после его окончания.
+    period = grownPeriod(duesBefore, await memberDues(bc, ekaterina.account, BRANAME), due)
+    await waitPeriodEnd(bc, period)
 
-    // Месяц без расходов: вся обеспечительная часть после фондов — экономия.
+    // Период без расходов: вся обеспечительная часть после фондов — экономия.
     const fundsPercent = (await accumulationFunds(bc)).reduce((s, f) => s + BigInt(f.percent), 0n)
     const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
     const initiatorPercent = BigInt(cfg[0]?.initiator_share_percent ?? 618_000)
     const month = await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent },
-      'месяц с экономией', { turnover: base, secured: due, planned: 0n, aidPaid: rub(1_000_000_000) }, period)
-    const parts = chargeOrder({ rateBranch: BigInt(month.row.rate_branch), rateFunds: BigInt(month.row.rate_funds), rateInitiator: BigInt(month.row.rate_initiator) }, due, base)
+      'период с экономией', { planned: 0n, aidPaid: rub(1_000_000_000) }, period)
+    // Строка пайщицы за период — все её заказы участка за период; суммы контракт берёт из неё.
+    const dueRow = await memberDue(bc, ekaterina.account, BRANAME, period)
+    expect(dueRow, 'строка пайщицы ждёт списания').toBeDefined()
+    const parts = chargeRow(
+      { rateBranch: BigInt(month.row.rate_branch), rateFunds: BigInt(month.row.rate_funds), rateInitiator: BigInt(month.row.rate_initiator) },
+      units(dueRow.due), units(dueRow.turnover), units(dueRow.retained),
+    )
 
     const branchBefore = await investBranch(bc, BRANAME)
     expect(branchBefore.base > 0n, 'у участка есть использованный паевой взнос — имущество из случая 04').toBe(true)
     const route = crpsRoute(branchBefore, parts.initiator)
     const repayBefore = await userWallet(bc, 'w.mkt.repay', BRANAME)
 
-    await push(MARKET, 'chargeperiod', {
-      coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: placed.orderHash,
-      amount: asset(due), base: asset(base), period,
-    })
+    await push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: BRANAME, period })
 
     const branchAfter = await investBranch(bc, BRANAME)
     expect(branchAfter.acc, 'счётчик возврата участка — как в эталоне').toBe(route.acc)
     const repayDelta = await userWallet(bc, 'w.mkt.repay', BRANAME) - repayBefore
     expect(repayDelta > 0n && repayDelta <= route.repay, 'возмещение на кошелёк возмещения участка').toBe(true)
-    const legs = await waitForOps(chairmanToken, placed.orderHash, ['o.mkt.repay'])
+    // Ноги списания — в нитке строки счётчика пайщицы (p.mkt.due), не заказа.
+    const legs = await waitForOps(chairmanToken, chargeHash(ekaterina.account, BRANAME, period), ['o.mkt.repay'])
     expect(units(sumOf(legs, 'o.mkt.repay').toFixed(4))).toBe(route.repay)
 
     // Заявление обратно: сумма — эталон по строкам цепи, контракт считает сам.

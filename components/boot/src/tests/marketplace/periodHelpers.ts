@@ -3,6 +3,7 @@
  * участия): суммы в единицах актива, отправка действий от имени кооператива,
  * чтение строк итога и остатков кошельков.
  */
+import { createHash } from 'node:crypto'
 import { expect } from 'vitest'
 import { MarketContract } from 'cooptypes'
 import type Blockchain from '../../blockchain'
@@ -93,10 +94,80 @@ export async function reservePrevOf(bc: Blockchain, braname: string, period: num
   return units(prev.aid_reserve)
 }
 
-/** Пять фактов месяца, которые передаёт контракту ИСТОК. */
+// ── Счётчики списания и периоды (задача 99D-33) ─────────────────────────────
+
+/** Длина периода списания из настроек участков, секунд; ноль — календарный месяц UTC. */
+export async function periodSeconds(bc: Blockchain): Promise<number> {
+  const rows: any[] = await bc.getTableRows('branch', COOP, 'brnconfig', 1)
+  return Number(rows[0]?.aid_period_seconds ?? 0)
+}
+
+/** Номер периода для момента — так же, как контракт (`Branch::aid_period`). */
+export function periodOfDate(seconds: number, at: Date): number {
+  if (seconds > 0)
+    return Math.floor(at.getTime() / 1000 / seconds)
+  return at.getUTCFullYear() * 12 + at.getUTCMonth() + 1
+}
+
+/** Период, идущий в цепи сейчас: его строки ещё копятся и не списываются. */
+export async function currentPeriod(bc: Blockchain): Promise<number> {
+  return periodOfDate(await periodSeconds(bc), new Date())
+}
+
+/**
+ * Дождаться окончания периода `period`: контракт считает итог и списывает
+ * только после смены периода. На стенде период короткий (600 с); на
+ * календарном месяце ожидание не имеет смысла — тест падает сразу.
+ */
+export async function waitPeriodEnd(bc: Blockchain, period: number, timeoutMs = 20 * 60_000): Promise<void> {
+  const seconds = await periodSeconds(bc)
+  if (seconds === 0)
+    throw new Error('период списания — календарный месяц: дождаться его окончания в тесте нельзя, задайте brnconfig.aid_period_seconds на стенде')
+  const deadline = Date.now() + timeoutMs
+  while (periodOfDate(seconds, new Date()) <= period) {
+    if (Date.now() > deadline)
+      throw new Error(`период ${period} не закончился за ${timeoutMs / 1000} с`)
+    // timing: schedule — ждём смены периода стенда, факта в цепи нет: период — функция времени
+    await new Promise(r => setTimeout(r, 5_000))
+  }
+}
+
+/** Строка счётчика пайщика за период (`kudues`); нет — списана либо не заводилась. */
+export async function memberDue(bc: Blockchain, username: string, braname: string, period: number): Promise<any | undefined> {
+  // Второй индекс таблицы — пайщик (byuser); имя в границах читается как i64.
+  const rows: any[] = await bc.getTableRows('marketplace', COOP, 'kudues', 1000, username, username, 2)
+  return rows.find(r => r.username === username && r.braname === braname && Number(r.period) === period)
+}
+
+/** Строки пайщика на участке по периодам: период → обеспечительная часть к списанию. */
+export async function memberDues(bc: Blockchain, username: string, braname: string): Promise<Map<number, bigint>> {
+  const rows: any[] = await bc.getTableRows('marketplace', COOP, 'kudues', 1000, username, username, 2)
+  return new Map(rows.filter(r => r.username === username && r.braname === braname).map(r => [Number(r.period), units(r.due)]))
+}
+
+/**
+ * Период строки, которую пополнила выдача: тот, где обеспечительная часть пайщика
+ * выросла ровно на факт выдачи. Снимки — до и после выдачи.
+ */
+export function grownPeriod(before: Map<number, bigint>, after: Map<number, bigint>, delta: bigint): number {
+  const grown = [...after.entries()].find(([p, due]) => due - (before.get(p) ?? 0n) === delta)
+  expect(grown, 'выдача пополнила строку счётчика пайщика за период конца гарантии').toBeDefined()
+  return grown![0]
+}
+
+/** Строка счётчика участка за период (`kucounters`); нет — итог рассчитан либо заказов не было. */
+export async function branchCounter(bc: Blockchain, braname: string, period: number): Promise<any | undefined> {
+  const rows: any[] = await bc.getTableRows('marketplace', COOP, 'kucounters', 1000)
+  return rows.find(r => r.braname === braname && Number(r.period) === period)
+}
+
+/** Хэш нитки списания строки пайщика — как в контракте (`Marketplace::Dues::charge_hash`). */
+export function chargeHash(username: string, braname: string, period: number): string {
+  return createHash('sha256').update(MarketContract.PeriodModel.chargeProcessSeed(COOP, username, braname, period)).digest('hex')
+}
+
+/** Факты о расходах периода, которые передаёт контракту узел; стоимость и собранное контракт берёт из счётчика. */
 export interface MonthInput {
-  turnover: bigint
-  secured: bigint
   planned?: bigint
   memos?: bigint
   aidPaid?: bigint
@@ -112,14 +183,21 @@ export interface PeriodContext {
 }
 
 /**
- * Один месяц: расчёт контрактом, чтение строки, сверка каждого поля с эталоном
- * `MarketContract.PeriodModel`. Резерв участка и резерв прошлого месяца
- * читаются из цепи до расчёта — эталон получает те же числа, что видит контракт.
+ * Один период: расчёт контрактом по его счётчику участка, чтение строки,
+ * сверка каждого поля с эталоном `MarketContract.PeriodModel`. Стоимость и
+ * собранное читаются из счётчика до расчёта, резерв участка и резерв прошлого
+ * периода — из цепи: эталон получает те же числа, что видит контракт.
  */
 export async function closeMonthAndCompare(ctx: PeriodContext, label: string, input: MonthInput, period: number) {
+  // Итог за период уже рассчитан (соседний тест того же стенда): ставки зафиксированы, строка читается как есть.
+  const already = (await branchPeriods(ctx.bc, ctx.braname)).find(r => Number(r.period) === period)
+  if (already)
+    return { period, facts: null, totals: null, row: already }
+  const counter = await branchCounter(ctx.bc, ctx.braname, period)
+  expect(counter, `${label}: счётчик участка за период есть`).toBeDefined()
   const facts = {
-    turnover: input.turnover,
-    secured: input.secured,
+    turnover: units(counter.turnover),
+    secured: units(counter.secured),
     planned: input.planned ?? 0n,
     memos: input.memos ?? 0n,
     aidPaid: input.aidPaid ?? 0n,
@@ -132,12 +210,11 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     coopname: COOP,
     braname: ctx.braname,
     period,
-    turnover: asset(facts.turnover),
-    secured: asset(facts.secured),
     planned: asset(facts.planned),
     memos: asset(facts.memos),
     aid_paid: asset(facts.aidPaid),
   })
+  expect(await branchCounter(ctx.bc, ctx.braname, period), `${label}: счётчик участка стёрт расчётом`).toBeUndefined()
 
   const row = (await branchPeriods(ctx.bc, ctx.braname)).find(r => Number(r.period) === period)
   expect(row, `${label}: строка итога записана`).toBeDefined()

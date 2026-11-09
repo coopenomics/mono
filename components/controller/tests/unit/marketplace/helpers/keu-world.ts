@@ -1,18 +1,25 @@
 /**
  * Мир для тестов цикла коэффициента экономического участия: настоящие сервисы
- * ИСТОКА (учёт обеспечительной части, прогон первого числа, итог месяца) поверх
- * подставной цепи и таблиц в памяти.
+ * ИСТОКА (зеркало обеспечительной части, прогон по окончании периода, итог
+ * периода) поверх подставной цепи и таблиц в памяти.
  *
- * Подставная цепь считает итог месяца и деление списания эталоном
- * `MarketContract.PeriodModel` — той же арифметикой, что контракты; тест цепи
- * `boot/src/tests/marketplace-period-math.test.ts` сверяет эталон с контрактом.
- * Цепь ведёт кошельки, строки `kuperiods` и отвечает отказами контракта с их
- * кодами. Операции ledger2 одной транзакции отдаются слушателю разом, без
+ * Подставная цепь ведёт счётчики списания так же, как контракт (задача
+ * 99D-33): выдача пополняет строку пайщика `kudues` и строку участка
+ * `kucounters` за период конца гарантийного срока, удержание при отказе —
+ * текущего периода; `closeperiod` берёт T и C из счётчика участка и стирает
+ * его, `chargeperiod` делит строку пайщика по ставкам итога эталоном
+ * `MarketContract.PeriodModel` и стирает её. Периоды — календарные месяцы UTC,
+ * как у контракта без длины периода стенда. Цепь ведёт кошельки, отвечает
+ * отказами с кодами контракта и отдаёт операции ledger2 слушателю разом, без
  * ожидания между ними, — как их выпускает шина событий узла.
  */
 import { MarketContract } from 'cooptypes';
 import { memoryTable, toAsset, toUnits } from './memory-table';
-import { MarketplaceSecureDueOperation, MarketplaceSecureDueService } from '~/extensions/marketplace/application/services/marketplace-secure-due.service';
+import {
+  MarketplaceSecureDueOperation,
+  MarketplaceSecureDueService,
+  chargeHashOf,
+} from '~/extensions/marketplace/application/services/marketplace-secure-due.service';
 import { MarketplacePeriodService } from '~/extensions/marketplace/application/services/marketplace-period.service';
 import type { MarketplaceSecureDueEntity } from '~/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity';
 import type { MarketplaceBranchPeriodEntity } from '~/extensions/marketplace/infrastructure/entities/marketplace-branch-period.entity';
@@ -27,9 +34,13 @@ export const TIMEZONE = 'Europe/Moscow';
 /** Рубли в единицы актива: четыре знака. */
 export const rub = (value: number): bigint => BigInt(Math.round(value * 10_000));
 
-/** 00:30 первого числа месяца по Москве — первый проход крона в новом месяце. */
+/**
+ * 00:30 UTC первого числа месяца (03:30 по Москве) — первый проход крона в
+ * новом периоде: контракт нумерует периоды по UTC, и до полуночи UTC период
+ * ещё идёт.
+ */
 export function firstOfMonth(year: number, month: number): Date {
-  return new Date(Date.UTC(year, month - 1, 1, 0, 30) - 3 * 60 * 60 * 1000);
+  return new Date(Date.UTC(year, month - 1, 1, 0, 30));
 }
 
 /** Полдень заданного дня по Москве. */
@@ -37,39 +48,15 @@ export function dayOf(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month - 1, day, 9, 0));
 }
 
-/** Номер месяца, как его считает ИСТОК: год × 12 + месяц. */
+/** Номер периода, как его считает контракт без длины периода стенда: год × 12 + месяц по UTC. */
 export const periodOf = (year: number, month: number): number => year * 12 + month;
+
+/** Период момента — тот же расчёт, что у контракта (`Branch::aid_period` при нулевой длине). */
+export const periodOfDate = (at: Date): number => at.getUTCFullYear() * 12 + at.getUTCMonth() + 1;
 
 /** Отказ контракта в том виде, в каком его отдаёт цепь. */
 function refusal(code: string, text: string): Error {
   return new Error(`assertion failure with message: ${code}: ${text}`);
-}
-
-/**
- * Суммы по строкам учёта поверх таблицы в памяти — те же отборы, что делает
- * `MarketplaceSecureDueRunQueries` запросами к базе.
- */
-export function runQueriesOver(table: { rows: Map<string, MarketplaceSecureDueEntity> }) {
-  const all = () => [...table.rows.values()];
-  const open = (row: MarketplaceSecureDueEntity) => row.charged_at == null && toUnits(row.due_amount) > 0n;
-  const unsent = (row: MarketplaceSecureDueEntity) => row.charge_sent_at == null;
-  const totals = (list: MarketplaceSecureDueEntity[]) => ({
-    turnover: toAsset(list.reduce((s, r) => s + toUnits(r.base_amount), 0n)).split(' ')[0] ?? '0',
-    secured: toAsset(list.reduce((s, r) => s + toUnits(r.due_amount), 0n)).split(' ')[0] ?? '0',
-    rows: list.length,
-  });
-  return {
-    async ripeBranches(coopname: string, before: Date): Promise<string[]> {
-      const ripe = all().filter((r) => r.coopname === coopname && open(r) && unsent(r) && r.due_from != null && r.due_from < before && toUnits(r.base_amount) > 0n);
-      return [...new Set(ripe.map((r) => r.braname))].sort();
-    },
-    async runTotals(coopname: string, braname: string, period: number) {
-      return totals(all().filter((r) => r.coopname === coopname && r.braname === braname && r.run_period === period && open(r) && unsent(r)));
-    },
-    async ripeningTotals(coopname: string, braname: string, before: Date) {
-      return totals(all().filter((r) => r.coopname === coopname && r.braname === braname && open(r) && r.due_from != null && r.due_from < before));
-    },
-  };
 }
 
 /** Заказ, выданный пайщику: стоимость и обеспечительная часть, которую провёл контракт. */
@@ -92,6 +79,28 @@ interface ChainPeriod {
   initiator: string;
 }
 
+/** Строка счётчика пайщика за период (`kudues`). */
+export interface ChainDue {
+  username: string;
+  braname: string;
+  period: number;
+  turnover: bigint;
+  due: bigint;
+  retained: bigint;
+  orders: number;
+}
+
+/** Строка счётчика участка за период (`kucounters`). */
+interface ChainCounter {
+  braname: string;
+  period: number;
+  turnover: bigint;
+  secured: bigint;
+  retained: bigint;
+  orders: number;
+  members: number;
+}
+
 interface AppliedOp {
   code: MarketplaceSecureDueOperation;
   units: bigint;
@@ -99,6 +108,9 @@ interface AppliedOp {
   hash: string;
   at: Date;
 }
+
+const dueKey = (username: string, braname: string, period: number) => `${username}/${braname}/${period}`;
+const counterKey = (braname: string, period: number) => `${braname}/${period}`;
 
 export function createKeuWorld() {
   const dueStore = memoryTable<MarketplaceSecureDueEntity>((row) => row.order_hash);
@@ -122,7 +134,11 @@ export function createKeuWorld() {
   const invest = new Map<string, { base: bigint; acc: bigint; sJoin: bigint; sFixed: bigint; unusedTotal: bigint; reserved: bigint; property: bigint; repaid: bigint }>();
   const add = (map: Map<string, bigint>, key: string, units: bigint) => map.set(key, (map.get(key) ?? 0n) + units);
   const periods: ChainPeriod[] = [];
+  const dues = new Map<string, ChainDue>();
+  const counters = new Map<string, ChainCounter>();
   const orders = new Map<string, IssuedOrder>();
+  /** Операции нитки списания — история ledger2 по хэшу процесса. */
+  const chargeLog: Array<{ processHash: string; operationCode: string; quantity: string }> = [];
   const settings = {
     fundsPercent: 210_000n,
     initiatorPercent: 618_000n,
@@ -133,6 +149,7 @@ export function createKeuWorld() {
     /** Материальная помощь, выплаченная участком за месяц: участок/номер месяца → сумма. */
     aidPaid: new Map<string, bigint>(),
     initiator: new Map<string, string>(),
+    /** Открытые заявления на гарантийный возврат — по хэшу заказа; контракт по ним отказывает в списании пайщику. */
     openClaims: new Set<string>(),
     /** Журнал учёта участков для фактов месяца: служебные записки (o.brn.expfnd, o.mkt.ipool и возвраты). */
     ledger: [] as Array<{ operationCode: string; username: string; quantity: string; processHash: string; createdAt: Date }>,
@@ -142,24 +159,45 @@ export function createKeuWorld() {
   const faults = {
     /** Очередь сбоев расчёта итога месяца: каждый вызов забирает один. */
     closePeriod: [] as Error[],
-    /** Сбои списания по хэшу заказа. */
+    /** Сбои списания строки по имени пайщика. */
     chargePeriod: new Map<string, Error[]>(),
-    /** Операции списания этих заказов до слушателя не доходят — сбой учёта. */
+    /** Операции списания этих пайщиков до слушателя не доходят — сбой учёта зеркала. */
     lostEvents: new Set<string>(),
     /** Очередь сбоев чтения реестра плановых расходов: факты месяца не собраны. */
     plans: [] as Error[],
-    /** Очередь сбоев чтения кошелька пайщика из цепи при сверке. */
-    walletRead: [] as Error[],
   };
   const calls = {
     closePeriod: [] as any[],
     chargePeriod: [] as any[],
-    chargeDue: [] as any[],
     deletePeriod: [] as any[],
-    getUserWallet: [] as any[],
+    migrateDue: [] as any[],
   };
   let sequence = 1;
   let clock = new Date('2027-01-01T00:00:00.000Z');
+  const currentPeriod = () => periodOfDate(clock);
+
+  // ── Счётчики, как их ведёт контракт ───────────────────────────────────
+  function ensureCounter(braname: string, period: number): ChainCounter {
+    const key = counterKey(braname, period);
+    let c = counters.get(key);
+    if (!c) {
+      c = { braname, period, turnover: 0n, secured: 0n, retained: 0n, orders: 0, members: 0 };
+      counters.set(key, c);
+    }
+    return c;
+  }
+  function ensureDue(username: string, braname: string, period: number): ChainDue {
+    const key = dueKey(username, braname, period);
+    let d = dues.get(key);
+    if (!d) {
+      d = { username, braname, period, turnover: 0n, due: 0n, retained: 0n, orders: 0 };
+      dues.set(key, d);
+      const c = counters.get(counterKey(braname, period));
+      if (c) c.members += 1;
+    }
+    return d;
+  }
+  const hasOpenClaim = (username: string) => [...settings.openClaims].some((hash) => orders.get(hash)?.username === username);
 
   // ── Слушатель операций ────────────────────────────────────────────────
   /** Операции одной транзакции отдаются слушателю разом — так их выпускает шина. */
@@ -218,8 +256,43 @@ export function createKeuWorld() {
     initiator: p.initiator,
     closed_at: clock.toISOString().replace('Z', ''),
   });
+  const dueRowOf = (d: ChainDue) => ({
+    id: 0,
+    username: d.username,
+    braname: d.braname,
+    period: d.period,
+    turnover: toAsset(d.turnover),
+    due: toAsset(d.due),
+    retained: toAsset(d.retained),
+    orders: d.orders,
+  });
 
   const chainPort = {
+    /** Настроек участков нет — период списания равен календарному месяцу UTC. */
+    async getBranchConfig() {
+      return null;
+    },
+    async hasAnyDues() {
+      return dues.size > 0;
+    },
+    async listDueCounters() {
+      return [...counters.values()].map((c) => ({
+        id: 0,
+        braname: c.braname,
+        period: c.period,
+        turnover: toAsset(c.turnover),
+        secured: toAsset(c.secured),
+        retained: toAsset(c.retained),
+        orders: c.orders,
+        members: c.members,
+      }));
+    },
+    async listBranchDues(_coopname: string, braname: string) {
+      return [...dues.values()].filter((d) => d.braname === braname).map(dueRowOf);
+    },
+    async listMemberDues(_coopname: string, username: string) {
+      return [...dues.values()].filter((d) => d.username === username).map(dueRowOf);
+    },
     // Строка участка по паевым взносам инициаторов; нет строки — паевых взносов нет.
     async getInvestBranch(_coopname?: string, braname?: string) {
       const b = braname ? invest.get(braname) : undefined;
@@ -240,21 +313,23 @@ export function createKeuWorld() {
         join_seq: 1,
       };
     },
+
+    /** `closeperiod`: T и C из счётчика участка, от узла — факты о расходах. */
     async closePeriod(data: any) {
       calls.closePeriod.push(data);
       const fault = faults.closePeriod.shift();
       if (fault) throw fault;
-      const turnover = toUnits(data.turnover);
-      const secured = toUnits(data.secured);
-      if (turnover <= 0n || secured <= 0n) throw refusal('MARKETPLACE_PERIOD_AMOUNT_INVALID', 'Стоимость заказов и собранная обеспечительная часть прогона должны быть больше нуля');
+      if (!(data.period < currentPeriod())) throw refusal('MARKETPLACE_PERIOD_OPEN', 'Период списания ещё идёт');
       if (periods.some((p) => p.braname === data.braname && p.period === data.period)) {
         throw refusal('MARKETPLACE_PERIOD_EXISTS', 'Итог участка за период уже рассчитан');
       }
+      const counter = counters.get(counterKey(data.braname, data.period));
+      if (!counter || counter.turnover <= 0n) throw refusal('MARKETPLACE_PERIOD_EMPTY', 'За период на участке нет выданных заказов с обеспечительной частью');
       const earlier = periods.filter((p) => p.braname === data.braname && p.period < data.period);
       const prev = earlier.sort((a, b) => b.period - a.period)[0];
       const facts = {
-        turnover,
-        secured,
+        turnover: counter.turnover,
+        secured: counter.secured,
         planned: toUnits(data.planned),
         memos: toUnits(data.memos),
         aidPaid: toUnits(data.aid_paid),
@@ -271,18 +346,19 @@ export function createKeuWorld() {
         totals: Model.closePeriod(facts),
         initiator: settings.initiator.get(data.braname) ?? `chair.${data.braname}`,
       });
+      counters.delete(counterKey(data.braname, data.period));
       return {};
     },
 
     async listBranchPeriods(_coopname: string, braname: string) {
       return periods.filter((p) => p.braname === braname).map(periodRowOf);
     },
+    async listAllBranchPeriods() {
+      return periods.map(periodRowOf);
+    },
 
     /** Кошелёк пайщика в цепи; тест читает только кошелёк обеспечительной части к списанию. */
     async getUserWallet(_coopname: string, walletName: string, username: string) {
-      calls.getUserWallet.push({ walletName, username });
-      const fault = faults.walletRead.shift();
-      if (fault) throw fault;
       if (walletName !== 'w.mkt.due' || !wallets.due.has(username)) return null;
       return { id: 0, wallet_name: walletName, username, available: toAsset(wallets.due.get(username) ?? 0n), blocked: toAsset(0n) };
     },
@@ -295,20 +371,25 @@ export function createKeuWorld() {
       return {};
     },
 
+    /** `chargeperiod`: строка пайщика делится по ставкам итога и стирается; суммы — из счётчика. */
     async chargePeriod(data: any) {
       calls.chargePeriod.push(data);
-      const fault = faults.chargePeriod.get(data.order_hash)?.shift();
+      const fault = faults.chargePeriod.get(data.username)?.shift();
       if (fault) throw fault;
-      const amount = toUnits(data.amount);
-      const base = toUnits(data.base);
-      if (amount <= 0n || base <= 0n) throw refusal('MARKETPLACE_DUE_AMOUNT_INVALID', 'Сумма списания и стоимость заказа должны быть больше нуля');
+      const key = dueKey(data.username, data.braname, data.period);
+      const row = dues.get(key);
+      if (!row) throw refusal('MARKETPLACE_DUE_NOT_FOUND', 'У пайщика нет обеспечительной части к списанию за этот период');
+      if (!(data.period < currentPeriod())) throw refusal('MARKETPLACE_PERIOD_OPEN', 'Период списания ещё идёт');
+      if (hasOpenClaim(data.username)) throw refusal('MARKETPLACE_DUE_RETURN_PENDING', 'У пайщика открыто заявление на гарантийный возврат');
       const period = periods.find((p) => p.braname === data.braname && p.period === data.period);
-      if (!period) throw refusal('MARKETPLACE_PERIOD_NOT_CLOSED', 'Итог участка за период не рассчитан');
+      if (row.turnover > 0n && !period) throw refusal('MARKETPLACE_PERIOD_NOT_CLOSED', 'Итог участка за период не рассчитан');
+      const total = row.due + row.retained;
       const available = wallets.due.get(data.username) ?? 0n;
-      if (available < amount) throw refusal('MARKETPLACE_DUE_EXCEEDS', `заявлено ${toAsset(amount)}, доступно ${toAsset(available)}`);
+      if (available < total) throw refusal('MARKETPLACE_DUE_EXCEEDS', `учтено ${toAsset(total)}, доступно ${toAsset(available)}`);
 
-      const parts = Model.chargeOrder(period.totals, amount, base);
-      add(wallets.due, data.username, -amount);
+      const rates = period?.totals ?? { rateBranch: 0n, rateFunds: 0n, rateInitiator: 0n };
+      const parts = Model.chargeRow(rates, row.due, row.turnover, row.retained);
+      add(wallets.due, data.username, -total);
       add(wallets.branch, data.braname, parts.branch);
       wallets.funds += parts.funds;
       const inv = invest.get(data.braname);
@@ -319,27 +400,43 @@ export function createKeuWorld() {
         inv.repaid += route.repay;
         add(wallets.repay, data.braname, route.repay);
         add(wallets.branch, data.braname, route.toBranch);
-      } else {
+      } else if (period) {
         add(wallets.invest, period.initiator, parts.initiator);
       }
       add(wallets.share, data.username, parts.returned);
+      dues.delete(key);
 
-      if (faults.lostEvents.has(data.order_hash)) return {};
+      const hash = chargeHashOf(COOP, data.username, data.braname, data.period);
       const ops: AppliedOp[] = [];
-      if (parts.charged > 0n) ops.push({ code: MarketplaceSecureDueOperation.CHARGE, units: parts.charged, username: data.username, hash: data.order_hash, at: clock });
-      if (parts.returned > 0n) ops.push({ code: MarketplaceSecureDueOperation.RETURN_DUE, units: parts.returned, username: data.username, hash: data.order_hash, at: clock });
+      if (parts.charged > 0n) ops.push({ code: MarketplaceSecureDueOperation.CHARGE, units: parts.charged, username: data.username, hash, at: clock });
+      if (parts.returned > 0n) ops.push({ code: MarketplaceSecureDueOperation.RETURN_DUE, units: parts.returned, username: data.username, hash, at: clock });
+      for (const op of ops) chargeLog.push({ processHash: hash, operationCode: op.code, quantity: toAsset(op.units) });
+      if (faults.lostEvents.has(data.username)) return {};
       await deliver(ops);
       return {};
     },
 
-    async chargeDue(data: any) {
-      calls.chargeDue.push(data);
-      const amount = toUnits(data.amount);
+    /** Переходный перенос строки зеркала в счётчики — под потолком кошелька пайщика. */
+    async migrateDue(data: any) {
+      calls.migrateDue.push(data);
+      const due = toUnits(data.due);
+      const retained = toUnits(data.retained);
+      const turnover = toUnits(data.turnover);
+      const already = [...dues.values()].filter((d) => d.username === data.username).reduce((s, d) => s + d.due + d.retained, 0n);
       const available = wallets.due.get(data.username) ?? 0n;
-      if (available < amount) throw refusal('MARKETPLACE_DUE_EXCEEDS', `заявлено ${toAsset(amount)}, доступно ${toAsset(available)}`);
-      add(wallets.due, data.username, -amount);
-      add(wallets.branch, data.braname, amount);
-      await deliver([{ code: MarketplaceSecureDueOperation.CHARGE, units: amount, username: data.username, hash: data.order_hash, at: clock }]);
+      if (available < already + due + retained) throw refusal('MARKETPLACE_DUE_EXCEEDS', 'Перенос превышает остаток кошелька обеспечительной части');
+      if (!periods.some((p) => p.braname === data.braname && p.period === data.period)) {
+        const c = ensureCounter(data.braname, data.period);
+        c.turnover += turnover;
+        c.secured += due;
+        c.retained += retained;
+        if (turnover > 0n) c.orders += 1;
+      }
+      const d = ensureDue(data.username, data.braname, data.period);
+      d.turnover += turnover;
+      d.due += due;
+      d.retained += retained;
+      if (turnover > 0n) d.orders += 1;
       return {};
     },
   };
@@ -368,7 +465,11 @@ export function createKeuWorld() {
     },
   };
   const ledger2History = {
-    getHistory: async (filter: { username?: string; operationCodes?: string[]; dateFrom?: Date; dateTo?: Date }) => {
+    getHistory: async (filter: { username?: string; processHash?: string; operationCodes?: string[]; dateFrom?: Date; dateTo?: Date }) => {
+      if (filter.processHash) {
+        const items = chargeLog.filter((op) => op.processHash === filter.processHash && (filter.operationCodes ?? []).includes(op.operationCode));
+        return { items, totalCount: items.length, totalPages: 1, currentPage: 1 };
+      }
       const items = settings.ledger
         .filter((op) => op.username === filter.username && (filter.operationCodes ?? []).includes(op.operationCode))
         .filter((op) => (!filter.dateFrom || op.createdAt >= filter.dateFrom) && (!filter.dateTo || op.createdAt < filter.dateTo));
@@ -401,9 +502,9 @@ export function createKeuWorld() {
     economy as never,
     accountPort as never,
     notifications as never,
+    ledger2History as never,
     logger as never,
     periodService,
-    runQueriesOver(dueStore) as never,
     { emit: jest.fn() } as never
   );
 
@@ -420,20 +521,37 @@ export function createKeuWorld() {
     logger,
     notifications,
 
-    /** Выдача заказа: стоимость и обеспечительная часть одной транзакцией, как в цепи. */
+    /**
+     * Выдача заказа: кошелёк, счётчики периода конца гарантийного срока (без
+     * гарантии — периода выдачи) и операции ledger2 одной транзакцией, как в цепи.
+     */
     async issue(order: IssuedOrder): Promise<void> {
       orders.set(order.hash, order);
       add(wallets.due, order.username, order.due);
+      const period = periodOfDate(order.warrantyUntil ?? order.issuedAt);
+      const c = ensureCounter(order.braname, period);
+      const d = ensureDue(order.username, order.braname, period);
+      d.turnover += order.base;
+      d.due += order.due;
+      d.orders += 1;
+      c.turnover += order.base;
+      c.secured += order.due;
+      c.orders += 1;
       await deliver([
         { code: MarketplaceSecureDueOperation.CONSUM, units: order.base, username: order.username, hash: order.hash, at: order.issuedAt },
         { code: MarketplaceSecureDueOperation.TO_DUE, units: order.due, username: order.username, hash: order.hash, at: order.issuedAt },
       ]);
     },
 
-    /** Удержание при отказе от получения: стоимости нет, сумма ложится к списанию сразу. */
+    /** Удержание при отказе от получения: стоимости нет, сумма встаёт в счётчик текущего периода. */
     async penalize(order: Omit<IssuedOrder, 'base'>): Promise<void> {
       orders.set(order.hash, { ...order, base: 0n });
       add(wallets.due, order.username, order.due);
+      const period = periodOfDate(order.issuedAt);
+      const c = ensureCounter(order.braname, period);
+      const d = ensureDue(order.username, order.braname, period);
+      d.retained += order.due;
+      c.retained += order.due;
       await deliver([{ code: MarketplaceSecureDueOperation.PENALTY, units: order.due, username: order.username, hash: order.hash, at: order.issuedAt }]);
     },
 
@@ -462,12 +580,53 @@ export function createKeuWorld() {
       return dueService.chargeDue(COOP, now);
     },
 
+    /** Переходный перенос зеркала в счётчики — при старте узла. */
+    async migrate(): Promise<{ moved: number; failed: number }> {
+      return dueService.migrateMirror();
+    },
+
     chainPeriod(braname: string, period: number): ChainPeriod | undefined {
       return periods.find((p) => p.braname === braname && p.period === period);
     },
 
+    /** Строка счётчика пайщика в цепи; нет — списана либо не заводилась. */
+    chainDue(username: string, braname: string, period: number): ChainDue | undefined {
+      return dues.get(dueKey(username, braname, period));
+    },
+
+    /** Счётчик участка в цепи; нет — итог рассчитан либо заказов не было. */
+    chainCounter(braname: string, period: number): ChainCounter | undefined {
+      return counters.get(counterKey(braname, period));
+    },
+
     dueRow(hash: string): MarketplaceSecureDueEntity | undefined {
       return dueStore.rows.get(hash);
+    },
+
+    /** Положить строку в зеркало без цепи — заказ, выданный до появления счётчиков. */
+    seedMirrorRow(row: Partial<MarketplaceSecureDueEntity> & { order_hash: string }): void {
+      dueStore.rows.set(row.order_hash, {
+        coopname: COOP,
+        username: 'anna',
+        braname: 'branch1',
+        due_amount: '0.0000',
+        charged_amount: '0.0000',
+        base_amount: '0.0000',
+        returned_amount: '0.0000',
+        due_from: null,
+        charged_at: null,
+        run_period: null,
+        charge_sent_at: null,
+        last_sequence: '0',
+        created_at: new Date('2027-01-01T00:00:00.000Z'),
+        updated_at: new Date('2027-01-01T00:00:00.000Z'),
+        ...row,
+      } as MarketplaceSecureDueEntity);
+    },
+
+    /** Остаток кошелька пайщика к списанию в цепи — для переходного переноса. */
+    fundDueWallet(username: string, units: bigint): void {
+      add(wallets.due, username, units);
     },
   };
 }

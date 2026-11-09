@@ -1,12 +1,14 @@
 /**
- * @brief Расчёт итога прогона списания по кооперативному участку (задача
- * 99D-21, КЭУ-3; документ «Коэффициент экономического участия», раздел 8).
+ * @brief Расчёт итога периода списания по кооперативному участку (задачи
+ * 99D-21 и 99D-33, КЭУ-3; документ «Коэффициент экономического участия»,
+ * раздел 8).
  *
- * ИСТОК первого числа отбирает заказы участка с истёкшим гарантийным сроком и
- * передаёт пять фактов: стоимость этих заказов (T), собранную по ним
- * обеспечительную часть (C), плановые расходы (ПР), служебные записки сверх
- * плана (СЗ) и выплаченную материальную помощь (МП) за закончившийся месяц.
- * Всё остальное считает контракт:
+ * Стоимость заказов периода (T) и собранную по ним обеспечительную часть (C)
+ * контракт берёт из своего счётчика участка `kucounters`: его наполняла выдача
+ * (`issueact2`), уменьшали гарантийные возвраты и выход пайщиков. Узел
+ * передаёт только факты о расходах, которых в цепи нет: плановые расходы (ПР)
+ * из реестра планов, служебные записки сверх плана (СЗ) и выплаченную
+ * материальную помощь (МП) за период. Всё остальное считает контракт:
  *
  *   Р    = Σ резерва социально-экономического обеспечения пайщиков участка (branch::reserves)
  *   Р_пр = резерв прошлого прогона участка (его строка kuperiods); нет строки — 0
@@ -23,40 +25,41 @@
  *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T   ставки прогона
  *
  * Целочисленная арифметика в единицах актива, промежуточные значения в
- * uint128_t, деление вниз. Остатки округления по каждому заказу достаются
- * пайщику (см. chargeperiod). Строка — основание списания для пайщиков, после
- * записи не меняется; повторный расчёт того же периода отклоняется.
+ * uint128_t, деление вниз. Остатки округления по каждой строке пайщика
+ * достаются пайщику (см. chargeperiod). Строка — основание списания для
+ * пайщиков, после записи не меняется; повторный расчёт того же периода
+ * отклоняется. Счётчик участка расчётом стирается.
  *
- * Границы: действие читает единицы строк (резервы участка, фонды кооператива,
- * строки прогонов участка — не больше двух) и не хранит истории.
+ * Границы: действие читает единицы строк (счётчик участка, резервы участка,
+ * фонды кооператива, строки прогонов участка — не больше двух) и не хранит
+ * истории.
  *
  * Guards:
- *  - require_auth(coopname) — ИСТОК от имени кооператива;
+ *  - require_auth(coopname) — узел от имени кооператива;
  *  - участок существует;
- *  - T и C в валюте кооператива и больше нуля; ПР, СЗ, МП — не меньше нуля;
- *  - строки за этот период у участка ещё нет;
- *  - сумма процентов фондов меньше 100 %.
+ *  - период закончился (MARKETPLACE_PERIOD_OPEN);
+ *  - у участка за период есть выданные заказы с обеспечительной частью
+ *    (MARKETPLACE_PERIOD_EMPTY);
+ *  - ПР, СЗ, МП — не меньше нуля, в валюте кооператива;
+ *  - строки за этот период у участка ещё нет (MARKETPLACE_PERIOD_EXISTS);
+ *  - сумма процентов фондов не выше 100 %.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_t period,
-                              eosio::asset turnover, eosio::asset secured,
                               eosio::asset planned, eosio::asset memos, eosio::asset aid_paid) {
   require_auth(coopname);
 
   auto branch = get_branch_or_fail(coopname, braname);
 
-  const auto positive = [](const eosio::asset& a) {
-    return a.is_valid() && a.amount > 0 && a.symbol == _root_govern_symbol;
-  };
   const auto non_negative = [](const eosio::asset& a) {
     return a.is_valid() && a.amount >= 0 && a.symbol == _root_govern_symbol;
   };
-  eosio::check(positive(turnover) && positive(secured),
-               "MARKETPLACE_PERIOD_AMOUNT_INVALID: Стоимость заказов и собранная обеспечительная часть прогона должны быть больше нуля и в валюте кооператива");
   eosio::check(non_negative(planned) && non_negative(memos) && non_negative(aid_paid),
                "MARKETPLACE_PERIOD_AMOUNT_INVALID: Расходы участка не могут быть отрицательными и должны быть в валюте кооператива");
   eosio::check(period > 0, "MARKETPLACE_PERIOD_AMOUNT_INVALID: Номер периода не задан");
+  eosio::check(period < Marketplace::Dues::current_period(coopname),
+               "MARKETPLACE_PERIOD_OPEN: Период списания ещё идёт — итог участка считается после его окончания");
 
   kuperiods_index periods(_marketplace, coopname.value);
   {
@@ -64,6 +67,18 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     eosio::check(idx.find(combine_ids(braname.value, period)) == idx.end(),
                  "MARKETPLACE_PERIOD_EXISTS: Итог участка за период уже рассчитан");
   }
+
+  // T и C — из счётчика участка: выдано за период минус возвращённое по гарантии
+  // и минус строки вышедших пайщиков (их остаток списан при выходе целиком).
+  const auto counter_id = Marketplace::Dues::find_counter_id(coopname, braname, period);
+  eosio::check(counter_id.has_value(),
+               "MARKETPLACE_PERIOD_EMPTY: За период на участке нет выданных заказов с обеспечительной частью — итог не считается");
+  kucounters_index counters(_marketplace, coopname.value);
+  const kucounter counter = counters.get(*counter_id);
+  const eosio::asset turnover = counter.turnover;
+  const eosio::asset secured = counter.secured;
+  eosio::check(turnover.amount > 0,
+               "MARKETPLACE_PERIOD_EMPTY: За период на участке нет выданных заказов с обеспечительной частью — итог не считается");
 
   // Резерв прошлого прогона — строка участка с наибольшим периодом меньше текущего.
   eosio::asset reserve_prev(0, _root_govern_symbol);
@@ -133,4 +148,8 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     row.initiator = Marketplace::initiator_of(coopname, braname, branch.trustee);
     row.closed_at = eosio::time_point_sec(eosio::current_time_point());
   });
+
+  // Ставки зафиксированы — счётчик участка отработал. Строки пайщиков периода
+  // остаются до своего списания по этим ставкам.
+  counters.erase(counters.find(*counter_id));
 }

@@ -162,18 +162,14 @@ export class MarketplacePeriodService {
   }
 
   /**
-   * Строка итога месяца участка: уже рассчитанная — из зеркала; иначе расчёт
-   * контрактом по фактам и зеркалирование строки цепи. Повторный вызов в том
-   * же месяце ничего не пересчитывает.
+   * Строка итога периода участка: уже рассчитанная — из зеркала; иначе расчёт
+   * контрактом и зеркалирование строки цепи. Стоимость заказов и собранную
+   * обеспечительную часть контракт берёт из своего счётчика участка (задача
+   * 99D-33); узел передаёт только факты о расходах. `rowsTotal` — строк
+   * счётчиков пайщиков за период, столько списаний предстоит. Повторный вызов
+   * в том же периоде ничего не пересчитывает.
    */
-  async ensureClosed(
-    coopname: string,
-    braname: string,
-    period: number,
-    turnover: bigint,
-    secured: bigint,
-    rowsTotal: number
-  ): Promise<MarketplaceBranchPeriodEntity> {
+  async ensureClosed(coopname: string, braname: string, period: number, rowsTotal: number): Promise<MarketplaceBranchPeriodEntity> {
     const existing = await this.store.findOne({ coopname, braname, period });
     if (existing) return existing;
 
@@ -183,8 +179,6 @@ export class MarketplacePeriodService {
         coopname,
         braname,
         period,
-        turnover: this.economyService.unitsToAsset(turnover),
-        secured: this.economyService.unitsToAsset(secured),
         planned: this.economyService.unitsToAsset(facts.planned),
         memos: this.economyService.unitsToAsset(facts.memos),
         aid_paid: this.economyService.unitsToAsset(facts.aidPaid),
@@ -274,12 +268,14 @@ export class MarketplacePeriodService {
   /**
    * В цепи у участка остаются итоги текущего и прошлого месяца: прошлый нужен
    * ради невыплаченной части резерва. Более старые строки стираются перед
-   * расчётом нового итога.
+   * расчётом нового итога. Период, у которого в цепи ещё есть несписанные
+   * строки счётчиков пайщиков (`keep`), не стирается: их списание идёт по его
+   * ставкам (задача 99D-33).
    */
-  async pruneOld(coopname: string, braname: string, currentPeriod: number): Promise<void> {
+  async pruneOld(coopname: string, braname: string, currentPeriod: number, keep: ReadonlySet<number> = new Set()): Promise<void> {
     const rows = await this.store.find({ coopname, braname, deleted_at: isNull() });
     for (const row of rows) {
-      if (row.period >= currentPeriod - 1) continue;
+      if (row.period >= currentPeriod - 1 || keep.has(row.period)) continue;
       try {
         await this.chainPort.deletePeriod({ coopname, braname, period: row.period });
       } catch (err: any) {

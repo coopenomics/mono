@@ -14,6 +14,7 @@
 #include "../ledger2/ledger2.hpp"
 #include "../branch/branch.hpp"
 #include "memo.hpp"
+#include "dues.hpp"
 #include "../../domain/table_marketplace_orders.hpp"
 #include "../../domain/table_marketplace_return_requests.hpp"
 #include "../../domain/table_marketplace_writeoff_proposals.hpp"
@@ -558,6 +559,9 @@ inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
   const eosio::asset penalty_fee = refusal_penalty_share(fee);
   refund_secure_part(coopname, o, fee - penalty_fee);
   move_secure_part_to_due(coopname, o, penalty_fee);
+  // Удержанное списывается участку целиком по окончании текущего периода
+  // (счётчики списания, задача 99D-33).
+  Dues::note_retained(coopname, o, penalty_body + penalty_fee);
 }
 
 // ── Факты Стола заказов для других контрактов (shared-слой, задача 99D-16) ──
@@ -578,35 +582,33 @@ inline bool has_orders_at_branch(eosio::name coopname, eosio::name braname) {
 /// открытой заявке на возврат зачислило бы паевой и взнос на заблокированный
 /// аккаунт (задача 99D-16). Резерв под заказы держит выход сам по себе —
 /// строкой BLOCKER в таблице EXIT_WALLET_POLICY (задача 99D-15).
-inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
+/// У пайщика открыто заявление на гарантийный возврат: решение совета по нему
+/// вернёт обеспечительную часть с кошелька к списанию, поэтому ни выход, ни
+/// списание строки счётчика (`chargeperiod`) до решения не проходят.
+inline bool has_open_return_request(eosio::name coopname, eosio::name username) {
   return_requests_index requests(_marketplace, coopname.value);
   auto by_orderer = requests.get_index<"byorderer"_n>();
-  eosio::check(by_orderer.find(username.value) == by_orderer.end(),
+  return by_orderer.find(username.value) != by_orderer.end();
+}
+
+inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
+  eosio::check(!has_open_return_request(coopname, username),
                "Выход из кооператива невозможен: открыто заявление на гарантийный возврат в Столе заказов — дождитесь его рассмотрения");
 }
 
 /// Выход состоялся: остаток обеспечительной части к списанию w.mkt.due по
 /// условиям ЦПП списывается в членский взнос немедленно (решение владельца
-/// 31.10.2026, задача 99D-18): транзитом через пул (o.mkt.exfee) и далее в
-/// общий кошелёк участка, к которому прикреплён пайщик (o.brn.common,
-/// Дт 80 / Кт 86). Пайщик без участка или участок удалён — остаток остаётся в
-/// пуле. `actor` — контракт, проводящий выход (его разрешение подписывает операции).
+/// 31.10.2026, задача 99D-18) действием `marketplace::exitdue` — своей
+/// транзакцией контракт списать не может: счётчики списания (задача 99D-33)
+/// пишет только их владелец. Пайщик без кошелька и без строк счётчиков
+/// Стол заказов не вызывает. `actor` — контракт, проводящий выход.
 inline void settle_due_on_exit(eosio::name actor, eosio::name coopname,
                                eosio::name username, const checksum256& exit_hash) {
   const eosio::asset balance =
       get_user_wallet_balance(coopname, ledger2_wallets::MARKETPLACE_SECURE_DUE, username).available;
-  if (balance.amount <= 0) return;
-
-  Ledger2::apply(actor, coopname, operations::marketplace::EXIT_DUE_TO_POOL,
-                 processes::wallet::WITHDRAW, balance, username, exit_hash,
-                 "Обеспечительная часть Стола заказов к списанию при выходе, username=" +
-                   username.to_string());
-
-  const auto braname = ::get_participant_branch(coopname, username);
-  if (!braname.has_value() || !Branch::exists(coopname, *braname)) return;
-  Branch::accrue(actor, coopname, *braname, balance, processes::wallet::WITHDRAW, exit_hash,
-                 "Обеспечительная часть Стола заказов списана в членский взнос участка при выходе, username=" +
-                   username.to_string());
+  if (balance.amount <= 0 && !Dues::has_member_rows(coopname, username)) return;
+  eosio::action(eosio::permission_level{actor, "active"_n}, _marketplace, "exitdue"_n,
+                std::make_tuple(coopname, username, exit_hash)).send();
 }
 
 } // namespace Marketplace

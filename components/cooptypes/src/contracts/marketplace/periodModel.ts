@@ -144,6 +144,30 @@ export function chargeOrder(rates: IPeriodRates, amount: bigint, base: bigint): 
 }
 
 /**
+ * Расчёт `chargeperiod` по строке счётчика пайщика за период (задача 99D-33):
+ * `due` — обеспечительная часть к списанию по ставкам, `turnover` — стоимость
+ * выданных заказов строки, `retained` — удержания при отказе, которые целиком
+ * достаются участку и в ставки не входят. Строка без стоимости (одни удержания)
+ * ставок не требует.
+ */
+export function chargeRow(rates: IPeriodRates, due: bigint, turnover: bigint, retained: bigint): IChargeParts {
+  const parts = turnover > ZERO
+    ? chargeOrder(rates, due, turnover)
+    : { branch: ZERO, funds: ZERO, initiator: ZERO, returned: due, charged: ZERO }
+  const branch = parts.branch + retained
+  return { ...parts, branch, charged: branch + parts.funds + parts.initiator }
+}
+
+/**
+ * Строка-основание хэша нитки списания (`Marketplace::Dues::charge_hash`):
+ * sha256 от неё — хэш процесса p.mkt.due строки счётчика. Хэширует вызывающий:
+ * у пакета типов нет зависимости от криптографии.
+ */
+export function chargeProcessSeed(coopname: string, username: string, braname: string, period: number): string {
+  return `p.mkt.due:${coopname}:${username}:${braname}:${period}`
+}
+
+/**
  * Расчёт `fund::accrue`: сумма отчислений делится между фондами накопления по
  * их процентам в порядке номеров; фонды с нулевым процентом не участвуют,
  * остаток округления достаётся последнему. Возвращает доли в порядке `percents`.

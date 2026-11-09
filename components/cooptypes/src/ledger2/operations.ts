@@ -269,9 +269,10 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Постановка обеспечительной части паевого взноса на списание' },
 
-  // Списание по условиям ЦПП — первая нога chargedue; проводку Дт 80 / Кт 86
-  // делает вторая нога o.brn.common в той же транзакции.
-  { code: 'o.mkt.charge',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  // Списание по итогу периода — первая нога chargeperiod; проводку Дт 80 / Кт 86
+  // делает вторая нога o.brn.common в той же транзакции. Нитка — строка
+  // счётчика пайщика за период (p.mkt.due, задача 99D-33), не заказ.
+  { code: 'o.mkt.charge',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'CHARGE_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.fee',
     debit: null, credit: null,
     human_name: 'Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП' },
@@ -300,15 +301,15 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Списание обеспечительной части в членский взнос при выходе пайщика из кооператива' },
 
-  // Списание по итогу месяца участка (задача 99D-21): o.mkt.charge на сумму
-  // участку + фонды + инициатору, затем три ноги из пула — o.brn.common,
-  // o.fnd.accrue, o.mkt.initr; остаток пайщику — o.mkt.retdue.
-  { code: 'o.mkt.initr',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+  // Списание по итогу периода участка (задачи 99D-21, 99D-33): o.mkt.charge на
+  // сумму участку + фонды + инициатору, затем ноги из пула — o.brn.common,
+  // o.fnd.*, o.mkt.repay; остаток пайщику — o.mkt.retdue. Нитка p.mkt.due.
+  { code: 'o.mkt.initr',   process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INITIATOR_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.invest',
     debit: null, credit: null,
     human_name: 'Вознаграждение инициатора кооперативного участка из экономии месяца' },
 
-  { code: 'o.mkt.retdue',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  { code: 'o.mkt.retdue',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'RETURN_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.share',
     debit: null, credit: null,
     human_name: 'Возврат части обеспечительной части паевого взноса по итогу месяца участка' },

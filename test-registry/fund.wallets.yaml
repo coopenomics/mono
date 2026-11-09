@@ -31,7 +31,7 @@ sources:
     - components/contracts/cpp/ledger2/src/migrate/migrate.cpp
     - components/contracts/cpp/soviet/p.sov.spend.standard.yaml
     - components/contracts/cpp/branch/src/aidconfirm.cpp
-    - components/contracts/cpp/marketplace/src/p.mkt.supply/closeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.due/closeperiod.cpp
   backend:
     - components/cooptypes/scripts/gen-from-cpp.ts
     - components/cooptypes/src/ledger2/wallets.generated.ts
