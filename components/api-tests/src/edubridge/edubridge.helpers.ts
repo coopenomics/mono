@@ -637,7 +637,16 @@ export async function groupOfAssignment(token: string, assignmentId: string, gro
  */
 export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
   const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
-  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(Date.now() - 2 * 3600_000)
+  // Занятие по умолчанию — два часа назад, но не раньше начала текущих суток
+  // UTC: контракт засчитывает занятие подписке с начала суток (UTC) её оплаты
+  // (lesson_covered в economy.hpp). Прогон после полуночи UTC иначе ставил
+  // занятие во вчерашний день, и отчёт отклонялся «нет оплаченных учениками
+  // часов» (Blackbox на ветке 07.11.2026). В первые минуты суток, пока занятие
+  // ещё не кончилось, отчёт по-прежнему рано — такого окна ночной прогон не задевает.
+  const dayStartUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
+  const held_at = typeof over.held_at === 'string'
+    ? new Date(over.held_at as string)
+    : new Date(Math.max(Date.now() - 2 * 3600_000, dayStartUtc + 1000))
   // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
   const target = new Date(Math.max(held_at.getTime(), floor)).toISOString()
@@ -650,8 +659,7 @@ export async function calendarLesson(token: string, assignmentId: string, lesson
   // считает его оплаченным) или ещё впереди (отчёт рано). Под отчёт
   // администратор переносит его на то же время, что и внеочередное занятие;
   // номер занятия сохраняется. Явное время в over — тоже перенос.
-  const startOfTodayUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
-  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < startOfTodayUtc
+  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < dayStartUtc
   if (planned.status === 'PLANNED' && (unusable || typeof over.held_at === 'string')) {
     const chairman = await tokenOf(CHAIRMAN)
     return (await gql<any>(chairman, MOVE_LESSON, { d: { lesson_id: planned.id, held_at: target } })).edubridgeMoveLesson

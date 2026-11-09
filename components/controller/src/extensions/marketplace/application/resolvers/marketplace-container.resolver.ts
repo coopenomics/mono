@@ -111,7 +111,7 @@ export class MarketplaceContainerResolver {
       'Заведение партии боксов одного типа на участке; коды выдаются последовательно. Председатель участка заводит боксы у себя, председатель кооператива — на любом участке.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
-  @RequireRight('Container', ['manage:own-KU', 'manage:all'], { ku: 'data.braname' })
+  @RequireRight('Container', ['manage:own-KU', 'create:all'], { ku: 'data.braname' })
   async marketplaceCreateContainers(
     @Args('data') data: MarketplaceCreateContainersInputDTO
   ): Promise<MarketplaceContainerDTO[]> {
