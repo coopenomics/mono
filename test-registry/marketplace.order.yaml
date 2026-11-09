@@ -109,6 +109,7 @@ sources:
     - components/contracts/cpp/branch/src/setreserve.cpp
     - components/contracts/cpp/branch/src/delreserve.cpp
     - components/contracts/cpp/branch/src/setaidlimit.cpp
+    - components/contracts/cpp/branch/src/setaidperiod.cpp
     - components/contracts/cpp/branch/src/createaid.cpp
     - components/contracts/cpp/branch/src/onaidauth.cpp
     - components/contracts/cpp/branch/src/onaiddecl.cpp
@@ -1156,10 +1157,26 @@ cases:
       отрицательный — отказ; инициатор участка — назначенный, иначе председатель;
       строки резерва с остатком на месяц, чужой участок не входит; получатель вне
       участка или сумма ноль — отказ до цепи; предел: потолок ноль — предела нет,
-      без строки резерва — MARKETPLACE_AID_NO_RESERVE, сверх — MARKETPLACE_AID_OVER_RESERVE
+      без строки резерва — MARKETPLACE_AID_NO_RESERVE, сверх — MARKETPLACE_AID_OVER_RESERVE;
+      период предела — тот же, что у контракта (aidPeriodKey): при длине в настройках
+      участков — отрезок этой длины, иначе календарный месяц UTC; при запуске узел
+      пишет длину месяца стенда только при расхождении с цепью, отказ цепи запуск не роняет
     test: components/controller/tests/unit/marketplace/marketplace-branch-reserve.service.test.ts
     external: unreachable
     external_reason: "API стенда проверяется сценарием КЭУ-5 после экранов"
+    status: written
+
+  - id: mkt.order.keu.16
+    level: contract
+    kind: side
+    scenario: >
+      Администратор задаёт длину месяца предела материальной помощи (стенд со сжатым
+      временем — несколько минут), затем возвращает календарный месяц.
+    expect: >
+      меньше минуты — BRANCH_AID_PERIOD_INVALID; длина пишется в настройки участков,
+      потолок не тронут; заявление при длине 600 с ведёт накопитель по номеру отрезка
+      600 с от эпохи; ноль — снова календарный месяц UTC
+    test: components/boot/src/tests/branch-reserve.test.ts
     status: written
 
   - id: mkt.order.keu.11

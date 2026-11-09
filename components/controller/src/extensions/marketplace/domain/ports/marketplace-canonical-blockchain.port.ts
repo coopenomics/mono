@@ -326,6 +326,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */
   setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult>;
+  /** Длина периода предела материальной помощи, секунд; ноль — календарный месяц UTC (стенд ставит длину своего месяца). */
+  setAidPeriod(data: BranchContract.Actions.SetAidPeriod.ISetaidperiod): Promise<InnerTransactResult>;
   /** Резерв получателя на участке (branch::setreserve). */
   setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult>;
   /** Снятие резерва получателя (branch::delreserve). */

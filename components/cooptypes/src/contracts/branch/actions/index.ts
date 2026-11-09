@@ -23,6 +23,7 @@ export * as SetWeight from './setWeight'
  * Потолок резерва социально-экономического обеспечения на получателя в месяц (задача 99D-20).
  */
 export * as SetAidLimit from './setAidLimit'
+export * as SetAidPeriod from './setAidPeriod'
 
 /**
  * Резерв социально-экономического обеспечения получателя на участке (задача 99D-20).

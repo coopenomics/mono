@@ -497,6 +497,10 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetAidLimit.actionName, data, 'setaidlimit');
   }
 
+  async setAidPeriod(data: BranchContract.Actions.SetAidPeriod.ISetaidperiod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetAidPeriod.actionName, data, 'setaidperiod');
+  }
+
   async setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetReserve.actionName, data, 'setreserve');
   }

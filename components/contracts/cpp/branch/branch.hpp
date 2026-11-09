@@ -175,6 +175,14 @@ public:
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void setaidlimit(eosio::name coopname, eosio::asset limit);
+
+  /**
+   * @brief Длина периода, за который считается предел материальной помощи,
+   * секунд; ноль — календарный месяц UTC. Стенд со сжатым временем ставит
+   * длину своего месяца.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void setaidperiod(eosio::name coopname, uint32_t seconds);
   /**
    * @brief Резерв социально-экономического обеспечения получателя на участке:
    * сумма материальной помощи в месяц, записанная председателем участка; предел

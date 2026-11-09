@@ -81,7 +81,7 @@
     eosio::check(has_reserve,
                  "BRANCH_AID_NO_RESERVE: У получателя нет резерва социально-экономического обеспечения на этом участке");
 
-    const uint32_t period = Branch::utc_month_period(eosio::time_point_sec(eosio::current_time_point()));
+    const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
     branch_aidmonths_index months(_branch, coopname.value);
     auto month = months.find(username.value);
     const eosio::asset already = (month == months.end() || month->period != period)

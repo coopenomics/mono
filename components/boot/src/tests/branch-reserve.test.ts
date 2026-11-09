@@ -9,6 +9,8 @@
  *     посторонний пайщик, нулевая сумма;
  *   • createaid — заявление в пределах резерва проходит и пишется в накопитель
  *     aidmonths; заявление сверх резерва отклоняется BRANCH_AID_OVER_RESERVE;
+ *   • setaidperiod — длина месяца предела помощи: меньше минуты — отказ,
+ *     при длине 600 с накопитель ведётся по номеру отрезка от эпохи;
  *   • delreserve — строка стирается, заявление без резерва отклоняется
  *     BRANCH_AID_NO_RESERVE.
  *
@@ -146,6 +148,41 @@ describe('экономика участка — резерв социально-
       statement: aidStatement(chairkrg, overHash),
       meta: '{}',
     })).rejects.toThrow(/BRANCH_AID_OVER_RESERVE/)
+  })
+
+  it('setaidperiod: длина месяца предела помощи — меньше минуты отказ, накопитель ведётся по номеру отрезка; ноль — календарный месяц', async () => {
+    const before = (await rows('brnconfig', 1))[0]
+    const prev = Number(before?.aid_period_seconds ?? 0)
+    await expect(push('setaidperiod', { coopname: COOP, seconds: 30 })).rejects.toThrow(/BRANCH_AID_PERIOD_INVALID/)
+    try {
+      await push('setaidperiod', { coopname: COOP, seconds: 600 })
+      expect(Number((await rows('brnconfig', 1))[0]?.aid_period_seconds)).toBe(600)
+      // Потолок не тронут: длина периода пишется в ту же строку настроек.
+      expect((await rows('brnconfig', 1))[0]?.aid_month_limit).toBe(LIMIT)
+
+      await fundSmallAid()
+      const hash = generateRandomSHA256()
+      const from = Math.floor(Date.now() / 1000 / 600)
+      await push('createaid', {
+        coopname: COOP,
+        username: chairkrg.account,
+        braname: BRANAME,
+        aid_hash: hash,
+        amount: SMALL_AID,
+        statement: aidStatement(chairkrg, hash),
+        meta: '{}',
+      })
+      const to = Math.floor(Date.now() / 1000 / 600)
+      const month = (await rows('aidmonths')).find((m: any) => m.username === chairkrg.account)
+      expect(Number(month.period), 'номер периода — отрезок 600 с от эпохи').toBeGreaterThanOrEqual(from)
+      expect(Number(month.period)).toBeLessThanOrEqual(to)
+
+      await push('setaidperiod', { coopname: COOP, seconds: 0 })
+      expect(Number((await rows('brnconfig', 1))[0]?.aid_period_seconds)).toBe(0)
+    }
+    finally {
+      await push('setaidperiod', { coopname: COOP, seconds: prev })
+    }
   })
 
   it('delreserve: строка стирается, заявление без резерва отклоняется BRANCH_AID_NO_RESERVE', async () => {

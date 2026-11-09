@@ -120,6 +120,27 @@ inline uint32_t utc_month_period(eosio::time_point_sec at) {
   return static_cast<uint32_t>(year * 12 + m);
 }
 
+/// Длина периода предела материальной помощи, секунд; ноль — календарный месяц UTC.
+inline uint32_t aid_period_seconds(eosio::name coopname) {
+  brnconfig_singleton cfg(_branch, coopname.value);
+  if (!cfg.exists()) return 0;
+  const auto state = cfg.get();
+  return state.aid_period_seconds.has_value() ? state.aid_period_seconds.value() : 0;
+}
+
+/**
+ * @brief Номер периода, за который считается предел материальной помощи.
+ *
+ * В рабочем режиме — календарный месяц UTC (`utc_month_period`). Если в
+ * настройках участков задана длина периода (стенд со сжатым временем) — номер
+ * отрезка этой длины от эпохи, как у итогов месяцев на стенде. Номера двух
+ * режимов не пересекаются по величине, смена режима начинает период заново.
+ */
+inline uint32_t aid_period(eosio::name coopname, eosio::time_point_sec at) {
+  const uint32_t seconds = aid_period_seconds(coopname);
+  return seconds > 0 ? at.sec_since_epoch() / seconds : utc_month_period(at);
+}
+
 /// Потолок резерва на получателя в месяц; ноль — резерв выключен.
 inline eosio::asset aid_month_limit(eosio::name coopname) {
   brnconfig_singleton cfg(_branch, coopname.value);

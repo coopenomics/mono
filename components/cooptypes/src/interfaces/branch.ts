@@ -146,6 +146,8 @@ export interface IDeltrusted {
 export interface IBrnconfig {
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц; ноль — резерв выключен. */
   aid_month_limit: IAsset
+  /** Длина периода, за который считается предел материальной помощи, секунд; нет или ноль — календарный месяц UTC. */
+  aid_period_seconds?: IUint32
 }
 
 export interface IBranchReserve {
@@ -167,6 +169,11 @@ export interface IBranchAidmonth {
 export interface ISetaidlimit {
   coopname: IName
   limit: IAsset
+}
+
+export interface ISetaidperiod {
+  coopname: IName
+  seconds: IUint32
 }
 
 export interface ISetreserve {

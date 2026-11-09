@@ -37,7 +37,7 @@
   {
     branch_aidmonths_index months(_branch, coopname.value);
     auto month = months.find(it->username.value);
-    const uint32_t period = Branch::utc_month_period(eosio::time_point_sec(eosio::current_time_point()));
+    const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
     if (month != months.end() && month->period == period) {
       const eosio::asset amount = it->amount;
       months.modify(month, RamPayer::of(months, coopname), [&](auto &m) {
