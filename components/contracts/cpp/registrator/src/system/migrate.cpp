@@ -139,4 +139,58 @@
 
     accounts.modify(acc, RamPayer::of(accounts), [&](auto &row) { row.status = "active"_n; });
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Разовое удаление ТЕСТОВОГО пайщика ВОСХОДа hwpzzazaupgh (C28-42,
+  // 09.11.2026): учётная запись «Тестер Тест Тестович», принятая на боевой цепи
+  // при проверке регистрации. Решение председателя — убрать целиком. Строку
+  // реестра пайщиков стирает soviet::migrate, здесь — запись картотеки.
+  // Список синхронизирован с soviet::migrate и ledger2::migrate.
+  // Идемпотентно: при повторном прогоне записи нет → no-op.
+  {
+    const eosio::name TEST_COOP = "voskhod"_n;
+    const eosio::name TEST_PARTICIPANT = "hwpzzazaupgh"_n;
+
+    accounts_index test_accounts(_registrator, _registrator.value);
+    auto acc = test_accounts.find(TEST_PARTICIPANT.value);
+    // Трогаем только запись, заведённую этим кооперативом.
+    if (acc != test_accounts.end() && acc->registrator == TEST_COOP)
+      test_accounts.erase(acc);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Пересчёт счётчика активных пайщиков (C28-42, 09.11.2026).
+  //
+  // Счётчик — знаменатель кворума общего собрания (meet::vote). Его ведут
+  // приращения: confirmreg/adduser прибавляют, block/delpartcpnt вычитают. До
+  // 09.11.2026 разблокировка пайщика обратно не прибавляла, и счётчик ВОСХОДа
+  // разошёлся с реестром: 45 при 46 пайщиках с правом голоса. Разблокировка
+  // исправлена (incparticpnt), а накопленное расхождение снимает пересчёт.
+  //
+  // Источник истины — soviet::participants: в счётчике пайщик, принятый советом
+  // и с правом голоса (ровно то, что прибавляют confirmreg/adduser и вычитают
+  // block/delpartcpnt). Пересчитываются все кооперативы, у которых счётчик уже
+  // заведён; без счётчика кооператив не трогается — его заведёт первый приём.
+  //
+  // Порядок раскатки: registrator::migrate идёт раньше soviet::migrate. Тестера
+  // ВОСХОДа пересчёт ещё видит в реестре, и soviet::migrate вычитает его сам при
+  // удалении строки — к концу раскатки счётчик верен.
+  //
+  // Перебор реестров — разовая работа раскатки: кооперативов на сети единицы,
+  // пайщиков в каждом — десятки. Идемпотентно: верный счётчик не меняется.
+  for (auto it = coops2.begin(); it != coops2.end(); ++it) {
+    if (!it->is_cooperative || !it->active_participants_count.has_value()) continue;
+
+    participants_index participants(_soviet, it->username.value);
+    uint64_t active = 0;
+    for (auto p = participants.begin(); p != participants.end(); ++p) {
+      if (p->is_active() && p->has_vote) active++;
+    }
+
+    if (it->active_participants_count.value() == active) continue;
+
+    coops2.modify(it, RamPayer::of(coops2), [&](auto& coop) {
+      coop.active_participants_count = active;
+    });
+  }
 }
