@@ -233,15 +233,15 @@ describe('Образование: календарь группы и стол п
     let first: any
 
     it(caseName('edu.teach.happy.33', 'у занятия без отчёта видна сумма взноса до отчёта: ставка допуска за минуты на обучающегося'), async () => {
-      first = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: new Date(Date.now() - 6 * 3600_000).toISOString(), minutes: 60 })
+      first = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: lessonHoursAgo(6, 1), minutes: 60 })
       const mine = ((await gql<any>(token, MY_LESSONS_CHARGE)).edubridgeMyLessons as any[]).find(l => l.id === first.id)
       expect(mine.expected_amount).toBeTruthy()
       expect(amount(mine.expected_amount)).toBeCloseTo(900, 4)
     })
 
     it(caseName('edu.teach.side.30', 'отчёты принимаются в любой очерёдности: третье занятие раньше первого'), async () => {
-      await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: new Date(Date.now() - 5 * 3600_000).toISOString(), minutes: 60 })
-      third = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: new Date(Date.now() - 4 * 3600_000).toISOString(), minutes: 60 })
+      await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: lessonHoursAgo(5, 2), minutes: 60 })
+      third = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: lessonHoursAgo(4, 3), minutes: 60 })
       expect(third.lesson_number).toBeGreaterThan(first.lesson_number)
 
       const reportedThird = (await gql<any>(token, REPORT_LESSON, { d: { lesson_id: third.id, materials: ['https://example.org/l3'], topic: 'Третье занятие' } })).edubridgeReportLesson
@@ -253,8 +253,7 @@ describe('Образование: календарь группы и стол п
     it(caseName('edu.teach.side.31', 'двухчасовое занятие календаря: длительность в отчёте не называется, уходит из календаря'), async () => {
       // Восемь часов назад, но не раньше начала суток UTC: контракт считает занятие
       // оплаченным с дня оплаты подписки, вчерашнее занятие ей не покрыто.
-      const startOfTodayUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
-      const long = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: new Date(Math.max(Date.now() - 8 * 3600_000, startOfTodayUtc + 60_000)).toISOString(), minutes: 120 })
+      const long = await planLesson(reportGroup.id, { assignment_id: repA.id, held_at: lessonHoursAgo(8, 1), minutes: 120 })
       const reported = (await gql<any>(token, REPORT_LESSON, { d: { lesson_id: long.id, materials: ['https://example.org/long'], topic: 'Двухчасовое занятие' } })).edubridgeReportLesson
       expect(reported.duration_minutes).toBe(120)
     })

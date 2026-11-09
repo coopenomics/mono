@@ -614,7 +614,7 @@ export async function planLesson(groupId: string, over: Record<string, unknown> 
     await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, hourly_rate: PLANNED_RATE }], report_days: 365 } })
     longReportWindow.add(groupId)
   }
-  const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }
+  const d = { group_id: groupId, held_at: new Date(defaultHeldAt()).toISOString(), ...over }
   return (await gql<any>(chairman, PLAN_LESSON, { d })).edubridgePlanLesson
 }
 
@@ -638,10 +638,25 @@ export async function groupOfAssignment(token: string, assignmentId: string, gro
  * оплачен», прогон blackbox 42533643672, 00:44 UTC). Первый час после полуночи
  * часовое занятие сегодня ещё не закончилось — тогда остаётся прежнее время.
  */
+/** Начало текущего дня UTC в миллисекундах. */
+export function startOfTodayUtc(): number {
+  return new Date(new Date().toISOString().slice(0, 10)).getTime()
+}
+
+/**
+ * Время занятия «столько-то часов назад», но не раньше начала дня UTC плюс
+ * `orderMinute` минут: подписка, оплаченная в этом же прогоне, покрывает только
+ * занятия с начала дня оплаты. Разные `orderMinute` сохраняют порядок занятий,
+ * когда после полуночи все они упираются в начало дня.
+ */
+export function lessonHoursAgo(hours: number, orderMinute = 1): string {
+  return new Date(Math.max(Date.now() - hours * 3600_000, startOfTodayUtc() + orderMinute * 60_000)).toISOString()
+}
+
 function defaultHeldAt(): number {
   const now = Date.now()
   const twoHoursAgo = now - 2 * 3600_000
-  const startOfToday = new Date(new Date(now).toISOString().slice(0, 10)).getTime() + 1000
+  const startOfToday = startOfTodayUtc() + 1000
   const lessonFitsToday = now - startOfToday >= 61 * 60_000
   return lessonFitsToday ? Math.max(twoHoursAgo, startOfToday) : twoHoursAgo
 }
@@ -666,8 +681,7 @@ export async function calendarLesson(token: string, assignmentId: string, lesson
   // считает его оплаченным) или ещё впереди (отчёт рано). Под отчёт
   // администратор переносит его на то же время, что и внеочередное занятие;
   // номер занятия сохраняется. Явное время в over — тоже перенос.
-  const startOfTodayUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
-  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < startOfTodayUtc
+  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < startOfTodayUtc()
   if (planned.status === 'PLANNED' && (unusable || typeof over.held_at === 'string')) {
     const chairman = await tokenOf(CHAIRMAN)
     return (await gql<any>(chairman, MOVE_LESSON, { d: { lesson_id: planned.id, held_at: target } })).edubridgeMoveLesson
