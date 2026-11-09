@@ -631,13 +631,29 @@ export async function groupOfAssignment(token: string, assignmentId: string, gro
 }
 
 /**
+ * Время занятия под отчёт по умолчанию — два часа назад, но не раньше начала
+ * текущего дня UTC. Подписка, оплаченная в этом же прогоне, открывает доступ с
+ * начала дня оплаты: занятие «два часа назад» после полуночи UTC попадало на
+ * вчера, и контракт честно отклонял расчёт («на дату занятия доступ не
+ * оплачен», прогон blackbox 42533643672, 00:44 UTC). Первый час после полуночи
+ * часовое занятие сегодня ещё не закончилось — тогда остаётся прежнее время.
+ */
+function defaultHeldAt(): number {
+  const now = Date.now()
+  const twoHoursAgo = now - 2 * 3600_000
+  const startOfToday = new Date(new Date(now).toISOString().slice(0, 10)).getTime() + 1000
+  const lessonFitsToday = now - startOfToday >= 61 * 60_000
+  return lessonFitsToday ? Math.max(twoHoursAgo, startOfToday) : twoHoursAgo
+}
+
+/**
  * Занятие календаря под отчёт: запланированное занятие группы с этим номером
  * либо новое занятие сверх расписания на два часа назад (номер выдаёт сервер:
  * наименьший свободный в программе).
  */
 export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
   const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
-  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(Date.now() - 2 * 3600_000)
+  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(defaultHeldAt())
   // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
   const target = new Date(Math.max(held_at.getTime(), floor)).toISOString()
