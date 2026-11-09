@@ -58,6 +58,13 @@ const { chargeRow, crpsRoute, splitFunds, HUNDR_PERCENTS: H } = MarketContract.P
 const bc = new Blockchain(config.network, config.private_keys)
 const push = coopPusher(bc)
 
+/**
+ * Итог и списание идут по окончании периода конца гарантии: в настоящем
+ * времени его не дождаться, поэтому набор идёт в фазе полигона со сжатым
+ * временем (BLACKBOX_STAND_MONTH_SECONDS; стенд разработки задаёт переменную сам).
+ */
+const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
+
 const BRANAME = 'krg'
 const ORDER_QTY = 2
 
@@ -92,7 +99,7 @@ async function memberRows(): Promise<Map<number, bigint>> {
   return new Map(rows.filter(r => r.username === ekaterina.account && r.braname === BRANAME).map(r => [Number(r.period), units(r.due)]))
 }
 
-describe('стол заказов — счётчики списания, итог периода и списание по ставкам (contract, живая цепь)', () => {
+describe.skipIf(!COMPRESSED)('стол заказов — счётчики списания, итог периода и списание по ставкам (contract, живая цепь)', () => {
   beforeAll(async () => {
     await bc.update_pass_instance()
     chairmanToken = await loginAs(CHAIRMAN)

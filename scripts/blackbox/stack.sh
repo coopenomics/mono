@@ -333,9 +333,25 @@ cmd_keu() {
   (
     cd components/api-tests
     # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
-    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts \
+    # Экономика участка (economy) ждёт списания обеспечительной части по итогу
+    # периода (99D-33): в настоящем времени его не дождаться.
+    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
+  ) || failed=1
+  # Контрактные тесты счётчиков списания (99D-33): итог участка и списание строки
+  # пайщика после окончания периода стенда — та же сжатая шкала, своя цепь.
+  (
+    CHAIN_ID="$(chain_id)"
+    export CHAIN_ID
+    export API_URL="http://127.0.0.1:${API_PORT}/v1/graphql"
+    export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
+    export SERVER_SECRET="${SERVER_SECRET:-SECRET}"
+    export TEST_EMAIL="${TEST_EMAIL:-ivanov@example.com}"
+    cd components/boot
+    pnpm exec vitest run src/tests/marketplace-period.test.ts src/tests/marketplace-invest.test.ts \
+      --reporter=default --reporter=junit \
+      --outputFile.junit="$OUT/junit-keu-boot.xml"
   ) || failed=1
   keu_stand_time "" "" "Возвращаем настоящее время стенда" coopback-keu.log
   return $failed
@@ -457,13 +473,13 @@ cmd_summary() {
     echo "## Black-box: тесты"
     echo
     local junit found=0
-    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml" "$OUT/junit-keu.xml"; do
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml" "$OUT/junit-keu.xml" "$OUT/junit-keu-boot.xml"; do
       # Пустой отчёт — набор не нашёл файлов или упал до старта.
       [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
-titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-keu.xml": "коэффициент экономического участия: прогон первого числа на сжатом времени", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-keu.xml": "коэффициент экономического участия: прогон первого числа на сжатом времени", "junit-keu-boot.xml": "коэффициент экономического участия: счётчики списания в цепи (boot) на сжатом времени","junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0

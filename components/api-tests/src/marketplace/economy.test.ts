@@ -31,6 +31,13 @@ const ODN = 'odn'
 const TRUSTED_KRG = 'trustedkrg'
 
 /**
+ * Списание обеспечительной части идёт по окончании периода конца гарантии
+ * (задача 99D-33): в настоящем времени набору его не дождаться, поэтому он
+ * идёт в фазе полигона со сжатым временем (BLACKBOX_STAND_MONTH_SECONDS).
+ */
+const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
+
+/**
  * Ставка налога на доходы физических лиц (Россия) — её берёт справочник
  * юрисдикций @coopenomics/jurisdictions. Налог округляется до целого рубля.
  */
@@ -92,7 +99,7 @@ function grid(eco: BranchEconomy): string {
   return eco.weights.map(w => `${w.username}:${w.weight}`).sort().join(',')
 }
 
-describe('экономика участка: общий кошелёк, сетка, распределение, материальная помощь', () => {
+describe.skipIf(!COMPRESSED)('экономика участка: общий кошелёк, сетка, распределение, материальная помощь', () => {
   beforeAll(async () => {
     krgToken = await tokenOf(chairkrg)
     odnToken = await tokenOf(chairodn)

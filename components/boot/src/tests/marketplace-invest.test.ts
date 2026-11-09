@@ -42,6 +42,9 @@ import { fakeDocument } from './shared/fakeDocument'
 
 const { chargeRow, crpsClaimable, crpsRoute } = MarketContract.PeriodModel
 
+/** Списание по итогу периода — только на стенде со сжатым временем (задача 99D-33); в настоящем времени случай 06 пропускается. */
+const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
+
 const bc = new Blockchain(config.network, config.private_keys)
 const push = coopPusher(bc)
 
@@ -225,7 +228,7 @@ describe('стол заказов — инвестиционный этап ко
     expect(props.some(p => p.hash.toLowerCase() === propertyHash)).toBe(false)
   }, 300_000)
 
-  it('mkt.order.invest.06 — прогон с экономией: доля инициаторов возмещает паевые взносы, счётчик — как в эталоне; заявление обратно — сумма эталона', async () => {
+  it.skipIf(!COMPRESSED)('mkt.order.invest.06 — прогон с экономией: доля инициаторов возмещает паевые взносы, счётчик — как в эталоне; заявление обратно — сумма эталона', async () => {
     const offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     const unitPrice = amount(offer.price_per_unit)
     await ensureShareFunds(ekaterina.account, unitPrice * 4, ekaterinaToken)
