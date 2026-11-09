@@ -215,7 +215,7 @@
     "MARKETPLACE_PERIOD_FUNDS_INVALID": "Сумма процентов фондов накопления выше 100 процентов — итог месяца не рассчитан.",
     "MARKETPLACE_PERIOD_NOT_CLOSED": "Итог участка за месяц не рассчитан — списание по ставкам невозможно.",
     "MARKETPLACE_PERIOD_NOT_IN_CHAIN": "Итог месяца участка {braname} за период {period} не найден в цепи после расчёта.",
-    "MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS": "Недостаточно средств на персональном кошельке: доступно {balance}, запрошено {requested}",
+    "MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS": "Недостаточно средств для материальной помощи: на персональном кошельке {balance}, свободно у инициаторов участка {free}, запрошено {requested}",
     "MARKETPLACE_PRICE_PRECISION_INVALID": "Цена должна быть числом с не более чем четырьмя знаками после запятой (например, «100.50»).",
     "MARKETPLACE_PRIVATE_KEY_NOT_FOUND_ACCEPTORDER": "Не найден приватный ключ кооператива для submit acceptorder",
     "MARKETPLACE_PRIVATE_KEY_NOT_FOUND_ACCRETRN": "Не найден приватный ключ кооператива для submit accretrn",

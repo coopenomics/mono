@@ -211,6 +211,17 @@ export class MarketplaceEconomyService {
     private readonly aidStore: TableStore<MarketplaceBranchAidEntity>
   ) {}
 
+  /**
+   * Свободные средства инициаторов участка, число в валюте: неиспользованные
+   * деньги минус выделенные под расходы и помощь (`MarketInvest::free_of`).
+   */
+  private async initiatorFreeFunds(coopname: string, braname: string): Promise<number> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    if (!branch) return 0;
+    const free = this.assetToNumber(String(branch.unused_total)) - this.assetToNumber(String(branch.reserved));
+    return free > 0 ? free : 0;
+  }
+
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
 
   private toContractPercent(human: number, label: string): number {
@@ -657,10 +668,16 @@ export class MarketplaceEconomyService {
       throw DomainError.conflict('MARKETPLACE_AID_STATEMENT_WRONG_REQUEST');
     }
 
+    // Источник помощи — как в контракте (createaid, задача 99D-28): персональный
+    // кошелёк получателя, а при нехватке — свободные средства инициаторов
+    // участка. Отказ — до цепи, когда не хватает ни того, ни другого.
     const asset = this.formatAsset(amount);
     const balance = await this.getPersonalBalance(coopname, username);
     if (this.assetToNumber(balance) < amount) {
-      throw DomainError.badRequest('MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS', { balance, requested: asset });
+      const free = await this.initiatorFreeFunds(coopname, braname);
+      if (free < amount) {
+        throw DomainError.badRequest('MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS', { balance, free: this.formatAsset(free), requested: asset });
+      }
     }
 
     // Реквизиты обязаны существовать и принадлежать самому получателю —

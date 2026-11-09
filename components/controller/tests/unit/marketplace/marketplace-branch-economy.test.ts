@@ -13,6 +13,7 @@
  * деньги в чужих руках, либо участок без средств на плановый расход.
  */
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Registry } from '@coopenomics/docs-templates';
 import { MarketplaceEconomyService } from '~/extensions/marketplace/application/services/marketplace-economy.service';
 import type { MarketplaceCanonicalBlockchainPort } from '~/extensions/marketplace/domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceAssetConfig } from '~/extensions/marketplace/application/services/marketplace-asset.config';
@@ -38,6 +39,8 @@ interface StandSetup {
   trustee?: string | null;
   /** Ставка членского взноса on-chain; null — кооператив её не задавал. */
   feePercent?: number | null;
+  /** Строка паевых взносов инициаторов участка; null — инициаторов нет. */
+  investBranch?: { unused_total: string; reserved: string } | null;
 }
 
 function buildService(setup: StandSetup = {}) {
@@ -48,6 +51,7 @@ function buildService(setup: StandSetup = {}) {
     reserve = 0,
     trustee = CHAIRMAN,
     feePercent = null,
+    investBranch = null,
   } = setup;
 
   const chainPort = {
@@ -65,6 +69,7 @@ function buildService(setup: StandSetup = {}) {
     setFee: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
     setWeight: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
     delWeight: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
+    getInvestBranch: jest.fn().mockResolvedValue(investBranch),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
   const kuChairmanService = {
@@ -357,5 +362,31 @@ describe('Ставка членского взноса', () => {
     await expect(service.setMembershipFee(COOP, 101)).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.setMembershipFee(COOP, -1)).rejects.toBeInstanceOf(BadRequestException);
     expect(chainPort.setFee).not.toHaveBeenCalled();
+  });
+});
+
+describe('Заявление на материальную помощь: источник денег до цепи', () => {
+  // Подпись и реквизиты здесь не проверяются: заявление подписано, реквизитов
+  // в заглушке нет — значит, дошли до них, и проверка денег пройдена.
+  const signed = (amount: number) => ({ meta: { registry_id: Registry.BranchFinancialAidStatement.registry_id, aid_hash: 'h1', amount: `${amount.toFixed(4)} RUB` } }) as any;
+  const submit = (setup: StandSetup, amount: number) => {
+    const { service } = buildService(setup);
+    jest.spyOn(service as any, 'verifyDocumentSignature').mockImplementation(() => undefined);
+    return service.createAid(COOP, CHAIRMAN, BRANCH, amount, 'h1', signed(amount), 'pm-1');
+  };
+
+  it('персонального кошелька хватает — проверка денег пройдена', async () => {
+    await expect(submit({ balances: [personal(CHAIRMAN, '150.0000')] }, 100)).rejects.toMatchObject({ code: 'MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND' });
+  });
+
+  it('персональный пуст, у инициаторов участка свободно достаточно — заявление идёт в цепь, как принимает контракт (99D-28)', async () => {
+    const setup = { investBranch: { unused_total: '700.0000 RUB', reserved: '200.0000 RUB' } };
+    await expect(submit(setup, 500)).rejects.toMatchObject({ code: 'MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND' });
+  });
+
+  it('не хватает ни персонального, ни свободных средств инициаторов — отказ до цепи с кодом', async () => {
+    const setup = { balances: [personal(CHAIRMAN, '50.0000')], investBranch: { unused_total: '700.0000 RUB', reserved: '200.0000 RUB' } };
+    await expect(submit(setup, 501)).rejects.toMatchObject({ code: 'MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS' });
+    await expect(submit({ balances: [personal(CHAIRMAN, '50.0000')] }, 100)).rejects.toMatchObject({ code: 'MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS' });
   });
 });

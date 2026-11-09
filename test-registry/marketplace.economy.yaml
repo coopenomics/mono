@@ -383,3 +383,19 @@ cases:
     external: unreachable
     external_reason: "панель движения проверяется сценарием стола экономики участка; API — тем же запросом, что история кошелька"
     status: written
+
+  - id: mkt.eco.side.14
+    level: backend
+    kind: side
+    scenario: >
+      Председатель участка подаёт заявление на материальную помощь: персонального
+      кошелька хватает; персональный пуст, но у инициаторов участка свободно
+      достаточно; не хватает ни того, ни другого
+    expect: >
+      узел проверяет источник так же, как контракт (createaid, 99D-28): персональный
+      кошелёк, затем свободные средства инициаторов (неиспользованное минус
+      выделенное); в первых двух случаях заявление идёт дальше, в третьем — отказ до
+      цепи MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS с обоими остатками
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
+    status: passing
