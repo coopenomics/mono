@@ -5,13 +5,11 @@
  *
  * В одной транзакции по факту, зафиксированному на issuestmt:
  *  1. обеспечительная часть по факту (задача 99D-18): излишек — o.mkt.refund
- *     на свободный паевой «Стола заказов» (w.mkt.secure → w.mkt.share),
- *     недостаток — o.mkt.fee со свободного паевого (недостающее транслировано
- *     действием convert до заявления); идёт раньше доплаты тела, потому что
- *     обеспечительная часть берётся только со свободного паевого;
+ *     на свободный паевой «Стола заказов» (w.mkt.secure → w.mkt.share);
  *  2. корректировка резерва: факт меньше заказа — o.mkt.unlock на разницу
- *     (w.mkt.order → w.mkt.share); факт больше — o.mkt.lockp с w.mkt.share
- *     (при нехватке — отказ с кодом и суммами);
+ *     (w.mkt.order → w.mkt.share).
+ *  Факт дороже заказа не бывает: доплаты по заказу нет (решение владельца
+ *  07.11.2026), issuestmt отвергает такую сумму, здесь проверка повторяется;
  *  3. o.mkt.consum на fact_cost — BURN w.mkt.order, Дт 80 / Кт 10: возврат
  *     паевого взноса имуществом по протоколу совета; затем факт
  *     обеспечительной части переходит на кошелёк пайщика к списанию
@@ -58,30 +56,20 @@ void marketplace::issueact2(eosio::name coopname,
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");
 
-  // ── 1. Обеспечительная часть по факту — раньше доплаты тела ──
+  // Доплаты по заказу нет (решение владельца 07.11.2026): факт не дороже заказа.
+  eosio::check(fact_cost <= o.total_cost,
+               "MARKETPLACE_ISSUE_FACT_EXCEEDS_ORDER: Сумма выдачи не может превышать стоимость заказа");
+
+  // ── 1. Обеспечительная часть по факту: излишек возвращается ──
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
   const eosio::asset fact_fee = locked_fee.amount > 0
       ? Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount)
       : eosio::asset(0, _root_govern_symbol);
-  // Доплата обеспечительной части берётся со свободного паевого инлайн-операцией:
-  // доплата тела ниже обязана вычесть её из остатка, который ещё виден без неё.
-  eosio::asset fee_taken(0, _root_govern_symbol);
   if (fact_fee < locked_fee) {
     Marketplace::refund_secure_part(coopname, o, locked_fee - fact_fee);
-  } else if (fact_fee > locked_fee) {
-    const eosio::asset fee_diff = fact_fee - locked_fee;
-    auto program = Marketplace::get_user_wallet_balance(
-        coopname, ledger2_wallets::MARKETPLACE_SHARE_FUND, o.orderer);
-    eosio::check(program.available >= fee_diff,
-                 std::string{"MARKETPLACE_SECURE_PART_SHORTFALL: Недостаточно свободного паевого Стола заказов на обеспечительную часть доплаты по факту: требуется "} +
-                   fee_diff.to_string() + ", доступно " + program.available.to_string() +
-                   ". Сначала подайте заявление о трансляции паевого взноса в программу.");
-    Marketplace::lock_secure_part(coopname, o.orderer, o.hash, fee_diff,
-                                  Marketplace::Memo::get_secure_part_topup_memo(o.id));
-    fee_taken = fee_diff;
   }
 
-  // ── 2. Корректировка резерва по факту ──
+  // ── 2. Корректировка резерва по факту: недовыдача разблокируется ──
   if (fact_cost < o.total_cost) {
     const eosio::asset diff = o.total_cost - fact_cost;
     Ledger2::apply(_marketplace, coopname,
@@ -89,12 +77,6 @@ void marketplace::issueact2(eosio::name coopname,
                    processes::marketplace::SUPPLY,
                    diff, o.orderer, o.hash,
                    Marketplace::Memo::get_issue_correction_less_memo(o.id));
-  } else if (fact_cost > o.total_cost) {
-    const eosio::asset diff = fact_cost - o.total_cost;
-    // Доплата тела со свободного паевого программы, как и заказ (при нехватке —
-    // отказ с кодом и суммами).
-    Marketplace::lock_order_body(coopname, o.orderer, o.hash, diff, fee_taken,
-                                 Marketplace::Memo::get_issue_correction_more_block_memo(o.id));
   }
 
   // ── 3. Возврат паевого взноса имуществом; обеспечительная часть к списанию ──

@@ -6,7 +6,7 @@
  * трансляция — отдельная транзакция convert до заказа; подписанное заявление
  * сверяется с планом по свежему балансу.
  *
- * Реестр: mkt.order.side.30–32, mkt.order.side.33–34 (контракт), mkt.iss.side.44.
+ * Реестр: mkt.order.side.30–32, mkt.order.side.33–34 (контракт), mkt.iss.side.44 (доплаты по заказу нет).
  */
 import { BadRequestException } from '@nestjs/common';
 import { MarketplaceConvertService } from '../../../src/extensions/marketplace/application/services/marketplace-convert.service';
@@ -130,105 +130,32 @@ describe('mkt.order.side.32 — подписанное заявление све
   });
 });
 
-describe(`mkt.iss.side.44 — доплата по факту: заявление ${R.MarketplaceConvertStatement.registry_id} и трансляция convert только когда свободного паевого не хватает`, () => {
-  // Денежные поля заказа — голые десятичные строки, как в фикстуре: валюту
-  // добавляет форматтер на выходе, а разбор сумм её не принимает.
-  const orderWithFee = () => buildOrder({ total_cost: '100.0000', membership_fee: '30.0000' } as never);
-  const bigFact = () => buildSaga({ fact: { actual_quantity: 12, actual_unit_price: '10.0000', fact_cost: '120.0000' } } as never);
-  // Сумма в заявлении о выдаче — голая десятичная строка: она сверяется с
-  // фактом через разбор числа, валюту такой разбор не принимает.
+describe('mkt.iss.side.44 — доплаты по заказу нет: сумма выдачи не выше стоимости заказа', () => {
+  // Решение владельца 07.11.2026: приёмка и выдача не берут дороже и больше
+  // заказа, имущество сверх заказа идёт докладкой из остатка. До 07.11.2026
+  // здесь проверялись заявление 1110 и трансляция на доплату по факту.
   const stmt = (total: string) => signedDoc({ registry_id: R.MarketplaceShareReturnStatement.registry_id, order_hash: 'h-order-1', total_amount: total }, ['orderer1']) as never;
+  const fix = (service: any, actual_quantity: number, actual_unit_price: string) =>
+    service.fixFact({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', actual_quantity, actual_unit_price });
 
-  it('факт меньше или равен заказу — довзноса нет, заявления нет', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
-    const service = buildService(m);
-    expect(await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1')).toBeNull();
-    expect(m.convertService.generateStatement).not.toHaveBeenCalled();
+  it('факт дороже заказа — отказ на фиксации факта, заявление не формируется', async () => {
+    // 10 × 100 = 1000 при стоимости заказа 500.
+    const m = buildMocks({ order: buildOrder({ total_cost: '500.0000' } as never) });
+    await expect(fix(buildService(m), 10, '100.0000')).rejects.toThrow(/выше стоимости заказа/);
+    expect(m.documentPort.generate).not.toHaveBeenCalled();
   });
 
-  it('факт больше заказа и свободного паевого хватает на доплату — заявления нет', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()] });
-    const service = buildService(m);
-    expect(await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1')).toBeNull();
+  it('факт равен заказу — факт принимается', async () => {
+    const m = buildMocks();
+    await expect(fix(buildService(m), 10, '100.0000')).resolves.toBeDefined();
   });
 
-  it('факт больше заказа, свободный паевой пуст — заявление на доплату тела и обеспечительной части по пропорции контракта', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
-    const service = buildService(m);
-    const doc = await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1');
-    // fact_fee = 30 × 120 / 100 = 36; доплата обеспечительной части = 6; тела = 20 — заявление на 26, из них обеспечительная часть 6.
-    expect(doc?.meta).toMatchObject({ order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' });
-  });
-
-  it('факт больше заказа, свободного паевого 10 — покрывает обеспечительную часть 6 и 4 тела, транслируется 16', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 10_0000n });
-    const service = buildService(m);
-    const doc = await service.getConvertSignablePayload(COOP, 'order-1', 'orderer1');
-    expect(doc?.meta).toMatchObject({ amount: '16.0000 RUB', membership_fee: '0.0000 RUB' });
-  });
-
-  it(`подача заявления о выдаче без заявления ${R.MarketplaceConvertStatement.registry_id} при нужной доплате — отказ, цепь не трогаем`, async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
-    const service = buildService(m);
-    stubSignatureChecks(service);
-    await expect(
-      service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('120.0000'), signed_convert: null })
-    ).rejects.toThrow(/заявления о трансляции/);
-    expect(m.chainPort.convert).not.toHaveBeenCalled();
-    expect(m.chainPort.issueStmt).not.toHaveBeenCalled();
-  });
-
-  it(`заявление ${R.MarketplaceConvertStatement.registry_id} приложено — сначала convert на всю сумму трансляции, затем issuestmt без документа`, async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
-    const service = buildService(m);
-    stubSignatureChecks(service);
-    await service.submitStatement({
-      coopname: COOP,
-      member_account: 'orderer1',
-      order_id: 'order-1',
-      signed_statement: stmt('120.0000'),
-      signed_convert: signedDoc({ registry_id: R.MarketplaceConvertStatement.registry_id, order_hash: 'h-order-1', amount: '26.0000 RUB', membership_fee: '6.0000 RUB' }, ['orderer1']) as never,
-    });
-    expect(m.convertService.verifySigned).toHaveBeenCalledWith(expect.anything(), { anchor_hash: 'h-order-1', amount_units: 26_0000n, fee_units: 6_0000n }, 'orderer1');
-    // Трансляция адресована своему заказу: операция ложится в нитку этого заказа,
-    // а не заводит отдельную по хешу заявления (уточнение владельца 08.09.2026).
-    expect(m.chainPort.convert).toHaveBeenCalledWith(expect.objectContaining({
-      orderer: 'orderer1',
-      targets: [{ order_hash: 'h-order-1', amount: '26.0000 RUB' }],
-    }));
-    expect(m.chainPort.convert).toHaveBeenCalledWith(expect.not.objectContaining({ from_market: expect.anything() }));
-    const convertOrder = m.chainPort.convert.mock.invocationCallOrder[0];
-    const stmtOrder = m.chainPort.issueStmt.mock.invocationCallOrder[0];
-    expect(convertOrder).toBeLessThan(stmtOrder);
-    expect(m.chainPort.issueStmt).toHaveBeenCalledWith(expect.not.objectContaining({ convert_statement: expect.anything() }));
-  });
-
-  // Бандл у стойки переводит доплату всех своих заказов одним заявлением 1110 до подачи
-  // заявлений о выдаче. До 02.10.2026 заказ бандла с доплатой тела требовал второе
-  // заявление и не подписывался вовсе (C28-85, находка 57).
-  it('заказ бандла: доплата уже переведена общим заявлением — второе заявление не требуется, заявление о выдаче уходит', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], shareAvailableUnits: 0n });
-    const service = buildService(m);
-    stubSignatureChecks(service);
-    await service.submitStatement({
-      coopname: COOP,
-      member_account: 'orderer1',
-      order_id: 'order-1',
-      signed_statement: stmt('120.0000'),
-      signed_convert: null,
-      convert_settled_by_bundle: true,
-    });
-    expect(m.convertService.verifySigned).not.toHaveBeenCalled();
-    expect(m.chainPort.convert).not.toHaveBeenCalled();
-    expect(m.chainPort.issueStmt).toHaveBeenCalledTimes(1);
-  });
-
-  it('обычная выдача без доплаты — convert не зовётся', async () => {
-    const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
+  it('подача заявления о выдаче — без трансляции convert, сразу issuestmt', async () => {
+    const m = buildMocks({ sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
     const service = buildService(m);
     stubSignatureChecks(service);
     await service.submitStatement({ coopname: COOP, member_account: 'orderer1', order_id: 'order-1', signed_statement: stmt('50.0000') });
     expect(m.chainPort.convert).not.toHaveBeenCalled();
-    expect(m.convertService.verifySigned).not.toHaveBeenCalled();
+    expect(m.chainPort.issueStmt).toHaveBeenCalledTimes(1);
   });
 });

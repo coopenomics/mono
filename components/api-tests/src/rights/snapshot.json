@@ -4319,24 +4319,6 @@
     "accountant": "deny",
     "auditor": "deny"
   },
-  "marketplaceIssuanceConvertPayload": {
-    "guest": "deny",
-    "member": "pass",
-    "supplier": "pass",
-    "branchChairman": "pass",
-    "council": "deny",
-    "chairman": "deny",
-    "candidate": "deny",
-    "newcomer": "deny",
-    "supplierPending": "deny",
-    "supplierRejected": "deny",
-    "branchTrusted": "deny",
-    "capitalMember": "deny",
-    "exited": "deny",
-    "cashier": "deny",
-    "accountant": "deny",
-    "auditor": "deny"
-  },
   "marketplaceIssuanceSaga": {
     "guest": "deny",
     "member": "pass",

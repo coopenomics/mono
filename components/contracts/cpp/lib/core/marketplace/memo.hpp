@@ -47,10 +47,6 @@ namespace Marketplace::Memo {
     return "Возврат обеспечительной части паевого взноса на свободный паевой Стола заказов по заказу имущества № " + std::to_string(order_id);
   }
 
-  inline std::string get_secure_part_topup_memo(uint64_t order_id) {
-    return "Обеспечительная часть паевого взноса на доплату по фактической выдаче заказа имущества № " + std::to_string(order_id) + " в Столе заказов";
-  }
-
   inline std::string get_secure_to_due_memo(uint64_t order_id) {
     return "Обеспечительная часть паевого взноса по выданному заказу имущества № " + std::to_string(order_id) + " к списанию по условиям ЦПП";
   }
@@ -110,14 +106,6 @@ namespace Marketplace::Memo {
 
   inline std::string get_issue_correction_less_memo(uint64_t order_id) {
     return "Возврат разницы пайщику: фактически выдано меньше заказанного по заказу имущества № " + std::to_string(order_id);
-  }
-
-  inline std::string get_issue_correction_more_assign_memo(uint64_t order_id) {
-    return "Целевое назначение взноса на доплату по заказу имущества № " + std::to_string(order_id) + " (фактически выдано больше заказанного)";
-  }
-
-  inline std::string get_issue_correction_more_block_memo(uint64_t order_id) {
-    return "Резерв на доплату по заказу имущества № " + std::to_string(order_id) + " (фактически выдано больше заказанного)";
   }
 
   inline std::string get_consume_by_member_memo(uint64_t order_id) {

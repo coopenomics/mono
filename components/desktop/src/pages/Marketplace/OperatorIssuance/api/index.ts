@@ -108,19 +108,6 @@ export async function getIssuanceStatementPayload(order_id: string): Promise<Mar
   return result as MarketplaceGeneratedDocumentView;
 }
 
-/**
- * Заявление о конвертации паевого взноса в членский (1110) на довзнос по факту —
- * только когда выдаётся больше заказанного и членского кошелька «Стола заказов»
- * не хватает; иначе null и подписывать нечего.
- */
-export async function getIssuanceConvertPayload(order_id: string): Promise<MarketplaceGeneratedDocumentView | null> {
-  const { [Queries.Marketplace.IssuanceConvertPayload.name]: result } = await client.Query(
-    Queries.Marketplace.IssuanceConvertPayload.query,
-    { variables: { data: { order_id } } },
-  );
-  return (result ?? null) as MarketplaceGeneratedDocumentView | null;
-}
-
 export type SignIssuanceStatementInput = Mutations.Marketplace.SignIssuanceStatement.IInput['data'];
 
 /** Заказчик подписал заявление: оно уходит в цепь и на повестку совета; ответ — сага после ответа робота. */

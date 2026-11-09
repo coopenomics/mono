@@ -13705,8 +13705,6 @@ export type ValueTypes = {
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 	order_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Заявление 1110 на доплату по факту (разница тела и довзнос участка), подписанное заказчиком — только если marketplaceIssuanceConvertPayload вернул документ. */
-	signed_convert?: ValueTypes["MarketplaceConvertStatementSignedInput"] | undefined | null | Variable<any, string>,
 	/** Заявление о возврате паевого взноса имуществом, подписанное заказчиком. */
 	signed_statement: ValueTypes["MarketplaceShareReturnStatementSignedInput"] | Variable<any, string>
 };
@@ -17408,7 +17406,6 @@ marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Va
 marketplaceHandoffCode?: [{	data: ValueTypes["MarketplaceHandoffCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceHandoffCode"]],
 marketplaceIssuanceActPayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssuanceClosePayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceClosePayload"]],
-marketplaceIssuanceConvertPayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssuancePickScan?: [{	data: ValueTypes["MarketplaceIssuancePickScanInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuancePickScan"]],
 marketplaceIssuanceSaga?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceSaga"]],
 marketplaceIssuanceStatementPayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -32439,8 +32436,6 @@ export type ResolverInputTypes = {
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 	order_id: ResolverInputTypes["ID"],
-	/** Заявление 1110 на доплату по факту (разница тела и довзнос участка), подписанное заказчиком — только если marketplaceIssuanceConvertPayload вернул документ. */
-	signed_convert?: ResolverInputTypes["MarketplaceConvertStatementSignedInput"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом, подписанное заказчиком. */
 	signed_statement: ResolverInputTypes["MarketplaceShareReturnStatementSignedInput"]
 };
@@ -36009,7 +36004,6 @@ marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInpu
 marketplaceHandoffCode?: [{	data: ResolverInputTypes["MarketplaceHandoffCodeInput"]},ResolverInputTypes["MarketplaceHandoffCode"]],
 marketplaceIssuanceActPayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssuanceClosePayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["MarketplaceIssuanceClosePayload"]],
-marketplaceIssuanceConvertPayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssuancePickScan?: [{	data: ResolverInputTypes["MarketplaceIssuancePickScanInput"]},ResolverInputTypes["MarketplaceIssuancePickScan"]],
 marketplaceIssuanceSaga?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["MarketplaceIssuanceSaga"]],
 marketplaceIssuanceStatementPayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -50510,8 +50504,6 @@ export type ModelTypes = {
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 	order_id: ModelTypes["ID"],
-	/** Заявление 1110 на доплату по факту (разница тела и довзнос участка), подписанное заказчиком — только если marketplaceIssuanceConvertPayload вернул документ. */
-	signed_convert?: ModelTypes["MarketplaceConvertStatementSignedInput"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом, подписанное заказчиком. */
 	signed_statement: ModelTypes["MarketplaceShareReturnStatementSignedInput"]
 };
@@ -54503,8 +54495,6 @@ export type ModelTypes = {
 	marketplaceIssuanceActPayload: ModelTypes["GeneratedDocument"],
 	/** Акт с подписью заказчика для закрывающей подписи оператора участка. */
 	marketplaceIssuanceClosePayload: ModelTypes["MarketplaceIssuanceClosePayload"],
-	/** Заявление 1110 на доплату по факту (разница тела и довзнос участка) — к подписи заказчиком вместе с заявлением о выдаче, только если факт больше заказа и членского кошелька «Стола заказов» не хватает на довзнос; иначе null. */
-	marketplaceIssuanceConvertPayload?: ModelTypes["GeneratedDocument"] | undefined | null,
 	/** Подбор на выдаче: сверка отсканированного бокса или этикетки имущества с заказами, открытыми в окне выдачи пайщику. Только чтение склада. */
 	marketplaceIssuancePickScan: ModelTypes["MarketplaceIssuancePickScan"],
 	/** Ход выдачи по заказу: заказчик видит свой, персонал участка — по своему участку. */
@@ -69751,8 +69741,6 @@ export type GraphQLTypes = {
 };
 	["MarketplaceSignIssuanceStatementInput"]: {
 		order_id: GraphQLTypes["ID"],
-	/** Заявление 1110 на доплату по факту (разница тела и довзнос участка), подписанное заказчиком — только если marketplaceIssuanceConvertPayload вернул документ. */
-	signed_convert?: GraphQLTypes["MarketplaceConvertStatementSignedInput"] | undefined | null,
 	/** Заявление о возврате паевого взноса имуществом, подписанное заказчиком. */
 	signed_statement: GraphQLTypes["MarketplaceShareReturnStatementSignedInput"]
 };
@@ -74060,8 +74048,6 @@ export type GraphQLTypes = {
 	marketplaceIssuanceActPayload: GraphQLTypes["GeneratedDocument"],
 	/** Акт с подписью заказчика для закрывающей подписи оператора участка. */
 	marketplaceIssuanceClosePayload: GraphQLTypes["MarketplaceIssuanceClosePayload"],
-	/** Заявление 1110 на доплату по факту (разница тела и довзнос участка) — к подписи заказчиком вместе с заявлением о выдаче, только если факт больше заказа и членского кошелька «Стола заказов» не хватает на довзнос; иначе null. */
-	marketplaceIssuanceConvertPayload?: GraphQLTypes["GeneratedDocument"] | undefined | null,
 	/** Подбор на выдаче: сверка отсканированного бокса или этикетки имущества с заказами, открытыми в окне выдачи пайщику. Только чтение склада. */
 	marketplaceIssuancePickScan: GraphQLTypes["MarketplaceIssuancePickScan"],
 	/** Ход выдачи по заказу: заказчик видит свой, персонал участка — по своему участку. */

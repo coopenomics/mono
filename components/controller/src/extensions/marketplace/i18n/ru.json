@@ -113,6 +113,7 @@
     "MARKETPLACE_ISSUANCE_CLOSE_ACT_NOT_SIGNED": "Акт ещё не подписан заказчиком — закрыть выдачу нельзя.",
     "MARKETPLACE_ISSUANCE_CLOSE_CHAIN_FAILED": "Закрытие выдачи не принято цепью: {message}. Имущество не передавайте, повторите закрытие.",
     "MARKETPLACE_ISSUANCE_CLOSE_NOT_INITIATOR": "Фоновую закрывающую подпись ставит оператор, который начал выдачу: {operator}. Другой оператор может закрыть выдачу кнопкой «Закрыть».",
+    "MARKETPLACE_ISSUANCE_FACT_EXCEEDS_ORDER": "Сумма выдачи {factCost} выше стоимости заказа {orderCost}. Выдать по заказу больше заказанного нельзя: имущество сверх заказа оформите докладкой из остатка участка.",
     "MARKETPLACE_ISSUANCE_IDENTITY_NOT_VERIFIED": "Выдача невозможна: получатель не прошёл верификацию личности. Сверьте паспорт пайщика, подтвердите его личность и повторите.",
     "MARKETPLACE_ISSUANCE_NOTHING_RECEIVED_FOR_ORDER": "По заказу {orderId} нет принятого на склад имущества — выдача недоступна до приёмки поставки.",
     "MARKETPLACE_ISSUANCE_NOT_STARTED": "Выдача по заказу не начата.",
