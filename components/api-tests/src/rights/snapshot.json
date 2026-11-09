@@ -13507,6 +13507,23 @@
     "accountant": "deny",
     "auditor": "deny"
   },
+  "marketplaceGetBranchMovementParts": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass",
+    "candidate": "deny",
+    "newcomer": "deny",
+    "supplierPending": "deny",
+    "supplierRejected": "deny",
+    "branchTrusted": "deny",
+    "exited": "deny",
+    "cashier": "deny",
+    "accountant": "deny",
+    "auditor": "deny"
+  },
   "marketplaceHandoffCode": {
     "guest": "deny",
     "member": "pass",
