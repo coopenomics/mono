@@ -2931,6 +2931,7 @@
       "actFailed": "Не удалось подписать акт",
       "investorActive": "Возмещение идёт",
       "investorDone": "Возмещено",
+      "investorSettled": "Возмещено полностью",
       "investorsEmptyTitle": "Инициаторов пока нет",
       "investorsEmptyBody": "Инициатор появляется после первого паевого взноса в участок.",
       "operationNumber": "Номер операции",

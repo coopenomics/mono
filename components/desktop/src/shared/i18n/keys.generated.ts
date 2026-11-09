@@ -5120,6 +5120,7 @@ export type MessageKey =
   | 'marketplace.initiatorsPage.initiatorsTab'
   | 'marketplace.initiatorsPage.investorActive'
   | 'marketplace.initiatorsPage.investorDone'
+  | 'marketplace.initiatorsPage.investorSettled'
   | 'marketplace.initiatorsPage.investorsEmptyBody'
   | 'marketplace.initiatorsPage.investorsEmptyTitle'
   | 'marketplace.initiatorsPage.kindClaim'

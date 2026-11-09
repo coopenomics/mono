@@ -256,6 +256,8 @@ inline void add_investment(eosio::name coopname, eosio::name braname, eosio::nam
     }
   }
 
+  // До прибавки: у строки прежней сборки запасное значение — текущий остаток.
+  row.money_in        = row.money_in_or_current() + money;
   row.money          += money;
   row.property       += property;
   b.money_total      += money;

@@ -83,6 +83,8 @@ describe('инвестиционный этап участка: договор, 
     const mineMoney = investorOf(viewMoney, chairkrg.account)
     expect(amount(mineMoney.money) - amount(mineBefore?.money ?? 0), 'внесено деньгами — ровно сумма').toBeCloseTo(SUM, 4)
     expect(amount(viewMoney.money_total) - amount(before.money_total)).toBeCloseTo(SUM, 4)
+    expect(amount(mineMoney.money_in) - amount(mineBefore?.money_in ?? 0), 'внесено деньгами всего — ровно сумма').toBeCloseTo(SUM, 4)
+    expect(amount(viewMoney.money_in_total) - amount(before.money_in_total)).toBeCloseTo(SUM, 4)
 
     // История паевых взносов: запись о деньгах с хэшем процесса из заявления (istok.09).
     const page = (await gql<any>(krgToken, MY_HISTORY, { o: { page: 1, limit: 20, sortOrder: 'DESC' } })).marketplaceMyInvestHistory
@@ -119,6 +121,28 @@ describe('инвестиционный этап участка: договор, 
     const mineList = (await gql<any>(krgToken, MY_INVESTMENTS)).marketplaceMyInvestments.find((i: any) => i.braname === KRG)
     expect(unitsOf(mineList.claimable)).toBe(contractClaimable(branch, investor))
   }, 600_000)
+
+  it(caseName('mkt.order.invest.istok.12', 'инициаторы участка через API: внесено деньгами всего не меньше остатка, итог участка — сумма по строкам; «возмещено полностью» — без суммы к переводу и без неиспользованных денег'), async () => {
+    const view = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
+    expect(view.investors.length, 'у участка есть инициаторы после паевых взносов').toBeGreaterThan(0)
+    let moneyIn = 0
+    for (const i of view.investors as any[]) {
+      // Перевод на главный паевой кошелёк уменьшает остаток денег, а не внесённое всего.
+      expect(amount(i.money_in), `внесено всего у ${i.username} не меньше остатка`).toBeGreaterThanOrEqual(amount(i.money))
+      if (i.settled) {
+        expect(i.active, 'возмещено полностью — вне возмещения').toBe(false)
+        expect(amount(i.claimable), 'возмещено полностью — переводить нечего').toBe(0)
+        expect(amount(i.unused), 'возмещено полностью — неиспользованных денег нет').toBe(0)
+      }
+      moneyIn += amount(i.money_in)
+    }
+    expect(amount(view.money_in_total), 'итог участка — сумма внесённого по строкам').toBeCloseTo(moneyIn, 4)
+    // Свои строки в «Моих паевых взносах» совпадают со строками участка.
+    const mine = (await gql<any>(krgToken, MY_INVESTMENTS)).marketplaceMyInvestments.find((i: any) => i.braname === KRG)
+    const row = investorOf(view, chairkrg.account)
+    expect(mine?.money_in).toBe(row?.money_in)
+    expect(mine?.settled).toBe(row?.settled)
+  }, 300_000)
 
   it(caseName('mkt.order.invest.istok.04', 'вносит только оператор своего участка: пайщику без роли и председателю чужого участка — отказ, строки участка не меняются'), async () => {
     const before = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment

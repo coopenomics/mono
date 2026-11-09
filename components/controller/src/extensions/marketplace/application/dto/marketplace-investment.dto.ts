@@ -54,8 +54,14 @@ export class MarketplaceInvestorDTO {
   @Field({ description: 'Возмещение ещё идёт; ложь — использованное возмещено целиком.' })
   active!: boolean;
 
-  @Field({ description: 'Внесено деньгами.' })
+  @Field({ description: 'Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег.' })
   money!: string;
+
+  @Field({ description: 'Внесено деньгами всего; перевод на главный паевой кошелёк эту сумму не уменьшает.' })
+  money_in!: string;
+
+  @Field({ description: 'Возмещено полностью: использованное возмещено, всё переведено на главный паевой кошелёк, остаток нулевой.' })
+  settled!: boolean;
 
   @Field({ description: 'Внесено имуществом по цене приёма.' })
   property!: string;
@@ -102,8 +108,11 @@ export class MarketplaceBranchInvestmentDTO {
   @Field(() => MarketplaceInvestPhase, { description: 'Фаза участка по паевым взносам.' })
   phase!: MarketplaceInvestPhase;
 
-  @Field({ description: 'Внесено деньгами всего.' })
+  @Field({ description: 'Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег.' })
   money_total!: string;
+
+  @Field({ description: 'Внесено деньгами всего по инициаторам участка; перевод на главный паевой кошелёк эту сумму не уменьшает.' })
+  money_in_total!: string;
 
   @Field({ description: 'Внесено имуществом всего.' })
   property_total!: string;
@@ -158,6 +167,8 @@ export function toMarketplaceInvestorDTO(v: MarketplaceInvestorView, toAsset: To
     username: v.username,
     active: v.active,
     money: toAsset(v.money),
+    money_in: toAsset(v.money_in),
+    settled: v.settled,
     property: toAsset(v.property),
     used: toAsset(v.used),
     returned: toAsset(v.returned),
@@ -176,6 +187,7 @@ export function toMarketplaceBranchInvestmentDTO(v: MarketplaceInvestBranchView,
     braname: v.braname,
     phase: v.phase,
     money_total: toAsset(v.money_total),
+    money_in_total: toAsset(v.money_in_total),
     property_total: toAsset(v.property_total),
     unused_total: toAsset(v.unused_total),
     reserved: toAsset(v.reserved),

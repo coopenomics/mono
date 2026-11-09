@@ -140,6 +140,31 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
     expect((await done.service.getBranchInvestment(COOP, 'krg')).phase).toBe(MarketplaceInvestPhase.RETURNED);
   });
 
+  it('istok.12 — после полного возмещения инициатор остаётся: «возмещено полностью», внесено деньгами всего без вычета переведённого; строка прежней сборки без поля — внесённым считается остаток', async () => {
+    const w = world();
+    const branch = await w.chainPort.getInvestBranch();
+    w.chainPort.getInvestBranch.mockResolvedValue({ ...branch, base: '0', acc: '0', unused_total: toAsset(0n), reserved: toAsset(0n) });
+    // Пример стенда 4: 1000 ₽ деньгами (не использованы) и имущество 1100 ₽,
+    // возмещено 1100 ₽, всё переведено на главный паевой кошелёк.
+    const settled = {
+      id: 3, braname: 'krg', username: 'ant', status: 'done',
+      money: toAsset(0n), money_in: toAsset(rub(1_000)), property: toAsset(rub(1_100)), used_money: toAsset(0n),
+      claimed: toAsset(rub(1_100)), returned_fixed: String(rub(1_100)), acc_join: '0', acc_done: '0', join_seq: 3, joined_at: '2026-11-08T00:00:00',
+    };
+    // Та же строка, но в состоянии done с деньгами к переводу — ещё не «возмещено полностью».
+    const pending = { ...settled, id: 4, username: 'vera', money: toAsset(rub(500)), money_in: toAsset(rub(500)), claimed: toAsset(0n) };
+    const legacy = { id: 5, braname: 'krg', username: 'gleb', status: 'active', money: toAsset(rub(300)), property: toAsset(0n), used_money: toAsset(0n), claimed: toAsset(0n), returned_fixed: '0', acc_join: '0', acc_done: '0', join_seq: 5, joined_at: '2026-11-08T00:00:00' };
+    w.chainPort.listBranchInvestors.mockResolvedValue([settled, pending, legacy] as any);
+
+    const view = await w.service.getBranchInvestment(COOP, 'krg');
+    const [ant, vera, gleb] = view.investors;
+    expect(ant).toMatchObject({ username: 'ant', settled: true, money_in: rub(1_000), money: 0n, claimable: 0n, unused: 0n, returned: rub(1_100) });
+    expect(vera).toMatchObject({ settled: false, claimable: rub(500 + 1_100) });
+    expect(gleb).toMatchObject({ settled: false, money_in: rub(300) });
+    expect(view.money_in_total).toBe(rub(1_000 + 500 + 300));
+    expect(view.phase).toBe(MarketplaceInvestPhase.RETURNED);
+  });
+
   it('istok.04 — вносит только оператор участка: отказ до цепи с кодом', async () => {
     const { service, chainPort } = world({ operator: false });
     await expect(service.investMoney(COOP, 'ekaterina', 'krg', 'hash', 100, {} as any)).rejects.toMatchObject({ code: 'MARKETPLACE_INVEST_NOT_OPERATOR' });

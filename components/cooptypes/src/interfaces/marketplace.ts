@@ -863,6 +863,8 @@ export interface IMktInvestor {
   acc_done: IUint64
   join_seq: IUint64
   joined_at: ITimePointSec
+  /** Внесено деньгами всего; заявление о трансляции его не уменьшает. Нет у строк прежней сборки. */
+  money_in?: IAsset
 }
 
 export interface IMktInvProp {

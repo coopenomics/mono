@@ -21,11 +21,11 @@ const SIGN_ACT = 'mutation($d:MarketplaceSignInvestPropertyInput!){ marketplaceS
 // контракт создал на подписи вносящего (решение владельца 08.11.2026).
 const CONFIRM_APPROVE = 'mutation($d:ConfirmApproveInput!){ chairmanConfirmApprove(data:$d){ approval_hash } }'
 export const BRANCH_INVESTMENT = `query($b:String!){ marketplaceBranchInvestment(braname:$b){
-  braname phase money_total property_total unused_total reserved spent_total repaid_total outstanding
-  investors{ braname username active money property used returned claimed claimable unused }
+  braname phase money_total money_in_total property_total unused_total reserved spent_total repaid_total outstanding
+  investors{ braname username active settled money money_in property used returned claimed claimable unused }
   properties{ hash username amount status } } }`
 export const MY_HISTORY = 'query($o:PaginationInput){ marketplaceMyInvestHistory(options:$o){ items{ kind amount process_hash created_at global_sequence } totalCount } }'
-export const MY_INVESTMENTS = 'query{ marketplaceMyInvestments{ braname username active money property used returned claimed claimable unused } }'
+export const MY_INVESTMENTS = 'query{ marketplaceMyInvestments{ braname username active settled money money_in property used returned claimed claimable unused } }'
 
 /** Договор участия пайщика: подписывает, если ещё не подписан. Возвращает номер договора. */
 export async function ensureAgreement(who: Who): Promise<string> {

@@ -290,6 +290,8 @@ export async function investorRow(bc: Blockchain, braname: string, username: str
         raw: r,
         active: r.status === 'active',
         money: units(r.money),
+        // Поле добавлено бинарным расширением: у строки прежней сборки его нет.
+        moneyIn: r.money_in ? units(r.money_in) : null,
         property: units(r.property),
         usedMoney: units(r.used_money),
         claimed: units(r.claimed),

@@ -2,6 +2,7 @@
 
 #include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
@@ -29,8 +30,11 @@
  * кошельке `w.mkt.invest` целиком, пока инициатор сам не транслирует
  * возвращённое и неиспользованное в главный паевой заявлением.
  *
- * Все таблицы — в scope `coopname`, без истории: строка инициатора стирается,
- * когда он забрал всё; заявление на имущество — после второй подписи акта.
+ * Все таблицы — в scope `coopname`, без истории. Строка инициатора живёт, пока
+ * пайщик состоит в кооперативе: после полного возмещения она остаётся с
+ * нулевым остатком (инициатор виден в участке и вернётся в распределение
+ * новым взносом) и стирается при выходе из кооператива. Заявление на
+ * имущество стирается после второй подписи акта.
  */
 
 namespace MarketInvest {
@@ -123,7 +127,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_investor {
   uint64_t     id;               ///< суррогатный ключ
   eosio::name  braname;          ///< кооперативный участок
   eosio::name  username;         ///< пайщик-инициатор
-  eosio::name  status;           ///< active | done
+  eosio::name  status;           ///< active | done (done с нулевым остатком — возмещено полностью)
   eosio::asset money;            ///< внесено деньгами (за вычетом забранного неиспользованного)
   eosio::asset property;         ///< внесено имуществом по цене приёма
   eosio::asset used_money;       ///< из денег израсходовано пулом участка
@@ -133,6 +137,10 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_investor {
   uint64_t     acc_done = 0;     ///< счётчик участка, при котором использованное будет возвращено целиком
   uint64_t     join_seq = 0;     ///< порядок входа в участок
   eosio::time_point_sec joined_at; ///< время первого паевого взноса
+  /// Внесено деньгами всего; заявление о трансляции его не уменьшает.
+  /// Поле добавлено после выпуска таблицы — только в конце строки и через
+  /// binary_extension: строки, записанные прежней сборкой, читаются без него.
+  eosio::binary_extension<eosio::asset> money_in;
 
   uint64_t primary_key() const { return id; }
   uint64_t by_branch() const { return braname.value; }
@@ -140,6 +148,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_investor {
   uint128_t by_branch_user() const { return combine_ids(braname.value, username.value); }
 
   int64_t units() const { return used_money.amount + property.amount; }
+  /// Внесено деньгами всего; у строки прежней сборки — текущий остаток денег.
+  eosio::asset money_in_or_current() const { return money_in.has_value() ? money_in.value() : money; }
   int64_t unused() const { return money.amount - used_money.amount; }
 
   /// Очередь расхода денег: активные с неиспользованными деньгами по порядку входа.

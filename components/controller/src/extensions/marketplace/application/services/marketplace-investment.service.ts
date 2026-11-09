@@ -93,6 +93,10 @@ export interface MarketplaceInvestorView {
   username: string;
   active: boolean;
   money: bigint;
+  /** Внесено деньгами всего; перевод на главный паевой кошелёк его не уменьшает. */
+  money_in: bigint;
+  /** Возмещено полностью: строка в состоянии done, переводить нечего, неиспользованных денег нет. */
+  settled: boolean;
   property: bigint;
   used: bigint;
   returned: bigint;
@@ -108,6 +112,8 @@ export interface MarketplaceInvestBranchView {
   braname: string;
   phase: MarketplaceInvestPhase;
   money_total: bigint;
+  /** Σ внесённого деньгами всего по строкам инициаторов участка. */
+  money_in_total: bigint;
   property_total: bigint;
   unused_total: bigint;
   reserved: bigint;
@@ -417,17 +423,19 @@ export class MarketplaceInvestmentService {
       this.chainPort.listBranchInvestProperties(coopname, braname),
     ]);
     const crps = branch ? this.crpsBranch(branch) : null;
+    const views = crps ? investors.map((r) => this.investorView(crps, r)) : [];
     return {
       braname,
       phase: this.phaseOf(branch, investors.length),
       money_total: units(branch?.money_total, this.economyService),
+      money_in_total: views.reduce((sum, v) => sum + v.money_in, 0n),
       property_total: units(branch?.property_total, this.economyService),
       unused_total: units(branch?.unused_total, this.economyService),
       reserved: units(branch?.reserved, this.economyService),
       spent_total: units(branch?.spent_total, this.economyService),
       repaid_total: units(branch?.repaid_total, this.economyService),
       outstanding: crps ? crpsOutstanding(crps) : 0n,
-      investors: crps ? investors.map((r) => this.investorView(crps, r)) : [],
+      investors: views,
       properties,
     };
   }
@@ -499,17 +507,22 @@ export class MarketplaceInvestmentService {
     const used = inv.usedMoney + inv.property;
     let returned = MarketContract.PeriodModel.crpsReturned(inv, branch.acc);
     if (returned > used) returned = used;
+    const claimable = crpsClaimable(branch, inv).total;
+    const unused = inv.money - inv.usedMoney;
     return {
       braname: row.braname,
       username: row.username,
       active: inv.active,
       money: inv.money,
+      // Строка прежней сборки поля не несёт — внесённым считается текущий остаток.
+      money_in: row.money_in ? units(row.money_in, this.economyService) : inv.money,
+      settled: !inv.active && claimable === 0n && unused === 0n,
       property: inv.property,
       used,
       returned,
       claimed: inv.claimed,
-      claimable: crpsClaimable(branch, inv).total,
-      unused: inv.money - inv.usedMoney,
+      claimable,
+      unused,
     };
   }
 

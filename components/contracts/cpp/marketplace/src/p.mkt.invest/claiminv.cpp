@@ -13,7 +13,9 @@
  * Всё доступное забирается одним заявлением: перевод `w.mkt.invest →
  * w.wal.share` без проводки (o.mkt.iback). Паевой взнос инициатора остаётся
  * на счёте 80; деньгами он получает его обычным возвратом паевого взноса.
- * Строка инициатора стирается, когда забрано всё.
+ * Когда забрано всё, строка инициатора остаётся с нулевым остатком в
+ * состоянии done: пайщик виден инициатором участка, новый взнос вернёт его в
+ * распределение. Стирает строку только выход из кооператива (exitinv).
  *
  * Guards: авторизация кооператива; заявление подписано инициатором; строка
  * инициатора по участку есть; к трансляции есть сумма больше нуля.
@@ -67,16 +69,17 @@ void marketplace::claiminv(eosio::name coopname, eosio::name username, eosio::na
     if (row.status == MarketInvest::Status::ACTIVE) b.unused_total.amount -= c.unused;
   }
 
+  // Забрано всё: инициатор вне базы возврата и вне очереди расхода денег.
+  // Строка остаётся (решение владельца 09.11.2026), итоги участка по строкам
+  // не меняются — внесённое остаётся в истории участка.
   const bool nothing_left = row.unused() == 0 && row.claimed.amount >= row.units() &&
                             (row.status == MarketInvest::Status::DONE || row.units() == 0);
-  if (nothing_left) {
+  if (nothing_left && row.status != MarketInvest::Status::DONE) {
     MarketInvest::leave_base(b, row);
-    b.money_total.amount    -= row.money.amount;
-    b.property_total.amount -= row.property.amount;
-    by_pair.erase(it);
-  } else {
-    by_pair.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
+    row.status   = MarketInvest::Status::DONE;
+    row.acc_done = MarketInvest::OUT_OF_RANGE;
   }
+  by_pair.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
   branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
 
   Ledger2::apply(_marketplace, coopname, operations::marketplace::INVEST_BACK,

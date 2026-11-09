@@ -270,9 +270,9 @@ cases:
     scenario: >
       Месяц с экономией у участка с использованным паевым взносом: прогон, списание заказа, заявление инициатора о трансляции обратно и повтор.
     expect: >
-      доля инициаторов — o.mkt.repay на кошелёк возмещения участка, счётчик возврата равен эталону PeriodModel.crpsRoute; на главный паевой — сумма эталона crpsClaimable (и прежние начисления); повтор — MARKETPLACE_INVEST_NOTHING_TO_CLAIM
+      доля инициаторов — o.mkt.repay на кошелёк возмещения участка, счётчик возврата равен эталону PeriodModel.crpsRoute; на главный паевой — сумма эталона crpsClaimable (и прежние начисления); строка инициатора после заявления остаётся, внесено деньгами всего (money_in) не меняется; повтор — MARKETPLACE_INVEST_NOTHING_TO_CLAIM
     test: components/boot/src/tests/marketplace-invest.test.ts
-    status: passing
+    status: written
 
   - id: mkt.order.invest.07
     level: contract
@@ -397,6 +397,17 @@ cases:
       Совет принял решение о приёме имущества, робот исполнил его и строка решения в таблице совета стёрта; вносящий открывает акт. Затем — акт по заявлению без решения.
     expect: >
       акт формируется с номером решения из протокола 1121 в заявлении; без протокола и без строки совета — MARKETPLACE_IPROP_DECISION_MISSING
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.12
+    level: backend
+    kind: side
+    scenario: >
+      Инициатор забрал всё: использованное возмещено, неиспользованные деньги переведены на главный паевой кошелёк. Рядом — инициатор в том же состоянии с деньгами к переводу и строка прежней сборки без поля «внесено деньгами всего».
+    expect: >
+      инициатор остаётся в списке участка с состоянием «возмещено полностью» и нулевым остатком; внесено деньгами всего — без вычета переведённого; у строки прежней сборки внесённым считается остаток; итог участка складывает внесённое всего по строкам; фаза — RETURNED
     test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing

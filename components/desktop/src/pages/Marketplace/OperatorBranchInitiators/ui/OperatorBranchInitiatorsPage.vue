@@ -224,8 +224,12 @@ function sumAssets(a: string | undefined, b: string | undefined): string {
   return `${(amountOf(a) + amountOf(b)).toFixed(4)} ${symbolOf(a ?? b)}`
 }
 
-/** У пайщика есть паевые взносы в выбранный участок. */
-const hasMine = computed(() => Boolean(mine.value && amountOf(mine.value.money) + amountOf(mine.value.property) > 0))
+/**
+ * У пайщика есть строка инициатора в участке или записи истории. Строка после
+ * полного возмещения остаётся с нулевым остатком — экран показывает итоги и
+ * историю, а не пустое состояние.
+ */
+const hasMine = computed(() => Boolean(mine.value) || history.value.length > 0)
 
 /**
  * Карточка суммы — та же, что у кошельков на «Экономике участка»: значок,
@@ -244,8 +248,8 @@ interface SumCard {
 const myCards = computed<SumCard[]>(() => {
   const m = mine.value
   return [
-    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.mineCardInvested'), asset: sumAssets(m?.money, m?.property), label: i18nT('marketplace.initiatorsPage.cardTotal'),
-      subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money ?? ''), property: formatAsset2Digits(m?.property ?? '') }) },
+    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.mineCardInvested'), asset: sumAssets(m?.money_in, m?.property), label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(m?.money_in ?? ''), property: formatAsset2Digits(m?.property ?? '') }) },
     { key: 'used', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.mineCardUsed'), asset: m?.used, label: i18nT('marketplace.initiatorsPage.cardSpent'),
       subtitle: i18nT('marketplace.initiatorsPage.tileUnusedLeft', { amount: formatAsset2Digits(m?.unused ?? '') }) },
     { key: 'returned', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.mineCardReturned'), asset: m?.returned, label: i18nT('marketplace.initiatorsPage.cardTotal'),
@@ -262,8 +266,8 @@ const hasInvestors = computed(() => Boolean(branchView.value?.investors.length))
 const branchCards = computed<SumCard[]>(() => {
   const b = branchView.value
   return [
-    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileBranchInvested'), asset: sumAssets(b?.money_total, b?.property_total), label: i18nT('marketplace.initiatorsPage.cardTotal'),
-      subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') }) },
+    { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileBranchInvested'), asset: sumAssets(b?.money_in_total, b?.property_total), label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_in_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') }) },
     { key: 'spent', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileBranchSpent'), asset: b?.spent_total, label: i18nT('marketplace.initiatorsPage.cardSpent'),
       subtitle: i18nT('marketplace.initiatorsPage.branchSpentSub', { reserved: formatAsset2Digits(b?.reserved ?? ''), unused: formatAsset2Digits(b?.unused_total ?? '') }) },
     { key: 'repaid', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.tileBranchRepaid'), asset: b?.repaid_total, label: i18nT('marketplace.initiatorsPage.cardTotal'),
@@ -320,8 +324,19 @@ const investorColumns = computed<BaseTableColumn<MarketplaceInvestorView>[]>(() 
   { key: 'status', label: i18nT('marketplace.initiatorsPage.columnStatus'), width: '180px', nowrap: true },
 ])
 
+/** Внесено всего: деньгами (без вычета переведённого на главный паевой) и имуществом. */
 function invested(r: MarketplaceInvestorView): string {
-  return `${(amountOf(r.money) + amountOf(r.property)).toFixed(2)} ${symbolOf(r.money)}`
+  return `${(amountOf(r.money_in) + amountOf(r.property)).toFixed(2)} ${symbolOf(r.money_in)}`
+}
+
+/**
+ * Состояние инициатора: возмещение идёт; использованное возмещено и есть что
+ * перевести; возмещено полностью — остаток нулевой, строка остаётся в участке.
+ */
+function investorState(r: MarketplaceInvestorView): { label: string; variant: 'info' | 'pos' | 'neutral' } {
+  if (r.active) return { label: 'marketplace.initiatorsPage.investorActive', variant: 'info' }
+  if (r.settled) return { label: 'marketplace.initiatorsPage.investorSettled', variant: 'neutral' }
+  return { label: 'marketplace.initiatorsPage.investorDone', variant: 'pos' }
 }
 
 // ─── Правая панель ───
@@ -723,7 +738,8 @@ q-page.initiators(:style-fn='pageStyle')
           template(#icon)
             q-icon(name='volunteer_activism', size='48px')
         template(v-else)
-          .row.q-col-gutter-md
+          //- Без строки инициатора (стёрта прежней сборкой контракта) — только история.
+          .row.q-col-gutter-md(v-if='mine')
             .col-12.col-md-6(v-for='c in myCards', :key='c.key')
               WalletCard(
                 program='wallet',
@@ -838,7 +854,7 @@ q-page.initiators(:style-fn='pageStyle')
             template(#cell-returned='{ row }')
               span.t-mono {{ formatAsset2Digits(row.returned) }}
             template(#cell-status='{ row }')
-              BaseBadge(:variant='row.active ? "info" : "pos"') {{ row.active ? $t('marketplace.initiatorsPage.investorActive') : $t('marketplace.initiatorsPage.investorDone') }}
+              BaseBadge(:variant='investorState(row).variant') {{ $t(investorState(row).label) }}
 
   //- Правая панель: запись истории, заявление на имущество или инициатор.
   DetailsDrawer(v-model='drawerOpen', :title='drawerTitle', :width='480')
@@ -868,8 +884,8 @@ q-page.initiators(:style-fn='pageStyle')
       DataRow(:label='$t("marketplace.initiatorsPage.columnInvestor")', :value='names[selectedProperty.username] || selectedProperty.username', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.propertyDescriptionLabel")', :value='selectedProperty.description', align='vertical')
     template(v-else-if='selectedInvestor')
-      BaseBadge(:variant='selectedInvestor.active ? "info" : "pos"') {{ selectedInvestor.active ? $t('marketplace.initiatorsPage.investorActive') : $t('marketplace.initiatorsPage.investorDone') }}
-      DataRow(:label='$t("marketplace.initiatorsPage.tileMoney")', :value='formatAsset2Digits(selectedInvestor.money)', align='spread')
+      BaseBadge(:variant='investorState(selectedInvestor).variant') {{ $t(investorState(selectedInvestor).label) }}
+      DataRow(:label='$t("marketplace.initiatorsPage.tileMoney")', :value='formatAsset2Digits(selectedInvestor.money_in)', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.tileProperty")', :value='formatAsset2Digits(selectedInvestor.property)', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.tileUsed")', :value='formatAsset2Digits(selectedInvestor.used)', align='spread')
       DataRow(:label='$t("marketplace.initiatorsPage.tileReturned")', :value='formatAsset2Digits(selectedInvestor.returned)', align='spread')

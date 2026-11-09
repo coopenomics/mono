@@ -7461,6 +7461,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceBranchInvestment:{
 		braname:"String",
 		investors:"MarketplaceInvestor",
+		money_in_total:"String",
 		money_total:"String",
 		outstanding:"String",
 		phase:"MarketplaceInvestPhase",
@@ -7769,8 +7770,10 @@ export const ReturnTypes: Record<string,any> = {
 		claimable:"String",
 		claimed:"String",
 		money:"String",
+		money_in:"String",
 		property:"String",
 		returned:"String",
+		settled:"Boolean",
 		unused:"String",
 		used:"String",
 		username:"String"

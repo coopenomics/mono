@@ -155,6 +155,7 @@ describe('стол заказов — инвестиционный этап ко
     expect(branchAfter.base, 'неиспользованные деньги в базу возврата не входят').toBe(branchBefore.base)
     const row = await investorRow(bc, BRANAME, chairkrg.account)
     expect(row!.money - (rowBefore?.money ?? 0n)).toBe(amountUnits)
+    expect(row!.moneyIn! - (rowBefore?.moneyIn ?? rowBefore?.money ?? 0n), 'внесено деньгами всего растёт на сумму заявления').toBe(amountUnits)
   }, 300_000)
 
   it('mkt.order.invest.03 — отказы паевого взноса деньгами: не оператор участка, чужой подписант, больше паевого, нулевая сумма', async () => {
@@ -288,6 +289,11 @@ describe('стол заказов — инвестиционный этап ко
       const moved = await userWallet(bc, 'w.wal.share', trustedkrg.account) - shareBefore
       expect(moved >= expected.total, 'на главный паевой — не меньше насчитанного эталоном (плюс прежние начисления)').toBe(true)
       expect(investBefore - await userWallet(bc, 'w.mkt.invest', trustedkrg.account), 'с кошелька договора участия — та же сумма').toBe(moved)
+      // Строка инициатора после заявления остаётся (решение владельца 09.11.2026):
+      // внесённое деньгами всего заявление не уменьшает; стирает строку только выход.
+      const after = await investorRow(bc, BRANAME, trustedkrg.account)
+      expect(after, 'строка инициатора после заявления остаётся').not.toBeNull()
+      expect(after!.moneyIn, 'внесено деньгами всего — без вычета переведённого').toBe(row!.moneyIn)
     }
     await expect(push(MARKET, 'claiminv', { coopname: COOP, username: trustedkrg.account, braname: BRANAME, claim_hash: hex(), statement: await signed(trustedkrg, 1123) }),
       'повтор без новой экономии').rejects.toThrow(/MARKETPLACE_INVEST_NOTHING_TO_CLAIM/)
