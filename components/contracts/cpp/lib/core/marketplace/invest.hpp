@@ -336,7 +336,7 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
 
   if (to_repay > 0) {
     Ledger2::apply(actor, coopname, operations::marketplace::INVEST_REPAY,
-                   processes::marketplace::SUPPLY, eosio::asset(to_repay, _root_govern_symbol),
+                   processes::marketplace::DUE, eosio::asset(to_repay, _root_govern_symbol),
                    braname, order_hash, Memo::get_invest_repay_memo());
 
     mkt_invbranch b = *bit;
@@ -345,7 +345,7 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
     const RepayParts repay = split_repay(to_repay, b.base_money_or_zero(), b.base);
     if (repay.money > 0)
       Ledger2::apply(actor, coopname, operations::marketplace::INVEST_COST_COVER,
-                     processes::marketplace::SUPPLY, eosio::asset(repay.money, _root_govern_symbol),
+                     processes::marketplace::DUE, eosio::asset(repay.money, _root_govern_symbol),
                      braname, order_hash, Memo::get_invest_cost_cover_memo());
 
     accept_repay(b, to_repay);
@@ -395,11 +395,11 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
     if (excess.total() > 0) {
       b.surplus_total.amount += excess.total();
       Ledger2::apply(actor, coopname, operations::marketplace::INVEST_REPAY_SURPLUS,
-                     processes::marketplace::SUPPLY, eosio::asset(excess.total(), _root_govern_symbol),
+                     processes::marketplace::DUE, eosio::asset(excess.total(), _root_govern_symbol),
                      braname, order_hash, Memo::get_invest_surplus_memo());
       if (excess.money > 0)
         Ledger2::apply(actor, coopname, operations::marketplace::INVEST_COST_UNCOVER,
-                       processes::marketplace::SUPPLY, eosio::asset(excess.money, _root_govern_symbol),
+                       processes::marketplace::DUE, eosio::asset(excess.money, _root_govern_symbol),
                        braname, order_hash, Memo::get_invest_cost_uncover_memo());
     }
     branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
@@ -408,7 +408,7 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
   const int64_t rest = amount.amount - to_repay;
   if (rest > 0) {
     Branch::accrue(actor, coopname, braname, eosio::asset(rest, _root_govern_symbol),
-                   processes::marketplace::SUPPLY, order_hash,
+                   processes::marketplace::DUE, order_hash,
                    Memo::get_charge_due_distribute_memo());
   }
 }

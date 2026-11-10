@@ -337,12 +337,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Возврат невыделенных средств инициаторов из пула' },
 
-  { code: 'o.mkt.repay',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+  { code: 'o.mkt.repay',   process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INVEST_REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.repay',
     debit: 80, credit: 86,
     human_name: 'Возмещение паевых взносов инициаторов из экономии месяца участка' },
 
-  { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INVEST_REPAY_SURPLUS', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.repay', wallet_to: 'w.brn.common',
     debit: null, credit: null,
     human_name: 'Перевод переплаты возмещения паевых взносов на общий кошелёк участка' },
@@ -350,12 +350,12 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // Погашение 26 (решение владельца 09.11.2026, бухгалтер подтвердила
   // 10.11.2026): доля денег в возмещении гасит расходы и помощь участка,
   // оплаченные деньгами инициаторов; имущество остаётся на 10.
-  { code: 'o.mkt.icover',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  { code: 'o.mkt.icover',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INVEST_COST_COVER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
     debit: 86, credit: 26,
     human_name: 'Погашение расходов участка из средств инициаторов членскими взносами' },
 
-  { code: 'o.mkt.iuncov',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  { code: 'o.mkt.iuncov',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INVEST_COST_UNCOVER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
     debit: 26, credit: 86,
     human_name: 'Сторно погашения расходов участка на переплату возмещения, переведённую участку' },
