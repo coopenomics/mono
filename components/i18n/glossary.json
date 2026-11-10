@@ -41,6 +41,11 @@
         "capital.createIssueInput.attachments.arrayOfStrings",
         "capital.updateIssueInput.attachments.arrayOfStrings"
       ]
+    },
+    {
+      "pattern": "(?<![а-яё])прогон[а-яё]*",
+      "reason": "«прогон» — жаргон разработчика; называть по смыслу: «итог месяца», «расчёт итога», «заказы месяца» (слово владельца 10.11.2026)",
+      "allow": []
     }
   ]
 }

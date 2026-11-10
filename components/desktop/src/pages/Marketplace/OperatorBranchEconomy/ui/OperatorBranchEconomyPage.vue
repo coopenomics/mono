@@ -1080,10 +1080,6 @@ q-page.economy
       | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintExpenses') }}
       | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintReserve') }}
       | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintDistribute') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintSpend') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintAidIntro') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintAidCouncil') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintAidNet') }}
 
     PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
       //- Главное действие таба — в правый верхний угол строки вкладок
@@ -1603,7 +1599,9 @@ q-page.economy
       //- Путь денег месяца: шаги в том порядке, в котором итог делит собранное.
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.flowTitle') }}
-        VerticalStepper(:steps='periodFlow', :active-key='periodFlow.length ? periodFlow[periodFlow.length - 1].key : ""', :completed='periodFlow.map((s) => s.key)')
+        //- Путь денег — справка, не мастер: шаги не нажимаются и не
+        //- подсвечиваются при наведении, активного шага нет.
+        VerticalStepper(:steps='periodFlow', active-key='', :completed='periodFlow.map((s) => s.key)', :clickable-completed='false')
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodFactsTitle') }}
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnTurnover")', :value='formatAsset2Digits(selectedPeriod.turnover)', mono)
