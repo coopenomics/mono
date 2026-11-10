@@ -24,6 +24,11 @@ import {
  *   `o.brn.aid`    — выплата на руки (BURN `w.fnd.mutual`, Дт 86 / Кт 51);
  *   `o.brn.aidtax` — удержанный налог (TRANSFER `w.brn.aidreq` → `w.sov.ndfl`, Дт 86 / Кт 68).
  *
+ * Помощь из средств инициаторов участка (задача 99D-28) — тот же доход
+ * получателя другими операциями: `o.mkt.iaid` — выплата на руки (Дт 08 /
+ * Кт 51), `o.mkt.iaidtx` — удержанный налог (Дт 08 / Кт 68). Получатель — в
+ * поле пайщика операции, как у `o.brn.aid`.
+ *
  * Обе проводятся одной транзакцией при подтверждении кассиром и несут общий
  * `processHash` (хэш заявления), поэтому доход до удержания восстанавливается
  * их сложением — делить налог на ставку не нужно, и копейка не теряется даже
@@ -43,6 +48,12 @@ const DOCUMENT_TYPE_PASSPORT_RF = '21';
 
 const AID_OPERATION = 'o.brn.aid';
 const AID_TAX_OPERATION = 'o.brn.aidtax';
+const INVEST_AID_OPERATION = 'o.mkt.iaid';
+const INVEST_AID_TAX_OPERATION = 'o.mkt.iaidtx';
+/** Выплата на руки — с фонда взаимного обеспечения или из средств инициаторов. */
+const AID_OPERATIONS = new Set([AID_OPERATION, INVEST_AID_OPERATION]);
+/** Удержанный налог — по тем же двум путям. */
+const AID_TAX_OPERATIONS = new Set([AID_TAX_OPERATION, INVEST_AID_TAX_OPERATION]);
 
 /** Одна выплата: доход получателя и удержанный из него налог. */
 interface AidPayout {
@@ -168,7 +179,7 @@ export class Ndfl6DataService {
 
     const payouts: AidPayout[] = [];
     for (const op of operations) {
-      if (op.operationCode !== AID_OPERATION) continue;
+      if (!op.operationCode || !AID_OPERATIONS.has(op.operationCode)) continue;
       const payout = this.toPayout(op, taxByHash, year, lastMonth);
       if (payout) payouts.push(payout);
     }
@@ -184,7 +195,7 @@ export class Ndfl6DataService {
   private indexTaxByHash(operations: InnerLedger2Operation[]): Map<string, number> {
     const taxByHash = new Map<string, number>();
     for (const op of operations) {
-      if (op.operationCode !== AID_TAX_OPERATION || !op.processHash) continue;
+      if (!op.operationCode || !AID_TAX_OPERATIONS.has(op.operationCode) || !op.processHash) continue;
       const rub = this.parseAmount(op.quantity);
       taxByHash.set(op.processHash, (taxByHash.get(op.processHash) ?? 0) + rub);
     }
@@ -200,7 +211,7 @@ export class Ndfl6DataService {
   ): AidPayout | null {
     if (!op.username) {
       this.logger.warn(
-        `Операция ${AID_OPERATION} (${op.globalSequence}) без получателя — пропущена в 6-НДФЛ`,
+        `Операция ${op.operationCode} (${op.globalSequence}) без получателя — пропущена в 6-НДФЛ`,
       );
       return null;
     }
@@ -233,7 +244,7 @@ export class Ndfl6DataService {
       const response = await this.ledger2Service.getHistory({
         coopname,
         actionNames: ['apply'],
-        operationCodes: [AID_OPERATION, AID_TAX_OPERATION],
+        operationCodes: [...AID_OPERATIONS, ...AID_TAX_OPERATIONS],
         dateFrom,
         dateTo,
         page,

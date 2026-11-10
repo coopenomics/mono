@@ -133,15 +133,16 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
     expect(partAfterCharge.settled_at).toBeTruthy()
   })
 
-  it(caseName('mkt.eco.side.07', 'без своей ставки действует умолчание 30%, ставка вне 0…100 на цепь не уходит'), async () => {
+  it(caseName('mkt.eco.side.07', 'без своей ставки действует умолчание 38%, ставка вне 0…100 в цепь не отправляется'), async () => {
     const q = 'query{ marketplaceGetEconomyConfig{ membership_fee_percent } }'
     const current = (await gql<any>(chairmanToken, q)).marketplaceGetEconomyConfig.membership_fee_percent as number
 
     // Своя ставка кооператива живёт в синглтоне marketplace::config; пока его
-    // нет, контракт и бэкенд считают по общему умолчанию 30%.
+    // нет, контракт и бэкенд считают по общему умолчанию 38% (решение
+    // владельца 02.11.2026).
     const rows = await tableRows<any>('marketplace', COOP, 'config')
-    const expected = rows.length ? Number(rows[0].membership_fee_percent) / 10_000 : 30
-    expect(current, rows.length ? 'ставка из конфигурации цепи' : 'умолчание ставки — 30%').toBeCloseTo(expected, 6)
+    const expected = rows.length ? Number(rows[0].membership_fee_percent) / 10_000 : 38
+    expect(current, rows.length ? 'ставка из конфигурации цепи' : 'умолчание ставки — 38%').toBeCloseTo(expected, 6)
 
     for (const bad of [-1, 100.5, 250]) {
       const err = await refusal(chairmanToken, 'mutation($d:MarketplaceSetMembershipFeeInput!){ marketplaceSetMembershipFee(data:$d){ membership_fee_percent } }', { d: { membership_fee_percent: bad } })

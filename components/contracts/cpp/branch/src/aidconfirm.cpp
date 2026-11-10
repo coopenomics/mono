@@ -54,19 +54,22 @@
   // руки списываются с пула по счёту вложений (Дт 08), транзита через фонд
   // взаимного обеспечения нет — средства не фондовые; затем вся сумма
   // заявления входит в базу возврата вложений инициаторов.
+  // Пул — кошелёк кооператива, пайщик в операции — метка. Метка — получатель,
+  // как у выплаты с фонда (o.brn.aid): по ней 6-НДФЛ относит доход и налог к
+  // налогоплательщику. С меткой участка такая помощь в отчёт не попадала.
   if (it->source.has_value() && it->source.value() == ledger2_wallets::MARKETPLACE_INVEST_POOL) {
     if (tax.amount > 0) {
       Ledger2::apply(_branch, coopname,
                      operations::marketplace::INVEST_AID_TAX,
                      processes::branch::AID,
-                     tax, it->braname, it->hash,
+                     tax, it->username, it->hash,
                      "Удержание налога на доходы физических лиц из материальной помощи, получатель " +
                        it->username.to_string());
     }
     Ledger2::apply(_branch, coopname,
                    operations::marketplace::INVEST_AID,
                    processes::branch::AID,
-                   net, it->braname, it->hash,
+                   net, it->username, it->hash,
                    "Материальная помощь из средств инициаторов участка, получатель " + it->username.to_string());
     MarketInvest::spent_pool(_branch, coopname, it->braname, it->amount, it->hash);
     byhash.erase(it);

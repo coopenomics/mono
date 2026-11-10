@@ -170,7 +170,7 @@ cases:
     scenario: >
       Кооператив не задавал ставку членского взноса, либо задаёт её вне диапазона 0…100 процентов
     expect: >
-      без своей ставки действует умолчание 30%; ставка вне диапазона на цепь не уходит
+      без своей ставки действует умолчание 38% (решение владельца 02.11.2026); ставка вне диапазона в цепь не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     api: components/api-tests/src/marketplace/economy.test.ts
     status: passing

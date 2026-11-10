@@ -370,12 +370,17 @@ export async function payAid(gross: number, recipient: Who = ROLES.branchChairma
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `выплата матпомощи ${aidHash} у кассира` })
   await cashierPaid(payment.id)
 
+  // Выплата на руки и налог — с фонда взаимного обеспечения (o.brn.aid,
+  // o.brn.aidtax) либо из средств инициаторов участка (o.mkt.iaid, o.mkt.iaidtx,
+  // задача 99D-28): источник контракт выбрал при подаче заявления.
+  const AID = new Set(['o.brn.aid', 'o.mkt.iaid'])
+  const TAX = new Set(['o.brn.aidtax', 'o.mkt.iaidtx'])
   const ops = await waitFor(async () => {
     const rows = await applyOps(aidHash)
-    return rows.some(r => r.operationCode === 'o.brn.aid') ? rows : null
+    return rows.some(r => AID.has(r.operationCode)) ? rows : null
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `проводки выплаты матпомощи ${aidHash}` })
-  const aid = ops.find(r => r.operationCode === 'o.brn.aid')!
-  const taxOp = ops.find(r => r.operationCode === 'o.brn.aidtax')
+  const aid = ops.find(r => AID.has(r.operationCode))!
+  const taxOp = ops.find(r => TAX.has(r.operationCode))
   const net = amount(aid.quantity)
   const tax = amount(taxOp?.quantity)
   return { aidHash, username: aid.username ?? chair.account, gross: net + tax, tax, net, paidAt: aid.createdAt, decisionId: decision.id }
