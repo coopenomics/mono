@@ -888,24 +888,23 @@ const periodFlow = computed<StepperStep[]>(() => {
   const p = selectedPeriod.value
   if (!p) return []
   const fmt = (a: string) => formatAsset2Digits(a)
-  const t = (key: string, params?: Record<string, string>) => i18nT(`marketplace.operatorBranchEconomyPage.${key}` as MarketplaceMessageKey, params)
   const deficit = assetAmount(p.deficit) > 0
   const steps: StepperStep[] = [
-    { key: 'secured', label: t('flowSecured', { amount: fmt(p.secured) }), description: t('flowSecuredSub', { turnover: fmt(p.turnover) }) },
-    { key: 'expenses', label: t('flowExpenses', { amount: fmt(p.expenses) }),
-      description: t('flowExpensesSub', { planned: fmt(p.planned), memos: fmt(p.memos), reserve: fmt(p.aid_reserve), unpaid: fmt(p.aid_unpaid) }) },
-    { key: 'branch', label: t('flowBranch', { amount: fmt(p.branch_amount) }),
-      description: deficit ? t('flowBranchDeficitSub', { deficit: fmt(p.deficit) }) : t('flowBranchCoveredSub') },
+    { key: 'secured', label: i18nT('marketplace.operatorBranchEconomyPage.flowSecured', { amount: fmt(p.secured) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowSecuredSub', { turnover: fmt(p.turnover) }) },
+    { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.flowExpenses', { amount: fmt(p.expenses) }),
+      description: i18nT('marketplace.operatorBranchEconomyPage.flowExpensesSub', { planned: fmt(p.planned), memos: fmt(p.memos), reserve: fmt(p.aid_reserve), unpaid: fmt(p.aid_unpaid) }) },
+    { key: 'branch', label: i18nT('marketplace.operatorBranchEconomyPage.flowBranch', { amount: fmt(p.branch_amount) }),
+      description: deficit ? i18nT('marketplace.operatorBranchEconomyPage.flowBranchDeficitSub', { deficit: fmt(p.deficit) }) : i18nT('marketplace.operatorBranchEconomyPage.flowBranchCoveredSub') },
   ]
   if (deficit) {
-    steps.push({ key: 'rest', label: t('flowRestZero'), description: t('flowRestZeroSub') })
+    steps.push({ key: 'rest', label: i18nT('marketplace.operatorBranchEconomyPage.flowRestZero'), description: i18nT('marketplace.operatorBranchEconomyPage.flowRestZeroSub') })
     return steps
   }
-  steps.push({ key: 'funds', label: t('flowFunds', { amount: fmt(p.funds_amount) }), description: t('flowFundsSub') })
+  steps.push({ key: 'funds', label: i18nT('marketplace.operatorBranchEconomyPage.flowFunds', { amount: fmt(p.funds_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowFundsSub') })
   const repaying = p.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING
-  steps.push({ key: 'initiators', label: repaying ? t('flowInitiatorsRepaid', { amount: fmt(p.investor_repaid) }) : t('flowInitiators', { amount: fmt(p.initiator_amount) }),
-    description: repaying ? t('flowInitiatorsRepaidSub') : t('flowInitiatorsSub') })
-  steps.push({ key: 'returned', label: t('flowReturned', { amount: fmt(p.return_amount) }), description: t('flowReturnedSub') })
+  steps.push({ key: 'initiators', label: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaid', { amount: fmt(p.investor_repaid) }) : i18nT('marketplace.operatorBranchEconomyPage.flowInitiators', { amount: fmt(p.initiator_amount) }),
+    description: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaidSub') : i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsSub') })
+  steps.push({ key: 'returned', label: i18nT('marketplace.operatorBranchEconomyPage.flowReturned', { amount: fmt(p.return_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowReturnedSub') })
   return steps
 })
 const periodDrawerOpen = computed({
