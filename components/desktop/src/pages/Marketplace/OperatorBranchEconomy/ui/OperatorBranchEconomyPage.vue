@@ -877,6 +877,37 @@ const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: Marketpla
 }
 
 const selectedPeriod = ref<MarketplaceBranchPeriodRow | null>(null)
+
+/**
+ * Путь денег месяца — связной цепочкой по строке итога: собранная
+ * обеспечительная часть → расходы участка → доля участка и недостача → фонды
+ * → инициаторы (возмещение или участку) → пайщикам обратно. Те же числа, что
+ * ниже группами, но по порядку, в котором их делит контракт (closeperiod).
+ */
+const periodFlow = computed<StepperStep[]>(() => {
+  const p = selectedPeriod.value
+  if (!p) return []
+  const fmt = (a: string) => formatAsset2Digits(a)
+  const t = (key: string, params?: Record<string, string>) => i18nT(`marketplace.operatorBranchEconomyPage.${key}` as MarketplaceMessageKey, params)
+  const deficit = assetAmount(p.deficit) > 0
+  const steps: StepperStep[] = [
+    { key: 'secured', label: t('flowSecured', { amount: fmt(p.secured) }), description: t('flowSecuredSub', { turnover: fmt(p.turnover) }) },
+    { key: 'expenses', label: t('flowExpenses', { amount: fmt(p.expenses) }),
+      description: t('flowExpensesSub', { planned: fmt(p.planned), memos: fmt(p.memos), reserve: fmt(p.aid_reserve), unpaid: fmt(p.aid_unpaid) }) },
+    { key: 'branch', label: t('flowBranch', { amount: fmt(p.branch_amount) }),
+      description: deficit ? t('flowBranchDeficitSub', { deficit: fmt(p.deficit) }) : t('flowBranchCoveredSub') },
+  ]
+  if (deficit) {
+    steps.push({ key: 'rest', label: t('flowRestZero'), description: t('flowRestZeroSub') })
+    return steps
+  }
+  steps.push({ key: 'funds', label: t('flowFunds', { amount: fmt(p.funds_amount) }), description: t('flowFundsSub') })
+  const repaying = p.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING
+  steps.push({ key: 'initiators', label: repaying ? t('flowInitiatorsRepaid', { amount: fmt(p.investor_repaid) }) : t('flowInitiators', { amount: fmt(p.initiator_amount) }),
+    description: repaying ? t('flowInitiatorsRepaidSub') : t('flowInitiatorsSub') })
+  steps.push({ key: 'returned', label: t('flowReturned', { amount: fmt(p.return_amount) }), description: t('flowReturnedSub') })
+  return steps
+})
 const periodDrawerOpen = computed({
   get: () => selectedPeriod.value !== null,
   set: (open: boolean) => { if (!open) selectedPeriod.value = null },
@@ -1505,6 +1536,10 @@ q-page.economy
         .t-muted {{ $t('marketplace.operatorBranchEconomyPage.periodMembership') }}
         .economy__drawer-sum {{ formatAsset2Digits(selectedPeriod.membership) }}
         .t-muted {{ $t('marketplace.operatorBranchEconomyPage.periodRateLine', { rate: ratePercentLabel(selectedPeriod.rate_percent) }) }}
+      //- Путь денег месяца: шаги в том порядке, в котором итог делит собранное.
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.flowTitle') }}
+        VerticalStepper(:steps='periodFlow', :active-key='periodFlow.length ? periodFlow[periodFlow.length - 1].key : ""', :completed='periodFlow.map((s) => s.key)')
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodFactsTitle') }}
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnTurnover")', :value='formatAsset2Digits(selectedPeriod.turnover)', mono)
