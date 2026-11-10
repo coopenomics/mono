@@ -127,19 +127,22 @@ namespace operations {
     inline constexpr eosio::name INVEST_PROPERTY        = "o.mkt.iprop"_n;    ///< Приём имущества паевым взносом инициатора в кооперативный участок (ISSUE w.mkt.invest, Дт 10 / Кт 80) по акту 1122 после решения совета.
     inline constexpr eosio::name INVEST_POOL_FUND       = "o.mkt.ipool"_n;    ///< Выделение средств инициаторов под расход или материальную помощь участка (ISSUE w.mkt.ipool, без Dr/Cr — деньги на 51 с паевого взноса инициатора).
     inline constexpr eosio::name INVEST_POOL_UNFUND     = "o.mkt.iunpl"_n;  ///< Возврат невыделенного остатка средств инициаторов из пула (BURN w.mkt.ipool, без Dr/Cr) — отклонение записки или остаток после расхода.
-    inline constexpr eosio::name INVEST_REPAY           = "o.mkt.repay"_n;    ///< Возмещение паевых взносов инициаторов из экономии месяца участка (TRANSFER w.mkt.fee → w.mkt.repay участка, Дт 80 / Кт 86). Заменяет o.mkt.initr, пока паевые взносы участка не возвращены; нога chargeperiod.
+    inline constexpr eosio::name INVEST_REPAY           = "o.mkt.repay"_n;    ///< Возмещение паевых взносов инициаторов из экономии месяца участка (TRANSFER w.mkt.fee → w.mkt.repay участка, Дт 80 / Кт 86): доля инициаторов в обеспечительной части становится членским взносом. Заменяет o.mkt.initr, пока паевые взносы участка не возвращены; нога chargeperiod.
     inline constexpr eosio::name INVEST_REPAY_SURPLUS   = "o.mkt.rpsurp"_n;   ///< Переплата возмещения на границе завершения возврата — участку (TRANSFER w.mkt.repay → w.brn.common, без Dr/Cr — оба на 86, username = braname).
+    inline constexpr eosio::name INVEST_COST_COVER      = "o.mkt.icover"_n;   ///< Погашение расходов и помощи участка, оплаченных деньгами инициаторов, членскими взносами (только проводка Дт 86 / Кт 26, без кошельков). Доля денег в базе возврата из o.mkt.repay; имущество остаётся на 10 и не гасится. Решение владельца 09.11.2026, бухгалтер подтвердила 10.11.2026.
+    inline constexpr eosio::name INVEST_COST_UNCOVER    = "o.mkt.iuncov"_n;   ///< Сторно погашения 26 на денежную долю переплаты возмещения, переведённой участку (только проводка Дт 26 / Кт 86, без кошельков).
     inline constexpr eosio::name INVEST_BACK            = "o.mkt.iback"_n;    ///< Трансляция возвращённого и неиспользованного паевого взноса инициатора в главный паевой (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80) по заявлению 1123.
     inline constexpr eosio::name INVEST_EXIT            = "o.mkt.iexit"_n;    ///< Перенос паевого взноса инициатора на главный паевой при выходе из кооператива (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator.
     // Оплата расходов и материальной помощи участка из пула средств инициаторов
-    // (задача 99D-28): счёт X = 08, как у расходов «Благороста».
-    inline constexpr eosio::name INVEST_EXPENSE_ADVANCE   = "o.mkt.iadv"_n;   ///< Выдача аванса под отчёт по расходу участка из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 08 / Кт 51).
-    inline constexpr eosio::name INVEST_EXPENSE_DIRECT    = "o.mkt.idir"_n;   ///< Оплата расхода участка из пула инициаторов по реквизитам (BURN w.mkt.ipool, Дт 08 / Кт 51).
-    inline constexpr eosio::name INVEST_EXPENSE_REPORT    = "o.mkt.irpt"_n;   ///< Закрытие подотчёта по расходу из пула инициаторов (BURN w.exp.adv, без проводки — Дт 08 / Кт 51 сделан при выдаче аванса).
-    inline constexpr eosio::name INVEST_EXPENSE_RETURN    = "o.mkt.iret"_n;   ///< Возврат неиспользованного аванса в пул инициаторов (TRANSFER w.exp.adv → w.mkt.ipool, Дт 51 / Кт 08).
-    inline constexpr eosio::name INVEST_EXPENSE_OVERSPEND = "o.mkt.iovr"_n;   ///< Доплата сверх аванса из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 08 / Кт 51).
-    inline constexpr eosio::name INVEST_AID               = "o.mkt.iaid"_n;   ///< Материальная помощь из пула инициаторов участка, сумма к выплате за вычетом налога (BURN w.mkt.ipool, Дт 08 / Кт 51).
-    inline constexpr eosio::name INVEST_AID_TAX           = "o.mkt.iaidtx"_n; ///< Удержание НДФЛ из материальной помощи, выплаченной из пула инициаторов (TRANSFER w.mkt.ipool → w.sov.ndfl, Дт 08 / Кт 68).
+    // (задача 99D-28): счёт 26 «Общехозяйственные расходы» (решение владельца
+    // 09.11.2026, бухгалтер подтвердила 10.11.2026; прежде — 08).
+    inline constexpr eosio::name INVEST_EXPENSE_ADVANCE   = "o.mkt.iadv"_n;   ///< Выдача аванса под отчёт по расходу участка из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_EXPENSE_DIRECT    = "o.mkt.idir"_n;   ///< Оплата расхода участка из пула инициаторов по реквизитам (BURN w.mkt.ipool, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_EXPENSE_REPORT    = "o.mkt.irpt"_n;   ///< Закрытие подотчёта по расходу из пула инициаторов (BURN w.exp.adv, без проводки — Дт 26 / Кт 51 сделан при выдаче аванса).
+    inline constexpr eosio::name INVEST_EXPENSE_RETURN    = "o.mkt.iret"_n;   ///< Возврат неиспользованного аванса в пул инициаторов (TRANSFER w.exp.adv → w.mkt.ipool, Дт 51 / Кт 26).
+    inline constexpr eosio::name INVEST_EXPENSE_OVERSPEND = "o.mkt.iovr"_n;   ///< Доплата сверх аванса из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_AID               = "o.mkt.iaid"_n;   ///< Материальная помощь из пула инициаторов участка, сумма к выплате за вычетом налога (BURN w.mkt.ipool, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_AID_TAX           = "o.mkt.iaidtx"_n; ///< Удержание НДФЛ из материальной помощи, выплаченной из пула инициаторов (TRANSFER w.mkt.ipool → w.sov.ndfl, Дт 26 / Кт 68).
   }
 
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
@@ -679,6 +682,18 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_INVEST_REPAY, ledger2_wallets::BRANCH_COMMON,
     0, 0,
     "Перевод переплаты возмещения паевых взносов на общий кошелёк участка" },
+  // Погашение 26 (решение владельца 09.11.2026, бухгалтер подтвердила
+  // 10.11.2026): членские взносы, ставшие возмещением, гасят расходы и помощь,
+  // оплаченные деньгами инициаторов, — на долю денег в базе возврата. Имущество
+  // остаётся на 10 и не гасится: по нему движение только по кошелькам.
+  { operations::marketplace::INVEST_COST_COVER, processes::marketplace::SUPPLY, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::GENERAL_EXPENSES,
+    "Погашение расходов участка из средств инициаторов членскими взносами" },
+  { operations::marketplace::INVEST_COST_UNCOVER, processes::marketplace::SUPPLY, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::GENERAL_EXPENSES, ledger2_accounts::TARGET_RECEIPTS,
+    "Сторно погашения расходов участка на переплату возмещения, переведённую участку" },
   { operations::marketplace::INVEST_BACK, processes::marketplace::INVEST, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
@@ -689,9 +704,10 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Перенос паевого взноса инициатора на главный паевой при выходе из кооператива" },
 
   // 12j¹⁵–12j²¹. Расходы и материальная помощь участка из пула средств
-  //   инициаторов (задача 99D-28). Счёт расхода — INVEST_EXPENSE_ACCOUNT (08,
-  //   по аналогии с «Благоростом»; решение владельца 07.11.2026, до слова
-  //   бухгалтера). Транзита через фонд нет: средства инициаторов не фондовые.
+  //   инициаторов (задача 99D-28). Счёт расхода — INVEST_EXPENSE_ACCOUNT (26
+  //   «Общехозяйственные расходы»; решение владельца 09.11.2026, бухгалтер
+  //   подтвердила 10.11.2026). Транзита через фонд нет: средства инициаторов
+  //   не фондовые. Гасит 26 возмещение денежных паевых взносов (o.mkt.repay).
   { operations::marketplace::INVEST_EXPENSE_ADVANCE, processes::expense::PROPOSAL, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
@@ -1653,7 +1669,7 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
   // Пул средств инициаторов участка Стола заказов (задача 99D-28): источник
   // служебной записки участка, когда общего кошелька участка не хватает.
   // Средства выделяет marketplace::fundipool при создании записки; проводки —
-  // по счёту 08, без транзита через фонд.
+  // по счёту 26 «Общехозяйственные расходы», без транзита через фонд.
   { ledger2_wallets::MARKETPLACE_INVEST_POOL,
     operations::marketplace::INVEST_EXPENSE_ADVANCE,
     operations::marketplace::INVEST_EXPENSE_DIRECT,

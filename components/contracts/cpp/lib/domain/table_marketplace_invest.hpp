@@ -108,8 +108,14 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_invbranch {
   uint128_t    s_join = 0;     ///< Σ units_i × acc_join_i по базе
   int64_t      s_fixed = 0;    ///< Σ returned_fixed_i по базе
   uint64_t     join_seq = 0;   ///< счётчик порядка входа инициаторов (очерёдность расхода денег)
+  /// Σ used_money активных инициаторов — денежная часть базы возврата. По ней
+  /// возмещение делится на долю денег (гасит 26, Дт 86 / Кт 26) и долю
+  /// имущества (без проводки). Поле добавлено после выпуска таблицы — в
+  /// конце строки через binary_extension; у строки прежней сборки — ноль.
+  eosio::binary_extension<int64_t> base_money;
 
   uint64_t primary_key() const { return braname.value; }
+  int64_t base_money_or_zero() const { return base_money.has_value() ? base_money.value() : 0; }
 };
 
 typedef eosio::multi_index<"invbranches"_n, mkt_invbranch> mkt_invbranches_index;

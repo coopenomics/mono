@@ -46,6 +46,13 @@ inline uint64_t done_threshold(const mkt_investor& i) {
   return i.acc_join + static_cast<uint64_t>(step);
 }
 
+/// Сдвинуть денежную часть базы возврата участка. Строка прежней сборки поля
+/// не несёт — считается с нуля; отрицательной база не бывает.
+inline void shift_base_money(mkt_invbranch& b, int64_t delta) {
+  const int64_t v = b.base_money_or_zero() + delta;
+  b.base_money = v > 0 ? v : 0;
+}
+
 /// Вывести инициатора из базы участка, зафиксировав накопленное.
 inline void leave_base(mkt_invbranch& b, mkt_investor& i) {
   const int64_t u = i.units();
@@ -54,6 +61,7 @@ inline void leave_base(mkt_invbranch& b, mkt_investor& i) {
     // сидит в (acc × base − s_join) и вычитается вместе с base и s_join.
     b.s_fixed -= i.returned_fixed;
     b.base -= u;
+    shift_base_money(b, -i.used_money.amount);
     b.s_join -= mul(u, i.acc_join);
     i.returned_fixed = returned_of(i, b.acc);
   }
@@ -66,6 +74,7 @@ inline void enter_base(mkt_invbranch& b, mkt_investor& i) {
   const int64_t u = i.units();
   if (i.status == Status::ACTIVE && u > 0) {
     b.base += u;
+    shift_base_money(b, i.used_money.amount);
     b.s_join += mul(u, b.acc);
     b.s_fixed += i.returned_fixed;
   }
@@ -87,8 +96,31 @@ inline void accept_repay(mkt_invbranch& b, int64_t amount) {
                                  static_cast<uint128_t>(b.base));
 }
 
-/// Завершить возврат инициатора: вывести из базы, вернуть переплату.
-inline int64_t complete(mkt_invbranch& b, mkt_investor& i) {
+/// Сумма возмещения, разделённая на долю денег и долю имущества.
+struct RepayParts {
+  int64_t money = 0;     ///< гасит 26 (Дт 86 / Кт 26)
+  int64_t property = 0;  ///< без проводки: имущество на 10
+  int64_t total() const { return money + property; }
+};
+
+/// Доля денег в сумме — пропорционально денежной части в единицах. Имущество
+/// получает остаток округления: так 26 никогда не гасится сверх расходов.
+inline RepayParts split_repay(int64_t amount, int64_t money_units, int64_t units) {
+  RepayParts p;
+  if (amount <= 0 || units <= 0) {
+    p.property = amount > 0 ? amount : 0;
+    return p;
+  }
+  const int64_t m = money_units > units ? units : (money_units > 0 ? money_units : 0);
+  p.money = static_cast<int64_t>(static_cast<uint128_t>(amount) * static_cast<uint128_t>(m) /
+                                 static_cast<uint128_t>(units));
+  p.property = amount - p.money;
+  return p;
+}
+
+/// Завершить возврат инициатора: вывести из базы, вернуть переплату — по
+/// долям денег и имущества его единиц.
+inline RepayParts complete(mkt_invbranch& b, mkt_investor& i) {
   leave_base(b, i);
   const int64_t u = i.units();
   int64_t excess = i.returned_fixed - u;
@@ -97,7 +129,7 @@ inline int64_t complete(mkt_invbranch& b, mkt_investor& i) {
   i.status = Status::DONE;
   i.acc_done = OUT_OF_RANGE;
   if (i.unused() > 0) b.unused_total.amount -= i.unused();
-  return excess;
+  return split_repay(excess, i.used_money.amount, u);
 }
 
 /// Сколько инициатор вправе транслировать в главный паевой сейчас:
@@ -275,11 +307,17 @@ inline void add_investment(eosio::name coopname, eosio::name braname, eosio::nam
 
 /// Доля инициаторов из экономии участка в списании заказа (chargeperiod).
 /// Пока паевые взносы участка не возмещены, она возмещает их: перевод на кошелёк
-/// возмещения участка (o.mkt.repay, Дт 80 / Кт 86) и рост счётчика возврата.
-/// Сверх непогашенного и когда возмещать нечего — на общий кошелёк участка
-/// (o.brn.common). Инициаторы, чей возврат завершился в этом списании,
-/// выбывают из базы; их переплата округления переводится участку
-/// (o.mkt.rpsurp). Решение владельца 07.11.2026, задача 99D-27.
+/// возмещения участка и рост счётчика возврата. Сверх непогашенного и когда
+/// возмещать нечего — на общий кошелёк участка (o.brn.common). Инициаторы,
+/// чей возврат завершился в этом списании, выбывают из базы; их переплата
+/// переводится участку. Решение владельца 07.11.2026, задача 99D-27.
+///
+/// Возмещение (o.mkt.repay, Дт 80 / Кт 86) делает долю инициаторов членским
+/// взносом. Её доля денег в базе возврата гасит расходы и помощь, оплаченные
+/// деньгами инициаторов: o.mkt.icover, Дт 86 / Кт 26, только проводка. Доля
+/// имущества 26 не гасит — имущество остаётся на 10. Денежная доля переплаты,
+/// переведённой участку, — сторно o.mkt.iuncov, Дт 26 / Кт 86. Решение
+/// владельца 09.11.2026, бухгалтер подтвердила 10.11.2026.
 inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio::name braname,
                                   eosio::asset amount, const checksum256& order_hash) {
   using namespace MarketInvest;
@@ -298,6 +336,14 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
                    braname, order_hash, Memo::get_invest_repay_memo());
 
     mkt_invbranch b = *bit;
+    // Каждому инициатору возмещается пропорционально его единицам, поэтому
+    // доля денег во всём возмещении — денежная часть базы к базе.
+    const RepayParts repay = split_repay(to_repay, b.base_money_or_zero(), b.base);
+    if (repay.money > 0)
+      Ledger2::apply(actor, coopname, operations::marketplace::INVEST_COST_COVER,
+                     processes::marketplace::SUPPLY, eosio::asset(repay.money, _root_govern_symbol),
+                     braname, order_hash, Memo::get_invest_cost_cover_memo());
+
     accept_repay(b, to_repay);
     b.repaid_total.amount += to_repay;
 
@@ -307,19 +353,31 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
     auto by_done = investors.get_index<"bydone"_n>();
     const uint128_t from = combine_ids(braname.value, 0);
     const uint128_t upto = combine_ids(braname.value, b.acc);
-    int64_t excess = 0;
+    RepayParts excess;
     for (auto it = by_done.lower_bound(from); it != by_done.end() && it->by_done() <= upto;
          it = by_done.lower_bound(from)) {
       mkt_investor row = *it;
-      excess += complete(b, row);
+      const RepayParts e = complete(b, row);
+      excess.money += e.money;
+      excess.property += e.property;
       by_done.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
     }
 
-    if (excess > 0) {
-      b.surplus_total.amount += excess;
+    // Денежная доля переплаты не может превысить погашенное этим списанием —
+    // остальное считается долей имущества: кредитового сальдо по 26 не бывает.
+    if (excess.money > repay.money) {
+      excess.property += excess.money - repay.money;
+      excess.money = repay.money;
+    }
+    if (excess.total() > 0) {
+      b.surplus_total.amount += excess.total();
       Ledger2::apply(actor, coopname, operations::marketplace::INVEST_REPAY_SURPLUS,
-                     processes::marketplace::SUPPLY, eosio::asset(excess, _root_govern_symbol),
+                     processes::marketplace::SUPPLY, eosio::asset(excess.total(), _root_govern_symbol),
                      braname, order_hash, Memo::get_invest_surplus_memo());
+      if (excess.money > 0)
+        Ledger2::apply(actor, coopname, operations::marketplace::INVEST_COST_UNCOVER,
+                       processes::marketplace::SUPPLY, eosio::asset(excess.money, _root_govern_symbol),
+                       braname, order_hash, Memo::get_invest_cost_uncover_memo());
     }
     branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
   }

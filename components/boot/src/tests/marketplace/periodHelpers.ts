@@ -278,6 +278,8 @@ export async function investBranch(bc: Blockchain, braname: string) {
     sFixed: BigInt(r?.s_fixed ?? 0),
     unusedTotal: units(r?.unused_total),
     reserved: units(r?.reserved),
+    // Денежная часть базы возврата — binary_extension: у строки прежней сборки нет.
+    baseMoney: BigInt(r?.base_money ?? 0),
   }
 }
 

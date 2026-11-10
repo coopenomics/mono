@@ -212,6 +212,11 @@ export interface ICrpsBranch {
   sFixed: bigint
   unusedTotal: bigint
   reserved: bigint
+  /**
+   * Σ использованных денег активных инициаторов — денежная часть базы
+   * (`base_money`). Не задана — ноль, как у строки прежней сборки.
+   */
+  baseMoney?: bigint
 }
 
 /** Строка инициатора: то, что нужно расчёту из `investors`. */
@@ -247,11 +252,29 @@ export function crpsOutstanding(b: ICrpsBranch): bigint {
  * Доля инициаторов из списания: сколько возмещает паевые взносы, сколько — на
  * общий кошелёк участка, и новый счётчик (`route_initiator_share`).
  */
-export function crpsRoute(b: ICrpsBranch, share: bigint): { repay: bigint, toBranch: bigint, acc: bigint } {
+/**
+ * Доля денег в сумме возмещения (`split_repay`): пропорционально денежной части
+ * в единицах, вниз; остаток округления — доле имущества.
+ */
+export function crpsMoneyShare(amount: bigint, moneyUnits: bigint, units: bigint): bigint {
+  if (amount <= ZERO || units <= ZERO)
+    return ZERO
+  const m = moneyUnits > units ? units : (moneyUnits > ZERO ? moneyUnits : ZERO)
+  return (amount * m) / units
+}
+
+/**
+ * Маршрут доли инициаторов в списании (`route_initiator_share`): возмещение,
+ * остаток участку, новый счётчик и погашение 26 (`o.mkt.icover`, Дт 86 / Кт 26)
+ * — доля денег в возмещении; имущество 26 не гасит. Сторно на переплату
+ * завершивших возврат считается по их строкам и здесь не входит.
+ */
+export function crpsRoute(b: ICrpsBranch, share: bigint): { repay: bigint, toBranch: bigint, acc: bigint, cover: bigint } {
   const left = crpsOutstanding(b)
   const repay = b.base > ZERO ? (share < left ? share : left) : ZERO
   const acc = repay > ZERO ? b.acc + (repay * CRPS_SCALE) / b.base : b.acc
-  return { repay, toBranch: share - repay, acc }
+  const cover = crpsMoneyShare(repay, b.baseMoney ?? ZERO, b.base)
+  return { repay, toBranch: share - repay, acc, cover }
 }
 
 /**

@@ -5,7 +5,7 @@
  *
  * Председатель участка подаёт записку как обычно. Контракт branch выбирает
  * источник сам: общий кошелёк участка, а если на нём не хватает — средства
- * инициаторов (пул w.mkt.ipool, проводки по счёту 08):
+ * инициаторов (пул w.mkt.ipool, проводки по счёту 26 «Общехозяйственные расходы»):
  *
  *   • записка больше общего кошелька — источник «средства инициаторов»:
  *     в цепи выделение o.mkt.ipool под хэш записки, резерв участка вырос,
@@ -14,7 +14,7 @@
  *     BRANCH_EXPENSE_NO_FUNDS, записка не создаётся.
  *
  *   • записка из средств инициаторов проходит совет, оплачивается по
- *     реквизитам (o.mkt.idir, Дт 08 / Кт 51) и закрывается: оплаченное
+ *     реквизитам (o.mkt.idir, Дт 26 / Кт 51) и закрывается: оплаченное
  *     снимается с выделенного и входит в базу возврата паевых взносов.
  *
  * Материальная помощь: источник выбирается при подаче заявления — персональный
@@ -194,7 +194,7 @@ describe('стол заказов — служебная записка учас
     // Прямая оплата организации: подотчёта нет, позиция сразу закрыта отчётом.
     await push('expense', 'payexp', { coopname: COOP, proposal_hash: hash, item_hash: itemHash, actual_amount: asset(amount) })
     const ops = await waitForOps(chairmanToken, hash, ['o.mkt.ipool', 'o.mkt.idir'])
-    expect(units(sumOf(ops, 'o.mkt.idir').toFixed(4)), 'оплата из средств инициаторов — проводка Дт 08 / Кт 51').toBe(amount)
+    expect(units(sumOf(ops, 'o.mkt.idir').toFixed(4)), 'оплата из средств инициаторов — проводка Дт 26 / Кт 51').toBe(amount)
     expect(await userWallet(bc, 'w.brn.common', BRANAME), 'общий кошелёк участка не тронут').toBe(common)
 
     await push('expense', 'closeexp', { coopname: COOP, proposal_hash: hash })
@@ -233,7 +233,7 @@ describe('стол заказов — служебная записка учас
     const ops = await waitForOps(chairmanToken, aidHash, ['o.mkt.iaid', 'o.mkt.iaidtx'])
     const tax = units(sumOf(ops, 'o.mkt.iaidtx').toFixed(4))
     const net = units(sumOf(ops, 'o.mkt.iaid').toFixed(4))
-    expect(tax + net, 'налог Дт 08 / Кт 68 и на руки Дт 08 / Кт 51 — вся сумма заявления').toBe(amount)
+    expect(tax + net, 'налог Дт 26 / Кт 68 и на руки Дт 26 / Кт 51 — вся сумма заявления').toBe(amount)
     expect(tax % 10_000n, 'налог округлён до рубля').toBe(0n)
     expect(await userWallet(bc, 'w.brn.person', trustedkrg.account), 'персональный кошелёк не тронут').toBe(personal)
     const after = await poll(async () => {

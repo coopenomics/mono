@@ -324,19 +324,23 @@ export function checkInvariantI1SupplierThreads(rows: readonly MarketplaceLedger
 // на счёте 80 (задача 99D-18). На 86 в нитке Стола заказов пишется списание
 // обеспечительной части в членский взнос участка по условиям ЦПП — o.brn.common
 // (Кт 86, chargeperiod по строке счётчика пайщика, выход пайщика), с отчислением в фонды и возмещением
-// паевых взносов инициаторов (o.mkt.repay) при списании по итогу месяца. Дебета 86 у Стола
-// заказов нет: списание скоропорта относится на прочие расходы (Дт 91), как
+// паевых взносов инициаторов (o.mkt.repay) при списании по итогу месяца. Дебет 86 у Стола
+// заказов один: погашение 26 членскими взносами (o.mkt.icover, Дт 86 / Кт 26) на
+// долю денег в возмещении; его сторно (o.mkt.iuncov) — снова кредит 86. Списание
+// скоропорта относится на прочие расходы (Дт 91), как
 // уценка (решение владельца 10.09.2026), а гарантийный возврат идёт до
 // списания. Любая другая проводка по 86 в нитке Стола заказов — чужая либо
 // сбой реестра.
 // ---------------------------------------------------------------------------
 const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
-  debit: { codes: [], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
+  // Решение владельца 09.11.2026: членские взносы гасят расходы участка из
+  // денежных паевых взносов инициаторов на 26.
+  debit: { codes: ['o.mkt.icover'], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
   // Задача 99D-22: при списании по итогу месяца в кредит 86 ложится и
   // отчисление в фонды накопления (o.fnd.accrue) — вторая нога chargeperiod.
   // Задача 99D-27: доля инициаторов возмещает их паевые взносы (o.mkt.repay,
   // Дт 80 / Кт 86) — та же нога chargeperiod, пока паевые взносы участка не возвращены.
-  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel', 'o.mkt.repay'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
+  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel', 'o.mkt.repay', 'o.mkt.iuncov'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {

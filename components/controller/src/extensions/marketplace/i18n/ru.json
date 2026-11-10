@@ -583,7 +583,7 @@
     },
     "ledgerInvariants": {
       "account86CreditMissing": "без списания обеспечительной части в членский взнос участка (o.brn.common) и отчисления в фонды накопления (o.fnd.accrue)",
-      "account86DebitMissing": "— у Стола заказов дебета 86 нет",
+      "account86DebitMissing": "— дебет 86 у Стола заказов — только погашение расходов участка из средств инициаторов (o.mkt.icover)",
       "account91CreditMissing": "без признанной претензии (o.mkt.admit)",
       "account91DebitMissing": "без уценки (o.mkt.loss) и списания скоропорта (o.mkt.wroff)",
       "accountUsageViolation": "{side} {accountId} на {quantity} {missing} в нитке: {threadCodes}",

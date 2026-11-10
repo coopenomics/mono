@@ -84,6 +84,14 @@ namespace Marketplace::Memo {
     return "Переплата возмещения паевых взносов инициаторов — на общий кошелёк участка";
   }
 
+  inline std::string get_invest_cost_cover_memo() {
+    return "Погашение расходов и материальной помощи участка из средств инициаторов членскими взносами";
+  }
+
+  inline std::string get_invest_cost_uncover_memo() {
+    return "Сторно погашения расходов участка на переплату возмещения, переведённую участку";
+  }
+
   inline std::string get_invest_money_memo() {
     return "Трансляция паевого взноса в договор участия в хозяйственной деятельности";
   }

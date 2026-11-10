@@ -278,6 +278,9 @@ describe('стол заказов — инвестиционный этап ко
     // Ноги списания — в нитке строки счётчика пайщицы (p.mkt.due), не заказа.
     const legs = await waitForOps(chairmanToken, chargeHash(ekaterina.account, BRANAME, period), ['o.mkt.repay'])
     expect(units(sumOf(legs, 'o.mkt.repay').toFixed(4))).toBe(route.repay)
+    // Погашение 26 (решение владельца 09.11.2026): доля денег в возмещении,
+    // только проводка Дт 86 / Кт 26; имущество 26 не гасит.
+    expect(units(sumOf(legs, 'o.mkt.icover').toFixed(4)), 'погашение 26 — доля денег в базе возврата').toBe(route.cover)
 
     // Заявление обратно: сумма — эталон по строкам цепи, контракт считает сам.
     const row = await investorRow(bc, BRANAME, trustedkrg.account)

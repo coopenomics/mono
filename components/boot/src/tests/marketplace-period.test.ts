@@ -250,6 +250,7 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     if (parts.branch > 0n) expected.push('o.brn.common')
     if (parts.funds > 0n) expected.push('o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel')
     if (route.repay > 0n) expected.push('o.mkt.repay')
+    if (route.cover > 0n) expected.push('o.mkt.icover')
     if (parts.returned > 0n) expected.push('o.mkt.retdue')
     const ops: LedgerRow[] = await waitForOps(chairmanToken, hash, expected)
     expect(units(sumOf(ops, 'o.mkt.charge').toFixed(4))).toBe(parts.charged)
@@ -257,6 +258,7 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     const fundOpsSum = sumOf(ops, 'o.fnd.indiv') + sumOf(ops, 'o.fnd.resrv') + sumOf(ops, 'o.fnd.devel')
     expect(units(fundOpsSum.toFixed(4))).toBe(parts.funds)
     expect(units(sumOf(ops, 'o.mkt.repay').toFixed(4))).toBe(route.repay)
+    expect(units(sumOf(ops, 'o.mkt.icover').toFixed(4)), 'погашение 26 — доля денег в базе возврата').toBe(route.cover)
     expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4)), 'доля инициатора больше не начисляется на его кошелёк').toBe(0n)
     expect(units(sumOf(ops, 'o.mkt.retdue').toFixed(4))).toBe(parts.returned)
 

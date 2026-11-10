@@ -337,13 +337,14 @@ describe('эталон возврата паевых взносов инициа
 
   interface Inv { active: boolean, money: bigint, property: bigint, usedMoney: bigint, claimed: bigint, returnedFixed: bigint, accJoin: bigint }
   function world() {
-    const b = { base: 0n, acc: 0n, sJoin: 0n, sFixed: 0n, unusedTotal: 0n, reserved: 0n }
+    const b = { base: 0n, acc: 0n, sJoin: 0n, sFixed: 0n, unusedTotal: 0n, reserved: 0n, baseMoney: 0n }
     const units = (i: Inv) => i.usedMoney + i.property
     const leave = (i: Inv) => {
       const u = units(i)
       if (i.active && u > 0n) {
         b.sFixed -= i.returnedFixed
         b.base -= u
+        b.baseMoney -= i.usedMoney
         b.sJoin -= u * i.accJoin
         i.returnedFixed = crpsReturned(i, b.acc)
       }
@@ -354,6 +355,7 @@ describe('эталон возврата паевых взносов инициа
       const u = units(i)
       if (i.active && u > 0n) {
         b.base += u
+        b.baseMoney += i.usedMoney
         b.sJoin += u * b.acc
         b.sFixed += i.returnedFixed
       }
@@ -371,6 +373,25 @@ describe('эталон возврата паевых взносов инициа
     const leaveAll = (i: Inv) => leave(i)
     return { b, investor, property, money, spend, repay, leaveAll }
   }
+
+  it('погашение 26 — доля денег в возмещении: 26 гасится ровно на возвращённое по денежным паевым взносам, имущество не гасит', () => {
+    // Решение владельца 09.11.2026: деньги инициаторов, израсходованные
+    // участком, — на 26; возмещение гасит 26 на свою денежную долю.
+    const w = world()
+    const a = w.investor()
+    const c = w.investor()
+    w.property(a, 600_000n * R)
+    w.money(c, 400_000n * R)
+    w.spend(c, 400_000n * R)
+    const r = w.repay(100_000n * R)
+    expect(r.repay).toBe(100_000n * R)
+    expect(r.cover, 'на 26 — 40 % возмещения').toBe(40_000n * R)
+    expect(crpsReturned(c, w.b.acc), 'денежному инициатору возвращено ровно погашенное на 26').toBe(r.cover)
+    // Без денежных взносов в базе 26 не гасится вовсе.
+    const p = world()
+    p.property(p.investor(), 500_000n * R)
+    expect(p.repay(10_000n * R).cover).toBe(0n)
+  })
 
   it('два инициатора 600 000 и 400 000 ₽ получают возврат 60 % и 40 % до копейки', () => {
     const w = world()

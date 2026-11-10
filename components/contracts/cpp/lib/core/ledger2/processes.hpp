@@ -77,7 +77,7 @@ namespace processes {
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
     inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
     inline constexpr eosio::name INVEST    = "p.mkt.invest"_n;   ///< Инвестиционный этап участка: договор участия, паевые взносы деньгами и имуществом, пул средств инициаторов, возврат паевых взносов заявлением (o.mkt.inv, o.mkt.iprop, o.mkt.ipool, o.mkt.iunpool, o.mkt.iback). Задача 99D-27.
-    inline constexpr eosio::name DUE       = "p.mkt.due"_n;      ///< Списание обеспечительной части по итогу периода участка (задача 99D-33): строка счётчика пайщика за период — одна транзакция chargeperiod (o.mkt.charge, o.brn.common, o.fnd.*, o.mkt.repay, o.mkt.retdue). Хэш нитки — Marketplace::Dues::charge_hash(coopname, username, braname, period); заказы объединены, хэша заказа у списания нет.
+    inline constexpr eosio::name DUE       = "p.mkt.due"_n;      ///< Списание обеспечительной части по итогу периода участка (задача 99D-33): строка счётчика пайщика за период — одна транзакция chargeperiod (o.mkt.charge, o.brn.common, o.fnd.*, o.mkt.repay, o.mkt.icover, o.mkt.rpsurp, o.mkt.iuncov, o.mkt.retdue). Хэш нитки — Marketplace::Dues::charge_hash(coopname, username, braname, period); заказы объединены, хэша заказа у списания нет.
   }
 
   // branch — экономика кооперативного участка (requirement b6)

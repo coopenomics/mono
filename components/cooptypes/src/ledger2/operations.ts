@@ -347,6 +347,19 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Перевод переплаты возмещения паевых взносов на общий кошелёк участка' },
 
+  // Погашение 26 (решение владельца 09.11.2026, бухгалтер подтвердила
+  // 10.11.2026): доля денег в возмещении гасит расходы и помощь участка,
+  // оплаченные деньгами инициаторов; имущество остаётся на 10.
+  { code: 'o.mkt.icover',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INVEST_COST_COVER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 86, credit: 26,
+    human_name: 'Погашение расходов участка из средств инициаторов членскими взносами' },
+
+  { code: 'o.mkt.iuncov',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INVEST_COST_UNCOVER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 26, credit: 86,
+    human_name: 'Сторно погашения расходов участка на переплату возмещения, переведённую участку' },
+
   { code: 'o.mkt.iback',   process_type: 'p.mkt.invest',  contract: 'marketplace',
     name: 'INVEST_BACK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
     debit: null, credit: null,
@@ -358,15 +371,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Перенос паевого взноса инициатора на главный паевой при выходе из кооператива' },
 
   // Расходы и материальная помощь участка из средств инициаторов (задача
-  // 99D-28): счёт 08, без транзита через фонд.
+  // 99D-28): счёт 26 «Общехозяйственные расходы» (решение владельца
+  // 09.11.2026, бухгалтер подтвердила 10.11.2026), без транзита через фонд.
   { code: 'o.mkt.iadv',    process_type: 'p.exp.expns',   contract: 'expense',
     name: 'INVEST_EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
-    debit: 8, credit: 51,
+    debit: 26, credit: 51,
     human_name: 'Выдача аванса под отчёт по расходу участка из средств инициаторов' },
 
   { code: 'o.mkt.idir',    process_type: 'p.exp.expns',   contract: 'expense',
     name: 'INVEST_EXPENSE_DIRECT', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
-    debit: 8, credit: 51,
+    debit: 26, credit: 51,
     human_name: 'Оплата расхода участка из средств инициаторов по реквизитам' },
 
   { code: 'o.mkt.irpt',    process_type: 'p.exp.expns',   contract: 'expense',
@@ -376,22 +390,22 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.mkt.iret',    process_type: 'p.exp.expns',   contract: 'expense',
     name: 'INVEST_EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.mkt.ipool',
-    debit: 51, credit: 8,
+    debit: 51, credit: 26,
     human_name: 'Возврат неиспользованного аванса в средства инициаторов участка' },
 
   { code: 'o.mkt.iovr',    process_type: 'p.exp.expns',   contract: 'expense',
     name: 'INVEST_EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
-    debit: 8, credit: 51,
+    debit: 26, credit: 51,
     human_name: 'Доплата сверх аванса по расходу участка из средств инициаторов' },
 
   { code: 'o.mkt.iaid',    process_type: 'p.brn.aid',     contract: 'branch',
     name: 'INVEST_AID', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
-    debit: 8, credit: 51,
+    debit: 26, credit: 51,
     human_name: 'Выплата материальной помощи из средств инициаторов участка' },
 
   { code: 'o.mkt.iaidtx',  process_type: 'p.brn.aid',     contract: 'branch',
     name: 'INVEST_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.sov.ndfl',
-    debit: 8, credit: 68,
+    debit: 26, credit: 68,
     human_name: 'Удержание налога из материальной помощи, выплаченной из средств инициаторов' },
 
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)

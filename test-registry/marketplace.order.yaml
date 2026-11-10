@@ -270,7 +270,7 @@ cases:
     scenario: >
       Месяц с экономией у участка с использованным паевым взносом: прогон, списание заказа, заявление инициатора о трансляции обратно и повтор.
     expect: >
-      доля инициаторов — o.mkt.repay на кошелёк возмещения участка, счётчик возврата равен эталону PeriodModel.crpsRoute; на главный паевой — сумма эталона crpsClaimable (и прежние начисления); строка инициатора после заявления остаётся, внесено деньгами всего (money_in) не меняется; повтор — MARKETPLACE_INVEST_NOTHING_TO_CLAIM
+      доля инициаторов — o.mkt.repay на кошелёк возмещения участка, счётчик возврата равен эталону PeriodModel.crpsRoute; погашение 26 (o.mkt.icover) — доля денег эталона crpsRoute.cover; на главный паевой — сумма эталона crpsClaimable (и прежние начисления); строка инициатора после заявления остаётся, внесено деньгами всего (money_in) не меняется; повтор — MARKETPLACE_INVEST_NOTHING_TO_CLAIM
     test: components/boot/src/tests/marketplace-invest.test.ts
     status: written
 
@@ -420,6 +420,28 @@ cases:
     expect: >
       возврат 60 / 40 % до копейки; поздний инициатор получает только возвраты после входа; доля сверх невозвращённого — участку; на случайных месяцах возвращённое не убывает и не больше использованного, возвращено с переплатой не больше возмещённого, внесённое возмещением не меняется, остаток участка за O(1) сходится с суммой строк
     test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.invest.model.02
+    level: contract
+    kind: side
+    scenario: >
+      Инициатор имуществом на 600 000 ₽ и инициатор деньгами на 400 000 ₽, деньги израсходованы участком; месяц с возмещением 100 000 ₽. Затем участок, где в базе возврата только имущество.
+    expect: >
+      погашение 26 (o.mkt.icover, Дт 86 / Кт 26) — доля денег в базе возврата: 40 000 ₽, ровно возвращённое денежному инициатору; без денежных паевых взносов в базе 26 не гасится (решение владельца 09.11.2026, бухгалтер подтвердила 10.11.2026)
+    test: components/cooptypes/test/marketplace-period-model.test.ts
+    status: passing
+
+  - id: mkt.order.invest.ledger.01
+    level: backend
+    kind: side
+    scenario: >
+      В нитке списания по итогу периода проведены погашение 26 членскими взносами и сторно на денежную долю переплаты
+    expect: >
+      инвариант I2 принимает дебет 86 от o.mkt.icover и кредит 86 от o.mkt.iuncov; прочий дебет 86 в нитке Стола заказов — нарушение
+    test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    external: unreachable
+    external_reason: "инвариант сверяет журнал учёта узла; проводки появляются только при списании по итогу периода — его проверяют контрактные тесты фазы КЭУ"
     status: passing
 
   - id: mkt.order.invest.cycle.01

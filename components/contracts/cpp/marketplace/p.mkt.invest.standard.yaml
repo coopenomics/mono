@@ -357,7 +357,8 @@ operations:
     description: >
       Общего кошелька участка не хватает на расход — под него выделяются
       средства инициаторов. Деньги уже на расчётном счёте с их паевых
-      взносов; оплата расхода проводится по счёту 08.
+      взносов; оплата расхода проводится по счёту 26 «Общехозяйственные
+      расходы», а членские взносы участка в профиците этот счёт гасят.
 
   - ledger_code: o.mkt.iunpl
     human_name: Возврат невыделенных средств инициаторов из пула
@@ -375,7 +376,7 @@ operations:
   - ledger_code: o.mkt.iadv
     human_name: Выдача аванса под отчёт по расходу участка из средств инициаторов
     wallet_op: TRANSFER
-    debit: 8                       # Счёт 08 — расход оплачен средствами инициаторов (до слова бухгалтера)
+    debit: 26                      # Общехозяйственные расходы — расход оплачен деньгами инициаторов (решение владельца 09.11.2026, бухгалтер подтвердила 10.11.2026)
     credit: 51                     # Расчётный счёт
     wallet_from: w.mkt.ipool
     wallet_to: w.exp.adv
@@ -392,7 +393,7 @@ operations:
   - ledger_code: o.mkt.idir
     human_name: Оплата расхода участка из средств инициаторов по реквизитам
     wallet_op: BURN
-    debit: 8
+    debit: 26
     credit: 51
     wallet_from: w.mkt.ipool
     wallet_to: null
@@ -420,7 +421,7 @@ operations:
     human_name: Возврат неиспользованного аванса в средства инициаторов участка
     wallet_op: TRANSFER
     debit: 51
-    credit: 8
+    credit: 26
     wallet_from: w.exp.adv
     wallet_to: w.mkt.ipool
     user_wallet: w.exp.adv
@@ -434,7 +435,7 @@ operations:
   - ledger_code: o.mkt.iovr
     human_name: Доплата сверх аванса по расходу участка из средств инициаторов
     wallet_op: TRANSFER
-    debit: 8
+    debit: 26
     credit: 51
     wallet_from: w.mkt.ipool
     wallet_to: w.exp.adv
@@ -449,7 +450,7 @@ operations:
   - ledger_code: o.mkt.iaid
     human_name: Выплата материальной помощи из средств инициаторов участка
     wallet_op: BURN
-    debit: 8
+    debit: 26
     credit: 51
     wallet_from: w.mkt.ipool
     wallet_to: null
@@ -464,7 +465,7 @@ operations:
   - ledger_code: o.mkt.iaidtx
     human_name: Удержание налога из материальной помощи, выплаченной из средств инициаторов
     wallet_op: TRANSFER
-    debit: 8
+    debit: 26
     credit: 68
     wallet_from: w.mkt.ipool
     wallet_to: w.sov.ndfl
