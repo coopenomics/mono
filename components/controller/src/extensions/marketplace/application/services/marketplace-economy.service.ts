@@ -509,6 +509,24 @@ export class MarketplaceEconomyService {
     braname: string,
     amount: number
   ): Promise<string> {
+    // Распределения одного участка идут по очереди: резерв плановых расходов
+    // проверяет узел, контракт о нём не знает. Два одновременных распределения
+    // оба прошли бы проверку по одному остатку и вместе съели бы резерв.
+    const key = `${coopname}:${braname}`;
+    const previous = this.distributing.get(key) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(() => this.distributeOnce(coopname, initiator, braname, amount));
+    this.distributing.set(key, run);
+    try {
+      return await run;
+    } finally {
+      if (this.distributing.get(key) === run) this.distributing.delete(key);
+    }
+  }
+
+  /** Очередь распределений по участкам: следующее читает остаток после завершения предыдущего. */
+  private readonly distributing = new Map<string, Promise<unknown>>();
+
+  private async distributeOnce(coopname: string, initiator: string, braname: string, amount: number): Promise<string> {
     await this.assertIsTrusteeOfBranch(coopname, braname, initiator);
     if (!Number.isFinite(amount) || amount <= 0) {
       throw DomainError.badRequest('MARKETPLACE_DISTRIBUTION_AMOUNT_MUST_BE_POSITIVE');

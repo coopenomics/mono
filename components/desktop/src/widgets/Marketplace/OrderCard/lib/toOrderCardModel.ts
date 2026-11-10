@@ -63,8 +63,11 @@ export interface OrderCardSource {
    */
   is_ready_announced?: boolean;
   created_at: string | Date;
-  /** Последняя смена состояния заказа — дата получения или отмены под бейджем. */
-  updated_at?: string | Date | null;
+  /**
+   * Последняя смена состояния заказа — дата получения или отмены под бейджем.
+   * Скаляр даты клиент GraphQL отдаёт без типа; значение сужается в `statusDate`.
+   */
+  updated_at?: unknown;
   delivery_braname: string;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
@@ -103,6 +106,11 @@ function softenCaps(name: string): string {
  *  - 'offerer' — себестоимость поставщика БЕЗ взноса (его деньги), плюс
  *    отдельная строка «Цена для заказчика» с суммой для справки.
  */
+/** Дата из скаляра GraphQL: строка либо Date; прочее — даты нет. */
+function statusDate(value: unknown): string | Date | undefined {
+  return typeof value === 'string' || value instanceof Date ? value : undefined;
+}
+
 export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer' = 'orderer'): Order {
   const name = o.delivery_point_name ? softenCaps(o.delivery_point_name) : undefined;
   const address = o.delivery_point_address || undefined;
@@ -136,7 +144,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     statusLabel: display.label,
     statusVariant: display.variant,
     createdAt: o.created_at,
-    statusAt: o.updated_at ?? undefined,
+    statusAt: statusDate(o.updated_at),
     // Имя КУ — основная строка ПВЗ, адрес — вторичная. Если нет ни имени, ни
     // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.
     pvzName: name ?? (address ? undefined : o.delivery_braname),

@@ -299,6 +299,30 @@ describe('Распределение членских взносов', () => {
   });
 });
 
+describe('Одновременные распределения участка', () => {
+  it('второе распределение читает остаток после первого: вместе они резерв плановых расходов не трогают', async () => {
+    // Общий кошелёк 10 000, резерв 2 500 — распределить можно 7 500. Два
+    // запроса по 5 000 пришли одновременно: по одному остатку оба прошли бы.
+    const balances = [common('10000.0000')];
+    const { service, chainPort } = buildService({ balances, reserve: 2500, weights: [weight(CHAIRMAN, 1)], totals: [{ coopname: COOP, braname: BRANCH, contract: 'marketplace', total_weight: 1 }] });
+    chainPort.distribute.mockImplementation(async (data: any) => {
+      // Цепь уменьшает общий кошелёк с задержкой на блок.
+      await new Promise((resolve) => setImmediate(resolve));
+      balances[0] = common((Number.parseFloat(balances[0].available) - Number.parseFloat(data.amount)).toFixed(4));
+      return { transaction_id: 'tx' } as any;
+    });
+    const results = await Promise.allSettled([
+      service.distributeBranchFunds(COOP, CHAIRMAN, BRANCH, 5000),
+      service.distributeBranchFunds(COOP, CHAIRMAN, BRANCH, 5000),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected']);
+    expect(chainPort.distribute).toHaveBeenCalledTimes(1);
+    expect(balances[0].available).toBe('5000.0000 RUB');
+    // Очередь не застревает после отказа: следующее распределение в пределах доступного проходит.
+    await expect(service.distributeBranchFunds(COOP, CHAIRMAN, BRANCH, 2500)).resolves.toBeDefined();
+  });
+});
+
 describe('Правка сетки весов', () => {
   it('председатель задаёт вес доверенного', async () => {
     const { service, chainPort } = buildService();

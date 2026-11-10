@@ -36,11 +36,12 @@ import config from '../configs'
 import { acceptToCoop, issueOrder, pickOffer, placeOrder } from './marketplace/orderFlow'
 import { CHAIRMAN, COOP, type Who, amount, ensureShareFunds, fromState, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
 import { accumulationFunds, asset, chargeHash, closeMonthAndCompare, coopPusher, grownPeriod, investBranch, investorRow, memberDue, memberDues, rub, units, userWallet, waitPeriodEnd } from './marketplace/periodHelpers'
+import { ensurePoolFree } from './marketplace/investHelpers'
 import { processDecision } from './soviet/processDecision'
 import { signProgramAgreement } from './wallet/signProgramAgreement'
 import { fakeDocument } from './shared/fakeDocument'
 
-const { chargeRow, crpsClaimable, crpsRoute } = MarketContract.PeriodModel
+const { chargeRow, crpsClaimable, crpsOutstanding, crpsRoute } = MarketContract.PeriodModel
 
 /** Списание по итогу периода — только на стенде со сжатым временем (задача 99D-33); в настоящем времени случай 06 пропускается. */
 const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
@@ -61,6 +62,8 @@ let chairkrgToken = ''
 let ekaterinaToken = ''
 let sidorovToken = ''
 let period = 0
+/** Доля инициаторов со списания одной единицы товара в месяце без расходов — мерит случай 06, по ней случай 08 подбирает размер заказа. */
+let initiatorPerUnit = 0n
 
 const hex = () => crypto.randomBytes(32).toString('hex')
 
@@ -269,6 +272,7 @@ describe('стол заказов — инвестиционный этап ко
       units(dueRow.due), units(dueRow.turnover), units(dueRow.retained),
     )
 
+    initiatorPerUnit = parts.initiator
     const branchBefore = await investBranch(bc, BRANAME)
     expect(branchBefore.base > 0n, 'у участка есть использованный паевой взнос — имущество из случая 04').toBe(true)
     const route = crpsRoute(branchBefore, parts.initiator)
@@ -310,6 +314,114 @@ describe('стол заказов — инвестиционный этап ко
     await expect(push(MARKET, 'claiminv', { coopname: COOP, username: trustedkrg.account, braname: BRANAME, claim_hash: hex(), statement: await signed(trustedkrg, 1123) }),
       'повтор без новой экономии').rejects.toThrow(/MARKETPLACE_INVEST_NOTHING_TO_CLAIM/)
   }, 1_200_000)
+
+  it.skipIf(!COMPRESSED)('mkt.order.invest.08 — возврат завершён, пока деньги инициаторов выделены под записку: деньги остаются в участке, забрать можно только свободное, оплата записки проходит', async () => {
+    // Ревью 10.11.2026. Раньше завершение возврата выводило неиспользованные
+    // деньги инициатора из средств участка, и оплата уже выделенной записки
+    // падала с MARKETPLACE_IPOOL_UNBACKED.
+    expect(initiatorPerUnit > 0n, 'случай 06 измерил долю инициаторов на единицу товара').toBe(true)
+    const whoOf = (account: string) => [chairkrg, trustedkrg].find(w => w.account === account)!
+
+    // 1. Записка больше общего кошелька участка — источником становятся средства инициаторов; до оплаты они выделены.
+    const common = await userWallet(bc, 'w.brn.common', BRANAME)
+    const held = common + rub(100)
+    await ensurePoolFree(bc, chairkrg, chairkrgToken, BRANAME, held)
+    const expenseHash = hex()
+    const itemHash = hex()
+    const ready = await investBranch(bc, BRANAME)
+    await push('branch', 'createexp', {
+      coopname: COOP,
+      braname: BRANAME,
+      creator: chairkrg.account,
+      expense_hash: expenseHash,
+      items: [{ item_hash: itemHash, mechanics: 1, recipient_type: 2, recipient: 'voskhod', description: 'Аренда помещения участка', planned_amount: asset(held), actual_amount: asset(0n), status: 0 }],
+      statement: await signed(chairkrg, 2010),
+    })
+    const funded = await investBranch(bc, BRANAME)
+    expect(funded.reserved - ready.reserved, 'под записку выделены средства инициаторов').toBe(held)
+
+    // 2. Заказ такого размера, чтобы доля инициаторов возместила весь непогашенный остаток участка одним списанием.
+    const outstanding = crpsOutstanding(funded)
+    expect(outstanding > 0n, 'у участка есть невозмещённое').toBe(true)
+    const quantity = Number(outstanding * 13n / 10n / initiatorPerUnit) + 2
+    const offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
+    const unitPrice = amount(offer.price_per_unit)
+    await ensureShareFunds(ekaterina.account, unitPrice * quantity * 2, ekaterinaToken)
+    const placed = await placeOrder({ token: ekaterinaToken, who: ekaterina, offerId: offer.id, quantity, braname: BRANAME })
+    await acceptToCoop({
+      supplierToken: sidorovToken, supplier: sidorov, operatorToken: chairkrgToken, operator: chairkrg,
+      orderId: placed.orderId, braname: BRANAME, factQuantity: quantity, factUnitPrice: unitPrice,
+    })
+    await waitForOps(chairmanToken, placed.orderHash, ['o.mkt.purch'])
+    const duesBefore = await memberDues(bc, ekaterina.account, BRANAME)
+    await issueOrder({
+      blockchain: bc, operatorToken: chairkrgToken, operator: chairkrg, memberToken: ekaterinaToken, member: ekaterina,
+      orderId: placed.orderId, braname: BRANAME, actualQuantity: quantity, actualUnitPrice: unitPrice,
+    })
+    const ops = await waitForOps(chairmanToken, placed.orderHash, ['o.mkt.consum', 'o.mkt.todue'])
+    const due = units(sumOf(ops, 'o.mkt.todue').toFixed(4))
+    const duePeriod = grownPeriod(duesBefore, await memberDues(bc, ekaterina.account, BRANAME), due)
+    await waitPeriodEnd(bc, duePeriod)
+
+    // 3. Месяц без расходов: записка из средств инициаторов в расходы участка не входит.
+    const fundsPercent = (await accumulationFunds(bc)).reduce((s, f) => s + BigInt(f.percent), 0n)
+    const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
+    const initiatorPercent = BigInt(cfg[0]?.initiator_share_percent ?? 618_000)
+    const reserves: any[] = await bc.getTableRows('branch', COOP, 'reserves', 1000)
+    for (const r of reserves.filter(x => x.braname === BRANAME))
+      await push('branch', 'delreserve', { coopname: COOP, braname: BRANAME, username: r.username })
+    await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent },
+      'период с полным возмещением', { planned: 0n, aidPaid: 0n, plannedTarget: 0n }, duePeriod)
+    const before = await investBranch(bc, BRANAME)
+    await push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: BRANAME, period: duePeriod })
+
+    // 4. Возврат завершён всем: база пуста, деньги инициаторов на месте и по-прежнему покрывают выделенное.
+    const done = await investBranch(bc, BRANAME)
+    expect(done.base, 'списание возместило весь остаток — в базе возврата никого').toBe(0n)
+    expect(done.unusedTotal, 'завершение возврата не выводит неиспользованные деньги из средств участка').toBe(before.unusedTotal)
+    expect(done.reserved, 'выделенное под записку не тронуто').toBe(before.reserved)
+    expect(done.unusedTotal >= done.reserved, 'выделенное обеспечено').toBe(true)
+    const rows: any[] = (await bc.getTableRows(MARKET, COOP, 'investors', 1000)).filter(r => r.braname === BRANAME)
+    expect(rows.filter(r => units(r.used_money) + units(r.property) > 0n).every(r => r.status === 'done'), 'каждый инициатор с использованным взносом завершил возврат').toBe(true)
+
+    // 5. Инициатор с неиспользованными деньгами забирает только свободное: выделенное остаётся в участке.
+    const holder = rows.find(r => units(r.money) - units(r.used_money) > 0n && whoOf(r.username))
+    expect(holder, 'есть инициатор с неиспользованными деньгами').toBeTruthy()
+    const who = whoOf(holder.username)
+    const row = await investorRow(bc, BRANAME, who.account)
+    const expected = crpsClaimable(done, row!)
+    const own = units(holder.money) - units(holder.used_money)
+    const free = done.unusedTotal - done.reserved
+    expect(expected.unused, 'к переводу из неиспользованного — не больше свободного').toBe(own < free ? own : free)
+    if (expected.total > 0n)
+      await push(MARKET, 'claiminv', { coopname: COOP, username: who.account, braname: BRANAME, claim_hash: hex(), statement: await signed(who, 1123) })
+    const claimed = await investBranch(bc, BRANAME)
+    expect(claimed.unusedTotal, 'средства участка уменьшились ровно на забранное неиспользованное').toBe(done.unusedTotal - expected.unused)
+    expect(claimed.unusedTotal >= claimed.reserved, 'после заявления выделенное обеспечено').toBe(true)
+
+    // 6. Записка оплачена: расход находит деньги инициаторов, они становятся использованными и снова ждут возмещения.
+    const proposalOf = async () => ((await bc.getTableRows('expense', COOP, 'proposals', 1000)) as any[]).find(p => String(p.proposal_hash).toLowerCase() === expenseHash)
+    const authorized = async () => Number((await proposalOf())?.status ?? -1) >= 1
+    if (!(await authorized()))
+      await decideByHash(expenseHash)
+    for (let i = 0; i < 80 && !(await authorized()); i++) {
+      // timing: backoff — решение совета доходит до шасси расходов не мгновенно
+      await new Promise(r => setTimeout(r, 1500))
+    }
+    expect(await authorized(), 'совет утвердил записку').toBe(true)
+    await push('expense', 'payexp', { coopname: COOP, proposal_hash: expenseHash, item_hash: itemHash, actual_amount: asset(held) })
+    await push('expense', 'closeexp', { coopname: COOP, proposal_hash: expenseHash })
+    let paid = await investBranch(bc, BRANAME)
+    for (let i = 0; i < 80 && paid.reserved !== claimed.reserved - held; i++) {
+      // timing: backoff — закрытие записки возвращается в контракт участка следующим блоком
+      await new Promise(r => setTimeout(r, 1500))
+      paid = await investBranch(bc, BRANAME)
+    }
+    expect(claimed.reserved - paid.reserved, 'выделенное под записку снято оплатой').toBe(held)
+    expect(claimed.unusedTotal - paid.unusedTotal, 'оплата нашла деньги инициаторов').toBe(held)
+    expect(crpsOutstanding(paid), 'оплаченное снова ждёт возмещения из экономии').toBe(held)
+    expect(paid.unusedTotal >= paid.reserved, 'выделенное обеспечено').toBe(true)
+  }, 2_400_000)
 
   it('mkt.order.invest.07 — пул и выход — только контракты branch и registrator', async () => {
     const data = { coopname: COOP, braname: BRANAME, amount: asset(rub(1)), hash: hex() }

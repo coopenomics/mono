@@ -542,6 +542,36 @@ describe('mkt.order.keu.13 — прогон по счётчикам цепи п�
     expect(order).toEqual([SEPTEMBER, OCTOBER]);
   });
 
+  it('mkt.order.keu.24 — узел простоял дольше месяца: участок догоняет все месяцы без заказов после последнего итога, по порядку и вперемежку с месяцами по счётчику', async () => {
+    const AUGUST = OCTOBER - 2;
+    const SEPTEMBER = OCTOBER - 1;
+    // Последний итог участка в цепи — август; сентябрь без заказов, в октябре заказы были.
+    const { service, periodService, onChain } = build({ warrantyUntil: warranty, mirroredPeriod: AUGUST });
+    onChain({ period: OCTOBER, turnover: toUnits('1000.0000'), due: toUnits('380.0000') });
+    periodService.quietCandidates.mockResolvedValue([BRANCH]);
+    const calls: string[] = [];
+    periodService.ensureQuietClosed.mockImplementation((async (_c: string, _b: string, period: number) => {
+      calls.push(`quiet ${period}`);
+      return null;
+    }) as any);
+    const closeImpl = periodService.ensureClosed.getMockImplementation()!;
+    periodService.ensureClosed.mockImplementation(async (c: string, b: string, period: number, rows: number) => {
+      calls.push(`close ${period}`);
+      return closeImpl(c, b, period, rows);
+    });
+    await service.chargeDue(COOP, firstOfNovember);
+    expect(calls).toEqual([`quiet ${SEPTEMBER}`, `close ${OCTOBER}`]);
+  });
+
+  it('mkt.order.keu.24 — догон месяцев без заказов: не глубже двенадцати месяцев; участок без итогов в цепи начинает с прошлого месяца', async () => {
+    const old = build({ warrantyUntil: warranty, mirroredPeriod: OCTOBER - 30 });
+    old.periodService.quietCandidates.mockResolvedValue([BRANCH, 'odn']);
+    await old.service.chargeDue(COOP, firstOfNovember);
+    const periodsOf = (braname: string) => old.periodService.ensureQuietClosed.mock.calls.filter((c: any[]) => c[1] === braname).map((c: any[]) => c[2]);
+    expect(periodsOf(BRANCH)).toEqual(Array.from({ length: 12 }, (_, i) => NOVEMBER - 12 + i));
+    expect(periodsOf('odn')).toEqual([OCTOBER]);
+  });
+
   it('участок догоняет два месяца: старые итоги стираются один раз — после всех расчётов прохода', async () => {
     const SEPTEMBER = OCTOBER - 1;
     const { service, periodService, onChain } = build({ warrantyUntil: warranty });

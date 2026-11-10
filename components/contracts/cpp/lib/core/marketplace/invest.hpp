@@ -283,9 +283,6 @@ inline void add_investment(eosio::name coopname, eosio::name braname, eosio::nam
   } else {
     row = *it;
     leave_base(b, row);
-    // Неиспользованные деньги завершившего возврат из средств участка не
-    // выбывали — прибавлять их заново не нужно.
-    if (row.status == Status::DONE) row.status = Status::ACTIVE;
   }
 
   // До прибавки: у строки прежней сборки запасное значение — текущий остаток.
@@ -295,6 +292,12 @@ inline void add_investment(eosio::name coopname, eosio::name braname, eosio::nam
   b.money_total      += money;
   b.property_total   += property;
   b.unused_total     += money;
+  // Завершивший возврат возвращается в базу, только когда у него появилось
+  // невозмещённое — новое имущество. Новые деньги до расхода в базу не входят:
+  // он остаётся завершившим и может забрать их заявлением. Иначе он стоял бы в
+  // базе с нулевым остатком к возмещению, завершить возврат было бы нечем, и
+  // его неиспользованные деньги остались бы закрыты.
+  if (row.status == Status::DONE && row.units() > row.returned_fixed) row.status = Status::ACTIVE;
   enter_base(b, row);
 
   branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
@@ -322,11 +325,12 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
                                   eosio::asset amount, const checksum256& order_hash) {
   using namespace MarketInvest;
   int64_t to_repay = 0;
+  int64_t left = 0;
 
   mkt_invbranches_index branches(_marketplace, coopname.value);
   auto bit = branches.find(braname.value);
   if (bit != branches.end() && bit->base > 0) {
-    const int64_t left = outstanding(*bit);
+    left = outstanding(*bit);
     to_repay = amount.amount < left ? amount.amount : left;
   }
 
@@ -361,6 +365,25 @@ inline void route_initiator_share(eosio::name actor, eosio::name coopname, eosio
       excess.money += e.money;
       excess.property += e.property;
       by_done.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
+    }
+
+    // Списание возместило весь непогашенный остаток участка: в базе не
+    // остаётся никого. Счётчик растёт с округлением вниз, поэтому инициатору
+    // могла остаться единица актива до порога завершения, и возврат завершался
+    // только следующим списанием. Возвращённое таких инициаторов фиксируется
+    // ровно в использованное — переведённая на кошелёк возмещения сумма это
+    // покрывает.
+    if (to_repay == left) {
+      const uint128_t all = combine_ids(braname.value, OUT_OF_RANGE);
+      for (auto it = by_done.lower_bound(from); it != by_done.end() && it->by_done() < all;
+           it = by_done.lower_bound(from)) {
+        mkt_investor row = *it;
+        const RepayParts e = complete(b, row);
+        row.returned_fixed = row.units();
+        excess.money += e.money;
+        excess.property += e.property;
+        by_done.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
+      }
     }
 
     // Денежная доля переплаты не может превысить погашенное этим списанием —

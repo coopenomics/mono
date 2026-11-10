@@ -412,6 +412,24 @@ cases:
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
 
+  - id: mkt.order.invest.08
+    level: contract
+    kind: break
+    scenario: >
+      Возврат инициаторам завершается, пока их деньги выделены под записку,
+      которая ещё не оплачена (ревью 10.11.2026, владелец подтвердил правило):
+      заказ такого размера, что доля инициаторов возмещает весь остаток участка
+      одним списанием.
+    expect: >
+      база возврата пуста, каждый инициатор с использованным взносом завершил
+      возврат (округление не оставляет единицу актива на следующий месяц);
+      неиспользованные деньги остаются в средствах участка и покрывают
+      выделенное; заявлением забирается только свободное; оплата записки
+      проходит (раньше MARKETPLACE_IPOOL_UNBACKED), оплаченное снова ждёт
+      возмещения
+    test: components/boot/src/tests/marketplace-invest.test.ts
+    status: written
+
   - id: mkt.order.invest.model.01
     level: contract
     kind: side
@@ -1363,6 +1381,38 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     external: unreachable
     external_reason: "вторая подача требует второй подписанной записки председателя по той же записи плана; условие проверяется на уровне сервиса до цепи"
+    status: written
+
+  - id: mkt.order.keu.24
+    level: backend
+    kind: side
+    scenario: >
+      Узел простоял дольше месяца (ревью 10.11.2026): последний итог участка в
+      цепи — позапрошлый месяц и раньше, между ним и текущим месяцем есть месяцы
+      без выданных заказов.
+    expect: >
+      участок догоняет все месяцы после последнего итога по порядку, вперемежку
+      с месяцами по счётчику; глубина — не больше двенадцати месяцев; участок
+      без итогов в цепи начинает с прошлого месяца; сбой чтения реестра планов
+      проход не роняет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "простой узла дольше месяца стенда на полигоне не воспроизводится; обычный месяц без заказов проверяет period-cycle"
+    status: written
+
+  - id: mkt.order.keu.25
+    level: backend
+    kind: break
+    scenario: >
+      Два распределения средств участка пришли одновременно (ревью 10.11.2026):
+      каждое в пределах доступного, вместе — больше.
+    expect: >
+      распределения участка идут по очереди; второе читает остаток после первого
+      и отклоняется; резерв плановых расходов не тронут; очередь после отказа
+      не застревает
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    external: unreachable
+    external_reason: "гонку двух запросов в пределах одного блока снаружи надёжно не воспроизвести"
     status: written
 
   - id: mkt.order.keu.12

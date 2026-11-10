@@ -269,7 +269,8 @@ describe('mkt.order.keu.cycle.03 — сбой расчёта итога: спи�
 
   it('факты месяца не собраны (реестр плановых расходов недоступен): расчёт в цепь не отправляется, списания нет', async () => {
     const { world, collected } = await monthWithThreeOrders();
-    world.faults.plans.push(new Error('expense chassis timeout'));
+    // Реестр планов читается дважды за проход: участки для месяцев без заказов и факты месяца.
+    world.faults.plans.push(new Error('expense chassis timeout'), new Error('expense chassis timeout'));
 
     expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 0, failed: 2 });
     expect(world.calls.closePeriod).toHaveLength(0);
