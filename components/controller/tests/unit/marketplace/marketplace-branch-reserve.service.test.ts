@@ -33,7 +33,9 @@ function toAsset(units: bigint): string {
 
 function build(opts: {
   limit?: string | null;
-  reserves?: Array<{ braname: string; username: string; amount: string }>;
+  reserves?: Array<{ braname: string; username: string; amount: string; accrued_period?: number; outstanding?: string }>;
+  /** Подано за текущий период по зеркалу заявлений узла (колонка «Подано в текущем месяце»). */
+  mirrorSubmitted?: Record<string, string>;
   initiators?: Array<{ braname: string; username: string }>;
   config?: { membership_fee_percent: number; initiator_share_percent?: number } | null;
   submitted?: Record<string, string>;
@@ -87,8 +89,11 @@ function build(opts: {
       return total === undefined ? null : { username, period: opts.aidPeriod ?? 2026 * 12 + 11, total: `${total} RUB` };
     }),
   });
-  const service = new MarketplaceBranchReserveService(chainPort as never, economy as never, kuChairman as never);
-  return { service, chainPort };
+  const aidMirror = {
+    submittedWithin: jest.fn(async (_c: string, username: string) => toUnits(opts.mirrorSubmitted?.[username] ?? '0')),
+  };
+  const service = new MarketplaceBranchReserveService(chainPort as never, economy as never, kuChairman as never, aidMirror as never);
+  return { service, chainPort, aidMirror };
 }
 
 describe('mkt.order.keu.10 — настройки экономики для администратора', () => {
@@ -139,7 +144,7 @@ describe('mkt.order.keu.10 — настройки экономики для ад
 });
 
 describe('mkt.order.keu.10 — резерв участка', () => {
-  it('строки с остатком на месяц: резерв минус поданное; чужой участок не входит', async () => {
+  it('строки до 99D-34: доступно — резерв минус поданное за месяц по накопителю контракта; подано — по зеркалу заявлений; чужой участок не входит', async () => {
     const { service } = build({
       reserves: [
         { braname: 'krg', username: 'chairkrg', amount: '200000.0000 RUB' },
@@ -147,6 +152,7 @@ describe('mkt.order.keu.10 — резерв участка', () => {
         { braname: 'msk', username: 'other', amount: '50000.0000 RUB' },
       ],
       submitted: { oper1: '60000.0000' },
+      mirrorSubmitted: { oper1: '60000.0000' },
     });
     const view = await service.getReserves(COOP, 'krg', new Date('2026-11-10T10:00:00.000Z'));
     expect(view.limit).toBe('200000.0000 RUB');
@@ -154,6 +160,25 @@ describe('mkt.order.keu.10 — резерв участка', () => {
       { username: 'chairkrg', amount: '200000.0000 RUB', submitted: '0.0000 RUB', remaining: '200000.0000 RUB' },
       { username: 'oper1', amount: '100000.0000 RUB', submitted: '60000.0000 RUB', remaining: '40000.0000 RUB' },
     ]);
+  });
+
+  it('mkt.order.keu.20 — накопленное право (99D-34): остаток плюс сумма строки за каждый прошедший период, невзятое не сгорает; в право на следующий период входит его начисление', async () => {
+    const now = new Date('2026-11-10T10:00:00.000Z');
+    const november = 2026 * 12 + 11;
+    const { service } = build({
+      reserves: [
+        { braname: 'krg', username: 'chairkrg', amount: '100000.0000 RUB', accrued_period: november - 2, outstanding: '70000.0000 RUB' },
+        { braname: 'krg', username: 'oper1', amount: '50000.0000 RUB', accrued_period: november, outstanding: '0.0000 RUB' },
+      ],
+      mirrorSubmitted: { oper1: '50000.0000' },
+    });
+    const view = await service.getReserves(COOP, 'krg', now);
+    expect(view.rows).toEqual([
+      { username: 'chairkrg', amount: '100000.0000 RUB', submitted: '0.0000 RUB', remaining: '270000.0000 RUB' },
+      { username: 'oper1', amount: '50000.0000 RUB', submitted: '50000.0000 RUB', remaining: '0.0000 RUB' },
+    ]);
+    // Право на декабрь соберёт итог ноября: 370 000 у председателя и 50 000 у доверенного.
+    expect(await service.rightNextPeriod(COOP, 'krg', now)).toBe(toUnits('420000.0000'));
   });
 
   it('setReserve: получатель вне участка — отказ до цепи; сумма ноль — отказ; иначе действие с активом', async () => {
@@ -185,13 +210,20 @@ describe('mkt.order.keu.10 — предел материальной помощ�
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 10, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_NO_RESERVE' });
   });
 
-  it('в пределах резерва проходит; сверх — MARKETPLACE_AID_OVER_RESERVE с суммами', async () => {
+  it('в пределах права проходит; сверх — MARKETPLACE_AID_OVER_RESERVE с заявленным и доступным', async () => {
     const { service } = build({ reserves: [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB' }], submitted: { oper1: '60000.0000' } });
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 40000, now)).resolves.toBeUndefined();
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 40000.01, now)).rejects.toMatchObject({
       code: 'MARKETPLACE_AID_OVER_RESERVE',
-      params: { requested: '40000.0100 RUB', submitted: '60000.0000 RUB', reserve: '100000.0000 RUB' },
+      params: { requested: '40000.0100 RUB', available: '40000.0000 RUB' },
     });
+  });
+
+  it('mkt.order.keu.20 — накопленное право позволяет заявление больше суммы строки: долг прошлых месяцев не сгорает', async () => {
+    const november = 2026 * 12 + 11;
+    const { service } = build({ reserves: [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB', accrued_period: november - 1, outstanding: '70000.0000 RUB' }] });
+    await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 170000, now)).resolves.toBeUndefined();
+    await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 170000.01, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_OVER_RESERVE' });
   });
 
   // Поданное — из накопителя контракта за тот же календарный месяц UTC, по
@@ -204,7 +236,7 @@ describe('mkt.order.keu.10 — предел материальной помощ�
     const stale = build({ reserves, submitted: { oper1: '99999.0000' }, aidPeriod: 2026 * 12 + 10 });
     await expect(stale.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 2, now)).resolves.toBeUndefined();
     const view = await current.service.getReserves(COOP, 'krg', now);
-    expect(view.rows[0]).toMatchObject({ submitted: '99999.0000 RUB', remaining: '1.0000 RUB' });
+    expect(view.rows[0]).toMatchObject({ remaining: '1.0000 RUB' });
   });
 });
 

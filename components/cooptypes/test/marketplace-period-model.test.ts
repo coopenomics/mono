@@ -563,3 +563,91 @@ describe('mkt.order.keu.model.05 — деление строки счётчик�
     expect(chargeProcessSeed('voskhod', 'ekaterina', 'krg', 24311)).toBe('p.mkt.due:voskhod:ekaterina:krg:24311')
   })
 })
+
+describe('mkt.order.keu.model.06 — расходы по цели резерва (задача 99D-34)', () => {
+  const { reserveRight } = MarketContract.PeriodModel
+  /** Месяц по цели резерва: траты из денег участка, ЦП, ЦМ и F_пр. */
+  const byTarget = (secured: number, over: Partial<MarketContract.PeriodModel.IPeriodFacts> = {}) =>
+    closePeriod(facts(1_000_000, { secured: rub(secured), planned: 0n, memos: 0n, aidPaid: 0n, reserve: 0n, plannedTarget: 0n, fundedPrev: 0n, ...over }))
+
+  it('аренда собирается вперёд: итог октября берёт ноябрьскую аренду в цель, итог ноября — только прирост цели', () => {
+    const october = byTarget(200_000, { plannedTarget: rub(50_000) })
+    expect(october.target).toBe(rub(50_000))
+    expect(october.expenses).toBe(rub(50_000))
+    expect(october.funded).toBe(rub(50_000))
+    // Ноябрь: аренда оплачена, цель — декабрьская аренда; расходы — одна аренда.
+    const november = byTarget(200_000, { planned: rub(50_000), plannedTarget: rub(50_000), fundedPrev: october.funded })
+    expect(november.expenses).toBe(rub(50_000))
+    // Аренду не оплатили: долг остаётся в цели, второй раз деньги не собираются.
+    const unpaid = byTarget(200_000, { plannedTarget: rub(50_000), fundedPrev: october.funded })
+    expect(unpaid.expenses).toBe(0n)
+    // Расход удалили: цель упала, расходы не бывают меньше нуля.
+    const deleted = byTarget(200_000, { fundedPrev: october.funded })
+    expect(deleted.expenses).toBe(0n)
+    expect(deleted.unpaid).toBe(0n)
+  })
+
+  it('помощь как оплата труда: несобранное в дефицитном месяце переходит дальше и гасится первым', () => {
+    // Октябрь: право получателя на ноябрь 100 000, собрано 30 000 — дефицит 70 000.
+    const october = byTarget(30_000, { reserve: rub(100_000) })
+    expect(october.expenses).toBe(rub(100_000))
+    expect(october.deficit).toBe(rub(70_000))
+    expect(october.funded).toBe(rub(30_000))
+    // Ноябрь: получатель взял 30 000, право — 70 000 долга и 100 000 за декабрь.
+    const november = byTarget(200_000, { aidPaid: rub(30_000), reserve: rub(170_000), fundedPrev: october.funded })
+    expect(november.expenses).toBe(rub(170_000))
+    expect(november.branch).toBe(rub(170_000))
+    expect(november.funded).toBe(rub(170_000))
+  })
+
+  it('средства инициаторов оплатили помощь — повторно участок их не собирает', () => {
+    const october = byTarget(30_000, { reserve: rub(100_000) })
+    // Ноябрь: 30 000 с персонального кошелька, 70 000 из средств инициаторов — в траты не входят.
+    const november = byTarget(200_000, { aidPaid: rub(30_000), reserve: rub(100_000), fundedPrev: october.funded })
+    expect(november.expenses).toBe(rub(100_000))
+  })
+
+  it('месяц без выданных заказов: расходы целиком — дефицит, ставки ноль, цель переходит несобранной', () => {
+    const t = closePeriod(facts(0, { turnover: 0n, secured: 0n, planned: 0n, memos: 0n, aidPaid: 0n, reserve: rub(100_000), plannedTarget: rub(50_000), fundedPrev: 0n }))
+    expect(t.expenses).toBe(rub(150_000))
+    expect(t.branch).toBe(0n)
+    expect(t.deficit).toBe(rub(150_000))
+    expect(t.funded).toBe(0n)
+    expect([t.rateBranch, t.rateFunds, t.rateInitiator]).toEqual([0n, 0n, 0n])
+  })
+
+  it('траты месяца покрываются первыми, цель — последней: дефицит больше цели не делает собранную часть отрицательной', () => {
+    const t = byTarget(10_000, { memos: rub(80_000), plannedTarget: rub(20_000) })
+    expect(t.deficit).toBe(rub(90_000))
+    expect(t.funded).toBe(0n)
+  })
+
+  it('сохранение суммы по цели резерва: участку + фонды + инициатору + пайщикам = собрано', () => {
+    const rand = prng(3406)
+    for (let i = 0; i < 300; i++) {
+      const t = byTarget(Math.round(rand() * 900_000), {
+        planned: rub(Math.round(rand() * 60_000)),
+        memos: rub(Math.round(rand() * 40_000)),
+        aidPaid: rub(Math.round(rand() * 100_000)),
+        reserve: rub(Math.round(rand() * 300_000)),
+        plannedTarget: rub(Math.round(rand() * 150_000)),
+        fundedPrev: rub(Math.round(rand() * 400_000)),
+      })
+      const secured = t.branch + t.funds + t.initiator + t.returned
+      expect(t.branch <= t.expenses).toBe(true)
+      expect(t.funded <= t.target).toBe(true)
+      expect(secured).toBe(t.membership + t.economy)
+    }
+  })
+
+  it('накопленное право получателя: остаток плюс сумма строки за каждый прошедший период; строка до 99D-34 — сумма минус поданное', () => {
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(70_000) }, 10)).toBe(rub(70_000))
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(70_000) }, 12)).toBe(rub(270_000))
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 12, outstanding: rub(5_000) }, 11)).toBe(rub(5_000))
+    expect(reserveRight({ amount: rub(100_000) }, 12, rub(40_000))).toBe(rub(60_000))
+    expect(reserveRight({ amount: rub(100_000) }, 12, rub(140_000))).toBe(0n)
+    // Смена режима нумерации периодов на стенде: огромный разрыв или номер меньше прежнего — без доначисления.
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 24_323, outstanding: rub(5_000) }, 2_950_000)).toBe(rub(5_000))
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(5_000) }, 10 + 1200)).toBe(rub(5_000) + rub(100_000) * 1200n)
+  })
+})

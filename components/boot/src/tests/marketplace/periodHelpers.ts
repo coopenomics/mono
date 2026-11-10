@@ -94,6 +94,40 @@ export async function reservePrevOf(bc: Blockchain, braname: string, period: num
   return units(prev.aid_reserve)
 }
 
+/**
+ * Собранная часть цели резерва прошлой строки участка (задача 99D-34) — как
+ * её берёт контракт: у строки до 99D-34 — её резерв помощи; строки нет — ноль.
+ */
+export async function fundedPrevOf(bc: Blockchain, braname: string, period: number): Promise<bigint> {
+  const earlier = (await branchPeriods(bc, braname)).filter(r => Number(r.period) < period)
+  if (!earlier.length)
+    return 0n
+  const prev = earlier.reduce((a, b) => (Number(a.period) > Number(b.period) ? a : b))
+  return prev.target_funded ? units(prev.target_funded) : units(prev.aid_reserve)
+}
+
+/**
+ * Накопленное право получателей помощи участка на период `period` — как
+ * `Branch::sum_outstanding`: строка с полями права — по эталону
+ * `PeriodModel.reserveRight`, строка до 99D-34 — сумма минус поданное за период.
+ */
+export async function branchRightAt(bc: Blockchain, braname: string, period: number): Promise<bigint> {
+  const months: any[] = await bc.getTableRows('branch', COOP, 'aidmonths', 1000)
+  let total = 0n
+  for (const r of await branchReserves(bc, braname)) {
+    const month = months.find(m => m.username === r.username)
+    const used = month && Number(month.period) === period ? units(month.total) : 0n
+    total += MarketContract.PeriodModel.reserveRight(
+      r.accrued_period !== undefined && r.outstanding
+        ? { amount: units(r.amount), accruedPeriod: Number(r.accrued_period), outstanding: units(r.outstanding) }
+        : { amount: units(r.amount) },
+      period,
+      used,
+    )
+  }
+  return total
+}
+
 // ── Счётчики списания и периоды (задача 99D-33) ─────────────────────────────
 
 /** Длина периода списания из настроек участков, секунд; ноль — календарный месяц UTC. */
@@ -168,9 +202,12 @@ export function chargeHash(username: string, braname: string, period: number): s
 
 /** Факты о расходах периода, которые передаёт контракту узел; стоимость и собранное контракт берёт из счётчика. */
 export interface MonthInput {
+  /** Оплачено по плану с общего кошелька за месяц. */
   planned?: bigint
   memos?: bigint
   aidPaid?: bigint
+  /** Цель плановых расходов на следующий месяц (задача 99D-34); по умолчанию ноль. */
+  plannedTarget?: bigint
 }
 
 /** Что нужно для расчёта месяца: цепь, отправка от кооператива, участок и проценты кооператива. */
@@ -185,8 +222,9 @@ export interface PeriodContext {
 /**
  * Один период: расчёт контрактом по его счётчику участка, чтение строки,
  * сверка каждого поля с эталоном `MarketContract.PeriodModel`. Стоимость и
- * собранное читаются из счётчика до расчёта, резерв участка и резерв прошлого
- * периода — из цепи: эталон получает те же числа, что видит контракт.
+ * собранное читаются из счётчика до расчёта, право получателей помощи на
+ * следующий период и собранная часть цели прошлой строки — из цепи: эталон
+ * получает те же числа, что видит контракт (расчёт по цели резерва, 99D-34).
  */
 export async function closeMonthAndCompare(ctx: PeriodContext, label: string, input: MonthInput, period: number) {
   // Итог за период уже рассчитан (соседний тест того же стенда): ставки зафиксированы, строка читается как есть.
@@ -201,10 +239,12 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     planned: input.planned ?? 0n,
     memos: input.memos ?? 0n,
     aidPaid: input.aidPaid ?? 0n,
-    reserve: await branchReserveSum(ctx.bc, ctx.braname),
+    reserve: await branchRightAt(ctx.bc, ctx.braname, period + 1),
     reservePrev: await reservePrevOf(ctx.bc, ctx.braname, period),
     fundsPercent: ctx.fundsPercent,
     initiatorPercent: ctx.initiatorPercent,
+    plannedTarget: input.plannedTarget ?? 0n,
+    fundedPrev: await fundedPrevOf(ctx.bc, ctx.braname, period),
   }
   await ctx.push('marketplace', 'closeperiod', {
     coopname: COOP,
@@ -213,6 +253,7 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     planned: asset(facts.planned),
     memos: asset(facts.memos),
     aid_paid: asset(facts.aidPaid),
+    planned_target: asset(facts.plannedTarget),
   })
   expect(await branchCounter(ctx.bc, ctx.braname, period), `${label}: счётчик участка стёрт расчётом`).toBeUndefined()
 
@@ -238,6 +279,10 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     rateBranch: BigInt(row.rate_branch),
     rateFunds: BigInt(row.rate_funds),
     rateInitiator: BigInt(row.rate_initiator),
+    plannedTarget: units(row.planned_target),
+    target: units(row.target),
+    targetPrev: units(row.target_prev),
+    funded: units(row.target_funded),
   }
   expect(got, label).toEqual({
     turnover: facts.turnover,
@@ -257,6 +302,10 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     rateBranch: expected.rateBranch,
     rateFunds: expected.rateFunds,
     rateInitiator: expected.rateInitiator,
+    plannedTarget: facts.plannedTarget,
+    target: expected.target,
+    targetPrev: facts.fundedPrev,
+    funded: expected.funded,
   })
   // Собранное делится без остатка — по строке цепи, не по эталону.
   expect(got.branch + got.funds + got.initiator + got.returned, `${label}: собранное разделено целиком`).toBe(facts.secured)

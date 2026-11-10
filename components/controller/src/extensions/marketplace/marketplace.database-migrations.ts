@@ -8,6 +8,7 @@ import { MarketplaceOrderReviewInvite1791723152953 } from './migrations/database
 import { MarketplaceKeuPeriod1793520000000 } from './migrations/database/1793520000000-keu-period';
 import { MarketplaceSecureDueRun1793880530030 } from './migrations/database/1793880530030-secure-due-run';
 import { MarketplaceInvestPeriod1794056162296 } from './migrations/database/1794056162296-invest-period';
+import { MarketplaceReserveTarget1794329384387 } from './migrations/database/1794329384387-reserve-target';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -15,8 +16,7 @@ import { MarketplaceInvestPeriod1794056162296 } from './migrations/database/1794
  * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
  * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
  */
-export const marketplaceDatabaseMigrations = [
-  MarketplaceBaseline1790197276758,
+export const marketplaceDatabaseMigrations = [MarketplaceBaseline1790197276758,
   MarketplaceDropFirstVersionCatalog1791028868299,
   MarketplaceHandoffCode1791736800000,
   MarketplaceSecureDue1793440000000,
@@ -25,5 +25,4 @@ export const marketplaceDatabaseMigrations = [
   MarketplaceOrderReviewInvite1791723152953,
   MarketplaceKeuPeriod1793520000000,
   MarketplaceSecureDueRun1793880530030,
-  MarketplaceInvestPeriod1794056162296,
-];
+  MarketplaceInvestPeriod1794056162296, MarketplaceReserveTarget1794329384387];

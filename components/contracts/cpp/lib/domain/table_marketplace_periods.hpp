@@ -2,6 +2,7 @@
 
 #include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/time.hpp>
 
@@ -22,7 +23,7 @@
  *
  * Строка — основание списания для пайщиков: после записи она неизменна. У
  * участка в оперативной памяти цепи не больше двух строк: текущий прогон и
- * предыдущий (его `aid_reserve` нужен для невыплаченной части). Позапрошлую
+ * предыдущий (его собранная часть цели резерва нужна следующему расчёту). Позапрошлую
  * строку ИСТОК стирает действием `delperiod`; история прогонов — в базе ИСТОКА.
  *
  * @ingroup public_tables
@@ -39,8 +40,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] kuperiod {
   eosio::asset planned;            ///< ПР — плановые расходы участка за месяц
   eosio::asset memos;              ///< СЗ — служебные записки сверх плана за месяц
   eosio::asset aid_paid;           ///< МП — материальная помощь, выплаченная за месяц
-  eosio::asset aid_reserve;        ///< Р — резерв социально-экономического обеспечения пайщиков на следующий месяц
-  eosio::asset aid_unpaid;         ///< Н — невыплаченная часть прошлого резерва
+  eosio::asset aid_reserve;        ///< ЦМ — накопленное право получателей помощи на следующий месяц (до 99D-34 — Р, сумма строк резерва)
+  eosio::asset aid_unpaid;         ///< Н — невыплаченная часть прошлого резерва; по формуле 99D-34 — ноль
   eosio::asset expenses;           ///< РК — расходы участка за прогон
   eosio::asset membership;         ///< М — членский взнос участка за прогон
   eosio::asset funds_amount;       ///< Ф — в фонды накопления кооператива
@@ -55,6 +56,14 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] kuperiod {
 
   eosio::name  initiator;          ///< получатель доли инициатора на момент прогона
   eosio::time_point_sec closed_at; ///< время расчёта
+
+  // Расходы по цели резерва (задача 99D-34). Хвост строки — только
+  // binary_extension: строки до 99D-34 читаются без этих полей. Поля пишутся
+  // всегда вместе; у строки, посчитанной старым узлом, их нет.
+  eosio::binary_extension<eosio::asset> planned_target; ///< ЦП — цель плановых расходов на следующий месяц
+  eosio::binary_extension<eosio::asset> target;         ///< T — цель резерва участка: плановые + право получателей помощи
+  eosio::binary_extension<eosio::asset> target_prev;    ///< F_пр — собранная часть цели прошлой строки
+  eosio::binary_extension<eosio::asset> target_funded;  ///< F — собранная часть цели этой строки
 
   uint64_t  primary_key() const { return id; }
   uint64_t  by_branch() const { return braname.value; }

@@ -184,14 +184,16 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
 
   let nearPlan = 0
 
-  it(caseName('mkt.eco.happy.01', 'общий кошелёк, резерв ближайших 30 дней и доступное показаны раздельно'), async () => {
+  it(caseName('mkt.eco.happy.01', 'общий кошелёк, резерв плановых расходов до конца текущего месяца и доступное показаны раздельно'), async () => {
     const before = await branchEconomy(krgToken, KRG)
-    nearPlan = await createPlan(krgToken, KRG, 40, 5)
+    // Резерв — неоплаченные расходы со сроком до конца текущего месяца, включая
+    // просроченные (задача 99D-34): просроченный расход в нём, расход через 60 дней — нет.
+    nearPlan = await createPlan(krgToken, KRG, 40, -1)
     const farPlan = await createPlan(krgToken, KRG, 70, 60)
 
     const eco = await branchEconomy(krgToken, KRG)
     expect(eco.braname).toBe(KRG)
-    expect(amount(eco.reserve_amount) - amount(before.reserve_amount), 'в резерв входит только расход со сроком внутри 30 дней').toBeCloseTo(40, 4)
+    expect(amount(eco.reserve_amount) - amount(before.reserve_amount), 'в резерв входит только расход со сроком до конца текущего месяца').toBeCloseTo(40, 4)
     expect(eco.common_balance, 'резерв не списывает деньги с общего кошелька').toBe(before.common_balance)
     const expected = Math.max(0, amount(eco.common_balance) - amount(eco.reserve_amount))
     expect(amount(eco.available_to_distribute), 'доступно = общий кошелёк − резерв').toBeCloseTo(expected, 4)

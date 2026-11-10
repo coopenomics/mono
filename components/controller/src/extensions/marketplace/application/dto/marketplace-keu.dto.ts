@@ -182,22 +182,34 @@ export class MarketplaceBranchPeriodDTO {
   @Field({ description: 'Собранная обеспечительная часть по заказам прогона.' })
   secured!: string;
 
-  @Field({ description: 'Плановые расходы участка за месяц.' })
+  @Field({ description: 'Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце).' })
   planned!: string;
 
-  @Field({ description: 'Служебные записки участка сверх плана за месяц.' })
+  @Field({ description: 'Служебные записки участка сверх плана с общего кошелька за месяц.' })
   memos!: string;
 
-  @Field({ description: 'Материальная помощь, выплаченная участком за месяц.' })
+  @Field({ description: 'Материальная помощь с персонального кошелька, выплаченная за месяц.' })
   aid_paid!: string;
 
-  @Field({ description: 'Резерв социально-экономического обеспечения пайщиков на следующий месяц.' })
+  @Field({ description: 'Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва).' })
   aid_reserve!: string;
 
-  @Field({ description: 'Невыплаченная часть прошлого резерва.' })
+  @Field({ description: 'Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль.' })
   aid_unpaid!: string;
 
-  @Field({ description: 'Расходы участка за прогон.' })
+  @Field(() => String, { nullable: true, description: 'Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва.' })
+  planned_target!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Цель резерва участка: плановые расходы и накопленное право получателей помощи.' })
+  target!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Собранная часть цели резерва прошлого месяца.' })
+  target_prev!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Собранная часть цели резерва этого месяца; несобранное переходит в следующий.' })
+  target_funded!: string | null;
+
+  @Field({ description: 'Расходы участка за месяц.' })
   expenses!: string;
 
   @Field({ description: 'Членский взнос участка за прогон.' })
@@ -260,19 +272,25 @@ export class MarketplaceBranchCurrentPeriodDTO {
   @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
   ends_at!: Date;
 
-  @Field({ description: 'Плановые расходы участка со сроком в текущем месяце.' })
+  @Field({ description: 'Оплачено по плану с общего кошелька участка за текущий месяц.' })
   planned!: string;
 
-  @Field({ description: 'Служебные записки участка сверх плана за текущий месяц.' })
+  @Field({ description: 'Служебные записки участка сверх плана с общего кошелька за текущий месяц.' })
   memos!: string;
 
-  @Field({ description: 'Материальная помощь, выплаченная участком за текущий месяц.' })
+  @Field({ description: 'Материальная помощь с персонального кошелька, выплаченная за текущий месяц.' })
   aid_paid!: string;
 
-  @Field({ description: 'Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям.' })
+  @Field({ description: 'Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца.' })
   aid_reserve!: string;
 
-  @Field({ description: 'Расходы участка на сегодня: плановые, служебные записки и резерв.' })
+  @Field({ description: 'Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца.' })
+  planned_target!: string;
+
+  @Field({ description: 'Собранная часть цели резерва прошлого итога: она уже лежит на участке.' })
+  target_prev!: string;
+
+  @Field({ description: 'Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом.' })
   expenses!: string;
 
   @Field(() => Int, { description: 'Заказов, которые созреют к первому числу.' })
@@ -315,6 +333,10 @@ export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity,
     aid_reserve: row.aid_reserve,
     aid_unpaid: row.aid_unpaid,
     expenses: row.expenses,
+    planned_target: row.planned_target,
+    target: row.target,
+    target_prev: row.target_prev,
+    target_funded: row.target_funded,
     membership: row.membership,
     funds_amount: row.funds_amount,
     branch_amount: row.branch_amount,

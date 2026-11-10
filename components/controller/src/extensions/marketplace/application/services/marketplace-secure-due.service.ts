@@ -632,12 +632,17 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
     const counters = (await this.chainPort.listDueCounters(coopname)).filter((c) => Number(c.period) < current);
     const { queue, keepByBranch } = await this.ripeRows(coopname, counters, current);
 
-    // Итоги закончившихся периодов: по счётчику участка со стоимостью.
-    for (const counter of counters) {
+    // Итоги закончившихся периодов: по счётчику участка, от старых к новым —
+    // собранная часть цели резерва переходит из итога в итог (задача 99D-34).
+    // Счётчик без стоимости (одни удержания при отказе или всё возвращено по
+    // гарантии) — как месяц без заказов: итог считается, если месяцу есть что нести.
+    const ordered = [...counters].sort((a, b) => Number(a.period) - Number(b.period) || String(a.braname).localeCompare(String(b.braname)));
+    for (const counter of ordered) {
       const braname = String(counter.braname);
-      if (this.economyService.assetToUnits(String(counter.turnover ?? '0')) <= 0n) continue;
-      await this.ensurePeriod(coopname, braname, Number(counter.period), Number(counter.members ?? 0), current, keepByBranch.get(braname) ?? new Set());
+      const empty = this.economyService.assetToUnits(String(counter.turnover ?? '0')) <= 0n;
+      await this.ensurePeriod(coopname, braname, Number(counter.period), Number(counter.members ?? 0), current, keepByBranch.get(braname) ?? new Set(), empty);
     }
+    await this.closeQuietMonth(coopname, current, counters, keepByBranch);
 
     const summary = new ChargedCollector();
     let failed = 0;
@@ -694,15 +699,21 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
   }
 
   /**
-   * Итог участка за закончившийся период: прежние итоги, по которым в цепи не
-   * осталось строк, стираются (в цепи живут итоги двух периодов), затем расчёт
-   * контрактом и зеркало. Сбой расчёта не роняет проход: строки участка ждут
+   * Итог участка за закончившийся период: расчёт контрактом и зеркало, затем
+   * прежние итоги, по которым в цепи не осталось строк, стираются (в цепи
+   * живут итоги двух периодов). Сбой расчёта не роняет проход: строки участка ждут
    * следующего прохода.
    */
-  private async ensurePeriod(coopname: string, braname: string, period: number, rowsTotal: number, current: number, keep: ReadonlySet<number>): Promise<MarketplaceBranchPeriodEntity | null> {
+  private async ensurePeriod(coopname: string, braname: string, period: number, rowsTotal: number, current: number, keep: ReadonlySet<number>, quiet = false): Promise<MarketplaceBranchPeriodEntity | null> {
     try {
+      // Сначала итог, потом стирание старых строк: контракт берёт собранную
+      // часть цели резерва из прошлой строки участка (задача 99D-34), и стирать
+      // её до расчёта нельзя — расчёт увидел бы ноль.
+      const row = quiet
+        ? await this.periodService.ensureQuietClosed(coopname, braname, period)
+        : await this.periodService.ensureClosed(coopname, braname, period, rowsTotal);
       await this.periodService.pruneOld(coopname, braname, current, keep);
-      return await this.periodService.ensureClosed(coopname, braname, period, rowsTotal);
+      return row;
     } catch (err: any) {
       const code = chainErrorCode(err);
       if (code === PERIOD_EMPTY) {
@@ -711,6 +722,27 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
         this.logger.error(`Итог периода ${period} участка ${braname} не рассчитан: ${err.message}`);
       }
       return null;
+    }
+  }
+
+  /**
+   * Итог прошлого месяца у участков без выданных заказов (задача 99D-34):
+   * счётчика нет, но расходы, цель резерва и право получателей помощи у месяца
+   * есть — без итога они терялись. Участки — те, у кого есть строки итога в
+   * цепи, строки резерва помощи или записи реестра планов. Нечего нести —
+   * строки нет (решает `ensureQuietClosed`).
+   */
+  private async closeQuietMonth(
+    coopname: string,
+    current: number,
+    counters: MarketContract.Tables.Counters.IKuCounter[],
+    keepByBranch: Map<string, Set<number>>
+  ): Promise<void> {
+    const period = current - 1;
+    const withCounter = new Set(counters.filter((c) => Number(c.period) === period).map((c) => String(c.braname)));
+    for (const braname of await this.periodService.quietCandidates(coopname)) {
+      if (withCounter.has(braname)) continue;
+      await this.ensurePeriod(coopname, braname, period, 0, current, keepByBranch.get(braname) ?? new Set(), true);
     }
   }
 

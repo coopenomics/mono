@@ -675,6 +675,11 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Reserves.tableName, 'secondary', braname);
   }
 
+  async listAllBranchReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {
+    // Строка на получателя помощи — председателя или доверенного участка; история не копится.
+    return this.blockchainService.getAllRows(BranchContract.contractName.production, coopname, BranchContract.Tables.Reserves.tableName);
+  }
+
   async getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null> {
     const rows = await this.blockchainService.getAllRows(
       BranchContract.contractName.production,

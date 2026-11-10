@@ -83,6 +83,9 @@ function build(opts: { warrantyUntil?: Date | null; openClaim?: boolean; mirrore
     noteCharged: jest.fn(async () => undefined),
     ratePercentOf: jest.fn(() => '31.54'),
     findOne: jest.fn(async (_c: string, _b: string, period: number) => (closed.has(period) ? { ...periodRow, period } : null)),
+    // Итог месяца без выданных заказов (задача 99D-34): участки-кандидаты задаёт тест.
+    quietCandidates: jest.fn(async (): Promise<string[]> => []),
+    ensureQuietClosed: jest.fn(async () => null),
   };
 
   // ── Подставная цепь: счётчики и списание ──
@@ -493,13 +496,24 @@ describe('mkt.order.keu.13 — прогон по счётчикам цепи п�
     expect([first.due_amount, second.due_amount]).toEqual(['0.0000', '0.0000']);
   });
 
-  it('удержание при отказе без стоимости списывается целиком участку и итога не требует', async () => {
+  it('mkt.order.keu.19 — участок без выданных заказов за прошлый месяц получает итог без заказов; участок со счётчиком — обычный итог', async () => {
+    const { service, periodService, onChain } = build({ warrantyUntil: warranty });
+    onChain({ period: OCTOBER, turnover: toUnits('1000.0000'), due: toUnits('380.0000') });
+    periodService.quietCandidates.mockResolvedValue([BRANCH, 'odn']);
+    await service.chargeDue(COOP, firstOfNovember);
+    expect(periodService.ensureQuietClosed).toHaveBeenCalledWith(COOP, 'odn', OCTOBER);
+    expect(periodService.ensureQuietClosed).not.toHaveBeenCalledWith(COOP, BRANCH, OCTOBER);
+    expect(periodService.ensureClosed).toHaveBeenCalledWith(COOP, BRANCH, OCTOBER, 1);
+  });
+
+  it('удержание при отказе без стоимости списывается целиком участку; счётчик без стоимости — как месяц без заказов: итог, если месяцу есть что нести (99D-34)', async () => {
     const { service, chainPort, periodService, store, onChain } = build({ warrantyUntil: warranty });
     await service.applyOperation(apply(MarketplaceSecureDueOperation.PENALTY, '50.0000', 1));
     onChain({ period: OCTOBER, retained: toUnits('50.0000') });
     expect(await service.chargeDue(COOP, firstOfNovember)).toEqual({ charged: 1, failed: 0 });
     expect(chainPort.chargePeriod).toHaveBeenCalledWith({ coopname: COOP, username: USER, braname: BRANCH, period: OCTOBER });
     expect(periodService.ensureClosed).not.toHaveBeenCalled();
+    expect(periodService.ensureQuietClosed).toHaveBeenCalledWith(COOP, BRANCH, OCTOBER);
     expect(store.rows.get(ORDER)).toMatchObject({ due_amount: '0.0000', charged_amount: '50.0000' });
   });
 

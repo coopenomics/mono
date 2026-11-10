@@ -192,14 +192,19 @@ export class MarketplaceKeuResolver {
     const now = new Date();
     const period = monthKey(now, platformSettings().timezone || 'UTC');
     const bounds = periodBounds(period, platformSettings().timezone || 'UTC');
-    const [facts, reserves, ripening, distributed, received] = await Promise.all([
+    // Показ до расчёта (правило «деньги считает контракт», п. 6): ожидаемые
+    // расходы по той же формуле, что closeperiod, — траты месяца из денег
+    // участка, цель резерва и собранное прошлым итогом. Итог считает контракт.
+    const [facts, aidRight, fundedPrev, ripening, distributed, received] = await Promise.all([
       this.periods.collectFacts(coopname, braname, period),
-      this.reserves.getReserves(coopname, braname, now),
+      this.reserves.rightNextPeriod(coopname, braname, now),
+      this.periods.fundedBefore(coopname, braname, period),
       this.secureDue.ripeningForBranch(coopname, braname, now),
       this.periods.distributedWithin(coopname, braname, bounds),
       this.periods.receivedWithin(coopname, member.username, bounds),
     ]);
-    const reserve = reserves.rows.reduce((sum, r) => sum + this.economyService.assetToUnits(r.amount), 0n);
+    const spent = facts.planned + facts.memos + facts.aidPaid;
+    const expected = spent + facts.plannedTarget + aidRight - fundedPrev;
     const asset = (units: bigint) => this.economyService.unitsToAsset(units);
     return {
       braname,
@@ -209,8 +214,10 @@ export class MarketplaceKeuResolver {
       planned: asset(facts.planned),
       memos: asset(facts.memos),
       aid_paid: asset(facts.aidPaid),
-      aid_reserve: asset(reserve),
-      expenses: asset(facts.planned + facts.memos + reserve),
+      aid_reserve: asset(aidRight),
+      planned_target: asset(facts.plannedTarget),
+      target_prev: asset(fundedPrev),
+      expenses: asset(expected > 0n ? expected : 0n),
       ripening_orders: ripening.count,
       ripening_turnover: asset(ripening.turnover),
       ripening_secured: asset(ripening.secured),

@@ -77,10 +77,15 @@ function buildService(setup: StandSetup = {}) {
     isMemberOfBranch: jest.fn().mockResolvedValue(true),
   } as any;
 
-  // Плановый резерв приходит из шасси расходов через межрасширенческий порт:
-  // горизонт планирования — правило шасси, потребитель его только показывает.
+  // Резерв общего кошелька — цель плановых расходов (задача 99D-34): реестр
+  // планов участка из шасси расходов, неоплаченные записи со сроком до конца
+  // текущего месяца. Здесь резерв — одна просроченная неоплаченная запись.
   const expenseChassis = {
-    getPlannedReserve: jest.fn().mockResolvedValue({ amount: reserve, horizonDays: 30 }),
+    listPlans: jest.fn().mockResolvedValue(
+      reserve > 0
+        ? [{ id: 1, branchName: BRANCH, title: 'Аренда', amount: `${reserve.toFixed(4)} RUB`, dueDate: new Date(Date.now() - 86_400_000), proposalHash: null, paidAt: null }]
+        : []
+    ),
     attachPlanToProposal: jest.fn().mockResolvedValue(undefined),
   } as any;
 

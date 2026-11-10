@@ -207,7 +207,8 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     const planned = 200n * UNITS
     const month = await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent }, 'итог периода', { planned }, period)
     periodRow = month.row
-    expect(units(periodRow.aid_reserve)).toBe(300n * UNITS)
+    // Право получателя помощи на следующий период копится (задача 99D-34): не меньше суммы строки.
+    expect(units(periodRow.aid_reserve) >= 300n * UNITS, 'право получателя на следующий период').toBe(true)
     expect(units(periodRow.turnover) >= baseUnits, 'стоимость заказов — из счётчика участка').toBe(true)
     expect(units(periodRow.secured) >= dueUnits, 'собранная обеспечительная часть — из счётчика участка').toBe(true)
     expect(periodRow.initiator).toBe(chairkrg.account)
@@ -219,6 +220,20 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     await expect(push(MARKET, 'closeperiod', { ...base, period: period + 1_000 })).rejects.toThrow(/MARKETPLACE_PERIOD_OPEN/)
     for (const field of ['planned', 'memos', 'aid_paid'])
       await expect(push(MARKET, 'closeperiod', { ...base, [field]: asset(-1n) }), `отрицательное ${field}`).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
+    await expect(push(MARKET, 'closeperiod', { ...base, period: period - 1_001, planned_target: asset(-1n) }), 'отрицательная цель плановых расходов')
+      .rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
+    // По цели резерва (99D-34) месяц без выданных заказов получает строку: обеспечительной части нет,
+    // расходы целиком — дефицит, ставки ноль, несобранная цель переходит дальше.
+    const quiet = period - 1_002
+    await push(MARKET, 'closeperiod', { ...base, period: quiet, planned: asset(0n), planned_target: asset(rub(50)) })
+    const quietRow = (await bc.getTableRows(MARKET, COOP, 'kuperiods', 1000)).find((r: any) => r.braname === BRANAME && Number(r.period) === quiet)
+    expect(quietRow, 'строка итога месяца без заказов').toBeDefined()
+    expect(units(quietRow.turnover)).toBe(0n)
+    expect(units(quietRow.branch_amount)).toBe(0n)
+    expect(units(quietRow.deficit)).toBe(units(quietRow.expenses))
+    expect(units(quietRow.planned_target)).toBe(rub(50))
+    expect([quietRow.rate_branch, quietRow.rate_funds, quietRow.rate_initiator].map(Number)).toEqual([0, 0, 0])
+    await push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period: quiet })
     await expect(push(MARKET, 'closeperiod', { ...base, planned: asset(rub(1), 'AXON') })).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
     await expect(push(MARKET, 'closeperiod', { ...base, period: 0 })).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
     await expect(push(MARKET, 'closeperiod', { ...base, braname: 'nosuchbranch' })).rejects.toThrow()

@@ -36,7 +36,8 @@
  *  - amount > 0 в валюте кооператива; заявление с таким hash не существует;
  *  - получатель — активный пайщик; заявление подписано получателем;
  *  - получатель — доверенное лицо либо председатель указанного участка;
- *  - сумма в пределах резерва социально-экономического обеспечения за месяц;
+ *  - сумма в пределах накопленного права получателя по резерву
+ *    социально-экономического обеспечения (задача 99D-34);
  *  - средств хватает: персональный кошелёк либо свободные средства
  *    инициаторов (BRANCH_AID_INSUFFICIENT).
  *
@@ -69,40 +70,28 @@
   eosio::check(branch.is_user_authorized(username),
                "Материальная помощь доступна только доверенному лицу или председателю кооперативного участка");
 
-  // Предел материальной помощи за месяц — резерв социально-экономического
-  // обеспечения получателя (задача 99D-20, решение владельца 03.11.2026).
-  // Проверка включается только потолком больше нуля: прежний ИСТОК после
-  // обновления контрактов работает без изменений, пока администратор не
-  // задал потолок. Месяц — по времени блока UTC; истории нет: строка
-  // накопителя перезаписывается при первом заявлении нового месяца.
+  // Предел заявления — накопленное право получателя (задача 99D-34, решение
+  // владельца 10.11.2026): помощь временно играет роль оплаты труда, право
+  // копится каждый период на сумму строки резерва и не сгорает. Проверка
+  // включается только потолком больше нуля: прежний ИСТОК после обновления
+  // контрактов работает без изменений, пока администратор не задал потолок.
   if (Branch::aid_month_limit(coopname).amount > 0) {
-    bool has_reserve = false;
-    const eosio::asset reserve = Branch::reserve_of(coopname, braname, username, has_reserve);
-    eosio::check(has_reserve,
+    branch_reserves_index reserves(_branch, coopname.value);
+    auto ridx = reserves.get_index<"bybruser"_n>();
+    auto rit = ridx.find(combine_ids(braname.value, username.value));
+    eosio::check(rit != ridx.end(),
                  "BRANCH_AID_NO_RESERVE: У получателя нет резерва социально-экономического обеспечения на этом участке");
 
     const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
-    branch_aidmonths_index months(_branch, coopname.value);
-    auto month = months.find(username.value);
-    const eosio::asset already = (month == months.end() || month->period != period)
-      ? eosio::asset(0, _root_govern_symbol)
-      : month->total;
-    eosio::check(already + amount <= reserve,
-                 std::string{"BRANCH_AID_OVER_RESERVE: Материальная помощь за месяц превысит резерв получателя: заявлено "} +
-                   amount.to_string() + ", уже подано " + already.to_string() + ", резерв " + reserve.to_string());
+    const eosio::asset available = Branch::outstanding_of(coopname, *rit, period);
+    eosio::check(amount <= available,
+                 std::string{"BRANCH_AID_OVER_RESERVE: Сумма заявления больше накопленного права получателя: заявлено "} +
+                   amount.to_string() + ", доступно " + available.to_string());
 
-    if (month == months.end()) {
-      months.emplace(RamPayer::of(months, coopname), [&](auto &m) {
-        m.username = username;
-        m.period = period;
-        m.total = amount;
-      });
-    } else {
-      months.modify(month, RamPayer::of(months, coopname), [&](auto &m) {
-        m.period = period;
-        m.total = already + amount;
-      });
-    }
+    ridx.modify(rit, RamPayer::of(ridx, coopname), [&](auto &r) {
+      r.accrued_period = period;
+      r.outstanding = available - amount;
+    });
   }
 
   branch_aids_index aids(_branch, coopname.value);

@@ -145,7 +145,7 @@ export function createKeuWorld() {
     /** Резерв социально-экономического обеспечения участка. */
     reserve: new Map<string, bigint>(),
     /** Плановые расходы участков: запись реестра планов со сроком. */
-    plans: [] as Array<{ branchName: string; dueDate: Date; amount: string; proposalHash?: string }>,
+    plans: [] as Array<{ branchName: string; dueDate: Date; amount: string; proposalHash?: string; paidAt?: Date }>,
     /** Материальная помощь, выплаченная участком за месяц: участок/номер месяца → сумма. */
     aidPaid: new Map<string, bigint>(),
     initiator: new Map<string, string>(),
@@ -260,6 +260,15 @@ export function createKeuWorld() {
     rate_initiator: Number(p.totals.rateInitiator),
     initiator: p.initiator,
     closed_at: clock.toISOString().replace('Z', ''),
+    // Поля цели резерва (задача 99D-34) — только у итога, посчитанного новым узлом.
+    ...(p.facts.plannedTarget !== undefined
+      ? {
+          planned_target: toAsset(p.facts.plannedTarget),
+          target: toAsset(p.totals.target),
+          target_prev: toAsset(p.facts.fundedPrev ?? 0n),
+          target_funded: toAsset(p.totals.funded),
+        }
+      : {}),
   });
   const dueRowOf = (d: ChainDue) => ({
     id: 0,
@@ -319,7 +328,12 @@ export function createKeuWorld() {
       };
     },
 
-    /** `closeperiod`: T и C из счётчика участка, от узла — факты о расходах. */
+    /**
+     * `closeperiod`: T и C из счётчика участка, от узла — факты о расходах и
+     * цель плановых расходов (задача 99D-34). Право получателей помощи
+     * подставная цепь считает взятым целиком каждый месяц: цель помощи —
+     * сумма строки резерва участка. Месяц без счётчика — нули.
+     */
     async closePeriod(data: any) {
       calls.closePeriod.push(data);
       const fault = faults.closePeriod.shift();
@@ -328,13 +342,14 @@ export function createKeuWorld() {
       if (periods.some((p) => p.braname === data.braname && p.period === data.period)) {
         throw refusal('MARKETPLACE_PERIOD_EXISTS', 'Итог участка за период уже рассчитан');
       }
+      const byTarget = data.planned_target !== undefined;
       const counter = counters.get(counterKey(data.braname, data.period));
-      if (!counter || counter.turnover <= 0n) throw refusal('MARKETPLACE_PERIOD_EMPTY', 'За период на участке нет выданных заказов с обеспечительной частью');
+      if (!byTarget && (!counter || counter.turnover <= 0n)) throw refusal('MARKETPLACE_PERIOD_EMPTY', 'За период на участке нет выданных заказов с обеспечительной частью');
       const earlier = periods.filter((p) => p.braname === data.braname && p.period < data.period);
       const prev = earlier.sort((a, b) => b.period - a.period)[0];
       const facts = {
-        turnover: counter.turnover,
-        secured: counter.secured,
+        turnover: counter?.turnover ?? 0n,
+        secured: counter?.secured ?? 0n,
         planned: toUnits(data.planned),
         memos: toUnits(data.memos),
         aidPaid: toUnits(data.aid_paid),
@@ -342,6 +357,9 @@ export function createKeuWorld() {
         reservePrev: prev ? prev.facts.reserve : 0n,
         fundsPercent: settings.fundsPercent,
         initiatorPercent: settings.initiatorPercent,
+        ...(byTarget
+          ? { plannedTarget: toUnits(data.planned_target), fundedPrev: prev ? (prev.facts.plannedTarget !== undefined ? prev.totals.funded : prev.facts.reserve) : 0n }
+          : {}),
       };
       periods.push({
         id: periods.length + 1,
@@ -360,6 +378,14 @@ export function createKeuWorld() {
     },
     async listAllBranchPeriods() {
       return periods.map(periodRowOf);
+    },
+    /** Строки резерва помощи: по строке председателя на участок с резервом. */
+    async listBranchReserves(_coopname: string, braname: string) {
+      const amount = settings.reserve.get(braname);
+      return amount ? [{ id: 1, braname, username: `chair.${braname}`, amount: toAsset(amount) }] : [];
+    },
+    async listAllBranchReserves() {
+      return [...settings.reserve.entries()].filter(([, amount]) => amount > 0n).map(([braname, amount], i) => ({ id: i + 1, braname, username: `chair.${braname}`, amount: toAsset(amount) }));
     },
 
     /** Кошелёк пайщика в цепи; тест читает только кошелёк обеспечительной части к списанию. */
@@ -482,10 +508,12 @@ export function createKeuWorld() {
     },
   };
   const aidMirror = {
-    paidWithin: async (_coop: string, braname: string, from: Date) => {
+    paidRowsWithin: async (_coop: string, braname: string, from: Date) => {
       // Начало месяца по Москве: спустя сутки календарная дата уже внутри этого месяца.
       const inside = new Date(from.getTime() + 24 * 60 * 60 * 1000);
-      return settings.aidPaid.get(`${braname}/${periodOf(inside.getUTCFullYear(), inside.getUTCMonth() + 1)}`) ?? 0n;
+      const key = `${braname}/${periodOf(inside.getUTCFullYear(), inside.getUTCMonth() + 1)}`;
+      const amount = settings.aidPaid.get(key) ?? 0n;
+      return amount > 0n ? [{ hash: `aid:${key}`, amount }] : [];
     },
     isAidHash: async (_coop: string, hash: string) => settings.aidHashes.has(hash),
   };

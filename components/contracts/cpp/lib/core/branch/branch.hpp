@@ -157,10 +157,36 @@ inline eosio::asset reserve_of(eosio::name coopname, eosio::name braname,
   return found ? it->amount : eosio::asset(0, _root_govern_symbol);
 }
 
+/// Наибольший разрыв периодов, за который доначисляется право получателя помощи.
+constexpr uint32_t MAX_ACCRUAL_GAP = 1200;
+
 /**
- * @brief Сумма резерва социально-экономического обеспечения пайщиков участка —
- * слагаемое расходов участка в расчёте итога месяца Стола заказов. Строк у
- * участка единицы (председатель и доверенные), перебор по индексу участка.
+ * @brief Накопленное право получателя на материальную помощь на период `now`
+ * (задача 99D-34): остаток на период начисления плюс сумма строки за каждый
+ * прошедший период. Строка до 99D-34 — право текущего периода: сумма строки
+ * минус поданное за период по накопителю `aidmonths`.
+ */
+inline eosio::asset outstanding_of(eosio::name coopname, const branch_reserve &r, uint32_t now) {
+  if (!r.accrued_period.has_value() || !r.outstanding.has_value()) {
+    branch_aidmonths_index months(_branch, coopname.value);
+    auto month = months.find(r.username.value);
+    const int64_t used = (month != months.end() && month->period == now) ? month->total.amount : 0;
+    return eosio::asset(r.amount.amount > used ? r.amount.amount - used : 0, r.amount.symbol);
+  }
+  eosio::asset total = r.outstanding.value();
+  const uint32_t last = r.accrued_period.value();
+  // Разрыв больше MAX_ACCRUAL_GAP периодов или номер меньше прежнего — смена
+  // режима нумерации (длина периода стенда `setaidperiod`, календарный месяц ↔
+  // отрезок секунд), а не прошедшее время: право не доначисляется, отсчёт
+  // начнётся заново при следующей записи строки. В рабочем режиме 1200
+  // периодов — сто лет.
+  if (now > last && now - last <= MAX_ACCRUAL_GAP) total.amount += r.amount.amount * static_cast<int64_t>(now - last);
+  return total;
+}
+
+/**
+ * @brief Сумма строк резерва участка за один месяц — прежняя формула итога
+ * месяца (до 99D-34), ею считает старый узел, пока не выложен новый.
  */
 inline eosio::asset sum_reserves(eosio::name coopname, eosio::name braname) {
   branch_reserves_index reserves(_branch, coopname.value);
@@ -169,6 +195,22 @@ inline eosio::asset sum_reserves(eosio::name coopname, eosio::name braname) {
   for (auto it = idx.lower_bound(braname.value);
        it != idx.end() && it->braname == braname; ++it) {
     total += it->amount;
+  }
+  return total;
+}
+
+/**
+ * @brief Сумма накопленного права получателей участка на период `now` —
+ * слагаемое цели резерва участка в итоге месяца Стола заказов. Строк у
+ * участка единицы (председатель и доверенные), перебор по индексу участка.
+ */
+inline eosio::asset sum_outstanding(eosio::name coopname, eosio::name braname, uint32_t now) {
+  branch_reserves_index reserves(_branch, coopname.value);
+  auto idx = reserves.get_index<"bybranch"_n>();
+  eosio::asset total(0, _root_govern_symbol);
+  for (auto it = idx.lower_bound(braname.value);
+       it != idx.end() && it->braname == braname; ++it) {
+    total += outstanding_of(coopname, *it, now);
   }
   return total;
 }

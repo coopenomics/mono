@@ -17,7 +17,7 @@
     "MARKETPLACE_AID_FORBIDDEN": "Материальная помощь доступна председателю и доверенным этого кооперативного участка",
     "MARKETPLACE_AID_LIMIT_INVALID": "Потолок резерва социально-экономического обеспечения должен быть не меньше нуля",
     "MARKETPLACE_AID_NO_RESERVE": "У получателя нет резерва социально-экономического обеспечения на этом участке. Председатель участка задаёт резерв на вкладке материальной помощи.",
-    "MARKETPLACE_AID_OVER_RESERVE": "Материальная помощь за месяц превысит резерв получателя: заявлено {requested}, уже подано {submitted}, резерв {reserve}",
+    "MARKETPLACE_AID_OVER_RESERVE": "Сумма заявления больше накопленного права получателя по резерву: заявлено {requested}, доступно {available}",
     "MARKETPLACE_AID_PAYMENT_REGISTRATION_FAILED": "Не удалось зарегистрировать выплату в реестре платежей: {errorMessage}. Заявление не подано, повторите попытку.",
     "MARKETPLACE_AID_STATEMENT_NOT_SIGNED": "Заявление не подписано",
     "MARKETPLACE_AID_STATEMENT_SIGNATURE_INVALID": "Недействительная подпись Заявления",
@@ -548,7 +548,7 @@
       "aidPaymentTitle": "Материальная помощь № {aidHashShort}. {vatExemptNote}",
       "distributionAvailable": "доступно к распределению {availableToDistribute}",
       "distributionReserveDetail": "в общем кошельке {commonBalance}, резерв {reserveAmount}, ",
-      "distributionReserveViolationIntro": "Распределение нарушает плановый резерв расходов на {horizonDays} дней: ",
+      "distributionReserveViolationIntro": "Распределение нарушает резерв плановых расходов до конца текущего месяца: ",
       "distributionTitle": "Распределение членских взносов кооперативного участка",
       "targetMembershipFeeLabel": "Ставка обеспечительной части паевого взноса",
       "initiatorShareLabel": "Доля инициатора участка в экономии месяца"

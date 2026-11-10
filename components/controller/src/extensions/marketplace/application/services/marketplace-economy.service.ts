@@ -7,7 +7,7 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError, platformSettings, standPeriodKey } from '@coopenomics/extension-kit';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { calcCostMinor } from '../shared/cost.util';
 import type { ResolvedSaleUnit } from '../shared/packaging.util';
@@ -30,6 +30,8 @@ import {
 
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { ndflBreakdown } from '../shared/ndfl.util';
+import { periodBounds } from '../shared/period-bounds';
+import { plannedTargetUnits } from '../shared/planned-target.util';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 // Способ оплаты и тип получателя — словарь шасси расходов из межрасширенческого
 // контракта. Регистрацию перечня в схеме держит само шасси, потребителю нужны
@@ -89,7 +91,7 @@ export interface MarketplaceBranchEconomyView {
   weights: MarketplaceTrusteeWeightView[];
   /** Баланс общего кошелька КУ (w.brn.common), asset-строка. */
   common_balance: string;
-  /** Плановый резерв расходов ближайших 30 дней, asset-строка. */
+  /** Резерв плановых расходов: неоплаченные записи со сроком до конца текущего месяца (задача 99D-34), asset-строка. */
   reserve_amount: string;
   /** Доступно к распределению: общий кошелёк минус резерв, asset-строка. */
   available_to_distribute: string;
@@ -331,12 +333,19 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, common, reserve] = await Promise.all([
+    const [weights, totals, common, plans] = await Promise.all([
       this.chainPort.getBranchWeights(coopname, braname),
       this.chainPort.getBranchWeightTotals(coopname, braname),
       this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
-      this.expenseChassis.getPlannedReserve(coopname, braname),
+      this.expenseChassis.listPlans(coopname, braname),
     ]);
+    // Резерв общего кошелька, который нельзя распределить (задача 99D-34), —
+    // цель плановых расходов на сегодня: неоплаченные записи со сроком до
+    // конца текущего месяца, их собрал прошлый итог месяца. Та же функция
+    // считает факт цели для итога месяца.
+    const timeZone = platformSettings().timezone || 'UTC';
+    const monthEnd = periodBounds(standPeriodKey(new Date(), timeZone), timeZone).end;
+    const reserve = { amount: Number(plannedTargetUnits(plans, braname, monthEnd, (a) => this.assetToUnits(a))) / 10 ** this.assetConfig.decimals };
 
     const branchWeights = weights.filter((w) => w.contract === MARKETPLACE_SOURCE_CONTRACT);
     const total = totals.find((t) => t.contract === MARKETPLACE_SOURCE_CONTRACT);
@@ -512,11 +521,8 @@ export class MarketplaceEconomyService {
     const common = this.assetToNumber(economy.common_balance);
     const reserve = this.assetToNumber(economy.reserve_amount);
     if (common - amount < reserve) {
-      // Горизонт планирования принадлежит шасси расходов; спрашиваем его на
-      // пути отказа, чтобы объяснить человеку, за какой срок посчитан резерв.
-      const { horizonDays } = await this.expenseChassis.getPlannedReserve(coopname, braname);
       throw new BadRequestException(
-        i18nT('marketplace.economy.distributionReserveViolationIntro', { horizonDays }) +
+        i18nT('marketplace.economy.distributionReserveViolationIntro') +
           i18nT('marketplace.economy.distributionReserveDetail', { commonBalance: economy.common_balance, reserveAmount: economy.reserve_amount }) +
           i18nT('marketplace.economy.distributionAvailable', { availableToDistribute: economy.available_to_distribute })
       );

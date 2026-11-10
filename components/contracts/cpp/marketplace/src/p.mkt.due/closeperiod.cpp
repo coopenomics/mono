@@ -6,24 +6,37 @@
  * Стоимость заказов периода (T) и собранную по ним обеспечительную часть (C)
  * контракт берёт из своего счётчика участка `kucounters`: его наполняла выдача
  * (`issueact2`), уменьшали гарантийные возвраты и выход пайщиков. Узел
- * передаёт только факты о расходах, которых в цепи нет: плановые расходы (ПР)
- * из реестра планов, служебные записки сверх плана (СЗ) и выплаченную
- * материальную помощь (МП) за период. Всё остальное считает контракт:
+ * передаёт только факты о расходах, которых в цепи нет. Всё остальное считает
+ * контракт.
  *
- *   Р    = Σ резерва социально-экономического обеспечения пайщиков участка (branch::reserves)
- *   Р_пр = резерв прошлого прогона участка (его строка kuperiods); нет строки — 0
- *   Н    = max(0, Р_пр − МП)                 невыплаченная часть прошлого резерва
- *   РК   = max(0, ПР + СЗ + Р − Н)           расходы участка за прогон
+ * Расходы — по цели резерва (задача 99D-34, решение владельца 10.11.2026):
+ * плановые расходы и материальная помощь собираются вперёд, несобранное в
+ * месяце с дефицитом переходит дальше, траты из средств инициаторов в расходы
+ * не входят — их возмещает компенсация инициаторам. Факты узла:
+ *   ПО  — оплачено по плану с общего кошелька за месяц (planned)
+ *   СЗ  — служебные записки сверх плана с общего кошелька (memos)
+ *   МП  — материальная помощь с персонального кошелька за месяц (aid_paid)
+ *   ЦП  — цель плановых расходов: неоплаченные и не запущенные в оплату записи
+ *         реестра планов со сроком до конца следующего месяца (planned_target)
+ * Контракт:
+ *   ЦМ   = Σ накопленного права получателей помощи участка на следующий
+ *          период (branch::reserves, право копится и не сгорает)
+ *   T    = ЦП + ЦМ                           цель резерва участка
+ *   F_пр = собранная часть цели прошлой строки участка; нет строки — 0
+ *   РК   = max(0, ПО + СЗ + МП + T − F_пр)   расходы участка за месяц
  *   У    = min(C, РК)                        участку на расходы — первыми (решение владельца 03.11.2026)
- *   Д    = РК − У                            дефицит
- *   p    = Σ процентов фондов накопления (реестр фондов fund::funds)
- *   Ф    = (C − У) × p / H                   в фонды накопления — из остатка после расходов
- *   М    = У + Ф                             членский взнос участка
- *   Э    = C − У − Ф                         экономия
- *   И    = Э × φи / H                        инициатору
- *   В    = Э − И                             пайщикам обратно
- *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T   ставки прогона
+ *   Д    = РК − У                            дефицит расходов
+ *   F    = max(0, T − Д)                     собранная часть цели: траты месяца
+ *                                            покрываются первыми, цель — последней
+ *   p, Ф, М, Э, И, В, ставки — как раньше:
+ *   Ф    = (C − У) × p / H,  М = У + Ф,  Э = C − У − Ф,  И = Э × φи / H,  В = Э − И
+ *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T   (T — стоимость заказов; ноль — ставки ноль)
+ * Месяц без выданных заказов (счётчика участка нет) тоже получает строку:
+ * C = 0, расходы целиком — дефицит, цель переходит дальше несобранной.
  *
+ * Старый узел (без planned_target) считается по прежней формуле: резерв
+ * помощи — сумма строк резерва, минус невыплаченная часть прошлого резерва;
+ * месяц без заказов отклоняется. Ветка живёт до выкладки нового узла.
  * Целочисленная арифметика в единицах актива, промежуточные значения в
  * uint128_t, деление вниз. Остатки округления по каждой строке пайщика
  * достаются пайщику (см. chargeperiod). Строка — основание списания для
@@ -38,16 +51,17 @@
  *  - require_auth(coopname) — узел от имени кооператива;
  *  - участок существует;
  *  - период закончился (MARKETPLACE_PERIOD_OPEN);
- *  - у участка за период есть выданные заказы с обеспечительной частью
- *    (MARKETPLACE_PERIOD_EMPTY);
- *  - ПР, СЗ, МП — не меньше нуля, в валюте кооператива;
+ *  - старый узел: у участка за период есть выданные заказы с обеспечительной
+ *    частью (MARKETPLACE_PERIOD_EMPTY);
+ *  - ПО, СЗ, МП, ЦП — не меньше нуля, в валюте кооператива;
  *  - строки за этот период у участка ещё нет (MARKETPLACE_PERIOD_EXISTS);
  *  - сумма процентов фондов не выше 100 %.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_t period,
-                              eosio::asset planned, eosio::asset memos, eosio::asset aid_paid) {
+                              eosio::asset planned, eosio::asset memos, eosio::asset aid_paid,
+                              eosio::binary_extension<eosio::asset> planned_target) {
   require_auth(coopname);
 
   auto branch = get_branch_or_fail(coopname, braname);
@@ -55,7 +69,10 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
   const auto non_negative = [](const eosio::asset& a) {
     return a.is_valid() && a.amount >= 0 && a.symbol == _root_govern_symbol;
   };
-  eosio::check(non_negative(planned) && non_negative(memos) && non_negative(aid_paid),
+  // Новый узел передаёт цель плановых расходов; без неё — прежняя формула.
+  const bool by_target = planned_target.has_value();
+  eosio::check(non_negative(planned) && non_negative(memos) && non_negative(aid_paid) &&
+                 (!by_target || non_negative(planned_target.value())),
                "MARKETPLACE_PERIOD_AMOUNT_INVALID: Расходы участка не могут быть отрицательными и должны быть в валюте кооператива");
   eosio::check(period > 0, "MARKETPLACE_PERIOD_AMOUNT_INVALID: Номер периода не задан");
   eosio::check(period < Marketplace::Dues::current_period(coopname),
@@ -70,18 +87,25 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
 
   // T и C — из счётчика участка: выдано за период минус возвращённое по гарантии
   // и минус строки вышедших пайщиков (их остаток списан при выходе целиком).
+  // Месяц без выданных заказов по новой формуле тоже получает строку — с нулями.
   const auto counter_id = Marketplace::Dues::find_counter_id(coopname, braname, period);
-  eosio::check(counter_id.has_value(),
+  eosio::check(by_target || counter_id.has_value(),
                "MARKETPLACE_PERIOD_EMPTY: За период на участке нет выданных заказов с обеспечительной частью — итог не считается");
   kucounters_index counters(_marketplace, coopname.value);
-  const kucounter counter = counters.get(*counter_id);
-  const eosio::asset turnover = counter.turnover;
-  const eosio::asset secured = counter.secured;
-  eosio::check(turnover.amount > 0,
-               "MARKETPLACE_PERIOD_EMPTY: За период на участке нет выданных заказов с обеспечительной частью — итог не считается");
+  eosio::asset turnover(0, _root_govern_symbol);
+  eosio::asset secured(0, _root_govern_symbol);
+  if (counter_id.has_value()) {
+    const kucounter counter = counters.get(*counter_id);
+    turnover = counter.turnover;
+    secured = counter.secured;
+    eosio::check(by_target || turnover.amount > 0,
+                 "MARKETPLACE_PERIOD_EMPTY: За период на участке нет выданных заказов с обеспечительной частью — итог не считается");
+  }
 
-  // Резерв прошлого прогона — строка участка с наибольшим периодом меньше текущего.
+  // Прошлая строка участка — с наибольшим периодом меньше текущего. Строк у
+  // участка не больше двух: delperiod стирает позапрошлые.
   eosio::asset reserve_prev(0, _root_govern_symbol);
+  eosio::asset funded_prev(0, _root_govern_symbol);
   {
     auto bybranch = periods.get_index<"bybranch"_n>();
     uint32_t best = 0;
@@ -90,14 +114,28 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
       if (it->period < period && it->period > best) {
         best = it->period;
         reserve_prev = it->aid_reserve;
+        // Строка до 99D-34 собранной части цели не знает: её резерв помощи
+        // считался собранным целиком.
+        funded_prev = it->target_funded.has_value() ? it->target_funded.value() : it->aid_reserve;
       }
     }
   }
 
-  const eosio::asset reserve = Branch::sum_reserves(coopname, braname);
-  const eosio::asset unpaid = reserve_prev > aid_paid ? reserve_prev - aid_paid
-                                                      : eosio::asset(0, _root_govern_symbol);
-  int64_t expenses_amount = planned.amount + memos.amount + reserve.amount - unpaid.amount;
+  eosio::asset reserve(0, _root_govern_symbol);
+  eosio::asset unpaid(0, _root_govern_symbol);
+  eosio::asset target(0, _root_govern_symbol);
+  int64_t expenses_amount = 0;
+  if (by_target) {
+    // Право получателей — на период, следующий за рассчитываемым: его помощь
+    // собирается этим итогом.
+    reserve = Branch::sum_outstanding(coopname, braname, period + 1);
+    target = planned_target.value() + reserve;
+    expenses_amount = planned.amount + memos.amount + aid_paid.amount + target.amount - funded_prev.amount;
+  } else {
+    reserve = Branch::sum_reserves(coopname, braname);
+    unpaid = reserve_prev > aid_paid ? reserve_prev - aid_paid : eosio::asset(0, _root_govern_symbol);
+    expenses_amount = planned.amount + memos.amount + reserve.amount - unpaid.amount;
+  }
   if (expenses_amount < 0) expenses_amount = 0;
   const eosio::asset expenses(expenses_amount, _root_govern_symbol);
 
@@ -121,8 +159,11 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
   const int64_t return_amount = economy_amount - initiator_amount;
 
   const auto rate = [&](int64_t part) -> uint64_t {
+    if (turnover.amount <= 0) return 0;
     return static_cast<uint64_t>(static_cast<uint128_t>(part) * H / static_cast<uint128_t>(turnover.amount));
   };
+  // Собранная часть цели: собранное идёт сначала на траты месяца, цель — последней.
+  const int64_t funded_amount = target.amount > deficit_amount ? target.amount - deficit_amount : 0;
 
   periods.emplace(RamPayer::of(periods, coopname), [&](auto& row) {
     row.id = periods.available_primary_key();
@@ -147,9 +188,15 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     row.rate_initiator = rate(initiator_amount);
     row.initiator = Marketplace::initiator_of(coopname, braname, branch.trustee);
     row.closed_at = eosio::time_point_sec(eosio::current_time_point());
+    if (by_target) {
+      row.planned_target = planned_target.value();
+      row.target = target;
+      row.target_prev = funded_prev;
+      row.target_funded = eosio::asset(funded_amount, _root_govern_symbol);
+    }
   });
 
   // Ставки зафиксированы — счётчик участка отработал. Строки пайщиков периода
   // остаются до своего списания по этим ставкам.
-  counters.erase(counters.find(*counter_id));
+  if (counter_id.has_value()) counters.erase(counters.find(*counter_id));
 }

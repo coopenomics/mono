@@ -7,10 +7,13 @@
  *   • setaidlimit — потолок резерва на получателя в месяц, синглтон brnconfig;
  *   • setreserve — строка резерва председателю участка; отказы: выше потолка,
  *     посторонний пайщик, нулевая сумма;
- *   • createaid — заявление в пределах резерва проходит и пишется в накопитель
- *     aidmonths; заявление сверх резерва отклоняется BRANCH_AID_OVER_RESERVE;
+ *   • createaid — заявление в пределах накопленного права получателя проходит
+ *     и уменьшает право в строке резерва; сверх права отклоняется
+ *     BRANCH_AID_OVER_RESERVE (задача 99D-34: право копится каждый период и не
+ *     сгорает);
  *   • setaidperiod — длина месяца предела помощи: меньше минуты — отказ,
- *     при длине 600 с накопитель ведётся по номеру отрезка от эпохи;
+ *     при длине 600 с право начисляется по номеру отрезка от эпохи; при длине
+ *     60 с через период право больше суммы строки — невзятое не сгорело;
  *   • delreserve — строка стирается, заявление без резерва отклоняется
  *     BRANCH_AID_NO_RESERVE.
  *
@@ -41,7 +44,6 @@ const BRANAME = 'krg'
 const LIMIT = '1000.0000 RUB'
 const RESERVE = '1000.0000 RUB'
 const SMALL_AID = '1.0000 RUB'
-const OVER_AID = '999.5000 RUB'
 
 const chairkrg = fromState('chairkrg')
 const ekaterina = fromState('ekaterina')
@@ -120,8 +122,14 @@ describe('экономика участка — резерв социально-
     expect(mine[0].amount).toBe(RESERVE)
   })
 
-  it('createaid: в пределах резерва проходит и пишется в накопитель месяца; сверх резерва — BRANCH_AID_OVER_RESERVE', async () => {
-    const before = (await rows('aidmonths')).find((m: any) => m.username === chairkrg.account)
+  /** Строка резерва председателя участка krg. */
+  async function myReserve(): Promise<any> {
+    return (await rows('reserves')).find((r: any) => r.braname === BRANAME && r.username === chairkrg.account)
+  }
+
+  it('createaid: в пределах накопленного права проходит и уменьшает право; сверх права — BRANCH_AID_OVER_RESERVE (99D-34)', async () => {
+    const before = await myReserve()
+    expect(before?.accrued_period, 'строка резерва ведёт накопленное право').toBeDefined()
     await fundSmallAid()
     const hash = generateRandomSHA256()
     await push('createaid', {
@@ -133,24 +141,27 @@ describe('экономика участка — резерв социально-
       statement: aidStatement(chairkrg, hash),
       meta: '{}',
     })
-    const after = (await rows('aidmonths')).find((m: any) => m.username === chairkrg.account)
-    expect(after, 'накопитель месяца появился').toBeDefined()
-    const prev = before && before.period === after.period ? Number.parseFloat(before.total) : 0
-    expect(Number.parseFloat(after.total)).toBeCloseTo(prev + 1, 4)
+    const after = await myReserve()
+    // Право на период заявления: остаток прошлой записи плюс сумма строки за прошедшие периоды, минус заявление.
+    const gap = Number(after.accrued_period) - Number(before.accrued_period)
+    const expected = Number.parseFloat(before.outstanding) + Number.parseFloat(RESERVE) * gap - 1
+    expect(Number.parseFloat(after.outstanding)).toBeCloseTo(expected, 4)
 
+    // Сверх права: остаток плюс начисление одного периода с запасом — на случай, если период сменится до отправки.
+    const over = Number.parseFloat(after.outstanding) + Number.parseFloat(RESERVE) + 0.5
     const overHash = generateRandomSHA256()
     await expect(push('createaid', {
       coopname: COOP,
       username: chairkrg.account,
       braname: BRANAME,
       aid_hash: overHash,
-      amount: OVER_AID,
+      amount: `${over.toFixed(4)} RUB`,
       statement: aidStatement(chairkrg, overHash),
       meta: '{}',
     })).rejects.toThrow(/BRANCH_AID_OVER_RESERVE/)
   })
 
-  it('setaidperiod: длина месяца предела помощи — меньше минуты отказ, накопитель ведётся по номеру отрезка; ноль — календарный месяц', async () => {
+  it('setaidperiod: меньше минуты — отказ; при 600 с право начисляется по номеру отрезка; при 60 с через период право больше суммы строки — невзятое не сгорает; ноль — календарный месяц', async () => {
     const before = (await rows('brnconfig', 1))[0]
     const prev = Number(before?.aid_period_seconds ?? 0)
     await expect(push('setaidperiod', { coopname: COOP, seconds: 30 })).rejects.toThrow(/BRANCH_AID_PERIOD_INVALID/)
@@ -173,17 +184,37 @@ describe('экономика участка — резерв социально-
         meta: '{}',
       })
       const to = Math.floor(Date.now() / 1000 / 600)
-      const month = (await rows('aidmonths')).find((m: any) => m.username === chairkrg.account)
-      expect(Number(month.period), 'номер периода — отрезок 600 с от эпохи').toBeGreaterThanOrEqual(from)
-      expect(Number(month.period)).toBeLessThanOrEqual(to)
+      const row = await myReserve()
+      expect(Number(row.accrued_period), 'номер периода — отрезок 600 с от эпохи').toBeGreaterThanOrEqual(from)
+      expect(Number(row.accrued_period)).toBeLessThanOrEqual(to)
+
+      // Право копится: строка 10 ₽ в период 60 с; через период заявление на 15 ₽ проходит.
+      await push('setaidperiod', { coopname: COOP, seconds: 60 })
+      await push('delreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account })
+      await push('setreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account, amount: '10.0000 RUB' })
+      const anchored = Number((await myReserve()).accrued_period)
+      while (Math.floor(Date.now() / 1000 / 60) <= anchored) await new Promise((r) => setTimeout(r, 2_000)) // timing: schedule — ждём смены периода стенда в цепи
+      await ensureAidFunds(bc, chairkrg, chairkrg, chairkrgToken, BRANAME, rub(15))
+      const accHash = generateRandomSHA256()
+      await push('createaid', {
+        coopname: COOP,
+        username: chairkrg.account,
+        braname: BRANAME,
+        aid_hash: accHash,
+        amount: '15.0000 RUB',
+        statement: aidStatement(chairkrg, accHash),
+        meta: '{}',
+      })
+      expect(Number.parseFloat((await myReserve()).outstanding), 'осталось право двух периодов минус заявление').toBeGreaterThanOrEqual(5)
 
       await push('setaidperiod', { coopname: COOP, seconds: 0 })
       expect(Number((await rows('brnconfig', 1))[0]?.aid_period_seconds)).toBe(0)
     }
     finally {
       await push('setaidperiod', { coopname: COOP, seconds: prev })
+      await push('setreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account, amount: RESERVE }).catch(() => {})
     }
-  })
+  }, 180_000)
 
   it('delreserve: строка стирается, заявление без резерва отклоняется BRANCH_AID_NO_RESERVE', async () => {
     await push('delreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account })

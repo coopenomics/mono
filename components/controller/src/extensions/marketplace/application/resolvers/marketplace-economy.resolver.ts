@@ -100,7 +100,7 @@ export class MarketplaceEconomyResolver {
   @Query(() => MarketplaceBranchEconomyDTO, {
     name: 'marketplaceGetBranchEconomy',
     description:
-      'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков.',
+      'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и их резерв до конца текущего месяца, веса участников распределения и балансы персональных кошельков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
@@ -147,7 +147,7 @@ export class MarketplaceEconomyResolver {
   @Mutation(() => Boolean, {
     name: 'marketplaceDistributeBranchFunds',
     description:
-      'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка.',
+      'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше резерва плановых расходов до конца текущего месяца. Доступно председателю участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'configure:chaired-KU', { ku: 'data.braname' })

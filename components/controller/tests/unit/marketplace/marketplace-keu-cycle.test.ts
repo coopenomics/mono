@@ -96,14 +96,27 @@ beforeEach(() => {
   nextHash = 1;
 });
 
+/**
+ * Аренда месяца оплачена с общего кошелька 20-го числа: записка по записи плана
+ * (задача 99D-34: оплата по плану — трата месяца, неоплаченная аренда — в цели резерва).
+ */
+function payRent(world: ReturnType<typeof createKeuWorld>, month: number): void {
+  const plan = world.settings.plans.find((p) => p.branchName === 'branch1' && p.dueDate.getTime() === dayOf(2027, month, 20).getTime())!;
+  plan.proposalHash = `rent${month}`;
+  plan.paidAt = dayOf(2027, month, 20);
+  world.settings.ledger.push({ operationCode: 'o.brn.expfnd', username: 'branch1', quantity: '20000.0000 RUB', processHash: `rent${month}`, createdAt: dayOf(2027, month, 20) });
+}
+
 describe('mkt.order.keu.cycle.01 — год роста оборота участка при неизменных расходах', () => {
-  // Расходы участка 30 000 ₽ в месяц: план 20 000 ₽ и резерв 10 000 ₽, который выплачивается целиком.
+  // Расходы участка 30 000 ₽ в месяц: аренда 20 000 ₽ и резерв помощи 10 000 ₽,
+  // который выплачивается целиком. По цели резерва (задача 99D-34) итог месяца
+  // собирает аренду и помощь следующего месяца вперёд.
   const ORDERS_PER_MONTH = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18, 22, 26];
 
   it('двенадцать прогонов: итог по счётчику участка, ставка не растёт, кошельки пусты, деньги сходятся', async () => {
     const world = createKeuWorld();
     world.settings.reserve.set('branch1', rub(10_000));
-    for (let month = 1; month <= 12; month++) {
+    for (let month = 1; month <= 13; month++) {
       world.settings.plans.push({ branchName: 'branch1', dueDate: dayOf(2027, month, 20), amount: '20000.0000 RUB' });
       world.settings.aidPaid.set(`branch1/${periodOf(2027, month)}`, rub(10_000));
     }
@@ -111,6 +124,8 @@ describe('mkt.order.keu.cycle.01 — год роста оборота участ
     let collected = 0n;
     let prevRate = X;
     let economyMonths = 0;
+    // Собранная часть цели прошлого итога: строку прошлого месяца проход стирает после расчёта.
+    let fundedPrev = 0n;
 
     for (let month = 1; month <= 12; month++) {
       const count = ORDERS_PER_MONTH[month - 1];
@@ -121,6 +136,7 @@ describe('mkt.order.keu.cycle.01 — год роста оборота участ
       collected += secured;
       world.notifications.notifyUser.mockClear();
       const groups = byMember(orders);
+      payRent(world, month);
 
       const next = month === 12 ? firstOfMonth(2028, 1) : firstOfMonth(2027, month + 1);
       const result = await world.run(next);
@@ -132,9 +148,15 @@ describe('mkt.order.keu.cycle.01 — год роста оборота участ
       expect(chain.facts.secured).toBe(secured);
       expect(chain.facts.planned).toBe(rub(20_000));
       expect(chain.facts.aidPaid).toBe(rub(10_000));
-      expect(chain.totals.expenses).toBe(rub(30_000));
-      // Узел не передал в цепь ни стоимости, ни собранного — только факты о расходах.
-      expect(Object.keys(world.calls.closePeriod[world.calls.closePeriod.length - 1]).sort()).toEqual(['aid_paid', 'braname', 'coopname', 'memos', 'period', 'planned']);
+      // Цель на следующий месяц: его аренда и резерв помощи.
+      expect(chain.facts.plannedTarget).toBe(rub(20_000));
+      expect(chain.totals.target).toBe(rub(30_000));
+      // Первый месяц собирает и свои траты, и следующий месяц вперёд; дальше — по 30 000,
+      // пока прошлая цель собрана целиком; несобранное прошлого месяца добавляется.
+      expect(chain.totals.expenses).toBe(rub(30_000) + rub(30_000) - fundedPrev);
+      fundedPrev = chain.totals.funded;
+      // Узел не передал в цепь ни стоимости, ни собранного — только факты о расходах и цель плановых расходов.
+      expect(Object.keys(world.calls.closePeriod[world.calls.closePeriod.length - 1]).sort()).toEqual(['aid_paid', 'braname', 'coopname', 'memos', 'period', 'planned', 'planned_target']);
 
       for (const group of groups) expectMemberSettled(world, group, period);
       expect(walletTotal(world.wallets.due)).toBe(0n);
@@ -147,7 +169,8 @@ describe('mkt.order.keu.cycle.01 — год роста оборота участ
         expect(rate).toBe(X);
       } else {
         economyMonths++;
-        expect(chain.totals.branch).toBe(rub(30_000));
+        expect(chain.totals.branch).toBe(chain.totals.expenses);
+        expect(chain.totals.funded).toBe(rub(30_000));
         expect(rate < X).toBe(true);
       }
       prevRate = rate;
@@ -158,7 +181,9 @@ describe('mkt.order.keu.cycle.01 — год роста оборота участ
       expect(world.notifications.notifyUser).toHaveBeenCalledTimes(groups.length);
     }
 
-    expect(economyMonths).toBeGreaterThanOrEqual(5);
+    // Первый месяц собирает траты и следующий месяц вперёд, несобранное переходит
+    // дальше (задача 99D-34) — экономия начинается на месяц позже, чем без резерва вперёд.
+    expect(economyMonths).toBeGreaterThanOrEqual(4);
     expect(prevRate < 300_000n).toBe(true);
     // Собранное за год разошлось без остатка: участку, в фонды, инициатору и обратно пайщикам.
     const distributed = walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.share);
@@ -252,7 +277,8 @@ describe('mkt.order.keu.cycle.03 — сбой расчёта итога: спи�
     expect(walletTotal(world.wallets.due)).toBe(collected);
 
     expect(await world.run(new Date(firstOfMonth(2027, 2).getTime() + hour))).toEqual({ charged: 2, failed: 0 });
-    expect(world.chainPeriod('branch1', periodOf(2027, 1))!.facts.planned).toBe(rub(5_000));
+    // Неоплаченный плановый расход месяца — в цели резерва (задача 99D-34).
+    expect(world.chainPeriod('branch1', periodOf(2027, 1))!.facts.plannedTarget).toBe(rub(5_000));
   });
 
   it('итог рассчитан в цепи, а зеркало не записалось: строки списываются по строке цепи в том же проходе, второго расчёта нет', async () => {
@@ -596,12 +622,12 @@ describe('mkt.order.invest.cycle.01 — год прогонов участка �
   // 60 000 ₽ (в базе возврата сразу) и в первом месяце оплатили записку 5 000 ₽ из своих средств.
   const ORDERS_PER_MONTH = [1, 2, 3, 4, 6, 8, 10, 12, 15, 18, 22, 26];
 
-  it('фаза каждого месяца — по формуле, возмещение за прогон сходится с цепью, записка из средств инициаторов — в фактах месяца, деньги сходятся', async () => {
+  it('фаза каждого месяца — по формуле, возмещение за месяц сходится с цепью, записка из средств инициаторов в расходы участка не входит, деньги сходятся', async () => {
     const world = createKeuWorld();
     world.settings.reserve.set('branch1', rub(10_000));
     world.investProperty('branch1', rub(60_000));
     const base = rub(60_000);
-    for (let month = 1; month <= 12; month++) {
+    for (let month = 1; month <= 13; month++) {
       world.settings.plans.push({ branchName: 'branch1', dueDate: dayOf(2027, month, 20), amount: '20000.0000 RUB' });
       world.settings.aidPaid.set(`branch1/${periodOf(2027, month)}`, rub(10_000));
     }
@@ -624,14 +650,16 @@ describe('mkt.order.invest.cycle.01 — год прогонов участка �
       // Итог месяца считается в начале прохода, до списаний: остаток к возврату на этот момент.
       const outstandingAtClose = world.investOutstanding('branch1');
       const repaidBefore = world.investRepaid('branch1');
+      payRent(world, month);
 
       const next = month === 12 ? firstOfMonth(2028, 1) : firstOfMonth(2027, month + 1);
       expect(await world.run(next)).toEqual({ charged: byMember(orders).length, failed: 0 });
 
       const period = periodOf(2027, month);
       const chain = world.chainPeriod('branch1', period)!;
-      // Записка из средств инициаторов — в служебных записках месяца; выделение под помощь — нет.
-      if (month === 1) expect(chain.facts.memos).toBe(rub(5_000));
+      // Траты из средств инициаторов — записка и выделение под помощь — в расходы участка
+      // не входят: их возмещает компенсация инициаторам (задача 99D-34).
+      if (month === 1) expect(chain.facts.memos).toBe(0n);
       const expectedPhase = chain.totals.deficit > 0n ? 'DEFICIT' : outstandingAtClose > 0n ? 'REPAYING' : 'BRANCH';
       const mirror = (await world.periodService.findOne('voskhod', 'branch1', period))!;
       expect({ month, phase: mirror.invest_phase }).toEqual({ month, phase: expectedPhase });

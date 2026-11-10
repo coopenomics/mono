@@ -36,14 +36,28 @@ export interface IPeriodFacts {
   reservePrev: bigint
   /** p — сумма процентов фондов накопления кооператива. */
   fundsPercent: bigint
+  /**
+   * ЦП — цель плановых расходов (задача 99D-34). Задана — расчёт по цели
+   * резерва: `planned` — оплачено по плану, `memos` и `aidPaid` — траты из
+   * денег участка, `reserve` — ЦМ, накопленное право получателей помощи на
+   * следующий период, `fundedPrev` — собранная часть цели прошлой строки.
+   * Не задана — прежняя формула с невыплаченной частью прошлого резерва.
+   */
+  plannedTarget?: bigint
+  /** F_пр — собранная часть цели прошлой строки участка; строки нет — ноль. */
+  fundedPrev?: bigint
   /** φи — доля инициатора в экономии. */
   initiatorPercent: bigint
 }
 
 /** Строка итога месяца так, как её записывает контракт. */
 export interface IPeriodTotals {
-  /** Н — невыплаченная часть прошлого резерва. */
+  /** Н — невыплаченная часть прошлого резерва; по цели резерва — ноль. */
   unpaid: bigint
+  /** T — цель резерва участка; по прежней формуле — ноль. */
+  target: bigint
+  /** F — собранная часть цели; по прежней формуле — ноль. */
+  funded: bigint
   /** РК — расходы участка за прогон. */
   expenses: bigint
   /** У — участку на расходы. */
@@ -83,10 +97,18 @@ function min(a: bigint, b: bigint): bigint {
   return a < b ? a : b
 }
 
-/** Расчёт `closeperiod`: расходы участка первыми, из остатка проценты фондов, остаток делят инициатор и пайщики. */
+/**
+ * Расчёт `closeperiod`: расходы участка первыми, из остатка проценты фондов,
+ * остаток делят инициатор и пайщики. С задачи 99D-34 расходы — по цели резерва:
+ * РК = траты из денег участка + T − F_пр, собранная часть цели F = max(0, T − Д).
+ */
 export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
-  const unpaid = facts.reservePrev > facts.aidPaid ? facts.reservePrev - facts.aidPaid : ZERO
-  const rawExpenses = facts.planned + facts.memos + facts.reserve - unpaid
+  const byTarget = facts.plannedTarget !== undefined
+  const target = byTarget ? (facts.plannedTarget as bigint) + facts.reserve : ZERO
+  const unpaid = byTarget ? ZERO : (facts.reservePrev > facts.aidPaid ? facts.reservePrev - facts.aidPaid : ZERO)
+  const rawExpenses = byTarget
+    ? facts.planned + facts.memos + facts.aidPaid + target - (facts.fundedPrev ?? ZERO)
+    : facts.planned + facts.memos + facts.reserve - unpaid
   const expenses = rawExpenses > ZERO ? rawExpenses : ZERO
 
   const branch = min(expenses, facts.secured)
@@ -98,9 +120,12 @@ export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
   const initiator = economy * facts.initiatorPercent / HUNDR_PERCENTS
   const returned = economy - initiator
 
-  const rate = (part: bigint) => part * HUNDR_PERCENTS / facts.turnover
+  const rate = (part: bigint) => (facts.turnover > ZERO ? part * HUNDR_PERCENTS / facts.turnover : ZERO)
+  const funded = byTarget && target > deficit ? target - deficit : ZERO
   return {
     unpaid,
+    target,
+    funded,
     expenses,
     branch,
     deficit,
@@ -302,3 +327,32 @@ export function crpsClaimable(b: ICrpsBranch, i: ICrpsInvestor): { returned: big
   }
   return { returned, unused, total: returned + unused }
 }
+
+/** Строка резерва получателя помощи — поля, по которым считается накопленное право. */
+export interface IReserveRight {
+  /** Сумма строки — начисление права за период. */
+  amount: bigint
+  /** Период, по который право начислено; нет — строка до 99D-34. */
+  accruedPeriod?: number
+  /** Право на период `accruedPeriod`: начислено минус подано. */
+  outstanding?: bigint
+}
+
+/**
+ * Накопленное право получателя на материальную помощь на период `now` — как
+ * `Branch::outstanding_of` (задача 99D-34): остаток плюс сумма строки за каждый
+ * прошедший период. Строка до 99D-34 — сумма строки минус `legacyUsed`,
+ * поданное за текущий период по накопителю `aidmonths`.
+ */
+export function reserveRight(row: IReserveRight, now: number, legacyUsed: bigint = ZERO): bigint {
+  if (row.accruedPeriod === undefined || row.outstanding === undefined)
+    return row.amount > legacyUsed ? row.amount - legacyUsed : ZERO
+  // Разрыв больше MAX_ACCRUAL_GAP или номер меньше прежнего — смена режима
+  // нумерации периодов (стенд), а не прошедшее время: право не доначисляется.
+  const gap = now - row.accruedPeriod
+  const elapsed = gap > 0 && gap <= MAX_ACCRUAL_GAP ? BigInt(gap) : ZERO
+  return row.outstanding + row.amount * elapsed
+}
+
+/** Наибольший разрыв периодов, за который доначисляется право получателя помощи (`Branch::MAX_ACCRUAL_GAP`). */
+export const MAX_ACCRUAL_GAP = 1200

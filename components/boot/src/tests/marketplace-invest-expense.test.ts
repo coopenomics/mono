@@ -122,14 +122,14 @@ async function aidRow(hash: string): Promise<any | undefined> {
 }
 
 /**
- * Предел материальной помощи доверенному не мешает заявлению на эту сумму:
- * потолок и резерв поднимаются на уже заявленное в этом месяце плюс сумму.
+ * Предел материальной помощи доверенному не мешает заявлению на эту сумму.
+ * Предел — накопленное право в строке резерва (задача 99D-34): строка
+ * заводится заново, и новая строка сразу даёт право на сумму строки.
  */
 async function allowAid(amount: bigint) {
-  const months: any[] = await bc.getTableRows('branch', COOP, 'aidmonths', 1000)
-  const already = units(months.find(m => m.username === trustedkrg.account)?.total)
-  const cap = asset(already + amount + rub(1))
+  const cap = asset(amount + rub(1))
   await push('branch', 'setaidlimit', { coopname: COOP, limit: cap })
+  await push('branch', 'delreserve', { coopname: COOP, braname: BRANAME, username: trustedkrg.account }).catch(() => {})
   await push('branch', 'setreserve', { coopname: COOP, braname: BRANAME, username: trustedkrg.account, amount: cap })
 }
 

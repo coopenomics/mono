@@ -254,8 +254,13 @@ describe('стол заказов — инвестиционный этап ко
     const fundsPercent = (await accumulationFunds(bc)).reduce((s, f) => s + BigInt(f.percent), 0n)
     const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
     const initiatorPercent = BigInt(cfg[0]?.initiator_share_percent ?? 618_000)
+    // Расходов нет (задача 99D-34): цель резерва — ноль, когда у участка нет строк
+    // резерва помощи и цели плановых расходов; собранное прошлым итогом расходы не увеличивает.
+    const reserves: any[] = await bc.getTableRows('branch', COOP, 'reserves', 1000)
+    for (const r of reserves.filter(x => x.braname === BRANAME))
+      await push('branch', 'delreserve', { coopname: COOP, braname: BRANAME, username: r.username })
     const month = await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent },
-      'период с экономией', { planned: 0n, aidPaid: rub(1_000_000_000) }, period)
+      'период с экономией', { planned: 0n, aidPaid: 0n, plannedTarget: 0n }, period)
     // Строка пайщицы за период — все её заказы участка за период; суммы контракт берёт из неё.
     const dueRow = await memberDue(bc, ekaterina.account, BRANAME, period)
     expect(dueRow, 'строка пайщицы ждёт списания').toBeDefined()

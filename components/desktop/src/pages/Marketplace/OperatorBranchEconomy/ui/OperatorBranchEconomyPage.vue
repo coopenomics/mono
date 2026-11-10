@@ -474,7 +474,10 @@ const currentCards = computed<SumCard[]>(() => {
   const cards: SumCard[] = [
     { key: 'expenses', icon: 'receipt_long', title: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesTile'),
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesShort'),
-      hint: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', { planned: fmt(c.planned), memos: fmt(c.memos), reserve: fmt(c.aid_reserve), aid: fmt(c.aid_paid) }),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', {
+        planned: fmt(c.planned), memos: fmt(c.memos), aid: fmt(c.aid_paid),
+        plannedTarget: fmt(c.planned_target), aidTarget: fmt(c.aid_reserve), prev: fmt(c.target_prev),
+      }),
       ...cardMoney(c.expenses), label: month },
     { key: 'turnover', icon: 'shopping_bag', title: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverTile'),
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverShort'),
@@ -913,6 +916,30 @@ const selectedPeriod = ref<MarketplaceBranchPeriodRow | null>(null)
  * → инициаторы (возмещение или участку) → пайщикам обратно. Те же числа, что
  * ниже группами, но по порядку, в котором их делит контракт (closeperiod).
  */
+/** Итог по цели резерва (задача 99D-34): у строки есть цель; у прежних итогов её нет. */
+function byTarget(p: MarketplaceBranchPeriodRow): boolean {
+  return p.target !== null && p.target !== undefined
+}
+
+/** Пояснение к расходам месяца в пути денег: по цели резерва либо прежней формуле. */
+function flowExpensesSub(p: MarketplaceBranchPeriodRow): string {
+  const fmt = (a: string | null | undefined) => formatAsset2Digits(a ?? '')
+  if (!byTarget(p))
+    return i18nT('marketplace.operatorBranchEconomyPage.flowExpensesSub', { planned: fmt(p.planned), memos: fmt(p.memos), reserve: fmt(p.aid_reserve), unpaid: fmt(p.aid_unpaid) })
+  return i18nT('marketplace.operatorBranchEconomyPage.flowExpensesTargetSub', {
+    planned: fmt(p.planned), memos: fmt(p.memos), aid: fmt(p.aid_paid),
+    target: fmt(p.target), plannedTarget: fmt(p.planned_target), aidTarget: fmt(p.aid_reserve), prev: fmt(p.target_prev),
+  })
+}
+
+/** Пояснение к доле участка: расходы покрыты, дефицит с переносом цели либо прежний дефицит. */
+function flowBranchSub(p: MarketplaceBranchPeriodRow): string {
+  const fmt = (a: string | null | undefined) => formatAsset2Digits(a ?? '')
+  if (assetAmount(p.deficit) <= 0) return i18nT('marketplace.operatorBranchEconomyPage.flowBranchCoveredSub')
+  if (byTarget(p)) return i18nT('marketplace.operatorBranchEconomyPage.flowBranchCarrySub', { deficit: fmt(p.deficit), funded: fmt(p.target_funded) })
+  return i18nT('marketplace.operatorBranchEconomyPage.flowBranchDeficitSub', { deficit: fmt(p.deficit) })
+}
+
 const periodFlow = computed<StepperStep[]>(() => {
   const p = selectedPeriod.value
   if (!p) return []
@@ -920,10 +947,8 @@ const periodFlow = computed<StepperStep[]>(() => {
   const deficit = assetAmount(p.deficit) > 0
   const steps: StepperStep[] = [
     { key: 'secured', label: i18nT('marketplace.operatorBranchEconomyPage.flowSecured', { amount: fmt(p.secured) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowSecuredSub', { turnover: fmt(p.turnover) }) },
-    { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.flowExpenses', { amount: fmt(p.expenses) }),
-      description: i18nT('marketplace.operatorBranchEconomyPage.flowExpensesSub', { planned: fmt(p.planned), memos: fmt(p.memos), reserve: fmt(p.aid_reserve), unpaid: fmt(p.aid_unpaid) }) },
-    { key: 'branch', label: i18nT('marketplace.operatorBranchEconomyPage.flowBranch', { amount: fmt(p.branch_amount) }),
-      description: deficit ? i18nT('marketplace.operatorBranchEconomyPage.flowBranchDeficitSub', { deficit: fmt(p.deficit) }) : i18nT('marketplace.operatorBranchEconomyPage.flowBranchCoveredSub') },
+    { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.flowExpenses', { amount: fmt(p.expenses) }), description: flowExpensesSub(p) },
+    { key: 'branch', label: i18nT('marketplace.operatorBranchEconomyPage.flowBranch', { amount: fmt(p.branch_amount) }), description: flowBranchSub(p) },
   ]
   if (deficit) {
     steps.push({ key: 'rest', label: i18nT('marketplace.operatorBranchEconomyPage.flowRestZero'), description: i18nT('marketplace.operatorBranchEconomyPage.flowRestZeroSub') })
@@ -1609,11 +1634,22 @@ q-page.economy
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodRowsLine")', :value='`${selectedPeriod.rows_charged} / ${selectedPeriod.rows_total}`', mono)
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodExpensesTitle') }}
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(selectedPeriod.planned)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(selectedPeriod.memos)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(selectedPeriod.aid_reserve)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidUnpaid")', :value='formatAsset2Digits(selectedPeriod.aid_unpaid)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(selectedPeriod.aid_paid)', mono)
+        //- Итог по цели резерва (99D-34): траты месяца, цель на следующий месяц
+        //- и собранное; у прежних итогов — плановые расходы месяца и невыплаченное.
+        template(v-if='selectedPeriod.target')
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlannedPaid")', :value='formatAsset2Digits(selectedPeriod.planned)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(selectedPeriod.memos)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(selectedPeriod.aid_paid)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlannedTarget")', :value='formatAsset2Digits(selectedPeriod.planned_target ?? "")', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidTarget")', :value='formatAsset2Digits(selectedPeriod.aid_reserve)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodTargetPrev")', :value='formatAsset2Digits(selectedPeriod.target_prev ?? "")', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodTargetFunded")', :value='formatAsset2Digits(selectedPeriod.target_funded ?? "")', mono)
+        template(v-else)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(selectedPeriod.planned)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(selectedPeriod.memos)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(selectedPeriod.aid_reserve)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidUnpaid")', :value='formatAsset2Digits(selectedPeriod.aid_unpaid)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(selectedPeriod.aid_paid)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnExpenses")', :value='formatAsset2Digits(selectedPeriod.expenses)', mono)
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodSplitTitle') }}

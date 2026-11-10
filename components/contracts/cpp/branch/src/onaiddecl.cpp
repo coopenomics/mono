@@ -30,18 +30,20 @@
   eosio::check(it->status == AidStatus::PROPOSED,
                "Решение о выплате материальной помощи уже принято и откату не подлежит");
 
-  // Предел за месяц освобождается: отклонённое заявление не выплачено, и
-  // получатель может подать новое в том же месяце (задача 99D-20). Только
-  // если накопитель ведётся по текущему месяцу — строка прошлого месяца уже
-  // ничего не ограничивает.
-  {
-    branch_aidmonths_index months(_branch, coopname.value);
-    auto month = months.find(it->username.value);
-    const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
-    if (month != months.end() && month->period == period) {
+  // Право получателя восстанавливается: отклонённое заявление не выплачено,
+  // и получатель может подать новое (задача 99D-34). Право ведётся только при
+  // включённом потолке — так же, как его списывает createaid.
+  if (Branch::aid_month_limit(coopname).amount > 0) {
+    branch_reserves_index reserves(_branch, coopname.value);
+    auto ridx = reserves.get_index<"bybruser"_n>();
+    auto rit = ridx.find(combine_ids(it->braname.value, it->username.value));
+    if (rit != ridx.end()) {
+      const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
+      const eosio::asset available = Branch::outstanding_of(coopname, *rit, period);
       const eosio::asset amount = it->amount;
-      months.modify(month, RamPayer::of(months, coopname), [&](auto &m) {
-        m.total = m.total >= amount ? m.total - amount : eosio::asset(0, amount.symbol);
+      ridx.modify(rit, RamPayer::of(ridx, coopname), [&](auto &r) {
+        r.accrued_period = period;
+        r.outstanding = available + amount;
       });
     }
   }

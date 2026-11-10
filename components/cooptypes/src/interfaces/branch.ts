@@ -156,6 +156,10 @@ export interface IBranchReserve {
   username: IName
   /** Резерв социально-экономического обеспечения получателя в месяц. */
   amount: IAsset
+  /** Период, по который начислено право на помощь (задача 99D-34); у строк до 99D-34 нет. */
+  accrued_period?: IUint32
+  /** Накопленное право на помощь на период `accrued_period`: начислено минус подано. */
+  outstanding?: IAsset
 }
 
 export interface IBranchAidmonth {

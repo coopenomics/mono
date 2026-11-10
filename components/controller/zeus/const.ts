@@ -7440,11 +7440,13 @@ export const ReturnTypes: Record<string,any> = {
 		memos:"String",
 		period:"Int",
 		planned:"String",
+		planned_target:"String",
 		received:"String",
 		ripening_orders:"Int",
 		ripening_secured:"String",
 		ripening_turnover:"String",
-		starts_at:"DateTime"
+		starts_at:"DateTime",
+		target_prev:"String"
 	},
 	MarketplaceBranchEconomy:{
 		available_to_distribute:"String",
@@ -7494,12 +7496,16 @@ export const ReturnTypes: Record<string,any> = {
 		memos:"String",
 		period:"Int",
 		planned:"String",
+		planned_target:"String",
 		rate_percent:"String",
 		return_amount:"String",
 		rows_charged:"Int",
 		rows_total:"Int",
 		secured:"String",
 		starts_at:"DateTime",
+		target:"String",
+		target_funded:"String",
+		target_prev:"String",
 		turnover:"String"
 	},
 	MarketplaceBranchPeriodsPaginationResult:{

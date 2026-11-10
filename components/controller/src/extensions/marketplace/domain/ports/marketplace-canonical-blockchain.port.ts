@@ -410,6 +410,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null>;
   /** Резерв социально-экономического обеспечения участка по получателям (branch::reserves) — по индексу участка. */
   listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
+  /** Строки резерва всех участков кооператива (branch::reserves): по строке на получателя, таблица не растёт с историей. */
+  listAllBranchReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
   /** Потолок резерва на получателя в месяц (branch::brnconfig); null — не задан. */
   getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
   /** Фонды накопления кооператива с процентами и кошельками (fund::funds, вид `accum`). */
