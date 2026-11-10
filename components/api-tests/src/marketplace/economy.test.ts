@@ -307,13 +307,28 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
 
   const DISTRIBUTED = 200
 
+  // Текущий месяц участка до и после распределения — для случая
+  // mkt.order.keu.18 (распределено за месяц и получено пайщиком за месяц).
+  const CURRENT_MONTH = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period distributed received } }'
+  type MonthView = { period: number; distributed: string; received: string }
+  let monthBefore: MonthView | null = null
+  let monthAfter: MonthView | null = null
+  let chairShare = 0
+  let paidTotal = 0
+
   it(caseName('mkt.eco.happy.03', 'председатель участка распределяет доступную сумму по сетке'), async () => {
     await deletePlan(krgToken, nearPlan)
     const before = await branchEconomy(krgToken, KRG)
     expect(amount(before.available_to_distribute), 'предусловие: доступно не меньше распределяемого').toBeGreaterThanOrEqual(DISTRIBUTED)
+    monthBefore = (await gql<any>(krgToken, CURRENT_MONTH, { b: KRG })).marketplaceGetBranchCurrentPeriod
 
     const ok = await gql<any>(krgToken, DISTRIBUTE, { d: { braname: KRG, amount: DISTRIBUTED } })
     expect(ok.marketplaceDistributeBranchFunds).toBe(true)
+
+    monthAfter = (await gql<any>(krgToken, CURRENT_MONTH, { b: KRG })).marketplaceGetBranchCurrentPeriod
+    const chairWeight = before.weights.find(w => w.username === chairkrg.account)
+    chairShare = chairWeight ? Math.floor(DISTRIBUTED * 10_000 * chairWeight.weight / before.total_weight) / 10_000 : 0
+    paidTotal = before.weights.reduce((s, w) => s + Math.floor(DISTRIBUTED * 10_000 * w.weight / before.total_weight) / 10_000, 0)
 
     const after = await branchEconomy(krgToken, KRG)
     // Контракт раскладывает сумму долями вниз до копейки; остаток округления
@@ -334,6 +349,15 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
       const share = Math.floor(DISTRIBUTED * 10_000 * w.weight / before.total_weight) / 10_000
       expect(releases.some(r => Math.abs(r - share) < 0.00005), `изъятие доли ${share} из общего кошелька`).toBe(true)
     }
+  })
+
+  it(caseName('mkt.order.keu.18', 'текущий месяц участка показывает распределено участком и получено пайщиком'), async () => {
+    expect(monthBefore && monthAfter, 'предусловие: распределение прошло и месяц прочитан').toBeTruthy()
+    // Стенд со сжатым временем: граница месяца между двумя чтениями обнуляет
+    // суммы нового месяца — приращение сверяется только внутри одного месяца.
+    if (monthBefore!.period !== monthAfter!.period) return
+    expect(amount(monthAfter!.distributed) - amount(monthBefore!.distributed), 'распределено за месяц выросло на разложенную сумму').toBeCloseTo(paidTotal, 4)
+    expect(amount(monthAfter!.received) - amount(monthBefore!.received), 'получено председателем участка за месяц — его доля').toBeCloseTo(chairShare, 4)
   })
 
   let methodId = ''

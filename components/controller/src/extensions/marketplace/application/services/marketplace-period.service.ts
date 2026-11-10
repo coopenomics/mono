@@ -38,6 +38,14 @@ const POOL_UNFUND_CODE = 'o.mkt.iunpl';
 /** Сколько операций по общему кошельку участка читается за страницу истории; страницы читаются до последней. */
 const HISTORY_PAGE = 200;
 
+/**
+ * Распределение участка: изъятие из общего кошелька под распределение
+ * (`o.brn.release`, пайщик операции — участок) и зачисление доверенному на
+ * персональный кошелёк (`o.brn.person`, пайщик операции — доверенный).
+ */
+const RELEASE_CODE = 'o.brn.release';
+const PERSON_CODE = 'o.brn.person';
+
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1 000 000) = 100 %. */
 const HUNDR_PERCENTS = 1_000_000n;
 
@@ -132,6 +140,47 @@ export class MarketplacePeriodService {
       if (page >= result.totalPages || result.items.length === 0) break;
     }
     return total > 0n ? total : 0n;
+  }
+
+  /**
+   * Сколько участок распределил за месяц: сумма изъятий общего кошелька под
+   * распределение. Показ на вкладках «Кошелёк участка» и «Распределение».
+   */
+  async distributedWithin(coopname: string, braname: string, bounds: PeriodBounds): Promise<bigint> {
+    return this.sumWithin(coopname, braname, RELEASE_CODE, bounds);
+  }
+
+  /**
+   * Сколько пайщик получил распределением за месяц: сумма зачислений на его
+   * персональный кошелёк участка. Показ на вкладке «Мои средства».
+   */
+  async receivedWithin(coopname: string, username: string, bounds: PeriodBounds): Promise<bigint> {
+    return this.sumWithin(coopname, username, PERSON_CODE, bounds);
+  }
+
+  /**
+   * Сумма операций одного кода по одному пайщику в границах месяца. Запрос
+   * идёт по индексу истории (пайщик, код, даты): распределение оператор
+   * запускает вручную, за месяц таких операций единицы.
+   */
+  private async sumWithin(coopname: string, username: string, operationCode: string, bounds: PeriodBounds): Promise<bigint> {
+    let total = 0n;
+    for (let page = 1; ; page++) {
+      const result = await this.ledger2History.getHistory({
+        coopname,
+        username,
+        actionNames: ['apply'],
+        operationCodes: [operationCode],
+        dateFrom: bounds.start,
+        dateTo: bounds.end,
+        page,
+        limit: HISTORY_PAGE,
+      });
+      for (const op of result.items) total += this.economyService.assetToUnits(String(op.quantity ?? '0'));
+      // Пустая страница — страховка от неверного числа страниц в ответе истории.
+      if (page >= result.totalPages || result.items.length === 0) break;
+    }
+    return total;
   }
 
   /**

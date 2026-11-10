@@ -283,6 +283,12 @@ export class MarketplaceBranchCurrentPeriodDTO {
 
   @Field({ description: 'Обеспечительная часть по заказам, которые созреют к первому числу.' })
   ripening_secured!: string;
+
+  @Field({ description: 'Распределено участком доверенным за текущий месяц.' })
+  distributed!: string;
+
+  @Field({ description: 'Получено текущим пайщиком распределением за текущий месяц.' })
+  received!: string;
 }
 
 // ── Преобразования ────────────────────────────────────────────────────────

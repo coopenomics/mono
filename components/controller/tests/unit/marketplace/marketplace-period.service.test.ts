@@ -181,6 +181,36 @@ describe('mkt.order.keu.11 — факты месяца', () => {
     const { service } = build({ aidPaid: '250000.0000' });
     expect((await service.collectFacts(COOP, BRANAME, NOVEMBER)).aidPaid).toBe(toUnits('250000.0000'));
   });
+
+  it('mkt.order.keu.18 — распределено участком и получено пайщиком за месяц: сумма операций своего кода по своему пайщику в границах месяца', async () => {
+    const { service, ledger2History } = build({
+      history: [
+        { globalSequence: '1', action: 'apply', operationCode: 'o.brn.release', processHash: 'd1', quantity: '300.0000 RUB' },
+        { globalSequence: '2', action: 'apply', operationCode: 'o.brn.release', processHash: 'd2', quantity: '200.5000 RUB' },
+      ],
+    });
+    const bounds = service.boundsOf(NOVEMBER);
+    expect(await service.distributedWithin(COOP, BRANAME, bounds)).toBe(toUnits('500.5000'));
+    expect(ledger2History.getHistory).toHaveBeenLastCalledWith(expect.objectContaining({ coopname: COOP, username: BRANAME, operationCodes: ['o.brn.release'], dateFrom: bounds.start, dateTo: bounds.end }));
+
+    await service.receivedWithin(COOP, 'ivanov', bounds);
+    expect(ledger2History.getHistory).toHaveBeenLastCalledWith(expect.objectContaining({ coopname: COOP, username: 'ivanov', operationCodes: ['o.brn.person'], dateFrom: bounds.start, dateTo: bounds.end }));
+
+    const empty = build();
+    expect(await empty.service.receivedWithin(COOP, 'ivanov', bounds)).toBe(0n);
+  });
+
+  it('mkt.order.keu.18 — сумма за месяц читается до последней страницы истории', async () => {
+    const { service, ledger2History } = build();
+    (ledger2History.getHistory as jest.Mock).mockImplementation(async (query: { page: number }) => ({
+      items: [{ globalSequence: String(query.page), action: 'apply', operationCode: 'o.brn.release', processHash: `d${query.page}`, quantity: '1.0000 RUB' }],
+      totalCount: 3,
+      totalPages: 3,
+      currentPage: query.page,
+    }));
+    expect(await service.distributedWithin(COOP, BRANAME, service.boundsOf(NOVEMBER))).toBe(toUnits('3.0000'));
+    expect(ledger2History.getHistory).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe('mkt.order.keu.11 — расчёт контрактом и зеркало', () => {

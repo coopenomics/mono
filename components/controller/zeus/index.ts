@@ -11194,6 +11194,8 @@ export type ValueTypes = {
 	aid_reserve?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed?:boolean | `@${string}`,
 	/** Конец месяца (не включительно): начало следующего месяца. */
 	ends_at?:boolean | `@${string}`,
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
@@ -11204,6 +11206,8 @@ export type ValueTypes = {
 	period?:boolean | `@${string}`,
 	/** Плановые расходы участка со сроком в текущем месяце. */
 	planned?:boolean | `@${string}`,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received?:boolean | `@${string}`,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders?:boolean | `@${string}`,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
@@ -30240,6 +30244,8 @@ export type ResolverInputTypes = {
 	aid_reserve?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed?:boolean | `@${string}`,
 	/** Конец месяца (не включительно): начало следующего месяца. */
 	ends_at?:boolean | `@${string}`,
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
@@ -30250,6 +30256,8 @@ export type ResolverInputTypes = {
 	period?:boolean | `@${string}`,
 	/** Плановые расходы участка со сроком в текущем месяце. */
 	planned?:boolean | `@${string}`,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received?:boolean | `@${string}`,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders?:boolean | `@${string}`,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
@@ -48645,6 +48653,8 @@ export type ModelTypes = {
 	aid_reserve: string,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed: string,
 	/** Конец месяца (не включительно): начало следующего месяца. */
 	ends_at: ModelTypes["DateTime"],
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
@@ -48655,6 +48665,8 @@ export type ModelTypes = {
 	period: number,
 	/** Плановые расходы участка со сроком в текущем месяце. */
 	planned: string,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received: string,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders: number,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
@@ -55140,7 +55152,7 @@ export type ModelTypes = {
 	marketplaceGetAvailableCategories: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
-	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу. */
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков, заказы, которые созреют к первому числу, распределено участком и получено текущим пайщиком. */
 	marketplaceGetBranchCurrentPeriod: ModelTypes["MarketplaceBranchCurrentPeriod"],
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: ModelTypes["MarketplaceBranchEconomy"],
@@ -67936,6 +67948,8 @@ export type GraphQLTypes = {
 	aid_reserve: string,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed: string,
 	/** Конец месяца (не включительно): начало следующего месяца. */
 	ends_at: GraphQLTypes["DateTime"],
 	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
@@ -67946,6 +67960,8 @@ export type GraphQLTypes = {
 	period: number,
 	/** Плановые расходы участка со сроком в текущем месяце. */
 	planned: string,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received: string,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders: number,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
@@ -74946,7 +74962,7 @@ export type GraphQLTypes = {
 	marketplaceGetAvailableCategories: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
-	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу. */
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков, заказы, которые созреют к первому числу, распределено участком и получено текущим пайщиком. */
 	marketplaceGetBranchCurrentPeriod: GraphQLTypes["MarketplaceBranchCurrentPeriod"],
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: GraphQLTypes["MarketplaceBranchEconomy"],

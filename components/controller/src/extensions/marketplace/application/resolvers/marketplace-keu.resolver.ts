@@ -10,6 +10,8 @@ import {
   RequireRight,
 } from '@coopenomics/extension-kit';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceBranchReserveService } from '../services/marketplace-branch-reserve.service';
 import { MarketplacePeriodService } from '../services/marketplace-period.service';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from '../services/marketplace-economy.service';
@@ -178,22 +180,27 @@ export class MarketplaceKeuResolver {
   @Query(() => MarketplaceBranchCurrentPeriodDTO, {
     name: 'marketplaceGetBranchCurrentPeriod',
     description:
-      'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу.',
+      'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков, заказы, которые созреют к первому числу, распределено участком и получено текущим пайщиком.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
-  async marketplaceGetBranchCurrentPeriod(@Args('braname') braname: string): Promise<MarketplaceBranchCurrentPeriodDTO> {
+  async marketplaceGetBranchCurrentPeriod(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('braname') braname: string
+  ): Promise<MarketplaceBranchCurrentPeriodDTO> {
     const coopname = platformSettings().coopname;
     const now = new Date();
     const period = monthKey(now, platformSettings().timezone || 'UTC');
-    const [facts, reserves, ripening] = await Promise.all([
+    const bounds = periodBounds(period, platformSettings().timezone || 'UTC');
+    const [facts, reserves, ripening, distributed, received] = await Promise.all([
       this.periods.collectFacts(coopname, braname, period),
       this.reserves.getReserves(coopname, braname, now),
       this.secureDue.ripeningForBranch(coopname, braname, now),
+      this.periods.distributedWithin(coopname, braname, bounds),
+      this.periods.receivedWithin(coopname, member.username, bounds),
     ]);
     const reserve = reserves.rows.reduce((sum, r) => sum + this.economyService.assetToUnits(r.amount), 0n);
     const asset = (units: bigint) => this.economyService.unitsToAsset(units);
-    const bounds = periodBounds(period, platformSettings().timezone || 'UTC');
     return {
       braname,
       period,
@@ -207,6 +214,8 @@ export class MarketplaceKeuResolver {
       ripening_orders: ripening.count,
       ripening_turnover: asset(ripening.turnover),
       ripening_secured: asset(ripening.secured),
+      distributed: asset(distributed),
+      received: asset(received),
     };
   }
 }

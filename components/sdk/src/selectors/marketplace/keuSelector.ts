@@ -99,6 +99,8 @@ export const rawMarketplaceBranchCurrentPeriodSelector = {
   ripening_orders: true,
   ripening_turnover: true,
   ripening_secured: true,
+  distributed: true,
+  received: true,
 }
 const _validateBranchCurrentPeriod: MakeAllFieldsRequired<ValueTypes['MarketplaceBranchCurrentPeriod']> = rawMarketplaceBranchCurrentPeriodSelector
 export const marketplaceBranchCurrentPeriodSelector = Selector('MarketplaceBranchCurrentPeriod')(rawMarketplaceBranchCurrentPeriodSelector)

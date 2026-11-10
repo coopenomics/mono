@@ -438,9 +438,10 @@ function cardMoney(asset: string | null | undefined): Pick<SumCard, 'balance' | 
 }
 
 /**
- * Кошелёк участка тремя карточками: что лежит, что держит резерв плановых
- * расходов и сколько можно распределить. Те же карточки стоят на вкладке
- * распределения — сумма к распределению под рукой у кнопки.
+ * Кошелёк участка четырьмя карточками: что лежит, что держит резерв плановых
+ * расходов, сколько можно распределить и сколько участок уже распределил за
+ * текущий месяц. Те же карточки стоят на вкладке распределения — сумма к
+ * распределению под рукой у кнопки.
  */
 const walletCards = computed<SumCard[]>(() => {
   const e = economy.value
@@ -451,6 +452,9 @@ const walletCards = computed<SumCard[]>(() => {
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle'), ...cardMoney(e?.reserve_amount), label: '' },
     { key: 'available', icon: 'call_split', title: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeTitle'),
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle'), ...cardMoney(e?.available_to_distribute), label: '' },
+    // Месяц — тот же, что в «Итогах месяцев»: с начала текущего месяца участка.
+    { key: 'distributed', icon: 'groups', title: i18nT('marketplace.operatorBranchEconomyPage.distributedMonthTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.distributedMonthSubtitle'), ...cardMoney(currentPeriod.value?.distributed), label: '' },
   ]
 })
 
@@ -1405,6 +1409,16 @@ q-page.economy
           :balance='assetAmount(personalBalance).toFixed(2)',
           :symbol='assetSymbol(personalBalance)',
           :loading='loading && !personalBalance'
+        )
+        //- Получено распределением участка с начала текущего месяца участка.
+        WalletCard(
+          program='wallet',
+          icon='south_west',
+          :title='$t("marketplace.operatorBranchEconomyPage.receivedMonthTitle")',
+          :subtitle='$t("marketplace.operatorBranchEconomyPage.receivedMonthSubtitle")',
+          :balance='assetAmount(currentPeriod?.received ?? "").toFixed(2)',
+          :symbol='assetSymbol(currentPeriod?.received ?? "")',
+          :loading='loading && !currentPeriod'
         )
 
       //- Заявления на материальную помощь — таблицей на всю ширину: дата, сумма,

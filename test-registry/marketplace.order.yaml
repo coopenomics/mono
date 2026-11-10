@@ -1266,6 +1266,21 @@ cases:
     external_reason: "прогон крона, через API не выведен"
     status: written
 
+  - id: mkt.order.keu.18
+    level: backend
+    kind: side
+    scenario: >
+      Текущий месяц участка показывает, сколько участок распределил доверенным и
+      сколько получил распределением текущий пайщик.
+    expect: >
+      распределено — сумма изъятий общего кошелька под распределение (o.brn.release)
+      по участку в границах месяца; получено — сумма зачислений распределения
+      (o.brn.person) по пайщику в тех же границах; нет операций — ноль; история
+      читается до последней страницы
+    test: components/controller/tests/unit/marketplace/marketplace-period.service.test.ts
+    api: components/api-tests/src/marketplace/economy.test.ts
+    status: written
+
   - id: mkt.order.keu.12
     level: backend
     kind: side
