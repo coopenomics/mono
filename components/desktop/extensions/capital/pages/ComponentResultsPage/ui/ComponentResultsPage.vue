@@ -325,8 +325,12 @@ onBeforeUnmount(() => {
 
 .results-page__metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* По две карточки в ряд — широкие и невысокие (слово владельца 10.11.2026). */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--p-3);
+}
+@media (max-width: 899px) {
+  .results-page__metrics { grid-template-columns: minmax(0, 1fr); }
 }
 
 .results-page__panel {

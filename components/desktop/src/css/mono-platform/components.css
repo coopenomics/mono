@@ -468,6 +468,17 @@ body {
    вариант для всех карточек группы; выключка суммы вправо сохраняется. */
 .wallet--stacked .wallet__amount { flex: 1 0 100%; }
 
+/* Сетка карточек кошельков — по две в ряд: карточки широкие и невысокие, а не
+   узкие и вытянутые вниз (слово владельца 10.11.2026). На узком экране — по одной. */
+.wallet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--p-4);
+}
+@media (max-width: 899px) {
+  .wallet-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Строка действий кошелька: во всю ширину тела, отделена hairline'ом. */
 .wallet__actions {
   flex: 1 0 100%;

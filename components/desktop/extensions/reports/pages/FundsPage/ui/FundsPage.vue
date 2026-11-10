@@ -10,7 +10,7 @@ div.funds-page
   PageHint(storage-key='reports:funds:banner-dismissed')
     | {{ $t('reports.fundsPage.hint') }}
 
-  .funds-page__cards
+  .wallet-grid
     WalletCard(
       v-for='c in stats',
       :key='c.key',
@@ -359,12 +359,6 @@ useLiveReload(FUNDS_LIVE_TABLES, async () => {
   @media (max-width: 768px) {
     padding: var(--p-4);
   }
-}
-
-.funds-page__cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--p-4);
 }
 
 .funds-page__num {

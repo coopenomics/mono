@@ -473,7 +473,7 @@ const currentCards = computed<SumCard[]>(() => {
       hint: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', { planned: fmt(c.planned), memos: fmt(c.memos), reserve: fmt(c.aid_reserve), aid: fmt(c.aid_paid) }),
       ...cardMoney(c.expenses), label: month },
     { key: 'turnover', icon: 'shopping_bag', title: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverTile'),
-      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverShort', { n: String(c.ripening_orders) }),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverShort'),
       hint: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverSub', { n: String(c.ripening_orders) }),
       ...cardMoney(c.ripening_turnover), label: month },
     { key: 'secured', icon: 'shield', title: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredTile'),
@@ -482,15 +482,19 @@ const currentCards = computed<SumCard[]>(() => {
     { key: 'outcome', icon: gap < 0 ? 'trending_down' : 'trending_up',
       title: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitTile' : 'marketplace.operatorBranchEconomyPage.currentSurplusTile'),
       subtitle: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitShort' : 'marketplace.operatorBranchEconomyPage.currentSurplusShort'),
-      hint: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitSub' : 'marketplace.operatorBranchEconomyPage.currentSurplusSub'),
       balance: Math.abs(gap).toFixed(2), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.currentCardExpected') },
   ]
+  // Средства инициаторов — двумя карточками, по числу в каждой: сколько
+  // свободно и сколько участок из них израсходовал. Карточек не больше шести.
   const v = investView.value
   if (v && (assetAmount(v.money_in_total) > 0 || assetAmount(v.property_total) > 0)) {
-    cards.push({ key: 'initiators', icon: 'volunteer_activism', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
-      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsShort', { spent: fmt(v.spent_total) }),
-      hint: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { spent: fmt(v.spent_total), reserved: fmt(v.reserved) }),
+    cards.push({ key: 'initiators-free', icon: 'volunteer_activism', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsShort'),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { reserved: fmt(v.reserved) }),
       balance: initiatorFree.value.toFixed(2), symbol, label: '' })
+    cards.push({ key: 'initiators-spent', icon: 'receipt', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSpentTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSpentShort'),
+      ...cardMoney(v.spent_total), label: i18nT('marketplace.operatorBranchEconomyPage.cardTotal') })
   }
   return cards
 })
@@ -1110,7 +1114,7 @@ q-page.economy
     //- (членские взносы с исполненных заказов). Персональные средства — не
     //- сюда, это уже распределённое (см. таб «Мои средства»).
     template(v-if='activeKey === "wallet"')
-      .economy__cards
+      .wallet-grid
         WalletCard(
           v-for='c in walletCards',
           :key='c.key',
@@ -1163,7 +1167,7 @@ q-page.economy
       )
 
     template(v-if='activeKey === "expenses"')
-      .economy__cards
+      .wallet-grid
         WalletCard(
           program='wallet',
           icon='lock_clock',
@@ -1239,7 +1243,7 @@ q-page.economy
     template(v-if='activeKey === "distribution"')
       //- Сумма к распределению — под рукой у кнопки «Распределить»: тот же
       //- ряд, что на вкладке кошелька участка.
-      .economy__cards
+      .wallet-grid
         WalletCard(
           v-for='c in walletCards',
           :key='c.key',
@@ -1323,7 +1327,7 @@ q-page.economy
       //- строки (ставит администратор) и резерв участка в месяц (сумма строк,
       //- расход участка в итоге месяца). Нет предела — резерв выключен целиком.
       template(v-if='reserveEnabled')
-        .economy__cards
+        .wallet-grid
           WalletCard(
             program='wallet',
             icon='vertical_align_top',
@@ -1393,7 +1397,7 @@ q-page.economy
     //- Мои средства — свободная доля (получена после распределения) и лента
     //- выплат: каждое «Получить» превращается в карточку своего статуса.
     template(v-if='activeKey === "personal"')
-      .economy__cards
+      .wallet-grid
         WalletCard(
           program='wallet',
           :title='$t("marketplace.operatorBranchEconomyPage.myFreeFundsTitle")',
@@ -1472,7 +1476,7 @@ q-page.economy
             q-icon.economy__current-hint(name='help_outline', size='18px')
               q-tooltip(max-width='360px') {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
           .economy__current-dates.t-muted {{ monthLabel(currentPeriod) }}
-        .economy__cards
+        .wallet-grid
           WalletCard(
             v-for='c in currentCards',
             :key='c.key',
@@ -1820,12 +1824,6 @@ q-page.economy
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--p-4, 16px);
-  }
 
   &__section {
     display: flex;

@@ -268,7 +268,7 @@ q-page.admin-economy
   //- Модель кооператива карточками: три настройки администратора (кнопка
   //- «Изменить» в карточке, своим диалогом) и проценты фондов накопления
   //- только для чтения — ими распоряжается совет. Подробности — подсказкой у названия.
-  .admin-economy__cards
+  .wallet-grid
     WalletCard(
       v-for='c in tiles',
       :key='c.key',
@@ -322,12 +322,6 @@ q-page.admin-economy
   display: flex;
   flex-direction: column;
   gap: var(--p-6);
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--p-4);
-  }
 
   &__dialog-hint {
     margin: 0;

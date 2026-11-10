@@ -20,7 +20,7 @@
     //- Карточки кошельков сеткой, как на столах: значок, название, короткая
     //- подпись, подробности — подсказкой у названия, остаток справа.
     //- Схема пути взноса открывается кнопкой в полосе разделов; карточки идут в том же порядке.
-    .edu-economy__cards
+    .wallet-grid
       WalletCard(
         v-for="c in walletStats"
         :key="c.key"
@@ -330,11 +330,6 @@ onMounted(load);
 </script>
 
 <style scoped>
-.edu-economy__cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--p-4);
-}
 .edu-economy__move {
   display: flex;
   align-items: center;

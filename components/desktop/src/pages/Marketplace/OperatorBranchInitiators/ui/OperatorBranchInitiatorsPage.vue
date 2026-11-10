@@ -268,8 +268,12 @@ const branchCards = computed<SumCard[]>(() => {
   return [
     { key: 'invested', icon: 'savings', title: i18nT('marketplace.initiatorsPage.tileBranchInvested'), asset: sumAssets(b?.money_in_total, b?.property_total), label: i18nT('marketplace.initiatorsPage.cardTotal'),
       subtitle: i18nT('marketplace.initiatorsPage.tileInvestedSub', { money: formatAsset2Digits(b?.money_in_total ?? ''), property: formatAsset2Digits(b?.property_total ?? '') }) },
-    { key: 'spent', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileBranchSpent'), asset: b?.spent_total, label: i18nT('marketplace.initiatorsPage.cardSpent'),
-      subtitle: i18nT('marketplace.initiatorsPage.branchSpentSub', { reserved: formatAsset2Digits(b?.reserved ?? ''), unused: formatAsset2Digits(b?.unused_total ?? '') }) },
+    // Одно опорное число в подписи — сколько денег ещё не израсходовано;
+    // выделенное под незакрытые расходы — только когда оно есть.
+    { key: 'spent', icon: 'receipt_long', title: i18nT('marketplace.initiatorsPage.tileBranchSpent'), asset: b?.spent_total, label: i18nT('marketplace.initiatorsPage.cardTotal'),
+      subtitle: amountOf(b?.reserved) > 0
+        ? i18nT('marketplace.initiatorsPage.branchSpentReservedSub', { reserved: formatAsset2Digits(b?.reserved ?? ''), unused: formatAsset2Digits(b?.unused_total ?? '') })
+        : i18nT('marketplace.initiatorsPage.branchSpentSub', { unused: formatAsset2Digits(b?.unused_total ?? '') }) },
     { key: 'repaid', icon: 'trending_up', title: i18nT('marketplace.initiatorsPage.tileBranchRepaid'), asset: b?.repaid_total, label: i18nT('marketplace.initiatorsPage.cardTotal'),
       subtitle: i18nT('marketplace.initiatorsPage.tileBranchRepaidSub') },
     { key: 'outstanding', icon: 'hourglass_bottom', title: i18nT('marketplace.initiatorsPage.tileBranchOutstanding'), asset: b?.outstanding, label: i18nT('marketplace.initiatorsPage.cardLeft'),
