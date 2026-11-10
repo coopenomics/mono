@@ -444,14 +444,13 @@ function cardMoney(asset: string | null | undefined): Pick<SumCard, 'balance' | 
  */
 const walletCards = computed<SumCard[]>(() => {
   const e = economy.value
-  const now = i18nT('marketplace.operatorBranchEconomyPage.investCardNow')
   return [
     { key: 'common', icon: 'storefront', title: i18nT('marketplace.operatorBranchEconomyPage.commonWalletTitle'),
-      subtitle: i18nT('marketplace.operatorBranchEconomyPage.commonWalletSubtitle'), ...cardMoney(e?.common_balance), label: now },
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.commonWalletSubtitle'), ...cardMoney(e?.common_balance), label: '' },
     { key: 'reserve', icon: 'lock_clock', title: i18nT('marketplace.operatorBranchEconomyPage.reserveTitle'),
-      subtitle: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle'), ...cardMoney(e?.reserve_amount), label: now },
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle'), ...cardMoney(e?.reserve_amount), label: '' },
     { key: 'available', icon: 'call_split', title: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeTitle'),
-      subtitle: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle'), ...cardMoney(e?.available_to_distribute), label: now },
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle'), ...cardMoney(e?.available_to_distribute), label: '' },
   ]
 })
 
@@ -491,7 +490,7 @@ const currentCards = computed<SumCard[]>(() => {
     cards.push({ key: 'initiators', icon: 'volunteer_activism', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsShort', { spent: fmt(v.spent_total) }),
       hint: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { spent: fmt(v.spent_total), reserved: fmt(v.reserved) }),
-      balance: initiatorFree.value.toFixed(2), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.investCardNow') })
+      balance: initiatorFree.value.toFixed(2), symbol, label: '' })
   }
   return cards
 })
@@ -1116,7 +1115,6 @@ q-page.economy
           v-for='c in walletCards',
           :key='c.key',
           program='wallet',
-          stacked,
           :icon='c.icon',
           :title='c.title',
           :subtitle='c.subtitle',
@@ -1246,7 +1244,6 @@ q-page.economy
           v-for='c in walletCards',
           :key='c.key',
           program='wallet',
-          stacked,
           :icon='c.icon',
           :title='c.title',
           :subtitle='c.subtitle',
@@ -1467,16 +1464,19 @@ q-page.economy
       //- по канону: расходы месяца, выданные заказы, их обеспечительная часть,
       //- ожидаемый итог и средства инициаторов участка.
       template(v-if='currentPeriod')
+        //- Шапка — как у «Топа позиций по обороту»: название раздела с
+        //- подсказкой, справа даты месяца; пояснение — в подсказке.
         .economy__current-head
-          .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodEyebrow') }}
-          .economy__current-title {{ monthLabel(currentPeriod) }}
-          .economy__current-sub {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
+          .economy__current-title
+            .t-h3 {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodEyebrow') }}
+            q-icon.economy__current-hint(name='help_outline', size='18px')
+              q-tooltip(max-width='360px') {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
+          .economy__current-dates.t-muted {{ monthLabel(currentPeriod) }}
         .economy__cards
           WalletCard(
             v-for='c in currentCards',
             :key='c.key',
             program='wallet',
-            stacked,
             :icon='c.icon',
             :title='c.title',
             :subtitle='c.subtitle',
@@ -1573,8 +1573,9 @@ q-page.economy
     template(v-if='selectedMovement?.order_id', #footer)
       BaseButton(variant='secondary', @click='openMovementOrder') {{ $t('marketplace.operatorBranchEconomyPage.movementOpenOrder') }}
 
-  //- Состав итога месяца — правая панель: факты прогона, расчёт контракта,
-  //- получатель доли инициатора.
+  //- Состав итога месяца — правая панель: путь денег, факты прогона и расчёт
+  //- контракта. Компенсацию получают все инициаторы участка пропорционально —
+  //- одного получателя у неё нет.
   DetailsDrawer(v-model='periodDrawerOpen', :title='selectedPeriod ? monthLabel(selectedPeriod) : ""')
     template(v-if='selectedPeriod')
       .economy__drawer-amount
@@ -1613,7 +1614,6 @@ q-page.economy
         )
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnReturned")', :value='formatAsset2Digits(selectedPeriod.return_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnDeficit")', :value='formatAsset2Digits(selectedPeriod.deficit)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodInitiatorLine")', :value='nameByUsername[selectedPeriod.initiator] || selectedPeriod.initiator')
       .t-muted(v-if='selectedPeriod.archived') {{ $t('marketplace.operatorBranchEconomyPage.periodArchivedNote') }}
 
   //- Заявление на материальную помощь целиком: сумма крупно и состояние,
@@ -1854,23 +1854,30 @@ q-page.economy
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  // Шапка текущего месяца над рядом плиток: подпись, даты, пояснение.
+  // Шапка текущего месяца — как у «Топа позиций по обороту»: название
+  // раздела с подсказкой слева, даты месяца справа.
   &__current-head {
     display: flex;
-    flex-direction: column;
-    gap: var(--p-1);
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--p-3);
   }
 
   &__current-title {
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
-    color: var(--p-ink);
+    display: flex;
+    align-items: center;
+    gap: var(--p-2);
   }
 
-  &__current-sub {
-    font-size: var(--p-fs-body-sm);
+  &__current-hint {
     color: var(--p-ink-3);
-    max-width: 720px;
+    cursor: help;
+  }
+
+  &__current-dates {
+    font-size: var(--p-fs-body-sm);
+    font-variant-numeric: tabular-nums;
   }
 
   &__drawer-amount {

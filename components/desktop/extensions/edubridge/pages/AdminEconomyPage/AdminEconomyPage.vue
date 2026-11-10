@@ -17,9 +17,23 @@
   template(v-if="tab === 'money'")
     //- Четыре остатка — одной полосой по пути денег: кошельки учеников →
     //- удержано по гарантии → фонд → резерв преподавателям. У каждого свой значок.
-    //- Плитки лежат на фоне страницы сами по себе: карточка вокруг карточек перегружает экран.
-    //- Схема пути взноса открывается кнопкой в строке вкладок; плитки идут в том же порядке.
-    StatStrip(:items="walletStats" :loading="firstLoad" :framed="false")
+    //- Карточки кошельков сеткой, как на столах: значок, название, короткая
+    //- подпись, подробности — подсказкой у названия, остаток справа.
+    //- Схема пути взноса открывается кнопкой в полосе разделов; карточки идут в том же порядке.
+    .edu-economy__cards
+      WalletCard(
+        v-for="c in walletStats"
+        :key="c.key"
+        program="wallet"
+        :icon="c.icon"
+        :title="c.caption"
+        :subtitle="c.sub"
+        :hint="c.hint"
+        :balance="c.value"
+        :symbol="c.symbol"
+        :balance-label="''"
+        :loading="firstLoad"
+      )
 
     //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
     //- фоновое обновление по ленте изменений её не прячет и не показывает заново.
@@ -119,7 +133,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow, DetailsDrawer, IdentityCell, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { MoneyFlowGuide } from '../../widgets/MoneyFlowGuide';
 import { PROGRAM_WALLET_ICONS, PROGRAM_WALLET_ORDER, type ProgramWalletId } from '../../shared/lib/programWallets';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
@@ -193,7 +207,7 @@ const WALLET_CAPTIONS: Record<ProgramWalletId, string> = {
 const WALLET_VIEW: Record<string, { icon: string; order: number; caption: string }> = Object.fromEntries(
   PROGRAM_WALLET_ORDER.map((id, order) => [id, { icon: PROGRAM_WALLET_ICONS[id], order, caption: WALLET_CAPTIONS[id] }]),
 );
-const walletStats = computed<StatStripItem[]>(() =>
+const walletStats = computed(() =>
   [...(fund.value?.wallets ?? [])]
     .sort((a, b) => (WALLET_VIEW[a.id]?.order ?? 9) - (WALLET_VIEW[b.id]?.order ?? 9))
     .map((w) => {
@@ -316,6 +330,11 @@ onMounted(load);
 </script>
 
 <style scoped>
+.edu-economy__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--p-4);
+}
 .edu-economy__move {
   display: flex;
   align-items: center;

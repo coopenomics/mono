@@ -77,19 +77,18 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           span.edu-course-form__limit.t-num(v-if="discountLimit") {{ discountLimit }}
           FieldHelp(:text="discountHint")
 
-    //- Итог расчёта: две суммы плитками, под ними — из чего складывается взнос.
-    //- Белая карточка на фоне страницы, как остальные числа образования.
+    //- Итог расчёта: из чего складывается взнос, под линией — две итоговые суммы.
     .edu-course-form__group(v-if="fee")
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.total') }}
-      .edu-course-form__tiles
-        StatTile(:caption="$t('edubridge.courseForm.total.feeMonth')" :value="formatAsset2Digits(fee.fee_month)")
-        StatTile(:caption="courseFeeLabel" :value="courseFeeValue ? formatAsset2Digits(courseFeeValue) : '______'")
       .edu-course-form__breakdown
         DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.total.markup', { percent: fee.markup_percent })" :value="formatAsset2Digits(fee.markup_month)" align="spread")
         template(v-if="courseFeeShown")
           DataRow(:label="$t('edubridge.courseForm.total.feeCourseBase')" :value="formatAsset2Digits(fee.fee_course_base)" align="spread")
           DataRow(:label="$t('edubridge.courseForm.total.courseDiscount')" :value="formatAsset2Digits(fee.course_discount_amount)" align="spread")
+        .edu-course-form__total
+          DataRow(:label="$t('edubridge.courseForm.total.feeMonth')" :value="formatAsset2Digits(fee.fee_month)" align="spread" mono)
+          DataRow(:label="courseFeeLabel" :value="courseFeeValue ? formatAsset2Digits(courseFeeValue) : '______'" align="spread" mono)
     //- Расчёта нет: причина названа — ошибка ввода либо отказ сервера; без причины — параметры ещё не заполнены.
     BaseBanner(v-else-if="feeError" variant="warn")
       template(#icon)
@@ -219,7 +218,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 import { computed, ref, watch } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
-import { DataRow, IdentityCell, StatTile } from 'src/shared/ui/domain';
+import { DataRow, IdentityCell } from 'src/shared/ui/domain';
 import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
@@ -422,10 +421,12 @@ defineExpose({ submit: requestSubmit, validate });
   display: none;
 }
 /* Итог расчёта: две суммы белыми плитками, слагаемые — строками сведений в белой карточке. */
-.edu-course-form__tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--p-3);
+/* Итоговые суммы взноса — под линией, полужирным. */
+.edu-course-form__total {
+  margin-top: var(--p-2);
+  padding-top: var(--p-2);
+  border-top: 1px solid var(--p-line);
+  font-weight: 600;
 }
 .edu-course-form__breakdown {
   padding: var(--p-1) var(--p-4);

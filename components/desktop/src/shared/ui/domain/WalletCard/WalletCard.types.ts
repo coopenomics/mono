@@ -18,7 +18,7 @@ export interface WalletCardProps {
   balance: string;
   /** Тикер актива */
   symbol: string;
-  /** Подпись основной метрики (default «Доступно») */
+  /** Подпись основной метрики (default «Доступно»); пустая строка — без подписи */
   balanceLabel?: string;
   /** Отформатированная сумма заблокированного остатка (рендерит locked-line) */
   lockedBalance?: string;

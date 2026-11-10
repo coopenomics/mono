@@ -31,13 +31,15 @@
       //- цена «от …», которую участник ни разу не вносит.
       //- У программы на месяц взнос один — «за курс». У длинной рядом с месячным стоит полный
       //- взнос за весь курс: разом со скидкой либо сумма помесячных.
-      StatTile(:caption="Number(course.course_months) === 1 ? $t('edubridge.course.feeWholeCaption') : $t('edubridge.course.feeMonthCaption')")
-        FeeAmount(:value="course.fee_month" size="lg")
-      StatTile(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :caption="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
-        FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
-      StatTile(:value="lessonsPerMonth" :caption="$t('edubridge.course.lessonsPerMonthCaption')")
-      StatTile(:value="hoursPerMonth" :caption="$t('edubridge.course.hoursPerMonthCaption')")
-      StatTile(v-if="Number(course.program_months) > 0" :value="programSpanTile" :caption="$t('edubridge.course.programSpanCaption')")
+      DataRow(:label="Number(course.course_months) === 1 ? $t('edubridge.course.feeWholeCaption') : $t('edubridge.course.feeMonthCaption')" align="spread")
+        template(#value-override)
+          FeeAmount(:value="course.fee_month")
+      DataRow(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :label="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')" align="spread")
+        template(#value-override)
+          FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''")
+      DataRow(:value="lessonsPerMonth" :label="$t('edubridge.course.lessonsPerMonthCaption')" align="spread" mono)
+      DataRow(:value="hoursPerMonth" :label="$t('edubridge.course.hoursPerMonthCaption')" align="spread" mono)
+      DataRow(v-if="Number(course.program_months) > 0" :value="programSpanTile" :label="$t('edubridge.course.programSpanCaption')" align="spread" mono)
 
     .row.q-col-gutter-md
       .col-12(:class="hasSide ? 'col-md-8' : ''")
@@ -98,7 +100,7 @@ import { programSpanCompact, programSpanLabel } from '../../shared/lib/courseMon
 import { SubscribeDialog } from '../../features/Subscribe';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero } from '../../widgets/CourseHero';
-import { StatTile } from 'src/shared/ui/domain';
+import { DataRow } from 'src/shared/ui/domain';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';

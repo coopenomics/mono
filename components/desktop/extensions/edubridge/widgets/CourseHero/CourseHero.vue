@@ -100,10 +100,13 @@ const emit = defineEmits<{ (e: 'back'): void }>();
   gap: var(--p-2);
 }
 /* Числа курса — ряд равных плиток под шапкой. */
+/* Числа курса — строками «подпись — значение» в две колонки под тонкой линией. */
 .edu-hero__figures {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--p-3);
-  margin-top: var(--p-6);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--p-1) var(--p-8);
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
 }
 </style>

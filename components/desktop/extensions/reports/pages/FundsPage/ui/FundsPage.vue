@@ -3,14 +3,26 @@
 //- субсчёт фонда: остаток — остаток кошелька, обороты и история — операции
 //- учётной книги, у которых кошелёк фонда стоит источником или получателем.
 //- Зоны страницы сверху вниз: подсказка — что такое фонды и как они пополняются;
-//- плитки — сколько денег в фондах и как они двигались за период (период
+//- карточки — сколько денег в фондах и как они двигались за период (период
 //- выбирается кнопкой в шапке приложения); таблица — каждый фонд; панель справа —
 //- история и настройки фонда.
 div.funds-page
   PageHint(storage-key='reports:funds:banner-dismissed')
     | {{ $t('reports.fundsPage.hint') }}
 
-  StatStrip(:items='stats' :loading='firstLoad' :framed='false')
+  .funds-page__cards
+    WalletCard(
+      v-for='c in stats',
+      :key='c.key',
+      program='wallet',
+      :icon='c.icon',
+      :title='c.title',
+      :subtitle='c.subtitle',
+      :balance='c.balance',
+      :symbol='c.symbol',
+      :balance-label='c.label',
+      :loading='firstLoad'
+    )
 
   BaseTable(
     :columns='columns'
@@ -114,12 +126,12 @@ import { useLiveReload, liveTable } from 'src/shared/lib/realtime'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { addAssets, formatAsset2Digits } from 'src/shared/lib/utils'
+import { addAssets, formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { useHeaderActions } from 'src/shared/hooks/useHeaderActions'
 import { BaseButton, BaseChip, BaseDialog, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseTableColumn } from 'src/shared/ui/base'
-import { DataRow, DetailsDrawer, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { DataRow, DetailsDrawer, PageHint, WalletCard } from 'src/shared/ui/domain'
 import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import {
   editDeskFund,
@@ -172,18 +184,25 @@ const saving = ref(false)
 
 const canEdit = computed(() => isChairman.value)
 
-/** Сумма сумм пяти фондов: остаток и обороты за период — для плиток над таблицей. */
-function total(pick: (f: IDeskFund) => string): string {
-  return formatAsset2Digits(funds.value.map(pick).reduce((acc, v) => addAssets(acc, v), '0'))
+/** Сумма пяти фондов: остаток и обороты за период — для карточек над таблицей. */
+function total(pick: (f: IDeskFund) => string): { balance: string, symbol: string } {
+  const { amount, symbol } = splitAsset2Digits(funds.value.map(pick).reduce((acc, v) => addAssets(acc, v), '0'))
+  return { balance: amount, symbol }
 }
 
-/** Плитки по пути денег: сколько в фондах → что поступило → что списано. */
-const stats = computed<StatStripItem[]>(() => {
-  const periodSub = t(`reports.fundsPage.periodSub.${fundsPeriod.value}`)
+/**
+ * Карточки по пути денег, как кошельки на столах: сколько в фондах → что
+ * поступило → что списано за период (период — кнопкой в шапке приложения).
+ */
+const stats = computed(() => {
+  const period = t(`reports.fundsPage.periodSub.${fundsPeriod.value}`)
   return [
-    { key: 'available', caption: t('reports.fundsPage.stats.available'), value: total((f) => f.available), sub: t('reports.fundsPage.stats.availableSub'), icon: 'account_balance' },
-    { key: 'income', caption: t('reports.fundsPage.stats.income'), value: total((f) => f.income), sub: periodSub, icon: 'south_west' },
-    { key: 'outcome', caption: t('reports.fundsPage.stats.outcome'), value: total((f) => f.outcome), sub: periodSub, icon: 'north_east' },
+    { key: 'available', icon: 'account_balance', title: t('reports.fundsPage.stats.available'), subtitle: t('reports.fundsPage.stats.availableSub'),
+      ...total((f) => f.available), label: '' },
+    { key: 'income', icon: 'south_west', title: t('reports.fundsPage.stats.income'), subtitle: t('reports.fundsPage.stats.incomeSub'),
+      ...total((f) => f.income), label: period },
+    { key: 'outcome', icon: 'north_east', title: t('reports.fundsPage.stats.outcome'), subtitle: t('reports.fundsPage.stats.outcomeSub'),
+      ...total((f) => f.outcome), label: period },
   ]
 })
 
@@ -340,6 +359,12 @@ useLiveReload(FUNDS_LIVE_TABLES, async () => {
   @media (max-width: 768px) {
     padding: var(--p-4);
   }
+}
+
+.funds-page__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--p-4);
 }
 
 .funds-page__num {

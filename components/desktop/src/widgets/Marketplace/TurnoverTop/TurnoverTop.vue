@@ -134,7 +134,6 @@ section.turnover
     .col-12.col-md-6(v-for='c in totals' :key='c.key')
       WalletCard(
         program='wallet'
-        stacked
         :icon='c.icon'
         :title='c.title'
         :subtitle='c.subtitle'
