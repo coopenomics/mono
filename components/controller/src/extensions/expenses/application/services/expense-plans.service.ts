@@ -170,7 +170,7 @@ export class ExpensePlansService {
     if (!row) {
       throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
-    if (row.proposalHash && row.proposalHash !== proposalHash.toLowerCase()) {
+    if (row.paidAt || (row.proposalHash && row.proposalHash !== proposalHash.toLowerCase())) {
       throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
     }
     await this.planRepo.update({ id: planId }, { proposalHash: proposalHash.toLowerCase() });

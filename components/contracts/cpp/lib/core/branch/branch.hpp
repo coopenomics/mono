@@ -184,6 +184,44 @@ inline eosio::asset outstanding_of(eosio::name coopname, const branch_reserve &r
   return total;
 }
 
+/// Подано получателем заявлений на помощь за период `now` (накопитель `aidmonths`).
+inline eosio::asset aid_used_in(eosio::name coopname, eosio::name username, uint32_t now) {
+  branch_aidmonths_index months(_branch, coopname.value);
+  auto month = months.find(username.value);
+  if (month == months.end() || month->period != now) return eosio::asset(0, _root_govern_symbol);
+  return month->total;
+}
+
+/**
+ * @brief Учесть поданное (`delta` > 0) или отклонённое (`delta` < 0) заявление
+ * в накопителе периода. Накопитель держит одно правило: строка резерва,
+ * заведённая заново в том же периоде, не возвращает получателю право, которое
+ * он уже израсходовал (снятие и новая запись резерва, снятие и возврат
+ * доверенного лица). Одна строка на получателя, истории нет: первое заявление
+ * нового периода перезаписывает строку.
+ */
+inline void note_aid_used(eosio::name coopname, eosio::name username, uint32_t now, int64_t delta) {
+  branch_aidmonths_index months(_branch, coopname.value);
+  auto month = months.find(username.value);
+  if (month == months.end()) {
+    if (delta <= 0) return;
+    months.emplace(RamPayer::of(months, coopname), [&](auto &m) {
+      m.username = username;
+      m.period = now;
+      m.total = eosio::asset(delta, _root_govern_symbol);
+    });
+    return;
+  }
+  // Отказ по заявлению прошлого периода текущий накопитель не трогает.
+  if (month->period != now && delta <= 0) return;
+  const int64_t base = month->period == now ? month->total.amount : 0;
+  const int64_t next = base + delta;
+  months.modify(month, RamPayer::of(months, coopname), [&](auto &m) {
+    m.period = now;
+    m.total = eosio::asset(next > 0 ? next : 0, _root_govern_symbol);
+  });
+}
+
 /**
  * @brief Сумма строк резерва участка за один месяц — прежняя формула итога
  * месяца (до 99D-34), ею считает старый узел, пока не выложен новый.

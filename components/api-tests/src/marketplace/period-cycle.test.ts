@@ -166,12 +166,14 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     expect(units(periodRow.initiator_amount), 'И = Э × φ').toBe(I)
     expect(units(periodRow.return_amount), 'В = Э − И').toBe(E - I)
     // Расходы по цели резерва (задача 99D-34): РК = траты месяца + T − F_пр, не меньше нуля;
-    // T = цель плановых расходов + право получателей помощи; F = max(0, T − Д).
+    // T = цель плановых расходов + право получателей помощи; F = max(0, T − Д) + излишек прошлого сбора.
     const target = units(periodRow.planned_target) + units(periodRow.aid_reserve)
     expect(units(periodRow.target), 'T = ЦП + ЦМ').toBe(target)
     const raw = [periodRow.planned, periodRow.memos, periodRow.aid_paid].map(units).reduce((a, b) => a + b, 0n) + target - units(periodRow.target_prev)
     expect(units(periodRow.expenses), 'РК = ПО + СЗ + МП + T − F_пр').toBe(raw > 0n ? raw : 0n)
-    expect(units(periodRow.target_funded), 'F = max(0, T − Д)').toBe(target > RK - U ? target - (RK - U) : 0n)
+    // Излишек прошлого сбора (собрано больше, чем понадобилось) переходит дальше.
+    const surplus = raw < 0n ? -raw : 0n
+    expect(units(periodRow.target_funded), 'F = max(0, T − Д) + излишек').toBe((target > RK - U ? target - (RK - U) : 0n) + surplus)
     const T = units(periodRow.turnover)
     const rate = (U + F + I) * H / T
     // Ставка в строке — проценты с двумя знаками, расчётная — доли шкалы контракта (1 000 000 = 100 %).

@@ -278,6 +278,10 @@ describe('стол заказов — инвестиционный этап ко
 
     const branchAfter = await investBranch(bc, BRANAME)
     expect(branchAfter.acc, 'счётчик возврата участка — как в эталоне').toBe(route.acc)
+    // Списание не уменьшает деньги инициаторов ниже выделенного под расходы (ревью 10.11.2026):
+    // завершение возврата оставляет неиспользованное в средствах участка.
+    expect(branchAfter.unusedTotal, 'списание не трогает неиспользованные деньги').toBe(branchBefore.unusedTotal)
+    expect(branchAfter.unusedTotal >= branchAfter.reserved, 'выделенное обеспечено неиспользованными деньгами').toBe(true)
     const repayDelta = await userWallet(bc, 'w.mkt.repay', BRANAME) - repayBefore
     expect(repayDelta > 0n && repayDelta <= route.repay, 'возмещение на кошелёк возмещения участка').toBe(true)
     // Ноги списания — в нитке строки счётчика пайщицы (p.mkt.due), не заказа.

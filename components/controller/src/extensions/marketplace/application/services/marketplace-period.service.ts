@@ -128,7 +128,8 @@ export class MarketplacePeriodService {
    * Траты общего кошелька участка за месяц: выделено под расходы минус
    * возвращено неизрасходованное. Записки, которыми оплачены записи реестра
    * планов, — оплачено по плану (ПО), прочие — служебные записки сверх плана
-   * (СЗ). Ниже нуля ни то, ни другое не бывает.
+   * (СЗ). Ниже нуля ни то, ни другое не бывает: отрицательная сумма одного
+   * вида вычитается из другого.
    */
   private async commonSpentWithin(coopname: string, braname: string, bounds: PeriodBounds, planHashes: Set<string>): Promise<{ planned: bigint; memos: bigint }> {
     let planned = 0n;
@@ -152,7 +153,18 @@ export class MarketplacePeriodService {
       // Пустая страница — страховка от неверного числа страниц в ответе истории.
       if (page >= result.totalPages || result.items.length === 0) break;
     }
-    return { planned: planned > 0n ? planned : 0n, memos: memos > 0n ? memos : 0n };
+    // Возврат неизрасходованного мог прийти в месяц после выделения — тогда
+    // одна из сумм меньше нуля. Она вычитается из другой: траты месяца считаются
+    // вместе, и раздельное обнуление завышало бы расходы участка.
+    if (planned < 0n) {
+      memos += planned;
+      planned = 0n;
+    }
+    if (memos < 0n) {
+      planned += memos;
+      memos = 0n;
+    }
+    return { planned: planned > 0n ? planned : 0n, memos };
   }
 
   /** Помощь оплачена средствами инициаторов: в нитке заявления есть выделение из их средств. */

@@ -40,6 +40,8 @@ void marketplace::spentipool(eosio::name coopname, eosio::name braname, eosio::a
     MarketInvest::leave_base(b, row);
     row.used_money.amount += take;
     b.unused_total.amount -= take;
+    // Деньги завершившего возврат снова израсходованы — он возвращается в базу.
+    if (row.status == MarketInvest::Status::DONE) row.status = MarketInvest::Status::ACTIVE;
     MarketInvest::enter_base(b, row);
     by_unused.modify(it, RamPayer::of(investors, coopname), [&](auto& x) { x = row; });
     rest -= take;

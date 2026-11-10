@@ -506,15 +506,55 @@ describe('mkt.order.keu.13 — прогон по счётчикам цепи п�
     expect(periodService.ensureClosed).toHaveBeenCalledWith(COOP, BRANCH, OCTOBER, 1);
   });
 
-  it('удержание при отказе без стоимости списывается целиком участку; счётчик без стоимости — как месяц без заказов: итог, если месяцу есть что нести (99D-34)', async () => {
+  it('удержание при отказе без стоимости списывается целиком участку; счётчик без стоимости получает итог — расчёт стирает счётчик из цепи', async () => {
     const { service, chainPort, periodService, store, onChain } = build({ warrantyUntil: warranty });
     await service.applyOperation(apply(MarketplaceSecureDueOperation.PENALTY, '50.0000', 1));
     onChain({ period: OCTOBER, retained: toUnits('50.0000') });
     expect(await service.chargeDue(COOP, firstOfNovember)).toEqual({ charged: 1, failed: 0 });
     expect(chainPort.chargePeriod).toHaveBeenCalledWith({ coopname: COOP, username: USER, braname: BRANCH, period: OCTOBER });
-    expect(periodService.ensureClosed).not.toHaveBeenCalled();
-    expect(periodService.ensureQuietClosed).toHaveBeenCalledWith(COOP, BRANCH, OCTOBER);
+    expect(periodService.ensureClosed).toHaveBeenCalledWith(COOP, BRANCH, OCTOBER, 1);
+    expect(periodService.ensureQuietClosed).not.toHaveBeenCalled();
     expect(store.rows.get(ORDER)).toMatchObject({ due_amount: '0.0000', charged_amount: '50.0000' });
+  });
+
+  it('mkt.order.keu.21 — итог месяца не рассчитан: более поздние месяцы этого участка в проходе не считаются, другой участок считается', async () => {
+    // Сбой расчёта сентября. Итог октября взял бы собранную часть цели резерва
+    // из августовской строки, и участок собрал бы цель второй раз.
+    const SEPTEMBER = OCTOBER - 1;
+    const { service, periodService, onChain } = build({ warrantyUntil: warranty });
+    onChain({ period: SEPTEMBER, turnover: toUnits('1000.0000'), due: toUnits('380.0000') });
+    onChain({ period: OCTOBER, turnover: toUnits('2000.0000'), due: toUnits('760.0000') });
+    onChain({ period: OCTOBER, braname: 'odn', username: 'orderer2', turnover: toUnits('500.0000'), due: toUnits('190.0000') });
+    periodService.quietCandidates.mockResolvedValue([BRANCH, 'krg']);
+    periodService.ensureClosed.mockRejectedValueOnce(new Error('узел цепи не ответил'));
+    await service.chargeDue(COOP, firstOfNovember);
+    expect(periodService.ensureClosed).toHaveBeenCalledWith(COOP, BRANCH, SEPTEMBER, 1);
+    expect(periodService.ensureClosed).not.toHaveBeenCalledWith(COOP, BRANCH, OCTOBER, 1);
+    expect(periodService.ensureClosed).toHaveBeenCalledWith(COOP, 'odn', OCTOBER, 1);
+    expect(periodService.ensureQuietClosed).toHaveBeenCalledWith(COOP, 'krg', OCTOBER);
+    // Старые итоги участка со сбоем не стираются: следующему проходу нужна прошлая строка.
+    expect(periodService.pruneOld).not.toHaveBeenCalledWith(COOP, BRANCH, expect.anything(), expect.anything());
+    expect(periodService.pruneOld).toHaveBeenCalledWith(COOP, 'odn', NOVEMBER, expect.anything());
+    // Следующий проход: сентябрь, потом октябрь — по порядку.
+    periodService.ensureClosed.mockClear();
+    await service.chargeDue(COOP, firstOfNovember);
+    const order = periodService.ensureClosed.mock.calls.filter((c) => c[1] === BRANCH).map((c) => c[2]);
+    expect(order).toEqual([SEPTEMBER, OCTOBER]);
+  });
+
+  it('участок догоняет два месяца: старые итоги стираются один раз — после всех расчётов прохода', async () => {
+    const SEPTEMBER = OCTOBER - 1;
+    const { service, periodService, onChain } = build({ warrantyUntil: warranty });
+    onChain({ period: SEPTEMBER, turnover: toUnits('1000.0000'), due: toUnits('380.0000') });
+    onChain({ period: OCTOBER, turnover: toUnits('2000.0000'), due: toUnits('760.0000') });
+    const calls: string[] = [];
+    periodService.ensureClosed.mockImplementation(async (_c: string, _b: string, period: number, rows: number) => {
+      calls.push(`close ${period}`);
+      return { coopname: COOP, braname: BRANCH, period, rate_branch: '0', rate_funds: '0', rate_initiator: '0', rows_total: rows, rows_charged: 0, deleted_at: null };
+    });
+    periodService.pruneOld.mockImplementation(async () => { calls.push('prune'); });
+    await service.chargeDue(COOP, firstOfNovember);
+    expect(calls).toEqual([`close ${SEPTEMBER}`, `close ${OCTOBER}`, 'prune']);
   });
 
   it('итог участка не рассчитан — строка со стоимостью ждёт следующего прохода, удержание другого пайщика списывается', async () => {

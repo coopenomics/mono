@@ -127,7 +127,12 @@ async function aidRow(hash: string): Promise<any | undefined> {
  * заводится заново, и новая строка сразу даёт право на сумму строки.
  */
 async function allowAid(amount: bigint) {
-  const cap = asset(amount + rub(1))
+  // Строка резерва, заведённая заново в том же периоде, начинает с суммы за
+  // вычетом уже поданного (накопитель aidmonths) — поэтому сумма строки берётся
+  // с запасом на поданное прошлыми случаями набора.
+  const months: any[] = await bc.getTableRows('branch', COOP, 'aidmonths', 1000)
+  const used = units(months.find(r => r.username === trustedkrg.account)?.total)
+  const cap = asset(amount + used + rub(1))
   await push('branch', 'setaidlimit', { coopname: COOP, limit: cap })
   await push('branch', 'delreserve', { coopname: COOP, braname: BRANAME, username: trustedkrg.account }).catch(() => {})
   await push('branch', 'setreserve', { coopname: COOP, braname: BRANAME, username: trustedkrg.account, amount: cap })
@@ -205,6 +210,8 @@ describe('стол заказов — служебная записка учас
     expect(before.reserved - after.reserved, 'выделенное под записку снято').toBe(amount)
     expect(before.unusedTotal - after.unusedTotal, 'неизрасходованные деньги инициаторов уменьшились').toBe(amount)
     expect(after.base - before.base, 'оплаченное вошло в базу возврата паевых взносов').toBe(amount)
+    // Выделенное под расходы и помощь всегда обеспечено деньгами инициаторов: иначе оплата не найдёт денег.
+    expect(after.unusedTotal >= after.reserved, 'выделенное обеспечено неиспользованными деньгами').toBe(true)
   }, 900_000)
 
   it('mkt.order.invest.aid.01 — персонального кошелька не хватает: совет одобряет помощь из средств инициаторов, кассир выплачивает — налог и сумма на руки по счёту 08, вся сумма в базе возврата', async () => {

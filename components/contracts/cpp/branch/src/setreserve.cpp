@@ -52,7 +52,10 @@
       r.username = username;
       r.amount = amount;
       r.accrued_period = period;
-      r.outstanding = amount;
+      // Поданное получателем в этом периоде по прежней строке вычитается:
+      // снятие и новая запись резерва не возвращают израсходованное право.
+      const eosio::asset used = Branch::aid_used_in(coopname, username, period);
+      r.outstanding = amount > used ? amount - used : eosio::asset(0, _root_govern_symbol);
     });
   } else {
     const eosio::asset available = Branch::outstanding_of(coopname, *it, period);

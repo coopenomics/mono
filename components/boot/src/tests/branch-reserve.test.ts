@@ -161,6 +161,37 @@ describe('экономика участка — резерв социально-
     })).rejects.toThrow(/BRANCH_AID_OVER_RESERVE/)
   })
 
+  it('снятие и новая запись резерва в том же периоде не возвращают израсходованное право', async () => {
+    // Дыра ревью 10.11.2026: новая строка начинала с полной суммы, и получатель
+    // мог подать заявление, снять резерв, записать заново и подать ещё раз.
+    const before = await myReserve()
+    const month = (await rows('aidmonths')).find((r: any) => r.username === chairkrg.account)
+    expect(month, 'накопитель поданного за период ведётся').toBeDefined()
+    const used = Number.parseFloat(month.total)
+    expect(used, 'заявление из прошлого случая учтено в накопителе').toBeGreaterThan(0)
+
+    await push('delreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account })
+    await push('setreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account, amount: RESERVE })
+    const after = await myReserve()
+    // Период мог смениться между заявлением и новой записью — тогда новая строка
+    // по праву начинает с полной суммы; сравнение идёт только внутри одного периода.
+    if (Number(after.accrued_period) === Number(month.period) && Number(before.accrued_period) === Number(month.period)) {
+      const expected = Math.max(0, Number.parseFloat(RESERVE) - used)
+      expect(Number.parseFloat(after.outstanding), 'право новой строки — сумма минус уже поданное').toBeCloseTo(expected, 4)
+      const over = expected + 0.5
+      const hash = generateRandomSHA256()
+      await expect(push('createaid', {
+        coopname: COOP,
+        username: chairkrg.account,
+        braname: BRANAME,
+        aid_hash: hash,
+        amount: `${over.toFixed(4)} RUB`,
+        statement: aidStatement(chairkrg, hash),
+        meta: '{}',
+      })).rejects.toThrow(/BRANCH_AID_OVER_RESERVE/)
+    }
+  })
+
   it('setaidperiod: меньше минуты — отказ; при 600 с право начисляется по номеру отрезка; при 60 с через период право больше суммы строки — невзятое не сгорает; ноль — календарный месяц', async () => {
     const before = (await rows('brnconfig', 1))[0]
     const prev = Number(before?.aid_period_seconds ?? 0)

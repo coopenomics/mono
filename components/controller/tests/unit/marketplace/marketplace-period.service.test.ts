@@ -200,6 +200,19 @@ describe('mkt.order.keu.11 — факты месяца', () => {
 
     const onlyRefund = build({ history: [{ globalSequence: '1', action: 'apply', operationCode: 'o.brn.expunf', processHash: 'x', quantity: '10.0000 RUB' }] });
     expect((await onlyRefund.service.collectFacts(COOP, BRANAME, NOVEMBER)).memos).toBe(0n);
+
+    // Возврат неизрасходованного по записке плана пришёл в месяц после выделения:
+    // сумма по плану меньше нуля и вычитается из записок сверх плана — траты месяца считаются вместе.
+    const lateRefund = build({
+      plans: [{ id: 2, branchName: BRANAME, title: 'Транспорт', amount: '50000.0000 RUB', dueDate: inNov, proposalHash: 'P1', paidAt: inNov }],
+      history: [
+        { globalSequence: '1', action: 'apply', operationCode: 'o.brn.expunf', processHash: 'p1', quantity: '30000.0000 RUB' },
+        { globalSequence: '2', action: 'apply', operationCode: 'o.brn.expfnd', processHash: 'm1', quantity: '70000.0000 RUB' },
+      ],
+    });
+    const late = await lateRefund.service.collectFacts(COOP, BRANAME, NOVEMBER);
+    expect(late.planned).toBe(0n);
+    expect(late.memos).toBe(toUnits('40000.0000'));
   });
 
   it('mkt.order.keu.19 — помощь за месяц: с персонального кошелька — в тратах; оплаченная средствами инициаторов — нет', async () => {

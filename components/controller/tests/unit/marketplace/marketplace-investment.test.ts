@@ -143,7 +143,9 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
   it('istok.12 — после полного возмещения инициатор остаётся: «возмещено полностью», внесено деньгами всего без вычета переведённого; строка прежней сборки без поля — внесённым считается остаток', async () => {
     const w = world();
     const branch = await w.chainPort.getInvestBranch();
-    w.chainPort.getInvestBranch.mockResolvedValue({ ...branch, base: '0', acc: '0', unused_total: toAsset(0n), reserved: toAsset(0n) });
+    // Неиспользованные деньги завершившего возврат остаются в средствах участка, пока он
+    // их не забрал (ревью 10.11.2026): 500 ₽ Веры и 300 ₽ Глеба.
+    w.chainPort.getInvestBranch.mockResolvedValue({ ...branch, base: '0', acc: '0', unused_total: toAsset(rub(800)), reserved: toAsset(0n) });
     // Пример стенда 4: 1000 ₽ деньгами (не использованы) и имущество 1100 ₽,
     // возмещено 1100 ₽, всё переведено на главный паевой кошелёк.
     const settled = {
@@ -163,6 +165,12 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
     expect(gleb).toMatchObject({ settled: false, money_in: rub(300) });
     expect(view.money_in_total).toBe(rub(1_000 + 500 + 300));
     expect(view.phase).toBe(MarketplaceInvestPhase.RETURNED);
+
+    // Деньги Веры выделены под расход участка, который ещё не оплачен: забрать
+    // можно только возмещённое, выделенное остаётся в участке до оплаты либо отказа.
+    w.chainPort.getInvestBranch.mockResolvedValue({ ...branch, base: '0', acc: '0', unused_total: toAsset(rub(800)), reserved: toAsset(rub(800)) });
+    const held = await w.service.getBranchInvestment(COOP, 'krg');
+    expect(held.investors[1]).toMatchObject({ username: 'vera', claimable: rub(1_100) });
   });
 
   it('istok.04 — вносит только оператор участка: отказ до цепи с кодом', async () => {

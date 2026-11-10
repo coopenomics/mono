@@ -34,7 +34,6 @@ import {
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplacePeriodService } from './marketplace-period.service';
 import { aidPeriodKey } from './marketplace-branch-reserve.service';
-import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
 import { MarketplaceSecurePartState, type MarketplaceSecurePartDTO } from '../dto/marketplace-secure-part.dto';
 import { MarketplaceOrderStatuses, type MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 
@@ -632,18 +631,7 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
     const counters = (await this.chainPort.listDueCounters(coopname)).filter((c) => Number(c.period) < current);
     const { queue, keepByBranch } = await this.ripeRows(coopname, counters, current);
 
-    // Итоги закончившихся периодов: по счётчику участка, от старых к новым —
-    // собранная часть цели резерва переходит из итога в итог (задача 99D-34).
-    // Счётчик без стоимости (одни удержания при отказе или всё возвращено по
-    // гарантии) — как месяц без заказов: итог считается, если месяцу есть что нести.
-    const ordered = [...counters].sort((a, b) => Number(a.period) - Number(b.period) || String(a.braname).localeCompare(String(b.braname)));
-    for (const counter of ordered) {
-      const braname = String(counter.braname);
-      const empty = this.economyService.assetToUnits(String(counter.turnover ?? '0')) <= 0n;
-      await this.ensurePeriod(coopname, braname, Number(counter.period), Number(counter.members ?? 0), current, keepByBranch.get(braname) ?? new Set(), empty);
-    }
-    await this.closeQuietMonth(coopname, current, counters, keepByBranch);
-
+    await this.closeEndedPeriods(coopname, current, counters, keepByBranch);
     const summary = new ChargedCollector();
     let failed = 0;
     for (const row of queue.slice(0, CHARGE_BATCH_LIMIT)) {
@@ -658,6 +646,46 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
       this.eventBus.emit(MARKETPLACE_INVEST_REPAID_EVENT, event);
     }
     return { charged: summary.charged, failed };
+  }
+
+  /**
+   * Итоги закончившихся периодов прохода: по счётчикам участков, затем месяц
+   * без выданных заказов, затем стирание старых итогов.
+   */
+  private async closeEndedPeriods(
+    coopname: string,
+    current: number,
+    counters: MarketContract.Tables.Counters.IKuCounter[],
+    keepByBranch: Map<string, Set<number>>
+  ): Promise<void> {
+    // Итоги закончившихся периодов: по счётчику участка, от старых к новым —
+    // собранная часть цели резерва переходит из итога в итог (задача 99D-34).
+    // Счётчик без стоимости (одни удержания при отказе или всё возвращено по
+    // гарантии) тоже получает итог: расчёт стирает счётчик из цепи, иначе он
+    // оставался бы в ней навсегда и читался каждым проходом.
+    //
+    // Порядок итогов участка — строгий. Итог не рассчитан (сбой цепи) — более
+    // поздние месяцы этого участка в проходе не считаются: расчёт следующего
+    // месяца взял бы собранную часть цели из позапрошлой строки, и участок
+    // собрал бы цель резерва второй раз. Участок ждёт следующего прохода.
+    const ordered = [...counters].sort((a, b) => Number(a.period) - Number(b.period) || String(a.braname).localeCompare(String(b.braname)));
+    const blocked = new Set<string>();
+    const closedBranches = new Set<string>();
+    for (const counter of ordered) {
+      const braname = String(counter.braname);
+      if (blocked.has(braname)) continue;
+      const ok = await this.ensurePeriod(coopname, braname, Number(counter.period), Number(counter.members ?? 0));
+      if (ok) closedBranches.add(braname);
+      else blocked.add(braname);
+    }
+    await this.closeQuietMonth(coopname, current, counters, blocked, closedBranches);
+    // Старые итоги стираются после всех расчётов прохода: участок, который
+    // догоняет несколько месяцев, считает каждый по строке предыдущего, и
+    // стирать её между расчётами нельзя — расчёт увидел бы ноль (задача 99D-34).
+    for (const braname of [...closedBranches].sort()) {
+      if (blocked.has(braname)) continue;
+      await this.periodService.pruneOld(coopname, braname, current, keepByBranch.get(braname) ?? new Set());
+    }
   }
 
   /**
@@ -699,21 +727,16 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
   }
 
   /**
-   * Итог участка за закончившийся период: расчёт контрактом и зеркало, затем
-   * прежние итоги, по которым в цепи не осталось строк, стираются (в цепи
-   * живут итоги двух периодов). Сбой расчёта не роняет проход: строки участка ждут
-   * следующего прохода.
+   * Итог участка за закончившийся период: расчёт контрактом и зеркало. Сбой
+   * расчёта не роняет проход: `false` — участок ждёт следующего прохода, и его
+   * более поздние месяцы в этом проходе не считаются. `quiet` — месяц без
+   * счётчика участка: строки может не быть, это не сбой.
    */
-  private async ensurePeriod(coopname: string, braname: string, period: number, rowsTotal: number, current: number, keep: ReadonlySet<number>, quiet = false): Promise<MarketplaceBranchPeriodEntity | null> {
+  private async ensurePeriod(coopname: string, braname: string, period: number, rowsTotal: number, quiet = false): Promise<boolean> {
     try {
-      // Сначала итог, потом стирание старых строк: контракт берёт собранную
-      // часть цели резерва из прошлой строки участка (задача 99D-34), и стирать
-      // её до расчёта нельзя — расчёт увидел бы ноль.
-      const row = quiet
-        ? await this.periodService.ensureQuietClosed(coopname, braname, period)
-        : await this.periodService.ensureClosed(coopname, braname, period, rowsTotal);
-      await this.periodService.pruneOld(coopname, braname, current, keep);
-      return row;
+      if (quiet) await this.periodService.ensureQuietClosed(coopname, braname, period);
+      else await this.periodService.ensureClosed(coopname, braname, period, rowsTotal);
+      return true;
     } catch (err: any) {
       const code = chainErrorCode(err);
       if (code === PERIOD_EMPTY) {
@@ -721,7 +744,7 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
       } else {
         this.logger.error(`Итог периода ${period} участка ${braname} не рассчитан: ${err.message}`);
       }
-      return null;
+      return false;
     }
   }
 
@@ -730,19 +753,22 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
    * счётчика нет, но расходы, цель резерва и право получателей помощи у месяца
    * есть — без итога они терялись. Участки — те, у кого есть строки итога в
    * цепи, строки резерва помощи или записи реестра планов. Нечего нести —
-   * строки нет (решает `ensureQuietClosed`).
+   * строки нет (решает `ensureQuietClosed`). Участок, у которого в этом проходе
+   * не рассчитан итог более раннего месяца, пропускается: порядок итогов строгий.
    */
   private async closeQuietMonth(
     coopname: string,
     current: number,
     counters: MarketContract.Tables.Counters.IKuCounter[],
-    keepByBranch: Map<string, Set<number>>
+    blocked: Set<string>,
+    closedBranches: Set<string>
   ): Promise<void> {
     const period = current - 1;
     const withCounter = new Set(counters.filter((c) => Number(c.period) === period).map((c) => String(c.braname)));
     for (const braname of await this.periodService.quietCandidates(coopname)) {
-      if (withCounter.has(braname)) continue;
-      await this.ensurePeriod(coopname, braname, period, 0, current, keepByBranch.get(braname) ?? new Set(), true);
+      if (withCounter.has(braname) || blocked.has(braname)) continue;
+      if (await this.ensurePeriod(coopname, braname, period, 0, true)) closedBranches.add(braname);
+      else blocked.add(braname);
     }
   }
 

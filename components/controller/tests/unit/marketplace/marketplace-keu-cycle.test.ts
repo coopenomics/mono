@@ -497,12 +497,17 @@ describe('mkt.order.keu.cycle.05 — какие строки входят в п�
     expect(world.wallets.branch.get('branch1')! >= rub(500)).toBe(true);
   });
 
-  it('только удержания за месяц: итога нет, участок получает удержания целиком', async () => {
+  it('только удержания за месяц: итог без стоимости стирает счётчик участка из цепи, участок получает удержания целиком', async () => {
     const world = createKeuWorld();
     await world.penalize({ hash: hashOf(901), username: 'boris', braname: 'branch1', due: rub(500), issuedAt: dayOf(2027, 1, 9) });
     expect(await world.run(firstOfMonth(2027, 2))).toEqual({ charged: 1, failed: 0 });
-    expect(world.calls.closePeriod).toHaveLength(0);
-    expect(world.chainPeriod('branch1', periodOf(2027, 1))).toBeUndefined();
+    // Счётчик без стоимости тоже получает итог: без расчёта он оставался бы в
+    // цепи навсегда и читался каждым проходом (ревью 10.11.2026).
+    expect(world.calls.closePeriod).toHaveLength(1);
+    expect(world.chainPeriod('branch1', periodOf(2027, 1))).toBeDefined();
+    // Второй проход считать нечего: счётчика в цепи больше нет.
+    await world.run(firstOfMonth(2027, 2));
+    expect(world.calls.closePeriod).toHaveLength(1);
     expect(world.wallets.branch.get('branch1')).toBe(rub(500));
     expect(world.notifications.notifyUser).toHaveBeenCalledWith('boris', expect.any(String), expect.objectContaining({ ratePercent: '100.00' }));
   });

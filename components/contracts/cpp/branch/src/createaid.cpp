@@ -92,6 +92,9 @@
       r.accrued_period = period;
       r.outstanding = available - amount;
     });
+    // Поданное за период — в накопитель: новая строка резерва, заведённая в
+    // этом же периоде, начнёт с суммы за вычетом уже поданного.
+    Branch::note_aid_used(coopname, username, period, amount.amount);
   }
 
   branch_aids_index aids(_branch, coopname.value);

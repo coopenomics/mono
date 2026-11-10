@@ -26,8 +26,11 @@
  *   РК   = max(0, ПО + СЗ + МП + T − F_пр)   расходы участка за месяц
  *   У    = min(C, РК)                        участку на расходы — первыми (решение владельца 03.11.2026)
  *   Д    = РК − У                            дефицит расходов
- *   F    = max(0, T − Д)                     собранная часть цели: траты месяца
- *                                            покрываются первыми, цель — последней
+ *   F    = max(0, T − Д) + излишек           собранная часть цели: траты месяца
+ *                                            покрываются первыми, цель — последней;
+ *                                            излишек = max(0, F_пр − ПО − СЗ − МП − T) —
+ *                                            собранное прошлым итогом сверх нужного
+ *                                            переходит дальше и не собирается заново
  *   p, Ф, М, Э, И, В, ставки — как раньше:
  *   Ф    = (C − У) × p / H,  М = У + Ф,  Э = C − У − Ф,  И = Э × φи / H,  В = Э − И
  *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T   (T — стоимость заказов; ноль — ставки ноль)
@@ -136,6 +139,12 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     unpaid = reserve_prev > aid_paid ? reserve_prev - aid_paid : eosio::asset(0, _root_govern_symbol);
     expenses_amount = planned.amount + memos.amount + reserve.amount - unpaid.amount;
   }
+  // Собрано прошлым итогом больше, чем понадобилось (запись плана снята или
+  // перенесена, помощь оплатили средства инициаторов, заявление подано, но ещё
+  // не выплачено): расходы месяца — ноль, а излишек остаётся собранной частью
+  // цели и уменьшает расходы следующих месяцев. Без переноса участок собрал бы
+  // эти деньги второй раз.
+  const int64_t surplus_amount = expenses_amount < 0 ? -expenses_amount : 0;
   if (expenses_amount < 0) expenses_amount = 0;
   const eosio::asset expenses(expenses_amount, _root_govern_symbol);
 
@@ -163,7 +172,9 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     return static_cast<uint64_t>(static_cast<uint128_t>(part) * H / static_cast<uint128_t>(turnover.amount));
   };
   // Собранная часть цели: собранное идёт сначала на траты месяца, цель — последней.
-  const int64_t funded_amount = target.amount > deficit_amount ? target.amount - deficit_amount : 0;
+  // Излишек прошлого сбора прибавляется: он возможен только при нулевых
+  // расходах, то есть без дефицита.
+  const int64_t funded_amount = (target.amount > deficit_amount ? target.amount - deficit_amount : 0) + surplus_amount;
 
   periods.emplace(RamPayer::of(periods, coopname), [&](auto& row) {
     row.id = periods.available_primary_key();

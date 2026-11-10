@@ -119,7 +119,10 @@ inline RepayParts split_repay(int64_t amount, int64_t money_units, int64_t units
 }
 
 /// Завершить возврат инициатора: вывести из базы, вернуть переплату — по
-/// долям денег и имущества его единиц.
+/// долям денег и имущества его единиц. Неиспользованные деньги остаются в
+/// средствах участка (`unused_total`) и в очереди расхода, пока инициатор не
+/// забрал их заявлением: часть из них может быть выделена под расход или
+/// помощь, которые ещё не оплачены, и оплата обязана найти эти деньги.
 inline RepayParts complete(mkt_invbranch& b, mkt_investor& i) {
   leave_base(b, i);
   const int64_t u = i.units();
@@ -128,7 +131,6 @@ inline RepayParts complete(mkt_invbranch& b, mkt_investor& i) {
   i.returned_fixed -= excess;
   i.status = Status::DONE;
   i.acc_done = OUT_OF_RANGE;
-  if (i.unused() > 0) b.unused_total.amount -= i.unused();
   return split_repay(excess, i.used_money.amount, u);
 }
 
@@ -150,11 +152,10 @@ inline Claimable claimable_of(const mkt_invbranch& b, const mkt_investor& i) {
   const bool release_unused = i.status == Status::DONE || b.base <= 0;
   if (release_unused && i.unused() > 0) {
     c.unused = i.unused();
-    // Деньги, выделенные в пул и ещё не израсходованные, держат неиспользованное.
-    if (i.status == Status::ACTIVE) {
-      const int64_t free = b.unused_total.amount - b.reserved.amount;
-      if (c.unused > free) c.unused = free > 0 ? free : 0;
-    }
+    // Деньги, выделенные в пул и ещё не израсходованные, держат неиспользованное
+    // у любого инициатора — и у завершившего возврат.
+    const int64_t free = b.unused_total.amount - b.reserved.amount;
+    if (c.unused > free) c.unused = free > 0 ? free : 0;
   }
   return c;
 }
@@ -227,7 +228,7 @@ inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
   auto by_user = investors.get_index<"byuser"_n>();
   for (auto it = by_user.lower_bound(username.value);
        it != by_user.end() && it->username == username; ++it) {
-    if (it->status != Status::ACTIVE || it->unused() <= 0) continue;
+    if (it->unused() <= 0) continue;
     auto bit = branches.find(it->braname.value);
     if (bit == branches.end()) continue;
     eosio::check(bit->unused_total.amount - it->unused() >= bit->reserved.amount,
@@ -282,10 +283,9 @@ inline void add_investment(eosio::name coopname, eosio::name braname, eosio::nam
   } else {
     row = *it;
     leave_base(b, row);
-    if (row.status == Status::DONE) {
-      row.status = Status::ACTIVE;
-      if (row.unused() > 0) b.unused_total.amount += row.unused();
-    }
+    // Неиспользованные деньги завершившего возврат из средств участка не
+    // выбывали — прибавлять их заново не нужно.
+    if (row.status == Status::DONE) row.status = Status::ACTIVE;
   }
 
   // До прибавки: у строки прежней сборки запасное значение — текущий остаток.

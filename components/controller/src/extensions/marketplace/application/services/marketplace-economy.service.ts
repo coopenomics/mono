@@ -804,6 +804,38 @@ export class MarketplaceEconomyService {
 
     this.verifyDocumentSignature(input.statement as unknown as SignedDigitalDocumentInputDTO, username);
 
+    // Запись плана проверяется ДО цепи: контракт о реестре планов не знает и
+    // примет вторую записку по той же записи — участок выделил бы деньги
+    // дважды, а совет получил бы два вопроса об одном расходе. Привязка после
+    // цепи эту подачу уже не остановит.
+    const planId = input.plan_id ?? null;
+    if (planId !== null) {
+      await this.assertPlanPayable(coopname, input.braname, planId);
+      this.launchingPlans.add(planId);
+    }
+    try {
+      return await this.submitBranchExpense(coopname, username, input);
+    } finally {
+      if (planId !== null) this.launchingPlans.delete(planId);
+    }
+  }
+
+  /** Записи плана, по которым записка прямо сейчас подаётся в цепь: вторая подача той же записи ждать не будет. */
+  private readonly launchingPlans = new Set<number>();
+
+  /**
+   * Запись плана можно оплатить: она принадлежит участку, оплата по ней не
+   * запущена и не завершена, и другая подача по ней сейчас не идёт.
+   */
+  private async assertPlanPayable(coopname: string, braname: string, planId: number): Promise<void> {
+    if (this.launchingPlans.has(planId)) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
+    const plan = (await this.expenseChassis.listPlans(coopname, braname)).find((p) => Number(p.id) === Number(planId));
+    if (!plan || plan.branchName !== braname) throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
+    if (plan.proposalHash || plan.paidAt) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
+  }
+
+  /** Подача записки на расход участка: реквизиты, цепь, снимок реквизитов и привязка записи плана. */
+  private async submitBranchExpense(coopname: string, username: string, input: CreateBranchExpenseInputDTO): Promise<string> {
     const requisiteItems = input.items.map((item) => ({
       proposalHash: input.expense_hash,
       itemHash: item.item_hash,

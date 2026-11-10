@@ -98,7 +98,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_invbranch {
   eosio::name  braname;        ///< кооперативный участок (первичный ключ)
   eosio::asset money_total;    ///< внесено деньгами по строкам инициаторов участка (за вычетом забранного неиспользованного)
   eosio::asset property_total; ///< внесено имуществом по цене приёма
-  eosio::asset unused_total;   ///< деньги активных инициаторов, ещё не израсходованные из пула
+  eosio::asset unused_total;   ///< деньги инициаторов, ещё не израсходованные из пула и не забранные заявлением
   eosio::asset reserved;       ///< выделено в пул под расходы и помощь и ещё не израсходовано
   eosio::asset spent_total;    ///< оплачено из пула всего
   eosio::asset repaid_total;   ///< возмещено из экономии участка на w.mkt.repay всего
@@ -158,9 +158,10 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_investor {
   eosio::asset money_in_or_current() const { return money_in.has_value() ? money_in.value() : money; }
   int64_t unused() const { return money.amount - used_money.amount; }
 
-  /// Очередь расхода денег: активные с неиспользованными деньгами по порядку входа.
+  /// Очередь расхода денег: инициаторы с неиспользованными деньгами по порядку
+  /// входа. Завершивший возврат остаётся в очереди, пока не забрал деньги.
   uint128_t by_unused() const {
-    const bool in_queue = status == MarketInvest::Status::ACTIVE && unused() > 0;
+    const bool in_queue = unused() > 0;
     return combine_ids(braname.value, in_queue ? join_seq : MarketInvest::OUT_OF_RANGE);
   }
   /// Очередь завершения: активные в базе по счётчику полного возврата.

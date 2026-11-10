@@ -21,8 +21,7 @@ void marketplace::exitinv(eosio::name coopname, eosio::name username) {
       mkt_invbranch b = *bit;
       mkt_investor row = *it;
       MarketInvest::leave_base(b, row);
-      if (row.status == MarketInvest::Status::ACTIVE && row.unused() > 0)
-        b.unused_total.amount -= row.unused();
+      if (row.unused() > 0) b.unused_total.amount -= row.unused();
       b.money_total.amount    -= row.money.amount;
       b.property_total.amount -= row.property.amount;
       branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });

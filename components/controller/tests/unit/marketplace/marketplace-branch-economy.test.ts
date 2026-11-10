@@ -395,3 +395,59 @@ describe('Заявление на материальную помощь: ист�
     await expect(submit({ balances: [personal(CHAIRMAN, '50.0000')] }, 100)).rejects.toMatchObject({ code: 'MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS' });
   });
 });
+
+describe('Записка на расход по записи плана: проверка записи до цепи', () => {
+  // Контракт о реестре планов не знает: вторую записку по той же записи он
+  // примет, участок выделит деньги дважды, а совет получит два вопроса об одном
+  // расходе. Поэтому запись проверяет узел — до отправки в цепь.
+  const input = (planId: number) => ({ braname: BRANCH, expense_hash: 'e'.repeat(64), items: [], statement: {}, plan_id: planId }) as any;
+  const plan = (over: Record<string, unknown> = {}) => ({ id: 7, branchName: BRANCH, title: 'Аренда', amount: '50000.0000 RUB', dueDate: new Date(), proposalHash: null, paidAt: null, ...over });
+
+  function build(plans: unknown[]) {
+    const ctx = buildService({});
+    ctx.expenseChassis.listPlans.mockResolvedValue(plans);
+    jest.spyOn(ctx.service as any, 'verifyDocumentSignature').mockImplementation(() => undefined);
+    const submit = jest.spyOn(ctx.service as any, 'submitBranchExpense').mockResolvedValue('e'.repeat(64));
+    return { ...ctx, submit };
+  }
+
+  it('оплата по записи уже запущена — вторая записка в цепь не подаётся', async () => {
+    const { service, submit } = build([plan({ proposalHash: 'a'.repeat(64) })]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_ALREADY_STARTED' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('запись уже оплачена — записка в цепь не подаётся', async () => {
+    const { service, submit } = build([plan({ paidAt: new Date() })]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_ALREADY_STARTED' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('записи нет в реестре этого участка — отказ до цепи', async () => {
+    const { service, submit } = build([plan({ id: 8 }), plan({ id: 7, branchName: 'odn' })]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_NOT_FOUND' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('две подачи по одной записи одновременно: вторая отклоняется, пока первая в цепи; после первой запись снова проверяется по реестру', async () => {
+    const { service, submit } = build([plan()]);
+    let release: (hash: string) => void = () => undefined;
+    submit.mockImplementationOnce(() => new Promise<string>((resolve) => { release = resolve; }));
+    const first = service.createBranchExpense(COOP, CHAIRMAN, input(7));
+    // Первая подача дошла до цепи и ждёт ответа.
+    await new Promise((resolve) => setImmediate(resolve));
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_ALREADY_STARTED' });
+    release('e'.repeat(64));
+    await expect(first).resolves.toBe('e'.repeat(64));
+    expect(submit).toHaveBeenCalledTimes(1);
+    // Первая подача упала бы — запись освобождается, и подать можно заново.
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).resolves.toBe('e'.repeat(64));
+  });
+
+  it('записка без записи плана реестр не читает', async () => {
+    const { service, submit, expenseChassis } = build([]);
+    await service.createBranchExpense(COOP, CHAIRMAN, { ...input(7), plan_id: undefined });
+    expect(expenseChassis.listPlans).not.toHaveBeenCalled();
+    expect(submit).toHaveBeenCalledTimes(1);
+  });
+});

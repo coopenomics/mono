@@ -451,6 +451,113 @@ describe('эталон возврата паевых взносов инициа
     expect(all.total, 'одним заявлением — всё внесённое').toBe(300_000n * R)
   })
 
+  it('возврат завершён, а деньги инициатора выделены под расход: забрать можно только свободное', () => {
+    const w = world()
+    const a = w.investor()
+    w.money(a, 100_000n * R)
+    w.spend(a, 60_000n * R)
+    // Под новый расход выделено 40 000 — записка ещё не оплачена.
+    w.b.reserved = 40_000n * R
+    w.repay(60_000n * R)
+    // Контракт завершает возврат: инициатор вне базы, деньги остаются в средствах участка.
+    const done = { ...a, active: false, returnedFixed: 60_000n * R }
+    const held = crpsClaimable({ ...w.b, base: 0n }, done)
+    expect(held.returned).toBe(60_000n * R)
+    expect(held.unused, 'выделенное под расход забрать нельзя').toBe(0n)
+    // Записку отклонили, выделение снято наполовину — свободна половина.
+    const half = crpsClaimable({ ...w.b, base: 0n, reserved: 20_000n * R }, done)
+    expect(half.unused).toBe(20_000n * R)
+    const free = crpsClaimable({ ...w.b, base: 0n, reserved: 0n }, done)
+    expect(free.total, 'без выделения — всё внесённое').toBe(100_000n * R)
+  })
+
+  it('выделенное под расходы всегда обеспечено: три тысячи случайных действий, оплата каждого выделения находит деньги', () => {
+    // Правила контракта (invest.hpp, spentipool, claiminv) после ревью 10.11.2026:
+    // неиспользованные деньги завершившего возврат остаются в средствах участка
+    // и в очереди расхода, пока он не забрал их; забрать можно только свободное.
+    const w = world()
+    const rand = prng(3408)
+    const pick = (n: number) => Math.floor(rand() * n)
+    const rows = [w.investor(), w.investor(), w.investor()]
+    const unused = (i: Inv) => i.money - i.usedMoney
+    const units = (i: Inv) => i.usedMoney + i.property
+    /** Деньги завершившего возврат снова в деле: он возвращается в базу. */
+    const reactivate = (i: Inv) => {
+      if (i.active)
+        return
+      i.active = true
+      i.accJoin = w.b.acc
+    }
+    /** Завершение возврата: вне базы, возвращённое ровно в использованное; деньги остаются в очереди. */
+    const completeDone = () => {
+      for (const i of rows) {
+        if (i.active && units(i) > 0n && crpsReturned(i, w.b.acc) >= units(i)) {
+          w.leaveAll(i)
+          i.returnedFixed = units(i)
+          i.active = false
+        }
+      }
+    }
+    /** Оплата выделенного: деньги берутся по очереди входа у всех, у кого они есть. */
+    const pay = (amount: bigint) => {
+      let rest = amount
+      for (const i of rows) {
+        if (rest === 0n)
+          break
+        const take = rest < unused(i) ? rest : unused(i)
+        if (take <= 0n)
+          continue
+        // Завершивший возврат возвращается в базу: его деньги снова израсходованы.
+        reactivate(i)
+        w.spend(i, take)
+        rest -= take
+      }
+      expect(rest, 'оплата выделенного нашла деньги инициаторов').toBe(0n)
+      w.b.reserved -= amount
+    }
+    let completed = 0
+    let heldByReserve = 0
+    for (let step = 0; step < 3000; step++) {
+      const kind = pick(6)
+      const free = w.b.unusedTotal - w.b.reserved
+      if (kind === 0) {
+        const i = rows[pick(3)]
+        reactivate(i)
+        w.money(i, BigInt(1 + pick(50_000)) * R)
+      }
+      else if (kind === 1 && free > 0n) {
+        const want = BigInt(1 + pick(Number(free / R) || 1)) * R
+        w.b.reserved += want > free ? free : want
+      }
+      else if (kind === 2 && w.b.reserved > 0n) {
+        pay(rand() < 0.5 ? w.b.reserved : w.b.reserved / 2n)
+      }
+      else if (kind === 3 && w.b.reserved > 0n) {
+        w.b.reserved -= w.b.reserved / 2n // отказ совета: выделение снято
+      }
+      else if (kind === 4 && w.b.base > 0n) {
+        w.repay(BigInt(1 + pick(80_000)) * R)
+        const before = rows.filter(i => !i.active).length
+        completeDone()
+        completed += rows.filter(i => !i.active).length - before
+      }
+      else if (kind === 5) {
+        const i = rows[pick(3)]
+        const c = crpsClaimable(w.b, i)
+        if (!i.active && unused(i) > c.unused)
+          heldByReserve++
+        i.claimed += c.returned
+        i.money -= c.unused
+        w.b.unusedTotal -= c.unused
+      }
+      const total = rows.reduce((sum, i) => sum + unused(i), 0n)
+      expect(w.b.unusedTotal, `шаг ${step}: средства участка — сумма неиспользованного по строкам`).toBe(total)
+      expect(w.b.unusedTotal >= w.b.reserved, `шаг ${step}: выделенное обеспечено`).toBe(true)
+    }
+    expect(completed, 'среди действий были завершения возврата').toBeGreaterThan(0)
+    expect(heldByReserve, 'выделенное удерживало деньги завершившего возврат').toBeGreaterThan(0)
+  })
+
   it('фиксация при изменении единиц не меняет возвращённое; сумма возвращённого не больше возмещённого', () => {
     const w = world()
     const a = w.investor()
@@ -493,13 +600,16 @@ describe('эталон возврата паевых взносов инициа
         const amount = BigInt(1 + rnd(50_000)) * R
         w.money(p, amount)
         invested[k]! += amount
-      } else if (p.active && step === 1) {
+      }
+      else if (p.active && step === 1) {
         const amount = BigInt(1 + rnd(30_000)) * R
         w.property(p, amount)
         invested[k]! += amount
-      } else if (p.active && step === 2) {
+      }
+      else if (p.active && step === 2) {
         const free = p.money - p.usedMoney
-        if (free > 0n) w.spend(p, free / BigInt(1 + rnd(4)))
+        if (free > 0n)
+          w.spend(p, free / BigInt(1 + rnd(4)))
       }
       repaid += w.repay(BigInt(rnd(20_000)) * R).repay
       // Как контракт после возмещения: завершившие выходят из базы, возвращённое
@@ -507,7 +617,8 @@ describe('эталон возврата паевых взносов инициа
       for (const q of people) {
         const u = q.usedMoney + q.property
         const r = crpsReturned(q, w.b.acc)
-        if (!q.active || u <= 0n || r < u) continue
+        if (!q.active || u <= 0n || r < u)
+          continue
         w.leaveAll(q)
         q.active = false
         q.returnedFixed = u
@@ -535,10 +646,9 @@ describe('эталон возврата паевых взносов инициа
       const gap = crpsOutstanding(w.b) - (usedActive - returnedActive)
       expect(gap >= -BigInt(people.length) && gap <= BigInt(people.length), 'остаток участка = использовано − возвращено').toBe(true)
     }
-    expect(people.some((q) => !q.active), 'за две тысячи месяцев кто-то завершил возврат').toBe(true)
+    expect(people.some(q => !q.active), 'за две тысячи месяцев кто-то завершил возврат').toBe(true)
   })
 })
-
 
 // ── Списание строки счётчика пайщика (задача 99D-33) ─────────────────────────
 describe('mkt.order.keu.model.05 — деление строки счётчика пайщика: ставки по стоимости, удержание целиком участку', () => {
@@ -585,6 +695,49 @@ describe('mkt.order.keu.model.06 — расходы по цели резерва
     const deleted = byTarget(200_000, { fundedPrev: october.funded })
     expect(deleted.expenses).toBe(0n)
     expect(deleted.unpaid).toBe(0n)
+    // Собранные 50 000 остаются собранной частью цели — запасом участка.
+    expect(deleted.target).toBe(0n)
+    expect(deleted.funded, 'излишек прошлого сбора переходит дальше').toBe(rub(50_000))
+    // Аренду вернули в план: деньги на неё уже собраны, второй раз участок их не собирает.
+    const restored = byTarget(200_000, { plannedTarget: rub(50_000), fundedPrev: deleted.funded })
+    expect(restored.expenses).toBe(0n)
+    expect(restored.funded).toBe(rub(50_000))
+  })
+
+  it('заявление подано, но выплачено в следующем месяце: за два месяца участок собирает ровно столько, сколько нужно', () => {
+    // К октябрю право получателя накоплено и собрано: 300 000 (три месяца по 100 000).
+    // Октябрь: получатель подал заявление на все 300 000, выплаты ещё нет. Право
+    // на ноябрь — только сумма строки, 100 000; трат нет.
+    const october = byTarget(500_000, { reserve: rub(100_000), fundedPrev: rub(300_000) })
+    expect(october.expenses, 'собрано больше нужного — расходов нет').toBe(0n)
+    expect(october.funded, 'собранные 300 000 никуда не делись').toBe(rub(300_000))
+    // Ноябрь: 300 000 выплачены, право на декабрь — 200 000.
+    const november = byTarget(500_000, { aidPaid: rub(300_000), reserve: rub(200_000), fundedPrev: october.funded })
+    expect(november.expenses, 'только прирост права за два месяца').toBe(rub(200_000))
+    expect(november.funded).toBe(rub(200_000))
+    // Всего за два месяца: выплачено 300 000, цель выросла со 300 000 до 200 000 —
+    // собрать нужно 300 000 + 200 000 − 300 000 = 200 000.
+    expect(october.branch + november.branch).toBe(rub(200_000))
+  })
+
+  it('движение собранной части цели: за месяц она растёт на собранное участку и убывает на траты', () => {
+    const rand = prng(3407)
+    let fundedPrev = 0n
+    for (let i = 0; i < 400; i++) {
+      const spent = { planned: rub(Math.round(rand() * 60_000)), memos: rub(Math.round(rand() * 40_000)), aidPaid: rub(Math.round(rand() * 100_000)) }
+      const t = byTarget(Math.round(rand() * 400_000), {
+        ...spent,
+        reserve: rub(Math.round(rand() * 300_000)),
+        plannedTarget: rub(Math.round(rand() * 150_000)),
+        fundedPrev,
+      })
+      const total = spent.planned + spent.memos + spent.aidPaid
+      // Дефицит больше цели — траты месяца остались непокрытыми, собранной части нет.
+      if (t.deficit > t.target)
+        expect(t.funded).toBe(0n)
+      else expect(t.funded, `месяц ${i}`).toBe(fundedPrev + t.branch - total)
+      fundedPrev = t.funded
+    }
   })
 
   it('помощь как оплата труда: несобранное в дефицитном месяце переходит дальше и гасится первым', () => {
@@ -635,7 +788,9 @@ describe('mkt.order.keu.model.06 — расходы по цели резерва
       })
       const secured = t.branch + t.funds + t.initiator + t.returned
       expect(t.branch <= t.expenses).toBe(true)
-      expect(t.funded <= t.target).toBe(true)
+      // Собранная часть выше цели только на излишек прошлого сбора — при нулевых расходах.
+      if (t.funded > t.target)
+        expect(t.expenses).toBe(0n)
       expect(secured).toBe(t.membership + t.economy)
     }
   })

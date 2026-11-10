@@ -37,8 +37,10 @@
     branch_reserves_index reserves(_branch, coopname.value);
     auto ridx = reserves.get_index<"bybruser"_n>();
     auto rit = ridx.find(combine_ids(it->braname.value, it->username.value));
+    const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
+    // Накопитель поданного за период уменьшается вместе с правом.
+    Branch::note_aid_used(coopname, it->username, period, -it->amount.amount);
     if (rit != ridx.end()) {
-      const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
       const eosio::asset available = Branch::outstanding_of(coopname, *rit, period);
       const eosio::asset amount = it->amount;
       ridx.modify(rit, RamPayer::of(ridx, coopname), [&](auto &r) {

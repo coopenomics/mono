@@ -170,3 +170,18 @@ cases:
     test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  # Ревью перед выпуском 10.11.2026: записка по записи плана проверяется до цепи.
+  - id: exp.plan.break.12
+    level: backend
+    kind: break
+    scenario: >
+      По записи плана оплата уже запущена либо запись оплачена, а председатель
+      участка подаёт по ней ещё одну записку; две подачи идут одновременно
+    expect: >
+      EXPENSES_PLAN_PAYMENT_ALREADY_STARTED до отправки в цепь; оплаченная запись
+      к новой записке не привязывается; участок не выделяет деньги дважды
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    external: unreachable
+    external_reason: "вторая подача требует второй подписанной записки председателя по той же записи; условие проверяется на уровне сервиса до цепи"
+    status: written

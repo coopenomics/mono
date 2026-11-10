@@ -56,7 +56,7 @@ export interface IPeriodTotals {
   unpaid: bigint
   /** T — цель резерва участка; по прежней формуле — ноль. */
   target: bigint
-  /** F — собранная часть цели; по прежней формуле — ноль. */
+  /** F — собранная часть цели вместе с излишком прошлого сбора; по прежней формуле — ноль. */
   funded: bigint
   /** РК — расходы участка за прогон. */
   expenses: bigint
@@ -100,7 +100,9 @@ function min(a: bigint, b: bigint): bigint {
 /**
  * Расчёт `closeperiod`: расходы участка первыми, из остатка проценты фондов,
  * остаток делят инициатор и пайщики. С задачи 99D-34 расходы — по цели резерва:
- * РК = траты из денег участка + T − F_пр, собранная часть цели F = max(0, T − Д).
+ * РК = траты из денег участка + T − F_пр, собранная часть цели
+ * F = max(0, T − Д) + излишек, где излишек = max(0, F_пр − траты − T): собранное
+ * прошлым итогом сверх нужного переходит дальше и не собирается второй раз.
  */
 export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
   const byTarget = facts.plannedTarget !== undefined
@@ -110,6 +112,9 @@ export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
     ? facts.planned + facts.memos + facts.aidPaid + target - (facts.fundedPrev ?? ZERO)
     : facts.planned + facts.memos + facts.reserve - unpaid
   const expenses = rawExpenses > ZERO ? rawExpenses : ZERO
+  // Собрано прошлым итогом больше, чем понадобилось: излишек остаётся
+  // собранной частью цели и уменьшает расходы следующих месяцев.
+  const surplus = byTarget && rawExpenses < ZERO ? -rawExpenses : ZERO
 
   const branch = min(expenses, facts.secured)
   const deficit = expenses - branch
@@ -121,7 +126,7 @@ export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
   const returned = economy - initiator
 
   const rate = (part: bigint) => (facts.turnover > ZERO ? part * HUNDR_PERCENTS / facts.turnover : ZERO)
-  const funded = byTarget && target > deficit ? target - deficit : ZERO
+  const funded = (byTarget && target > deficit ? target - deficit : ZERO) + surplus
   return {
     unpaid,
     target,
@@ -319,11 +324,11 @@ export function crpsClaimable(b: ICrpsBranch, i: ICrpsInvestor): { returned: big
   const unusedOwn = i.money - i.usedMoney
   if ((!i.active || b.base <= ZERO) && unusedOwn > ZERO) {
     unused = unusedOwn
-    if (i.active) {
-      const free = b.unusedTotal - b.reserved
-      if (unused > free)
-        unused = free > ZERO ? free : ZERO
-    }
+    // Выделенное под расход и ещё не оплаченное держит неиспользованное у
+    // любого инициатора — и у завершившего возврат.
+    const free = b.unusedTotal - b.reserved
+    if (unused > free)
+      unused = free > ZERO ? free : ZERO
   }
   return { returned, unused, total: returned + unused }
 }

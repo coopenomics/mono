@@ -66,7 +66,7 @@ void marketplace::claiminv(eosio::name coopname, eosio::name username, eosio::na
   if (c.unused > 0) {
     row.money.amount   -= c.unused;
     b.money_total.amount -= c.unused;
-    if (row.status == MarketInvest::Status::ACTIVE) b.unused_total.amount -= c.unused;
+    b.unused_total.amount -= c.unused;
   }
 
   // Забрано всё: инициатор вне базы возврата и вне очереди расхода денег.
