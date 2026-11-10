@@ -10,7 +10,7 @@ import { OperatorBranchBar, branchPersonName, branchPersonNames, useOperatorBran
 import { DigitalDocument } from 'src/shared/lib/document'
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, PageHint, StatStrip, VerticalStepper, WalletCard, type StatStripItem } from 'src/shared/ui/domain'
+import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
 import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/entities/MarketplaceInvestment'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
@@ -416,62 +416,84 @@ const availableToDistribute = computed(() =>
   economy.value ? assetAmount(economy.value.available_to_distribute) : 0
 )
 
-/** Число плитки: сумма до копеек и символ актива. */
-function tileMoney(asset: string | null | undefined): Pick<StatStripItem, 'value' | 'symbol'> {
-  return { value: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? '') }
+/**
+ * Сумма карточкой кошелька — канон столов Стола заказов (как «Оборот»):
+ * значок, заголовок, короткая подпись в одну строку, подробности — в
+ * подсказке у заголовка, сумма справа с подписью.
+ */
+interface SumCard {
+  key: string
+  icon: string
+  title: string
+  subtitle: string
+  hint?: string
+  balance: string
+  symbol: string
+  label: string
+}
+
+/** Сумма карточки: до копеек и символ актива. */
+function cardMoney(asset: string | null | undefined): Pick<SumCard, 'balance' | 'symbol'> {
+  return { balance: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? '') }
 }
 
 /**
- * Кошелёк участка одним рядом: что лежит, что держит резерв плановых
- * расходов и сколько можно распределить. Тот же ряд стоит на вкладке
+ * Кошелёк участка тремя карточками: что лежит, что держит резерв плановых
+ * расходов и сколько можно распределить. Те же карточки стоят на вкладке
  * распределения — сумма к распределению под рукой у кнопки.
  */
-const walletStripItems = computed<StatStripItem[]>(() => {
+const walletCards = computed<SumCard[]>(() => {
   const e = economy.value
+  const now = i18nT('marketplace.operatorBranchEconomyPage.investCardNow')
   return [
-    { key: 'common', icon: 'storefront', caption: i18nT('marketplace.operatorBranchEconomyPage.commonWalletTitle'),
-      ...tileMoney(e?.common_balance), sub: i18nT('marketplace.operatorBranchEconomyPage.commonWalletSubtitle') },
-    { key: 'reserve', icon: 'lock_clock', caption: i18nT('marketplace.operatorBranchEconomyPage.reserveTitle'),
-      ...tileMoney(e?.reserve_amount), sub: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle') },
-    { key: 'available', icon: 'call_split', caption: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeTitle'),
-      ...tileMoney(e?.available_to_distribute), sub: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle') },
+    { key: 'common', icon: 'storefront', title: i18nT('marketplace.operatorBranchEconomyPage.commonWalletTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.commonWalletSubtitle'), ...cardMoney(e?.common_balance), label: now },
+    { key: 'reserve', icon: 'lock_clock', title: i18nT('marketplace.operatorBranchEconomyPage.reserveTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle'), ...cardMoney(e?.reserve_amount), label: now },
+    { key: 'available', icon: 'call_split', title: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle'), ...cardMoney(e?.available_to_distribute), label: now },
   ]
 })
 
 /**
- * Текущий месяц плитками: расходы месяца, выданные заказы, их обеспечительная
+ * Текущий месяц карточками: расходы месяца, выданные заказы, их обеспечительная
  * часть, ожидаемый итог (недостача или сумма сверх расходов) и средства
  * инициаторов участка. Итог считается по тем же правилам, что прогон, но
  * ставок у идущего месяца нет — это ожидание, а не расчёт.
  */
-const currentStripItems = computed<StatStripItem[]>(() => {
+const currentCards = computed<SumCard[]>(() => {
   const c = currentPeriod.value
   if (!c) return []
   const fmt = (a: string) => formatAsset2Digits(a)
   const symbol = assetSymbol(c.expenses)
+  const month = i18nT('marketplace.operatorBranchEconomyPage.currentCardMonth')
   const gap = assetAmount(c.ripening_secured) - assetAmount(c.expenses)
-  const items: StatStripItem[] = [
-    { key: 'expenses', icon: 'receipt_long', caption: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesTile'),
-      ...tileMoney(c.expenses),
-      sub: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', { planned: fmt(c.planned), memos: fmt(c.memos), reserve: fmt(c.aid_reserve), aid: fmt(c.aid_paid) }) },
-    { key: 'turnover', icon: 'shopping_bag', caption: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverTile'),
-      ...tileMoney(c.ripening_turnover),
-      sub: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverSub', { n: c.ripening_orders }) },
-    { key: 'secured', icon: 'shield', caption: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredTile'),
-      ...tileMoney(c.ripening_secured),
-      sub: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredSub') },
+  const cards: SumCard[] = [
+    { key: 'expenses', icon: 'receipt_long', title: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesShort'),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', { planned: fmt(c.planned), memos: fmt(c.memos), reserve: fmt(c.aid_reserve), aid: fmt(c.aid_paid) }),
+      ...cardMoney(c.expenses), label: month },
+    { key: 'turnover', icon: 'shopping_bag', title: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverShort', { n: String(c.ripening_orders) }),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverSub', { n: String(c.ripening_orders) }),
+      ...cardMoney(c.ripening_turnover), label: month },
+    { key: 'secured', icon: 'shield', title: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredSub'),
+      ...cardMoney(c.ripening_secured), label: month },
     { key: 'outcome', icon: gap < 0 ? 'trending_down' : 'trending_up',
-      caption: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitTile' : 'marketplace.operatorBranchEconomyPage.currentSurplusTile'),
-      value: Math.abs(gap).toFixed(2), symbol,
-      sub: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitSub' : 'marketplace.operatorBranchEconomyPage.currentSurplusSub') },
+      title: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitTile' : 'marketplace.operatorBranchEconomyPage.currentSurplusTile'),
+      subtitle: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitShort' : 'marketplace.operatorBranchEconomyPage.currentSurplusShort'),
+      hint: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitSub' : 'marketplace.operatorBranchEconomyPage.currentSurplusSub'),
+      balance: Math.abs(gap).toFixed(2), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.currentCardExpected') },
   ]
   const v = investView.value
   if (v && (assetAmount(v.money_in_total) > 0 || assetAmount(v.property_total) > 0)) {
-    items.push({ key: 'initiators', icon: 'volunteer_activism', caption: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
-      value: initiatorFree.value.toFixed(2), symbol,
-      sub: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { spent: fmt(v.spent_total), reserved: fmt(v.reserved) }) })
+    cards.push({ key: 'initiators', icon: 'volunteer_activism', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsShort', { spent: fmt(v.spent_total) }),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { spent: fmt(v.spent_total), reserved: fmt(v.reserved) }),
+      balance: initiatorFree.value.toFixed(2), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.investCardNow') })
   }
-  return items
+  return cards
 })
 
 async function onDistribute(): Promise<void> {
@@ -967,21 +989,6 @@ const aidMax = computed(() => {
 
 const getFundsOverBalance = computed(() => getFundsTotal.value > 0 && aidSource.value === null)
 
-/** Источники помощи плитками: персональный кошелёк, средства инициаторов, остаток резерва месяца. */
-const aidSourceItems = computed<StatStripItem[]>(() => {
-  const symbol = assetSymbol(personalBalance.value)
-  const items: StatStripItem[] = [
-    { key: 'personal', icon: 'account_balance_wallet', caption: i18nT('marketplace.operatorBranchEconomyPage.aidSourcePersonalTile'),
-      value: assetAmount(personalBalance.value).toFixed(2), symbol, sub: i18nT('marketplace.operatorBranchEconomyPage.aidSourcePersonalSub') },
-  ]
-  if (investView.value)
-    items.push({ key: 'initiators', icon: 'volunteer_activism', caption: i18nT('marketplace.operatorBranchEconomyPage.aidSourceInitiatorsTile'),
-      value: initiatorFree.value.toFixed(2), symbol, sub: i18nT('marketplace.operatorBranchEconomyPage.aidSourceInitiatorsSub') })
-  if (reserveEnabled.value && myReserve.value)
-    items.push({ key: 'reserve', icon: 'event_available', caption: i18nT('marketplace.operatorBranchEconomyPage.aidReserveTile'),
-      value: myReserveRemaining.value.toFixed(2), symbol: reserveSymbol.value, sub: i18nT('marketplace.operatorBranchEconomyPage.aidReserveSub') })
-  return items
-})
 // Предел материальной помощи за месяц — строка резерва получателя. Контракт
 // держит то же правило (BRANCH_AID_OVER_RESERVE); здесь отказ виден до отправки.
 const aidNoReserve = computed(() => reserveEnabled.value && !myReserve.value)
@@ -1104,7 +1111,20 @@ q-page.economy
     //- (членские взносы с исполненных заказов). Персональные средства — не
     //- сюда, это уже распределённое (см. таб «Мои средства»).
     template(v-if='activeKey === "wallet"')
-      StatStrip(:items='walletStripItems', :loading='loading && !economy')
+      .economy__cards
+        WalletCard(
+          v-for='c in walletCards',
+          :key='c.key',
+          program='wallet',
+          stacked,
+          :icon='c.icon',
+          :title='c.title',
+          :subtitle='c.subtitle',
+          :balance='c.balance',
+          :symbol='c.symbol',
+          :balance-label='c.label',
+          :loading='loading && !economy'
+        )
 
       .economy__section
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.walletMovementsTitle') }}
@@ -1221,7 +1241,20 @@ q-page.economy
     template(v-if='activeKey === "distribution"')
       //- Сумма к распределению — под рукой у кнопки «Распределить»: тот же
       //- ряд, что на вкладке кошелька участка.
-      StatStrip(:items='walletStripItems', :loading='loading && !economy')
+      .economy__cards
+        WalletCard(
+          v-for='c in walletCards',
+          :key='c.key',
+          program='wallet',
+          stacked,
+          :icon='c.icon',
+          :title='c.title',
+          :subtitle='c.subtitle',
+          :balance='c.balance',
+          :symbol='c.symbol',
+          :balance-label='c.label',
+          :loading='loading && !economy'
+        )
       .economy__section
         BaseTable(
           v-if='firstLoad || (economy && economy.weights.length)',
@@ -1438,7 +1471,20 @@ q-page.economy
           .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodEyebrow') }}
           .economy__current-title {{ monthLabel(currentPeriod) }}
           .economy__current-sub {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
-        StatStrip(:items='currentStripItems')
+        .economy__cards
+          WalletCard(
+            v-for='c in currentCards',
+            :key='c.key',
+            program='wallet',
+            stacked,
+            :icon='c.icon',
+            :title='c.title',
+            :subtitle='c.subtitle',
+            :hint='c.hint',
+            :balance='c.balance',
+            :symbol='c.symbol',
+            :balance-label='c.label'
+          )
 
       BaseTable(
         v-if='firstLoad || periods.length',
@@ -1699,7 +1745,10 @@ q-page.economy
           | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTaxTail') }}
       //- Откуда возьмётся помощь: персональный кошелёк, при нехватке — средства
       //- инициаторов участка; предел месяца — остаток резерва получателя.
-      StatStrip(:items='aidSourceItems', :framed='false')
+      .economy__aid-sources
+        DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourcePersonalTile")', :value='`${assetAmount(personalBalance).toFixed(2)} ${assetSymbol(personalBalance)}`')
+        DataRow(v-if='investView', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsTile")', :value='`${initiatorFree.toFixed(2)} ${assetSymbol(personalBalance)}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsSub")')
+        DataRow(v-if='reserveEnabled && myReserve', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidReserveTile")', :value='`${myReserveRemaining.toFixed(2)} ${reserveSymbol}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidReserveSub")')
       AmountInput(
         v-model='aidPart',
         :label='$t("marketplace.operatorBranchEconomyPage.aidAmountLabel")',
@@ -1865,6 +1914,13 @@ q-page.economy
   &__get-funds-note {
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm, 13px);
+  }
+
+  // Источники помощи в диалоге: строки «подпись — сумма» у правого края.
+  &__aid-sources {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1);
   }
 
   // Разбивка удержания налога: строки суммы на сером поле, итог отделён линией.

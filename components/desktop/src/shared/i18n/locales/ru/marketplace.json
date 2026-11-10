@@ -1489,7 +1489,6 @@
       "aidSourcePersonal": "Персональный кошелёк",
       "aidSourceInitiators": "Средства инициаторов участка",
       "aidSourcePersonalTile": "Персональный кошелёк",
-      "aidSourcePersonalSub": "Распределено вам из общего кошелька участка",
       "aidSourceInitiatorsTile": "Средства инициаторов участка",
       "aidSourceInitiatorsSub": "Источник, если персонального кошелька не хватает",
       "aidReserveTile": "Остаток резерва на месяц",
@@ -1512,7 +1511,14 @@
       "flowInitiators": "Доля инициаторов: {amount}",
       "flowInitiatorsSub": "Паевые взносы инициаторов возмещены или их нет — доля направляется в общий кошелёк участка.",
       "flowReturned": "Пайщикам обратно: {amount}",
-      "flowReturnedSub": "Остаток обеспечительной части — на свободный паевой Стола заказов пайщиков."
+      "flowReturnedSub": "Остаток обеспечительной части — на свободный паевой Стола заказов пайщиков.",
+      "currentCardMonth": "За месяц",
+      "currentCardExpected": "Ожидается",
+      "currentExpensesShort": "План, записки и резерв помощи",
+      "currentTurnoverShort": "Заказов: {n}",
+      "currentDeficitShort": "Доли инициаторов и пайщиков — ноль",
+      "currentSurplusShort": "Фондам, инициаторам и пайщикам",
+      "currentInitiatorsShort": "Израсходовано {spent}"
     },
     "operatorBranchOrderDetail": {
       "backToEconomy": "К экономике участка",
