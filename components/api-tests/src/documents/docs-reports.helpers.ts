@@ -377,10 +377,10 @@ export async function payAid(gross: number, recipient: Who = ROLES.branchChairma
   const TAX = new Set(['o.brn.aidtax', 'o.mkt.iaidtx'])
   const ops = await waitFor(async () => {
     const rows = await applyOps(aidHash)
-    return rows.some(r => AID.has(r.operationCode)) ? rows : null
+    return rows.some(r => AID.has(r.operationCode ?? '')) ? rows : null
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `проводки выплаты матпомощи ${aidHash}` })
-  const aid = ops.find(r => AID.has(r.operationCode))!
-  const taxOp = ops.find(r => TAX.has(r.operationCode))
+  const aid = ops.find(r => AID.has(r.operationCode ?? ''))!
+  const taxOp = ops.find(r => TAX.has(r.operationCode ?? ''))
   const net = amount(aid.quantity)
   const tax = amount(taxOp?.quantity)
   return { aidHash, username: aid.username ?? chair.account, gross: net + tax, tax, net, paidAt: aid.createdAt, decisionId: decision.id }

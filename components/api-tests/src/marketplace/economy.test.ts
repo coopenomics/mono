@@ -26,6 +26,7 @@ import {
 } from '../core'
 import { KRG, pickOffer } from './flow'
 import { type BranchEconomy, branchEconomy, chargeIntoCommon, ensureAidFunds, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
+import { applyOps } from '../documents/docs-reports.helpers'
 
 const ODN = 'odn'
 const TRUSTED_KRG = 'trustedkrg'
@@ -111,8 +112,11 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
     const before = amount((await branchEconomy(krgToken, KRG)).common_balance)
     const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     const issued = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
-    const onIssue = amount((await branchEconomy(krgToken, KRG)).common_balance)
-    expect(onIssue, 'на выдаче членского взноса участку ещё нет').toBeCloseTo(before, 2)
+    // Выдача членского взноса участку не зачисляет. Проверка — по операциям
+    // заказа, а не по остатку: крон узла в той же фазе списывает строки других
+    // пайщиков, и общий кошелёк участка меняется независимо от этого заказа.
+    const issueOps = await applyOps(issued.orderHash)
+    expect(issueOps.some(op => op.operationCode === 'o.brn.common'), 'на выдаче членского взноса участку ещё нет').toBe(false)
     partBeforeCharge = await securePartWhen(issued.orderId, 'DUE')
     await chargeIntoCommon({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
     partAfterCharge = await securePartWhen(issued.orderId, 'CHARGED')
