@@ -42,11 +42,12 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.exp.expns',    contract: 'expense',      name: 'PROPOSAL',    human_name: 'Расход по служебной записке' },
 
   // marketplace
-  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка и приобретение имущества пайщика' },
+  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка-приобретение имущества пайщиком' },
   { type: 'p.mkt.return',   contract: 'marketplace',  name: 'RETURN',      human_name: 'Гарантийный возврат имущества пайщиком' },
   { type: 'p.mkt.wroff',    contract: 'marketplace',  name: 'WRITEOFF',    human_name: 'Утилизация скоропорта со склада кооператива' },
   { type: 'p.mkt.claim',    contract: 'marketplace',  name: 'CLAIM',       human_name: 'Гарантийная претензия поставщику' },
-  { type: 'p.mkt.invest',   contract: 'marketplace',  name: 'INVEST',      human_name: 'Паевые взносы инициаторов в кооперативный участок' },
+  { type: 'p.mkt.invest',   contract: 'marketplace',  name: 'INVEST',      human_name: 'Паевой взнос инициатора в кооперативный участок' },
+  { type: 'p.mkt.icomp',    contract: 'marketplace',  name: 'INVEST_COMPENSATION', human_name: 'Возмещение паевого взноса инициатору кооперативного участка' },
   { type: 'p.mkt.due',      contract: 'marketplace',  name: 'DUE',         human_name: 'Списание обеспечительной части по итогу периода участка' },
 
   // branch — экономика кооперативного участка (requirement b6)

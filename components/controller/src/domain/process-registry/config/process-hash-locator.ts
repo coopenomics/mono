@@ -190,6 +190,9 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // `invprops.hash` до второй подписи акта; паевой взнос деньгами и заявление
   // обратно — одноактовые, без строки (история — по операциям ledger2).
   'p.mkt.invest': [{ code: 'marketplace', table: 'invprops',    field: 'hash' }],
+  // Возмещение паевого взноса инициатору: заявление 1123 одноактовое, строки
+  // нет — история по операции o.mkt.iback.
+  'p.mkt.icomp':  [],
   // Списание обеспечительной части по итогу периода (99D-33): нитка — строка
   // счётчика пайщика за период, хэш детерминирован (sha256 от
   // `p.mkt.due:<coopname>:<username>:<braname>:<period>`), строка стирается

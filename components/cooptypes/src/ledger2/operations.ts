@@ -360,7 +360,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 26, credit: 86,
     human_name: 'Сторно погашения расходов участка на переплату возмещения, переведённую участку' },
 
-  { code: 'o.mkt.iback',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+  { code: 'o.mkt.iback',   process_type: 'p.mkt.icomp',   contract: 'marketplace',
     name: 'INVEST_BACK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
     debit: null, credit: null,
     human_name: 'Трансляция паевого взноса из договора участия в главный паевой кошелёк' },

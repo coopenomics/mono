@@ -694,7 +694,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     eosio::name{}, eosio::name{},
     ledger2_accounts::GENERAL_EXPENSES, ledger2_accounts::TARGET_RECEIPTS,
     "Сторно погашения расходов участка на переплату возмещения, переведённую участку" },
-  { operations::marketplace::INVEST_BACK, processes::marketplace::INVEST, WalletOp::TRANSFER,
+  { operations::marketplace::INVEST_BACK, processes::marketplace::INVEST_COMPENSATION, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
     "Трансляция паевого взноса из договора участия в главный паевой кошелёк" },

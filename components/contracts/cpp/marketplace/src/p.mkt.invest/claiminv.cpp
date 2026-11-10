@@ -83,7 +83,7 @@ void marketplace::claiminv(eosio::name coopname, eosio::name username, eosio::na
   branches.modify(bit, RamPayer::of(branches, coopname), [&](auto& x) { x = b; });
 
   Ledger2::apply(_marketplace, coopname, operations::marketplace::INVEST_BACK,
-                 processes::marketplace::INVEST, eosio::asset(total, _root_govern_symbol), username,
+                 processes::marketplace::INVEST_COMPENSATION, eosio::asset(total, _root_govern_symbol), username,
                  claim_hash, Marketplace::Memo::get_invest_back_memo());
   Soviet::make_complete_document(_marketplace, coopname, username, "claiminv"_n,
                                  claim_hash, statement);

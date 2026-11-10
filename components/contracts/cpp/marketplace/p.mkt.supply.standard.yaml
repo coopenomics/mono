@@ -45,7 +45,7 @@
 # ── Секция 1. Паспорт ───────────────────────────────────────────────────────
 process_type: p.mkt.supply
 id: public_marketplace_supply_process
-title: Прямая поставка-приобретение имущества
+title: Поставка-приобретение имущества пайщиком
 slug: supply
 status: proposed
 contract: marketplace

@@ -76,7 +76,8 @@ namespace processes {
     inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
     inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
-    inline constexpr eosio::name INVEST    = "p.mkt.invest"_n;   ///< Инвестиционный этап участка: договор участия, паевые взносы деньгами и имуществом, пул средств инициаторов, возврат паевых взносов заявлением (o.mkt.inv, o.mkt.iprop, o.mkt.ipool, o.mkt.iunpool, o.mkt.iback). Задача 99D-27.
+    inline constexpr eosio::name INVEST    = "p.mkt.invest"_n;   ///< Паевой взнос инициатора в кооперативный участок: договор участия, паевой взнос деньгами и имуществом, пул средств инициаторов (o.mkt.inv, o.mkt.iprop, o.mkt.ipool, o.mkt.iunpl). Задача 99D-27.
+    inline constexpr eosio::name INVEST_COMPENSATION = "p.mkt.icomp"_n; ///< Возмещение паевого взноса инициатору кооперативного участка: заявление о трансляции возмещённого и неиспользованного с кошелька договора участия на главный паевой (o.mkt.iback). Отдельный процесс по слову владельца 10.11.2026: возмещение — не внесение.
     inline constexpr eosio::name DUE       = "p.mkt.due"_n;      ///< Списание обеспечительной части по итогу периода участка (задача 99D-33): строка счётчика пайщика за период — одна транзакция chargeperiod (o.mkt.charge, o.brn.common, o.fnd.*, o.mkt.repay, o.mkt.icover, o.mkt.rpsurp, o.mkt.iuncov, o.mkt.retdue). Хэш нитки — Marketplace::Dues::charge_hash(coopname, username, braname, period); заказы объединены, хэша заказа у списания нет.
   }
 
@@ -155,7 +156,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::RID,          capital::PROPERTY,    capital::PREIMP,
   capital::WTHCAP,       capital::PGEXP,
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
-  marketplace::INVEST,   marketplace::DUE,
+  marketplace::INVEST,   marketplace::INVEST_COMPENSATION, marketplace::DUE,
   branch::FEES,          branch::AID,          branch::SPEND,
   fund::ACCUM,
   expense::PROPOSAL,

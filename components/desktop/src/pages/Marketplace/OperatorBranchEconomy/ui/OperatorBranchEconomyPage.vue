@@ -8,9 +8,10 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, branchPersonName, branchPersonNames, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { DigitalDocument } from 'src/shared/lib/document'
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
-import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
+import { AmountInput, DataRow, DetailsDrawer, PageHint, StatStrip, VerticalStepper, WalletCard, type StatStripItem } from 'src/shared/ui/domain'
+import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/entities/MarketplaceInvestment'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
@@ -113,6 +114,8 @@ const firstLoad = useFirstLoad(loading)
 const economy = ref<MarketplaceBranchEconomyView | null>(null)
 const plans = ref<ExpensePlanView[]>([])
 const personalBalance = ref('')
+/** Средства инициаторов участка: внесено, израсходовано, выделено, свободно (99D-28). */
+const investView = ref<MarketplaceBranchInvestmentView | null>(null)
 const aids = ref<MarketplaceAidView[]>([])
 const walletHistory = ref<MarketplaceBranchWalletHistoryView['items']>([])
 const personalWalletHistory = ref<MarketplacePersonalWalletHistoryView['items']>([])
@@ -356,6 +359,9 @@ async function loadAll(): Promise<void> {
       listBranchPeriods(braname.value, { page: 1, limit: PERIODS_LIMIT, sortOrder: 'DESC' }),
       getBranchCurrentPeriod(braname.value),
     ])
+    // Средства инициаторов — отдельным запросом: без договора участия у
+    // участка их нет, и экономика участка показывается без этих сведений.
+    investView.value = await getBranchInvestment(braname.value).catch(() => null)
     economy.value = branchEconomy
     plans.value = branchPlans
     personalBalance.value = personal.personal_balance
@@ -409,6 +415,64 @@ const distributing = ref(false)
 const availableToDistribute = computed(() =>
   economy.value ? assetAmount(economy.value.available_to_distribute) : 0
 )
+
+/** Число плитки: сумма до копеек и символ актива. */
+function tileMoney(asset: string | null | undefined): Pick<StatStripItem, 'value' | 'symbol'> {
+  return { value: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? '') }
+}
+
+/**
+ * Кошелёк участка одним рядом: что лежит, что держит резерв плановых
+ * расходов и сколько можно распределить. Тот же ряд стоит на вкладке
+ * распределения — сумма к распределению под рукой у кнопки.
+ */
+const walletStripItems = computed<StatStripItem[]>(() => {
+  const e = economy.value
+  return [
+    { key: 'common', icon: 'storefront', caption: i18nT('marketplace.operatorBranchEconomyPage.commonWalletTitle'),
+      ...tileMoney(e?.common_balance), sub: i18nT('marketplace.operatorBranchEconomyPage.commonWalletSubtitle') },
+    { key: 'reserve', icon: 'lock_clock', caption: i18nT('marketplace.operatorBranchEconomyPage.reserveTitle'),
+      ...tileMoney(e?.reserve_amount), sub: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle') },
+    { key: 'available', icon: 'call_split', caption: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeTitle'),
+      ...tileMoney(e?.available_to_distribute), sub: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle') },
+  ]
+})
+
+/**
+ * Текущий месяц плитками: расходы месяца, выданные заказы, их обеспечительная
+ * часть, ожидаемый итог (недостача или сумма сверх расходов) и средства
+ * инициаторов участка. Итог считается по тем же правилам, что прогон, но
+ * ставок у идущего месяца нет — это ожидание, а не расчёт.
+ */
+const currentStripItems = computed<StatStripItem[]>(() => {
+  const c = currentPeriod.value
+  if (!c) return []
+  const fmt = (a: string) => formatAsset2Digits(a)
+  const symbol = assetSymbol(c.expenses)
+  const gap = assetAmount(c.ripening_secured) - assetAmount(c.expenses)
+  const items: StatStripItem[] = [
+    { key: 'expenses', icon: 'receipt_long', caption: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesTile'),
+      ...tileMoney(c.expenses),
+      sub: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', { planned: fmt(c.planned), memos: fmt(c.memos), reserve: fmt(c.aid_reserve), aid: fmt(c.aid_paid) }) },
+    { key: 'turnover', icon: 'shopping_bag', caption: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverTile'),
+      ...tileMoney(c.ripening_turnover),
+      sub: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverSub', { n: c.ripening_orders }) },
+    { key: 'secured', icon: 'shield', caption: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredTile'),
+      ...tileMoney(c.ripening_secured),
+      sub: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredSub') },
+    { key: 'outcome', icon: gap < 0 ? 'trending_down' : 'trending_up',
+      caption: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitTile' : 'marketplace.operatorBranchEconomyPage.currentSurplusTile'),
+      value: Math.abs(gap).toFixed(2), symbol,
+      sub: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitSub' : 'marketplace.operatorBranchEconomyPage.currentSurplusSub') },
+  ]
+  const v = investView.value
+  if (v && (assetAmount(v.money_in_total) > 0 || assetAmount(v.property_total) > 0)) {
+    items.push({ key: 'initiators', icon: 'volunteer_activism', caption: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
+      value: initiatorFree.value.toFixed(2), symbol,
+      sub: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { spent: fmt(v.spent_total), reserved: fmt(v.reserved) }) })
+  }
+  return items
+})
 
 async function onDistribute(): Promise<void> {
   const amount = Number(distributeAmount.value)
@@ -840,13 +904,67 @@ const aidPaymentMethodId = ref<string | null>(null)
 const getFundsSubmitting = ref(false)
 
 const getFundsTotal = computed(() => Number(aidPart.value) || 0)
-const getFundsOverBalance = computed(
-  () => getFundsTotal.value > assetAmount(personalBalance.value)
-)
+
+/**
+ * Свободные средства инициаторов участка: неиспользованные деньги минус
+ * выделенные под расходы и помощь (`MarketInvest::free_of`). Контракт берёт
+ * помощь из этих средств, когда персонального кошелька не хватает (createaid, 99D-28).
+ */
+const initiatorFree = computed(() => {
+  const v = investView.value
+  if (!v) return 0
+  const free = assetAmount(v.unused_total) - assetAmount(v.reserved)
+  return free > 0 ? free : 0
+})
+
+/** Источник помощи — как выберет контракт: персональный кошелёк, затем средства инициаторов. */
+const aidSource = computed<'personal' | 'initiators' | null>(() => {
+  const amount = getFundsTotal.value
+  if (amount <= 0) return null
+  if (amount <= assetAmount(personalBalance.value)) return 'personal'
+  if (amount <= initiatorFree.value) return 'initiators'
+  return null
+})
+
+/**
+ * Больше всего можно попросить одним заявлением: источник один, поэтому
+ * предел — больший из двух, а при заданном резерве — не больше его остатка.
+ */
+const aidMax = computed(() => {
+  const bySource = Math.max(assetAmount(personalBalance.value), initiatorFree.value)
+  return reserveEnabled.value && myReserve.value ? Math.min(bySource, myReserveRemaining.value) : bySource
+})
+
+const getFundsOverBalance = computed(() => getFundsTotal.value > 0 && aidSource.value === null)
+
+/** Источники помощи плитками: персональный кошелёк, средства инициаторов, остаток резерва месяца. */
+const aidSourceItems = computed<StatStripItem[]>(() => {
+  const symbol = assetSymbol(personalBalance.value)
+  const items: StatStripItem[] = [
+    { key: 'personal', icon: 'account_balance_wallet', caption: i18nT('marketplace.operatorBranchEconomyPage.aidSourcePersonalTile'),
+      value: assetAmount(personalBalance.value).toFixed(2), symbol, sub: i18nT('marketplace.operatorBranchEconomyPage.aidSourcePersonalSub') },
+  ]
+  if (investView.value)
+    items.push({ key: 'initiators', icon: 'volunteer_activism', caption: i18nT('marketplace.operatorBranchEconomyPage.aidSourceInitiatorsTile'),
+      value: initiatorFree.value.toFixed(2), symbol, sub: i18nT('marketplace.operatorBranchEconomyPage.aidSourceInitiatorsSub') })
+  if (reserveEnabled.value && myReserve.value)
+    items.push({ key: 'reserve', icon: 'event_available', caption: i18nT('marketplace.operatorBranchEconomyPage.aidReserveTile'),
+      value: myReserveRemaining.value.toFixed(2), symbol: reserveSymbol.value, sub: i18nT('marketplace.operatorBranchEconomyPage.aidReserveSub') })
+  return items
+})
 // Предел материальной помощи за месяц — строка резерва получателя. Контракт
 // держит то же правило (BRANCH_AID_OVER_RESERVE); здесь отказ виден до отправки.
 const aidNoReserve = computed(() => reserveEnabled.value && !myReserve.value)
 const aidOverReserve = computed(() => reserveEnabled.value && !!myReserve.value && getFundsTotal.value > myReserveRemaining.value)
+
+/** Почему заявление не будет отправлено в цепь — одной строкой под полем суммы. */
+const aidError = computed(() => {
+  if (aidNoReserve.value) return i18nT('marketplace.operatorBranchEconomyPage.aidNoReserveError')
+  if (aidOverReserve.value) return i18nT('marketplace.operatorBranchEconomyPage.aidOverReserveError')
+  if (getFundsOverBalance.value)
+    return i18nT('marketplace.operatorBranchEconomyPage.aidOverSourceError', { max: aidMax.value.toFixed(2), symbol: assetSymbol(personalBalance.value) })
+  return ''
+})
 
 // Кооператив удерживает НДФЛ с материальной помощи: с кошелька спишется вся
 // заявленная сумма, на счёт придёт остаток. Расчёт зеркалит контракт.
@@ -956,16 +1074,7 @@ q-page.economy
     //- (членские взносы с исполненных заказов). Персональные средства — не
     //- сюда, это уже распределённое (см. таб «Мои средства»).
     template(v-if='activeKey === "wallet"')
-      .economy__cards
-        WalletCard(
-          program='wallet',
-          icon='storefront',
-          :title='$t("marketplace.operatorBranchEconomyPage.commonWalletTitle")',
-          :subtitle='$t("marketplace.operatorBranchEconomyPage.commonWalletSubtitle")',
-          :balance='economy ? assetAmount(economy.common_balance).toFixed(2) : "0.00"',
-          :symbol='economy ? assetSymbol(economy.common_balance) : ""',
-          :loading='loading && !economy'
-        )
+      StatStrip(:items='walletStripItems', :loading='loading && !economy')
 
       .economy__section
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.walletMovementsTitle') }}
@@ -1080,6 +1189,9 @@ q-page.economy
 
     //- Распределение членских взносов — участники (веса) + ручная команда «Распределить»
     template(v-if='activeKey === "distribution"')
+      //- Сумма к распределению — под рукой у кнопки «Распределить»: тот же
+      //- ряд, что на вкладке кошелька участка.
+      StatStrip(:items='walletStripItems', :loading='loading && !economy')
       .economy__section
         BaseTable(
           v-if='firstLoad || (economy && economy.weights.length)',
@@ -1288,29 +1400,15 @@ q-page.economy
     //- расходов и прогона справа. Текущий месяц идёт — расходы на сегодня,
     //- резерв и заказы, которые созреют к первому числу; ставок у него нет.
     template(v-if='activeKey === "periods"')
-      //- Текущий месяц: подпись-указатель, крупная дата, пояснение отдельной
-      //- строкой; ниже две группы сведений со своими подписями — расходы
-      //- месяца и заказы к первому числу, итог группы выделен.
-      BaseCard.economy__current(v-if='currentPeriod')
+      //- Текущий месяц: подпись, даты месяца и пояснение, ниже — ряд плиток
+      //- по канону: расходы месяца, выданные заказы, их обеспечительная часть,
+      //- ожидаемый итог и средства инициаторов участка.
+      template(v-if='currentPeriod')
         .economy__current-head
           .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodEyebrow') }}
           .economy__current-title {{ monthLabel(currentPeriod) }}
           .economy__current-sub {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
-        .economy__current-grid
-          .economy__current-col
-            .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentExpensesGroup') }}
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(currentPeriod.planned)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(currentPeriod.memos)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(currentPeriod.aid_reserve)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(currentPeriod.aid_paid)', mono)
-            .economy__current-total
-              DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnExpenses")', :value='formatAsset2Digits(currentPeriod.expenses)', mono)
-          .economy__current-col
-            .t-eyebrow.t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentOrdersGroup') }}
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.currentRipeningOrders")', :value='currentPeriod.ripening_orders', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnTurnover")', :value='formatAsset2Digits(currentPeriod.ripening_turnover)', mono)
-            .economy__current-total
-              DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnSecured")', :value='formatAsset2Digits(currentPeriod.ripening_secured)', mono)
+        StatStrip(:items='currentStripItems')
 
       BaseTable(
         v-if='firstLoad || periods.length',
@@ -1557,56 +1655,59 @@ q-page.economy
     size='md'
   )
     .economy__dialog-body
-      p
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintIntro') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintApproval') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTax') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTaxTail') }}
+      //- Одна подсказка: как выплачивается помощь и почему на счёт придёт меньше.
+      .banner.banner--info
+        q-icon.banner__icon(name='info', size='18px')
+        .banner__body
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintIntro') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintApproval') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTax') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTaxTail') }}
+      //- Откуда возьмётся помощь: персональный кошелёк, при нехватке — средства
+      //- инициаторов участка; предел месяца — остаток резерва получателя.
+      StatStrip(:items='aidSourceItems', :framed='false')
       AmountInput(
         v-model='aidPart',
-        :label='$t("marketplace.operatorBranchEconomyPage.aidRadioLabel")',
+        :label='$t("marketplace.operatorBranchEconomyPage.aidAmountLabel")',
         :symbol='assetSymbol(personalBalance)',
         :precision='2',
-        :min='0'
+        :min='0',
+        show-max,
+        show-balance,
+        :balance='aidMax'
       )
-      //- Разбивка удержания: человек вписал одну сумму, а на счёт придёт
-      //- меньше — без этой строки разница читается как ошибка выплаты.
-      .economy__tax-breakdown(v-if='Number(aidPart) > 0')
-        .economy__tax-row
-          span {{ $t('marketplace.operatorBranchEconomyPage.accruedLabel') }}
-          span {{ aidGross.toFixed(2) }} {{ assetSymbol(personalBalance) }}
-        .economy__tax-row
-          span {{ $t('marketplace.operatorBranchEconomyPage.taxWithheldLabel', { percent: NDFL_RATE_PERCENT }) }}
-          span −{{ aidTax.toFixed(2) }} {{ assetSymbol(personalBalance) }}
-        .economy__tax-row.economy__tax-row--total
-          span {{ $t('marketplace.operatorBranchEconomyPage.toTransferLabel') }}
-          span {{ aidNet.toFixed(2) }} {{ assetSymbol(personalBalance) }}
-        //- Без этой сноски округление читается как ошибка: с 10 ₽ тринадцать
-        //- процентов — это 1,30, а удерживается ровно рубль.
-        p.economy__tax-note
-          | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintIntro') }}
-          | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintTail') }}
-      PaymentMethodSelect(
-        v-if='Number(aidPart) > 0',
-        v-model='aidPaymentMethodId',
-        :username='session.username',
-        required
-      )
-      p.economy__get-funds-total(:class='{ "economy__get-funds-total--over": getFundsOverBalance }')
-        | {{ $t('marketplace.operatorBranchEconomyPage.totalAvailableLabel', { available: getFundsTotal.toFixed(2), total: assetAmount(personalBalance).toFixed(2), symbol: assetSymbol(personalBalance) }) }}
-      //- Предел месяца — строка резерва получателя: отказ контракта виден до отправки.
-      p.economy__get-funds-total(v-if='reserveEnabled && myReserve', :class='{ "economy__get-funds-total--over": aidOverReserve }')
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidReserveRemainingLabel', { remaining: myReserveRemaining.toFixed(2), symbol: reserveSymbol }) }}
-        template(v-if='aidOverReserve')
-          |  {{ $t('marketplace.operatorBranchEconomyPage.aidOverReserveError') }}
-      p.economy__get-funds-total.economy__get-funds-total--over(v-else-if='aidNoReserve')
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidNoReserveError') }}
-      //- Заявление о материальной помощи подписывается под капотом: читать
-      //- типовой текст перед подписью незачем, подписанный документ виден в
-      //- заявке.
-      p.economy__get-funds-note(v-if='Number(aidPart) > 0')
-        | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintIntro') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintTail') }}
+      template(v-if='Number(aidPart) > 0')
+        //- Разбивка удержания: человек вписал одну сумму, а на счёт придёт
+        //- меньше — без этих строк разница читается как ошибка выплаты.
+        .economy__aid-breakdown
+          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.accruedLabel")', :value='`${aidGross.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.taxWithheldLabel", { percent: NDFL_RATE_PERCENT })', :value='`−${aidTax.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          .economy__aid-total
+            DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.toTransferLabel")', :value='`${aidNet.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          //- Без этой сноски округление читается как ошибка: с 10 ₽ тринадцать
+          //- процентов — это 1,30, а удерживается ровно рубль.
+          .economy__tax-note
+            | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintIntro') }}
+            | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintTail') }}
+        DataRow(
+          v-if='aidSource',
+          align='spread',
+          :label='$t("marketplace.operatorBranchEconomyPage.aidSourceLabel")',
+          :value='aidSource === "personal" ? $t("marketplace.operatorBranchEconomyPage.aidSourcePersonal") : $t("marketplace.operatorBranchEconomyPage.aidSourceInitiators")'
+        )
+        PaymentMethodSelect(
+          v-model='aidPaymentMethodId',
+          :username='session.username',
+          required
+        )
+        //- Заявление подписывается под капотом: подписанный документ виден в заявке.
+        .economy__get-funds-note
+          | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintIntro') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintTail') }}
+      //- Правило контракта видно до отправки: источник, предел месяца, резерв.
+      .banner.banner--neg(v-if='aidError')
+        q-icon.banner__icon(name='error', size='18px')
+        .banner__body {{ aidError }}
     template(#footer)
       BaseButton(
         variant='ghost',
@@ -1670,12 +1771,11 @@ q-page.economy
     font-size: var(--p-fs-body-sm, 13px);
   }
 
+  // Шапка текущего месяца над рядом плиток: подпись, даты, пояснение.
   &__current-head {
     display: flex;
     flex-direction: column;
     gap: var(--p-1);
-    padding-bottom: var(--p-5);
-    border-bottom: 1px solid var(--p-line);
   }
 
   &__current-title {
@@ -1688,25 +1788,6 @@ q-page.economy
     font-size: var(--p-fs-body-sm);
     color: var(--p-ink-3);
     max-width: 720px;
-  }
-
-  &__current-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: var(--p-5) var(--p-8);
-    margin-top: var(--p-5);
-  }
-
-  &__current-col {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1);
-  }
-
-  // Итог группы — полужирным, отделён от строк сверху.
-  &__current-total {
-    margin-top: var(--p-2);
-    font-weight: 600;
   }
 
   &__drawer-amount {
@@ -1752,46 +1833,28 @@ q-page.economy
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  &__tax-breakdown {
+  // Разбивка удержания налога: строки суммы на сером поле, итог отделён линией.
+  &__aid-breakdown {
     display: flex;
     flex-direction: column;
-    gap: var(--p-1, 4px);
-    padding: var(--p-3, 12px);
+    gap: var(--p-1);
+    padding: var(--p-3);
     border: 1px solid var(--p-line);
-    border-radius: var(--p-r-sm, 8px);
+    border-radius: var(--p-r-sm);
     background: var(--p-surface-2);
   }
 
+  &__aid-total {
+    padding-top: var(--p-1);
+    border-top: 1px solid var(--p-line);
+    font-weight: 600;
+  }
+
   &__tax-note {
-    margin: var(--p-2, 8px) 0 0;
+    margin-top: var(--p-2);
     color: var(--p-ink-3);
-    font-size: var(--p-fs-meta, 12px);
-    line-height: var(--p-lh-meta, 1.4);
-  }
-
-  &__tax-row {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    font-variant-numeric: tabular-nums;
-
-    &--total {
-      color: var(--p-ink);
-      font-weight: 600;
-      padding-top: var(--p-1, 4px);
-      border-top: 1px solid var(--p-line);
-    }
-  }
-
-  &__get-funds-total {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 12px);
-
-    &--over {
-      color: var(--p-neg);
-    }
+    font-size: var(--p-fs-meta);
+    line-height: var(--p-lh-meta);
   }
 
   &__due--overdue {
