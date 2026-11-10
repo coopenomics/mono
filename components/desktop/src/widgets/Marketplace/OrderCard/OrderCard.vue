@@ -1,11 +1,12 @@
 <template>
   <!-- Строка списка «Мои заказы». Четыре зоны, каждая отвечает на свой
-       вопрос: миниатюра с названием, номером и пунктом выдачи — «что и
-       куда»; сумма с количеством под ней — «сколько»; бейдж с полосой сбора
-       партии — «в каком состоянии». На широком экране зоны стоят в ряд, на
-       узком — те же зоны перестраиваются в два яруса: состояние встаёт под
-       номером, рядом с миниатюрой, а сумма с количеством уходят в нижнюю
-       строку-чек. Разметка одна, раскладку меняет только сетка. -->
+       вопрос: миниатюра с названием и датой оформления — «что это»; сумма
+       с количеством — «сколько»; бейдж — «в каком состоянии», под ним новое:
+       дата получения или отмены, полоса сбора партии. Пункт выдачи нужен,
+       пока заказ впереди, — у полученных и отменённых его нет. Номер заказа
+       (часть хэша) человеку ничего не говорит и живёт на странице заказа.
+       Зоны выровнены по центру строки; на узком экране те же зоны встают в
+       два яруса, раскладку меняет только сетка. -->
   <div
     v-if="layout === 'row'"
     class="order-row"
@@ -23,30 +24,24 @@
 
     <div class="order-row__ident">
       <div class="order-row__title">{{ order.title }}</div>
-      <div class="order-row__meta">
-        <span class="order-row__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
-        <span class="order-row__sep" aria-hidden="true">·</span>
-        <span>{{ formatDate(order.createdAt) }}</span>
-      </div>
-      <!-- Пункт выдачи — строкой под номером, а не отдельной ячейкой: это
-           часть ответа «что за заказ», как адрес в чеке. Значок карты стоит
-           сразу за адресом, не уплывает к правому краю карточки. -->
+      <div class="order-row__meta">{{ $t('marketplace.orderCard.createdOn', { date: formatDate(order.createdAt) }) }}</div>
+      <!-- Пункт выдачи — приглушённой строкой и только у заказа впереди:
+           «куда ехать». Значок карты проявляется при наведении. -->
       <div
-        v-if="order.pvzName || order.pvz"
+        v-if="!isFinished && (order.pvzName || order.pvz)"
         class="order-row__pvz"
         :class="{ 'order-row__pvz--mappable': hasMap }"
         @click.stop="hasMap && emit('map', order)"
       >
         <q-icon name="place" size="14px" class="order-row__pvz-icon" />
-        <span v-if="order.pvzName" class="order-row__pvz-name">{{ order.pvzName }}</span>
-        <span v-if="order.pvz" class="order-row__pvz-addr">{{ order.pvz }}</span>
+        <span>{{ [order.pvzName, order.pvz].filter(Boolean).join(', ') }}</span>
         <q-icon v-if="hasMap" name="map" size="14px" class="order-row__pvz-map" />
       </div>
     </div>
 
     <div class="order-row__money">
       <div class="order-row__sum">{{ formatPrice(order.totalCost) }}</div>
-      <div class="order-row__qty">{{ order.units }}&nbsp;{{ order.unitLabel ?? $t('marketplace.orderCard.unitFallback') }}</div>
+      <div class="order-row__qty">{{ order.qtyLabel ?? `${order.units} ${order.unitLabel ?? $t('marketplace.orderCard.unitFallback')}` }}</div>
       <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
     </div>
 
@@ -54,9 +49,10 @@
       <BaseBadge :variant="order.statusVariant" class="order-row__status">
         {{ order.statusLabel }}
       </BaseBadge>
+      <!-- Под бейджем только новое: дата, когда заказ получен или отменён. -->
+      <div v-if="isFinished && order.statusAt" class="order-row__state-note">{{ formatDate(order.statusAt) }}</div>
       <!-- Сбор партии живёт под бейджем: полоса объясняет состояние «ожидает
-           сборки», поэтому ходит вместе с ним, а не отдельной балкой на всю
-           ширину карточки. -->
+           сборки», поэтому ходит вместе с ним. -->
       <div v-if="order.progress !== undefined" class="order-row__progress">
         <q-linear-progress
           class="order-row__progress-bar"
@@ -135,7 +131,7 @@
       </div>
       <div class="order-card__fact">
         <div class="order-card__fact-label">{{ $t('marketplace.orderCard.quantityLabel') }}</div>
-        <div class="order-card__fact-value">{{ order.units }} {{ order.unitLabel ?? $t('marketplace.orderCard.unitFallback') }}</div>
+        <div class="order-card__fact-value">{{ order.qtyLabel ?? `${order.units} ${order.unitLabel ?? $t('marketplace.orderCard.unitFallback')}` }}</div>
       </div>
     </div>
 
@@ -204,6 +200,11 @@ const emit = defineEmits<{
 const hasMap = computed(
   () => typeof props.order.pvzLat === 'number' && typeof props.order.pvzLng === 'number',
 )
+
+// Заказ завершён: получен, отменён или возвращён. Пункт выдачи ему не нужен,
+// а под бейджем встаёт дата завершения.
+const FINISHED: OrderStatus[] = ['issued', 'cancelled', 'returned']
+const isFinished = computed(() => FINISHED.includes(props.order.status))
 
 function onCardClick(): void {
   if (props.openable) emit('open', props.order)
@@ -492,8 +493,10 @@ function formatPrice(v: number) {
     'thumb ident money state'
     'actions actions actions actions';
   column-gap: var(--p-6, 24px);
-  align-items: start;
-  padding: var(--p-4, 16px) var(--p-5, 20px);
+  // Все зоны по центру строки: сумма и бейдж стоят на одной линии, а не
+  // бейдж у верхней кромки, сумма ниже.
+  align-items: center;
+  padding: var(--p-3, 12px) var(--p-4, 16px);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md, 12px);
   background: var(--p-surface);
@@ -536,9 +539,6 @@ function formatPrice(v: number) {
   &__ident {
     grid-area: ident;
     min-width: 0;
-    // Миниатюра 56px, текст в три строки чуть ниже — крохотный сдвиг вниз
-    // выравнивает заголовок по верхней кромке картинки оптически.
-    padding-top: 1px;
   }
 
   &__title {
@@ -551,67 +551,45 @@ function formatPrice(v: number) {
   }
 
   &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--p-1, 4px) var(--p-2, 8px);
     margin-top: 2px;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
   }
 
-  &__num {
-    font-family: var(--p-mono);
-    letter-spacing: 0;
-  }
-
-  &__sep {
-    color: var(--p-ink-3);
-  }
-
-  // Пункт выдачи — одна строка: значок, имя участка, адрес, значок карты.
-  // Всё в потоке текста, ничего не прижато к краю карточки.
+  // Пункт выдачи — одна приглушённая строка того же веса, что дата: значок,
+  // имя участка с адресом. Значок карты проявляется при наведении, ссылочного
+  // цвета в покое нет — строка не спорит с названием товара.
   &__pvz {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 2px var(--p-2, 8px);
-    margin-top: var(--p-2, 8px);
+    gap: var(--p-1, 4px);
+    margin-top: 2px;
     font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
     min-width: 0;
+    overflow-wrap: anywhere;
 
     &--mappable {
       cursor: pointer;
 
-      .order-row__pvz-addr {
+      &:hover {
         color: var(--p-primary);
       }
 
-      &:hover .order-row__pvz-addr,
       &:hover .order-row__pvz-map {
-        color: var(--p-primary-hover);
+        opacity: 1;
       }
     }
   }
 
   &__pvz-icon {
-    color: var(--p-ink-3);
     flex-shrink: 0;
-  }
-
-  &__pvz-name {
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__pvz-addr {
-    color: var(--p-ink-3);
-    overflow-wrap: anywhere;
   }
 
   &__pvz-map {
-    color: var(--p-primary);
     flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
   }
 
   // Зона «сколько»: сумма — герой, под ней количество как подпись. Ширина
@@ -621,9 +599,6 @@ function formatPrice(v: number) {
     grid-area: money;
     min-width: 120px;
     text-align: right;
-    // Опускаем на высоту строки заголовка: сумма стоит на одной линии с
-    // названием товара, а не на волосок выше.
-    padding-top: 1px;
   }
 
   &__sum {
@@ -660,13 +635,17 @@ function formatPrice(v: number) {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: var(--p-2, 8px);
-    width: 200px;
-    // Бейдж по вертикали центрируется относительно строки заголовка.
-    padding-top: 1px;
+    gap: var(--p-1, 4px);
+    width: 180px;
   }
 
   &__status {
+    white-space: nowrap;
+  }
+
+  &__state-note {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
     white-space: nowrap;
   }
 
@@ -722,11 +701,12 @@ function formatPrice(v: number) {
     column-gap: var(--p-4, 16px);
     padding: var(--p-4, 16px);
 
+    align-items: start;
+
     &__state {
       width: auto;
       align-items: flex-start;
       margin-top: var(--p-2, 8px);
-      padding-top: 0;
     }
 
     &__progress {

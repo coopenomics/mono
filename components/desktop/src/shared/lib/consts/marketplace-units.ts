@@ -131,6 +131,27 @@ export function marketplaceOrderSaleUnit(
 }
 
 /**
+ * Количество словами для строки и карточки заказа: «10 упаковок по 1 л» при
+ * упаковочном отпуске, «15 л» по мере. Сокращение «10 упак. 1 л» читалось как
+ * одно слипшееся число (замечание владельца 10.11.2026).
+ */
+export function marketplaceOrderQuantityText(
+  quantity: number,
+  unit: string | null | undefined,
+  packageSize: number | null | undefined,
+): string {
+  const saleUnit = marketplaceOrderSaleUnit(quantity, unit, packageSize);
+  if (packageSize && packageSize > 0) {
+    return t(
+      'consts.marketplaceUnits.packagesOf',
+      { n: saleUnit.units, size: String(packageSize).replace('.', ','), base: marketplaceUnitShort(unit) },
+      saleUnit.units,
+    );
+  }
+  return `${saleUnit.units} ${saleUnit.unitLabel}`;
+}
+
+/**
  * Количество в единицах отпуска строкой: «15 л» по мере, «10 упак. 0,5 л»
  * упаковкой. Без знака умножения между числом и единицей — это количество
  * товара, а не произведение (просьба владельца 2026-09-09: «15×л» читалось как

@@ -20,7 +20,7 @@ import {
   getMembershipFeePercent,
 } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay, orderProgress } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit, marketplaceOrderQuantityText } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
@@ -94,6 +94,12 @@ const orderSaleUnit = computed(() =>
   order.value
     ? marketplaceOrderSaleUnit(order.value.quantity, order.value.unit_of_measure, order.value.package_size)
     : { units: 0, unitLabel: '' },
+);
+// То же количество словами — «10 упаковок по 1 л», как в строке «Моих заказов».
+const orderQuantityText = computed(() =>
+  order.value
+    ? marketplaceOrderQuantityText(order.value.quantity, order.value.unit_of_measure, order.value.package_size)
+    : '',
 );
 // Бесплатная отмена (без штрафа) доступна, пока поставщик ещё НЕ акцептовал
 // заказ: on-chain это статус ACTIVE; ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) —
@@ -446,7 +452,7 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
                 .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
                 .order-detail__fact-label {{ $t('marketplace.ordererOrderDetailPage.column.quantity') }}
-                .order-detail__fact-value {{ orderSaleUnit.units }} {{ orderSaleUnit.unitLabel }}
+                .order-detail__fact-value {{ orderQuantityText }}
               .order-detail__fact
                 .order-detail__fact-label {{ $t('marketplace.ordererOrderDetailPage.unitPriceLabel') }}
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
@@ -587,12 +593,11 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
 
 <style scoped lang="scss">
 .order-detail {
-  // Воздух сверху как на столе поставщика — единый канон столов.
-  padding: var(--p-6, 24px) var(--p-4, 16px);
+  // Воздух как в «Моих заказах»: страница заказа во всю ширину, без узкой
+  // колонки посередине (слово владельца 10.11.2026).
+  padding: var(--p-6, 24px);
 
   &__col {
-    max-width: 760px;
-    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
