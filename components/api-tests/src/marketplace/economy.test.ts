@@ -170,7 +170,9 @@ describe.skipIf(!COMPRESSED)('экономика участка: общий ко
   it(caseName('mkt.eco.side.08', 'резерв больше остатка общего кошелька — доступно ноль, а не минус'), async () => {
     const before = await branchEconomy(odnToken, ODN)
     const common = amount(before.common_balance)
-    const planId = await createPlan(odnToken, ODN, Math.round(common) + 500, 3)
+    // Срок вчера: резерв считается до конца текущего месяца (задача 99D-34), а на полигоне
+    // со сжатым временем срок «через три дня» лежит за концом месяца стенда.
+    const planId = await createPlan(odnToken, ODN, Math.round(common) + 500, -1)
     try {
       const eco = await branchEconomy(odnToken, ODN)
       expect(amount(eco.reserve_amount), 'резерв включает срочный плановый расход').toBeGreaterThan(common)
