@@ -97,6 +97,9 @@ describe('Контрагенты — форма по стране коопера
     const ip = form.kinds.find((k) => k.kind === ExpenseCounterpartyKind.ENTREPRENEUR)!;
     expect(legal.fields[0]).toMatchObject({ key: 'inn', length: 10, required: true, tax_id: true, group: 'organization' });
     expect(legal.fields.map((f) => f.key)).toContain('kpp');
+    // Счета сверяются с БИК — форма называет пару, чтобы ошибка указывала на оба поля.
+    expect(legal.fields.find((f) => f.key === 'account')).toMatchObject({ checked_with: 'bik' });
+    expect(legal.fields[0]).toMatchObject({ checked_with: null });
     expect(ip.fields[0]).toMatchObject({ key: 'inn', length: 12 });
     expect(ip.fields.map((f) => f.key)).not.toContain('kpp');
   });

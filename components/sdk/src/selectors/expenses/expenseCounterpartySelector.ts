@@ -19,6 +19,6 @@ export const expenseCounterpartyFormSelector = Selector('ExpenseCounterpartyForm
   country: true,
   kinds: {
     kind: true,
-    fields: { key: true, label: true, required: true, length: true, pattern: true, mask: true, group: true, tax_id: true },
+    fields: { key: true, label: true, required: true, length: true, pattern: true, mask: true, group: true, tax_id: true, checked_with: true },
   },
 })

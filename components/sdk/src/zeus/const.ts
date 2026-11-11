@@ -6974,6 +6974,7 @@ export const ReturnTypes: Record<string,any> = {
 		kinds:"ExpenseCounterpartyFormKind"
 	},
 	ExpenseCounterpartyFormField:{
+		checked_with:"String",
 		group:"String",
 		key:"String",
 		label:"String",

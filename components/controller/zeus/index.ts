@@ -8995,6 +8995,8 @@ export type ValueTypes = {
 }>;
 	/** Поле реквизитов в форме контрагента. */
 ["ExpenseCounterpartyFormField"]: AliasType<{
+	/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?:boolean | `@${string}`,
 	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
 	group?:boolean | `@${string}`,
 	/** Ключ реквизита. */
@@ -28320,6 +28322,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Поле реквизитов в форме контрагента. */
 ["ExpenseCounterpartyFormField"]: AliasType<{
+	/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?:boolean | `@${string}`,
 	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
 	group?:boolean | `@${string}`,
 	/** Ключ реквизита. */
@@ -47023,7 +47027,9 @@ export type ModelTypes = {
 };
 	/** Поле реквизитов в форме контрагента. */
 ["ExpenseCounterpartyFormField"]: {
-		/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+		/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?: string | undefined | null,
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
 	group: string,
 	/** Ключ реквизита. */
 	key: string,
@@ -66406,6 +66412,8 @@ export type GraphQLTypes = {
 	/** Поле реквизитов в форме контрагента. */
 ["ExpenseCounterpartyFormField"]: {
 	__typename: "ExpenseCounterpartyFormField",
+	/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?: string | undefined | null,
 	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
 	group: string,
 	/** Ключ реквизита. */

@@ -9375,6 +9375,7 @@ export type MessageKey =
   | 'ui.expenseCounterparty.coopMark'
   | 'ui.expenseCounterparty.entrepreneurName'
   | 'ui.expenseCounterparty.fieldChecksum'
+  | 'ui.expenseCounterparty.fieldChecksumWith'
   | 'ui.expenseCounterparty.fieldFormat'
   | 'ui.expenseCounterparty.fieldLength'
   | 'ui.expenseCounterparty.fieldRequired'

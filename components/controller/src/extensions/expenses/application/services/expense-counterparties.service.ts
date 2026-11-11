@@ -40,6 +40,8 @@ export interface ExpenseCounterpartyFormFieldView {
   group: 'organization' | 'bank';
   /** Налоговый номер: по нему заполняются сведения из реестра страны. */
   tax_id: boolean;
+  /** Ключ поля, вместе с которым сверяется номер (счёт — с БИК). */
+  checked_with: string | null;
 }
 
 export interface ExpenseCounterpartyFormView {
@@ -119,6 +121,7 @@ export class ExpenseCounterpartiesService {
           mask: f.mask ?? null,
           group: f.group,
           tax_id: !!f.taxId,
+          checked_with: f.checkedWith ?? null,
         })),
       })),
     };

@@ -89,6 +89,12 @@ export class ExpenseCounterpartyFormFieldDTO {
 
   @Field(() => Boolean, { description: 'Налоговый номер: по нему заполняются сведения из реестра страны.' })
   tax_id!: boolean;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе.',
+  })
+  checked_with?: string | null;
 }
 
 @ObjectType('ExpenseCounterpartyFormKind', { description: 'Поля реквизитов вида контрагента.' })

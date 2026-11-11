@@ -59,6 +59,24 @@ function checksumHolds(checksum: RequisiteChecksum, value: string, values: Recor
 }
 
 /**
+ * Поле пары для контрольной суммы заполнено и нужной длины. Пустой или
+ * недописанный БИК — не ошибка счёта: о нём говорит поле БИК, а счёт проверится,
+ * когда БИК будет введён целиком.
+ */
+function pairReady(
+  fields: ReturnType<typeof counterpartyFieldsFor>,
+  field: CounterpartyRequisiteField,
+  values: Record<string, string>
+): boolean {
+  if (!field.checkedWith) return true;
+  const pair = fields.find((f) => f.key === field.checkedWith);
+  const value = values[field.checkedWith] ?? '';
+  if (!value) return false;
+  if (pair?.length != null && !new RegExp(`^\\d{${pair.length}}$`).test(value)) return false;
+  return !pair?.pattern || new RegExp(pair.pattern).test(value);
+}
+
+/**
  * Нарушения в реквизитах контрагента; пусто — реквизиты верны. Поля, которых
  * у вида контрагента нет, не проверяются и в реквизиты не попадают.
  */
@@ -69,7 +87,8 @@ export function validateCounterpartyRequisites(
 ): CounterpartyRequisiteIssue[] {
   const clean = normalizeCounterpartyRequisites(values);
   const issues: CounterpartyRequisiteIssue[] = [];
-  for (const field of counterpartyFieldsFor(profile, kind)) {
+  const fields = counterpartyFieldsFor(profile, kind);
+  for (const field of fields) {
     const value = clean[field.key];
     if (!value) {
       if (field.requiredHere) issues.push({ field: field.key, code: 'REQUIRED' });
@@ -83,7 +102,7 @@ export function validateCounterpartyRequisites(
       issues.push({ field: field.key, code: 'FORMAT' });
       continue;
     }
-    if (field.checksum && !checksumHolds(field.checksum, value, clean)) {
+    if (field.checksum && pairReady(fields, field, clean) && !checksumHolds(field.checksum, value, clean)) {
       issues.push({ field: field.key, code: 'CHECKSUM' });
     }
   }

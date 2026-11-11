@@ -107,6 +107,14 @@ describe('Реквизиты контрагента — проверка', () =>
     expect(otherBik).toContainEqual({ field: 'corr_account', code: 'CHECKSUM' });
   });
 
+  it('пустой или недописанный БИК — замечание только у БИК, счета по нему не проверяются', () => {
+    // Настоящий счёт в Сбербанке: верен с БИК 044525225 (случай владельца 11.11.2026).
+    const account = '40703810038000110117';
+    expect(validateCounterpartyRequisites(RU, 'LEGAL', { ...LEGAL, account, bik: '' })).toEqual([{ field: 'bik', code: 'REQUIRED' }]);
+    expect(validateCounterpartyRequisites(RU, 'LEGAL', { ...LEGAL, account, bik: '04452' })).toEqual([{ field: 'bik', code: 'FORMAT' }]);
+    expect(validateCounterpartyRequisites(RU, 'LEGAL', { ...LEGAL, account, bik: '044525225' })).toEqual([]);
+  });
+
   it('любая замена одной цифры ИНН юрлица ловится контрольной суммой', () => {
     for (let pos = 0; pos < 10; pos++) {
       for (let digit = 0; digit <= 9; digit++) {

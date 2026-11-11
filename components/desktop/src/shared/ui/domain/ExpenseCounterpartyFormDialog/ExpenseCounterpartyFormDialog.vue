@@ -5,8 +5,9 @@
 //- они страновые (пакет юрисдикций); сервер проверяет ими же, здесь — только
 //- подсказка до отправки. ИНН идёт первым: если для страны есть поставщик
 //- сведений, полный ИНН сам заполняет поля организации из государственного
-//- реестра, и подставленные поля закрываются для правки — как в анкете
-//- организации при регистрации (общий useRegistryLookup).
+//- реестра, и подставленные поля закрываются для правки (общий
+//- useRegistryLookup). ИНН правится всегда: изменили или стёрли ИНН —
+//- подставленное снимается, новый полный ИНН снова идёт в реестр.
 BaseDialog(
   :model-value='modelValue',
   :title='counterparty ? $t("ui.expenseCounterparty.formTitleEdit") : $t("ui.expenseCounterparty.formTitleNew")',
@@ -34,13 +35,11 @@ BaseDialog(
         :mask='maskOf(taxField)',
         :error='errorOf(taxField)',
         :hint='lookupHint',
-        :readonly='isLocked("inn")',
         stack-label,
         required
       )
-        template(v-if='lookingUp || lookupState === "found"' #append)
-          q-spinner(v-if='lookingUp', size='18px', color='primary')
-          BaseButton(v-else, variant='secondary', size='sm', @click='resetLookup') {{ $t('ui.registryLookup.changeInn') }}
+        template(v-if='lookingUp' #append)
+          q-spinner(size='18px', color='primary')
       BaseInput(
         v-model='name',
         :disabled='isLocked("name")',
@@ -104,6 +103,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { useFormDraft } from 'src/shared/lib/composables';
 import { BaseButton, BaseDialog, BaseInput, BaseSegmented } from 'src/shared/ui/base';
 import { lookupEntrepreneur, lookupOrganization, useRegistryLookup } from 'src/shared/ui/UserDataForm/useRegistryLookup';
 import {
@@ -119,7 +119,10 @@ type FormField = ExpenseCounterpartyFormView['kinds'][number]['fields'][number];
 
 const props = defineProps<{
   modelValue: boolean;
-  /** Правка — контрагент; пусто — новый контрагент. */
+  /**
+   * Окно правки получает это свойство всегда — контрагента или null, пока
+   * никто не выбран. Окно создания его не получает и держит черновик.
+   */
   counterparty?: ExpenseCounterpartyView | null;
   /** Участок, который добавляет контрагента; пусто — контрагент кооператива. */
   braname?: string | null;
@@ -207,9 +210,8 @@ const {
     }
     return filled;
   },
-  // «Другой ИНН» или смена вида: сведения прежнего поиска снимаются вместе с ИНН.
+  // Новый ИНН: сведения прежнего поиска снимаются, ИНН остаётся как введён.
   clear: (filled) => {
-    if (taxField.value) delete values[taxField.value.key];
     for (const field of filled) {
       if (field === 'name') name.value = '';
       else delete values[field];
@@ -217,6 +219,17 @@ const {
   },
   onDetailsShown: () => undefined,
 });
+
+// ИНН правится всегда. Изменили или стёрли ИНН — подставленное прежним поиском
+// снимается, полный новый ИНН снова идёт в реестр.
+watch(
+  () => (taxField.value ? values[taxField.value.key] : undefined),
+  (inn, before) => {
+    if (lookupState.value !== 'found' || inn === before) return;
+    resetLookup();
+    lookupCurrent();
+  },
+);
 
 /** Реквизит закрыт для правки: его подставил реестр. */
 function isLockedKey(key: string): boolean {
@@ -229,16 +242,43 @@ const lookupHint = computed(() => {
   return undefined;
 });
 
+/** Окно создания: свойства counterparty нет совсем (см. описание свойства). */
+const isCreate = props.counterparty === undefined;
+
+// Черновик нового контрагента переживает случайное закрытие окна (клик мимо,
+// Esc) и перезагрузку страницы; стирается только после сохранения. Ключ — по
+// участку: черновик реестра совета и черновик участка не смешиваются.
+// Реквизиты — словарь с ключами по стране, поэтому в черновик идут парами.
+const requisitesDraft = computed<[string, string][]>({
+  get: () => Object.entries(values),
+  set: (entries) => {
+    for (const key of Object.keys(values)) delete values[key];
+    for (const [key, value] of entries ?? []) values[key] = value;
+  },
+});
+const { clearDraft } = isCreate
+  ? useFormDraft(
+      `expenses_form_draft_counterparty:${props.braname ?? 'coop'}`,
+      { kind, name, paymentPurpose, requisites: requisitesDraft },
+      { restoreOnMount: true },
+    )
+  : { clearDraft: () => undefined };
+
 watch(
   () => props.modelValue,
   async (open) => {
     if (!open) return;
-    resetLookup();
-    fill(props.counterparty ?? null);
+    if (isCreate) {
+      // Закрытие без сохранения введённое не трогает — снимаются только ошибки.
+      touched.value = false;
+    } else {
+      resetLookup();
+      fill(props.counterparty ?? null);
+    }
     try {
       formCache ??= getExpenseCounterpartyForm();
       form.value = await formCache;
-      // Правка: ИНН уже стоит — сведения из реестра подставляются и закрываются сразу.
+      // ИНН уже стоит (правка или черновик) — сведения из реестра подставляются и закрываются сразу.
       lookupCurrent();
     } catch (e) {
       formCache = null;
@@ -262,6 +302,7 @@ function fill(cp: ExpenseCounterpartyView | null): void {
 function onKind(next: Zeus.ExpenseCounterpartyKind): void {
   if (next === kind.value) return;
   resetLookup();
+  if (taxField.value) delete values[taxField.value.key];
   kind.value = next;
 }
 
@@ -305,10 +346,19 @@ function errorOf(field: FormField): string | undefined {
   return serverIssueText(field);
 }
 
-/** Нарушение от сервера по заполненному полю: неверный вид или контрольная сумма. */
+/**
+ * Нарушение от сервера по заполненному полю: неверный вид или номер не
+ * сходится. Номер, который сверяется с другим полем (счёт — с БИК), называет
+ * это поле: ошибка может быть в любом из двух.
+ */
 function serverIssueText(field: FormField): string | undefined {
   const code = serverIssues.value[field.key];
-  if (code === 'CHECKSUM') return t('ui.expenseCounterparty.fieldChecksum');
+  if (code === 'CHECKSUM') {
+    const pair = field.checked_with ? fields.value.find((f) => f.key === field.checked_with) : undefined;
+    return pair
+      ? t('ui.expenseCounterparty.fieldChecksumWith', { field: pair.label })
+      : t('ui.expenseCounterparty.fieldChecksum');
+  }
   if (code === 'FORMAT') return t('ui.expenseCounterparty.fieldFormat');
   return undefined;
 }
@@ -332,6 +382,12 @@ async function onSave(): Promise<void> {
       ? await updateExpenseCounterparty({ ...data, id: props.counterparty.id })
       : await createExpenseCounterparty({ ...data, braname: props.braname ?? undefined });
     SuccessAlert(t('ui.expenseCounterparty.savedMessage'));
+    if (isCreate) {
+      // Следующее создание начинается с пустой формы.
+      clearDraft();
+      resetLookup();
+      fill(null);
+    }
     emit('saved', saved);
     emit('update:modelValue', false);
   } catch (e) {
