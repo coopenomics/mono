@@ -90,6 +90,7 @@ sources:
     - components/controller/src/extensions/marketplace/application/services/marketplace-branch-reserve.service.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-keu.resolver.ts
     - components/controller/src/extensions/marketplace/application/shared/period-bounds.ts
+    - components/controller/src/extensions/marketplace/application/shared/planned-target.util.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-period.entity.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-branch-aid.entity.ts
     - components/controller/src/extensions/marketplace/migrations/database/1793520000000-keu-period.ts
@@ -1415,6 +1416,64 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     external: unreachable
     external_reason: "гонку двух запросов в пределах одного блока снаружи надёжно не воспроизвести"
+    status: written
+
+  # Решение владельца 11.11.2026 (99D-34): квартальный и годовой плановый
+  # расход резерв участка копит равными долями за три и двенадцать месяцев.
+  - id: mkt.order.keu.26
+    level: backend
+    kind: happy
+    scenario: Квартальный плановый расход со сроком через три месяца
+    expect: >
+      итоги трёх месяцев перед сроком откладывают по трети суммы; к сроку в резерве
+      вся сумма; разовый и ежемесячный платёж итог собирает целиком за месяц до срока
+    test: components/controller/tests/unit/marketplace/planned-target.util.test.ts
+    external: unreachable
+    external_reason: "доля копится три месяца; полигон сжатого времени проверяет итог месяца по разовым планам (period-cycle), квартальная серия на нём заняла бы три месяца стенда"
+    status: written
+
+  - id: mkt.order.keu.27
+    level: backend
+    kind: happy
+    scenario: Годовой плановый расход
+    expect: каждый итог месяца откладывает двенадцатую часть, к сроку в резерве вся сумма
+    test: components/controller/tests/unit/marketplace/planned-target.util.test.ts
+    external: unreachable
+    external_reason: "двенадцать месяцев стенда на полигоне не проходятся"
+    status: written
+
+  - id: mkt.order.keu.28
+    level: backend
+    kind: side
+    scenario: Прошлый платёж серии не оплачен, а следующий уже копится
+    expect: >
+      просроченный платёж держится в цели целиком, доля следующего прибавляется
+      к нему; оплаченная, запущенная в оплату и чужая запись в цель не входят
+    test: components/controller/tests/unit/marketplace/planned-target.util.test.ts
+    external: unreachable
+    external_reason: "долг серии требует пропущенного срока оплаты; на полигоне проверяется разовой записью (period-cycle)"
+    status: written
+
+  - id: mkt.order.keu.29
+    level: backend
+    kind: side
+    scenario: Сжатое время стенда
+    expect: доля копится по месяцам стенда — номерам месяца узла, а не по календарю
+    test: components/controller/tests/unit/marketplace/planned-target.util.test.ts
+    external: unreachable
+    external_reason: "свойство функции месяца узла; на полигоне календарные сроки серии лежат за тысячи месяцев стенда"
+    status: written
+
+  - id: mkt.order.keu.30
+    level: backend
+    kind: side
+    scenario: Серия за два года — реестр заводит записи, итог месяца собирает резерв, записи оплачиваются в срок
+    expect: >
+      к сроку каждого платежа резерв держит всю сумму; прирост цели за итог не больше
+      доли платежа; цель не больше одного платежа серии
+    test: components/controller/tests/unit/marketplace/planned-target.util.test.ts
+    external: unreachable
+    external_reason: "два года серии на полигоне не проходятся"
     status: written
 
   - id: mkt.order.keu.12

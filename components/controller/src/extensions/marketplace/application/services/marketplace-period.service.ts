@@ -18,7 +18,7 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplaceBranchAidMirrorService } from './marketplace-branch-aid-mirror.service';
-import { PERIOD_TIME_ZONE, periodBounds, type PeriodBounds } from '../shared/period-bounds';
+import { PERIOD_TIME_ZONE, periodBounds, periodKeyOf, type PeriodBounds } from '../shared/period-bounds';
 import { plannedTargetUnits } from '../shared/planned-target.util';
 
 /** Отказы контракта, которые для прогона — норма, а не сбой. */
@@ -120,7 +120,13 @@ export class MarketplacePeriodService {
     for (const aid of paidAids) {
       if (!(await this.paidByInitiators(coopname, aid.hash))) aidPaid += aid.amount;
     }
-    const plannedTarget = plannedTargetUnits(plans, braname, next.end, (a) => this.economyService.assetToUnits(a));
+    const plannedTarget = plannedTargetUnits(
+      plans,
+      braname,
+      next.end,
+      (a) => this.economyService.assetToUnits(a),
+      (d) => periodKeyOf(d, PERIOD_TIME_ZONE)
+    );
     return { planned, memos, aidPaid, plannedTarget };
   }
 

@@ -10,6 +10,8 @@ import {
   CreateExpensePlanInputDTO,
   DeleteExpensePlanInputDTO,
   ExpensePlanDTO,
+  ExpensePlanScheduleDTO,
+  ExpensePlanScheduleInputDTO,
   ListExpensePlansInputDTO,
   toExpensePlanDTO,
 } from '../dto/expense-plan.dto';
@@ -42,6 +44,21 @@ export class ExpensePlansResolver {
   ): Promise<ExpensePlanDTO[]> {
     const plans = await this.plansService.listPlansFor(platformSettings().coopname, currentUser, data?.braname ?? null);
     return plans.map(toExpensePlanDTO);
+  }
+
+  @Query(() => ExpensePlanScheduleDTO, {
+    name: 'expensePlanSchedule',
+    description:
+      'Показ планового расхода до добавления: сроки платежей по периодичности и сколько резерв участка откладывает под платёж за месяц. Запись в реестр не создаётся.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpensePlan', 'manage')
+  expensePlanSchedule(@Args('data') data: ExpensePlanScheduleInputDTO): ExpensePlanScheduleDTO {
+    return this.plansService.previewSchedule({
+      amount: data.amount,
+      due_date: data.due_date,
+      recurrence: data.recurrence ?? null,
+    });
   }
 
   @Mutation(() => ExpensePlanDTO, {

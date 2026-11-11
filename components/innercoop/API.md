@@ -1208,6 +1208,7 @@
 - `title: string`
 - `amount: string`
 - `dueDate: Date | null`
+- `recurrenceMonths?: number`
 - `proposalHash: string | null`
 - `paidAt: Date | null`
 

@@ -13,10 +13,11 @@ import { CHAIRMAN, ROLES, caseName, gql, gqlError, tokenOf } from '../core'
 
 const KRG = 'krg'
 
-const PLAN_FIELDS = 'id braname title amount due_date recurrence pay_to creator created_at proposal_hash paid_at'
+const PLAN_FIELDS = 'id braname title amount due_date recurrence next_due_date pay_to creator created_at proposal_hash paid_at'
 const CREATE = `mutation($d:CreateExpensePlanInput!){ createExpensePlan(data:$d){ ${PLAN_FIELDS} } }`
 const LIST = `query($d:ListExpensePlansInput){ listExpensePlans(data:$d){ ${PLAN_FIELDS} } }`
 const DELETE = `mutation($d:DeleteExpensePlanInput!){ deleteExpensePlan(data:$d) }`
+const SCHEDULE = `query($d:ExpensePlanScheduleInput!){ expensePlanSchedule(data:$d){ due_dates reserve_months reserve_per_month } }`
 
 function tag(): string {
   return crypto.randomBytes(4).toString('hex')
@@ -108,6 +109,35 @@ describe('expenses: реестр плановых расходов', () => {
     const del = await gql<any>(branchChair, DELETE, { d: { plan_id: id } })
     expect(del.deleteExpensePlan).toBe(true)
     expect(await listed(branchChair, id, KRG)).toBeUndefined()
+  })
+
+  it(caseName('exp.plan.schedule.01', 'показ квартального расхода: четыре срока с концом месяца, резерв копится три месяца равными долями'), async () => {
+    const d = await gql<any>(branchChair, SCHEDULE, { d: { amount: 1000, due_date: '2027-01-31T00:00:00.000Z', recurrence: 'QUARTERLY' } })
+    const view = d.expensePlanSchedule
+    expect(view.due_dates.map((x: string) => x.slice(0, 10))).toEqual(['2027-01-31', '2027-04-30', '2027-07-30', '2027-10-30'])
+    expect(view.reserve_months).toBe(3)
+    expect(view.reserve_per_month).toBe('333.3333 RUB')
+
+    const once = (await gql<any>(branchChair, SCHEDULE, { d: { amount: 1000, due_date: '2027-01-31T00:00:00.000Z' } })).expensePlanSchedule
+    expect(once.due_dates).toHaveLength(1)
+    expect(once.reserve_months).toBe(1)
+    expect(once.reserve_per_month).toBe('1000.0000 RUB')
+  })
+
+  it(caseName('exp.plan.schedule.02', 'запись реестра показывает следующий срок серии — тот же, что обещал показ; у разового — пусто'), async () => {
+    const dueDate = inDays(10)
+    const quarterly = (await createTracked(branchChair, { d: planInput({ recurrence: 'QUARTERLY', due_date: dueDate }) })).createExpensePlan
+    const shown = (await gql<any>(branchChair, SCHEDULE, { d: { amount: 1234.5, due_date: dueDate, recurrence: 'QUARTERLY' } })).expensePlanSchedule
+    expect(quarterly.next_due_date).toBe(shown.due_dates[1])
+    expect((await listed(branchChair, quarterly.id, KRG))?.next_due_date).toBe(shown.due_dates[1])
+
+    const once = (await createTracked(branchChair, { d: planInput() })).createExpensePlan
+    expect(once.next_due_date).toBeNull()
+  })
+
+  it(caseName('exp.plan.schedule.03', 'гость показ расхода не получает'), async () => {
+    const err = await gqlError(null, SCHEDULE, { d: { amount: 1000, due_date: inDays(5), recurrence: 'YEARLY' } })
+    expect(String(err?.code)).toBe('401')
   })
 
   it(caseName('exp.plan.side.01', 'запись уровня кооператива (без участка) закрыта — даже председателю кооператива'), async () => {

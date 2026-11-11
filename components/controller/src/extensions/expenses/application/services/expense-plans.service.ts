@@ -1,4 +1,12 @@
-import { TableStore, lessOrEqual, notEqual } from '@coopenomics/extension-kit';
+import {
+  TableStore,
+  expensePlanRecurrenceMonths,
+  expensePlanReserveMonths,
+  expensePlanReserveShare,
+  expensePlanScheduleDates,
+  lessOrEqual,
+  notEqual,
+} from '@coopenomics/extension-kit';
 import { EXPENSES_PLAN_STORE } from '../../infrastructure/database/expenses-stores';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
@@ -32,6 +40,19 @@ const SPAWN_TICK_MS = Number(process.env.EXPENSE_PLAN_SPAWN_INTERVAL_MS) || 6 * 
  */
 const MAX_SPAWN_CATCHUP_STEPS = 24;
 
+/** Сроков в показе серии: срок первой записи и три следующих — год квартальных платежей. */
+export const EXPENSE_PLAN_SCHEDULE_PREVIEW_COUNT = 4;
+
+/** Показ серии планового расхода до добавления в реестр. */
+export interface ExpensePlanScheduleView {
+  /** Сроки платежей: первый и следующие по периодичности; у разового — один. */
+  due_dates: Date[];
+  /** Сколько месяцев резерв копит один платёж. */
+  reserve_months: number;
+  /** Сколько резерв откладывает под платёж за месяц, asset-строка; последний месяц добирает остаток. */
+  reserve_per_month: string;
+}
+
 export interface ExpensePlanView {
   id: number;
   braname: string | null;
@@ -40,6 +61,8 @@ export interface ExpensePlanView {
   amount: string;
   due_date: Date | null;
   recurrence: ExpensePlanRecurrence;
+  /** Срок следующего платежа серии; пусто у разового расхода и записи без срока. */
+  next_due_date: Date | null;
   pay_to: string;
   creator: string;
   created_at: Date;
@@ -199,6 +222,24 @@ export class ExpensePlansService {
     }
   }
 
+  /**
+   * Показ серии до добавления: сроки платежей и сколько резерв откладывает под
+   * платёж за месяц. Календарь и доля — те же функции каркаса, по которым
+   * реестр продолжает серию, а Стол заказов собирает резерв: экран обещает
+   * ровно то, что произойдёт. Это показ, запись в реестр не создаётся.
+   */
+  previewSchedule(input: { amount: number; due_date: Date; recurrence?: ExpensePlanRecurrence | null }): ExpensePlanScheduleView {
+    const months = expensePlanRecurrenceMonths(input.recurrence ?? ExpensePlanRecurrence.NONE);
+    const { rootGovernPrecision: precision } = platformSettings().blockchain;
+    const units = Number.isFinite(input.amount) && input.amount > 0 ? BigInt(Math.round(input.amount * 10 ** precision)) : 0n;
+    const reserveMonths = expensePlanReserveMonths(months);
+    return {
+      due_dates: expensePlanScheduleDates(input.due_date, months, EXPENSE_PLAN_SCHEDULE_PREVIEW_COUNT),
+      reserve_months: reserveMonths,
+      reserve_per_month: this.unitsToAsset(expensePlanReserveShare(units, reserveMonths - 1, reserveMonths)),
+    };
+  }
+
   // ── Повторяющиеся расходы ─────────────────────────────────────────────
 
   /**
@@ -315,6 +356,15 @@ export class ExpensePlansService {
     )) as BranchContract.Tables.Branches.IBranch[];
   }
 
+  /** Единицы суммы → asset-строка в валюте кооператива, без потери точности на больших суммах. */
+  private unitsToAsset(units: bigint): string {
+    const { rootGovernPrecision: precision, rootGovernSymbol: symbol } = platformSettings().blockchain;
+    const base = 10n ** BigInt(precision);
+    const whole = units / base;
+    const fraction = (units % base).toString().padStart(precision, '0');
+    return `${whole}${precision > 0 ? `.${fraction}` : ''} ${symbol}`;
+  }
+
   private toView(row: ExpensePlanEntity): ExpensePlanView {
     return {
       id: row.id,
@@ -325,6 +375,7 @@ export class ExpensePlansService {
       }`,
       due_date: row.dueDate ?? null,
       recurrence: row.recurrence ?? ExpensePlanRecurrence.NONE,
+      next_due_date: row.dueDate ? nextRecurrenceDate(row.dueDate, row.recurrence ?? ExpensePlanRecurrence.NONE) : null,
       pay_to: row.payTo,
       creator: row.creator,
       created_at: row.createdAt,

@@ -9031,6 +9031,8 @@ export type ValueTypes = {
 	due_date?:boolean | `@${string}`,
 	/** Идентификатор записи. */
 	id?:boolean | `@${string}`,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?:boolean | `@${string}`,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?:boolean | `@${string}`,
 	/** Реквизиты получателя платежа. */
@@ -9046,6 +9048,25 @@ export type ValueTypes = {
 }>;
 	/** Периодичность планового расхода: разовый либо повторяющийся ежемесячно, ежеквартально или ежегодно. */
 ["ExpensePlanRecurrence"]:ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: AliasType<{
+	/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates?:boolean | `@${string}`,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months?:boolean | `@${string}`,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpensePlanSchedule']?: Omit<ValueTypes["ExpensePlanSchedule"], "...on ExpensePlanSchedule">
+}>;
+	["ExpensePlanScheduleInput"]: {
+	/** Сумма платежа. */
+	amount: number | Variable<any, string>,
+	/** Срок первого платежа. */
+	due_date: ValueTypes["DateTime"] | Variable<any, string>,
+	/** Периодичность расхода. */
+	recurrence?: ValueTypes["ExpensePlanRecurrence"] | undefined | null | Variable<any, string>
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: AliasType<{
 	/** Дата создания записи */
@@ -17497,6 +17518,7 @@ expenseAdvancesByCooperative?: [{	coopname: string | Variable<any, string>,	filt
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
+expensePlanSchedule?: [{	data: ValueTypes["ExpensePlanScheduleInput"] | Variable<any, string>},ValueTypes["ExpensePlanSchedule"]],
 expenseProposal?: [{	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseProposal"]],
 expenseProposalsByCooperative?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedExpenseProposalsPaginationResult"]],
 expenseProposalsByMember?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["PaginatedExpenseProposalsPaginationResult"]],
@@ -28144,6 +28166,8 @@ export type ResolverInputTypes = {
 	due_date?:boolean | `@${string}`,
 	/** Идентификатор записи. */
 	id?:boolean | `@${string}`,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?:boolean | `@${string}`,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?:boolean | `@${string}`,
 	/** Реквизиты получателя платежа. */
@@ -28158,6 +28182,24 @@ export type ResolverInputTypes = {
 }>;
 	/** Периодичность планового расхода: разовый либо повторяющийся ежемесячно, ежеквартально или ежегодно. */
 ["ExpensePlanRecurrence"]:ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: AliasType<{
+	/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates?:boolean | `@${string}`,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months?:boolean | `@${string}`,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ExpensePlanScheduleInput"]: {
+	/** Сумма платежа. */
+	amount: number,
+	/** Срок первого платежа. */
+	due_date: ResolverInputTypes["DateTime"],
+	/** Периодичность расхода. */
+	recurrence?: ResolverInputTypes["ExpensePlanRecurrence"] | undefined | null
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: AliasType<{
 	/** Дата создания записи */
@@ -36342,6 +36384,7 @@ expenseAdvancesByCooperative?: [{	coopname: string,	filter?: ResolverInputTypes[
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
+expensePlanSchedule?: [{	data: ResolverInputTypes["ExpensePlanScheduleInput"]},ResolverInputTypes["ExpensePlanSchedule"]],
 expenseProposal?: [{	proposal_hash: string},ResolverInputTypes["ExpenseProposal"]],
 expenseProposalsByCooperative?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedExpenseProposalsPaginationResult"]],
 expenseProposalsByMember?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null,	username: string},ResolverInputTypes["PaginatedExpenseProposalsPaginationResult"]],
@@ -46639,6 +46682,8 @@ export type ModelTypes = {
 	due_date?: ModelTypes["DateTime"] | undefined | null,
 	/** Идентификатор записи. */
 	id: number,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?: ModelTypes["DateTime"] | undefined | null,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Реквизиты получателя платежа. */
@@ -46651,6 +46696,23 @@ export type ModelTypes = {
 	title: string
 };
 	["ExpensePlanRecurrence"]:ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: {
+		/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates: Array<ModelTypes["DateTime"]>,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months: number,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month: string
+};
+	["ExpensePlanScheduleInput"]: {
+	/** Сумма платежа. */
+	amount: number,
+	/** Срок первого платежа. */
+	due_date: ModelTypes["DateTime"],
+	/** Периодичность расхода. */
+	recurrence?: ModelTypes["ExpensePlanRecurrence"] | undefined | null
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: {
 		/** Дата создания записи */
@@ -54997,6 +55059,8 @@ export type ModelTypes = {
 	expenseFilesByItem: Array<ModelTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<ModelTypes["ExpenseFile"]>,
+	/** Показ планового расхода до добавления: сроки платежей по периодичности и сколько резерв участка откладывает под платёж за месяц. Запись в реестр не создаётся. */
+	expensePlanSchedule: ModelTypes["ExpensePlanSchedule"],
 	/** Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк. */
 	expenseProposal?: ModelTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
@@ -65821,6 +65885,8 @@ export type GraphQLTypes = {
 	due_date?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Идентификатор записи. */
 	id: number,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Реквизиты получателя платежа. */
@@ -65835,6 +65901,25 @@ export type GraphQLTypes = {
 };
 	/** Периодичность планового расхода: разовый либо повторяющийся ежемесячно, ежеквартально или ежегодно. */
 ["ExpensePlanRecurrence"]: ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: {
+	__typename: "ExpensePlanSchedule",
+	/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates: Array<GraphQLTypes["DateTime"]>,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months: number,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month: string,
+	['...on ExpensePlanSchedule']: Omit<GraphQLTypes["ExpensePlanSchedule"], "...on ExpensePlanSchedule">
+};
+	["ExpensePlanScheduleInput"]: {
+		/** Сумма платежа. */
+	amount: number,
+	/** Срок первого платежа. */
+	due_date: GraphQLTypes["DateTime"],
+	/** Периодичность расхода. */
+	recurrence?: GraphQLTypes["ExpensePlanRecurrence"] | undefined | null
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: {
 	__typename: "ExpenseProposal",
@@ -74819,6 +74904,8 @@ export type GraphQLTypes = {
 	expenseFilesByItem: Array<GraphQLTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<GraphQLTypes["ExpenseFile"]>,
+	/** Показ планового расхода до добавления: сроки платежей по периодичности и сколько резерв участка откладывает под платёж за месяц. Запись в реестр не создаётся. */
+	expensePlanSchedule: GraphQLTypes["ExpensePlanSchedule"],
 	/** Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк. */
 	expenseProposal?: GraphQLTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
@@ -79514,6 +79601,7 @@ type ZEUS_VARIABLES = {
 	["ExpenseItemStatus"]: ValueTypes["ExpenseItemStatus"];
 	["ExpenseMechanics"]: ValueTypes["ExpenseMechanics"];
 	["ExpensePlanRecurrence"]: ValueTypes["ExpensePlanRecurrence"];
+	["ExpensePlanScheduleInput"]: ValueTypes["ExpensePlanScheduleInput"];
 	["ExpenseProposalDecisionBodyInput"]: ValueTypes["ExpenseProposalDecisionBodyInput"];
 	["ExpenseProposalDecisionGenerateDocumentInput"]: ValueTypes["ExpenseProposalDecisionGenerateDocumentInput"];
 	["ExpenseProposalDecisionHeaderInput"]: ValueTypes["ExpenseProposalDecisionHeaderInput"];

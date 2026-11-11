@@ -22,6 +22,9 @@ sources:
     - components/controller/src/extensions/expenses/application/dto/expense-plan.dto.ts
     - components/controller/src/extensions/expenses/infrastructure/entities/expense-plan.entity.ts
     - components/controller/src/extensions/expenses/domain/expense-plan.types.ts
+    - components/extension-kit/src/expense/expense-plan-schedule.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/ui/ExpensePlanDialog.vue
 
 cases:
   - id: exp.plan.happy.01
@@ -184,4 +187,52 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     external: unreachable
     external_reason: "вторая подача требует второй подписанной записки председателя по той же записи; условие проверяется на уровне сервиса до цепи"
+    status: written
+
+  # Решение владельца 11.11.2026 (99D-34): сроки серии видны до добавления,
+  # квартальный и годовой платёж резерв копит равными долями. Календарь и доля —
+  # общие функции каркаса, по ним же реестр продолжает серию.
+  - id: exp.plan.schedule.01
+    level: backend
+    kind: happy
+    scenario: Председатель выбирает срок и повторяемость — диалог показывает сроки платежей и резерв в месяц
+    expect: >
+      квартал от 31.01.2027 — 31.01, 30.04, 30.07, 30.10 (число по предыдущему сроку,
+      без перескока месяца); резерв копится три месяца по трети суммы; разовый —
+      один срок, вся сумма за месяц; большие суммы делятся без потери точности
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.schedule.02
+    level: backend
+    kind: happy
+    scenario: В реестре повторяющаяся запись показывает следующий срок серии
+    expect: >
+      следующий срок записи совпадает со вторым сроком показа; у разовой записи и
+      записи без срока — пусто; воркер реестра заводит записи ровно по срокам показа
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.schedule.03
+    level: backend
+    kind: side
+    scenario: Гость запрашивает показ расхода
+    expect: отказ 401, расчёт не выполняется
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.schedule.04
+    level: backend
+    kind: side
+    scenario: Календарь серии на краях месяца и года и доля резерва на случайных суммах
+    expect: >
+      число месяца сохраняется, 31-е переходит на последний день короткого месяца,
+      29.02 — на 28.02 невисокосного года; счёт по UTC; доля не убывает к сроку,
+      шаг — n-я часть суммы, к сроку в резерве вся сумма
+    test: components/controller/tests/unit/extension-kit/expense-plan-schedule.test.ts
+    external: unreachable
+    external_reason: "чистые функции календаря и доли без состояния; снаружи они видны через показ расхода (exp.plan.schedule.01)"
     status: written

@@ -8,13 +8,14 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, branchPersonName, branchPersonNames, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { DigitalDocument } from 'src/shared/lib/document'
-import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
 import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/entities/MarketplaceInvestment'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
+import ExpensePlanDialog from './ExpensePlanDialog.vue'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
@@ -45,7 +46,6 @@ import {
   createAid,
   createBranchExpense,
   type ICreateBranchExpenseInput,
-  createExpensePlan,
   deleteExpensePlan,
   deleteBranchReserve,
   deleteTrusteeWeight,
@@ -546,36 +546,28 @@ const planColumns = computed<BaseTableColumn<ExpensePlanView>[]>(() => [
     : []),
 ])
 
-// Приоритетов у расхода нет: всё, что заведено в реестр, подлежит оплате.
-// Единственная ось — регулярность: разовая трата или повторяющаяся.
-const planRecurrenceOptions = [
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceOnce'), value: Zeus.ExpensePlanRecurrence.NONE },
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceMonthly'), value: Zeus.ExpensePlanRecurrence.MONTHLY },
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceQuarterly'), value: Zeus.ExpensePlanRecurrence.QUARTERLY },
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceYearly'), value: Zeus.ExpensePlanRecurrence.YEARLY },
-]
-
 const RECURRENCE_LABELS: Record<string, string> = {
   [Zeus.ExpensePlanRecurrence.MONTHLY]: i18nT('marketplace.operatorBranchEconomyPage.recurrenceMonthlyShort'),
   [Zeus.ExpensePlanRecurrence.QUARTERLY]: i18nT('marketplace.operatorBranchEconomyPage.recurrenceQuarterlyShort'),
   [Zeus.ExpensePlanRecurrence.YEARLY]: i18nT('marketplace.operatorBranchEconomyPage.recurrenceYearlyShort'),
 }
 
-const planTitle = ref('')
-const planAmount = ref<number | null>(null)
-const planRecurrence = ref<Zeus.ExpensePlanRecurrence>(Zeus.ExpensePlanRecurrence.NONE)
-const planDueDate = ref('')
-const planPayTo = ref('')
 const planSaving = ref(false)
 const addPlanOpen = ref(false)
 
 function planDueLabel(plan: ExpensePlanView): string {
-  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString(uiLocale()) : '—'
+  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString(uiLocale(), { timeZone: 'UTC' }) : '—'
 }
 
-/** Подпись повторяемости под сроком; пусто — расход разовый. */
+/**
+ * Подпись повторяемости под сроком со следующим сроком серии:
+ * «ежеквартально · следующий 11.02.2027»; пусто — расход разовый.
+ */
 function planRecurrenceLabel(plan: ExpensePlanView): string {
-  return RECURRENCE_LABELS[String(plan.recurrence)] ?? ''
+  const label = RECURRENCE_LABELS[String(plan.recurrence)] ?? ''
+  if (!label || !plan.next_due_date) return label
+  const next = new Date(String(plan.next_due_date)).toLocaleDateString(uiLocale(), { timeZone: 'UTC' })
+  return `${label} · ${i18nT('marketplace.operatorBranchEconomyPage.nextDueNote', { date: next })}`
 }
 
 /** Просроченный расход подсвечивается: срок прошёл, а оплаты нет. */
@@ -584,36 +576,9 @@ function isPlanOverdue(plan: ExpensePlanView): boolean {
   return new Date(String(plan.due_date)) < new Date()
 }
 
-async function onAddPlan(): Promise<void> {
-  const amount = Number(planAmount.value)
-  if (!braname.value || !planTitle.value.trim() || !Number.isFinite(amount) || amount <= 0) return
-  if (!planDueDate.value) {
-    FailAlert(new Error(i18nT('marketplace.error.paymentDateRequired')), i18nT('marketplace.operatorBranchEconomyPage.paymentDateRequiredHint'))
-    return
-  }
-  planSaving.value = true
-  try {
-    await createExpensePlan({
-      braname: braname.value,
-      title: planTitle.value.trim(),
-      amount,
-      recurrence: planRecurrence.value,
-      due_date: new Date(planDueDate.value).toISOString(),
-      pay_to: planPayTo.value.trim() || '—',
-    })
-    SuccessAlert(i18nT('marketplace.operatorBranchEconomyPage.expenseAddedMessage'))
-    addPlanOpen.value = false
-    planTitle.value = ''
-    planAmount.value = null
-    planRecurrence.value = Zeus.ExpensePlanRecurrence.NONE
-    planDueDate.value = ''
-    planPayTo.value = ''
-    await loadAll()
-  } catch (e) {
-    FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.addExpenseFailedMessage'))
-  } finally {
-    planSaving.value = false
-  }
+/** Расход добавлен из диалога — реестр и резерв перечитываются сразу. */
+function onPlanCreated(): void {
+  void loadAll()
 }
 
 // ─── Оплата планового расхода через шасси расходов ───
@@ -1739,23 +1704,7 @@ q-page.economy
   )
 
   //- Диалог добавления планового расхода
-  BaseDialog(v-model='addPlanOpen', :title='$t("marketplace.operatorBranchEconomyPage.newExpenseDialogTitle")', size='md')
-    //- Поля идут плотно: каждое из них уже резервирует строку под подсказку,
-    //- и дополнительный зазор растягивал короткую форму на весь экран.
-    .economy__dialog-body.economy__plan-form
-      BaseInput(v-model='planTitle', :label='$t("marketplace.operatorBranchEconomyPage.expensePurposeLabel")')
-      AmountInput(v-model='planAmount', :label='$t("marketplace.operatorBranchEconomyPage.amountLabel")', :precision='2', :min='0')
-      BaseInput(v-model='planDueDate', :label='$t("marketplace.operatorBranchEconomyPage.payByDateLabel")', type='date')
-      BaseSelect(v-model='planRecurrence', :label='$t("marketplace.operatorBranchEconomyPage.recurrenceLabel")', :options='planRecurrenceOptions')
-      BaseInput(v-model='planPayTo', :label='$t("marketplace.operatorBranchEconomyPage.paymentDetailsLabel")')
-    template(#footer)
-      BaseButton(variant='ghost', :disabled='planSaving', @click='addPlanOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(
-        variant='primary',
-        :loading='planSaving',
-        :disabled='!planTitle || !planAmount || !planDueDate',
-        @click='onAddPlan'
-      ) {{ $t('marketplace.operatorBranchEconomyPage.addExpenseAction') }}
+  ExpensePlanDialog(v-model='addPlanOpen', :braname='braname', @created='onPlanCreated')
 
   //- Диалог распределения
   BaseDialog(v-model='distributeOpen', :title='$t("marketplace.operatorBranchEconomyPage.distributeDialogTitle")', size='sm')

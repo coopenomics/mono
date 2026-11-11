@@ -870,6 +870,10 @@ export const AllTypesProps: Record<string,any> = {
 	ExpenseItemStatus: "enum" as const,
 	ExpenseMechanics: "enum" as const,
 	ExpensePlanRecurrence: "enum" as const,
+	ExpensePlanScheduleInput:{
+		due_date:"DateTime",
+		recurrence:"ExpensePlanRecurrence"
+	},
 	ExpenseProposalDecisionBodyInput:{
 
 	},
@@ -3575,6 +3579,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		expenseFilesByProposal:{
 
+		},
+		expensePlanSchedule:{
+			data:"ExpensePlanScheduleInput"
 		},
 		expenseProposal:{
 
@@ -6936,11 +6943,17 @@ export const ReturnTypes: Record<string,any> = {
 		creator:"String",
 		due_date:"DateTime",
 		id:"Int",
+		next_due_date:"DateTime",
 		paid_at:"DateTime",
 		pay_to:"String",
 		proposal_hash:"String",
 		recurrence:"ExpensePlanRecurrence",
 		title:"String"
+	},
+	ExpensePlanSchedule:{
+		due_dates:"DateTime",
+		reserve_months:"Int",
+		reserve_per_month:"String"
 	},
 	ExpenseProposal:{
 		_created_at:"DateTime",
@@ -9916,6 +9929,7 @@ export const ReturnTypes: Record<string,any> = {
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",
+		expensePlanSchedule:"ExpensePlanSchedule",
 		expenseProposal:"ExpenseProposal",
 		expenseProposalsByCooperative:"PaginatedExpenseProposalsPaginationResult",
 		expenseProposalsByMember:"PaginatedExpenseProposalsPaginationResult",

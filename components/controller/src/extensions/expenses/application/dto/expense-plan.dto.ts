@@ -33,6 +33,12 @@ export class ExpensePlanDTO {
   })
   recurrence!: ExpensePlanRecurrence;
 
+  @Field(() => GraphQLISODateTime, {
+    nullable: true,
+    description: 'Срок следующего платежа повторяющегося расхода; пусто у разового расхода.',
+  })
+  next_due_date?: Date | null;
+
   @Field({ description: 'Реквизиты получателя платежа.' })
   pay_to!: string;
 
@@ -101,6 +107,49 @@ export class CreateExpensePlanInputDTO {
   @IsString()
   @IsNotEmpty()
   pay_to!: string;
+}
+
+@InputType('ExpensePlanScheduleInput')
+export class ExpensePlanScheduleInputDTO {
+  @Field(() => Float, { description: 'Сумма платежа.' })
+  @IsNumber()
+  @Min(0)
+  amount!: number;
+
+  @Field(() => GraphQLISODateTime, { description: 'Срок первого платежа.' })
+  @IsDate()
+  @Type(() => Date)
+  due_date!: Date;
+
+  @Field(() => ExpensePlanRecurrence, {
+    nullable: true,
+    defaultValue: ExpensePlanRecurrence.NONE,
+    description: 'Периодичность расхода.',
+  })
+  @IsOptional()
+  @IsEnum(ExpensePlanRecurrence)
+  recurrence?: ExpensePlanRecurrence;
+}
+
+@ObjectType('ExpensePlanSchedule', {
+  description:
+    'Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр.',
+})
+export class ExpensePlanScheduleDTO {
+  @Field(() => [GraphQLISODateTime], {
+    description: 'Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок.',
+  })
+  due_dates!: Date[];
+
+  @Field(() => Int, {
+    description: 'Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих.',
+  })
+  reserve_months!: number;
+
+  @Field(() => String, {
+    description: 'Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток.',
+  })
+  reserve_per_month!: string;
 }
 
 @InputType('DeleteExpensePlanInput')

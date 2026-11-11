@@ -345,7 +345,8 @@ export class MarketplaceEconomyService {
     // считает факт цели для итога месяца.
     const timeZone = PERIOD_TIME_ZONE;
     const monthEnd = periodBounds(standPeriodKey(new Date(), timeZone), timeZone).end;
-    const reserve = { amount: Number(plannedTargetUnits(plans, braname, monthEnd, (a) => this.assetToUnits(a))) / 10 ** this.assetConfig.decimals };
+    const reserveUnits = plannedTargetUnits(plans, braname, monthEnd, (a) => this.assetToUnits(a), (d) => standPeriodKey(d, timeZone));
+    const reserve = { amount: Number(reserveUnits) / 10 ** this.assetConfig.decimals };
 
     const branchWeights = weights.filter((w) => w.contract === MARKETPLACE_SOURCE_CONTRACT);
     const total = totals.find((t) => t.contract === MARKETPLACE_SOURCE_CONTRACT);

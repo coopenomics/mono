@@ -1,6 +1,6 @@
 import { sql } from 'kysely';
 import { EXPENSES_PROPOSAL_STORE } from '../database/expenses-stores';
-import { oneOf, type TableStore } from '@coopenomics/extension-kit';
+import { expensePlanRecurrenceMonths, oneOf, type TableStore } from '@coopenomics/extension-kit';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   IExpenseChassisPort,
@@ -113,6 +113,7 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
       title: r.title,
       amount: r.amount,
       dueDate: r.due_date,
+      recurrenceMonths: expensePlanRecurrenceMonths(r.recurrence),
       proposalHash: r.proposal_hash,
       paidAt: r.paid_at,
     }));
