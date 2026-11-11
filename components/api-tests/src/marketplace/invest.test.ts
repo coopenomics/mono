@@ -100,7 +100,8 @@ describe('инвестиционный этап участка: договор, 
     // разбора блока — позже ответа мутации; ждём появления документа.
     const own = await waitFor(async () => {
       const page = await packageOf(krgToken, chairkrg.account, { package: entry.process_hash.toUpperCase() })
-      return page.totalCount > 0 ? page : null
+      // Счётчик страницы появляется раньше собранного документа: ждём сам документ.
+      return page.totalCount > 0 && page.items?.[0] ? page : null
     }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'заявление 1119 в реестре документов' })
     expect(own.totalCount, 'заявление 1119 находится по хэшу процесса из истории').toBe(1)
     expect(JSON.stringify(own.items[0]), 'в пакете — заявление о трансляции паевого взноса').toContain('1119')

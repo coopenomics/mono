@@ -381,7 +381,7 @@ describe('стол заказов — инвестиционный этап ко
     expect(done.unusedTotal, 'завершение возврата не выводит неиспользованные деньги из средств участка').toBe(before.unusedTotal)
     expect(done.reserved, 'выделенное под записку не тронуто').toBe(before.reserved)
     expect(done.unusedTotal >= done.reserved, 'выделенное обеспечено').toBe(true)
-    const rows: any[] = (await bc.getTableRows(MARKET, COOP, 'investors', 1000)).filter(r => r.braname === BRANAME)
+    const rows: any[] = (await bc.getTableRows(MARKET, COOP, 'investors', 1000)).filter((r: any) => r.braname === BRANAME)
     expect(rows.filter(r => units(r.used_money) + units(r.property) > 0n).every(r => r.status === 'done'), 'каждый инициатор с использованным взносом завершил возврат').toBe(true)
 
     // 5. Инициатор с неиспользованными деньгами забирает только свободное: выделенное остаётся в участке.
