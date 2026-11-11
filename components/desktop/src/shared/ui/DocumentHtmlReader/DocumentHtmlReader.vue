@@ -59,6 +59,13 @@ const renderedHtml = computed(() =>
   border-color: var(--p-line-1) !important;
 }
 
+/* Текст после таблицы не прилипает к ней: шаблоны дают таблице отступ
+   только сверху (слово владельца 11.11.2026). */
+.statement table,
+.doc-html table {
+  margin-bottom: var(--p-4) !important;
+}
+
 .statement th,
 .doc-html th {
   font-weight: 600;
