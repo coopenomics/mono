@@ -883,7 +883,8 @@ function monthLabel(p: { starts_at: unknown; ends_at: unknown }): string {
     const time = (d: Date) => d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' })
     return `${day} ${time(start)}–${time(end)}`
   }
-  const label = start.toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric' }).replace(/\s*г\.$/, '')
+  // Месяц итога идёт по UTC, как у контракта: подпись берётся в UTC, иначе к западу от него она показывала бы прошлый месяц.
+  const label = start.toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/\s*г\.$/, '')
   return label[0].toUpperCase() + label.slice(1)
 }
 

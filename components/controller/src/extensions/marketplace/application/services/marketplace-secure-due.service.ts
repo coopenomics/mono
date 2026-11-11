@@ -33,6 +33,7 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplacePeriodService } from './marketplace-period.service';
+import { PERIOD_TIME_ZONE } from '../shared/period-bounds';
 import { aidPeriodKey } from './marketplace-branch-reserve.service';
 import { MarketplaceSecurePartState, type MarketplaceSecurePartDTO } from '../dto/marketplace-secure-part.dto';
 import { MarketplaceOrderStatuses, type MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
@@ -567,7 +568,7 @@ export class MarketplaceSecureDueService implements OnApplicationBootstrap {
    */
   private chargeDateOf(row: MarketplaceSecureDueEntity, now: Date): Date | null {
     if (!row.due_from) return null;
-    const timeZone = platformSettings().timezone || 'UTC';
+    const timeZone = PERIOD_TIME_ZONE;
     const byWarranty = standNextPeriodStart(row.due_from, timeZone);
     return byWarranty <= now ? standNextPeriodStart(now, timeZone) : byWarranty;
   }

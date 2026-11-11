@@ -375,19 +375,20 @@ describe('mkt.secure.due.side.11 — обеспечительная часть �
     expect(await service.securePartOf(order({ membership_fee: '0.0000' }))).toBeNull();
   });
 
-  it('после выдачи — ждёт списания с датой: начало следующего месяца после гарантии по часовому поясу кооператива', async () => {
+  it('после выдачи — ждёт списания с датой: начало следующего месяца после гарантии по UTC, как у контракта', async () => {
     const { service } = withClaims(false);
     await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
     const part = await service.securePartOf(order({ status: 'RECEIVED' }), new Date('2026-10-25T10:00:00.000Z'));
     expect(part).toMatchObject({ state: 'DUE', amount: '30.0000', due_amount: '30.0000', charged_amount: '0.0000' });
-    expect(part?.charge_at).toEqual(new Date('2026-10-31T21:00:00.000Z'));
+    // Пояс кооператива — Москва, но месяц списания идёт по UTC: контракт пояса не знает.
+    expect(part?.charge_at).toEqual(new Date('2026-11-01T00:00:00.000Z'));
   });
 
   it('срок прошёл, а строка ещё не списана — дата списания: ближайшее начало месяца', async () => {
     const { service } = withClaims(false);
     await service.applyOperation(apply(MarketplaceSecureDueOperation.TO_DUE, '30.0000', 1));
     const tenthOfNovember = new Date('2026-11-10T10:00:00.000Z');
-    expect((await service.securePartOf(order({ status: 'RECEIVED' }), tenthOfNovember))?.charge_at).toEqual(new Date('2026-11-30T21:00:00.000Z'));
+    expect((await service.securePartOf(order({ status: 'RECEIVED' }), tenthOfNovember))?.charge_at).toEqual(new Date('2026-12-01T00:00:00.000Z'));
   });
 
   it('открытый гарантийный возврат приостанавливает списание, даты нет', async () => {

@@ -8,7 +8,7 @@ import {
   type ILedger2HistoryPort,
   type ILoggerPort,
 } from '@coopenomics/innercoop';
-import { DomainError, TableStore, chainErrorCode, isNull, lessThan, platformSettings, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
+import { DomainError, TableStore, chainErrorCode, isNull, lessThan, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_PERIOD_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
 import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
@@ -18,7 +18,7 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplaceBranchAidMirrorService } from './marketplace-branch-aid-mirror.service';
-import { periodBounds, type PeriodBounds } from '../shared/period-bounds';
+import { PERIOD_TIME_ZONE, periodBounds, type PeriodBounds } from '../shared/period-bounds';
 import { plannedTargetUnits } from '../shared/planned-target.util';
 
 /** Отказы контракта, которые для прогона — норма, а не сбой. */
@@ -100,9 +100,9 @@ export class MarketplacePeriodService {
     this.logger.setContext(MarketplacePeriodService.name);
   }
 
-  /** Границы месяца по его номеру в часовом поясе кооператива. */
+  /** Границы месяца по его номеру — по UTC, как у контракта. */
   boundsOf(period: number): PeriodBounds {
-    return periodBounds(period, platformSettings().timezone || 'UTC');
+    return periodBounds(period, PERIOD_TIME_ZONE);
   }
 
   // ── Факты месяца ──────────────────────────────────────────────────────

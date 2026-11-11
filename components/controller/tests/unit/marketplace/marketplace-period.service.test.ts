@@ -178,10 +178,11 @@ describe('mkt.order.keu.11 — факты месяца', () => {
     });
     const facts = await service.collectFacts(COOP, BRANAME, NOVEMBER);
     expect(facts.plannedTarget).toBe(toUnits('310000.0000'));
-    // Границы ноября по Москве передаются в запросы помощи и истории.
+    // Границы ноября по UTC, как у контракта, передаются в запросы помощи и истории;
+    // пояс кооператива (в тесте — Москва) на них не влияет (решение владельца 11.11.2026).
     const [, , from, to] = aidMirror.paidRowsWithin.mock.calls[0] as unknown as [string, string, Date, Date];
-    expect(from.toISOString()).toBe('2026-10-31T21:00:00.000Z');
-    expect(to.toISOString()).toBe('2026-11-30T21:00:00.000Z');
+    expect(from.toISOString()).toBe('2026-11-01T00:00:00.000Z');
+    expect(to.toISOString()).toBe('2026-12-01T00:00:00.000Z');
     expect(ledger2History.getHistory).toHaveBeenCalledWith(expect.objectContaining({ coopname: COOP, username: BRANAME, operationCodes: ['o.brn.expfnd', 'o.brn.expunf'], dateFrom: from, dateTo: to }));
   });
 

@@ -31,7 +31,7 @@ import {
   toMarketplaceBranchReservesDTO,
   toMarketplaceEconomySettingsDTO,
 } from '../dto/marketplace-keu.dto';
-import { periodBounds } from '../shared/period-bounds';
+import { PERIOD_TIME_ZONE, periodBounds } from '../shared/period-bounds';
 
 const paginatedBranchPeriods = createPaginationResult(MarketplaceBranchPeriodDTO, 'MarketplaceBranchPeriods');
 
@@ -173,7 +173,7 @@ export class MarketplaceKeuResolver {
       ...result,
       // Границы месяца — по той же шкале, что списание: на стенде со сжатым
       // временем месяц — отрезок STAND_MONTH_SECONDS, его номер годом не читается.
-      items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row), periodBounds(row.period, platformSettings().timezone || 'UTC'))),
+      items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row), periodBounds(row.period, PERIOD_TIME_ZONE))),
     };
   }
 
@@ -190,8 +190,8 @@ export class MarketplaceKeuResolver {
   ): Promise<MarketplaceBranchCurrentPeriodDTO> {
     const coopname = platformSettings().coopname;
     const now = new Date();
-    const period = monthKey(now, platformSettings().timezone || 'UTC');
-    const bounds = periodBounds(period, platformSettings().timezone || 'UTC');
+    const period = monthKey(now, PERIOD_TIME_ZONE);
+    const bounds = periodBounds(period, PERIOD_TIME_ZONE);
     // Показ до расчёта (правило «деньги считает контракт», п. 6): ожидаемые
     // расходы по той же формуле, что closeperiod, — траты месяца из денег
     // участка, цель резерва и собранное прошлым итогом. Итог считает контракт.

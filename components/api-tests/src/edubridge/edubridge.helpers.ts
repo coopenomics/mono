@@ -614,7 +614,7 @@ export async function planLesson(groupId: string, over: Record<string, unknown> 
     await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, hourly_rate: PLANNED_RATE }], report_days: 365 } })
     longReportWindow.add(groupId)
   }
-  const d = { group_id: groupId, held_at: new Date(defaultHeldAt()).toISOString(), ...over }
+  const d = { group_id: groupId, held_at: new Date(await defaultHeldAt()).toISOString(), ...over }
   return (await gql<any>(chairman, PLAN_LESSON, { d })).edubridgePlanLesson
 }
 
@@ -653,12 +653,43 @@ export function lessonHoursAgo(hours: number, orderMinute = 1): string {
   return new Date(Math.max(Date.now() - hours * 3600_000, startOfTodayUtc() + orderMinute * 60_000)).toISOString()
 }
 
-function defaultHeldAt(): number {
+/** Длина суток узла, секунд: на полигоне время сжато, и занятие длится секунды. Читается один раз. */
+let daySecondsCache: number | null = null
+async function standDaySeconds(): Promise<number> {
+  if (daySecondsCache === null) {
+    const chairman = await tokenOf(CHAIRMAN)
+    const d = await gql<any>(chairman, 'query{ edubridgeEconomySettings{ day_seconds } }')
+    daySecondsCache = Number(d.edubridgeEconomySettings.day_seconds) || 86_400
+  }
+  return daySecondsCache
+}
+
+/**
+ * Время занятия под отчёт: два часа назад, но не раньше начала дня UTC —
+ * подписка, оплаченная в этом же запуске тестов, покрывает занятия только с начала
+ * дня оплаты. Занятие должно успеть закончиться: отчёт о занятии, которое ещё
+ * идёт, узел не принимает.
+ *
+ * Раньше запас на длину занятия был 61 минута настоящего времени. Тест,
+ * который шёл в первые 61 минуту суток UTC, ставил занятие на вчера, и
+ * контракт верно считал его неоплаченным — набор падал в зависимости от
+ * времени суток. Теперь запас считается по шкале времени узла: на полигоне
+ * час занятия длится секунды, и тест ждёт их после полуночи, а не падает.
+ */
+async function defaultHeldAt(): Promise<number> {
+  const scale = (await standDaySeconds()) / 86_400
+  // Час занятия по шкале узла и запас на часы узла и цепи.
+  const lessonMs = Math.ceil(61 * 60_000 * scale) + 5_000
+  const startOfToday = startOfTodayUtc() + 1000
+  const wait = startOfToday + lessonMs - Date.now()
+  if (wait > 0 && wait <= 120_000) {
+    // timing: schedule — после полуночи UTC ждём, пока занятие этого дня успеет закончиться
+    await new Promise(resolve => setTimeout(resolve, wait))
+  }
   const now = Date.now()
   const twoHoursAgo = now - 2 * 3600_000
-  const startOfToday = startOfTodayUtc() + 1000
-  const lessonFitsToday = now - startOfToday >= 61 * 60_000
-  return lessonFitsToday ? Math.max(twoHoursAgo, startOfToday) : twoHoursAgo
+  // Настоящее время и первый час суток: занятие этого дня закончиться не успевает — прежнее поведение.
+  return now - startOfToday >= lessonMs ? Math.max(twoHoursAgo, startOfToday) : twoHoursAgo
 }
 
 /**
@@ -668,7 +699,7 @@ function defaultHeldAt(): number {
  */
 export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
   const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
-  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(defaultHeldAt())
+  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(await defaultHeldAt())
   // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
   const target = new Date(Math.max(held_at.getTime(), floor)).toISOString()

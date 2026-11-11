@@ -7,7 +7,7 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError, platformSettings, standPeriodKey } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError, standPeriodKey } from '@coopenomics/extension-kit';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { calcCostMinor } from '../shared/cost.util';
 import type { ResolvedSaleUnit } from '../shared/packaging.util';
@@ -30,7 +30,7 @@ import {
 
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { ndflBreakdown } from '../shared/ndfl.util';
-import { periodBounds } from '../shared/period-bounds';
+import { PERIOD_TIME_ZONE, periodBounds } from '../shared/period-bounds';
 import { plannedTargetUnits } from '../shared/planned-target.util';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 // Способ оплаты и тип получателя — словарь шасси расходов из межрасширенческого
@@ -343,7 +343,7 @@ export class MarketplaceEconomyService {
     // цель плановых расходов на сегодня: неоплаченные записи со сроком до
     // конца текущего месяца, их собрал прошлый итог месяца. Та же функция
     // считает факт цели для итога месяца.
-    const timeZone = platformSettings().timezone || 'UTC';
+    const timeZone = PERIOD_TIME_ZONE;
     const monthEnd = periodBounds(standPeriodKey(new Date(), timeZone), timeZone).end;
     const reserve = { amount: Number(plannedTargetUnits(plans, braname, monthEnd, (a) => this.assetToUnits(a))) / 10 ** this.assetConfig.decimals };
 
