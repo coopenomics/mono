@@ -16,7 +16,13 @@ div
     :title='$t("capital.createPropertyContributionButton.dialogTitle")',
     size='md'
   )
-    BaseForm(:loading='isSubmitting', @submit='submit')
+    //- Два шага: поля позиции → заявление целиком до подписи. «Назад»
+    //- возвращает к полям; после правки стол собирает заявление заново.
+    template(v-if='statement')
+      p.t-sm.t-muted.q-mt-none {{ $t('capital.createPropertyContributionButton.previewIntro') }}
+      DocumentHtmlReader(:html='statement.html')
+
+    BaseForm(v-else, :loading='isGenerating', @submit='toPreview')
       p.t-sm.t-muted.q-mt-none {{ $t('capital.createPropertyContributionButton.intro') }}
       BaseInput(
         v-model='form.name',
@@ -30,7 +36,6 @@ div
         autogrow,
         :rows='3',
         :label='$t("capital.createPropertyContributionButton.descriptionLabel")',
-        :hint='$t("capital.createPropertyContributionButton.descriptionHint")',
         required
       )
       .property-form__row
@@ -62,9 +67,13 @@ div
         BaseButton(
           variant='primary',
           type='submit',
-          :loading='isSubmitting',
+          :loading='isGenerating',
           :disabled='!isValid'
-        ) {{ $t('capital.createPropertyContributionButton.submit') }}
+        ) {{ $t('capital.createPropertyContributionButton.continue') }}
+
+    template(v-if='statement' #footer)
+      BaseButton(variant='ghost', :disabled='isSubmitting', @click='statement = null') {{ $t('common.action.back') }}
+      BaseButton(variant='primary', :loading='isSubmitting', @click='submit') {{ $t('capital.createPropertyContributionButton.sign') }}
 </template>
 
 <script setup lang="ts">
@@ -72,6 +81,8 @@ import { computed, reactive, ref, watch } from 'vue';
 import { LocalStorage } from 'quasar';
 import { BaseButton, BaseDialog, BaseForm, BaseInput } from 'src/shared/ui/base';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
+import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
+import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -82,7 +93,10 @@ const emit = defineEmits<{ submitted: [] }>();
 
 const system = useSystemStore();
 const session = useSessionStore();
-const { submitStatement, isSubmitting } = useProgramProperty();
+const { generateStatement, submitStatement, isSubmitting, isGenerating } = useProgramProperty();
+
+/** Заявление на показ; пусто — пайщик на шаге полей. */
+const statement = ref<IGeneratedDocumentOutput | null>(null);
 
 const blank = (): PropertyPositionForm => ({ name: '', description: '', quantity: '', unit: '', amount: null });
 
@@ -107,13 +121,30 @@ const amountError = computed(() =>
   form.amount != null && !isValidAmount.value ? t('capital.createPropertyContributionButton.amountPositiveError') : undefined,
 );
 
-async function submit(): Promise<void> {
+// Правка черновика после показа заявления: показанный текст уже не тот.
+watch(form, () => (statement.value = null), { deep: true });
+// Повторное открытие окна начинается с полей.
+watch(open, (value) => {
+  if (value) statement.value = null;
+});
+
+async function toPreview(): Promise<void> {
   if (!isValid.value) return;
   try {
-    await submitStatement(form);
+    statement.value = await generateStatement(form);
+  } catch (e: unknown) {
+    FailAlert(e);
+  }
+}
+
+async function submit(): Promise<void> {
+  if (!statement.value) return;
+  try {
+    await submitStatement(statement.value);
     SuccessAlert(t('capital.createPropertyContributionButton.success'));
     Object.assign(form, blank());
     LocalStorage.remove(draftKey.value);
+    statement.value = null;
     open.value = false;
     emit('submitted');
   } catch (e: unknown) {

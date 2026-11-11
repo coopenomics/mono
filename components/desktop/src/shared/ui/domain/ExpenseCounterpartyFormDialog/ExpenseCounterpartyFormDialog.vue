@@ -145,6 +145,13 @@ const touched = ref(false);
 const saving = ref(false);
 /** Нарушения по полям от сервера: вид значения и контрольные суммы. */
 const serverIssues = ref<Record<string, string>>({});
+/**
+ * Значения, которые проверил сервер. Ответ относится только к ним: пока
+ * номер дописывают или проверка ещё в пути, поле не подсвечивается ответом
+ * для прежнего значения (корр. счёт мигал красным, 11.11.2026).
+ */
+const checkedValues = ref<Record<string, string>>({});
+let checkSeq = 0;
 
 const kindOptions = [
   { value: Zeus.ExpenseCounterpartyKind.LEGAL, label: t('ui.expenseCounterparty.kindLegal') },
@@ -296,6 +303,8 @@ function fill(cp: ExpenseCounterpartyView | null): void {
   for (const r of cp?.requisites ?? []) values[r.key] = r.value;
   touched.value = false;
   serverIssues.value = {};
+  checkedValues.value = {};
+  checkSeq++;
 }
 
 /** Смена вида: ИНН юрлица и ИП разной длины, поэтому ИНН и подставленное снимаются. */
@@ -319,13 +328,24 @@ function filledRequisites() {
 /** Реквизиты проверяет сервер теми же правилами, что при сохранении; ответ — нарушения по полям. */
 async function runCheck(): Promise<Record<string, string>> {
   if (!form.value) return {};
+  const seq = ++checkSeq;
+  const requisites = filledRequisites();
   try {
-    const issues = await checkExpenseCounterpartyRequisites({ kind: kind.value, requisites: filledRequisites() });
+    const issues = await checkExpenseCounterpartyRequisites({ kind: kind.value, requisites });
+    // Поздний ответ прежней проверки свежий не затирает.
+    if (seq !== checkSeq) return serverIssues.value;
     serverIssues.value = Object.fromEntries(issues.map((i) => [i.key, i.code]));
+    checkedValues.value = Object.fromEntries(requisites.map((r) => [r.key, r.value]));
   } catch {
-    serverIssues.value = {};
+    if (seq === checkSeq) serverIssues.value = {};
   }
   return serverIssues.value;
+}
+
+/** Ответ сервера относится к нынешнему значению поля и его пары (счёт — с БИК). */
+function checkedNow(field: FormField): boolean {
+  const same = (key: string) => (values[key]?.trim() ?? '') === (checkedValues.value[key] ?? '');
+  return same(field.key) && (!field.checked_with || same(field.checked_with));
 }
 
 let checkTimer: ReturnType<typeof setTimeout> | null = null;
@@ -352,6 +372,7 @@ function errorOf(field: FormField): string | undefined {
  * это поле: ошибка может быть в любом из двух.
  */
 function serverIssueText(field: FormField): string | undefined {
+  if (!checkedNow(field)) return undefined;
   const code = serverIssues.value[field.key];
   if (code === 'CHECKSUM') {
     const pair = field.checked_with ? fields.value.find((f) => f.key === field.checked_with) : undefined;
