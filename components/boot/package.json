@@ -38,8 +38,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@coopenomics/docs-factory": "1.6.2",
-    "@coopenomics/docs-templates": "1.6.2",
+    "@coopenomics/docs-factory": "1.6.3",
+    "@coopenomics/docs-templates": "1.6.3",
     "@coopenomics/sdk": "workspace:*",
     "@types/pg": "^8.16.0",
     "axios": "^1.13.5",
