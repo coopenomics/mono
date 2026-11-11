@@ -238,6 +238,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
+  padding: var(--p-6);
+}
+
+@media (max-width: 768px) {
+  .counterparties {
+    padding: var(--p-4);
+  }
 }
 
 .counterparties__toolbar {
@@ -252,8 +259,9 @@ onMounted(() => {
   max-width: 420px;
 
   // Строка инструментов: поле без резерва под подсказку, иначе переключатель
-  // архива встаёт ниже поля.
-  :deep(.q-field--with-bottom) {
+  // архива встаёт ниже поля. Класс стоит на корне поля, поэтому резерв
+  // снимается с самого корня, а не с потомка.
+  &.q-field--with-bottom {
     padding-bottom: 0;
   }
 
