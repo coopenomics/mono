@@ -656,7 +656,7 @@
       "requiredError": "Заполните поле",
       "ruleError": "Значение должно удовлетворять правилу: {rule}",
       "secretSetPlaceholder": "Задано — введите новое значение, чтобы заменить",
-      "urlError": "Нужна ссылка вида https://…"
+      "urlError": "Введите ссылку вида https://…"
     },
     "expenseProposalDecisionInfo": {
       "purposeLabel": "Цель расходов",

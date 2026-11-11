@@ -140,7 +140,7 @@
         "install": "устанавливается",
         "pending": "в очереди",
         "rent": "арендуем сервер",
-        "requiresManualReview": "нужна проверка"
+        "requiresManualReview": "требуется проверка"
       }
     },
     "payment": {

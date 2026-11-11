@@ -1443,7 +1443,7 @@
     "CAPITAL_ISSUE_STATUS_TRANSITION_FORBIDDEN": "Переход из статуса \"{currentStatus}\" в \"{newStatus}\" запрещен для вашей роли",
     "CAPITAL_ISSUE_TRANSFER_GIT_COMMITS_USED": "Перенос невозможен: привязанные Git-коммиты уже использованы при создании коммита CAPITAL.",
     "CAPITAL_ISSUE_TRANSFER_HAS_COMMITS": "Перенос невозможен: по задаче уже зафиксировано время в коммитах CAPITAL. Можно переносить только задачи без участия в коммитах.",
-    "CAPITAL_ISSUE_TRANSFER_MASTER_REQUIRED": "Недостаточно прав: нужны права мастера на оба компонента",
+    "CAPITAL_ISSUE_TRANSFER_MASTER_REQUIRED": "Недостаточно прав: требуются права мастера на оба компонента",
     "CAPITAL_ISSUE_TRANSFER_SAME_PROJECT_ONLY": "Перенос возможен только между компонентами одного проекта",
     "CAPITAL_ISSUE_TRANSFER_SOURCE_BLOCKED": "Нельзя переносить задачу из компонента на голосовании или из завершённого компонента",
     "CAPITAL_ISSUE_TRANSFER_TARGET_BLOCKED": "Нельзя переносить задачу в компонент на голосовании или в завершённый компонент",

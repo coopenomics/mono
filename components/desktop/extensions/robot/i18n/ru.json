@@ -35,7 +35,7 @@
       "immediateVoteText": "Сразу, не дожидаясь других",
       "keyMissingLabel": "Ключ не передан",
       "keyNotDelegatedLabel": "Не делегировал",
-      "keyStaleLabel": "Ключ устарел — нужно передать заново",
+      "keyStaleLabel": "Ключ устарел — передайте его заново",
       "keyVotingLabel": "Робот голосует",
       "memberColumn": "Член совета",
       "moreTitlesText": "{shown} и ещё {restCount}",

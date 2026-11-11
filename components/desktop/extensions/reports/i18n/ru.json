@@ -498,7 +498,7 @@
       "markConfirmLabel": "Отметить",
       "markConfirmTitle": "Подтвердите отметку",
       "markNotRequiredConfirm": "Отметить период как «не надо сдавать»? В календаре ячейка станет серой.",
-      "markNotRequiredHint": "Отметить, что этот период сдавать не нужно — ячейка станет серой",
+      "markNotRequiredHint": "Отметить, что за этот период отчёт не сдаётся — ячейка станет серой",
       "markNotRequiredLabel": "Не надо сдавать",
       "markSetError": "Ошибка установки отметки",
       "markSetSuccess": "Отметка поставлена",
