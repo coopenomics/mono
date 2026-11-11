@@ -5054,7 +5054,6 @@ export type MessageKey =
   | 'marketplace.expensePlanDialog.amountPlaceholder'
   | 'marketplace.expensePlanDialog.dueDateLabel'
   | 'marketplace.expensePlanDialog.firstPayment'
-  | 'marketplace.expensePlanDialog.memoNote'
   | 'marketplace.expensePlanDialog.monthlyDescription'
   | 'marketplace.expensePlanDialog.monthlyDescriptionNoDate'
   | 'marketplace.expensePlanDialog.monthlyTitle'

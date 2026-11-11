@@ -3,7 +3,7 @@
 //-
 //- Зоны: слева — что и когда платим (назначение, сумма, срок, повторяемость,
 //- реквизиты), справа — что из этого выйдет (план платежей: сумма за платёж,
-//- ближайшие сроки, резерв участка в месяц, правило служебной записки). План
+//- ближайшие сроки, резерв участка в месяц и как он формируется). План
 //- считает сервер тем же календарём, по которому реестр продолжает серию, а
 //- итог месяца собирает резерв: панель обещает ровно то, что произойдёт.
 //- На узком экране панель плана встаёт под форму.
@@ -94,10 +94,6 @@ BaseDialog(
             :value='reserveValue'
           )
           p.plan-dialog__note {{ reserveNote }}
-
-        p.plan-dialog__note.plan-dialog__note--memo
-          q-icon(name='description', size='16px')
-          span {{ $t('marketplace.expensePlanDialog.memoNote') }}
 
       .plan-dialog__empty(v-else)
         q-icon(name='edit_calendar', size='28px')
@@ -345,8 +341,7 @@ async function onSubmit(): Promise<void> {
 // Сегменты — одна дорожка с утопленным фоном; выбранный сегмент поднят
 // поверхностью и рамкой. Ширина сегментов одинаковая: варианты равноправны.
 .plan-dialog__segments {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
   gap: var(--p-1);
   padding: var(--p-1);
   border: 1px solid var(--p-line);
@@ -355,8 +350,9 @@ async function onSubmit(): Promise<void> {
 }
 
 .plan-dialog__segment {
+  flex: 1 0 auto;
   min-height: var(--p-8);
-  padding: var(--p-2);
+  padding: var(--p-2) var(--p-3);
   border: 1px solid transparent;
   border-radius: var(--p-r-sm);
   background: transparent;
@@ -382,7 +378,6 @@ async function onSubmit(): Promise<void> {
   border-color: var(--p-line-2);
   background: var(--p-surface);
   color: var(--p-primary);
-  font-weight: 600;
 }
 
 .plan-dialog__caption {
@@ -391,7 +386,7 @@ async function onSubmit(): Promise<void> {
   color: var(--p-ink-3);
 }
 
-// План платежей — мягкая подложка без тени: это часть окна, а не всплывашка.
+// План платежей — плоская карточка канона: белая поверхность, волосяная рамка, без тени.
 .plan-dialog__plan {
   display: flex;
   flex-direction: column;
@@ -399,7 +394,7 @@ async function onSubmit(): Promise<void> {
   padding: var(--p-5);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg);
-  background: var(--p-surface-2);
+  background: var(--p-surface);
   min-width: 0;
 }
 
@@ -523,19 +518,8 @@ async function onSubmit(): Promise<void> {
 .plan-dialog__note {
   margin: 0;
   font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-3);
-}
-
-.plan-dialog__note--memo {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--p-2);
-
-  .q-icon {
-    flex: none;
-    color: var(--p-ink-3);
-  }
+  line-height: var(--p-lh-body);
+  color: var(--p-ink-2);
 }
 
 .plan-dialog__empty {
@@ -559,7 +543,11 @@ async function onSubmit(): Promise<void> {
   }
 
   .plan-dialog__segments {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-wrap: wrap;
+  }
+
+  .plan-dialog__segment {
+    flex-basis: calc(50% - var(--p-1));
   }
 }
 
