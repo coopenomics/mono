@@ -15,6 +15,10 @@ export interface ExpenseCreateDraftItem {
   item_hash?: string;
   /** Идентификатор платёжного метода получателя-пайщика (SELF/MEMBER). */
   payment_method_id?: string | null;
+  /** Контрагент-получатель из реестра контрагентов (организация). */
+  counterparty_id?: number | null;
+  /** Назначение платежа по умолчанию выбранного контрагента — чтобы не затирать введённое вручную. */
+  counterparty_default_purpose?: string;
 }
 
 /** Позиция в готовом для чейна виде (expense::createexp items). */
@@ -28,6 +32,8 @@ export interface ExpenseCreateChainItem {
   description: string;
   planned_amount: string;
   payment_method_id?: string;
+  /** Контрагент-получатель: наименование и реквизиты организации сервер берёт из его карточки. */
+  counterparty_id?: number;
   requisites?: string;
   payment_purpose?: string;
 }
@@ -71,6 +77,11 @@ export interface ExpenseCreateDialogProps {
   title?: string;
   /** Подача собранного и подписанного СЗ на чейн. */
   submit: (payload: ExpenseCreatePayload) => Promise<unknown>;
+  /**
+   * Кооперативный участок, от имени которого в записке добавляется новый
+   * контрагент; пусто — контрагент кооператива.
+   */
+  braname?: string | null;
   /** Предзаполнение пустой формы данными записи-источника. */
   prefill?: ExpenseCreatePrefill;
 }

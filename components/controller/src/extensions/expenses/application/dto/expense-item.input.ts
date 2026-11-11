@@ -1,5 +1,5 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf, IsInt } from 'class-validator';
 import { ExpenseMechanics } from '../../domain/enums/expense-mechanics.enum';
 import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum';
 
@@ -33,6 +33,14 @@ export class ExpenseItemInputDTO {
   @IsOptional()
   @IsString()
   recipient_name?: string;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки.',
+  })
+  @IsOptional()
+  @IsInt()
+  counterparty_id?: number;
 
   @Field(() => String, { description: 'Описание назначения расхода.' })
   @IsString()

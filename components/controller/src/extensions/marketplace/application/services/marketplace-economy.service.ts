@@ -5,7 +5,7 @@ import { type BranchContract } from 'cooptypes';
 import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerExpensePlan } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
 import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError, standPeriodKey } from '@coopenomics/extension-kit';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
@@ -829,7 +829,8 @@ export class MarketplaceEconomyService {
     // цепи эту подачу уже не остановит.
     const planId = input.plan_id ?? null;
     if (planId !== null) {
-      await this.assertPlanPayable(coopname, input.braname, planId);
+      const plan = await this.assertPlanPayable(coopname, input.braname, planId);
+      this.assertProposalMatchesPlan(plan, input);
       this.launchingPlans.add(planId);
     }
     try {
@@ -846,12 +847,32 @@ export class MarketplaceEconomyService {
    * Запись плана можно оплатить: она принадлежит участку, оплата по ней не
    * запущена и не завершена, и другая подача по ней сейчас не идёт.
    */
-  private async assertPlanPayable(coopname: string, braname: string, planId: number): Promise<void> {
+  private async assertPlanPayable(coopname: string, braname: string, planId: number): Promise<InnerExpensePlan> {
     if (this.launchingPlans.has(planId)) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
     const plan = (await this.expenseChassis.listPlans(coopname, braname)).find((p) => Number(p.id) === Number(planId));
     if (!plan || plan.branchName !== braname) throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     if (plan.proposalHash || plan.paidAt) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
+    return plan;
   }
+
+  /**
+   * Записка по записи плана со способом оплаты (задача 99D-35) — ровно один
+   * платёж этой записи: та же сумма, тот же получатель, тот же контрагент и
+   * назначение платежа либо тот же пайщик и способ получения средств.
+   * Записку собирает стол из записи, но сервер не верит столу на слово:
+   * иначе по записи «электроэнергия» можно было бы заплатить другому. Запись
+   * без способа оплаты (до 99D-35) сверяется только по суммам цепи, как прежде.
+   */
+  private assertProposalMatchesPlan(plan: InnerExpensePlan, input: CreateBranchExpenseInputDTO): void {
+    if (!plan.recipientType) return;
+    if (input.items.length !== 1) throw planMismatch('items');
+    const [item] = input.items;
+    if (this.assetToUnits(item.planned_amount) !== this.assetToUnits(plan.amount)) throw planMismatch('planned_amount');
+    if (item.recipient_type !== plan.recipientType) throw planMismatch('recipient_type');
+    const field = plan.recipientType === ExpenseRecipientType.ORG ? orgItemMismatch(plan, item) : advanceItemMismatch(plan, item);
+    if (field) throw planMismatch(field);
+  }
+
 
   /** Подача записки на расход участка: реквизиты, цепь, снимок реквизитов и привязка записи плана. */
   private async submitBranchExpense(coopname: string, username: string, input: CreateBranchExpenseInputDTO): Promise<string> {
@@ -865,6 +886,7 @@ export class MarketplaceEconomyService {
       requisites: item.requisites,
       paymentPurpose: item.payment_purpose,
       recipientName: item.recipient_name,
+      counterpartyId: item.counterparty_id,
     }));
 
     // Реквизиты проверяются ДО цепи: расход без реквизитов кассир не оплатит.
@@ -1079,4 +1101,24 @@ export class MarketplaceEconomyService {
       throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_SIGNATURE_INVALID');
     }
   }
+}
+
+type BranchExpenseItem = CreateBranchExpenseInputDTO['items'][number];
+
+function planMismatch(field: string): Error {
+  return DomainError.badRequest('EXPENSES_PLAN_PROPOSAL_MISMATCH', { field });
+}
+
+/** Поле, в котором пункт записки расходится с записью-оплатой организации; пусто — совпадает. */
+function orgItemMismatch(plan: InnerExpensePlan, item: BranchExpenseItem): string | null {
+  if (Number(item.counterparty_id) !== Number(plan.counterpartyId)) return 'counterparty_id';
+  if ((item.payment_purpose ?? '').trim() !== (plan.paymentPurpose ?? '').trim()) return 'payment_purpose';
+  return null;
+}
+
+/** Поле, в котором пункт записки расходится с записью-авансом пайщику; пусто — совпадает. */
+function advanceItemMismatch(plan: InnerExpensePlan, item: BranchExpenseItem): string | null {
+  if (item.recipient !== plan.recipient) return 'recipient';
+  if ((item.payment_method_id ?? '') !== (plan.paymentMethodId ?? '')) return 'payment_method_id';
+  return null;
 }

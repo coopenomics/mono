@@ -69,6 +69,15 @@ class ExpenseProposalItemInputDTO {
   @IsOptional()
   @IsString()
   recipient_username?: string;
+
+  @Field(() => Int, {
+    description:
+      'Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ.',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsInt()
+  counterparty_id?: number;
 }
 
 /**

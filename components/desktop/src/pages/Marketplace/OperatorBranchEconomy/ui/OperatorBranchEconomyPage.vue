@@ -16,6 +16,7 @@ import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalS
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
 import ExpensePlanDialog from './ExpensePlanDialog.vue'
+import PayPlanDialog from './PayPlanDialog.vue'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
@@ -540,7 +541,7 @@ const planColumns = computed<BaseTableColumn<ExpensePlanView>[]>(() => [
   { key: 'title', label: i18nT('marketplace.operatorBranchEconomyPage.columnPurpose'), width: '260px', sortable: true, field: 'title' },
   { key: 'amount', label: i18nT('marketplace.operatorBranchEconomyPage.amountLabel'), width: '150px', numeric: true },
   { key: 'due', label: i18nT('marketplace.operatorBranchEconomyPage.columnTerm'), width: '190px' },
-  { key: 'payto', label: i18nT('marketplace.operatorBranchEconomyPage.columnRequisites'), width: '240px', field: 'pay_to' },
+  { key: 'payto', label: i18nT('marketplace.operatorBranchEconomyPage.columnPayee'), width: '260px' },
   ...(store.isOperator
     ? [{ key: 'actions', label: '', width: '220px' } as BaseTableColumn<ExpensePlanView>]
     : []),
@@ -605,9 +606,35 @@ const payPlanPrefill = computed(() => {
   }
 })
 
+/**
+ * «Оплатить»: у записи со способом оплаты (99D-35) записка собирается из
+ * записи и только подписывается; запись, заведённая до способов оплаты,
+ * открывает прежнюю форму записки.
+ */
+const payReadyOpen = ref(false)
+
 function onPayPlan(plan: ExpensePlanView): void {
   payingPlan.value = plan
-  payPlanOpen.value = true
+  if (plan.recipient_type) payReadyOpen.value = true
+  else payPlanOpen.value = true
+}
+
+function onReadyPlanPaid(): void {
+  payingPlan.value = null
+  void loadAll()
+}
+
+/** Получатель записи в реестре: организация, пайщик для аванса или прежний текст реквизитов. */
+function planPayeeTitle(plan: ExpensePlanView): string {
+  if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return plan.counterparty_name ?? '—'
+  if (plan.recipient_type) return plan.recipient_name ?? plan.recipient ?? '—'
+  return plan.pay_to ?? '—'
+}
+
+function planPayeeNote(plan: ExpensePlanView): string {
+  if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return plan.payment_purpose ?? ''
+  if (plan.recipient_type) return i18nT('marketplace.operatorBranchEconomyPage.payeeAdvanceNote')
+  return ''
 }
 
 async function submitBranchExpense(payload: ExpenseCreatePayload): Promise<unknown> {
@@ -1198,7 +1225,8 @@ q-page.economy
               q-icon(name='autorenew', size='14px')
               | {{ planRecurrenceLabel(plan) }}
           template(#cell-payto='{ row: plan }')
-            .economy__payto {{ plan.pay_to }}
+            .economy__payto {{ planPayeeTitle(plan) }}
+            .economy__due-note(v-if='planPayeeNote(plan)') {{ planPayeeNote(plan) }}
           template(#cell-actions='{ row: plan }')
                     .economy__row-actions
                       BaseBadge(v-if='plan.paid_at', variant='pos') {{ $t('marketplace.operatorBranchEconomyPage.statusPaid') }}
@@ -1700,7 +1728,17 @@ q-page.economy
     :draft-key='payPlanDraftKey',
     :prefill='payPlanPrefill',
     :submit='submitBranchExpense',
+    :braname='braname',
     @created='onBranchExpenseCreated'
+  )
+
+  //- Оплата записи со способом оплаты — подпись готовой записки.
+  PayPlanDialog(
+    v-model='payReadyOpen',
+    :plan='payingPlan',
+    :braname='braname',
+    :source-wallet='BRANCH_EXPENSE_SOURCE_WALLET',
+    @paid='onReadyPlanPaid'
   )
 
   //- Диалог добавления планового расхода

@@ -1476,6 +1476,21 @@ cases:
     external_reason: "два года серии на полигоне не проходятся"
     status: written
 
+  # Задача 99D-35: «Оплатить» по записи плана со способом оплаты — подпись
+  # готовой записки; сервер сверяет её с записью.
+  - id: mkt.order.keu.31
+    level: backend
+    kind: break
+    scenario: Записка по записи плана расходится с записью — сумма, получатель, контрагент, назначение, способ получения средств или число пунктов
+    expect: >
+      EXPENSES_PLAN_PROPOSAL_MISMATCH до цепи, участок деньги не выделяет;
+      совпадающая записка подаётся; запись до способов оплаты сверку пунктов не
+      проходит, как прежде
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    external: unreachable
+    external_reason: "подача записки требует подписи председателя ключом; сверка проверяется на уровне сервиса до цепи"
+    status: written
+
   - id: mkt.order.keu.12
     level: backend
     kind: side

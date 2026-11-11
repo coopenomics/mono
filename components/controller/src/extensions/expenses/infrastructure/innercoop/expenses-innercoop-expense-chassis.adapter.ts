@@ -114,6 +114,11 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
       amount: r.amount,
       dueDate: r.due_date,
       recurrenceMonths: expensePlanRecurrenceMonths(r.recurrence),
+      recipientType: r.recipient_type,
+      counterpartyId: r.counterparty_id,
+      recipient: r.recipient,
+      paymentMethodId: r.payment_method_id,
+      paymentPurpose: r.payment_purpose,
       proposalHash: r.proposal_hash,
       paidAt: r.paid_at,
     }));

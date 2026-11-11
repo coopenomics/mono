@@ -1895,6 +1895,12 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+	/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean | Variable<any, string>,
+	/** Номер контрагента. */
+	id: number | Variable<any, string>
+};
 	["AssignCapabilitySetInput"]: {
 	/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null | Variable<any, string>,
@@ -2540,6 +2546,8 @@ export type ValueTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Назначение расхода по этой позиции. */
 	description: string | Variable<any, string>,
 	/** Идентификатор позиции расхода. */
@@ -3871,6 +3879,8 @@ export type ValueTypes = {
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
 	["CapitalExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Описание назначения расхода. */
 	description: string | Variable<any, string>,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -6488,10 +6498,20 @@ export type ValueTypes = {
 	amount: number | Variable<any, string>,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: ValueTypes["DateTime"] | Variable<any, string>,
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string | Variable<any, string>,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null | Variable<any, string>,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null | Variable<any, string>,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null | Variable<any, string>,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: ValueTypes["ExpenseRecipientType"] | undefined | null | Variable<any, string>,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: ValueTypes["ExpensePlanRecurrence"] | undefined | null | Variable<any, string>,
 	/** Назначение расхода. */
@@ -7948,6 +7968,8 @@ export type ValueTypes = {
 }>;
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Назначение расхода по этой позиции */
 	description: string | Variable<any, string>,
 	/** Идентификатор позиции расхода */
@@ -8927,6 +8949,95 @@ export type ValueTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null | Variable<any, string>
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: AliasType<{
+	/** В архиве: не предлагается для новых расходов. */
+	archived?:boolean | `@${string}`,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?:boolean | `@${string}`,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage?:boolean | `@${string}`,
+	/** Когда добавлен. */
+	created_at?:boolean | `@${string}`,
+	/** Кто добавил контрагента. */
+	creator?:boolean | `@${string}`,
+	/** Номер контрагента. */
+	id?:boolean | `@${string}`,
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+	/** Наименование. */
+	name?:boolean | `@${string}`,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?:boolean | `@${string}`,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites?:ValueTypes["ExpenseCounterpartyRequisite"],
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text?:boolean | `@${string}`,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterparty']?: Omit<ValueTypes["ExpenseCounterparty"], "...on ExpenseCounterparty">
+}>;
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: AliasType<{
+	/** Страна кооператива. */
+	country?:boolean | `@${string}`,
+	/** Поля по видам контрагента. */
+	kinds?:ValueTypes["ExpenseCounterpartyFormKind"],
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyForm']?: Omit<ValueTypes["ExpenseCounterpartyForm"], "...on ExpenseCounterpartyForm">
+}>;
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: AliasType<{
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись поля. */
+	label?:boolean | `@${string}`,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?:boolean | `@${string}`,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?:boolean | `@${string}`,
+	/** Поле обязательно. */
+	required?:boolean | `@${string}`,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyFormField']?: Omit<ValueTypes["ExpenseCounterpartyFormField"], "...on ExpenseCounterpartyFormField">
+}>;
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: AliasType<{
+	/** Поля в порядке платёжного поручения. */
+	fields?:ValueTypes["ExpenseCounterpartyFormField"],
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyFormKind']?: Omit<ValueTypes["ExpenseCounterpartyFormKind"], "...on ExpenseCounterpartyFormKind">
+}>;
+	["ExpenseCounterpartyIdInput"]: {
+	/** Номер контрагента. */
+	id: number | Variable<any, string>
+};
+	/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+["ExpenseCounterpartyKind"]:ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: AliasType<{
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита. */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyRequisite']?: Omit<ValueTypes["ExpenseCounterpartyRequisite"], "...on ExpenseCounterpartyRequisite">
+}>;
+	["ExpenseCounterpartyRequisiteInput"]: {
+	/** Ключ реквизита — из формы контрагента. */
+	key: string | Variable<any, string>,
+	/** Значение реквизита. */
+	value: string | Variable<any, string>
+};
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: AliasType<{
 	/** SHA-256 содержимого, hex-lowercase. */
@@ -8992,6 +9103,8 @@ export type ValueTypes = {
 	['...on ExpenseItem']?: Omit<ValueTypes["ExpenseItem"], "...on ExpenseItem">
 }>;
 	["ExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Описание назначения расхода. */
 	description: string | Variable<any, string>,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -9023,6 +9136,10 @@ export type ValueTypes = {
 	amount?:boolean | `@${string}`,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?:boolean | `@${string}`,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?:boolean | `@${string}`,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?:boolean | `@${string}`,
 	/** Когда добавлена запись. */
 	created_at?:boolean | `@${string}`,
 	/** Кто добавил запись. */
@@ -9035,10 +9152,20 @@ export type ValueTypes = {
 	next_due_date?:boolean | `@${string}`,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?:boolean | `@${string}`,
-	/** Реквизиты получателя платежа. */
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
 	pay_to?:boolean | `@${string}`,
+	/** Способ получения средств пайщика. */
+	payment_method_id?:boolean | `@${string}`,
+	/** Назначение платежа организации. */
+	payment_purpose?:boolean | `@${string}`,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?:boolean | `@${string}`,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?:boolean | `@${string}`,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?:boolean | `@${string}`,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?:boolean | `@${string}`,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?:boolean | `@${string}`,
 	/** Назначение расхода. */
@@ -9180,6 +9307,8 @@ export type ValueTypes = {
 	["ExpenseProposalItemInput"]: {
 	/** Сумма строки */
 	amount: string | Variable<any, string>,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Описание расхода */
 	description: string | Variable<any, string>,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -10786,6 +10915,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on LedgerState']?: Omit<ValueTypes["LedgerState"], "...on LedgerState">
 }>;
+	["ListExpenseCounterpartiesInput"]: {
+	/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null | Variable<any, string>,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null | Variable<any, string>
+};
 	["ListExpensePlansInput"]: {
 	/** Показать планы только этого кооперативного участка. */
 	braname?: string | undefined | null | Variable<any, string>
@@ -14992,6 +15127,7 @@ addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any
 applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveModeration?: [{	data: ValueTypes["ApproveModerationInputDTO"] | Variable<any, string>},ValueTypes["ApproveModerationResultDTO"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
+archiveExpenseCounterparty?: [{	data: ValueTypes["ArchiveExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 assignRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -15122,6 +15258,7 @@ confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["Me
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
+createExpenseCounterparty?: [{	data: ValueTypes["SaveExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
 createExpensePlan?: [{	data: ValueTypes["CreateExpensePlanInput"] | Variable<any, string>},ValueTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ValueTypes["CreateExpenseProposalInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
@@ -15135,6 +15272,7 @@ declineDecision?: [{	data: ValueTypes["DeclineDecisionInput"] | Variable<any, st
 deleteAccount?: [{	data: ValueTypes["DeleteAccountInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ValueTypes["DeleteBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
+deleteExpenseCounterparty?: [{	data: ValueTypes["ExpenseCounterpartyIdInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ValueTypes["DeleteExpensePlanInput"] | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
@@ -15415,6 +15553,7 @@ uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<a
 unverifyParticipant?: [{	data: ValueTypes["UnverifyParticipantInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ValueTypes["UpdateAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 updateBankAccount?: [{	data: ValueTypes["UpdateBankAccountInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
+updateExpenseCounterparty?: [{	data: ValueTypes["UpdateExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
 updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 updateReportRequisites?: [{	input: ValueTypes["UpdateReportRequisitesInput"] | Variable<any, string>},ValueTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ValueTypes["UpdateSettingsInput"] | Variable<any, string>},ValueTypes["Settings"]],
@@ -17515,6 +17654,9 @@ edubridgeTeacherContractDocument?: [{	username: string | Variable<any, string>},
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ValueTypes["EduTeacher"],
 expenseAdvancesByCooperative?: [{	coopname: string | Variable<any, string>,	filter?: ValueTypes["ExpenseAdvancesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedExpenseAdvancesPaginationResult"]],
+expenseCounterparties?: [{	data?: ValueTypes["ListExpenseCounterpartiesInput"] | undefined | null | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm?:ValueTypes["ExpenseCounterpartyForm"],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
@@ -18885,6 +19027,18 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string | Variable<any, string>
 };
+	["SaveExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Вид контрагента. */
+	kind: ValueTypes["ExpenseCounterpartyKind"] | Variable<any, string>,
+	/** Наименование. */
+	name: string | Variable<any, string>,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ValueTypes["ExpenseCounterpartyRequisiteInput"]> | Variable<any, string>
+};
 	["SaveReportDraftInput"]: {
 	editedFields: Array<string> | Variable<any, string>,
 	editsJson: string | Variable<any, string>,
@@ -19713,6 +19867,20 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	phone: string | Variable<any, string>,
 	/** Имя пользователя */
 	username: string | Variable<any, string>
+};
+	["UpdateExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Номер контрагента. */
+	id: number | Variable<any, string>,
+	/** Вид контрагента. */
+	kind: ValueTypes["ExpenseCounterpartyKind"] | Variable<any, string>,
+	/** Наименование. */
+	name: string | Variable<any, string>,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ValueTypes["ExpenseCounterpartyRequisiteInput"]> | Variable<any, string>
 };
 	["UpdateIndividualDataInput"]: {
 	/** Дата рождения */
@@ -21222,6 +21390,12 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+	/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean,
+	/** Номер контрагента. */
+	id: number
+};
 	["AssignCapabilitySetInput"]: {
 	/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null,
@@ -21849,6 +22023,8 @@ export type ResolverInputTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции. */
 	description: string,
 	/** Идентификатор позиции расхода. */
@@ -23154,6 +23330,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -25699,10 +25877,20 @@ export type ResolverInputTypes = {
 	amount: number,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: ResolverInputTypes["DateTime"],
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: ResolverInputTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: ResolverInputTypes["ExpensePlanRecurrence"] | undefined | null,
 	/** Назначение расхода. */
@@ -27120,6 +27308,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции */
 	description: string,
 	/** Идентификатор позиции расхода */
@@ -28064,6 +28254,90 @@ export type ResolverInputTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: AliasType<{
+	/** В архиве: не предлагается для новых расходов. */
+	archived?:boolean | `@${string}`,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?:boolean | `@${string}`,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage?:boolean | `@${string}`,
+	/** Когда добавлен. */
+	created_at?:boolean | `@${string}`,
+	/** Кто добавил контрагента. */
+	creator?:boolean | `@${string}`,
+	/** Номер контрагента. */
+	id?:boolean | `@${string}`,
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+	/** Наименование. */
+	name?:boolean | `@${string}`,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?:boolean | `@${string}`,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites?:ResolverInputTypes["ExpenseCounterpartyRequisite"],
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text?:boolean | `@${string}`,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: AliasType<{
+	/** Страна кооператива. */
+	country?:boolean | `@${string}`,
+	/** Поля по видам контрагента. */
+	kinds?:ResolverInputTypes["ExpenseCounterpartyFormKind"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: AliasType<{
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись поля. */
+	label?:boolean | `@${string}`,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?:boolean | `@${string}`,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?:boolean | `@${string}`,
+	/** Поле обязательно. */
+	required?:boolean | `@${string}`,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: AliasType<{
+	/** Поля в порядке платёжного поручения. */
+	fields?:ResolverInputTypes["ExpenseCounterpartyFormField"],
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ExpenseCounterpartyIdInput"]: {
+	/** Номер контрагента. */
+	id: number
+};
+	/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+["ExpenseCounterpartyKind"]:ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: AliasType<{
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита. */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ExpenseCounterpartyRequisiteInput"]: {
+	/** Ключ реквизита — из формы контрагента. */
+	key: string,
+	/** Значение реквизита. */
+	value: string
+};
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: AliasType<{
 	/** SHA-256 содержимого, hex-lowercase. */
@@ -28127,6 +28401,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["ExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -28158,6 +28434,10 @@ export type ResolverInputTypes = {
 	amount?:boolean | `@${string}`,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?:boolean | `@${string}`,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?:boolean | `@${string}`,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?:boolean | `@${string}`,
 	/** Когда добавлена запись. */
 	created_at?:boolean | `@${string}`,
 	/** Кто добавил запись. */
@@ -28170,10 +28450,20 @@ export type ResolverInputTypes = {
 	next_due_date?:boolean | `@${string}`,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?:boolean | `@${string}`,
-	/** Реквизиты получателя платежа. */
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
 	pay_to?:boolean | `@${string}`,
+	/** Способ получения средств пайщика. */
+	payment_method_id?:boolean | `@${string}`,
+	/** Назначение платежа организации. */
+	payment_purpose?:boolean | `@${string}`,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?:boolean | `@${string}`,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?:boolean | `@${string}`,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?:boolean | `@${string}`,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?:boolean | `@${string}`,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?:boolean | `@${string}`,
 	/** Назначение расхода. */
@@ -28312,6 +28602,8 @@ export type ResolverInputTypes = {
 	["ExpenseProposalItemInput"]: {
 	/** Сумма строки */
 	amount: string,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null,
 	/** Описание расхода */
 	description: string,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -29877,6 +30169,12 @@ export type ResolverInputTypes = {
 	coopname?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ListExpenseCounterpartiesInput"]: {
+	/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null
+};
 	["ListExpensePlansInput"]: {
 	/** Показать планы только этого кооперативного участка. */
 	braname?: string | undefined | null
@@ -33951,6 +34249,7 @@ addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},Resol
 applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveModeration?: [{	data: ResolverInputTypes["ApproveModerationInputDTO"]},ResolverInputTypes["ApproveModerationResultDTO"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
+archiveExpenseCounterparty?: [{	data: ResolverInputTypes["ArchiveExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterparty"]],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 assignRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
@@ -34081,6 +34380,7 @@ confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResu
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
+createExpenseCounterparty?: [{	data: ResolverInputTypes["SaveExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterparty"]],
 createExpensePlan?: [{	data: ResolverInputTypes["CreateExpensePlanInput"]},ResolverInputTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ResolverInputTypes["CreateExpenseProposalInput"]},ResolverInputTypes["Transaction"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
@@ -34094,6 +34394,7 @@ declineDecision?: [{	data: ResolverInputTypes["DeclineDecisionInput"]},ResolverI
 deleteAccount?: [{	data: ResolverInputTypes["DeleteAccountInput"]},boolean | `@${string}`],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ResolverInputTypes["DeleteBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
+deleteExpenseCounterparty?: [{	data: ResolverInputTypes["ExpenseCounterpartyIdInput"]},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ResolverInputTypes["DeleteExpensePlanInput"]},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
@@ -34374,6 +34675,7 @@ uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boo
 unverifyParticipant?: [{	data: ResolverInputTypes["UnverifyParticipantInput"]},ResolverInputTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ResolverInputTypes["UpdateAccountInput"]},ResolverInputTypes["Account"]],
 updateBankAccount?: [{	data: ResolverInputTypes["UpdateBankAccountInput"]},ResolverInputTypes["PaymentMethod"]],
+updateExpenseCounterparty?: [{	data: ResolverInputTypes["UpdateExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterparty"]],
 updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 updateReportRequisites?: [{	input: ResolverInputTypes["UpdateReportRequisitesInput"]},ResolverInputTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ResolverInputTypes["UpdateSettingsInput"]},ResolverInputTypes["Settings"]],
@@ -36381,6 +36683,9 @@ edubridgeTeacherContractDocument?: [{	username: string},ResolverInputTypes["Docu
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ResolverInputTypes["EduTeacher"],
 expenseAdvancesByCooperative?: [{	coopname: string,	filter?: ResolverInputTypes["ExpenseAdvancesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedExpenseAdvancesPaginationResult"]],
+expenseCounterparties?: [{	data?: ResolverInputTypes["ListExpenseCounterpartiesInput"] | undefined | null},ResolverInputTypes["ExpenseCounterparty"]],
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm?:ResolverInputTypes["ExpenseCounterpartyForm"],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
@@ -37706,6 +38011,18 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
 };
+	["SaveExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Вид контрагента. */
+	kind: ResolverInputTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ResolverInputTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["SaveReportDraftInput"]: {
 	editedFields: Array<string>,
 	editsJson: string,
@@ -38513,6 +38830,20 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	phone: string,
 	/** Имя пользователя */
 	username: string
+};
+	["UpdateExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: ResolverInputTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ResolverInputTypes["ExpenseCounterpartyRequisiteInput"]>
 };
 	["UpdateIndividualDataInput"]: {
 	/** Дата рождения */
@@ -39983,6 +40314,12 @@ export type ModelTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+	/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean,
+	/** Номер контрагента. */
+	id: number
+};
 	["AssignCapabilitySetInput"]: {
 	/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null,
@@ -40592,6 +40929,8 @@ export type ModelTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции. */
 	description: string,
 	/** Идентификатор позиции расхода. */
@@ -41866,6 +42205,8 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["CapitalExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -44329,10 +44670,20 @@ export type ModelTypes = {
 	amount: number,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: ModelTypes["DateTime"],
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: ModelTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: ModelTypes["ExpensePlanRecurrence"] | undefined | null,
 	/** Назначение расхода. */
@@ -45689,6 +46040,8 @@ export type ModelTypes = {
 };
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции */
 	description: string,
 	/** Идентификатор позиции расхода */
@@ -46585,6 +46938,84 @@ export type ModelTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: {
+		/** В архиве: не предлагается для новых расходов. */
+	archived: boolean,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?: string | undefined | null,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage: boolean,
+	/** Когда добавлен. */
+	created_at: ModelTypes["DateTime"],
+	/** Кто добавил контрагента. */
+	creator: string,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisite"]>,
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text: string,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id: string
+};
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: {
+		/** Страна кооператива. */
+	country: string,
+	/** Поля по видам контрагента. */
+	kinds: Array<ModelTypes["ExpenseCounterpartyFormKind"]>
+};
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: {
+		/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group: string,
+	/** Ключ реквизита. */
+	key: string,
+	/** Подпись поля. */
+	label: string,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?: number | undefined | null,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?: string | undefined | null,
+	/** Поле обязательно. */
+	required: boolean,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id: boolean
+};
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: {
+		/** Поля в порядке платёжного поручения. */
+	fields: Array<ModelTypes["ExpenseCounterpartyFormField"]>,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"]
+};
+	["ExpenseCounterpartyIdInput"]: {
+	/** Номер контрагента. */
+	id: number
+};
+	["ExpenseCounterpartyKind"]:ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: {
+		/** Ключ реквизита. */
+	key: string,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label: string,
+	/** Значение реквизита. */
+	value: string
+};
+	["ExpenseCounterpartyRequisiteInput"]: {
+	/** Ключ реквизита — из формы контрагента. */
+	key: string,
+	/** Значение реквизита. */
+	value: string
+};
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: {
 		/** SHA-256 содержимого, hex-lowercase. */
@@ -46645,6 +47076,8 @@ export type ModelTypes = {
 	status: ModelTypes["ExpenseItemStatus"]
 };
 	["ExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -46674,6 +47107,10 @@ export type ModelTypes = {
 	amount: string,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?: number | undefined | null,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?: string | undefined | null,
 	/** Когда добавлена запись. */
 	created_at: ModelTypes["DateTime"],
 	/** Кто добавил запись. */
@@ -46686,10 +47123,20 @@ export type ModelTypes = {
 	next_due_date?: ModelTypes["DateTime"] | undefined | null,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?: ModelTypes["DateTime"] | undefined | null,
-	/** Реквизиты получателя платежа. */
-	pay_to: string,
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации. */
+	payment_purpose?: string | undefined | null,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?: string | undefined | null,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?: string | undefined | null,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?: ModelTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence: ModelTypes["ExpensePlanRecurrence"],
 	/** Назначение расхода. */
@@ -46824,6 +47271,8 @@ export type ModelTypes = {
 	["ExpenseProposalItemInput"]: {
 	/** Сумма строки */
 	amount: string,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null,
 	/** Описание расхода */
 	description: string,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -48333,6 +48782,12 @@ export type ModelTypes = {
 	chartOfAccounts: Array<ModelTypes["ChartOfAccountsItem"]>,
 	/** Имя кооператива */
 	coopname: string
+};
+	["ListExpenseCounterpartiesInput"]: {
+	/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null
 };
 	["ListExpensePlansInput"]: {
 	/** Показать планы только этого кооперативного участка. */
@@ -52232,6 +52687,8 @@ export type ModelTypes = {
 	approveModeration: ModelTypes["ApproveModerationResultDTO"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: ModelTypes["VerificationReview"],
+	/** Убрать контрагента в архив или вернуть из архива. Контрагент в архиве не предлагается для новых расходов. */
+	archiveExpenseCounterparty: ModelTypes["ExpenseCounterparty"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Назначить роль пайщику */
@@ -52488,6 +52945,8 @@ export type ModelTypes = {
 	createBranch: ModelTypes["Branch"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: ModelTypes["GatewayPayment"],
+	/** Добавить контрагента. Контрагента кооператива добавляет совет; председатель участка и его доверенные лица добавляют контрагента с пометкой своего участка. */
+	createExpenseCounterparty: ModelTypes["ExpenseCounterparty"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
 	createExpensePlan: ModelTypes["ExpensePlan"],
 	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя). */
@@ -52514,6 +52973,8 @@ export type ModelTypes = {
 	deleteBranch: boolean,
 	/** Удалить пайщика из белого списка приватного кооперативного участка */
 	deleteBranchWhitelist: ModelTypes["Branch"],
+	/** Удалить контрагента. Контрагента из неоплаченных плановых расходов удалить нельзя — его убирают в архив. */
+	deleteExpenseCounterparty: boolean,
 	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
 	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
@@ -53060,6 +53521,8 @@ export type ModelTypes = {
 	updateAccount: ModelTypes["Account"],
 	/** Обновить банковский счёт */
 	updateBankAccount: ModelTypes["PaymentMethod"],
+	/** Изменить наименование, реквизиты или назначение платежа контрагента. Поданные записки сохраняют прежние реквизиты. */
+	updateExpenseCounterparty: ModelTypes["ExpenseCounterparty"],
 	/** Обновить расширение */
 	updateExtension: ModelTypes["Extension"],
 	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн */
@@ -55053,6 +55516,10 @@ export type ModelTypes = {
 	edubridgeTeachers: Array<ModelTypes["EduTeacher"]>,
 	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
 	expenseAdvancesByCooperative: ModelTypes["PaginatedExpenseAdvancesPaginationResult"],
+	/** Контрагенты кооператива с поиском по наименованию и налоговому номеру. Видят совет и операторы кооперативных участков. */
+	expenseCounterparties: Array<ModelTypes["ExpenseCounterparty"]>,
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm: ModelTypes["ExpenseCounterpartyForm"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: ModelTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
@@ -56483,6 +56950,18 @@ export type ModelTypes = {
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
 };
+	["SaveExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["SaveReportDraftInput"]: {
 	editedFields: Array<string>,
 	editsJson: string,
@@ -57265,6 +57744,20 @@ export type ModelTypes = {
 	phone: string,
 	/** Имя пользователя */
 	username: string
+};
+	["UpdateExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisiteInput"]>
 };
 	["UpdateIndividualDataInput"]: {
 	/** Дата рождения */
@@ -58748,6 +59241,12 @@ export type GraphQLTypes = {
 		/** Хеш метрики */
 	metric_hash: string
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+		/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean,
+	/** Номер контрагента. */
+	id: number
+};
 	["AssignCapabilitySetInput"]: {
 		/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null,
@@ -59393,7 +59892,9 @@ export type GraphQLTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
-		/** Назначение расхода по этой позиции. */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Назначение расхода по этой позиции. */
 	description: string,
 	/** Идентификатор позиции расхода. */
 	item_hash: string,
@@ -60724,7 +61225,9 @@ export type GraphQLTypes = {
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
 };
 	["CapitalExpenseItemInput"]: {
-		/** Описание назначения расхода. */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
 	item_hash: string,
@@ -63341,10 +63844,20 @@ export type GraphQLTypes = {
 	amount: number,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: GraphQLTypes["DateTime"],
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: GraphQLTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: GraphQLTypes["ExpensePlanRecurrence"] | undefined | null,
 	/** Назначение расхода. */
@@ -64801,7 +65314,9 @@ export type GraphQLTypes = {
 };
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
-		/** Назначение расхода по этой позиции */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Назначение расхода по этой позиции */
 	description: string,
 	/** Идентификатор позиции расхода */
 	item_hash: string,
@@ -65780,6 +66295,95 @@ export type GraphQLTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: {
+	__typename: "ExpenseCounterparty",
+	/** В архиве: не предлагается для новых расходов. */
+	archived: boolean,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?: string | undefined | null,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage: boolean,
+	/** Когда добавлен. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Кто добавил контрагента. */
+	creator: string,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisite"]>,
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text: string,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id: string,
+	['...on ExpenseCounterparty']: Omit<GraphQLTypes["ExpenseCounterparty"], "...on ExpenseCounterparty">
+};
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: {
+	__typename: "ExpenseCounterpartyForm",
+	/** Страна кооператива. */
+	country: string,
+	/** Поля по видам контрагента. */
+	kinds: Array<GraphQLTypes["ExpenseCounterpartyFormKind"]>,
+	['...on ExpenseCounterpartyForm']: Omit<GraphQLTypes["ExpenseCounterpartyForm"], "...on ExpenseCounterpartyForm">
+};
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: {
+	__typename: "ExpenseCounterpartyFormField",
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group: string,
+	/** Ключ реквизита. */
+	key: string,
+	/** Подпись поля. */
+	label: string,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?: number | undefined | null,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?: string | undefined | null,
+	/** Поле обязательно. */
+	required: boolean,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id: boolean,
+	['...on ExpenseCounterpartyFormField']: Omit<GraphQLTypes["ExpenseCounterpartyFormField"], "...on ExpenseCounterpartyFormField">
+};
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: {
+	__typename: "ExpenseCounterpartyFormKind",
+	/** Поля в порядке платёжного поручения. */
+	fields: Array<GraphQLTypes["ExpenseCounterpartyFormField"]>,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	['...on ExpenseCounterpartyFormKind']: Omit<GraphQLTypes["ExpenseCounterpartyFormKind"], "...on ExpenseCounterpartyFormKind">
+};
+	["ExpenseCounterpartyIdInput"]: {
+		/** Номер контрагента. */
+	id: number
+};
+	/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+["ExpenseCounterpartyKind"]: ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: {
+	__typename: "ExpenseCounterpartyRequisite",
+	/** Ключ реквизита. */
+	key: string,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label: string,
+	/** Значение реквизита. */
+	value: string,
+	['...on ExpenseCounterpartyRequisite']: Omit<GraphQLTypes["ExpenseCounterpartyRequisite"], "...on ExpenseCounterpartyRequisite">
+};
+	["ExpenseCounterpartyRequisiteInput"]: {
+		/** Ключ реквизита — из формы контрагента. */
+	key: string,
+	/** Значение реквизита. */
+	value: string
+};
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: {
 	__typename: "ExpenseFile",
@@ -65845,7 +66449,9 @@ export type GraphQLTypes = {
 	['...on ExpenseItem']: Omit<GraphQLTypes["ExpenseItem"], "...on ExpenseItem">
 };
 	["ExpenseItemInput"]: {
-		/** Описание назначения расхода. */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
 	item_hash: string,
@@ -65877,6 +66483,10 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?: number | undefined | null,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?: string | undefined | null,
 	/** Когда добавлена запись. */
 	created_at: GraphQLTypes["DateTime"],
 	/** Кто добавил запись. */
@@ -65889,10 +66499,20 @@ export type GraphQLTypes = {
 	next_due_date?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Реквизиты получателя платежа. */
-	pay_to: string,
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации. */
+	payment_purpose?: string | undefined | null,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?: string | undefined | null,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?: string | undefined | null,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?: GraphQLTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence: GraphQLTypes["ExpensePlanRecurrence"],
 	/** Назначение расхода. */
@@ -66033,6 +66653,8 @@ export type GraphQLTypes = {
 	["ExpenseProposalItemInput"]: {
 		/** Сумма строки */
 	amount: string,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null,
 	/** Описание расхода */
 	description: string,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -67638,6 +68260,12 @@ export type GraphQLTypes = {
 	/** Имя кооператива */
 	coopname: string,
 	['...on LedgerState']: Omit<GraphQLTypes["LedgerState"], "...on LedgerState">
+};
+	["ListExpenseCounterpartiesInput"]: {
+		/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null
 };
 	["ListExpensePlansInput"]: {
 		/** Показать планы только этого кооперативного участка. */
@@ -71855,6 +72483,8 @@ export type GraphQLTypes = {
 	approveModeration: GraphQLTypes["ApproveModerationResultDTO"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: GraphQLTypes["VerificationReview"],
+	/** Убрать контрагента в архив или вернуть из архива. Контрагент в архиве не предлагается для новых расходов. */
+	archiveExpenseCounterparty: GraphQLTypes["ExpenseCounterparty"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Назначить роль пайщику */
@@ -72111,6 +72741,8 @@ export type GraphQLTypes = {
 	createBranch: GraphQLTypes["Branch"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
+	/** Добавить контрагента. Контрагента кооператива добавляет совет; председатель участка и его доверенные лица добавляют контрагента с пометкой своего участка. */
+	createExpenseCounterparty: GraphQLTypes["ExpenseCounterparty"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
 	createExpensePlan: GraphQLTypes["ExpensePlan"],
 	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя). */
@@ -72137,6 +72769,8 @@ export type GraphQLTypes = {
 	deleteBranch: boolean,
 	/** Удалить пайщика из белого списка приватного кооперативного участка */
 	deleteBranchWhitelist: GraphQLTypes["Branch"],
+	/** Удалить контрагента. Контрагента из неоплаченных плановых расходов удалить нельзя — его убирают в архив. */
+	deleteExpenseCounterparty: boolean,
 	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
 	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
@@ -72683,6 +73317,8 @@ export type GraphQLTypes = {
 	updateAccount: GraphQLTypes["Account"],
 	/** Обновить банковский счёт */
 	updateBankAccount: GraphQLTypes["PaymentMethod"],
+	/** Изменить наименование, реквизиты или назначение платежа контрагента. Поданные записки сохраняют прежние реквизиты. */
+	updateExpenseCounterparty: GraphQLTypes["ExpenseCounterparty"],
 	/** Обновить расширение */
 	updateExtension: GraphQLTypes["Extension"],
 	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн */
@@ -74898,6 +75534,10 @@ export type GraphQLTypes = {
 	edubridgeTeachers: Array<GraphQLTypes["EduTeacher"]>,
 	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
 	expenseAdvancesByCooperative: GraphQLTypes["PaginatedExpenseAdvancesPaginationResult"],
+	/** Контрагенты кооператива с поиском по наименованию и налоговому номеру. Видят совет и операторы кооперативных участков. */
+	expenseCounterparties: Array<GraphQLTypes["ExpenseCounterparty"]>,
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm: GraphQLTypes["ExpenseCounterpartyForm"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: GraphQLTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
@@ -76429,6 +77069,18 @@ export type GraphQLTypes = {
 	["SaveCapitalProgramDocDataInput"]: {
 		doc_data_hash: string
 };
+	["SaveExpenseCounterpartyInput"]: {
+		/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["SaveReportDraftInput"]: {
 		editedFields: Array<string>,
 	editsJson: string,
@@ -77259,6 +77911,20 @@ export type GraphQLTypes = {
 	phone: string,
 	/** Имя пользователя */
 	username: string
+};
+	["UpdateExpenseCounterpartyInput"]: {
+		/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteInput"]>
 };
 	["UpdateIndividualDataInput"]: {
 		/** Дата рождения */
@@ -78388,6 +79054,11 @@ export enum ExpenseAdvanceState {
 	REPORTED = "REPORTED",
 	SETTLEMENT = "SETTLEMENT"
 }
+/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+export enum ExpenseCounterpartyKind {
+	ENTREPRENEUR = "ENTREPRENEUR",
+	LEGAL = "LEGAL"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -79334,6 +80005,7 @@ type ZEUS_VARIABLES = {
 	["ApproveVerificationInput"]: ValueTypes["ApproveVerificationInput"];
 	["AppsPublisherAssignmentInputDTO"]: ValueTypes["AppsPublisherAssignmentInputDTO"];
 	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
+	["ArchiveExpenseCounterpartyInput"]: ValueTypes["ArchiveExpenseCounterpartyInput"];
 	["AssignCapabilitySetInput"]: ValueTypes["AssignCapabilitySetInput"];
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["AuthorizeForceRecoveryInput"]: ValueTypes["AuthorizeForceRecoveryInput"];
@@ -79595,6 +80267,9 @@ type ZEUS_VARIABLES = {
 	["ExpenseAdvanceState"]: ValueTypes["ExpenseAdvanceState"];
 	["ExpenseAdvancesFilterInput"]: ValueTypes["ExpenseAdvancesFilterInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];
+	["ExpenseCounterpartyIdInput"]: ValueTypes["ExpenseCounterpartyIdInput"];
+	["ExpenseCounterpartyKind"]: ValueTypes["ExpenseCounterpartyKind"];
+	["ExpenseCounterpartyRequisiteInput"]: ValueTypes["ExpenseCounterpartyRequisiteInput"];
 	["ExpenseFileKind"]: ValueTypes["ExpenseFileKind"];
 	["ExpenseFilter"]: ValueTypes["ExpenseFilter"];
 	["ExpenseItemInput"]: ValueTypes["ExpenseItemInput"];
@@ -79707,6 +80382,7 @@ type ZEUS_VARIABLES = {
 	["KuProtocolQuestionInput"]: ValueTypes["KuProtocolQuestionInput"];
 	["KuTrustRequestFilterInput"]: ValueTypes["KuTrustRequestFilterInput"];
 	["KuVoteItemInput"]: ValueTypes["KuVoteItemInput"];
+	["ListExpenseCounterpartiesInput"]: ValueTypes["ListExpenseCounterpartiesInput"];
 	["ListExpensePlansInput"]: ValueTypes["ListExpensePlansInput"];
 	["ListMarketplaceKUInput"]: ValueTypes["ListMarketplaceKUInput"];
 	["ListReportDraftsFilterInput"]: ValueTypes["ListReportDraftsFilterInput"];
@@ -80050,6 +80726,7 @@ type ZEUS_VARIABLES = {
 	["RolePermissionAccess"]: ValueTypes["RolePermissionAccess"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
+	["SaveExpenseCounterpartyInput"]: ValueTypes["SaveExpenseCounterpartyInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];
 	["SbpDataInput"]: ValueTypes["SbpDataInput"];
 	["SearchDocumentsInput"]: ValueTypes["SearchDocumentsInput"];
@@ -80110,6 +80787,7 @@ type ZEUS_VARIABLES = {
 	["UpdateChatCoopCalendarEventInput"]: ValueTypes["UpdateChatCoopCalendarEventInput"];
 	["UpdateComponentMetricInput"]: ValueTypes["UpdateComponentMetricInput"];
 	["UpdateEntrepreneurDataInput"]: ValueTypes["UpdateEntrepreneurDataInput"];
+	["UpdateExpenseCounterpartyInput"]: ValueTypes["UpdateExpenseCounterpartyInput"];
 	["UpdateIndividualDataInput"]: ValueTypes["UpdateIndividualDataInput"];
 	["UpdateIssueInput"]: ValueTypes["UpdateIssueInput"];
 	["UpdateMeasureInput"]: ValueTypes["UpdateMeasureInput"];

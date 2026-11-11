@@ -11,17 +11,46 @@ import { EXPENSES_PLAN_STORE } from '../../infrastructure/database/expenses-stor
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
-import { BranchContract } from 'cooptypes';
 import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
-import { CHAIN_PORT, type IChainPort, type IMonoAccount } from '@coopenomics/innercoop';
+import {
+  ACCOUNT_PORT,
+  PAYMENT_METHOD_PORT,
+  type IAccountPort,
+  type IMonoAccount,
+  type IPaymentMethodPort,
+} from '@coopenomics/innercoop';
+import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum';
+import { ExpenseBranchOperatorsService } from './expense-branch-operators.service';
+import { ExpenseCounterpartiesService } from './expense-counterparties.service';
 
 export const EXPENSE_PLANS_SERVICE = Symbol('EXPENSE_PLANS_SERVICE');
 
-function isBranchOperator(branch: BranchContract.Tables.Branches.IBranch, username: string): boolean {
-  return branch.trustee === username || branch.trusted.includes(username);
+/** Поля способа оплаты записи — для следующего платежа серии. */
+function paymentOf(row: ExpensePlanEntity): Partial<ExpensePlanEntity> {
+  return {
+    recipientType: row.recipientType ?? null,
+    counterpartyId: row.counterpartyId ?? null,
+    recipient: row.recipient ?? null,
+    paymentMethodId: row.paymentMethodId ?? null,
+    paymentPurpose: row.paymentPurpose ?? null,
+  };
+}
+
+/** Способ оплаты записи в представлении; имена получателей заполняет показ реестра. */
+function paymentViewOf(row: ExpensePlanEntity) {
+  const payment = paymentOf(row);
+  return {
+    recipient_type: (payment.recipientType as ExpenseRecipientType | null) ?? null,
+    counterparty_id: payment.counterpartyId ?? null,
+    counterparty_name: null,
+    recipient: payment.recipient ?? null,
+    recipient_name: null,
+    payment_method_id: payment.paymentMethodId ?? null,
+    payment_purpose: payment.paymentPurpose ?? null,
+  };
 }
 
 /**
@@ -63,7 +92,23 @@ export interface ExpensePlanView {
   recurrence: ExpensePlanRecurrence;
   /** Срок следующего платежа серии; пусто у разового расхода и записи без срока. */
   next_due_date: Date | null;
-  pay_to: string;
+  /** Реквизиты текстом — только у записей до способов оплаты. */
+  pay_to: string | null;
+  /**
+   * Получатель: ORG — организация по реквизитам контрагента, SELF/MEMBER —
+   * пайщик авансом под отчёт; `null` — запись до способов оплаты.
+   */
+  recipient_type: ExpenseRecipientType | null;
+  counterparty_id: number | null;
+  /** Наименование контрагента — заполняется для показа в реестре. */
+  counterparty_name: string | null;
+  /** Пайщик-получатель аванса под отчёт. */
+  recipient: string | null;
+  /** Имя пайщика-получателя — заполняется для показа в реестре. */
+  recipient_name: string | null;
+  payment_method_id: string | null;
+  /** Назначение платежа организации. */
+  payment_purpose: string | null;
   creator: string;
   created_at: Date;
   /** Расход шасси, которым оплачивается запись; пусто — оплата не запускалась. */
@@ -97,7 +142,10 @@ export class ExpensePlansService {
   constructor(
     @Inject(EXPENSES_PLAN_STORE)
     private readonly planRepo: TableStore<ExpensePlanEntity>,
-    @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort
+    private readonly branchOperators: ExpenseBranchOperatorsService,
+    private readonly counterparties: ExpenseCounterpartiesService,
+    @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethods: IPaymentMethodPort,
+    @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort
   ) {}
 
   async listPlans(coopname: string, braname?: string | null): Promise<ExpensePlanView[]> {
@@ -113,14 +161,15 @@ export class ExpensePlansService {
    * до 25.09.2026 он был открыт любому (решение владельца 25.09, C28-80).
    */
   async listPlansFor(coopname: string, viewer: IMonoAccount, braname?: string | null): Promise<ExpensePlanView[]> {
-    if (viewer.role === 'chairman' || viewer.role === 'member') return this.listPlans(coopname, braname);
-    const own = await this.operatedBranches(coopname, viewer.username);
+    if (this.branchOperators.isCouncil(viewer)) return this.withNames(coopname, await this.listPlans(coopname, braname));
+    const own = await this.branchOperators.operatedBranches(coopname, viewer.username);
     if (braname) {
       if (!own.includes(braname)) throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN');
-      return this.listPlans(coopname, braname);
+      return this.withNames(coopname, await this.listPlans(coopname, braname));
     }
     if (own.length === 0) throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN');
-    return (await this.listPlans(coopname)).filter((p) => p.braname !== null && own.includes(p.braname));
+    const plans = (await this.listPlans(coopname)).filter((p) => p.braname !== null && own.includes(p.braname));
+    return this.withNames(coopname, plans);
   }
 
   async createPlan(
@@ -132,7 +181,13 @@ export class ExpensePlansService {
       amount: number;
       due_date: Date;
       recurrence?: ExpensePlanRecurrence | null;
-      pay_to: string;
+      /** Реквизиты текстом — путь прежних клиентов, без способа оплаты. */
+      pay_to?: string | null;
+      recipient_type?: ExpenseRecipientType | null;
+      counterparty_id?: number | null;
+      recipient?: string | null;
+      payment_method_id?: string | null;
+      payment_purpose?: string | null;
     }
   ): Promise<ExpensePlanView> {
     await this.assertCanManage(coopname, initiator, input.braname ?? null);
@@ -142,6 +197,7 @@ export class ExpensePlansService {
     if (!input.due_date) {
       throw DomainError.badRequest('EXPENSES_PLAN_DUE_DATE_REQUIRED');
     }
+    const payment = await this.resolvePayment(coopname, initiator, input);
     const row = await this.planRepo.save(
       this.planRepo.create({
         coopname,
@@ -151,11 +207,81 @@ export class ExpensePlansService {
         dueDate: input.due_date,
         recurrence: input.recurrence ?? ExpensePlanRecurrence.NONE,
         nextSpawned: false,
-        payTo: input.pay_to.trim(),
+        ...payment,
         creator: initiator,
       })
     );
-    return this.toView(row);
+    const [view] = await this.withNames(coopname, [this.toView(row)]);
+    return view;
+  }
+
+  /**
+   * Способ оплаты записи (задача 99D-35). Организации платят по реквизитам
+   * контрагента из реестра, с назначением платежа; пайщику — авансом под
+   * отчёт на выбранный способ получения средств: себе (SELF) или другому
+   * пайщику (MEMBER). Реквизиты в запись плана не копируются — снимок берёт записка в
+   * момент подачи. Запись без способа оплаты принимается только с текстом
+   * реквизитов — так работали прежние клиенты.
+   */
+  private async resolvePayment(
+    coopname: string,
+    initiator: string,
+    input: {
+      pay_to?: string | null;
+      recipient_type?: ExpenseRecipientType | null;
+      counterparty_id?: number | null;
+      recipient?: string | null;
+      payment_method_id?: string | null;
+      payment_purpose?: string | null;
+    }
+  ): Promise<Partial<ExpensePlanEntity>> {
+    const empty = { recipientType: null, counterpartyId: null, recipient: null, paymentMethodId: null, paymentPurpose: null };
+    if (!input.recipient_type) {
+      const payTo = input.pay_to?.trim();
+      if (!payTo) throw DomainError.badRequest('EXPENSES_PLAN_RECIPIENT_REQUIRED');
+      return { ...empty, payTo };
+    }
+    if (input.recipient_type === ExpenseRecipientType.ORG) {
+      if (!input.counterparty_id) throw DomainError.badRequest('EXPENSES_PLAN_RECIPIENT_REQUIRED');
+      const { record } = await this.counterparties.forPayment(coopname, input.counterparty_id);
+      const purpose = input.payment_purpose?.trim() || record.payment_purpose?.trim();
+      if (!purpose) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_PURPOSE_REQUIRED');
+      return { ...empty, payTo: null, recipientType: ExpenseRecipientType.ORG, counterpartyId: record.id, paymentPurpose: purpose };
+    }
+    const recipient = input.recipient_type === ExpenseRecipientType.SELF ? initiator : input.recipient?.trim();
+    if (!recipient) throw DomainError.badRequest('EXPENSES_PLAN_RECIPIENT_REQUIRED');
+    if (!input.payment_method_id) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_METHOD_REQUIRED');
+    // Способ получения средств должен принадлежать получателю: чужой метод порт не отдаст.
+    const method = await this.paymentMethods.get({ username: recipient, method_id: input.payment_method_id });
+    return {
+      ...empty,
+      payTo: null,
+      recipientType: input.recipient_type,
+      recipient,
+      paymentMethodId: method.method_id,
+    };
+  }
+
+  /** Имена контрагентов и пайщиков-получателей для показа в реестре — одним проходом по записям. */
+  private async withNames(coopname: string, plans: ExpensePlanView[]): Promise<ExpensePlanView[]> {
+    const counterpartyIds = [...new Set(plans.map((p) => p.counterparty_id).filter((id): id is number => !!id))];
+    const names = await this.counterparties.namesByIds(coopname, counterpartyIds);
+    const recipients = [...new Set(plans.map((p) => p.recipient).filter((r): r is string => !!r))];
+    const people = new Map<string, string>();
+    await Promise.all(
+      recipients.map(async (username) => {
+        try {
+          people.set(username, await this.accounts.getDisplayName(username));
+        } catch {
+          people.set(username, username);
+        }
+      })
+    );
+    return plans.map((p) => ({
+      ...p,
+      counterparty_name: p.counterparty_id ? names.get(p.counterparty_id) ?? null : null,
+      recipient_name: p.recipient ? people.get(p.recipient) ?? p.recipient : null,
+    }));
   }
 
   async deletePlan(coopname: string, initiator: string, planId: number): Promise<void> {
@@ -301,6 +427,8 @@ export class ExpensePlansService {
           recurrence: current.recurrence,
           nextSpawned: false,
           payTo: current.payTo,
+          // Способ оплаты переходит к следующему платежу серии: получатель тот же.
+          ...paymentOf(current),
           creator: current.creator,
         })
       );
@@ -334,26 +462,13 @@ export class ExpensePlansService {
     if (!braname) {
       throw DomainError.forbidden('EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED');
     }
-    const branch = (await this.branches(coopname)).find((b) => b.braname === braname);
+    const branch = await this.branchOperators.findBranch(coopname, braname);
     if (!branch) {
       throw DomainError.notFound('EXPENSES_BRANCH_NOT_FOUND');
     }
-    if (!isBranchOperator(branch, initiator)) {
+    if (!this.branchOperators.isOperatorOf(branch, initiator)) {
       throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN');
     }
-  }
-
-  /** Участки, где пайщик — председатель или доверенное лицо. */
-  private async operatedBranches(coopname: string, username: string): Promise<string[]> {
-    return (await this.branches(coopname)).filter((b) => isBranchOperator(b, username)).map((b) => b.braname);
-  }
-
-  private async branches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]> {
-    return (await this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.Branches.tableName
-    )) as BranchContract.Tables.Branches.IBranch[];
   }
 
   /** Единицы суммы → asset-строка в валюте кооператива, без потери точности на больших суммах. */
@@ -376,7 +491,8 @@ export class ExpensePlansService {
       due_date: row.dueDate ?? null,
       recurrence: row.recurrence ?? ExpensePlanRecurrence.NONE,
       next_due_date: row.dueDate ? nextRecurrenceDate(row.dueDate, row.recurrence ?? ExpensePlanRecurrence.NONE) : null,
-      pay_to: row.payTo,
+      pay_to: row.payTo ?? null,
+      ...paymentViewOf(row),
       creator: row.creator,
       created_at: row.createdAt,
       proposal_hash: row.proposalHash ?? null,

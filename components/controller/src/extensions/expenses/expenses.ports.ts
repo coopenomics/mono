@@ -20,6 +20,7 @@ import {
   FILE_STORAGE_PORT,
   LOGGER_PORT,
   NOTIFICATION_PORT,
+  ORGANIZATION_PORT,
   PAYMENT_METHOD_PORT,
   PAYMENT_PORT,
   VAULT_PORT,
@@ -37,6 +38,8 @@ export const expensesPorts = {
     FILE_STORAGE_PORT,
     LOGGER_PORT,
     NOTIFICATION_PORT,
+    // Страна кооператива — по ней правила реквизитов контрагентов (пакет юрисдикций).
+    ORGANIZATION_PORT,
     PAYMENT_METHOD_PORT,
     PAYMENT_PORT,
     VAULT_PORT,

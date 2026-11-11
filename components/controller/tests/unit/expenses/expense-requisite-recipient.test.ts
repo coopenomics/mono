@@ -45,7 +45,9 @@ function memberItem(): InnerExpenseRequisiteItemInput {
   };
 }
 
-function snapshotService() {
+const CARD_TEXT = 'ИНН 7707083893, КПП 773601001\nРасчётный счёт 40702810938000000001, Банк ПАО Сбербанк, БИК 044525225';
+
+function snapshotService(counterparties: unknown = {}) {
   const saved: Record<string, unknown>[] = [];
   const repository = {
     create: (row: Record<string, unknown>) => ({ ...row }),
@@ -57,7 +59,7 @@ function snapshotService() {
   const paymentMethods = {
     get: jest.fn().mockResolvedValue({ method_id: 'm1', method_type: 'sbp', data: { phone: '+79990000000' } }),
   };
-  const service = new ExpenseRequisiteSnapshotsService(paymentMethods as never, repository as never);
+  const service = new ExpenseRequisiteSnapshotsService(paymentMethods as never, repository as never, counterparties as never);
   return { service, saved };
 }
 
@@ -159,5 +161,53 @@ describe('Выплата по утверждённой записке', () => {
     await l.handleProposalSynced(authorized([{ item_hash: ITEM_ORG, recipient_type: 2, recipient: '' }]) as never);
     expect(created[0].memo).toBe('Пополнение лицевого счёта #53144');
     expect((created[0].payment_details as { data: Record<string, unknown> }).data).toMatchObject({ recipient_name: 'ООО «Хостинг»' });
+  });
+});
+
+describe('Снимок реквизитов: организация из реестра контрагентов (99D-35)', () => {
+  const card = {
+    forPayment: jest.fn(async (_coop: string, id: number) => {
+      if (id === 9) throw Object.assign(new Error('archived'), { code: 'EXPENSES_COUNTERPARTY_ARCHIVED' });
+      return {
+        record: { id, kind: 'LEGAL', name: 'ПАО Сбербанк', payment_purpose: 'Оплата по договору № 1. Без НДС', requisites: { inn: '7707083893' } },
+        requisitesText: CARD_TEXT,
+      };
+    }),
+  };
+
+  it('наименование и реквизиты — из карточки контрагента, а не из текста формы', async () => {
+    const { service, saved } = snapshotService(card);
+    await service.snapshot(COOP, [orgItem({ counterpartyId: 3, recipientName: 'что угодно', requisites: undefined, paymentPurpose: undefined })]);
+    expect(saved[0]).toMatchObject({
+      recipient: 'ПАО Сбербанк',
+      requisites: CARD_TEXT,
+      method_type: 'counterparty',
+      method_id: '3',
+      payment_purpose: 'Оплата по договору № 1. Без НДС',
+    });
+    expect(saved[0].data).toMatchObject({ counterparty_id: 3, name: 'ПАО Сбербанк' });
+  });
+
+  it('назначение платежа из записки важнее назначения по умолчанию', async () => {
+    const { service, saved } = snapshotService(card);
+    await service.snapshot(COOP, [orgItem({ counterpartyId: 3, requisites: CARD_TEXT, paymentPurpose: 'Счёт № 77' })]);
+    expect(saved[0].payment_purpose).toBe('Счет № 77');
+  });
+
+  it('реквизиты в подписанной записке разошлись с карточкой — отказ, снимок не сохраняется', async () => {
+    const { service, saved } = snapshotService(card);
+    await expect(service.validate(COOP, [orgItem({ counterpartyId: 3, requisites: 'ИНН 0000000000' })])).rejects.toMatchObject({ code: 'EXPENSES_COUNTERPARTY_CHANGED' });
+    expect(saved).toHaveLength(0);
+  });
+
+  it('контрагент в архиве — отказ ещё до цепи', async () => {
+    const { service } = snapshotService(card);
+    await expect(service.validate(COOP, [orgItem({ counterpartyId: 9 })])).rejects.toMatchObject({ code: 'EXPENSES_COUNTERPARTY_ARCHIVED' });
+  });
+
+  it('без контрагента организация снимается по тексту формы, как прежде', async () => {
+    const { service, saved } = snapshotService(card);
+    await service.snapshot(COOP, [orgItem()]);
+    expect(saved[0]).toMatchObject({ recipient: 'ООО «Хостинг»', method_type: null });
   });
 });

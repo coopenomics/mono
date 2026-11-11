@@ -1,6 +1,7 @@
 import { configurePlatformSettings } from '@coopenomics/extension-kit';
 import { ExpensePlansService } from '~/extensions/expenses/application/services/expense-plans.service';
 import { ExpensePlanRecurrence } from '~/extensions/expenses/domain/expense-plan.types';
+import { ExpenseRecipientType } from '~/extensions/expenses/domain/enums/expense-recipient-type.enum';
 import type { ExpensePlanEntity } from '~/extensions/expenses/infrastructure/entities/expense-plan.entity';
 import { ExpensesInnercoopExpenseChassisAdapter } from '~/extensions/expenses/infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
 
@@ -48,11 +49,35 @@ function memoryStore() {
   };
 }
 
+const KRG_BRANCH = { braname: 'krg', trustee: 'chair', trusted: [] as string[] };
+
 function build() {
   const store = memoryStore();
-  const service = new ExpensePlansService(store as any, {} as any);
-  return { store, service };
+  const branchOperators = {
+    isCouncil: (v: any) => v.role === 'chairman' || v.role === 'member',
+    operatedBranches: async (_c: string, u: string) => (u === 'chair' ? ['krg'] : []),
+    findBranch: async (_c: string, b: string) => (b === 'krg' ? KRG_BRANCH : null),
+    isOperatorOf: (b: any, u: string) => b.trustee === u || b.trusted.includes(u),
+  };
+  const counterparties = {
+    forPayment: jest.fn(async (_c: string, id: number) => {
+      if (id === 404) throw Object.assign(new Error('nf'), { code: 'EXPENSES_COUNTERPARTY_NOT_FOUND' });
+      return { record: { id, name: 'ООО «Энергосбыт»', payment_purpose: 'Оплата электроэнергии. Без НДС' }, requisitesText: 'ИНН 7707083893' };
+    }),
+    namesByIds: jest.fn(async (_c: string, ids: number[]) => new Map(ids.map((id) => [id, 'ООО «Энергосбыт»']))),
+  };
+  const paymentMethods = {
+    get: jest.fn(async ({ username, method_id }: { username: string; method_id: string }) => {
+      if (method_id === 'alien') throw Object.assign(new Error('nf'), { code: 'PAYMENT_METHOD_NOT_FOUND' });
+      return { username, method_id, method_type: 'sbp' };
+    }),
+  };
+  const accounts = { getDisplayName: jest.fn(async (u: string) => (u === 'petrov' ? 'Петров Пётр' : u)) };
+  const service = new ExpensePlansService(store as any, branchOperators as any, counterparties as any, paymentMethods as any, accounts as any);
+  return { store, service, counterparties, paymentMethods };
 }
+
+const base = { braname: 'krg', title: 'Электроэнергия', amount: 1000, due_date: utc(2026, 12, 11) };
 
 function seedRow(over: Partial<ExpensePlanEntity>): ExpensePlanEntity {
   return {
@@ -193,5 +218,88 @@ describe('Запись реестра для Стола заказов', () => {
       [4, 12],
     ]);
     expect(plans[2]).toMatchObject({ branchName: 'krg', amount: '1000.0000 RUB', proposalHash: null, paidAt: null });
+  });
+});
+
+describe('Способ оплаты записи плана (99D-35)', () => {
+  it('организация: контрагент и назначение платежа; назначение по умолчанию — из карточки', async () => {
+    const { service, store } = build();
+    const plan = await service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.ORG, counterparty_id: 7 });
+    expect(plan).toMatchObject({
+      recipient_type: ExpenseRecipientType.ORG,
+      counterparty_id: 7,
+      counterparty_name: 'ООО «Энергосбыт»',
+      payment_purpose: 'Оплата электроэнергии. Без НДС',
+      pay_to: null,
+      recipient: null,
+      payment_method_id: null,
+    });
+    expect(store.rows[0]).toMatchObject({ recipientType: 'ORG', counterpartyId: 7, payTo: null });
+    const own = await service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.ORG, counterparty_id: 7, payment_purpose: 'Счёт № 5' });
+    expect(own.payment_purpose).toBe('Счёт № 5');
+  });
+
+  it('организация без контрагента — отказ; несуществующий или архивный контрагент — отказ сервиса контрагентов', async () => {
+    const { service } = build();
+    await expect(service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.ORG })).rejects.toMatchObject({ code: 'EXPENSES_PLAN_RECIPIENT_REQUIRED' });
+    await expect(service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.ORG, counterparty_id: 404 })).rejects.toMatchObject({ code: 'EXPENSES_COUNTERPARTY_NOT_FOUND' });
+  });
+
+  it('аванс себе: получатель — добавляющий, способ получения средств обязателен и проверяется у него', async () => {
+    const { service, paymentMethods } = build();
+    await expect(service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.SELF })).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_METHOD_REQUIRED' });
+    const plan = await service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.SELF, payment_method_id: 'm1', recipient: 'petrov' });
+    expect(plan).toMatchObject({ recipient_type: ExpenseRecipientType.SELF, recipient: 'chair', payment_method_id: 'm1', counterparty_id: null, payment_purpose: null });
+    expect(paymentMethods.get).toHaveBeenCalledWith({ username: 'chair', method_id: 'm1' });
+  });
+
+  it('аванс другому пайщику: пайщик обязателен, чужой способ получения средств не принимается', async () => {
+    const { service } = build();
+    await expect(service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.MEMBER, payment_method_id: 'm1' })).rejects.toMatchObject({ code: 'EXPENSES_PLAN_RECIPIENT_REQUIRED' });
+    await expect(service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.MEMBER, recipient: 'petrov', payment_method_id: 'alien' })).rejects.toMatchObject({ code: 'PAYMENT_METHOD_NOT_FOUND' });
+    const plan = await service.createPlan('voskhod', 'chair', { ...base, recipient_type: ExpenseRecipientType.MEMBER, recipient: 'petrov', payment_method_id: 'm2' });
+    expect(plan).toMatchObject({ recipient: 'petrov', recipient_name: 'Петров Пётр', payment_method_id: 'm2' });
+  });
+
+  it('без способа оплаты принимается только прежний текст реквизитов', async () => {
+    const { service } = build();
+    await expect(service.createPlan('voskhod', 'chair', { ...base })).rejects.toMatchObject({ code: 'EXPENSES_PLAN_RECIPIENT_REQUIRED' });
+    await expect(service.createPlan('voskhod', 'chair', { ...base, pay_to: '  ' })).rejects.toMatchObject({ code: 'EXPENSES_PLAN_RECIPIENT_REQUIRED' });
+    const plan = await service.createPlan('voskhod', 'chair', { ...base, pay_to: 'ООО «Арендодатель», р/с …' });
+    expect(plan).toMatchObject({ recipient_type: null, pay_to: 'ООО «Арендодатель», р/с …' });
+  });
+
+  it('оператор чужого участка запись не заводит', async () => {
+    const { service } = build();
+    await expect(service.createPlan('voskhod', 'stranger', { ...base, pay_to: 'x' })).rejects.toMatchObject({ code: 'EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN' });
+  });
+
+  it('следующий платёж серии наследует способ оплаты', async () => {
+    const { service, store } = build();
+    const head = seedRow({
+      dueDate: utc(2025, 1, 11),
+      recurrence: ExpensePlanRecurrence.QUARTERLY,
+      recipientType: 'ORG',
+      counterpartyId: 7,
+      paymentPurpose: 'Оплата электроэнергии',
+      payTo: null,
+    } as any);
+    await store.save(head);
+    await (service as any).spawnSeriesFrom(head);
+    expect(store.rows.length).toBeGreaterThan(1);
+    for (const row of store.rows) {
+      expect(row).toMatchObject({ recipientType: 'ORG', counterpartyId: 7, paymentPurpose: 'Оплата электроэнергии' });
+    }
+  });
+
+  it('реестр показывает наименование контрагента и имя пайщика-получателя', async () => {
+    const { service, store } = build();
+    store.rows.push(
+      seedRow({ id: 1, recipientType: 'ORG', counterpartyId: 7, payTo: null } as any),
+      seedRow({ id: 2, recipientType: 'MEMBER', recipient: 'petrov', paymentMethodId: 'm2', payTo: null } as any)
+    );
+    const views = await service.listPlansFor('voskhod', { username: 'chair', role: 'chairman' } as any, 'krg');
+    expect(views.find((v) => v.id === 1)?.counterparty_name).toBe('ООО «Энергосбыт»');
+    expect(views.find((v) => v.id === 2)?.recipient_name).toBe('Петров Пётр');
   });
 });

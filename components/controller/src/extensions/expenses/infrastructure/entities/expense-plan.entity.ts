@@ -38,7 +38,25 @@ export class ExpensePlanEntity {
 
   paidAt?: Date | null;
 
-  payTo!: string;
+  /** Реквизиты текстом — только у записей до способов оплаты (99D-35). */
+  payTo!: string | null;
+
+  /**
+   * Получатель: ORG — организация по реквизитам контрагента, SELF/MEMBER —
+   * пайщик авансом под отчёт; `null` — запись до способов оплаты.
+   */
+  recipientType?: string | null;
+
+  counterpartyId?: number | null;
+
+  /** Пайщик-получатель аванса под отчёт. */
+  recipient?: string | null;
+
+  /** Способ получения средств пайщика. */
+  paymentMethodId?: string | null;
+
+  /** Назначение платежа организации. */
+  paymentPurpose?: string | null;
 
   // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   creator!: string;

@@ -39,7 +39,8 @@ export async function lookupEntrepreneur(data: IRegistryLookupInput): Promise<IE
   }
 }
 
-async function loadLookupCountries(): Promise<string[]> {
+/** Страны, для которых сведения об организации заполняются по ИНН. */
+export async function loadLookupCountries(): Promise<string[]> {
   try {
     const { [Queries.Registration.GetOrganizationLookupCountries.name]: result } = await client.Query(
       Queries.Registration.GetOrganizationLookupCountries.query,

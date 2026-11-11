@@ -379,11 +379,7 @@
       "purposeLabel": "Цель расходов",
       "purposePlaceholder": "Например: «Закупка хостинга и канцелярии на июнь»",
       "purposeSectionTitle": "Цель и параметры",
-      "recipientDetailsLabel": "Реквизиты получателя",
-      "recipientDetailsPlaceholder": "ИНН, р/с, БИК",
       "recipientMemberLabel": "Пайщик-получатель (по ФИО)",
-      "recipientOrgNameLabel": "Название организации",
-      "recipientOrgNamePlaceholder": "Например: ООО «Хостинг-центр»",
       "recipientTypeLabel": "Тип получателя",
       "recipientTypeMemberOption": "Пайщик",
       "recipientTypeOrgOption": "Организация/ИП",
@@ -712,6 +708,36 @@
     "registryLookup": {
       "changeInn": "Другой ИНН",
       "notFound": "Сведения не найдены, заполните анкету вручную"
+    },
+    "expenseCounterparty": {
+      "formTitleNew": "Новый контрагент",
+      "formTitleEdit": "Контрагент",
+      "kindLabel": "Вид контрагента",
+      "kindLegal": "Юридическое лицо",
+      "kindEntrepreneur": "Индивидуальный предприниматель",
+      "organizationSection": "Сведения об организации",
+      "bankSection": "Банковские реквизиты",
+      "nameLabel": "Наименование",
+      "namePlaceholder": "ООО «Энергосбыт»",
+      "entrepreneurName": "ИП {name}",
+      "lookupAction": "Заполнить",
+      "lookupFound": "Сведения из государственного реестра подставлены",
+      "lookupNotFound": "В реестре сведений нет — заполните поля вручную",
+      "purposeLabel": "Назначение платежа по умолчанию",
+      "purposePlaceholder": "Оплата по договору № 12 от 01.11.2026. Без НДС",
+      "purposeHint": "Подставляется в плановый расход и служебную записку, его можно изменить",
+      "branchMark": "Контрагент участка {branch}: его видят все участки кооператива",
+      "coopMark": "Контрагент кооператива: его видят все участки",
+      "fieldRequired": "Заполните поле",
+      "fieldLength": "Введите {n} цифр",
+      "fieldFormat": "Неверный формат",
+      "saveAction": "Сохранить",
+      "savedMessage": "Контрагент сохранён",
+      "saveFailed": "Не удалось сохранить контрагента",
+      "selectLabel": "Получатель — организация",
+      "selectPlaceholder": "Выберите контрагента",
+      "selectEmpty": "Контрагентов пока нет — добавьте первого",
+      "addAction": "Добавить"
     }
   }
 }

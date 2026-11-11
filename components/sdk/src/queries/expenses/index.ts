@@ -1,2 +1,4 @@
 export * as ListExpensePlans from './listExpensePlans'
 export * as ExpensePlanSchedule from './expensePlanSchedule'
+export * as ExpenseCounterparties from './expenseCounterparties'
+export * as ExpenseCounterpartyForm from './expenseCounterpartyForm'

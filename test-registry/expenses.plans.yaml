@@ -236,3 +236,48 @@ cases:
     external: unreachable
     external_reason: "чистые функции календаря и доли без состояния; снаружи они видны через показ расхода (exp.plan.schedule.01)"
     status: written
+
+  # Задача 99D-35: способ оплаты задаётся в записи плана.
+  - id: exp.plan.payee.01
+    level: backend
+    kind: happy
+    scenario: Плановый расход по реквизитам организации из реестра контрагентов
+    expect: >
+      запись хранит контрагента и назначение платежа; назначение по умолчанию —
+      из карточки контрагента; реестр показывает наименование контрагента;
+      текст реквизитов в записи не хранится
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.plan.payee.02
+    level: backend
+    kind: happy
+    scenario: Плановый расход авансом под отчёт — себе или другому пайщику
+    expect: >
+      себе — получатель тот, кто добавляет; другому — пайщик обязателен; способ
+      получения средств обязателен и принадлежит получателю (чужой отклоняется
+      портом способов получения средств); реестр показывает имя пайщика
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    external: unreachable
+    external_reason: "у пайщиков набора стенда нет заведённых способов получения средств; правило проверяется на уровне сервиса"
+    status: written
+
+  - id: exp.plan.payee.03
+    level: backend
+    kind: side
+    scenario: Запись без способа оплаты и без текста реквизитов; организация без контрагента
+    expect: EXPENSES_PLAN_RECIPIENT_REQUIRED; прежние клиенты с текстом реквизитов работают как раньше
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.payee.04
+    level: backend
+    kind: side
+    scenario: Серия повторяющегося расхода продолжается
+    expect: следующий платёж серии наследует получателя, контрагента, назначение и способ получения средств
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    external: unreachable
+    external_reason: "продолжение серии — фоновый воркер по наступлении срока; на стенде срок записи наступает через месяц"
+    status: written

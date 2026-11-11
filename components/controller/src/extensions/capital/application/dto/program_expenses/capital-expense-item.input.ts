@@ -1,5 +1,5 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { Field, InputType, Int } from '@nestjs/graphql';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf, IsInt } from 'class-validator';
 import { InnerExpenseMechanics, InnerExpenseRecipientType } from '@coopenomics/innercoop';
 
 /**
@@ -41,6 +41,14 @@ export class CapitalExpenseItemInputDTO {
   @IsOptional()
   @IsString()
   recipient_name?: string;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки.',
+  })
+  @IsOptional()
+  @IsInt()
+  counterparty_id?: number;
 
   @Field(() => String, { description: 'Описание назначения расхода.' })
   @IsString()

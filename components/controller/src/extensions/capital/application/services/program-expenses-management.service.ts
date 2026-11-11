@@ -51,6 +51,7 @@ export class ProgramExpensesManagementService {
       requisites: it.requisites,
       paymentPurpose: it.payment_purpose,
       recipientName: it.recipient_name,
+      counterpartyId: it.counterparty_id,
     }));
     await this.expenseChassis.validateRequisites(data.coopname, requisiteItems);
 

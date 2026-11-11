@@ -43,28 +43,61 @@ BaseDialog(
       //- пояснение выбранного варианта — одной строкой под рядом.
       .plan-dialog__field
         span.plan-dialog__label#plan-recurrence-label {{ $t('marketplace.expensePlanDialog.recurrenceLabel') }}
-        .plan-dialog__segments(role='radiogroup', aria-labelledby='plan-recurrence-label')
-          button.plan-dialog__segment(
-            v-for='option in recurrenceOptions',
-            :key='option.value',
-            type='button',
-            role='radio',
-            :aria-checked='recurrence === option.value',
-            :class='{ "plan-dialog__segment--active": recurrence === option.value }',
-            @click='recurrence = option.value'
-          ) {{ option.title }}
+        BaseSegmented(
+          v-model='recurrence',
+          :options='recurrenceOptions',
+          aria-labelledby='plan-recurrence-label'
+        )
         span.plan-dialog__caption {{ selectedOption.description }}
 
-      BaseInput(
-        v-model='payTo',
-        type='textarea',
-        :rows='3',
-        autogrow,
-        :label='$t("marketplace.expensePlanDialog.requisitesLabel")',
-        :placeholder='$t("marketplace.expensePlanDialog.requisitesPlaceholder")',
-        :hint='$t("marketplace.expensePlanDialog.requisitesHint")',
-        stack-label
-      )
+      //- Способ оплаты задаётся сразу (задача 99D-35): «Оплатить» потом только
+      //- подписывает готовую записку. Организации платят по реквизитам из
+      //- реестра контрагентов, пайщику — аванс под отчёт на его реквизиты.
+      .plan-dialog__field
+        span.plan-dialog__label#plan-payee-label {{ $t('marketplace.expensePlanDialog.payeeLabel') }}
+        BaseSegmented(
+          v-model='payee',
+          :options='payeeOptions',
+          aria-labelledby='plan-payee-label'
+        )
+        span.plan-dialog__caption {{ payee === PAYEE_ORG ? $t('marketplace.expensePlanDialog.payeeOrgCaption') : $t('marketplace.expensePlanDialog.payeeAdvanceCaption') }}
+
+      template(v-if='payee === PAYEE_ORG')
+        ExpenseCounterpartySelect(
+          v-model='counterpartyId',
+          :braname='braname',
+          @selected='onCounterparty'
+        )
+        BaseInput(
+          v-model='paymentPurpose',
+          type='textarea',
+          :rows='2',
+          autogrow,
+          :label='$t("marketplace.expensePlanDialog.purposeLabel")',
+          :hint='$t("marketplace.expensePlanDialog.purposeHint")',
+          stack-label,
+          required
+        )
+
+      template(v-else)
+        BaseSegmented(
+          v-model='advanceTo',
+          :options='advanceOptions',
+          :aria-label='$t("marketplace.expensePlanDialog.advanceToLabel")'
+        )
+        UserSearchSelector(
+          v-if='advanceTo === Zeus.ExpenseRecipientType.MEMBER',
+          v-model='memberAccount',
+          :label='$t("marketplace.expensePlanDialog.memberLabel")',
+          :types='["individual"]',
+          outlined
+        )
+        PaymentMethodSelect(
+          v-if='advanceUsername',
+          v-model='paymentMethodId',
+          :username='advanceUsername',
+          required
+        )
 
     //- План платежей: сумма за платёж крупно, под ней лента сроков, внизу
     //- резерв и правило записки. Без срока считать нечего — панель подсказывает.
@@ -76,6 +109,12 @@ BaseDialog(
       .plan-dialog__sum
         span.plan-dialog__sum-value.t-mono {{ amountLabel }}
         span.plan-dialog__sum-note {{ isSeries ? $t('marketplace.expensePlanDialog.perPayment') : $t('marketplace.expensePlanDialog.perOnce') }}
+
+      //- Получатель — кому перечисляется каждый платёж серии.
+      .plan-dialog__payee
+        span.plan-dialog__payee-label {{ $t('marketplace.expensePlanDialog.planPayee') }}
+        span.plan-dialog__payee-name {{ payeeTitle || $t('marketplace.expensePlanDialog.planPayeeEmpty') }}
+        span.plan-dialog__payee-note(v-if='payeeNote') {{ payeeNote }}
 
       template(v-if='schedule')
         TransitionGroup.plan-dialog__timeline(name='plan-step', tag='ol')
@@ -114,8 +153,11 @@ import { computed, ref, watch } from 'vue'
 import { Zeus } from '@coopenomics/sdk'
 import { uiLocale, t as i18nT } from 'src/shared/i18n'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base'
-import { AmountInput, DataRow } from 'src/shared/ui/domain'
+import { BaseButton, BaseDialog, BaseInput, BaseSegmented } from 'src/shared/ui/base'
+import { AmountInput, DataRow, ExpenseCounterpartySelect, PaymentMethodSelect } from 'src/shared/ui/domain'
+import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector'
+import { useSessionStore } from 'src/entities/Session'
+import type { ExpenseCounterpartyView } from 'src/shared/lib/expenses/counterparties'
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils'
 import { createExpensePlan, getExpensePlanSchedule, type ExpensePlanScheduleView } from '../api'
 
@@ -134,7 +176,17 @@ const title = ref('')
 const amount = ref<number | null>(null)
 const dueDate = ref('')
 const recurrence = ref<Zeus.ExpensePlanRecurrence>(Zeus.ExpensePlanRecurrence.NONE)
-const payTo = ref('')
+/** Способ оплаты: организации по реквизитам или аванс под отчёт пайщику. */
+const PAYEE_ORG = 'ORG'
+const PAYEE_ADVANCE = 'ADVANCE'
+const payee = ref<string>(PAYEE_ORG)
+const counterpartyId = ref<number | null>(null)
+const counterparty = ref<ExpenseCounterpartyView | null>(null)
+const paymentPurpose = ref('')
+const advanceTo = ref<Zeus.ExpenseRecipientType>(Zeus.ExpenseRecipientType.SELF)
+const memberAccount = ref('')
+const paymentMethodId = ref<string | null>(null)
+const session = useSessionStore()
 const saving = ref(false)
 const schedule = ref<ExpensePlanScheduleView | null>(null)
 
@@ -147,7 +199,13 @@ watch(
     amount.value = null
     dueDate.value = ''
     recurrence.value = Zeus.ExpensePlanRecurrence.NONE
-    payTo.value = ''
+    payee.value = PAYEE_ORG
+    counterpartyId.value = null
+    counterparty.value = null
+    paymentPurpose.value = ''
+    advanceTo.value = Zeus.ExpenseRecipientType.SELF
+    memberAccount.value = ''
+    paymentMethodId.value = null
     schedule.value = null
   }
 )
@@ -170,24 +228,24 @@ const recurrenceOptions = computed(() => {
   return [
     {
       value: Zeus.ExpensePlanRecurrence.NONE,
-      title: i18nT('marketplace.expensePlanDialog.onceTitle'),
+      label: i18nT('marketplace.expensePlanDialog.onceTitle'),
       description: i18nT('marketplace.expensePlanDialog.onceDescription'),
     },
     {
       value: Zeus.ExpensePlanRecurrence.MONTHLY,
-      title: i18nT('marketplace.expensePlanDialog.monthlyTitle'),
+      label: i18nT('marketplace.expensePlanDialog.monthlyTitle'),
       description: day
         ? i18nT('marketplace.expensePlanDialog.monthlyDescription', { day })
         : i18nT('marketplace.expensePlanDialog.monthlyDescriptionNoDate'),
     },
     {
       value: Zeus.ExpensePlanRecurrence.QUARTERLY,
-      title: i18nT('marketplace.expensePlanDialog.quarterlyTitle'),
+      label: i18nT('marketplace.expensePlanDialog.quarterlyTitle'),
       description: i18nT('marketplace.expensePlanDialog.quarterlyDescription'),
     },
     {
       value: Zeus.ExpensePlanRecurrence.YEARLY,
-      title: i18nT('marketplace.expensePlanDialog.yearlyTitle'),
+      label: i18nT('marketplace.expensePlanDialog.yearlyTitle'),
       description: dayMonth
         ? i18nT('marketplace.expensePlanDialog.yearlyDescription', { date: dayMonth })
         : i18nT('marketplace.expensePlanDialog.yearlyDescriptionNoDate'),
@@ -197,6 +255,51 @@ const recurrenceOptions = computed(() => {
 
 const selectedOption = computed(
   () => recurrenceOptions.value.find((o) => o.value === recurrence.value) ?? recurrenceOptions.value[0]
+)
+
+const payeeOptions = [
+  { value: PAYEE_ORG, label: i18nT('marketplace.expensePlanDialog.payeeOrg') },
+  { value: PAYEE_ADVANCE, label: i18nT('marketplace.expensePlanDialog.payeeAdvance') },
+]
+
+const advanceOptions = [
+  { value: Zeus.ExpenseRecipientType.SELF, label: i18nT('marketplace.expensePlanDialog.advanceSelf') },
+  { value: Zeus.ExpenseRecipientType.MEMBER, label: i18nT('marketplace.expensePlanDialog.advanceMember') },
+]
+
+/** Чей способ получения средств выбирается: свой или выбранного пайщика. */
+const advanceUsername = computed(() =>
+  advanceTo.value === Zeus.ExpenseRecipientType.SELF ? session.username : memberAccount.value.trim()
+)
+
+// Другой получатель — другой список способов получения средств: прежний выбор сбрасывается.
+watch(advanceUsername, () => {
+  paymentMethodId.value = null
+})
+
+/** Назначение платежа по умолчанию — из карточки контрагента, пока председатель не ввёл своё. */
+function onCounterparty(cp: ExpenseCounterpartyView | null): void {
+  const previousDefault = counterparty.value?.payment_purpose ?? ''
+  counterparty.value = cp
+  if (!paymentPurpose.value.trim() || paymentPurpose.value === previousDefault) {
+    paymentPurpose.value = cp?.payment_purpose ?? ''
+  }
+}
+
+const payeeTitle = computed(() => {
+  if (payee.value === PAYEE_ORG) return counterparty.value?.name ?? ''
+  return advanceTo.value === Zeus.ExpenseRecipientType.SELF ? i18nT('marketplace.expensePlanDialog.advanceSelfTitle') : memberAccount.value.trim()
+})
+
+const payeeNote = computed(() => {
+  if (payee.value === PAYEE_ORG) return counterparty.value ? paymentPurpose.value.trim() : ''
+  return i18nT('marketplace.expensePlanDialog.planPayeeAdvance')
+})
+
+const payeeReady = computed(() =>
+  payee.value === PAYEE_ORG
+    ? !!counterpartyId.value && !!paymentPurpose.value.trim()
+    : !!advanceUsername.value && !!paymentMethodId.value
 )
 
 const isSeries = computed(() => recurrence.value !== Zeus.ExpensePlanRecurrence.NONE)
@@ -274,12 +377,30 @@ const reserveNote = computed(() => {
   return i18nT('marketplace.expensePlanDialog.reserveNoteOnce')
 })
 
-const canSubmit = computed(() => !!title.value.trim() && Number(amount.value) > 0 && !!dueAt.value && !saving.value)
+/** Способ оплаты для записи плана: контрагент с назначением либо пайщик со способом получения средств. */
+function payeeInput() {
+  if (payee.value === PAYEE_ORG) {
+    return {
+      recipient_type: Zeus.ExpenseRecipientType.ORG,
+      counterparty_id: counterpartyId.value ?? undefined,
+      payment_purpose: paymentPurpose.value.trim(),
+    }
+  }
+  return {
+    recipient_type: advanceTo.value,
+    recipient: advanceTo.value === Zeus.ExpenseRecipientType.MEMBER ? memberAccount.value.trim() : undefined,
+    payment_method_id: paymentMethodId.value ?? undefined,
+  }
+}
+
+const canSubmit = computed(
+  () => !!title.value.trim() && Number(amount.value) > 0 && !!dueAt.value && payeeReady.value && !saving.value
+)
 
 async function onSubmit(): Promise<void> {
   const due = dueAt.value
   const sum = Number(amount.value)
-  if (!props.braname || !title.value.trim() || !due || !Number.isFinite(sum) || sum <= 0) return
+  if (!canSubmit.value || !props.braname || !due) return
   saving.value = true
   try {
     await createExpensePlan({
@@ -288,7 +409,7 @@ async function onSubmit(): Promise<void> {
       amount: sum,
       recurrence: recurrence.value,
       due_date: due.toISOString(),
-      pay_to: payTo.value.trim() || '—',
+      ...payeeInput(),
     })
     SuccessAlert(i18nT('marketplace.operatorBranchEconomyPage.expenseAddedMessage'))
     emit('created')
@@ -338,48 +459,6 @@ async function onSubmit(): Promise<void> {
   color: var(--p-ink-2);
 }
 
-// Сегменты — одна дорожка с утопленным фоном; выбранный сегмент поднят
-// поверхностью и рамкой. Ширина сегментов одинаковая: варианты равноправны.
-.plan-dialog__segments {
-  display: flex;
-  gap: var(--p-1);
-  padding: var(--p-1);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-  background: var(--p-surface-2);
-}
-
-.plan-dialog__segment {
-  flex: 1 0 auto;
-  min-height: var(--p-8);
-  padding: var(--p-2) var(--p-3);
-  border: 1px solid transparent;
-  border-radius: var(--p-r-sm);
-  background: transparent;
-  color: var(--p-ink-2);
-  font: inherit;
-  font-size: var(--p-fs-body-sm);
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    color: var(--p-ink);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--p-primary);
-    outline-offset: 1px;
-  }
-}
-
-.plan-dialog__segment--active {
-  border-color: var(--p-line-2);
-  background: var(--p-surface);
-  color: var(--p-primary);
-}
-
 .plan-dialog__caption {
   min-height: calc(var(--p-fs-body-sm) * var(--p-lh-body-sm) * 2);
   font-size: var(--p-fs-body-sm);
@@ -424,6 +503,33 @@ async function onSubmit(): Promise<void> {
   letter-spacing: var(--p-ls-h1);
   color: var(--p-ink);
   overflow-wrap: anywhere;
+}
+
+.plan-dialog__payee {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+
+.plan-dialog__payee-label {
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-3);
+}
+
+.plan-dialog__payee-name {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+  overflow-wrap: anywhere;
+}
+
+.plan-dialog__payee-note {
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-2);
+  white-space: pre-line;
 }
 
 .plan-dialog__sum-note {
@@ -542,13 +648,6 @@ async function onSubmit(): Promise<void> {
     gap: var(--p-4);
   }
 
-  .plan-dialog__segments {
-    flex-wrap: wrap;
-  }
-
-  .plan-dialog__segment {
-    flex-basis: calc(50% - var(--p-1));
-  }
 }
 
 @media (max-width: 480px) {
@@ -558,7 +657,6 @@ async function onSubmit(): Promise<void> {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .plan-dialog__segment,
   .plan-step-enter-active,
   .plan-step-leave-active {
     transition: none;

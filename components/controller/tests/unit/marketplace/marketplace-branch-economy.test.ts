@@ -468,6 +468,60 @@ describe('Записка на расход по записи плана: про�
     await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).resolves.toBe('e'.repeat(64));
   });
 
+  // Запись со способом оплаты (99D-35): записку собирает стол, но сервер сверяет
+  // её с записью — иначе по записи «электроэнергия» можно заплатить другому.
+  const orgPlan = plan({ recipientType: 'ORG', counterpartyId: 3, paymentPurpose: 'Оплата электроэнергии' });
+  const advancePlan = plan({ recipientType: 'MEMBER', recipient: 'petrov', paymentMethodId: 'm2' });
+  const orgItem = (over: Record<string, unknown> = {}) => ({
+    item_hash: 'f'.repeat(64), mechanics: 'DIRECT', recipient_type: 'ORG', recipient: '', description: 'Аренда',
+    planned_amount: '50000.0000 RUB', counterparty_id: 3, payment_purpose: 'Оплата электроэнергии', ...over,
+  });
+  const advanceItem = (over: Record<string, unknown> = {}) => ({
+    item_hash: 'f'.repeat(64), mechanics: 'ADVANCE', recipient_type: 'MEMBER', recipient: 'petrov', description: 'Аренда',
+    planned_amount: '50000.0000 RUB', payment_method_id: 'm2', ...over,
+  });
+  const withItems = (items: unknown[]) => ({ ...input(7), items });
+
+  it('записка совпадает с записью плана — подаётся (организация и аванс)', async () => {
+    const org = build([orgPlan]);
+    await expect(org.service.createBranchExpense(COOP, CHAIRMAN, withItems([orgItem()]))).resolves.toBe('e'.repeat(64));
+    const adv = build([advancePlan]);
+    await expect(adv.service.createBranchExpense(COOP, CHAIRMAN, withItems([advanceItem()]))).resolves.toBe('e'.repeat(64));
+  });
+
+  it.each([
+    ['planned_amount', orgItem({ planned_amount: '50000.0001 RUB' })],
+    ['recipient_type', advanceItem()],
+    ['counterparty_id', orgItem({ counterparty_id: 4 })],
+    ['payment_purpose', orgItem({ payment_purpose: 'Оплата чужого счёта' })],
+  ])('организация: расхождение в %s — отказ до цепи', async (field, item) => {
+    const { service, submit } = build([orgPlan]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([item]))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PROPOSAL_MISMATCH' });
+    expect(submit).not.toHaveBeenCalled();
+    expect(field).toBeTruthy();
+  });
+
+  it.each([
+    ['recipient', advanceItem({ recipient: 'sidorov' })],
+    ['payment_method_id', advanceItem({ payment_method_id: 'm9' })],
+  ])('аванс: расхождение в %s — отказ до цепи', async (_field, item) => {
+    const { service, submit } = build([advancePlan]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([item]))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PROPOSAL_MISMATCH' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('два пункта в записке по одной записи — отказ: запись — один платёж', async () => {
+    const { service, submit } = build([orgPlan]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([orgItem(), orgItem()]))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PROPOSAL_MISMATCH' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('запись до способов оплаты сверку пунктов не проходит — подаётся, как прежде', async () => {
+    const { service, submit } = build([plan()]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([orgItem({ counterparty_id: 99 })]))).resolves.toBe('e'.repeat(64));
+    expect(submit).toHaveBeenCalledTimes(1);
+  });
+
   it('записка без записи плана реестр не читает', async () => {
     const { service, submit, expenseChassis } = build([]);
     await service.createBranchExpense(COOP, CHAIRMAN, { ...input(7), plan_id: undefined });

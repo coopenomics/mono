@@ -78,7 +78,12 @@ export class ExpensePlansResolver {
       amount: data.amount,
       due_date: data.due_date,
       recurrence: data.recurrence ?? null,
-      pay_to: data.pay_to,
+      pay_to: data.pay_to ?? null,
+      recipient_type: data.recipient_type ?? null,
+      counterparty_id: data.counterparty_id ?? null,
+      recipient: data.recipient ?? null,
+      payment_method_id: data.payment_method_id ?? null,
+      payment_purpose: data.payment_purpose ?? null,
     });
     return toExpensePlanDTO(plan);
   }

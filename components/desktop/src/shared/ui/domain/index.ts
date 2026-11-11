@@ -13,6 +13,8 @@ export * from './DocumentRow';
 export * from './DocumentSignSheet';
 export * from './DocumentSignatures';
 export * from './ExpenseCreateDialog';
+export * from './ExpenseCounterpartyFormDialog';
+export * from './ExpenseCounterpartySelect';
 export * from './ExpenseProposalDecisionInfo';
 export * from './ExpenseProposalDetails';
 export * from './ExpenseProposalDocuments';

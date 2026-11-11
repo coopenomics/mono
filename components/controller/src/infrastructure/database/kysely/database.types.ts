@@ -1476,6 +1476,39 @@ export interface EntityVersions {
   previous_data: Json;
 }
 
+export interface ExpenseCounterparties {
+  /**
+   * В архиве: не предлагается для новых расходов, прежние записи его сохраняют
+   */
+  archived: Generated<boolean>;
+  /**
+   * Участок, который добавил контрагента; NULL — контрагент кооператива. Видят всех контрагентов все участки
+   */
+  braname: string | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  creator: string;
+  id: Generated<number>;
+  /**
+   * Вид контрагента: LEGAL — юридическое лицо, ENTREPRENEUR — индивидуальный предприниматель
+   */
+  kind: string;
+  name: string;
+  /**
+   * Назначение платежа по умолчанию — подставляется в запись плана и служебную записку
+   */
+  payment_purpose: string | null;
+  /**
+   * Реквизиты по полям страны кооператива (пакет юрисдикций)
+   */
+  requisites: Json;
+  /**
+   * Налоговый номер (в России — ИНН): поиск и распознавание повтора
+   */
+  tax_id: string;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface ExpenseFiles {
   checksum_sha256: string;
   coopname: string;
@@ -1504,6 +1537,10 @@ export interface ExpensePlans {
    */
   braname: string | null;
   coopname: string;
+  /**
+   * Контрагент-получатель оплаты по реквизитам
+   */
+  counterparty_id: number | null;
   created_at: Generated<Timestamp>;
   /**
    * Кто добавил запись
@@ -1523,13 +1560,29 @@ export interface ExpensePlans {
    */
   paid_at: Timestamp | null;
   /**
-   * Реквизиты получателя платежа (строкой — передаётся в платёжку кассиру)
+   * Реквизиты текстом у записей до способов оплаты; новые записи не заполняют
    */
-  pay_to: string;
+  pay_to: string | null;
+  /**
+   * Способ получения средств пайщика; реквизиты копируются в снимок при подаче записки
+   */
+  payment_method_id: string | null;
+  /**
+   * Назначение платежа организации
+   */
+  payment_purpose: string | null;
   /**
    * Расход, которым оплачивается запись (служебная записка шасси расходов); NULL — оплата не запускалась
    */
   proposal_hash: string | null;
+  /**
+   * Пайщик-получатель аванса под отчёт
+   */
+  recipient: string | null;
+  /**
+   * Получатель: ORG — организация по реквизитам контрагента, SELF/MEMBER — пайщик авансом под отчёт; NULL — запись до способов оплаты
+   */
+  recipient_type: string | null;
   /**
    * Периодичность серии: NONE — разовый; MONTHLY/QUARTERLY/YEARLY — повторяющийся
    */
@@ -2922,6 +2975,7 @@ export interface DB {
   edubridge_teacher_contracts: EdubridgeTeacherContracts;
   edubridge_teacher_profiles: EdubridgeTeacherProfiles;
   entity_versions: EntityVersions;
+  expense_counterparties: ExpenseCounterparties;
   expense_files: ExpenseFiles;
   expense_plans: ExpensePlans;
   expense_proposals: ExpenseProposals;

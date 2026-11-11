@@ -124,6 +124,9 @@ export const AllTypesProps: Record<string,any> = {
 	ArchiveComponentMetricInput:{
 
 	},
+	ArchiveExpenseCounterpartyInput:{
+
+	},
 	AssignCapabilitySetInput:{
 
 	},
@@ -512,6 +515,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateExpensePlanInput:{
 		due_date:"DateTime",
+		recipient_type:"ExpenseRecipientType",
 		recurrence:"ExpensePlanRecurrence"
 	},
 	CreateExpenseProposalInput:{
@@ -859,6 +863,13 @@ export const AllTypesProps: Record<string,any> = {
 	ExpenseCallbackInput:{
 
 	},
+	ExpenseCounterpartyIdInput:{
+
+	},
+	ExpenseCounterpartyKind: "enum" as const,
+	ExpenseCounterpartyRequisiteInput:{
+
+	},
 	ExpenseFileKind: "enum" as const,
 	ExpenseFilter:{
 
@@ -1173,6 +1184,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	KuVoteItemInput:{
+
+	},
+	ListExpenseCounterpartiesInput:{
 
 	},
 	ListExpensePlansInput:{
@@ -1785,6 +1799,9 @@ export const AllTypesProps: Record<string,any> = {
 		approveVerification:{
 			data:"ApproveVerificationInput"
 		},
+		archiveExpenseCounterparty:{
+			data:"ArchiveExpenseCounterpartyInput"
+		},
 		assignCapabilitySet:{
 			data:"AssignCapabilitySetInput"
 		},
@@ -2185,6 +2202,9 @@ export const AllTypesProps: Record<string,any> = {
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
 		},
+		createExpenseCounterparty:{
+			data:"SaveExpenseCounterpartyInput"
+		},
 		createExpensePlan:{
 			data:"CreateExpensePlanInput"
 		},
@@ -2223,6 +2243,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		deleteBranchWhitelist:{
 			data:"DeleteBranchWhitelistInput"
+		},
+		deleteExpenseCounterparty:{
+			data:"ExpenseCounterpartyIdInput"
 		},
 		deleteExpensePlan:{
 			data:"DeleteExpensePlanInput"
@@ -3054,6 +3077,9 @@ export const AllTypesProps: Record<string,any> = {
 		updateBankAccount:{
 			data:"UpdateBankAccountInput"
 		},
+		updateExpenseCounterparty:{
+			data:"UpdateExpenseCounterpartyInput"
+		},
 		updateExtension:{
 			data:"ExtensionInput"
 		},
@@ -3570,6 +3596,9 @@ export const AllTypesProps: Record<string,any> = {
 		expenseAdvancesByCooperative:{
 			filter:"ExpenseAdvancesFilterInput",
 			options:"PaginationInput"
+		},
+		expenseCounterparties:{
+			data:"ListExpenseCounterpartiesInput"
 		},
 		expenseFile:{
 
@@ -4261,6 +4290,10 @@ export const AllTypesProps: Record<string,any> = {
 	SaveCapitalProgramDocDataInput:{
 
 	},
+	SaveExpenseCounterpartyInput:{
+		kind:"ExpenseCounterpartyKind",
+		requisites:"ExpenseCounterpartyRequisiteInput"
+	},
 	SaveReportDraftInput:{
 		reportType:"ReportType"
 	},
@@ -4451,6 +4484,10 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateEntrepreneurDataInput:{
 		country:"Country",
 		details:"EntrepreneurDetailsInput"
+	},
+	UpdateExpenseCounterpartyInput:{
+		kind:"ExpenseCounterpartyKind",
+		requisites:"ExpenseCounterpartyRequisiteInput"
 	},
 	UpdateIndividualDataInput:{
 		passport:"PassportInput"
@@ -6911,6 +6948,42 @@ export const ReturnTypes: Record<string,any> = {
 		spent_amount:"String",
 		state:"ExpenseAdvanceState"
 	},
+	ExpenseCounterparty:{
+		archived:"Boolean",
+		braname:"String",
+		can_manage:"Boolean",
+		created_at:"DateTime",
+		creator:"String",
+		id:"Int",
+		kind:"ExpenseCounterpartyKind",
+		name:"String",
+		payment_purpose:"String",
+		requisites:"ExpenseCounterpartyRequisite",
+		requisites_text:"String",
+		tax_id:"String"
+	},
+	ExpenseCounterpartyForm:{
+		country:"String",
+		kinds:"ExpenseCounterpartyFormKind"
+	},
+	ExpenseCounterpartyFormField:{
+		group:"String",
+		key:"String",
+		label:"String",
+		length:"Int",
+		pattern:"String",
+		required:"Boolean",
+		tax_id:"Boolean"
+	},
+	ExpenseCounterpartyFormKind:{
+		fields:"ExpenseCounterpartyFormField",
+		kind:"ExpenseCounterpartyKind"
+	},
+	ExpenseCounterpartyRequisite:{
+		key:"String",
+		label:"String",
+		value:"String"
+	},
 	ExpenseFile:{
 		checksum_sha256:"String",
 		coopname:"String",
@@ -6939,6 +7012,8 @@ export const ReturnTypes: Record<string,any> = {
 	ExpensePlan:{
 		amount:"String",
 		braname:"String",
+		counterparty_id:"Int",
+		counterparty_name:"String",
 		created_at:"DateTime",
 		creator:"String",
 		due_date:"DateTime",
@@ -6946,7 +7021,12 @@ export const ReturnTypes: Record<string,any> = {
 		next_due_date:"DateTime",
 		paid_at:"DateTime",
 		pay_to:"String",
+		payment_method_id:"String",
+		payment_purpose:"String",
 		proposal_hash:"String",
+		recipient:"String",
+		recipient_name:"String",
+		recipient_type:"ExpenseRecipientType",
 		recurrence:"ExpensePlanRecurrence",
 		title:"String"
 	},
@@ -8660,6 +8740,7 @@ export const ReturnTypes: Record<string,any> = {
 		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveModeration:"ApproveModerationResultDTO",
 		approveVerification:"VerificationReview",
+		archiveExpenseCounterparty:"ExpenseCounterparty",
 		assignCapabilitySet:"Boolean",
 		assignRole:"AssignableRole",
 		authorizeDecision:"Transaction",
@@ -8788,6 +8869,7 @@ export const ReturnTypes: Record<string,any> = {
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
 		createDepositPayment:"GatewayPayment",
+		createExpenseCounterparty:"ExpenseCounterparty",
 		createExpensePlan:"ExpensePlan",
 		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
@@ -8801,6 +8883,7 @@ export const ReturnTypes: Record<string,any> = {
 		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
 		deleteBranchWhitelist:"Branch",
+		deleteExpenseCounterparty:"Boolean",
 		deleteExpensePlan:"Boolean",
 		deletePaymentMethod:"Boolean",
 		deleteReportDraft:"Boolean",
@@ -9074,6 +9157,7 @@ export const ReturnTypes: Record<string,any> = {
 		unverifyParticipant:"ParticipantVerification",
 		updateAccount:"Account",
 		updateBankAccount:"PaymentMethod",
+		updateExpenseCounterparty:"ExpenseCounterparty",
 		updateExtension:"Extension",
 		updateReportRequisites:"ReportRequisitesView",
 		updateSettings:"Settings",
@@ -9926,6 +10010,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
 		expenseAdvancesByCooperative:"PaginatedExpenseAdvancesPaginationResult",
+		expenseCounterparties:"ExpenseCounterparty",
+		expenseCounterpartyForm:"ExpenseCounterpartyForm",
 		expenseFile:"ExpenseFile",
 		expenseFilesByItem:"ExpenseFile",
 		expenseFilesByProposal:"ExpenseFile",
