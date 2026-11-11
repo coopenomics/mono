@@ -15,6 +15,7 @@ export * from './DocumentSignatures';
 export * from './ExpenseCreateDialog';
 export * from './ExpenseCounterpartyFormDialog';
 export * from './ExpenseCounterpartySelect';
+export * from './ExpensePlanDialog';
 export * from './ExpenseProposalDecisionInfo';
 export * from './ExpenseProposalDetails';
 export * from './ExpenseProposalDocuments';

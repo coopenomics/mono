@@ -1,5 +1,6 @@
 <template lang="pug">
-//- Новый плановый расход участка (задача 99D-34, решение владельца 11.11.2026).
+//- Новый плановый расход (задачи 99D-34, 99D-35). Общая форма шасси расходов:
+//- стол передаёт участок записи; сейчас её открывает «Экономика участка».
 //-
 //- Зоны: слева — что и когда платим (назначение, сумма, срок, повторяемость,
 //- реквизиты), справа — что из этого выйдет (план платежей: сумма за платёж,
@@ -9,7 +10,7 @@
 //- На узком экране панель плана встаёт под форму.
 BaseDialog(
   :model-value='modelValue',
-  :title='$t("marketplace.expensePlanDialog.title")',
+  :title='$t("ui.expensePlanDialog.title")',
   size='xl',
   @update:model-value='emit("update:modelValue", $event)'
 )
@@ -17,16 +18,16 @@ BaseDialog(
     .plan-dialog__form
       BaseInput(
         v-model='title',
-        :label='$t("marketplace.expensePlanDialog.purposeLabel")',
-        :placeholder='$t("marketplace.expensePlanDialog.purposePlaceholder")',
+        :label='$t("ui.expensePlanDialog.titleLabel")',
+        :placeholder='$t("ui.expensePlanDialog.titlePlaceholder")',
         stack-label,
         required
       )
       .plan-dialog__pair
         AmountInput(
           v-model='amount',
-          :label='$t("marketplace.expensePlanDialog.amountLabel")',
-          :placeholder='$t("marketplace.expensePlanDialog.amountPlaceholder")',
+          :label='$t("ui.expensePlanDialog.amountLabel")',
+          :placeholder='$t("ui.expensePlanDialog.amountPlaceholder")',
           :precision='2',
           :min='0',
           stack-label
@@ -34,7 +35,7 @@ BaseDialog(
         BaseInput(
           v-model='dueDate',
           type='date',
-          :label='$t("marketplace.expensePlanDialog.dueDateLabel")',
+          :label='$t("ui.expensePlanDialog.dueDateLabel")',
           stack-label,
           required
         )
@@ -42,7 +43,7 @@ BaseDialog(
       //- Повторяемость — один ряд сегментов: выбор из четырёх читается разом,
       //- пояснение выбранного варианта — одной строкой под рядом.
       .plan-dialog__field
-        span.plan-dialog__label#plan-recurrence-label {{ $t('marketplace.expensePlanDialog.recurrenceLabel') }}
+        span.plan-dialog__label#plan-recurrence-label {{ $t('ui.expensePlanDialog.recurrenceLabel') }}
         BaseSegmented(
           v-model='recurrence',
           :options='recurrenceOptions',
@@ -54,13 +55,13 @@ BaseDialog(
       //- подписывает готовую записку. Организации платят по реквизитам из
       //- реестра контрагентов, пайщику — аванс под отчёт на его реквизиты.
       .plan-dialog__field
-        span.plan-dialog__label#plan-payee-label {{ $t('marketplace.expensePlanDialog.payeeLabel') }}
+        span.plan-dialog__label#plan-payee-label {{ $t('ui.expensePlanDialog.payeeLabel') }}
         BaseSegmented(
           v-model='payee',
           :options='payeeOptions',
           aria-labelledby='plan-payee-label'
         )
-        span.plan-dialog__caption {{ payee === PAYEE_ORG ? $t('marketplace.expensePlanDialog.payeeOrgCaption') : $t('marketplace.expensePlanDialog.payeeAdvanceCaption') }}
+        span.plan-dialog__caption {{ payee === PAYEE_ORG ? $t('ui.expensePlanDialog.payeeOrgCaption') : $t('ui.expensePlanDialog.payeeAdvanceCaption') }}
 
       template(v-if='payee === PAYEE_ORG')
         ExpenseCounterpartySelect(
@@ -73,8 +74,8 @@ BaseDialog(
           type='textarea',
           :rows='2',
           autogrow,
-          :label='$t("marketplace.expensePlanDialog.purposeLabel")',
-          :hint='$t("marketplace.expensePlanDialog.purposeHint")',
+          :label='$t("ui.expensePlanDialog.paymentPurposeLabel")',
+          :hint='$t("ui.expensePlanDialog.paymentPurposeHint")',
           stack-label,
           required
         )
@@ -83,12 +84,12 @@ BaseDialog(
         BaseSegmented(
           v-model='advanceTo',
           :options='advanceOptions',
-          :aria-label='$t("marketplace.expensePlanDialog.advanceToLabel")'
+          :aria-label='$t("ui.expensePlanDialog.advanceToLabel")'
         )
         UserSearchSelector(
           v-if='advanceTo === Zeus.ExpenseRecipientType.MEMBER',
           v-model='memberAccount',
-          :label='$t("marketplace.expensePlanDialog.memberLabel")',
+          :label='$t("ui.expensePlanDialog.memberLabel")',
           :types='["individual"]',
           outlined
         )
@@ -104,16 +105,16 @@ BaseDialog(
     aside.plan-dialog__plan(aria-live='polite')
       .plan-dialog__plan-head
         q-icon(name='event_repeat', size='18px')
-        span {{ $t('marketplace.expensePlanDialog.planTitle') }}
+        span {{ $t('ui.expensePlanDialog.planTitle') }}
 
       .plan-dialog__sum
         span.plan-dialog__sum-value.t-mono {{ amountLabel }}
-        span.plan-dialog__sum-note {{ isSeries ? $t('marketplace.expensePlanDialog.perPayment') : $t('marketplace.expensePlanDialog.perOnce') }}
+        span.plan-dialog__sum-note {{ isSeries ? $t('ui.expensePlanDialog.perPayment') : $t('ui.expensePlanDialog.perOnce') }}
 
       //- Получатель — кому перечисляется каждый платёж серии.
       .plan-dialog__payee
-        span.plan-dialog__payee-label {{ $t('marketplace.expensePlanDialog.planPayee') }}
-        span.plan-dialog__payee-name {{ payeeTitle || $t('marketplace.expensePlanDialog.planPayeeEmpty') }}
+        span.plan-dialog__payee-label {{ $t('ui.expensePlanDialog.planPayee') }}
+        span.plan-dialog__payee-name {{ payeeTitle || $t('ui.expensePlanDialog.planPayeeEmpty') }}
         span.plan-dialog__payee-note(v-if='payeeNote') {{ payeeNote }}
 
       template(v-if='schedule')
@@ -136,7 +137,7 @@ BaseDialog(
 
       .plan-dialog__empty(v-else)
         q-icon(name='edit_calendar', size='28px')
-        span {{ $t('marketplace.expensePlanDialog.planEmpty') }}
+        span {{ $t('ui.expensePlanDialog.planEmpty') }}
 
   template(#footer)
     BaseButton(variant='ghost', :disabled='saving', @click='emit("update:modelValue", false)') {{ $t('common.action.cancel') }}
@@ -145,7 +146,7 @@ BaseDialog(
       :loading='saving',
       :disabled='!canSubmit',
       @click='onSubmit'
-    ) {{ $t('marketplace.expensePlanDialog.submitAction') }}
+    ) {{ $t('ui.expensePlanDialog.submitAction') }}
 </template>
 
 <script setup lang="ts">
@@ -154,12 +155,15 @@ import { Zeus } from '@coopenomics/sdk'
 import { uiLocale, t as i18nT } from 'src/shared/i18n'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog, BaseInput, BaseSegmented } from 'src/shared/ui/base'
-import { AmountInput, DataRow, ExpenseCounterpartySelect, PaymentMethodSelect } from 'src/shared/ui/domain'
+import { AmountInput } from 'src/shared/ui/domain/AmountInput'
+import { DataRow } from 'src/shared/ui/domain/DataRow'
+import { ExpenseCounterpartySelect } from 'src/shared/ui/domain/ExpenseCounterpartySelect'
+import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
 import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector'
 import { useSessionStore } from 'src/entities/Session'
 import type { ExpenseCounterpartyView } from 'src/shared/lib/expenses/counterparties'
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils'
-import { createExpensePlan, getExpensePlanSchedule, type ExpensePlanScheduleView } from '../api'
+import { createExpensePlan, getExpensePlanSchedule, type ExpensePlanScheduleView } from 'src/shared/lib/expenses/plans'
 
 const props = defineProps<{ modelValue: boolean; braname: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; created: [] }>()
@@ -228,27 +232,27 @@ const recurrenceOptions = computed(() => {
   return [
     {
       value: Zeus.ExpensePlanRecurrence.NONE,
-      label: i18nT('marketplace.expensePlanDialog.onceTitle'),
-      description: i18nT('marketplace.expensePlanDialog.onceDescription'),
+      label: i18nT('ui.expensePlanDialog.onceTitle'),
+      description: i18nT('ui.expensePlanDialog.onceDescription'),
     },
     {
       value: Zeus.ExpensePlanRecurrence.MONTHLY,
-      label: i18nT('marketplace.expensePlanDialog.monthlyTitle'),
+      label: i18nT('ui.expensePlanDialog.monthlyTitle'),
       description: day
-        ? i18nT('marketplace.expensePlanDialog.monthlyDescription', { day })
-        : i18nT('marketplace.expensePlanDialog.monthlyDescriptionNoDate'),
+        ? i18nT('ui.expensePlanDialog.monthlyDescription', { day })
+        : i18nT('ui.expensePlanDialog.monthlyDescriptionNoDate'),
     },
     {
       value: Zeus.ExpensePlanRecurrence.QUARTERLY,
-      label: i18nT('marketplace.expensePlanDialog.quarterlyTitle'),
-      description: i18nT('marketplace.expensePlanDialog.quarterlyDescription'),
+      label: i18nT('ui.expensePlanDialog.quarterlyTitle'),
+      description: i18nT('ui.expensePlanDialog.quarterlyDescription'),
     },
     {
       value: Zeus.ExpensePlanRecurrence.YEARLY,
-      label: i18nT('marketplace.expensePlanDialog.yearlyTitle'),
+      label: i18nT('ui.expensePlanDialog.yearlyTitle'),
       description: dayMonth
-        ? i18nT('marketplace.expensePlanDialog.yearlyDescription', { date: dayMonth })
-        : i18nT('marketplace.expensePlanDialog.yearlyDescriptionNoDate'),
+        ? i18nT('ui.expensePlanDialog.yearlyDescription', { date: dayMonth })
+        : i18nT('ui.expensePlanDialog.yearlyDescriptionNoDate'),
     },
   ]
 })
@@ -258,13 +262,13 @@ const selectedOption = computed(
 )
 
 const payeeOptions = [
-  { value: PAYEE_ORG, label: i18nT('marketplace.expensePlanDialog.payeeOrg') },
-  { value: PAYEE_ADVANCE, label: i18nT('marketplace.expensePlanDialog.payeeAdvance') },
+  { value: PAYEE_ORG, label: i18nT('ui.expensePlanDialog.payeeOrg') },
+  { value: PAYEE_ADVANCE, label: i18nT('ui.expensePlanDialog.payeeAdvance') },
 ]
 
 const advanceOptions = [
-  { value: Zeus.ExpenseRecipientType.SELF, label: i18nT('marketplace.expensePlanDialog.advanceSelf') },
-  { value: Zeus.ExpenseRecipientType.MEMBER, label: i18nT('marketplace.expensePlanDialog.advanceMember') },
+  { value: Zeus.ExpenseRecipientType.SELF, label: i18nT('ui.expensePlanDialog.advanceSelf') },
+  { value: Zeus.ExpenseRecipientType.MEMBER, label: i18nT('ui.expensePlanDialog.advanceMember') },
 ]
 
 /** Чей способ получения средств выбирается: свой или выбранного пайщика. */
@@ -288,12 +292,12 @@ function onCounterparty(cp: ExpenseCounterpartyView | null): void {
 
 const payeeTitle = computed(() => {
   if (payee.value === PAYEE_ORG) return counterparty.value?.name ?? ''
-  return advanceTo.value === Zeus.ExpenseRecipientType.SELF ? i18nT('marketplace.expensePlanDialog.advanceSelfTitle') : memberAccount.value.trim()
+  return advanceTo.value === Zeus.ExpenseRecipientType.SELF ? i18nT('ui.expensePlanDialog.advanceSelfTitle') : memberAccount.value.trim()
 })
 
 const payeeNote = computed(() => {
   if (payee.value === PAYEE_ORG) return counterparty.value ? paymentPurpose.value.trim() : ''
-  return i18nT('marketplace.expensePlanDialog.planPayeeAdvance')
+  return i18nT('ui.expensePlanDialog.planPayeeAdvance')
 })
 
 const payeeReady = computed(() =>
@@ -353,9 +357,9 @@ const steps = computed(() => {
     note:
       index === 0
         ? isSeries.value
-          ? i18nT('marketplace.expensePlanDialog.firstPayment')
-          : i18nT('marketplace.expensePlanDialog.onlyPayment')
-        : i18nT('marketplace.expensePlanDialog.paymentIn', { months: String(step * index) }),
+          ? i18nT('ui.expensePlanDialog.firstPayment')
+          : i18nT('ui.expensePlanDialog.onlyPayment')
+        : i18nT('ui.expensePlanDialog.paymentIn', { months: String(step * index) }),
   }))
 })
 
@@ -363,18 +367,18 @@ const reserveMonths = computed(() => schedule.value?.reserve_months ?? 1)
 
 const reserveLabel = computed(() =>
   reserveMonths.value > 1
-    ? i18nT('marketplace.expensePlanDialog.reservePerMonthLabel')
-    : i18nT('marketplace.expensePlanDialog.reserveWholeLabel')
+    ? i18nT('ui.expensePlanDialog.reservePerMonthLabel')
+    : i18nT('ui.expensePlanDialog.reserveWholeLabel')
 )
 
 const reserveValue = computed(() => (Number(amount.value) > 0 && schedule.value ? formatAsset2Digits(schedule.value.reserve_per_month) : '—'))
 
 const reserveNote = computed(() => {
-  if (reserveMonths.value === 3) return i18nT('marketplace.expensePlanDialog.reserveNoteQuarter')
-  if (reserveMonths.value === 12) return i18nT('marketplace.expensePlanDialog.reserveNoteYear')
-  if (reserveMonths.value > 1) return i18nT('marketplace.expensePlanDialog.reserveNoteSpread', { months: String(reserveMonths.value) })
-  if (recurrence.value === Zeus.ExpensePlanRecurrence.MONTHLY) return i18nT('marketplace.expensePlanDialog.reserveNoteMonthly')
-  return i18nT('marketplace.expensePlanDialog.reserveNoteOnce')
+  if (reserveMonths.value === 3) return i18nT('ui.expensePlanDialog.reserveNoteQuarter')
+  if (reserveMonths.value === 12) return i18nT('ui.expensePlanDialog.reserveNoteYear')
+  if (reserveMonths.value > 1) return i18nT('ui.expensePlanDialog.reserveNoteSpread', { months: String(reserveMonths.value) })
+  if (recurrence.value === Zeus.ExpensePlanRecurrence.MONTHLY) return i18nT('ui.expensePlanDialog.reserveNoteMonthly')
+  return i18nT('ui.expensePlanDialog.reserveNoteOnce')
 })
 
 /** Способ оплаты для записи плана: контрагент с назначением либо пайщик со способом получения средств. */
@@ -411,11 +415,11 @@ async function onSubmit(): Promise<void> {
       due_date: due.toISOString(),
       ...payeeInput(),
     })
-    SuccessAlert(i18nT('marketplace.operatorBranchEconomyPage.expenseAddedMessage'))
+    SuccessAlert(i18nT('ui.expensePlanDialog.addedMessage'))
     emit('created')
     emit('update:modelValue', false)
   } catch (e) {
-    FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.addExpenseFailedMessage'))
+    FailAlert(e, i18nT('ui.expensePlanDialog.addFailedMessage'))
   } finally {
     saving.value = false
   }

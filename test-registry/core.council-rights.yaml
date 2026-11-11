@@ -194,4 +194,5 @@ cases:
       добавляет, правит, убирает в архив и удаляет контрагентов, включая
       добавленных участками; права операций сверяет сервис контрагентов
       (expenses.counterparties)
-    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+    test: components/docs-harness/scenarios/expenses/counterparties.mjs
+    status: written

@@ -133,3 +133,22 @@ cases:
     external: unreachable
     external_reason: "запрос показа без записи; те же правила при сохранении проверяет exp.cp.side.01"
     status: written
+
+  - id: exp.cp.ui.01
+    level: ui
+    kind: happy
+    scenario: Председатель открывает «Реестр контрагентов» на столе совета и добавляет контрагента
+    expect: >
+      реестр с поиском и показом архива; форма по стране кооператива; ИНН с
+      опечаткой форма отмечает у поля до сохранения; верные реквизиты
+      сохраняются, контрагент — строкой реестра
+    test: components/docs-harness/scenarios/expenses/counterparties.mjs
+    status: written
+
+  - id: exp.cp.ui.02
+    level: ui
+    kind: happy
+    scenario: Председатель открывает контрагента из реестра
+    expect: панель справа — реквизиты в порядке платёжного поручения, назначение по умолчанию, «Изменить», «В архив», «Удалить»
+    test: components/docs-harness/scenarios/expenses/counterparties.mjs
+    status: written

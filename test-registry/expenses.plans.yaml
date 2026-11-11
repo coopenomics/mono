@@ -24,7 +24,7 @@ sources:
     - components/controller/src/extensions/expenses/domain/expense-plan.types.ts
     - components/extension-kit/src/expense/expense-plan-schedule.ts
   ui:
-    - components/desktop/src/pages/Marketplace/OperatorBranchEconomy/ui/ExpensePlanDialog.vue
+    - components/desktop/src/shared/ui/domain/ExpensePlanDialog/**
 
 cases:
   - id: exp.plan.happy.01
@@ -280,4 +280,16 @@ cases:
     test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
     external: unreachable
     external_reason: "продолжение серии — фоновый воркер по наступлении срока; на стенде срок записи наступает через месяц"
+    status: written
+
+  - id: exp.plan.ui.01
+    level: ui
+    kind: happy
+    scenario: Председатель участка открывает окно нового планового расхода
+    expect: >
+      повторяемость сегментами с подписью выбранного варианта; способ оплаты —
+      по реквизитам организации (выбор контрагента с «Добавить» в поле, назначение
+      платежа) или аванс под отчёт (себе или пайщику, способ получения средств);
+      справа план платежей — сроки, резерв в месяц и как он формируется
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/expense-plans.mjs
     status: written

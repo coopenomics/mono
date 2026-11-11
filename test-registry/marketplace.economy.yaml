@@ -425,4 +425,5 @@ cases:
       «Оплатить» активна у записи, на которую хватает общего кошелька или свободных
       средств инициаторов (платёж целиком из одного источника); после оплаты сводка
       перечитывается, и кнопка второй записи гаснет
-    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/expense-plans.mjs
+    status: written

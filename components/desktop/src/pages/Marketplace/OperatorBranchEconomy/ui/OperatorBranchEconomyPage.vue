@@ -15,7 +15,7 @@ import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/e
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
-import ExpensePlanDialog from './ExpensePlanDialog.vue'
+import { ExpensePlanDialog } from 'src/shared/ui/domain/ExpensePlanDialog'
 import PayPlanDialog from './PayPlanDialog.vue'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
