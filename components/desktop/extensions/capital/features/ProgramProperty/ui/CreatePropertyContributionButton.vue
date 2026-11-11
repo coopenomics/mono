@@ -14,7 +14,7 @@ div
   BaseDialog(
     v-model='open',
     :title='$t("capital.createPropertyContributionButton.dialogTitle")',
-    size='md'
+    :size='statement ? "xxl" : "md"'
   )
     //- Два шага: поля позиции → заявление целиком до подписи. «Назад»
     //- возвращает к полям; после правки стол собирает заявление заново.

@@ -13,7 +13,7 @@
         :text='doc.link_text'
       )
         // eslint-disable-next-line vue/no-v-html
-        div(v-html='sanitizeDocumentHtml(doc.document.html)').q-mb-lg
+        div(v-html='sanitizeDocumentHtml(doc.document.html)').doc-html.q-mb-lg
 </template>
 
 <script lang="ts" setup>

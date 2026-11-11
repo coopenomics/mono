@@ -44,6 +44,27 @@ const renderedHtml = computed(() =>
   padding: 0px !important;
 }
 
+/* Таблицы документа — по теме стола. Шаблоны красят ячейки-подписи светлым
+   фоном (#f4f4f4), а цвет текста берётся из темы: в тёмной теме подписи
+   белым по светлому не читались. Заливки нет ни в одной теме, рамки —
+   линией темы (слово владельца 11.11.2026). !important — потому что стиль
+   документа после scopeDocumentStyles той же силы и стоит позже.
+   .doc-html — тот же показ там, где документ выводится напрямую v-html. */
+.statement th,
+.statement td,
+.doc-html th,
+.doc-html td {
+  background: transparent !important;
+  color: inherit !important;
+  border-color: var(--p-line-1) !important;
+}
+
+.statement th,
+.doc-html th {
+  font-weight: 600;
+  color: var(--p-ink-2) !important;
+}
+
 .statement h1 {
   font-weight: 700 !important;
   line-height: 4.5rem !important;

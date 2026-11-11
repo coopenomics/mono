@@ -454,7 +454,7 @@ BaseDialog(
                 | {{ kuAddr(g.braname) }}
               span.onsite-gate__sub {{ $t('marketplace.onsiteSignatureGateOverlay.confirmReceptionHint') }}
         //- Акты документами вместо таблицы — по кнопке «Показать акты» справа.
-        .onsite-gate__acts(v-if='actsShown[g.key]', v-html='sanitizeDocumentHtml(actsHtml[g.key] ?? "")')
+        .onsite-gate__acts.doc-html(v-if='actsShown[g.key]', v-html='sanitizeDocumentHtml(actsHtml[g.key] ?? "")')
         ActLinesTable(v-else, :columns='readColumns', :rows='supplierRows(g)')
           template(#cell-item='{ row }')
             ActLineItem(:title='row.title', :image-url='row.imageUrl')
