@@ -34,8 +34,13 @@ function account() {
   return `40702810${key}${tail}`;
 }
 
+/**
+ * Ввод в поле формы. Где подключён поиск по ИНН, наименование, КПП и ОГРН
+ * подставляет реестр и закрывает для правки — такое поле сценарий пропускает.
+ */
 async function fill(dialog, label, value) {
   const input = dialog.getByLabel(label, { exact: true }).first();
+  if (!(await input.isEditable())) return;
   await input.click();
   await input.fill(value);
 }

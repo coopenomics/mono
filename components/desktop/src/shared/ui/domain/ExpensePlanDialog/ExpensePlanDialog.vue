@@ -353,7 +353,7 @@ const steps = computed(() => {
   const step = STEP_MONTHS[recurrence.value]
   return dates.map((date, index) => ({
     key: `${recurrence.value}:${String(date)}`,
-    date: formatDay(date),
+    date: formatDay(String(date)),
     note:
       index === 0
         ? isSeries.value

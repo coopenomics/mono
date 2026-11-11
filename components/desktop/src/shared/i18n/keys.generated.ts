@@ -9383,7 +9383,6 @@ export type MessageKey =
   | 'ui.expenseCounterparty.kindEntrepreneur'
   | 'ui.expenseCounterparty.kindLabel'
   | 'ui.expenseCounterparty.kindLegal'
-  | 'ui.expenseCounterparty.lookupAction'
   | 'ui.expenseCounterparty.lookupFound'
   | 'ui.expenseCounterparty.lookupNotFound'
   | 'ui.expenseCounterparty.nameLabel'

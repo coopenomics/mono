@@ -3,8 +3,10 @@
 //- Одна форма на реестр контрагентов стола совета и на кнопку «Добавить» в
 //- поле выбора получателя. Поля реквизитов и их правила приходят с сервера —
 //- они страновые (пакет юрисдикций); сервер проверяет ими же, здесь — только
-//- подсказка до отправки. ИНН идёт первым: по нему поля организации
-//- заполняются из государственного реестра, если для страны есть поставщик.
+//- подсказка до отправки. ИНН идёт первым: если для страны есть поставщик
+//- сведений, полный ИНН сам заполняет поля организации из государственного
+//- реестра, и подставленные поля закрываются для правки — как в анкете
+//- организации при регистрации (общий useRegistryLookup).
 BaseDialog(
   :model-value='modelValue',
   :title='counterparty ? $t("ui.expenseCounterparty.formTitleEdit") : $t("ui.expenseCounterparty.formTitleNew")',
@@ -17,9 +19,10 @@ BaseDialog(
       span {{ scopeLabel }}
 
     BaseSegmented(
-      v-model='kind',
+      :model-value='kind',
       :options='kindOptions',
-      :aria-label='$t("ui.expenseCounterparty.kindLabel")'
+      :aria-label='$t("ui.expenseCounterparty.kindLabel")',
+      @update:model-value='onKind'
     )
 
     section.cp-form__section
@@ -31,19 +34,16 @@ BaseDialog(
         :mask='maskOf(taxField)',
         :error='errorOf(taxField)',
         :hint='lookupHint',
+        :readonly='isLocked("inn")',
         stack-label,
         required
       )
-        template(v-if='lookupAvailable' #append)
-          BaseButton(
-            variant='secondary',
-            size='sm',
-            :loading='lookingUp',
-            :disabled='!taxComplete',
-            @click='onLookup'
-          ) {{ $t('ui.expenseCounterparty.lookupAction') }}
+        template(v-if='lookingUp || lookupState === "found"' #append)
+          q-spinner(v-if='lookingUp', size='18px', color='primary')
+          BaseButton(v-else, variant='secondary', size='sm', @click='resetLookup') {{ $t('ui.registryLookup.changeInn') }}
       BaseInput(
         v-model='name',
+        :disabled='isLocked("name")',
         :label='$t("ui.expenseCounterparty.nameLabel")',
         :placeholder='$t("ui.expenseCounterparty.namePlaceholder")',
         :error='touched && !name.trim() ? $t("ui.expenseCounterparty.fieldRequired") : undefined',
@@ -58,6 +58,7 @@ BaseDialog(
           :label='field.label',
           :mask='maskOf(field)',
           :error='errorOf(field)',
+          :disabled='isLockedKey(field.key)',
           stack-label,
           :required='field.required'
         )
@@ -104,7 +105,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseInput, BaseSegmented } from 'src/shared/ui/base';
-import { lookupEntrepreneur, lookupOrganization, loadLookupCountries } from 'src/shared/ui/UserDataForm/useRegistryLookup';
+import { lookupEntrepreneur, lookupOrganization, useRegistryLookup } from 'src/shared/ui/UserDataForm/useRegistryLookup';
 import {
   checkExpenseCounterpartyRequisites,
   createExpenseCounterparty,
@@ -129,20 +130,16 @@ const emit = defineEmits<{
   saved: [counterparty: ExpenseCounterpartyView];
 }>();
 
-// Форма и страны с поиском по ИНН одни на весь стол — грузятся один раз.
+// Форма одна на весь стол — грузится один раз.
 let formCache: Promise<ExpenseCounterpartyFormView> | null = null;
-let countriesCache: Promise<string[]> | null = null;
 
 const form = ref<ExpenseCounterpartyFormView | null>(null);
-const lookupCountries = ref<string[]>([]);
 const kind = ref<Zeus.ExpenseCounterpartyKind>(Zeus.ExpenseCounterpartyKind.LEGAL);
 const name = ref('');
 const paymentPurpose = ref('');
 const values = reactive<Record<string, string>>({});
 const touched = ref(false);
 const saving = ref(false);
-const lookingUp = ref(false);
-const lookupState = ref<'idle' | 'found' | 'notFound'>('idle');
 /** Нарушения по полям от сервера: вид значения и контрольные суммы. */
 const serverIssues = ref<Record<string, string>>({});
 
@@ -163,12 +160,69 @@ const scopeLabel = computed(() =>
     : t('ui.expenseCounterparty.coopMark'),
 );
 
-const lookupAvailable = computed(() => !!form.value && lookupCountries.value.includes(form.value.country));
-const taxComplete = computed(() => {
-  const field = taxField.value;
-  const value = field ? values[field.key]?.trim() ?? '' : '';
-  return !!field && (!field.length || value.length === field.length);
+/** Сведения из государственного реестра: наименование и реквизиты организации. */
+interface RegistryFound {
+  name?: string | null;
+  kpp?: string | null;
+  ogrn?: string | null;
+}
+
+/** Юрлицо или ИП — по виду контрагента; ответ приводится к полям формы. */
+async function findInRegistry(query: { country: string; inn: string }): Promise<RegistryFound | null> {
+  if (kind.value === Zeus.ExpenseCounterpartyKind.LEGAL) {
+    const org = await lookupOrganization(query);
+    return org ? { name: org.short_name || org.full_name, kpp: org.details.kpp, ogrn: org.details.ogrn } : null;
+  }
+  const ip = await lookupEntrepreneur(query);
+  if (!ip) return null;
+  const fio = [ip.last_name, ip.first_name, ip.middle_name].filter(Boolean).join(' ');
+  return { name: fio ? t('ui.expenseCounterparty.entrepreneurName', { name: fio }) : undefined, ogrn: ip.details.ogrn };
+}
+
+/** Поле формы, которое заполняет реестр: наименование или ключ реквизита. */
+type LookupField = 'name' | 'kpp' | 'ogrn';
+
+const {
+  loading: lookingUp,
+  lookupState,
+  isLocked,
+  resetLookup,
+  lookupCurrent,
+} = useRegistryLookup<RegistryFound, LookupField>({
+  country: () => form.value?.country,
+  inn: () => (taxField.value ? values[taxField.value.key] : undefined),
+  find: findInRegistry,
+  apply: (found) => {
+    const filled: LookupField[] = [];
+    if (found.name) {
+      name.value = found.name;
+      filled.push('name');
+    }
+    for (const key of ['kpp', 'ogrn'] as const) {
+      const value = found[key];
+      if (value && fields.value.some((f) => f.key === key)) {
+        values[key] = value;
+        filled.push(key);
+      }
+    }
+    return filled;
+  },
+  // «Другой ИНН» или смена вида: сведения прежнего поиска снимаются вместе с ИНН.
+  clear: (filled) => {
+    if (taxField.value) delete values[taxField.value.key];
+    for (const field of filled) {
+      if (field === 'name') name.value = '';
+      else delete values[field];
+    }
+  },
+  onDetailsShown: () => undefined,
 });
+
+/** Реквизит закрыт для правки: его подставил реестр. */
+function isLockedKey(key: string): boolean {
+  return (key === 'kpp' || key === 'ogrn') && isLocked(key);
+}
+
 const lookupHint = computed(() => {
   if (lookupState.value === 'found') return t('ui.expenseCounterparty.lookupFound');
   if (lookupState.value === 'notFound') return t('ui.expenseCounterparty.lookupNotFound');
@@ -179,11 +233,13 @@ watch(
   () => props.modelValue,
   async (open) => {
     if (!open) return;
+    resetLookup();
     fill(props.counterparty ?? null);
     try {
       formCache ??= getExpenseCounterpartyForm();
-      countriesCache ??= loadLookupCountries();
-      [form.value, lookupCountries.value] = await Promise.all([formCache, countriesCache]);
+      form.value = await formCache;
+      // Правка: ИНН уже стоит — сведения из реестра подставляются и закрываются сразу.
+      lookupCurrent();
     } catch (e) {
       formCache = null;
       FailAlert(e);
@@ -199,8 +255,14 @@ function fill(cp: ExpenseCounterpartyView | null): void {
   paymentPurpose.value = cp?.payment_purpose ?? '';
   for (const r of cp?.requisites ?? []) values[r.key] = r.value;
   touched.value = false;
-  lookupState.value = 'idle';
   serverIssues.value = {};
+}
+
+/** Смена вида: ИНН юрлица и ИП разной длины, поэтому ИНН и подставленное снимаются. */
+function onKind(next: Zeus.ExpenseCounterpartyKind): void {
+  if (next === kind.value) return;
+  resetLookup();
+  kind.value = next;
 }
 
 /** Маска поля — из правил страны; поле из цифр — ровно его длина; иначе ввод свободный. */
@@ -249,39 +311,6 @@ function serverIssueText(field: FormField): string | undefined {
   if (code === 'CHECKSUM') return t('ui.expenseCounterparty.fieldChecksum');
   if (code === 'FORMAT') return t('ui.expenseCounterparty.fieldFormat');
   return undefined;
-}
-
-/** Юрлицо из реестра страны: наименование, КПП и ОГРН. */
-async function lookupLegal(query: { country: string; inn: string }): Promise<boolean> {
-  const found = await lookupOrganization(query);
-  if (!found) return false;
-  name.value = found.short_name || found.full_name || name.value;
-  if (found.details.kpp) values.kpp = found.details.kpp;
-  if (found.details.ogrn) values.ogrn = found.details.ogrn;
-  return true;
-}
-
-/** ИП из реестра страны: ФИО и ОГРНИП. */
-async function lookupIp(query: { country: string; inn: string }): Promise<boolean> {
-  const found = await lookupEntrepreneur(query);
-  if (!found) return false;
-  const fio = [found.last_name, found.first_name, found.middle_name].filter(Boolean).join(' ');
-  if (fio) name.value = t('ui.expenseCounterparty.entrepreneurName', { name: fio });
-  if (found.details.ogrn) values.ogrn = found.details.ogrn;
-  return true;
-}
-
-async function onLookup(): Promise<void> {
-  const field = taxField.value;
-  if (!form.value || !field) return;
-  lookingUp.value = true;
-  try {
-    const query = { country: form.value.country, inn: values[field.key].trim() };
-    const found = kind.value === Zeus.ExpenseCounterpartyKind.LEGAL ? await lookupLegal(query) : await lookupIp(query);
-    lookupState.value = found ? 'found' : 'notFound';
-  } finally {
-    lookingUp.value = false;
-  }
 }
 
 async function onSave(): Promise<void> {

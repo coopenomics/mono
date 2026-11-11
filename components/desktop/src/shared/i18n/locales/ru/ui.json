@@ -720,7 +720,6 @@
       "nameLabel": "Наименование",
       "namePlaceholder": "ООО «Энергосбыт»",
       "entrepreneurName": "ИП {name}",
-      "lookupAction": "Заполнить",
       "lookupFound": "Сведения из государственного реестра подставлены",
       "lookupNotFound": "В реестре сведений нет — заполните поля вручную",
       "purposeLabel": "Назначение платежа по умолчанию",

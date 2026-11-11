@@ -18,7 +18,7 @@
       "minimumHint": "не меньше {minimum}",
       "numberRequiredHint": "введите число",
       "selectFromListHint": "выберите значение из списка",
-      "textRequiredHint": "нужен текст"
+      "textRequiredHint": "введите текст"
     },
     "registerParticipantInput": {
       "formIdRequired": "Поле \"form_id\" обязательно для заполнения.",

@@ -122,10 +122,23 @@ export function useRegistryLookup<TResult, TField extends string>(options: IRegi
     lookupState.value = 'idle';
   };
 
+  /** ИНН полный, поиск доступен и сведения ещё не подставлены. */
+  const canLookup = (inn: string | undefined): inn is string =>
+    lookupAvailable.value && lookupState.value !== 'found' && !!inn && (inn.length === 10 || inn.length === 12);
+
   watch(options.inn, (inn) => {
-    if (!lookupAvailable.value || lookupState.value === 'found' || !inn) return;
-    if (inn.length === 10 || inn.length === 12) runLookup(inn);
+    if (canLookup(inn)) runLookup(inn);
   });
+
+  /**
+   * Поиск по ИНН, который уже стоит в анкете: форма открылась с заполненным ИНН
+   * (правка сохранённой записи), и смены ИНН, на которую отвечает наблюдатель,
+   * не было.
+   */
+  const lookupCurrent = () => {
+    const inn = options.inn();
+    if (!loading.value && canLookup(inn)) void runLookup(inn);
+  };
 
   onMounted(async () => {
     countries.value = await loadLookupCountries();
@@ -133,5 +146,5 @@ export function useRegistryLookup<TResult, TField extends string>(options: IRegi
     countriesLoaded.value = true;
   });
 
-  return { loading, lookupState, showRest, innHint, isLocked, resetLookup };
+  return { loading, lookupState, showRest, innHint, isLocked, resetLookup, lookupCurrent };
 }

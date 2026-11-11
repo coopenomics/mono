@@ -84,7 +84,7 @@ describe('анкета «Генератора»: ссылка на резюме'
   it.each(['hh.ru/resume/123', 'просто текст', 'javascript:alert(1)', 'ftp://files.example.org/cv.pdf', 'mailto:me@example.org'])(
     'не ссылка на сайт (%s) — замечание',
     (value) => {
-      expect(check(value).issues).toEqual([{ path: ['resume_url'], message: 'нужна ссылка вида https://…' }]);
+      expect(check(value).issues).toEqual([{ path: ['resume_url'], message: 'введите ссылку вида https://…' }]);
     }
   );
 
