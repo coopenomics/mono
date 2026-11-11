@@ -164,6 +164,32 @@ describe('Членские взносы на балансе участка', () 
   });
 });
 
+describe('Доступно для расходов (99D-35)', () => {
+  it('общий кошелёк и свободные средства инициаторов складываются; выделенное под расходы не считается', async () => {
+    const { service } = buildService({
+      balances: [common('300.0000')],
+      investBranch: { unused_total: '1500.0000 RUB', reserved: '500.0000 RUB' },
+    });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.initiators_free).toBe('1000.0000 RUB');
+    expect(economy.available_for_expenses).toBe('1300.0000 RUB');
+  });
+
+  it('у участка нет инициаторов — доступно столько, сколько на общем кошельке', async () => {
+    const { service } = buildService({ balances: [common('700.0000')] });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.initiators_free).toBe('0.0000 RUB');
+    expect(economy.available_for_expenses).toBe('700.0000 RUB');
+  });
+
+  it('выделено больше неиспользованного — свободных средств ноль, а не минус', async () => {
+    const { service } = buildService({ balances: [], investBranch: { unused_total: '100.0000 RUB', reserved: '400.0000 RUB' } });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.initiators_free).toBe('0.0000 RUB');
+    expect(economy.available_for_expenses).toBe('0.0000 RUB');
+  });
+});
+
 describe('Сетка распределения: доли доверенных', () => {
   it('доля считается от суммы весов, а не от числа участников', async () => {
     const { service } = buildService({

@@ -81,6 +81,9 @@ export class ExpenseCounterpartyFormFieldDTO {
   @Field(() => String, { nullable: true, description: 'Шаблон значения целиком, если оно не только из цифр.' })
   pattern?: string | null;
 
+  @Field(() => String, { nullable: true, description: 'Маска ввода: # — цифра, X — латинская буква или цифра.' })
+  mask?: string | null;
+
   @Field(() => String, { description: 'Раздел формы: organization — сведения об организации, bank — банковские реквизиты.' })
   group!: string;
 
@@ -106,6 +109,30 @@ export class ExpenseCounterpartyFormDTO {
 
   @Field(() => [ExpenseCounterpartyFormKindDTO], { description: 'Поля по видам контрагента.' })
   kinds!: ExpenseCounterpartyFormKindDTO[];
+}
+
+@ObjectType('ExpenseCounterpartyRequisiteIssue', { description: 'Нарушение в реквизитах контрагента.' })
+export class ExpenseCounterpartyRequisiteIssueDTO {
+  @Field(() => String, { description: 'Ключ реквизита.' })
+  key!: string;
+
+  @Field(() => String, {
+    description: 'REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма.',
+  })
+  code!: string;
+}
+
+@InputType('CheckExpenseCounterpartyInput')
+export class CheckExpenseCounterpartyInputDTO {
+  @Field(() => ExpenseCounterpartyKind, { description: 'Вид контрагента.' })
+  @IsEnum(ExpenseCounterpartyKind)
+  kind!: ExpenseCounterpartyKind;
+
+  @Field(() => [ExpenseCounterpartyRequisiteInputDTO], { description: 'Реквизиты по полям формы контрагента.' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExpenseCounterpartyRequisiteInputDTO)
+  requisites!: ExpenseCounterpartyRequisiteInputDTO[];
 }
 
 @InputType('ListExpenseCounterpartiesInput')

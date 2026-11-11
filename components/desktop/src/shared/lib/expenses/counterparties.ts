@@ -13,6 +13,20 @@ export type ISaveExpenseCounterpartyInput = Mutations.Expenses.CreateExpenseCoun
 export type IUpdateExpenseCounterpartyInput = Mutations.Expenses.UpdateExpenseCounterparty.IInput['data'];
 export type IArchiveExpenseCounterpartyInput = Mutations.Expenses.ArchiveExpenseCounterparty.IInput['data'];
 export type IDeleteExpenseCounterpartyInput = Mutations.Expenses.DeleteExpenseCounterparty.IInput['data'];
+export type ICheckExpenseCounterpartyInput = Queries.Expenses.CheckExpenseCounterpartyRequisites.IInput['data'];
+export type ExpenseCounterpartyRequisiteIssue =
+  Queries.Expenses.CheckExpenseCounterpartyRequisites.IOutput['checkExpenseCounterpartyRequisites'][number];
+
+/** Проверка реквизитов до сохранения — те же правила страны, что при сохранении. */
+export async function checkExpenseCounterpartyRequisites(
+  data: ICheckExpenseCounterpartyInput,
+): Promise<ExpenseCounterpartyRequisiteIssue[]> {
+  const { [Queries.Expenses.CheckExpenseCounterpartyRequisites.name]: result } = await client.Query(
+    Queries.Expenses.CheckExpenseCounterpartyRequisites.query,
+    { variables: { data } },
+  );
+  return result;
+}
 
 export async function listExpenseCounterparties(data: IListExpenseCounterpartiesInput): Promise<ExpenseCounterpartyView[]> {
   const { [Queries.Expenses.ExpenseCounterparties.name]: result } = await client.Query(

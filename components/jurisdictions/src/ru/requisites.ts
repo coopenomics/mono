@@ -28,6 +28,7 @@ export const RU_COUNTERPARTY_REQUISITES: CounterpartyRequisitesProfile = {
       kinds: ['LEGAL'],
       required: ['LEGAL'],
       pattern: '^\\d{4}[\\dA-Z]{2}\\d{3}$',
+      mask: '####XX###',
       group: 'organization',
     },
     {

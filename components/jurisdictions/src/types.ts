@@ -87,6 +87,11 @@ export interface CounterpartyRequisiteField {
   digits?: number | Partial<Record<CounterpartyKind, number>>;
   /** Шаблон значения целиком, если оно не только из цифр (КПП). */
   pattern?: string;
+  /**
+   * Маска ввода в форме: `#` — цифра, `X` — латинская буква или цифра
+   * (заглавная). Задаётся полю, длину которого не определяют одни цифры (КПП).
+   */
+  mask?: string;
   /** Контрольная сумма значения. */
   checksum?: RequisiteChecksum;
   /** Раздел формы: сведения об организации или банковские реквизиты. */

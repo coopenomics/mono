@@ -5964,6 +5964,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ChatcoopSecretaryRoom']?: Omit<ValueTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
 }>;
+	["CheckExpenseCounterpartyInput"]: {
+	/** Вид контрагента. */
+	kind: ValueTypes["ExpenseCounterpartyKind"] | Variable<any, string>,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ValueTypes["ExpenseCounterpartyRequisiteInput"]> | Variable<any, string>
+};
 	["CheckMatrixUsernameInput"]: {
 	username: string | Variable<any, string>
 };
@@ -8997,6 +9003,8 @@ export type ValueTypes = {
 	label?:boolean | `@${string}`,
 	/** Длина значения в цифрах; пусто — значение не только из цифр. */
 	length?:boolean | `@${string}`,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?:boolean | `@${string}`,
 	/** Шаблон значения целиком, если оно не только из цифр. */
 	pattern?:boolean | `@${string}`,
 	/** Поле обязательно. */
@@ -9038,6 +9046,15 @@ export type ValueTypes = {
 	/** Значение реквизита. */
 	value: string | Variable<any, string>
 };
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: AliasType<{
+	/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyRequisiteIssue']?: Omit<ValueTypes["ExpenseCounterpartyRequisiteIssue"], "...on ExpenseCounterpartyRequisiteIssue">
+}>;
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: AliasType<{
 	/** SHA-256 содержимого, hex-lowercase. */
@@ -11381,12 +11398,16 @@ export type ValueTypes = {
 }>;
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
+	/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses?:boolean | `@${string}`,
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance?:boolean | `@${string}`,
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free?:boolean | `@${string}`,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
@@ -17576,6 +17597,7 @@ chatcoopListProjectCommunicationRooms?: [{	data: ValueTypes["GetProjectCommunica
 	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
 	chatcoopListSecretaryRooms?:ValueTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"] | Variable<any, string>},boolean | `@${string}`],
+checkExpenseCounterpartyRequisites?: [{	data: ValueTypes["CheckExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterpartyRequisiteIssue"]],
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
@@ -25351,6 +25373,12 @@ export type ResolverInputTypes = {
 	secretaryInRoom?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CheckExpenseCounterpartyInput"]: {
+	/** Вид контрагента. */
+	kind: ResolverInputTypes["ExpenseCounterpartyKind"],
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ResolverInputTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
@@ -28300,6 +28328,8 @@ export type ResolverInputTypes = {
 	label?:boolean | `@${string}`,
 	/** Длина значения в цифрах; пусто — значение не только из цифр. */
 	length?:boolean | `@${string}`,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?:boolean | `@${string}`,
 	/** Шаблон значения целиком, если оно не только из цифр. */
 	pattern?:boolean | `@${string}`,
 	/** Поле обязательно. */
@@ -28338,6 +28368,14 @@ export type ResolverInputTypes = {
 	/** Значение реквизита. */
 	value: string
 };
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: AliasType<{
+	/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: AliasType<{
 	/** SHA-256 содержимого, hex-lowercase. */
@@ -30626,12 +30664,16 @@ export type ResolverInputTypes = {
 }>;
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
+	/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses?:boolean | `@${string}`,
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance?:boolean | `@${string}`,
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free?:boolean | `@${string}`,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
@@ -36605,6 +36647,7 @@ chatcoopListProjectCommunicationRooms?: [{	data: ResolverInputTypes["GetProjectC
 	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
 	chatcoopListSecretaryRooms?:ResolverInputTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDatesWithNewRoomMessagesInput"]},boolean | `@${string}`],
+checkExpenseCounterpartyRequisites?: [{	data: ResolverInputTypes["CheckExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterpartyRequisiteIssue"]],
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
@@ -44157,6 +44200,12 @@ export type ModelTypes = {
 	/** Секретарь присутствует в комнате */
 	secretaryInRoom: boolean
 };
+	["CheckExpenseCounterpartyInput"]: {
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
@@ -46982,6 +47031,8 @@ export type ModelTypes = {
 	label: string,
 	/** Длина значения в цифрах; пусто — значение не только из цифр. */
 	length?: number | undefined | null,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?: string | undefined | null,
 	/** Шаблон значения целиком, если оно не только из цифр. */
 	pattern?: string | undefined | null,
 	/** Поле обязательно. */
@@ -47015,6 +47066,13 @@ export type ModelTypes = {
 	key: string,
 	/** Значение реквизита. */
 	value: string
+};
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: {
+		/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code: string,
+	/** Ключ реквизита. */
+	key: string
 };
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: {
@@ -49223,12 +49281,16 @@ export type ModelTypes = {
 };
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
-		/** Доступно к распределению: общий кошелёк за вычетом резерва. */
+		/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses: string,
+	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute: string,
 	/** Кооперативный участок. */
 	braname: string,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance: string,
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free: string,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount: string,
 	/** Сумма весов участников распределения. */
@@ -55406,6 +55468,8 @@ export type ModelTypes = {
 	chatcoopListSecretaryRooms: Array<ModelTypes["ChatcoopSecretaryRoom"]>,
 	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix */
 	chatcoopListUtcDatesWithNewRoomMessages: Array<string>,
+	/** Проверка реквизитов контрагента до сохранения: какие поля пусты, неверного вида или не проходят контрольную сумму. */
+	checkExpenseCounterpartyRequisites: Array<ModelTypes["ExpenseCounterpartyRequisiteIssue"]>,
 	/** Проверить готовность реквизитов для генерации конкретной формы */
 	checkReportReadiness: ModelTypes["ReportReadinessView"],
 	/** Конфиг соглашений кооператива: какие типы соглашений требуются с пайщика */
@@ -63310,6 +63374,12 @@ export type GraphQLTypes = {
 	secretaryInRoom: boolean,
 	['...on ChatcoopSecretaryRoom']: Omit<GraphQLTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
 };
+	["CheckExpenseCounterpartyInput"]: {
+		/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["CheckMatrixUsernameInput"]: {
 		username: string
 };
@@ -66344,6 +66414,8 @@ export type GraphQLTypes = {
 	label: string,
 	/** Длина значения в цифрах; пусто — значение не только из цифр. */
 	length?: number | undefined | null,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?: string | undefined | null,
 	/** Шаблон значения целиком, если оно не только из цифр. */
 	pattern?: string | undefined | null,
 	/** Поле обязательно. */
@@ -66383,6 +66455,15 @@ export type GraphQLTypes = {
 	key: string,
 	/** Значение реквизита. */
 	value: string
+};
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: {
+	__typename: "ExpenseCounterpartyRequisiteIssue",
+	/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code: string,
+	/** Ключ реквизита. */
+	key: string,
+	['...on ExpenseCounterpartyRequisiteIssue']: Omit<GraphQLTypes["ExpenseCounterpartyRequisiteIssue"], "...on ExpenseCounterpartyRequisiteIssue">
 };
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: {
@@ -68728,12 +68809,16 @@ export type GraphQLTypes = {
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
 	__typename: "MarketplaceBranchEconomy",
+	/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses: string,
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute: string,
 	/** Кооперативный участок. */
 	braname: string,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance: string,
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free: string,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount: string,
 	/** Сумма весов участников распределения. */
@@ -75424,6 +75509,8 @@ export type GraphQLTypes = {
 	chatcoopListSecretaryRooms: Array<GraphQLTypes["ChatcoopSecretaryRoom"]>,
 	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix */
 	chatcoopListUtcDatesWithNewRoomMessages: Array<string>,
+	/** Проверка реквизитов контрагента до сохранения: какие поля пусты, неверного вида или не проходят контрольную сумму. */
+	checkExpenseCounterpartyRequisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteIssue"]>,
 	/** Проверить готовность реквизитов для генерации конкретной формы */
 	checkReportReadiness: GraphQLTypes["ReportReadinessView"],
 	/** Конфиг соглашений кооператива: какие типы соглашений требуются с пайщика */
@@ -80104,6 +80191,7 @@ type ZEUS_VARIABLES = {
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];
+	["CheckExpenseCounterpartyInput"]: ValueTypes["CheckExpenseCounterpartyInput"];
 	["CheckMatrixUsernameInput"]: ValueTypes["CheckMatrixUsernameInput"];
 	["CloseKuDecisionInput"]: ValueTypes["CloseKuDecisionInput"];
 	["CloseProjectInput"]: ValueTypes["CloseProjectInput"];

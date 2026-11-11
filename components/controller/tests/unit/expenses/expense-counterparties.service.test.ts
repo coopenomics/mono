@@ -109,6 +109,38 @@ describe('Контрагенты — форма по стране коопера
   });
 });
 
+describe('Контрагенты — проверка до сохранения', () => {
+  it('верные реквизиты — без замечаний; условные номера — контрольная сумма у каждого поля', async () => {
+    const { service } = build();
+    expect(await service.check(COOP, chairman, ExpenseCounterpartyKind.LEGAL, LEGAL)).toEqual([]);
+    const issues = await service.check(COOP, chairman, ExpenseCounterpartyKind.LEGAL, {
+      ...LEGAL,
+      inn: '1231231231',
+      ogrn: '2341231231231',
+      account: '12312312312312312312',
+      corr_account: '12312312312312312312',
+    });
+    expect(issues).toEqual([
+      { key: 'inn', code: 'CHECKSUM' },
+      { key: 'ogrn', code: 'CHECKSUM' },
+      { key: 'account', code: 'CHECKSUM' },
+      { key: 'corr_account', code: 'CHECKSUM' },
+    ]);
+  });
+
+  it('проверка закрыта тем, кому закрыт реестр', async () => {
+    const { service } = build();
+    await expect(service.check(COOP, outsider, ExpenseCounterpartyKind.LEGAL, LEGAL)).rejects.toMatchObject({ code: 'EXPENSES_COUNTERPARTY_READ_FORBIDDEN' });
+  });
+
+  it('у КПП в форме маска ввода из 9 знаков', async () => {
+    const { service } = build();
+    const legal = (await service.form(COOP)).kinds.find((k) => k.kind === ExpenseCounterpartyKind.LEGAL)!;
+    expect(legal.fields.find((f) => f.key === 'kpp')).toMatchObject({ mask: '####XX###' });
+    expect(legal.fields.find((f) => f.key === 'inn')).toMatchObject({ mask: null, length: 10 });
+  });
+});
+
 describe('Контрагенты — добавление и проверка реквизитов', () => {
   it('совет добавляет контрагента кооператива: реквизиты строкой как в поручении, налоговый номер — ИНН', async () => {
     const { service, store } = build();

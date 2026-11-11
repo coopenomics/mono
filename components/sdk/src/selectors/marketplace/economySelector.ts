@@ -20,6 +20,8 @@ export const marketplaceBranchEconomySelector = Selector('MarketplaceBranchEcono
   common_balance: true,
   reserve_amount: true,
   available_to_distribute: true,
+  initiators_free: true,
+  available_for_expenses: true,
 })
 
 export const marketplacePersonalEconomySelector = Selector('MarketplacePersonalEconomy')({

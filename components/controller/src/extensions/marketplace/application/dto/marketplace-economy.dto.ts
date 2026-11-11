@@ -88,6 +88,18 @@ export class MarketplaceBranchEconomyDTO {
 
   @Field({ description: 'Доступно к распределению: общий кошелёк за вычетом резерва.' })
   available_to_distribute!: string;
+
+  @Field({
+    description:
+      'Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает.',
+  })
+  initiators_free!: string;
+
+  @Field({
+    description:
+      'Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника.',
+  })
+  available_for_expenses!: string;
 }
 
 @ObjectType('MarketplaceBranchWalletOperation', {
@@ -292,6 +304,8 @@ export function toMarketplaceBranchEconomyDTO(
     common_balance: view.common_balance,
     reserve_amount: view.reserve_amount,
     available_to_distribute: view.available_to_distribute,
+    initiators_free: view.initiators_free,
+    available_for_expenses: view.available_for_expenses,
   };
 }
 

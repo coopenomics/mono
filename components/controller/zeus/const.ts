@@ -416,6 +416,10 @@ export const AllTypesProps: Record<string,any> = {
 	ChairmanOnboardingGeneralMeetInput:{
 
 	},
+	CheckExpenseCounterpartyInput:{
+		kind:"ExpenseCounterpartyKind",
+		requisites:"ExpenseCounterpartyRequisiteInput"
+	},
 	CheckMatrixUsernameInput:{
 
 	},
@@ -3494,6 +3498,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		chatcoopListUtcDatesWithNewRoomMessages:{
 			data:"ListUtcDatesWithNewRoomMessagesInput"
+		},
+		checkExpenseCounterpartyRequisites:{
+			data:"CheckExpenseCounterpartyInput"
 		},
 		checkReportReadiness:{
 			reportType:"ReportType"
@@ -6971,6 +6978,7 @@ export const ReturnTypes: Record<string,any> = {
 		key:"String",
 		label:"String",
 		length:"Int",
+		mask:"String",
 		pattern:"String",
 		required:"Boolean",
 		tax_id:"Boolean"
@@ -6983,6 +6991,10 @@ export const ReturnTypes: Record<string,any> = {
 		key:"String",
 		label:"String",
 		value:"String"
+	},
+	ExpenseCounterpartyRequisiteIssue:{
+		code:"String",
+		key:"String"
 	},
 	ExpenseFile:{
 		checksum_sha256:"String",
@@ -7542,9 +7554,11 @@ export const ReturnTypes: Record<string,any> = {
 		target_prev:"String"
 	},
 	MarketplaceBranchEconomy:{
+		available_for_expenses:"String",
 		available_to_distribute:"String",
 		braname:"String",
 		common_balance:"String",
+		initiators_free:"String",
 		reserve_amount:"String",
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
@@ -9955,6 +9969,7 @@ export const ReturnTypes: Record<string,any> = {
 		chatcoopListProjectCommunicationRooms:"ChatcoopProjectCommunicationRoom",
 		chatcoopListSecretaryRooms:"ChatcoopSecretaryRoom",
 		chatcoopListUtcDatesWithNewRoomMessages:"String",
+		checkExpenseCounterpartyRequisites:"ExpenseCounterpartyRequisiteIssue",
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",

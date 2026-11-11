@@ -1541,7 +1541,7 @@
     "CAPITAL_REQUIREMENT_EDIT_FORBIDDEN": "У вас нет прав на изменение этого требования.",
     "CAPITAL_REQUIREMENT_ORPHAN": "Требование не привязано ни к проекту, ни к задаче.",
     "CAPITAL_REQUIREMENT_TARGET_REQUIRED": "Требование должно быть привязано либо к проекту, либо к задаче",
-    "CAPITAL_RESULT_CHANGED_AFTER_STATEMENT": "Результат изменился после генерации заявления (появились новые коммиты). Сгенерируйте и подпишите заявление заново.",
+    "CAPITAL_RESULT_CHANGED_AFTER_STATEMENT": "Результат изменился после генерации заявления (добавлены новые коммиты). Сгенерируйте и подпишите заявление заново.",
     "CAPITAL_RESULT_HASH_MISMATCH_STATEMENT_DECISION": "Несоответствие хеша результата между заявлением и решением",
     "CAPITAL_RESULT_NOT_FOUND": "Результат с хешем {hash} не найден",
     "CAPITAL_RESULT_NOT_FOUND_FOR_PROJECT_USER": "Результат для проекта {projectHash} и пользователя {username} не найден. Сначала необходимо сгенерировать заявление.",

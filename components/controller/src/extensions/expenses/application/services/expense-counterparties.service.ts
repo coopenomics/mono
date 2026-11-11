@@ -35,6 +35,8 @@ export interface ExpenseCounterpartyFormFieldView {
   length: number | null;
   /** Шаблон значения целиком, если оно не только из цифр. */
   pattern: string | null;
+  /** Маска ввода: `#` — цифра, `X` — латинская буква или цифра. */
+  mask: string | null;
   group: 'organization' | 'bank';
   /** Налоговый номер: по нему заполняются сведения из реестра страны. */
   tax_id: boolean;
@@ -114,11 +116,27 @@ export class ExpenseCounterpartiesService {
           required: f.requiredHere,
           length: f.length,
           pattern: f.pattern ?? null,
+          mask: f.mask ?? null,
           group: f.group,
           tax_id: !!f.taxId,
         })),
       })),
     };
+  }
+
+  /**
+   * Проверка реквизитов до сохранения — для подсказок у полей формы. Те же
+   * правила страны, что при сохранении: длины, шаблоны, контрольные суммы.
+   */
+  async check(
+    coopname: string,
+    viewer: IMonoAccount,
+    kind: ExpenseCounterpartyKind,
+    requisites: Record<string, string>
+  ): Promise<{ key: string; code: string }[]> {
+    await this.assertCanRead(coopname, viewer);
+    const { profile } = await this.profileOf(coopname);
+    return validateCounterpartyRequisites(profile, kind, requisites).map((i) => ({ key: i.field, code: i.code }));
   }
 
   /**

@@ -106,6 +106,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseInput, BaseSegmented } from 'src/shared/ui/base';
 import { lookupEntrepreneur, lookupOrganization, loadLookupCountries } from 'src/shared/ui/UserDataForm/useRegistryLookup';
 import {
+  checkExpenseCounterpartyRequisites,
   createExpenseCounterparty,
   getExpenseCounterpartyForm,
   updateExpenseCounterparty,
@@ -142,6 +143,8 @@ const touched = ref(false);
 const saving = ref(false);
 const lookingUp = ref(false);
 const lookupState = ref<'idle' | 'found' | 'notFound'>('idle');
+/** Нарушения по полям от сервера: вид значения и контрольные суммы. */
+const serverIssues = ref<Record<string, string>>({});
 
 const kindOptions = [
   { value: Zeus.ExpenseCounterpartyKind.LEGAL, label: t('ui.expenseCounterparty.kindLegal') },
@@ -197,23 +200,75 @@ function fill(cp: ExpenseCounterpartyView | null): void {
   for (const r of cp?.requisites ?? []) values[r.key] = r.value;
   touched.value = false;
   lookupState.value = 'idle';
+  serverIssues.value = {};
 }
 
-/** Маска поля из цифр — ровно его длина; иначе ввод свободный. */
+/** Маска поля — из правил страны; поле из цифр — ровно его длина; иначе ввод свободный. */
 function maskOf(field: FormField): string | undefined {
+  if (field.mask) return field.mask;
   return field.length ? '#'.repeat(field.length) : undefined;
 }
 
+function filledRequisites() {
+  return fields.value.map((f) => ({ key: f.key, value: values[f.key]?.trim() ?? '' })).filter((r) => r.value);
+}
+
+/** Реквизиты проверяет сервер теми же правилами, что при сохранении; ответ — нарушения по полям. */
+async function runCheck(): Promise<Record<string, string>> {
+  if (!form.value) return {};
+  try {
+    const issues = await checkExpenseCounterpartyRequisites({ kind: kind.value, requisites: filledRequisites() });
+    serverIssues.value = Object.fromEntries(issues.map((i) => [i.key, i.code]));
+  } catch {
+    serverIssues.value = {};
+  }
+  return serverIssues.value;
+}
+
+let checkTimer: ReturnType<typeof setTimeout> | null = null;
+watch([kind, values], () => {
+  if (checkTimer) clearTimeout(checkTimer);
+  // timing: debounce — проверка реквизитов после паузы ввода, а не на каждую цифру.
+  checkTimer = setTimeout(() => void runCheck(), 400);
+}, { deep: true });
+
 /** Подсказка до отправки: пусто, не та длина, не тот вид. Контрольные суммы проверяет сервер. */
 function errorOf(field: FormField): string | undefined {
-  if (!touched.value) return undefined;
   const value = values[field.key]?.trim() ?? '';
-  if (!value) return field.required ? t('ui.expenseCounterparty.fieldRequired') : undefined;
+  if (!value) return touched.value && field.required ? t('ui.expenseCounterparty.fieldRequired') : undefined;
   if (field.length && value.length !== field.length) {
-    return t('ui.expenseCounterparty.fieldLength', { n: String(field.length) });
+    return touched.value ? t('ui.expenseCounterparty.fieldLength', { n: String(field.length) }) : undefined;
   }
   if (field.pattern && !new RegExp(field.pattern).test(value)) return t('ui.expenseCounterparty.fieldFormat');
+  return serverIssueText(field);
+}
+
+/** Нарушение от сервера по заполненному полю: неверный вид или контрольная сумма. */
+function serverIssueText(field: FormField): string | undefined {
+  const code = serverIssues.value[field.key];
+  if (code === 'CHECKSUM') return t('ui.expenseCounterparty.fieldChecksum');
+  if (code === 'FORMAT') return t('ui.expenseCounterparty.fieldFormat');
   return undefined;
+}
+
+/** Юрлицо из реестра страны: наименование, КПП и ОГРН. */
+async function lookupLegal(query: { country: string; inn: string }): Promise<boolean> {
+  const found = await lookupOrganization(query);
+  if (!found) return false;
+  name.value = found.short_name || found.full_name || name.value;
+  if (found.details.kpp) values.kpp = found.details.kpp;
+  if (found.details.ogrn) values.ogrn = found.details.ogrn;
+  return true;
+}
+
+/** ИП из реестра страны: ФИО и ОГРНИП. */
+async function lookupIp(query: { country: string; inn: string }): Promise<boolean> {
+  const found = await lookupEntrepreneur(query);
+  if (!found) return false;
+  const fio = [found.last_name, found.first_name, found.middle_name].filter(Boolean).join(' ');
+  if (fio) name.value = t('ui.expenseCounterparty.entrepreneurName', { name: fio });
+  if (found.details.ogrn) values.ogrn = found.details.ogrn;
+  return true;
 }
 
 async function onLookup(): Promise<void> {
@@ -222,23 +277,8 @@ async function onLookup(): Promise<void> {
   lookingUp.value = true;
   try {
     const query = { country: form.value.country, inn: values[field.key].trim() };
-    if (kind.value === Zeus.ExpenseCounterpartyKind.LEGAL) {
-      const found = await lookupOrganization(query);
-      if (found) {
-        name.value = found.short_name || found.full_name || name.value;
-        if (found.details.kpp) values.kpp = found.details.kpp;
-        if (found.details.ogrn) values.ogrn = found.details.ogrn;
-      }
-      lookupState.value = found ? 'found' : 'notFound';
-    } else {
-      const found = await lookupEntrepreneur(query);
-      if (found) {
-        const fio = [found.last_name, found.first_name, found.middle_name].filter(Boolean).join(' ');
-        if (fio) name.value = t('ui.expenseCounterparty.entrepreneurName', { name: fio });
-        if (found.details.ogrn) values.ogrn = found.details.ogrn;
-      }
-      lookupState.value = found ? 'found' : 'notFound';
-    }
+    const found = kind.value === Zeus.ExpenseCounterpartyKind.LEGAL ? await lookupLegal(query) : await lookupIp(query);
+    lookupState.value = found ? 'found' : 'notFound';
   } finally {
     lookingUp.value = false;
   }
@@ -246,6 +286,7 @@ async function onLookup(): Promise<void> {
 
 async function onSave(): Promise<void> {
   touched.value = true;
+  await runCheck();
   if (!name.value.trim() || fields.value.some((f) => errorOf(f))) return;
   saving.value = true;
   try {

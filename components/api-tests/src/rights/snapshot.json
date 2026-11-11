@@ -14301,5 +14301,23 @@
     "cashier": "pass",
     "accountant": "pass",
     "auditor": "pass"
+  },
+  "checkExpenseCounterpartyRequisites": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass",
+    "candidate": "deny",
+    "newcomer": "deny",
+    "supplierPending": "deny",
+    "supplierRejected": "deny",
+    "branchTrusted": "pass",
+    "capitalMember": "deny",
+    "exited": "deny",
+    "cashier": "deny",
+    "accountant": "deny",
+    "auditor": "deny"
   }
 }

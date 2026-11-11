@@ -5,6 +5,8 @@ import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseCounterpartiesService } from '../services/expense-counterparties.service';
 import {
   ArchiveExpenseCounterpartyInputDTO,
+  CheckExpenseCounterpartyInputDTO,
+  ExpenseCounterpartyRequisiteIssueDTO,
   ExpenseCounterpartyDTO,
   ExpenseCounterpartyFormDTO,
   ExpenseCounterpartyIdInputDTO,
@@ -35,6 +37,20 @@ export class ExpenseCounterpartiesResolver {
   @RequireRight('ExpenseCounterparty', 'read')
   async expenseCounterpartyForm(): Promise<ExpenseCounterpartyFormDTO> {
     return toExpenseCounterpartyFormDTO(await this.counterparties.form(platformSettings().coopname));
+  }
+
+  @Query(() => [ExpenseCounterpartyRequisiteIssueDTO], {
+    name: 'checkExpenseCounterpartyRequisites',
+    description: 'Проверка реквизитов контрагента до сохранения: какие поля пусты, неверного вида или не проходят контрольную сумму.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseCounterparty', 'read')
+  async checkExpenseCounterpartyRequisites(
+    @CurrentUser() currentUser: IMonoAccount,
+    @Args('data') data: CheckExpenseCounterpartyInputDTO
+  ): Promise<ExpenseCounterpartyRequisiteIssueDTO[]> {
+    const requisites = Object.fromEntries(data.requisites.map((r) => [r.key, r.value]));
+    return this.counterparties.check(platformSettings().coopname, currentUser, data.kind, requisites);
   }
 
   @Query(() => [ExpenseCounterpartyDTO], {

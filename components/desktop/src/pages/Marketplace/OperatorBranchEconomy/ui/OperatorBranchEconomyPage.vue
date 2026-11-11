@@ -624,6 +624,19 @@ function onReadyPlanPaid(): void {
   void loadAll()
 }
 
+/**
+ * Хватает ли денег на запись: контракт оплачивает платёж целиком из одного
+ * источника — общего кошелька участка, а не хватает — свободных средств
+ * инициаторов. После каждой оплаты сводка перечитывается, и кнопки остальных
+ * записей пересчитываются.
+ */
+function isPlanPayable(plan: ExpensePlanView): boolean {
+  const e = economy.value
+  if (!e) return false
+  const amount = assetAmount(plan.amount)
+  return amount <= assetAmount(e.common_balance) || amount <= assetAmount(e.initiators_free)
+}
+
 /** Получатель записи в реестре: организация, пайщик для аванса или прежний текст реквизитов. */
 function planPayeeTitle(plan: ExpensePlanView): string {
   if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return plan.counterparty_name ?? '—'
@@ -1195,13 +1208,15 @@ q-page.economy
           :symbol='economy ? assetSymbol(economy.reserve_amount) : ""',
           :loading='loading && !economy'
         )
+        //- Чем платить по плановым расходам (99D-35): кошелёк участка и
+        //- свободные средства инициаторов одним числом — источник выбирает контракт.
         WalletCard(
           program='wallet',
-          icon='call_split',
-          :title='$t("marketplace.operatorBranchEconomyPage.availableToDistributeTitle")',
-          :subtitle='$t("marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle")',
-          :balance='economy ? assetAmount(economy.available_to_distribute).toFixed(2) : "0.00"',
-          :symbol='economy ? assetSymbol(economy.available_to_distribute) : ""',
+          icon='payments',
+          :title='$t("marketplace.operatorBranchEconomyPage.availableForExpensesTitle")',
+          :subtitle='$t("marketplace.operatorBranchEconomyPage.availableForExpensesSubtitle")',
+          :balance='economy ? assetAmount(economy.available_for_expenses).toFixed(2) : "0.00"',
+          :symbol='economy ? assetSymbol(economy.available_for_expenses) : ""',
           :loading='loading && !economy'
         )
 
@@ -1233,13 +1248,15 @@ q-page.economy
                       BaseBadge(v-else-if='plan.proposal_hash', variant='info') {{ $t('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview') }}
                       //- Отправка расхода на решение совета выделяет средства
                       //- участка — это полномочие председателя участка.
-                      BaseButton(
-                        v-else-if='isBranchTrustee',
-                        variant='primary',
-                        size='sm',
-                        :disabled='planSaving',
-                        @click='onPayPlan(plan)'
-                      ) {{ $t('marketplace.operatorBranchEconomyPage.payAction') }}
+                      //- Денег на запись нет — кнопка неактивна, причина подписана под ней.
+                      .economy__pay(v-else-if='isBranchTrustee')
+                        BaseButton(
+                          variant='primary',
+                          size='sm',
+                          :disabled='planSaving || !isPlanPayable(plan)',
+                          @click='onPayPlan(plan)'
+                        ) {{ $t('marketplace.operatorBranchEconomyPage.payAction') }}
+                        span.economy__pay-note(v-if='economy && !isPlanPayable(plan)') {{ $t('marketplace.operatorBranchEconomyPage.payInsufficientFunds') }}
                       BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t("marketplace.operatorBranchEconomyPage.actionsAriaLabel")')
                         template(#icon-left)
                           q-icon(name='more_vert', size='18px')
@@ -2000,6 +2017,19 @@ q-page.economy
     margin-top: 2px;
     font-size: var(--p-fs-meta);
     color: var(--p-ink-3);
+  }
+
+  &__pay {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-1);
+  }
+
+  &__pay-note {
+    font-size: var(--p-fs-meta);
+    color: var(--p-neg);
+    white-space: nowrap;
   }
 
   &__row-actions {

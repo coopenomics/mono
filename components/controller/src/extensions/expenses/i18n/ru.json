@@ -22,7 +22,7 @@
     "EXPENSES_PLAN_AMOUNT_NOT_POSITIVE": "Сумма планового расхода должна быть больше нуля",
     "EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN": "Плановые расходы участка ведут председатель участка и его доверенные лица",
     "EXPENSES_PLAN_BRANCH_READ_FORBIDDEN": "Плановые расходы участка видят совет и операторы этого участка",
-    "EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED": "Плановые расходы уровня кооператива появятся вместе с общесистемным учётом расходов",
+    "EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED": "Плановые расходы уровня кооператива станут доступны вместе с общесистемным учётом расходов",
     "EXPENSES_PLAN_DUE_DATE_REQUIRED": "Укажите дату, к которой расход должен быть оплачен",
     "EXPENSES_PLAN_NOT_FOUND": "Плановый расход не найден",
     "EXPENSES_PLAN_PAYMENT_ALREADY_STARTED": "По этому плановому расходу оплата уже запущена",

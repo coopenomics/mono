@@ -95,6 +95,14 @@ export interface MarketplaceBranchEconomyView {
   reserve_amount: string;
   /** Доступно к распределению: общий кошелёк минус резерв, asset-строка. */
   available_to_distribute: string;
+  /** Свободные средства инициаторов участка (`MarketInvest::free_of`), asset-строка. */
+  initiators_free: string;
+  /**
+   * Доступно для расходов (99D-35): общий кошелёк и свободные средства
+   * инициаторов, asset-строка. Платёж контракт оплачивает целиком из одного
+   * источника — хватает ли на запись, стол сверяет по каждому источнику.
+   */
+  available_for_expenses: string;
 }
 
 /** Одно движение по общему кошельку КУ (`w.brn.common`) — только apply-записи ledger2 (несут operation_code + memo). */
@@ -333,11 +341,12 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, common, plans] = await Promise.all([
+    const [weights, totals, common, plans, initiatorsFree] = await Promise.all([
       this.chainPort.getBranchWeights(coopname, braname),
       this.chainPort.getBranchWeightTotals(coopname, braname),
       this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
       this.expenseChassis.listPlans(coopname, braname),
+      this.initiatorFreeFunds(coopname, braname),
     ]);
     // Резерв общего кошелька, который нельзя распределить (задача 99D-34), —
     // цель плановых расходов на сегодня: неоплаченные записи со сроком до
@@ -377,6 +386,8 @@ export class MarketplaceEconomyService {
       common_balance: commonBalance,
       reserve_amount: this.formatAsset(reserve.amount),
       available_to_distribute: this.formatAsset(available),
+      initiators_free: this.formatAsset(initiatorsFree),
+      available_for_expenses: this.formatAsset(this.assetToNumber(commonBalance) + initiatorsFree),
     };
   }
 

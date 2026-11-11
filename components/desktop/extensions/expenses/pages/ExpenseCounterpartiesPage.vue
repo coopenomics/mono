@@ -250,6 +250,16 @@ onMounted(() => {
 .counterparties__search {
   flex: 1 1 320px;
   max-width: 420px;
+
+  // Строка инструментов: поле без резерва под подсказку, иначе переключатель
+  // архива встаёт ниже поля.
+  :deep(.q-field--with-bottom) {
+    padding-bottom: 0;
+  }
+
+  :deep(.q-field__bottom) {
+    display: none;
+  }
 }
 
 .counterparties__name {

@@ -50,6 +50,10 @@ describe('Реквизиты контрагента — состав по стр
     expect(ip.find((f) => f.key === 'ogrn')?.label).toBe('ОГРНИП');
   });
 
+  it('у КПП маска ввода из 9 знаков с буквами в пятом и шестом', () => {
+    expect(counterpartyFieldsFor(RU, 'LEGAL').find((f) => f.key === 'kpp')?.mask).toBe('####XX###');
+  });
+
   it('длина ИНН зависит от вида: юрлицо 10, ИП 12', () => {
     expect(counterpartyFieldsFor(RU, 'LEGAL').find((f) => f.key === 'inn')?.length).toBe(10);
     expect(counterpartyFieldsFor(RU, 'ENTREPRENEUR').find((f) => f.key === 'inn')?.length).toBe(12);
