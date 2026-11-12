@@ -697,11 +697,14 @@ function onHide(): void {
   transition: background var(--p-dur-fast) var(--p-ease-standard);
 }
 .command-palette__desk.is-focused {
-  background: var(--p-surface-2);
+  /* surface-3: в тёмной теме surface-2 почти не отличается от фона окна. */
+  background: var(--p-surface-3);
 }
 
 /* Ожидание выбора по наведению: заливка цветом выбранной строки идёт слева
-   направо за паузу и переходит в подсветку выбранного стола без скачка. */
+   направо за паузу и переходит в подсветку выбранного стола без скачка;
+   по нижнему краю за то же время бежит полоса акцента — её видно в обеих
+   темах. У активного стола (свой фон акцента) идёт только полоса. */
 .command-palette__desk {
   position: relative;
   overflow: hidden;
@@ -712,20 +715,36 @@ function onHide(): void {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(90deg, var(--p-surface-2) 0%, var(--p-surface-2) 82%, transparent 100%);
+  background: linear-gradient(90deg, var(--p-surface-3) 0%, var(--p-surface-3) 82%, transparent 100%);
   transform: scaleX(0);
   transform-origin: left center;
   pointer-events: none;
 }
-.command-palette__desk.is-pending::before {
+.command-palette__desk::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--p-primary);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.command-palette__desk.is-pending::before,
+.command-palette__desk.is-pending::after {
   animation: command-palette-desk-settle var(--desk-settle, 150ms) linear forwards;
+}
+.command-palette__desk.is-active.is-pending::before {
+  animation: none;
 }
 @keyframes command-palette-desk-settle {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .command-palette__desk.is-pending::before {
+  .command-palette__desk.is-pending::after {
     animation: none;
     transform: scaleX(1);
   }
