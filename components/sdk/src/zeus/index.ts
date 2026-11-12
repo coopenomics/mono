@@ -9179,6 +9179,8 @@ export type ValueTypes = {
 	payment_purpose?:boolean | `@${string}`,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?:boolean | `@${string}`,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?:boolean | `@${string}`,
 	/** Пайщик — получатель аванса под отчёт. */
 	recipient?:boolean | `@${string}`,
 	/** Имя пайщика — получателя аванса под отчёт. */
@@ -28500,6 +28502,8 @@ export type ResolverInputTypes = {
 	payment_purpose?:boolean | `@${string}`,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?:boolean | `@${string}`,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?:boolean | `@${string}`,
 	/** Пайщик — получатель аванса под отчёт. */
 	recipient?:boolean | `@${string}`,
 	/** Имя пайщика — получателя аванса под отчёт. */
@@ -47195,6 +47199,8 @@ export type ModelTypes = {
 	payment_purpose?: string | undefined | null,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?: string | undefined | null,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?: ModelTypes["ExpenseProposalStatus"] | undefined | null,
 	/** Пайщик — получатель аванса под отчёт. */
 	recipient?: string | undefined | null,
 	/** Имя пайщика — получателя аванса под отчёт. */
@@ -66596,6 +66602,8 @@ export type GraphQLTypes = {
 	payment_purpose?: string | undefined | null,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?: string | undefined | null,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?: GraphQLTypes["ExpenseProposalStatus"] | undefined | null,
 	/** Пайщик — получатель аванса под отчёт. */
 	recipient?: string | undefined | null,
 	/** Имя пайщика — получателя аванса под отчёт. */

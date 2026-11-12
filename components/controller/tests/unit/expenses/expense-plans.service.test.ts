@@ -51,7 +51,7 @@ function memoryStore() {
 
 const KRG_BRANCH = { braname: 'krg', trustee: 'chair', trusted: [] as string[] };
 
-function build() {
+function build(proposalRows: { proposal_hash: string; status: string }[] = []) {
   const store = memoryStore();
   const branchOperators = {
     isCouncil: (v: any) => v.role === 'chairman' || v.role === 'member',
@@ -73,8 +73,22 @@ function build() {
     }),
   };
   const accounts = { getDisplayName: jest.fn(async (u: string) => (u === 'petrov' ? 'Петров Пётр' : u)) };
-  const service = new ExpensePlansService(store as any, branchOperators as any, counterparties as any, paymentMethods as any, accounts as any);
-  return { store, service, counterparties, paymentMethods };
+  // Расходы шасси: по ссылке записи реестр показывает их состояние.
+  const proposals = {
+    find: jest.fn(async (where: { proposal_hash: { value?: string[] } | string }) => {
+      const wanted = typeof where.proposal_hash === 'string' ? [where.proposal_hash] : where.proposal_hash.value ?? [];
+      return proposalRows.filter((r) => wanted.includes(r.proposal_hash));
+    }),
+  };
+  const service = new ExpensePlansService(
+    store as any,
+    branchOperators as any,
+    counterparties as any,
+    paymentMethods as any,
+    accounts as any,
+    proposals as any
+  );
+  return { store, service, counterparties, paymentMethods, proposals };
 }
 
 const base = { braname: 'krg', title: 'Электроэнергия', amount: 1000, due_date: utc(2026, 12, 11) };
@@ -301,5 +315,33 @@ describe('Способ оплаты записи плана (99D-35)', () => {
     const views = await service.listPlansFor('voskhod', { username: 'chair', role: 'chairman' } as any, 'krg');
     expect(views.find((v) => v.id === 1)?.counterparty_name).toBe('ООО «Энергосбыт»');
     expect(views.find((v) => v.id === 2)?.recipient_name).toBe('Петров Пётр');
+  });
+});
+
+describe('Состояние расхода в записи реестра (12.11.2026)', () => {
+  it('запись показывает состояние своего расхода: совет утвердил — не «на рассмотрении»', async () => {
+    const { store, service, proposals } = build([
+      { proposal_hash: 'aa11', status: 'AUTHORIZED' },
+      { proposal_hash: 'bb22', status: 'CREATED' },
+    ]);
+    store.rows.push(
+      seedRow({ id: 1, proposalHash: 'aa11' }),
+      seedRow({ id: 2, proposalHash: 'bb22' }),
+      seedRow({ id: 3, proposalHash: null })
+    );
+    const views = await service.listPlansFor('voskhod', { username: 'chair', role: 'chairman' } as any, 'krg');
+    const byId = new Map(views.map((v) => [v.id, v.proposal_status]));
+    expect(byId.get(1)).toBe('AUTHORIZED');
+    expect(byId.get(2)).toBe('CREATED');
+    expect(byId.get(3)).toBeNull();
+    // Один запрос на весь реестр, только по записям с расходом.
+    expect(proposals.find).toHaveBeenCalledTimes(1);
+  });
+
+  it('без запущенных расходов таблицу расходов не спрашивает', async () => {
+    const { store, service, proposals } = build();
+    store.rows.push(seedRow({ id: 1, proposalHash: null }));
+    await service.listPlansFor('voskhod', { username: 'chair', role: 'chairman' } as any, 'krg');
+    expect(proposals.find).not.toHaveBeenCalled();
   });
 });

@@ -7,11 +7,12 @@ import {
   lessOrEqual,
   notEqual,
 } from '@coopenomics/extension-kit';
-import { EXPENSES_PLAN_STORE } from '../../infrastructure/database/expenses-stores';
+import { EXPENSES_PLAN_STORE, EXPENSES_PROPOSAL_STORE } from '../../infrastructure/database/expenses-stores';
+import type { ExpenseProposalRecord } from '../../infrastructure/entities/expense-proposal.record';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
-import { platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError, oneOf } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
@@ -113,6 +114,12 @@ export interface ExpensePlanView {
   created_at: Date;
   /** Расход шасси, которым оплачивается запись; пусто — оплата не запускалась. */
   proposal_hash: string | null;
+  /**
+   * Состояние этого расхода: совет рассматривает, утверждён (платёж у
+   * кассира), отчёт подан. Заполняется для показа в реестре; без него стол
+   * писал «На рассмотрении совета» у любого запущенного расхода (12.11.2026).
+   */
+  proposal_status?: ExpenseProposalStatus | null;
   paid_at: Date | null;
 }
 
@@ -145,7 +152,9 @@ export class ExpensePlansService {
     private readonly branchOperators: ExpenseBranchOperatorsService,
     private readonly counterparties: ExpenseCounterpartiesService,
     @Inject(PAYMENT_METHOD_PORT) private readonly paymentMethods: IPaymentMethodPort,
-    @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort
+    @Inject(ACCOUNT_PORT) private readonly accounts: IAccountPort,
+    @Inject(EXPENSES_PROPOSAL_STORE)
+    private readonly proposalRepo: TableStore<ExpenseProposalRecord>
   ) {}
 
   async listPlans(coopname: string, braname?: string | null): Promise<ExpensePlanView[]> {
@@ -277,11 +286,21 @@ export class ExpensePlansService {
         }
       })
     );
+    const statuses = await this.proposalStatuses(coopname, plans);
     return plans.map((p) => ({
       ...p,
       counterparty_name: p.counterparty_id ? names.get(p.counterparty_id) ?? null : null,
       recipient_name: p.recipient ? people.get(p.recipient) ?? p.recipient : null,
+      proposal_status: p.proposal_hash ? statuses.get(p.proposal_hash) ?? null : null,
     }));
+  }
+
+  /** Состояния расходов, которыми оплачиваются записи, — одним запросом по списку. */
+  private async proposalStatuses(coopname: string, plans: ExpensePlanView[]): Promise<Map<string, ExpenseProposalStatus>> {
+    const hashes = [...new Set(plans.map((p) => p.proposal_hash).filter((h): h is string => !!h))];
+    if (!hashes.length) return new Map();
+    const rows = await this.proposalRepo.find({ coopname, proposal_hash: oneOf(hashes) });
+    return new Map(rows.map((r) => [r.proposal_hash.toLowerCase(), r.status]));
   }
 
   async deletePlan(coopname: string, initiator: string, planId: number): Promise<void> {

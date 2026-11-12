@@ -19,6 +19,7 @@ export const expensePlanSelector = Selector('ExpensePlan')({
   creator: true,
   created_at: true,
   proposal_hash: true,
+  proposal_status: true,
   paid_at: true,
 })
 

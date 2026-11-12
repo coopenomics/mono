@@ -671,6 +671,84 @@ function onBranchExpenseCreated(): void {
   void loadAll()
 }
 
+// ─── Состояние и панель планового расхода ───
+
+type PlanStatus = { label: string; variant: 'pos' | 'info' | 'warn' }
+
+/**
+ * Этап записи по состоянию её расхода (12.11.2026): до того стол писал
+ * «На рассмотрении совета» у любого запущенного расхода, хотя совет уже
+ * утвердил его и платёж ждал кассира. Пусто — оплата не запускалась.
+ */
+function planStatus(plan: ExpensePlanView): PlanStatus | null {
+  if (plan.paid_at) return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPaid'), variant: 'pos' }
+  if (!plan.proposal_hash) return null
+  switch (plan.proposal_status) {
+    case Zeus.ExpenseProposalStatus.AUTHORIZED:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusAtCashier'), variant: 'warn' }
+    case Zeus.ExpenseProposalStatus.PARTIALLY_PAID:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPartiallyPaid'), variant: 'warn' }
+    case Zeus.ExpenseProposalStatus.REPORT_SUBMITTED:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusReportSubmitted'), variant: 'info' }
+    case Zeus.ExpenseProposalStatus.CLOSED:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPaid'), variant: 'pos' }
+    default:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview'), variant: 'info' }
+  }
+}
+
+/** Что происходит с записью сейчас — строка под состоянием в панели. */
+function planStage(plan: ExpensePlanView): string {
+  if (plan.paid_at) {
+    return i18nT('marketplace.operatorBranchEconomyPage.planStagePaid', { date: formatDateToLocalTimezone(String(plan.paid_at), 'DD.MM.YYYY') })
+  }
+  if (!plan.proposal_hash) return i18nT('marketplace.operatorBranchEconomyPage.planStageNotStarted')
+  switch (plan.proposal_status) {
+    case Zeus.ExpenseProposalStatus.AUTHORIZED:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageCashier')
+    case Zeus.ExpenseProposalStatus.PARTIALLY_PAID:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStagePartiallyPaid')
+    case Zeus.ExpenseProposalStatus.REPORT_SUBMITTED:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageReport')
+    default:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageCouncil')
+  }
+}
+
+const PLAN_RECURRENCE_TITLES: Record<string, string> = {
+  [Zeus.ExpensePlanRecurrence.NONE]: i18nT('ui.expensePlanDialog.onceTitle'),
+  [Zeus.ExpensePlanRecurrence.MONTHLY]: i18nT('ui.expensePlanDialog.monthlyTitle'),
+  [Zeus.ExpensePlanRecurrence.QUARTERLY]: i18nT('ui.expensePlanDialog.quarterlyTitle'),
+  [Zeus.ExpensePlanRecurrence.YEARLY]: i18nT('ui.expensePlanDialog.yearlyTitle'),
+}
+
+function planMethodLabel(plan: ExpensePlanView): string {
+  if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return i18nT('ui.expensePlanDialog.payeeOrg')
+  if (plan.recipient_type) return i18nT('ui.expensePlanDialog.payeeAdvance')
+  return '—'
+}
+
+const planDrawerOpen = ref(false)
+const selectedPlanId = ref<number | null>(null)
+// Запись берётся из свежего реестра: после оплаты или по ленте изменений
+// панель показывает новое состояние без повторного открытия.
+const selectedPlan = computed(() => plans.value.find((p) => p.id === selectedPlanId.value) ?? null)
+
+function openPlan(plan: ExpensePlanView): void {
+  selectedPlanId.value = plan.id
+  planDrawerOpen.value = true
+}
+
+function onPayPlanFromDrawer(plan: ExpensePlanView): void {
+  planDrawerOpen.value = false
+  onPayPlan(plan)
+}
+
+async function onDeletePlanFromDrawer(plan: ExpensePlanView): Promise<void> {
+  planDrawerOpen.value = false
+  await onDeletePlan(plan)
+}
+
 async function onDeletePlan(plan: ExpensePlanView): Promise<void> {
   planSaving.value = true
   try {
@@ -1228,7 +1306,9 @@ q-page.economy
           row-key='id',
           :loading='firstLoad',
           min-width='960px',
-          sort-by='title'
+          sort-by='title',
+          clickable-rows,
+          @row-click='openPlan'
         )
           template(#cell-title='{ row: plan }')
             .economy__name {{ plan.title }}
@@ -1243,9 +1323,9 @@ q-page.economy
             .economy__payto {{ planPayeeTitle(plan) }}
             .economy__due-note(v-if='planPayeeNote(plan)') {{ planPayeeNote(plan) }}
           template(#cell-actions='{ row: plan }')
-                    .economy__row-actions
-                      BaseBadge(v-if='plan.paid_at', variant='pos') {{ $t('marketplace.operatorBranchEconomyPage.statusPaid') }}
-                      BaseBadge(v-else-if='plan.proposal_hash', variant='info') {{ $t('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview') }}
+                    .economy__row-actions(@click.stop)
+                      //- Этап по состоянию расхода шасси: совет, кассир, отчёт.
+                      BaseBadge(v-if='planStatus(plan)', :variant='planStatus(plan)?.variant') {{ planStatus(plan)?.label }}
                       //- Отправка расхода на решение совета выделяет средства
                       //- участка — это полномочие председателя участка.
                       //- Денег на запись нет — кнопка неактивна, причина подписана под ней.
@@ -1576,6 +1656,59 @@ q-page.economy
       )
         template(#icon)
           q-icon(name='event_repeat', size='48px')
+
+  //- Плановый расход целиком: сумма и срок, состояние и что с ним сейчас,
+  //- повторяемость, получатель и способ оплаты, кто и когда добавил. Внизу —
+  //- «Оплатить» (председатель участка, денег хватает) и «Удалить расход».
+  DetailsDrawer(v-model='planDrawerOpen', :title='selectedPlan?.title ?? ""', :width='520')
+    template(v-if='selectedPlan')
+      .economy__drawer-amount
+        .t-muted {{ $t('marketplace.operatorBranchEconomyPage.amountLabel') }}
+        .economy__drawer-sum {{ formatAsset2Digits(selectedPlan.amount) }}
+        .t-muted(:class='{ "economy__due--overdue": isPlanOverdue(selectedPlan) }') {{ $t('marketplace.operatorBranchEconomyPage.columnTerm') }}: {{ planDueLabel(selectedPlan) }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.planStageTitle') }}
+        div(v-if='planStatus(selectedPlan)')
+          BaseBadge(:variant='planStatus(selectedPlan)?.variant') {{ planStatus(selectedPlan)?.label }}
+        p.economy__drawer-text {{ planStage(selectedPlan) }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.planDetailsTitle') }}
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.columnPurpose")', :value='selectedPlan.title', align='vertical')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planRecurrenceLabel")', :value='PLAN_RECURRENCE_TITLES[String(selectedPlan.recurrence)] ?? "—"', align='spread')
+        DataRow(
+          v-if='selectedPlan.next_due_date',
+          :label='$t("marketplace.operatorBranchEconomyPage.planNextDueLabel")',
+          :value='new Date(String(selectedPlan.next_due_date)).toLocaleDateString(uiLocale(), { timeZone: "UTC" })',
+          align='spread'
+        )
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.planPaymentTitle') }}
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planMethodLabel")', :value='planMethodLabel(selectedPlan)', align='spread')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.columnPayee")', :value='planPayeeTitle(selectedPlan)', align='vertical')
+        DataRow(
+          v-if='selectedPlan.payment_purpose',
+          :label='$t("marketplace.operatorBranchEconomyPage.planPaymentPurposeLabel")',
+          :value='selectedPlan.payment_purpose',
+          align='vertical'
+        )
+        DataRow(
+          v-if='selectedPlan.pay_to',
+          :label='$t("marketplace.operatorBranchEconomyPage.planRequisitesLabel")',
+          :value='selectedPlan.pay_to',
+          align='vertical'
+        )
+      .economy__drawer-group
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planCreatorLabel")', :value='selectedPlan.creator', align='spread')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planCreatedLabel")', :value='formatDateToLocalTimezone(String(selectedPlan.created_at), "DD.MM.YYYY")', align='spread')
+    template(v-if='selectedPlan && store.isOperator' #footer)
+      .economy__pay(v-if='isBranchTrustee && !selectedPlan.paid_at && !selectedPlan.proposal_hash')
+        BaseButton(
+          variant='primary',
+          :disabled='planSaving || !isPlanPayable(selectedPlan)',
+          @click='onPayPlanFromDrawer(selectedPlan)'
+        ) {{ $t('marketplace.operatorBranchEconomyPage.payAction') }}
+        span.economy__pay-note(v-if='economy && !isPlanPayable(selectedPlan)') {{ $t('marketplace.operatorBranchEconomyPage.payInsufficientFunds') }}
+      BaseButton(variant='danger', :disabled='planSaving', @click='onDeletePlanFromDrawer(selectedPlan)') {{ $t('marketplace.operatorBranchEconomyPage.deleteExpenseAction') }}
 
   //- Движение по общему кошельку участка: сумма и направление, путь денег
   //- (с какого кошелька на какой), что это за операция, у распределения —

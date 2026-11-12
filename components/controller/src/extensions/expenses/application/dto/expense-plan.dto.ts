@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import { IsDate, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { ExpensePlanRecurrence } from '../../domain/expense-plan.types';
 import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum';
+import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import type { ExpensePlanView } from '../services/expense-plans.service';
 
 @ObjectType('ExpensePlan', {
@@ -82,6 +83,12 @@ export class ExpensePlanDTO {
     description: 'Расход, которым оплачивается запись; пусто — оплата ещё не запускалась.',
   })
   proposal_hash?: string | null;
+
+  @Field(() => ExpenseProposalStatus, {
+    nullable: true,
+    description: 'Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась.',
+  })
+  proposal_status?: ExpenseProposalStatus | null;
 
   @Field(() => GraphQLISODateTime, {
     nullable: true,

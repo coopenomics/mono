@@ -7037,6 +7037,7 @@ export const ReturnTypes: Record<string,any> = {
 		payment_method_id:"String",
 		payment_purpose:"String",
 		proposal_hash:"String",
+		proposal_status:"ExpenseProposalStatus",
 		recipient:"String",
 		recipient_name:"String",
 		recipient_type:"ExpenseRecipientType",

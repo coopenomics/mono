@@ -26,7 +26,7 @@ function setup(token: symbol, results: ScriptedResult[] = []) {
 describe('плановые расходы', () => {
   it('воркер повторов берёт только серии с наступившим сроком, которые ещё не продолжены', async () => {
     const { store, queries } = setup(EXPENSES_PLAN_STORE, [{ rows: [] }]);
-    const service = new ExpensePlansService(store, {} as never, {} as never, {} as never, {} as never);
+    const service = new ExpensePlansService(store, {} as never, {} as never, {} as never, {} as never, {} as never);
 
     await service.spawnDueRecurrences();
 
@@ -41,7 +41,7 @@ describe('плановые расходы', () => {
 
   it('реестр участка: отбор по кооперативу и участку, порядок — по сроку', async () => {
     const { store, queries } = setup(EXPENSES_PLAN_STORE, [{ rows: [] }]);
-    const service = new ExpensePlansService(store, {} as never, {} as never, {} as never, {} as never);
+    const service = new ExpensePlansService(store, {} as never, {} as never, {} as never, {} as never, {} as never);
 
     await expect(service.listPlans(COOP, 'krg')).resolves.toEqual([]);
 
