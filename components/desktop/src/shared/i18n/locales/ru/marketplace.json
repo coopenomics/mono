@@ -2986,7 +2986,7 @@
       "documentPending": "Документ будет в реестре документов после записи в цепь.",
       "documentLoadFailed": "Не удалось загрузить документ.",
       "documentRetry": "Повторить",
-      "propertyDescriptionLabel": "Описание, характеристики и состояние",
+      "propertyDescriptionLabel": "Описание",
       "moneyDialogTitle": "Паевой взнос деньгами",
       "moneyDialogHint": "Паевой взнос переводится с главного паевого кошелька на кошелёк договора участия по выбранному участку.",
       "amountLabel": "Сумма",

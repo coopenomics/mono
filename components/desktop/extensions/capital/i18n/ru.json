@@ -1928,7 +1928,7 @@
       "previewIntro": "Прочитайте заявление перед подписью. Чтобы исправить данные, нажмите «Назад».",
       "success": "Заявление подано",
       "namePlaceholder": "Например, ноутбук Lenovo ThinkPad T14 или методика обучения в виде документа",
-      "descriptionLabel": "Описание, характеристики и состояние",
+      "descriptionLabel": "Описание",
       "quantityPlaceholder": "Например, 1",
       "unitPlaceholder": "шт., экз., кг"
     },
@@ -1989,7 +1989,7 @@
       "title": "Паевой взнос имуществом",
       "applicantLabel": "Пайщик",
       "quantityLabel": "Количество",
-      "descriptionLabel": "Описание, характеристики и состояние"
+      "descriptionLabel": "Описание"
     }
   }
 }
