@@ -1208,6 +1208,12 @@
 - `title: string`
 - `amount: string`
 - `dueDate: Date | null`
+- `recurrenceMonths?: number`
+- `recipientType?: InnerExpenseRecipientType | null`
+- `counterpartyId?: number | null`
+- `recipient?: string | null`
+- `paymentMethodId?: string | null`
+- `paymentPurpose?: string | null`
 - `proposalHash: string | null`
 - `paidAt: Date | null`
 
@@ -1271,6 +1277,7 @@
 - `isOrganization: boolean`
 - `mechanics: 'ADVANCE' | 'DIRECT'`
 - `paymentMethodId?: string`
+- `counterpartyId?: number`
 - `requisites?: string`
 - `paymentPurpose?: string`
 

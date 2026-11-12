@@ -1,6 +1,7 @@
 import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
+import { ExpenseCounterpartyRecord } from '../entities/expense-counterparty.record';
 import { ExpenseFileRecord } from '../entities/expense-file.record';
 import { ExpensePlanEntity } from '../entities/expense-plan.entity';
 import { ExpenseRequisiteSnapshotRecord } from '../entities/expense-requisite-snapshot.record';
@@ -12,6 +13,7 @@ import { ExpenseProposalRecord } from '../entities/expense-proposal.record';
  */
 export const EXPENSES_FILE_STORE = Symbol('Expense.EXPENSES_FILE_STORE');
 export const EXPENSES_PLAN_STORE = Symbol('Expense.EXPENSES_PLAN_STORE');
+export const EXPENSES_COUNTERPARTY_STORE = Symbol('Expense.EXPENSES_COUNTERPARTY_STORE');
 export const EXPENSES_REQUISITE_SNAPSHOT_STORE = Symbol('Expense.EXPENSES_REQUISITE_SNAPSHOT_STORE');
 
 export const EXPENSES_PROPOSAL_STORE = Symbol('Expenses.EXPENSES_PROPOSAL_STORE');
@@ -36,6 +38,19 @@ export const expensesStoreProviders: Provider[] = [
         table: 'expense_plans',
         primaryKey: ['id'],
         updatedAt: 'updatedAt',
+      }),
+  },
+  {
+    provide: EXPENSES_COUNTERPARTY_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<ExpenseCounterpartyRecord>(db, {
+        table: 'expense_counterparties',
+        primaryKey: ['id'],
+        json: ['requisites'],
+        updatedAt: 'updated_at',
+        sameNames: true,
       }),
   },
   {

@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GqlJwtAuthGuard,
@@ -36,17 +37,7 @@ import {
   MARKETPLACE_ORDER_DISPLAY_SERVICE,
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
-import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * Эпик 7: GraphQL-фасад для процесса гарантийного возврата. Каждый из 5

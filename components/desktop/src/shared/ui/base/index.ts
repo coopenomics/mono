@@ -2,6 +2,7 @@ export * from './BaseButton';
 export * from './BaseInput';
 export * from './BaseCheckbox';
 export * from './BaseRadioCard';
+export * from './BaseSegmented';
 export * from './BaseSelect';
 export * from './BaseCard';
 export * from './BaseTable';

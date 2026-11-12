@@ -12,7 +12,9 @@
       "mktwroffMetaInvalid": "Некорректные метаданные заявления для решения mktwroff",
       "mktwroffMetaMissing": "Отсутствуют метаданные заявления для решения mktwroff",
       "projectIdMissing": "Отсутствует project_id в метаданных заявления",
-      "statementMetaMissing": "Отсутствуют метаданные заявления для решения"
+      "statementMetaMissing": "Отсутствуют метаданные заявления для решения",
+      "mktipropMetaMissing": "Нет данных заявления о паевом взносе имуществом: протокол о приёме имущества собрать нельзя",
+      "mktipropMetaInvalid": "В заявлении о паевом взносе имуществом нет участка, имущества или цены приёма: протокол собрать нельзя"
     },
     "processDecisions": {
       "titleWithAuthor": "{baseTitle} от {name}",

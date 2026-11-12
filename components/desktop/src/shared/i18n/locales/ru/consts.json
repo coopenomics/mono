@@ -6,6 +6,7 @@
       "literLabel": "литр",
       "literShort": "л",
       "packageLabel": "упак. {packageSize} {baseLabel}",
+      "packagesOf": "{n} упаковка по {size} {base} | {n} упаковки по {size} {base} | {n} упаковок по {size} {base}",
       "pieceLabel": "шт.",
       "pieceShort": "шт",
       "unitLabelFallback": "ед.",

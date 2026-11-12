@@ -24,6 +24,11 @@ export interface Order {
   imageUrl?: string
   units: number
   unitLabel?: string
+  /**
+   * Количество словами для строки списка: «10 упаковок по 1 л» при упаковочном
+   * отпуске, «15 л» по мере. Нет — строка собирается из units и unitLabel.
+   */
+  qtyLabel?: string
   totalCost: number
   /**
    * Пояснение под суммой (requirement b6) — например «С учётом взноса
@@ -46,6 +51,8 @@ export interface Order {
   /** Вариант бейджа доменного статуса. */
   statusVariant: BaseBadgeVariant
   createdAt: string | Date
+  /** Когда заказ перешёл в текущее состояние — дата под бейджем у завершённых заказов. */
+  statusAt?: string | Date
   /** Наименование пункта выдачи (кооперативного участка) — основная строка ПВЗ. */
   pvzName?: string
   /** Адрес пункта выдачи — вторичная строка под наименованием. */

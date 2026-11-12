@@ -1,2 +1,6 @@
 export * as CreateExpensePlan from './createExpensePlan'
 export * as DeleteExpensePlan from './deleteExpensePlan'
+export * as CreateExpenseCounterparty from './createExpenseCounterparty'
+export * as UpdateExpenseCounterparty from './updateExpenseCounterparty'
+export * as ArchiveExpenseCounterparty from './archiveExpenseCounterparty'
+export * as DeleteExpenseCounterparty from './deleteExpenseCounterparty'

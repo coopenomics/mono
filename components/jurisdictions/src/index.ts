@@ -1,6 +1,16 @@
 import { RUSSIA } from './ru';
 import { resolveEffective, toIsoDate } from './effective';
+import {
+  counterpartyAccountId,
+  counterpartyFieldsFor,
+  counterpartyTaxId,
+  formatCounterpartyRequisites,
+  normalizeCounterpartyRequisites,
+  pickCounterpartyRequisites,
+  validateCounterpartyRequisites,
+} from './requisites';
 import type {
+  CounterpartyRequisitesProfile,
   JurisdictionCode,
   JurisdictionProfile,
   PersonalIncomeTax,
@@ -51,8 +61,30 @@ export function getPersonalIncomeTax(
   return profile ? resolveEffective(profile.personalIncomeTax, on) : null;
 }
 
+/**
+ * Реквизиты контрагента в стране кооператива; `null` — страна неизвестна, и
+ * вызывающий код честно отказывает в проверке, а не принимает что угодно.
+ */
+export function getCounterpartyRequisites(code: string | null | undefined): CounterpartyRequisitesProfile | null {
+  return getJurisdiction(code)?.counterpartyRequisites ?? null;
+}
+
 export { resolveEffective, toIsoDate };
+export {
+  counterpartyAccountId,
+  counterpartyFieldsFor,
+  counterpartyTaxId,
+  formatCounterpartyRequisites,
+  normalizeCounterpartyRequisites,
+  pickCounterpartyRequisites,
+  validateCounterpartyRequisites,
+};
 export type {
+  CounterpartyKind,
+  CounterpartyRequisiteField,
+  CounterpartyRequisiteIssue,
+  CounterpartyRequisitesProfile,
+  RequisiteChecksum,
   EffectiveRecord,
   JurisdictionCode,
   JurisdictionProfile,

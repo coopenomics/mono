@@ -5,9 +5,9 @@ import { type BranchContract } from 'cooptypes';
 import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
-import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerExpensePlan } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError, standPeriodKey } from '@coopenomics/extension-kit';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { calcCostMinor } from '../shared/cost.util';
 import type { ResolvedSaleUnit } from '../shared/packaging.util';
@@ -30,6 +30,8 @@ import {
 
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { ndflBreakdown } from '../shared/ndfl.util';
+import { PERIOD_TIME_ZONE, periodBounds } from '../shared/period-bounds';
+import { plannedTargetUnits } from '../shared/planned-target.util';
 import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 // Способ оплаты и тип получателя — словарь шасси расходов из межрасширенческого
 // контракта. Регистрацию перечня в схеме держит само шасси, потребителю нужны
@@ -43,10 +45,12 @@ import { PAYMENT_DESK_PORT, type IPaymentDeskPort, type InnerPayment, VAT_EXEMPT
 import { t as i18nT } from '../../i18n';
 import { TableStore } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_AID_STORE } from '../../infrastructure/database/marketplace-stores';
-import type { MarketplaceBranchAidEntity } from '../../infrastructure/entities/marketplace-branch-aid.entity';
+import { MarketplaceBranchAidStatus, type MarketplaceBranchAidEntity } from '../../infrastructure/entities/marketplace-branch-aid.entity';
 
 /** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
 const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
+/** Сколько выплаченных заявлений показывать в списке — последние по дате выплаты. */
+const PAID_AIDS_LIMIT = 50;
 
 export const MARKETPLACE_ECONOMY_SERVICE = Symbol('MARKETPLACE_ECONOMY_SERVICE');
 
@@ -87,10 +91,18 @@ export interface MarketplaceBranchEconomyView {
   weights: MarketplaceTrusteeWeightView[];
   /** Баланс общего кошелька КУ (w.brn.common), asset-строка. */
   common_balance: string;
-  /** Плановый резерв расходов ближайших 30 дней, asset-строка. */
+  /** Резерв плановых расходов: неоплаченные записи со сроком до конца текущего месяца (задача 99D-34), asset-строка. */
   reserve_amount: string;
   /** Доступно к распределению: общий кошелёк минус резерв, asset-строка. */
   available_to_distribute: string;
+  /** Свободные средства инициаторов участка (`MarketInvest::free_of`), asset-строка. */
+  initiators_free: string;
+  /**
+   * Доступно для расходов (99D-35): общий кошелёк и свободные средства
+   * инициаторов, asset-строка. Платёж контракт оплачивает целиком из одного
+   * источника — хватает ли на запись, стол сверяет по каждому источнику.
+   */
+  available_for_expenses: string;
 }
 
 /** Одно движение по общему кошельку КУ (`w.brn.common`) — только apply-записи ledger2 (несут operation_code + memo). */
@@ -103,8 +115,29 @@ export interface MarketplaceBranchWalletOperationView {
   order_hash: string | null;
   /** Идентификатор заказа-источника — прямая ссылка на страницу заказа. Null, если движение не связано с заказом. */
   order_id: string | null;
+  /** Чьё это движение: участок для общего кошелька, пайщик для персонального. */
+  username?: string | null;
   created_at: Date;
 }
+
+/**
+ * Операции участка, которые показываются в составе одного процесса на панели
+ * движения по общему кошельку: поступление и возврат членского взноса,
+ * распределение (изъятие и зачисление доверенным), выделение под расход и
+ * возврат неизрасходованного, излишек возмещения инициаторам.
+ */
+const BRANCH_MOVEMENT_OPERATIONS = [
+  'o.brn.common',
+  'o.brn.retfee',
+  'o.brn.release',
+  'o.brn.person',
+  'o.brn.expfnd',
+  'o.brn.expunf',
+  'o.mkt.rpsurp',
+];
+
+/** Сколько движений процесса показывает панель: распределение — пара на доверенного. */
+const BRANCH_MOVEMENT_PARTS_LIMIT = 100;
 
 /** Стадия заявления на материальную помощь. */
 export enum MarketplaceAidStage {
@@ -112,11 +145,13 @@ export enum MarketplaceAidStage {
   ON_COUNCIL = 'ON_COUNCIL',
   /** Совет одобрил выплату — заявка передана кассиру. */
   AWAITING_PAYOUT = 'AWAITING_PAYOUT',
+  /** Кассир подтвердил перевод — помощь выплачена, строка цепи стёрта. */
+  PAID = 'PAID',
 }
 
 registerEnumType(MarketplaceAidStage, {
   name: 'MarketplaceAidStage',
-  description: 'Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты.',
+  description: 'Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено.',
 });
 
 /** Заявление на материальную помощь со стадией и статусом выплаты у кассира. */
@@ -185,6 +220,17 @@ export class MarketplaceEconomyService {
     @Inject(MARKETPLACE_BRANCH_AID_STORE)
     private readonly aidStore: TableStore<MarketplaceBranchAidEntity>
   ) {}
+
+  /**
+   * Свободные средства инициаторов участка, число в валюте: неиспользованные
+   * деньги минус выделенные под расходы и помощь (`MarketInvest::free_of`).
+   */
+  private async initiatorFreeFunds(coopname: string, braname: string): Promise<number> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    if (!branch) return 0;
+    const free = this.assetToNumber(String(branch.unused_total)) - this.assetToNumber(String(branch.reserved));
+    return free > 0 ? free : 0;
+  }
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
 
@@ -295,12 +341,21 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, common, reserve] = await Promise.all([
+    const [weights, totals, common, plans, initiatorsFree] = await Promise.all([
       this.chainPort.getBranchWeights(coopname, braname),
       this.chainPort.getBranchWeightTotals(coopname, braname),
       this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
-      this.expenseChassis.getPlannedReserve(coopname, braname),
+      this.expenseChassis.listPlans(coopname, braname),
+      this.initiatorFreeFunds(coopname, braname),
     ]);
+    // Резерв общего кошелька, который нельзя распределить (задача 99D-34), —
+    // цель плановых расходов на сегодня: неоплаченные записи со сроком до
+    // конца текущего месяца, их собрал прошлый итог месяца. Та же функция
+    // считает факт цели для итога месяца.
+    const timeZone = PERIOD_TIME_ZONE;
+    const monthEnd = periodBounds(standPeriodKey(new Date(), timeZone), timeZone).end;
+    const reserveUnits = plannedTargetUnits(plans, braname, monthEnd, (a) => this.assetToUnits(a), (d) => standPeriodKey(d, timeZone));
+    const reserve = { amount: Number(reserveUnits) / 10 ** this.assetConfig.decimals };
 
     const branchWeights = weights.filter((w) => w.contract === MARKETPLACE_SOURCE_CONTRACT);
     const total = totals.find((t) => t.contract === MARKETPLACE_SOURCE_CONTRACT);
@@ -331,6 +386,8 @@ export class MarketplaceEconomyService {
       common_balance: commonBalance,
       reserve_amount: this.formatAsset(reserve.amount),
       available_to_distribute: this.formatAsset(available),
+      initiators_free: this.formatAsset(initiatorsFree),
+      available_for_expenses: this.formatAsset(this.assetToNumber(commonBalance) + initiatorsFree),
     };
   }
 
@@ -397,6 +454,33 @@ export class MarketplaceEconomyService {
    * поставки, а ссылка «Заказ» ведёт на страницу заказа по его
    * идентификатору — резолвим хэши страницы одним батчем.
    */
+  /**
+   * Движения участка в одном процессе — для панели строки «Движения по
+   * кошельку»: у распределения это изъятие из общего кошелька и зачисление
+   * каждому доверенному (кто сколько получил), у заказа — взнос участку.
+   * Отдаются только операции участка из `BRANCH_MOVEMENT_OPERATIONS`: прочие
+   * движения процесса (кошельки пайщика по заказу) панели участка не нужны.
+   * Процесс чужого участка не раскрывается — в нём нет движения этого участка.
+   */
+  async getBranchMovementParts(
+    coopname: string,
+    braname: string,
+    processHash: string
+  ): Promise<MarketplaceBranchWalletOperationView[]> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      processHash,
+      actionNames: ['apply'],
+      operationCodes: BRANCH_MOVEMENT_OPERATIONS,
+      page: 1,
+      limit: BRANCH_MOVEMENT_PARTS_LIMIT,
+      sortOrder: 'ASC',
+    });
+    if (!result.items.some((op) => op.username === braname)) return [];
+    const view = await this.toWalletHistoryResult(coopname, result);
+    return view.items;
+  }
+
   private async toWalletHistoryResult(
     coopname: string,
     result: InnerLedger2HistoryResult
@@ -416,6 +500,7 @@ export class MarketplaceEconomyService {
         order_id: op.processHash
           ? (orderIdByHash.get(op.processHash.toLowerCase()) ?? null)
           : null,
+        username: op.username ?? null,
         created_at: op.createdAt,
       })),
       totalCount: result.totalCount,
@@ -436,6 +521,24 @@ export class MarketplaceEconomyService {
     braname: string,
     amount: number
   ): Promise<string> {
+    // Распределения одного участка идут по очереди: резерв плановых расходов
+    // проверяет узел, контракт о нём не знает. Два одновременных распределения
+    // оба прошли бы проверку по одному остатку и вместе съели бы резерв.
+    const key = `${coopname}:${braname}`;
+    const previous = this.distributing.get(key) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(() => this.distributeOnce(coopname, initiator, braname, amount));
+    this.distributing.set(key, run);
+    try {
+      return await run;
+    } finally {
+      if (this.distributing.get(key) === run) this.distributing.delete(key);
+    }
+  }
+
+  /** Очередь распределений по участкам: следующее читает остаток после завершения предыдущего. */
+  private readonly distributing = new Map<string, Promise<unknown>>();
+
+  private async distributeOnce(coopname: string, initiator: string, braname: string, amount: number): Promise<string> {
     await this.assertIsTrusteeOfBranch(coopname, braname, initiator);
     if (!Number.isFinite(amount) || amount <= 0) {
       throw DomainError.badRequest('MARKETPLACE_DISTRIBUTION_AMOUNT_MUST_BE_POSITIVE');
@@ -448,11 +551,8 @@ export class MarketplaceEconomyService {
     const common = this.assetToNumber(economy.common_balance);
     const reserve = this.assetToNumber(economy.reserve_amount);
     if (common - amount < reserve) {
-      // Горизонт планирования принадлежит шасси расходов; спрашиваем его на
-      // пути отказа, чтобы объяснить человеку, за какой срок посчитан резерв.
-      const { horizonDays } = await this.expenseChassis.getPlannedReserve(coopname, braname);
       throw new BadRequestException(
-        i18nT('marketplace.economy.distributionReserveViolationIntro', { horizonDays }) +
+        i18nT('marketplace.economy.distributionReserveViolationIntro') +
           i18nT('marketplace.economy.distributionReserveDetail', { commonBalance: economy.common_balance, reserveAmount: economy.reserve_amount }) +
           i18nT('marketplace.economy.distributionAvailable', { availableToDistribute: economy.available_to_distribute })
       );
@@ -604,10 +704,16 @@ export class MarketplaceEconomyService {
       throw DomainError.conflict('MARKETPLACE_AID_STATEMENT_WRONG_REQUEST');
     }
 
+    // Источник помощи — как в контракте (createaid, задача 99D-28): персональный
+    // кошелёк получателя, а при нехватке — свободные средства инициаторов
+    // участка. Отказ — до цепи, когда не хватает ни того, ни другого.
     const asset = this.formatAsset(amount);
     const balance = await this.getPersonalBalance(coopname, username);
     if (this.assetToNumber(balance) < amount) {
-      throw DomainError.badRequest('MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS', { balance, requested: asset });
+      const free = await this.initiatorFreeFunds(coopname, braname);
+      if (free < amount) {
+        throw DomainError.badRequest('MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS', { balance, free: this.formatAsset(free), requested: asset });
+      }
     }
 
     // Реквизиты обязаны существовать и принадлежать самому получателю —
@@ -728,6 +834,59 @@ export class MarketplaceEconomyService {
 
     this.verifyDocumentSignature(input.statement as unknown as SignedDigitalDocumentInputDTO, username);
 
+    // Запись плана проверяется ДО цепи: контракт о реестре планов не знает и
+    // примет вторую записку по той же записи — участок выделил бы деньги
+    // дважды, а совет получил бы два вопроса об одном расходе. Привязка после
+    // цепи эту подачу уже не остановит.
+    const planId = input.plan_id ?? null;
+    if (planId !== null) {
+      const plan = await this.assertPlanPayable(coopname, input.braname, planId);
+      this.assertProposalMatchesPlan(plan, input);
+      this.launchingPlans.add(planId);
+    }
+    try {
+      return await this.submitBranchExpense(coopname, username, input);
+    } finally {
+      if (planId !== null) this.launchingPlans.delete(planId);
+    }
+  }
+
+  /** Записи плана, по которым записка прямо сейчас подаётся в цепь: вторая подача той же записи ждать не будет. */
+  private readonly launchingPlans = new Set<number>();
+
+  /**
+   * Запись плана можно оплатить: она принадлежит участку, оплата по ней не
+   * запущена и не завершена, и другая подача по ней сейчас не идёт.
+   */
+  private async assertPlanPayable(coopname: string, braname: string, planId: number): Promise<InnerExpensePlan> {
+    if (this.launchingPlans.has(planId)) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
+    const plan = (await this.expenseChassis.listPlans(coopname, braname)).find((p) => Number(p.id) === Number(planId));
+    if (!plan || plan.branchName !== braname) throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
+    if (plan.proposalHash || plan.paidAt) throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
+    return plan;
+  }
+
+  /**
+   * Записка по записи плана со способом оплаты (задача 99D-35) — ровно один
+   * платёж этой записи: та же сумма, тот же получатель, тот же контрагент и
+   * назначение платежа либо тот же пайщик и способ получения средств.
+   * Записку собирает стол из записи, но сервер не верит столу на слово:
+   * иначе по записи «электроэнергия» можно было бы заплатить другому. Запись
+   * без способа оплаты (до 99D-35) сверяется только по суммам цепи, как прежде.
+   */
+  private assertProposalMatchesPlan(plan: InnerExpensePlan, input: CreateBranchExpenseInputDTO): void {
+    if (!plan.recipientType) return;
+    if (input.items.length !== 1) throw planMismatch('items');
+    const [item] = input.items;
+    if (this.assetToUnits(item.planned_amount) !== this.assetToUnits(plan.amount)) throw planMismatch('planned_amount');
+    if (item.recipient_type !== plan.recipientType) throw planMismatch('recipient_type');
+    const field = plan.recipientType === ExpenseRecipientType.ORG ? orgItemMismatch(plan, item) : advanceItemMismatch(plan, item);
+    if (field) throw planMismatch(field);
+  }
+
+
+  /** Подача записки на расход участка: реквизиты, цепь, снимок реквизитов и привязка записи плана. */
+  private async submitBranchExpense(coopname: string, username: string, input: CreateBranchExpenseInputDTO): Promise<string> {
     const requisiteItems = input.items.map((item) => ({
       proposalHash: input.expense_hash,
       itemHash: item.item_hash,
@@ -738,6 +897,7 @@ export class MarketplaceEconomyService {
       requisites: item.requisites,
       paymentPurpose: item.payment_purpose,
       recipientName: item.recipient_name,
+      counterpartyId: item.counterparty_id,
     }));
 
     // Реквизиты проверяются ДО цепи: расход без реквизитов кассир не оплатит.
@@ -793,9 +953,59 @@ export class MarketplaceEconomyService {
     }
   }
 
+  /**
+   * Заявления в работе — из цепи, выплаченные — из зеркала узла: после
+   * выплаты контракт стирает строку, а пайщик должен видеть, что ему
+   * выплачено (владелец 08.11.2026). Выплаченные — последние по дате выплаты.
+   */
   async listAids(coopname: string, username?: string): Promise<MarketplaceAidView[]> {
-    const aids = await this.chainPort.listAids(coopname, username);
-    return Promise.all(aids.map((aid) => this.toAidView(coopname, aid)));
+    const [aids, paid] = await Promise.all([
+      this.chainPort.listAids(coopname, username),
+      this.aidStore
+        .find(
+          { coopname, status: MarketplaceBranchAidStatus.PAID, ...(username ? { username } : {}) },
+          { order: { paid_at: 'DESC' }, limit: PAID_AIDS_LIMIT }
+        )
+        .catch(() => [] as MarketplaceBranchAidEntity[]),
+    ]);
+    const active = await Promise.all(aids.map((aid) => this.toAidView(coopname, aid)));
+    const activeHashes = new Set(active.map((a) => a.hash.toLowerCase()));
+    const done = await Promise.all(
+      paid.filter((row) => !activeHashes.has(row.aid_hash)).map((row) => this.toPaidAidView(coopname, row))
+    );
+    return [...active, ...done];
+  }
+
+  /** Выплаченное заявление из зеркала: сумма, налог, реквизиты и даты платежа. */
+  private async toPaidAidView(coopname: string, row: MarketplaceBranchAidEntity): Promise<MarketplaceAidView> {
+    const payment = await this.aidPayment(coopname, row.aid_hash);
+    let payment_destination: string | null = null;
+    if (payment?.payment_method_id) {
+      try {
+        const method = await this.paymentMethodRepo.get({ username: row.username, method_id: payment.payment_method_id });
+        payment_destination = formatPayoutDestination(method);
+      } catch {
+        // Реквизиты удалены получателем — строка всё равно показывается.
+      }
+    }
+    const symbol = this.assetConfig.symbol;
+    const amount = Number(row.amount);
+    const ndfl = ndflBreakdown(amount, this.assetConfig.decimals);
+    return {
+      hash: row.aid_hash,
+      username: row.username,
+      braname: row.braname,
+      amount: `${amount.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      stage: MarketplaceAidStage.PAID,
+      payment_status: payment?.status ?? null,
+      payment_destination,
+      ndfl_tax: `${ndfl.tax.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      net_amount: `${ndfl.net.toFixed(this.assetConfig.decimals)} ${symbol}`,
+      submitted_at: row.created_at ? new Date(row.created_at) : null,
+      decided_at: null,
+      payment_completed_at: payment?.completed_at ?? (row.paid_at ? new Date(row.paid_at) : null),
+      payment_failed_at: payment?.failed_at ?? null,
+    };
   }
 
   /**
@@ -844,14 +1054,20 @@ export class MarketplaceEconomyService {
     };
   }
 
-  /** Платёж ядра по хэшу заявки; не найден — null, статус выплаты неизвестен. */
+  /**
+   * Платёж ядра по хэшу заявки; не найден — null, статус выплаты неизвестен.
+   * У одной заявки бывает несколько строк платежа: отмена кассиром оставляет
+   * отменённую строку, а выплата в шлюзе цепи остаётся в ожидании (контракт
+   * отказ от выплаты не принимает). Показываем действующую строку, а
+   * отменённую — только если других нет.
+   */
   private async aidPayment(coopname: string, hash: string): Promise<InnerPayment | null> {
     try {
       const found = await this.coreGateway.getPayments(
         { coopname, hash: hash.toLowerCase() },
-        { page: 1, limit: 1, sortOrder: 'DESC' }
+        { page: 1, limit: 5, sortOrder: 'DESC' }
       );
-      return found.items[0] ?? null;
+      return found.items.find((p) => p.status !== PaymentStatus.CANCELLED) ?? found.items[0] ?? null;
     } catch {
       return null;
     }
@@ -896,4 +1112,24 @@ export class MarketplaceEconomyService {
       throw DomainError.badRequest('MARKETPLACE_AID_STATEMENT_SIGNATURE_INVALID');
     }
   }
+}
+
+type BranchExpenseItem = CreateBranchExpenseInputDTO['items'][number];
+
+function planMismatch(field: string): Error {
+  return DomainError.badRequest('EXPENSES_PLAN_PROPOSAL_MISMATCH', { field });
+}
+
+/** Поле, в котором пункт записки расходится с записью-оплатой организации; пусто — совпадает. */
+function orgItemMismatch(plan: InnerExpensePlan, item: BranchExpenseItem): string | null {
+  if (Number(item.counterparty_id) !== Number(plan.counterpartyId)) return 'counterparty_id';
+  if ((item.payment_purpose ?? '').trim() !== (plan.paymentPurpose ?? '').trim()) return 'payment_purpose';
+  return null;
+}
+
+/** Поле, в котором пункт записки расходится с записью-авансом пайщику; пусто — совпадает. */
+function advanceItemMismatch(plan: InnerExpensePlan, item: BranchExpenseItem): string | null {
+  if (item.recipient !== plan.recipient) return 'recipient';
+  if ((item.payment_method_id ?? '') !== (plan.paymentMethodId ?? '')) return 'payment_method_id';
+  return null;
 }

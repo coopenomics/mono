@@ -25,10 +25,18 @@ import {
   waitFor,
 } from '../core'
 import { KRG, pickOffer } from './flow'
-import { type BranchEconomy, branchEconomy, chargeSecurePart, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
+import { type BranchEconomy, branchEconomy, chargeIntoCommon, ensureAidFunds, issuedOrder, personalOf, refusal } from './mkt-flows.helpers'
+import { applyOps } from '../documents/docs-reports.helpers'
 
 const ODN = 'odn'
 const TRUSTED_KRG = 'trustedkrg'
+
+/**
+ * Списание обеспечительной части идёт по окончании периода конца гарантии
+ * (задача 99D-33): в настоящем времени набору его не дождаться, поэтому он
+ * идёт в фазе полигона со сжатым временем (BLACKBOX_STAND_MONTH_SECONDS).
+ */
+const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
 
 /**
  * Ставка налога на доходы физических лиц (Россия) — её берёт справочник
@@ -92,7 +100,7 @@ function grid(eco: BranchEconomy): string {
   return eco.weights.map(w => `${w.username}:${w.weight}`).sort().join(',')
 }
 
-describe('экономика участка: общий кошелёк, сетка, распределение, материальная помощь', () => {
+describe.skipIf(!COMPRESSED)('экономика участка: общий кошелёк, сетка, распределение, материальная помощь', () => {
   beforeAll(async () => {
     krgToken = await tokenOf(chairkrg)
     odnToken = await tokenOf(chairodn)
@@ -104,10 +112,13 @@ describe('экономика участка: общий кошелёк, сетк
     const before = amount((await branchEconomy(krgToken, KRG)).common_balance)
     const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     const issued = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
-    const onIssue = amount((await branchEconomy(krgToken, KRG)).common_balance)
-    expect(onIssue, 'на выдаче членского взноса участку ещё нет').toBeCloseTo(before, 2)
+    // Выдача членского взноса участку не зачисляет. Проверка — по операциям
+    // заказа, а не по остатку: крон узла в той же фазе списывает строки других
+    // пайщиков, и общий кошелёк участка меняется независимо от этого заказа.
+    const issueOps = await applyOps(issued.orderHash)
+    expect(issueOps.some(op => op.operationCode === 'o.brn.common'), 'на выдаче членского взноса участку ещё нет').toBe(false)
     partBeforeCharge = await securePartWhen(issued.orderId, 'DUE')
-    await chargeSecurePart({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
+    await chargeIntoCommon({ member: ekaterina, orderId: issued.orderId, orderHash: issued.orderHash })
     partAfterCharge = await securePartWhen(issued.orderId, 'CHARGED')
     const after = amount((await branchEconomy(krgToken, KRG)).common_balance)
     expect(after, 'списанная обеспечительная часть обязана попасть в общий кошелёк участка').toBeGreaterThan(before)
@@ -126,15 +137,16 @@ describe('экономика участка: общий кошелёк, сетк
     expect(partAfterCharge.settled_at).toBeTruthy()
   })
 
-  it(caseName('mkt.eco.side.07', 'без своей ставки действует умолчание 30%, ставка вне 0…100 на цепь не уходит'), async () => {
+  it(caseName('mkt.eco.side.07', 'без своей ставки действует умолчание 38%, ставка вне 0…100 в цепь не отправляется'), async () => {
     const q = 'query{ marketplaceGetEconomyConfig{ membership_fee_percent } }'
     const current = (await gql<any>(chairmanToken, q)).marketplaceGetEconomyConfig.membership_fee_percent as number
 
     // Своя ставка кооператива живёт в синглтоне marketplace::config; пока его
-    // нет, контракт и бэкенд считают по общему умолчанию 30%.
+    // нет, контракт и бэкенд считают по общему умолчанию 38% (решение
+    // владельца 02.11.2026).
     const rows = await tableRows<any>('marketplace', COOP, 'config')
-    const expected = rows.length ? Number(rows[0].membership_fee_percent) / 10_000 : 30
-    expect(current, rows.length ? 'ставка из конфигурации цепи' : 'умолчание ставки — 30%').toBeCloseTo(expected, 6)
+    const expected = rows.length ? Number(rows[0].membership_fee_percent) / 10_000 : 38
+    expect(current, rows.length ? 'ставка из конфигурации цепи' : 'умолчание ставки — 38%').toBeCloseTo(expected, 6)
 
     for (const bad of [-1, 100.5, 250]) {
       const err = await refusal(chairmanToken, 'mutation($d:MarketplaceSetMembershipFeeInput!){ marketplaceSetMembershipFee(data:$d){ membership_fee_percent } }', { d: { membership_fee_percent: bad } })
@@ -158,7 +170,9 @@ describe('экономика участка: общий кошелёк, сетк
   it(caseName('mkt.eco.side.08', 'резерв больше остатка общего кошелька — доступно ноль, а не минус'), async () => {
     const before = await branchEconomy(odnToken, ODN)
     const common = amount(before.common_balance)
-    const planId = await createPlan(odnToken, ODN, Math.round(common) + 500, 3)
+    // Срок вчера: резерв считается до конца текущего месяца (задача 99D-34), а на полигоне
+    // со сжатым временем срок «через три дня» лежит за концом месяца стенда.
+    const planId = await createPlan(odnToken, ODN, Math.round(common) + 500, -1)
     try {
       const eco = await branchEconomy(odnToken, ODN)
       expect(amount(eco.reserve_amount), 'резерв включает срочный плановый расход').toBeGreaterThan(common)
@@ -172,14 +186,16 @@ describe('экономика участка: общий кошелёк, сетк
 
   let nearPlan = 0
 
-  it(caseName('mkt.eco.happy.01', 'общий кошелёк, резерв ближайших 30 дней и доступное показаны раздельно'), async () => {
+  it(caseName('mkt.eco.happy.01', 'общий кошелёк, резерв плановых расходов до конца текущего месяца и доступное показаны раздельно'), async () => {
     const before = await branchEconomy(krgToken, KRG)
-    nearPlan = await createPlan(krgToken, KRG, 40, 5)
+    // Резерв — неоплаченные расходы со сроком до конца текущего месяца, включая
+    // просроченные (задача 99D-34): просроченный расход в нём, расход через 60 дней — нет.
+    nearPlan = await createPlan(krgToken, KRG, 40, -1)
     const farPlan = await createPlan(krgToken, KRG, 70, 60)
 
     const eco = await branchEconomy(krgToken, KRG)
     expect(eco.braname).toBe(KRG)
-    expect(amount(eco.reserve_amount) - amount(before.reserve_amount), 'в резерв входит только расход со сроком внутри 30 дней').toBeCloseTo(40, 4)
+    expect(amount(eco.reserve_amount) - amount(before.reserve_amount), 'в резерв входит только расход со сроком до конца текущего месяца').toBeCloseTo(40, 4)
     expect(eco.common_balance, 'резерв не списывает деньги с общего кошелька').toBe(before.common_balance)
     const expected = Math.max(0, amount(eco.common_balance) - amount(eco.reserve_amount))
     expect(amount(eco.available_to_distribute), 'доступно = общий кошелёк − резерв').toBeCloseTo(expected, 4)
@@ -295,13 +311,28 @@ describe('экономика участка: общий кошелёк, сетк
 
   const DISTRIBUTED = 200
 
+  // Текущий месяц участка до и после распределения — для случая
+  // mkt.order.keu.18 (распределено за месяц и получено пайщиком за месяц).
+  const CURRENT_MONTH = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period distributed received } }'
+  type MonthView = { period: number; distributed: string; received: string }
+  let monthBefore: MonthView | null = null
+  let monthAfter: MonthView | null = null
+  let chairShare = 0
+  let paidTotal = 0
+
   it(caseName('mkt.eco.happy.03', 'председатель участка распределяет доступную сумму по сетке'), async () => {
     await deletePlan(krgToken, nearPlan)
     const before = await branchEconomy(krgToken, KRG)
     expect(amount(before.available_to_distribute), 'предусловие: доступно не меньше распределяемого').toBeGreaterThanOrEqual(DISTRIBUTED)
+    monthBefore = (await gql<any>(krgToken, CURRENT_MONTH, { b: KRG })).marketplaceGetBranchCurrentPeriod
 
     const ok = await gql<any>(krgToken, DISTRIBUTE, { d: { braname: KRG, amount: DISTRIBUTED } })
     expect(ok.marketplaceDistributeBranchFunds).toBe(true)
+
+    monthAfter = (await gql<any>(krgToken, CURRENT_MONTH, { b: KRG })).marketplaceGetBranchCurrentPeriod
+    const chairWeight = before.weights.find(w => w.username === chairkrg.account)
+    chairShare = chairWeight ? Math.floor(DISTRIBUTED * 10_000 * chairWeight.weight / before.total_weight) / 10_000 : 0
+    paidTotal = before.weights.reduce((s, w) => s + Math.floor(DISTRIBUTED * 10_000 * w.weight / before.total_weight) / 10_000, 0)
 
     const after = await branchEconomy(krgToken, KRG)
     // Контракт раскладывает сумму долями вниз до копейки; остаток округления
@@ -322,6 +353,15 @@ describe('экономика участка: общий кошелёк, сетк
       const share = Math.floor(DISTRIBUTED * 10_000 * w.weight / before.total_weight) / 10_000
       expect(releases.some(r => Math.abs(r - share) < 0.00005), `изъятие доли ${share} из общего кошелька`).toBe(true)
     }
+  })
+
+  it(caseName('mkt.order.keu.18', 'текущий месяц участка показывает распределено участком и получено пайщиком'), async () => {
+    expect(monthBefore && monthAfter, 'предусловие: распределение прошло и месяц прочитан').toBeTruthy()
+    // Стенд со сжатым временем: граница месяца между двумя чтениями обнуляет
+    // суммы нового месяца — приращение сверяется только внутри одного месяца.
+    if (monthBefore!.period !== monthAfter!.period) return
+    expect(amount(monthAfter!.distributed) - amount(monthBefore!.distributed), 'распределено за месяц выросло на разложенную сумму').toBeCloseTo(paidTotal, 4)
+    expect(amount(monthAfter!.received) - amount(monthBefore!.received), 'получено председателем участка за месяц — его доля').toBeCloseTo(chairShare, 4)
   })
 
   let methodId = ''
@@ -379,11 +419,17 @@ describe('экономика участка: общий кошелёк, сетк
 
   it(caseName('mkt.eco.happy.04', 'заявление на материальную помощь — на сумму до налога; до решения совета — заявка на выплату за вычетом налога, платежа у кассира нет'), async () => {
     const gross = 100
-    expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
+    const personalBefore = personalOf(await branchEconomy(krgToken, KRG), chairkrg.account)
+    expect(personalBefore, 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
     const { aidHash } = await submitAid(gross)
 
-    // Заявление на повестке совета — на всю сумму: её спишут с персонального
-    // кошелька при выплате.
+    // Сумма заявления переходит с персонального кошелька на кошелёк заявлений
+    // при подаче (решение владельца 08.11.2026): свободный остаток меньше сразу,
+    // второе заявление на те же деньги подать нельзя.
+    const personalAfter = personalOf(await branchEconomy(krgToken, KRG), chairkrg.account)
+    expect(personalBefore - personalAfter, 'при подаче персональный остаток уменьшился на сумму заявления').toBeCloseTo(gross, 4)
+
+    // Заявление на повестке совета — на всю сумму до налога.
     const aids = await gql<any>(krgToken, 'query{ marketplaceListAids{ hash username braname amount stage } }')
     const aid = (aids.marketplaceListAids as any[]).find(a => a.hash.toLowerCase() === aidHash)
     expect(aid, 'заявление видно доверенному').toBeTruthy()
@@ -405,7 +451,10 @@ describe('экономика участка: общий кошелёк, сетк
     // До 25.09.2026 сумма платежа хранилась целым числом, и выплата 87,50 ₽
     // падала «invalid input syntax for type integer».
     const gross = 100.5
-    expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
+    // Предыдущее заявление уже забрало свою сумму с персонального кошелька.
+    // Случай проверяет округление налога, а не источник денег: при нехватке
+    // контракт берёт помощь из свободных средств инициаторов участка.
+    await ensureAidFunds(gross, chairkrg)
     const { aidHash } = await submitAid(gross)
     const request = await payoutRequest(aidHash)
     expect(request, 'заявка на выплату материальной помощи у получателя').toBeTruthy()

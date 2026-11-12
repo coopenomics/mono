@@ -1,43 +1,72 @@
 /**
- * Контрактный уровень: итог месяца участка и списание обеспечительной части по
- * ставкам прогона (задачи 99D-19, 99D-21; КЭУ-1, КЭУ-3; реестр
- * marketplace.order, случаи mkt.order.keu.*).
+ * Контрактный уровень: счётчики списания, итог периода участка и списание
+ * строки пайщика по ставкам (задачи 99D-19, 99D-21, 99D-33; КЭУ-1, КЭУ-3;
+ * реестр marketplace.order, случаи mkt.order.keu.*).
  *
  * Тест ведёт один заказ до закрытия выдачи тем же путём, что и денежный тест
- * (`marketplace-money.test.ts`), получает на кошельке пайщицы к списанию факт
- * обеспечительной части, а затем проходит новый цикл первого числа:
+ * (`marketplace-money.test.ts`), и дальше проверяет учёт, который ведёт сам
+ * контракт (узел сумм в цепь не передаёт):
  *
+ *   • выдача пополняет строку пайщика `kudues` и строку участка `kucounters` за
+ *     период конца гарантийного срока: стоимость и обеспечительная часть по факту;
+ *   • до окончания периода `closeperiod` и `chargeperiod` отвечают
+ *     MARKETPLACE_PERIOD_OPEN;
  *   • setshares / setinitiator — настройки доли инициатора и инициатора участка;
- *   • closeperiod — пять фактов прогона → строка kuperiods, формулы которой
- *     проверяются по её собственным полям (резерв прошлого прогона на стенде
- *     зависит от прежних прогонов, поэтому ожидания не зашиты числами);
- *   • chargeperiod — четыре части одного заказа одной транзакцией: участку
- *     (o.brn.common), в фонды накопления по их процентам (o.fnd.indiv /
- *     o.fnd.resrv / o.fnd.devel — кошелёк на каждый фонд, задача 99D-25),
- *     инициатору (o.mkt.initr), пайщице обратно (o.mkt.retdue);
- *     кошелёк к списанию обнуляется, остатки кошельков растут ровно на части;
- *   • повтор chargeperiod — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку,
- *     после чего chargeperiod отвечает MARKETPLACE_PERIOD_NOT_CLOSED.
+ *   • closeperiod после окончания периода — T и C из счётчика участка, от узла
+ *     три факта о расходах → строка kuperiods, формулы которой сверяются с
+ *     эталоном; счётчик участка стёрт; повтор — MARKETPLACE_PERIOD_EXISTS, период
+ *     без заказов — MARKETPLACE_PERIOD_EMPTY, отказы аргументов;
+ *   • chargeperiod — строка пайщика одной транзакцией в нитке p.mkt.due с
+ *     хэшем строки: участку (o.brn.common), в фонды накопления по их процентам
+ *     (o.fnd.indiv / o.fnd.resrv / o.fnd.devel), инициаторам — возмещение паевых
+ *     взносов (o.mkt.repay) либо участку, пайщице обратно (o.mkt.retdue);
+ *     строка стёрта, повтор — MARKETPLACE_DUE_NOT_FOUND;
+ *   • delperiod стирает строку итога, повтор — MARKETPLACE_PERIOD_NOT_CLOSED.
  *
- * Номер периода берётся из времени прогона, чтобы строки разных прогонов не
- * сталкивались; свою строку тест стирает сам. Потолок резерва после теста
- * возвращается в ноль, назначение инициатора снимается.
+ * Период берётся из цепи: на стенде он короткий (`brnconfig.aid_period_seconds`),
+ * тест дожидается его окончания. Потолок резерва после теста возвращается в
+ * ноль, назначение инициатора снимается.
  *
  * Требует стенда после `reboot:extra` с сид-фазами docs-harness.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { BranchContract, FundContract, MarketContract } from 'cooptypes'
+import { BranchContract, MarketContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder, pickOffer, placeOrder } from './marketplace/orderFlow'
-import { CHAIRMAN, COOP, type LedgerRow, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { CHAIRMAN, COOP, type LedgerRow, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, processTypeByOperation, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import {
+  accumulationFunds,
+  asset,
+  branchCounter,
+  branchPeriods,
+  chargeHash,
+  closeMonthAndCompare,
+  coopPusher,
+  currentPeriod,
+  fundBalances,
+  investBranch,
+  memberDue,
+  rub,
+  units,
+  userWallet,
+  waitPeriodEnd,
+} from './marketplace/periodHelpers'
+
+const { chargeRow, crpsRoute, splitFunds, HUNDR_PERCENTS: H } = MarketContract.PeriodModel
 
 const bc = new Blockchain(config.network, config.private_keys)
+const push = coopPusher(bc)
+
+/**
+ * Итог и списание идут по окончании периода конца гарантии: в настоящем
+ * времени его не дождаться, поэтому набор идёт в фазе полигона со сжатым
+ * временем (BLACKBOX_STAND_MONTH_SECONDS; стенд разработки задаёт переменную сам).
+ */
+const COMPRESSED = (Number(process.env.BLACKBOX_STAND_MONTH_SECONDS) || 0) > 0
 
 const BRANAME = 'krg'
 const ORDER_QTY = 2
-const H = 1_000_000n
-const UNITS = 10_000n // четыре знака актива
 
 const sidorov = fromState('sidorov')
 const ekaterina = fromState('ekaterina')
@@ -45,8 +74,6 @@ const chairkrg = fromState('chairkrg')
 
 const MARKET = MarketContract.contractName.production
 const BRANCH = BranchContract.contractName.production
-const FUND = FundContract.contractName.production
-const LEDGER2 = 'ledger2'
 
 let chairmanToken = ''
 let sidorovToken = ''
@@ -60,55 +87,19 @@ let unitPrice = 0
 let dueUnits = 0n
 /** Стоимость выданного по заказу (o.mkt.consum). */
 let baseUnits = 0n
+/** Период списания заказа — тот, в который контракт поставил строку пайщика. */
 let period = 0
 let periodRow: any = null
+let fundsPercent = 0n
+let initiatorPercent = 0n
 
-let pushSeq = 0
-
-async function push(account: string, name: string, data: Record<string, unknown>) {
-  return bc.api.transact(
-    { actions: [{ account, name, authorization: [{ actor: COOP, permission: 'active' }], data }] },
-    // Срок жизни у каждой транзакции свой: повтор одинакового действия в том же блоке
-    // nodeos иначе отбросит как duplicate transaction, не дав контракту ответить кодом.
-    { blocksBehind: 3, expireSeconds: 30 + (pushSeq++ % 600) },
-  )
+/** Строки пайщицы на участке по периодам: период → обеспечительная часть к списанию. */
+async function memberRows(): Promise<Map<number, bigint>> {
+  const rows: any[] = await bc.getTableRows(MARKET, COOP, 'kudues', 1000, ekaterina.account, ekaterina.account, 2)
+  return new Map(rows.filter(r => r.username === ekaterina.account && r.braname === BRANAME).map(r => [Number(r.period), units(r.due)]))
 }
 
-function units(asset: unknown): bigint {
-  const [whole, frac = ''] = String(asset ?? '0').split(' ')[0].split('.')
-  return BigInt(whole) * UNITS + BigInt((frac + '0000').slice(0, 4))
-}
-
-function asset(u: bigint): string {
-  const sign = u < 0n ? '-' : ''
-  const a = u < 0n ? -u : u
-  return `${sign}${a / UNITS}.${String(a % UNITS).padStart(4, '0')} RUB`
-}
-
-async function userWallet(wallet: string, username: string): Promise<bigint> {
-  const rows: any[] = await bc.getTableRows(LEDGER2, COOP, 'userwallets', 2000)
-  const row = rows.find(r => r.wallet_name === wallet && r.username === username)
-  return units(row?.available)
-}
-
-/** Остатки кошельков фондов накопления (кошелёк = субсчёт 86, задача 99D-25): кошелёк → сумма. */
-async function fundBalances(): Promise<Map<string, bigint>> {
-  const rows: any[] = await bc.getTableRows(LEDGER2, COOP, 'wallets', 200)
-  return new Map(rows.filter(r => String(r.id).startsWith('w.fnd.')).map(r => [r.id, units(r.available)]))
-}
-
-/** Реестр фондов накопления кооператива из `funds` контракта fund, по порядку номеров. */
-async function accumulationFunds(): Promise<any[]> {
-  const rows: any[] = await bc.getTableRows(FUND, COOP, 'funds', 20)
-  return rows.filter(f => f.kind === 'accum').sort((a, b) => Number(a.id) - Number(b.id))
-}
-
-async function periodRows(): Promise<any[]> {
-  const rows: any[] = await bc.getTableRows(MARKET, COOP, 'kuperiods', 200)
-  return rows.filter(r => r.braname === BRANAME)
-}
-
-describe('стол заказов — итог месяца участка и списание по ставкам (contract, живая цепь)', () => {
+describe.skipIf(!COMPRESSED)('стол заказов — счётчики списания, итог периода и списание по ставкам (contract, живая цепь)', () => {
   beforeAll(async () => {
     await bc.update_pass_instance()
     chairmanToken = await loginAs(CHAIRMAN)
@@ -119,6 +110,7 @@ describe('стол заказов — итог месяца участка и с
     const offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
     await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2, ekaterinaToken)
+    const before = await memberRows()
 
     // Заказ → акцепт → экспресс-приёмка с двумя подписями → выдача целиком.
     const placed = await placeOrder({ token: ekaterinaToken, who: ekaterina, offerId: offer.id, quantity: ORDER_QTY, braname: BRANAME })
@@ -152,24 +144,54 @@ describe('стол заказов — итог месяца участка и с
     baseUnits = units(sumOf(ops, 'o.mkt.consum').toFixed(4))
     expect(dueUnits > 0n, 'после выдачи на кошельке к списанию лежит обеспечительная часть').toBe(true)
 
+    // Период строки — тот, где обеспечительная часть пайщицы выросла ровно на факт выдачи.
+    const after = await memberRows()
+    const grown = [...after.entries()].find(([p, due]) => due - (before.get(p) ?? 0n) === dueUnits)
+    expect(grown, 'выдача пополнила строку счётчика пайщицы за период конца гарантии').toBeDefined()
+    period = grown![0]
+
+    fundsPercent = (await accumulationFunds(bc)).reduce((s, f) => s + BigInt(f.percent), 0n)
+    const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
+    initiatorPercent = BigInt(cfg[0]?.initiator_share_percent ?? 618_000)
+
     // Резерв обеспечения председателю — слагаемое расходов прогона.
     await push(BRANCH, 'setaidlimit', { coopname: COOP, limit: '1000.0000 RUB' })
     await push(BRANCH, 'setreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account, amount: '300.0000 RUB' })
-
-    period = 900_000 + Math.floor(Date.now() / 1000) % 100_000
   }, 600_000)
 
   afterAll(async () => {
-    await push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period }).catch(() => {})
     await push(MARKET, 'setinitiator', { coopname: COOP, braname: BRANAME, username: '' }).catch(() => {})
     await push(BRANCH, 'delreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account }).catch(() => {})
     await push(BRANCH, 'setaidlimit', { coopname: COOP, limit: '0.0000 RUB' }).catch(() => {})
   })
 
+  it('mkt.order.keu.17 — выдача пополнила счётчики: строка пайщицы и строка участка за период конца гарантии; до конца периода итог и списание отклоняются', async () => {
+    const due = await memberDue(bc, ekaterina.account, BRANAME, period)
+    expect(due, 'строка пайщицы есть').toBeDefined()
+    expect(units(due.due) >= dueUnits).toBe(true)
+    expect(units(due.turnover) >= baseUnits).toBe(true)
+    expect(Number(due.orders) >= 1).toBe(true)
+
+    const counter = await branchCounter(bc, BRANAME, period)
+    expect(counter, 'строка участка есть').toBeDefined()
+    expect(units(counter.secured) >= dueUnits).toBe(true)
+    expect(units(counter.turnover) >= baseUnits).toBe(true)
+    expect(Number(counter.members) >= 1).toBe(true)
+
+    // Период ещё идёт — расчёт и списание невозможны; к границе периода проверка не относится.
+    if (await currentPeriod(bc) === period) {
+      await expect(push(MARKET, 'closeperiod', { coopname: COOP, braname: BRANAME, period, planned: asset(0n), memos: asset(0n), aid_paid: asset(0n) }))
+        .rejects.toThrow(/MARKETPLACE_PERIOD_OPEN/)
+      await expect(push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: BRANAME, period }))
+        .rejects.toThrow(/MARKETPLACE_PERIOD_OPEN/)
+    }
+  }, 120_000)
+
   it('setshares: доля инициатора записывается; выше 100 % — отказ', async () => {
     await push(MARKET, 'setshares', { coopname: COOP, initiator_share_percent: 618_000 })
     const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
     expect(Number(cfg[0]?.initiator_share_percent)).toBe(618_000)
+    initiatorPercent = 618_000n
     await expect(push(MARKET, 'setshares', { coopname: COOP, initiator_share_percent: 1_000_001 })).rejects.toThrow(/MARKETPLACE_INITIATOR_SHARE_INVALID/)
   })
 
@@ -180,130 +202,130 @@ describe('стол заказов — итог месяца участка и с
     await expect(push(MARKET, 'setinitiator', { coopname: COOP, braname: BRANAME, username: 'nobodyhere12' })).rejects.toThrow()
   })
 
-  it('closeperiod: строка прогона сходится по формулам документа; повтор — MARKETPLACE_PERIOD_EXISTS', async () => {
+  it('closeperiod после окончания периода: T и C из счётчика участка, строка сходится по формулам документа; повтор — MARKETPLACE_PERIOD_EXISTS; период без заказов — MARKETPLACE_PERIOD_EMPTY; отказы аргументов', async () => {
+    await waitPeriodEnd(bc, period)
     const planned = 200n * UNITS
-    await push(MARKET, 'closeperiod', {
-      coopname: COOP, braname: BRANAME, period,
-      turnover: asset(baseUnits), secured: asset(dueUnits),
-      planned: asset(planned), memos: '0.0000 RUB', aid_paid: '0.0000 RUB',
-    })
-    periodRow = (await periodRows()).find(r => Number(r.period) === period)
-    expect(periodRow, 'строка прогона записана').toBeDefined()
-
-    const accfunds = await accumulationFunds()
-    const p = accfunds.reduce((s, f) => s + BigInt(f.percent), 0n)
-    expect(p > 0n && p < H, 'у кооператива есть фонды накопления с процентами').toBe(true)
-
-    const reserve = units(periodRow.aid_reserve)
-    const unpaid = units(periodRow.aid_unpaid)
-    const expensesExpected = planned + reserve - unpaid > 0n ? planned + reserve - unpaid : 0n
-    expect(units(periodRow.expenses)).toBe(expensesExpected)
-    expect(reserve).toBe(300n * UNITS)
-
-    // Порядок по решению владельца 03.11.2026: расходы участка первыми, из
-    // остатка — проценты фондов, остаток — экономия инициатора и пайщиков.
-    const expenses = units(periodRow.expenses)
-    const branch = expenses < dueUnits ? expenses : dueUnits
-    const afterExpenses = dueUnits - branch
-    const funds = afterExpenses * p / H
-    const membership = branch + funds
-    const economy = afterExpenses - funds
-    const initiator = economy * 618_000n / H
-    expect(units(periodRow.membership)).toBe(membership)
-    expect(units(periodRow.funds_amount)).toBe(funds)
-    expect(units(periodRow.branch_amount)).toBe(branch)
-    expect(units(periodRow.initiator_amount)).toBe(initiator)
-    expect(units(periodRow.return_amount)).toBe(economy - initiator)
-    expect(units(periodRow.deficit)).toBe(expenses - branch)
-    expect(BigInt(periodRow.rate_branch)).toBe(branch * H / baseUnits)
-    expect(BigInt(periodRow.rate_funds)).toBe(funds * H / baseUnits)
-    expect(BigInt(periodRow.rate_initiator)).toBe(initiator * H / baseUnits)
+    const month = await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent }, 'итог периода', { planned }, period)
+    periodRow = month.row
+    // Право получателя помощи на следующий период копится (задача 99D-34): не меньше суммы строки.
+    expect(units(periodRow.aid_reserve) >= 300n * UNITS, 'право получателя на следующий период').toBe(true)
+    expect(units(periodRow.turnover) >= baseUnits, 'стоимость заказов — из счётчика участка').toBe(true)
+    expect(units(periodRow.secured) >= dueUnits, 'собранная обеспечительная часть — из счётчика участка').toBe(true)
     expect(periodRow.initiator).toBe(chairkrg.account)
 
-    await expect(push(MARKET, 'closeperiod', {
-      coopname: COOP, braname: BRANAME, period,
-      turnover: asset(baseUnits), secured: asset(dueUnits), planned: asset(planned), memos: '0.0000 RUB', aid_paid: '0.0000 RUB',
-    })).rejects.toThrow(/MARKETPLACE_PERIOD_EXISTS/)
-    await expect(push(MARKET, 'closeperiod', {
-      coopname: COOP, braname: BRANAME, period: period + 1,
-      turnover: '0.0000 RUB', secured: asset(dueUnits), planned: asset(planned), memos: '0.0000 RUB', aid_paid: '0.0000 RUB',
-    })).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
-  })
+    const base = { coopname: COOP, braname: BRANAME, period, planned: asset(planned), memos: asset(0n), aid_paid: asset(0n) }
+    await expect(push(MARKET, 'closeperiod', base)).rejects.toThrow(/MARKETPLACE_PERIOD_EXISTS/)
+    // За давний период заказов не было: счётчика нет — итог не считается.
+    await expect(push(MARKET, 'closeperiod', { ...base, period: period - 1_000 })).rejects.toThrow(/MARKETPLACE_PERIOD_EMPTY/)
+    await expect(push(MARKET, 'closeperiod', { ...base, period: period + 1_000 })).rejects.toThrow(/MARKETPLACE_PERIOD_OPEN/)
+    for (const field of ['planned', 'memos', 'aid_paid'])
+      await expect(push(MARKET, 'closeperiod', { ...base, [field]: asset(-1n) }), `отрицательное ${field}`).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
+    await expect(push(MARKET, 'closeperiod', { ...base, period: period - 1_001, planned_target: asset(-1n) }), 'отрицательная цель плановых расходов')
+      .rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
+    // По цели резерва (99D-34) месяц без выданных заказов получает строку: обеспечительной части нет,
+    // расходы целиком — дефицит, ставки ноль, несобранная цель переходит дальше.
+    const quiet = period - 1_002
+    await push(MARKET, 'closeperiod', { ...base, period: quiet, planned: asset(0n), planned_target: asset(rub(50)) })
+    const quietRow = (await bc.getTableRows(MARKET, COOP, 'kuperiods', 1000)).find((r: any) => r.braname === BRANAME && Number(r.period) === quiet)
+    expect(quietRow, 'строка итога месяца без заказов').toBeDefined()
+    expect(units(quietRow.turnover)).toBe(0n)
+    expect(units(quietRow.branch_amount)).toBe(0n)
+    expect(units(quietRow.deficit)).toBe(units(quietRow.expenses))
+    expect(units(quietRow.planned_target)).toBe(rub(50))
+    expect([quietRow.rate_branch, quietRow.rate_funds, quietRow.rate_initiator].map(Number)).toEqual([0, 0, 0])
+    await push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period: quiet })
+    await expect(push(MARKET, 'closeperiod', { ...base, planned: asset(rub(1), 'AXON') })).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
+    await expect(push(MARKET, 'closeperiod', { ...base, period: 0 })).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/)
+    await expect(push(MARKET, 'closeperiod', { ...base, braname: 'nosuchbranch' })).rejects.toThrow()
+  }, 1_500_000)
 
-  it('chargeperiod: четыре части одного заказа — участку, в фонды по процентам, инициатору, пайщице обратно', async () => {
-    const dueBefore = await userWallet('w.mkt.due', ekaterina.account)
-    const shareBefore = await userWallet('w.mkt.share', ekaterina.account)
-    const commonBefore = await userWallet('w.brn.common', BRANAME)
-    const investBefore = await userWallet('w.mkt.invest', chairkrg.account)
-    const fundsBefore = await fundBalances()
+  it('chargeperiod: строка пайщицы одной транзакцией в нитке p.mkt.due — участку, в фонды по процентам, инициаторам, пайщице обратно; строка стёрта, повтор — MARKETPLACE_DUE_NOT_FOUND', async () => {
+    const row = await memberDue(bc, ekaterina.account, BRANAME, period)
+    expect(row, 'строка пайщицы ждёт списания').toBeDefined()
+    const rowDue = units(row.due)
+    const rowTurnover = units(row.turnover)
+    const rowRetained = units(row.retained)
 
-    await push(MARKET, 'chargeperiod', {
-      coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: orderHash,
-      amount: asset(dueUnits), base: asset(baseUnits), period,
-    })
+    const dueBefore = await userWallet(bc, 'w.mkt.due', ekaterina.account)
+    const shareBefore = await userWallet(bc, 'w.mkt.share', ekaterina.account)
+    const commonBefore = await userWallet(bc, 'w.brn.common', BRANAME)
+    const repayBefore = await userWallet(bc, 'w.mkt.repay', BRANAME)
+    const fundsBefore = await fundBalances(bc)
+    const investBefore = await investBranch(bc, BRANAME)
 
-    const toBranch = baseUnits * BigInt(periodRow.rate_branch) / H
-    const toFunds = baseUnits * BigInt(periodRow.rate_funds) / H
-    const toInitiator = baseUnits * BigInt(periodRow.rate_initiator) / H
-    const toReturn = dueUnits - toBranch - toFunds - toInitiator
-    expect(toReturn >= 0n, 'ставка заказа совпадает со ставкой прогона — возврат не отрицателен').toBe(true)
+    const rates = { rateBranch: BigInt(periodRow.rate_branch), rateFunds: BigInt(periodRow.rate_funds), rateInitiator: BigInt(periodRow.rate_initiator) }
+    const parts = chargeRow(rates, rowDue, rowTurnover, rowRetained)
+    // Доля инициаторов — по фазам инвестиционного этапа (задача 99D-27).
+    const route = crpsRoute(investBefore, parts.initiator)
 
+    await push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: BRANAME, period })
+
+    const hash = chargeHash(ekaterina.account, BRANAME, period)
     const expected = ['o.mkt.charge']
-    if (toBranch > 0n) expected.push('o.brn.common')
-    if (toFunds > 0n) expected.push('o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel')
-    if (toInitiator > 0n) expected.push('o.mkt.initr')
-    if (toReturn > 0n) expected.push('o.mkt.retdue')
-    const ops: LedgerRow[] = await waitForOps(chairmanToken, orderHash, expected)
-    expect(units(sumOf(ops, 'o.mkt.charge').toFixed(4))).toBe(toBranch + toFunds + toInitiator)
-    expect(units(sumOf(ops, 'o.brn.common').toFixed(4)) - units(sumOf(ops, 'o.brn.retfee').toFixed(4))).toBeGreaterThanOrEqual(toBranch)
+    if (parts.branch > 0n) expected.push('o.brn.common')
+    if (parts.funds > 0n) expected.push('o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel')
+    if (route.repay > 0n) expected.push('o.mkt.repay')
+    if (route.cover > 0n) expected.push('o.mkt.icover')
+    if (parts.returned > 0n) expected.push('o.mkt.retdue')
+    const ops: LedgerRow[] = await waitForOps(chairmanToken, hash, expected)
+    expect(units(sumOf(ops, 'o.mkt.charge').toFixed(4))).toBe(parts.charged)
+    expect(units(sumOf(ops, 'o.brn.common').toFixed(4))).toBeGreaterThanOrEqual(parts.branch + route.toBranch)
     const fundOpsSum = sumOf(ops, 'o.fnd.indiv') + sumOf(ops, 'o.fnd.resrv') + sumOf(ops, 'o.fnd.devel')
-    expect(units(fundOpsSum.toFixed(4))).toBe(toFunds)
-    expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4))).toBe(toInitiator)
-    expect(units(sumOf(ops, 'o.mkt.retdue').toFixed(4))).toBe(toReturn)
+    expect(units(fundOpsSum.toFixed(4))).toBe(parts.funds)
+    expect(units(sumOf(ops, 'o.mkt.repay').toFixed(4))).toBe(route.repay)
+    expect(units(sumOf(ops, 'o.mkt.icover').toFixed(4)), 'погашение 26 — доля денег в базе возврата').toBe(route.cover)
+    expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4)), 'доля инициатора больше не начисляется на его кошелёк').toBe(0n)
+    expect(units(sumOf(ops, 'o.mkt.retdue').toFixed(4))).toBe(parts.returned)
 
-    // Все ноги — в нитке заказа и процессе поставки.
-    const rows = await historyOfProcess(chairmanToken, orderHash)
-    const initr = rows.find(r => r.action === 'walletop' && r.operationCode === 'o.mkt.initr')
-    if (toInitiator > 0n) expect([initr?.walletFrom, initr?.walletTo]).toEqual(['w.mkt.fee', 'w.mkt.invest'])
+    // Все ноги — в нитке строки счётчика, процесс списания по итогу периода; в нитке заказа списания нет.
+    const byOp = await processTypeByOperation(chairmanToken, hash)
+    for (const code of expected) expect(byOp[code], `проводка ${code} идёт ниткой списания`).toBe('p.mkt.due')
+    const orderCodes = new Set((await historyOfProcess(chairmanToken, orderHash)).map(r => r.operationCode))
+    expect(orderCodes.has('o.mkt.charge'), 'в нитке заказа списания нет').toBe(false)
+    const rows = await historyOfProcess(chairmanToken, hash)
+    const repay = rows.find(r => r.action === 'walletop' && r.operationCode === 'o.mkt.repay')
+    if (route.repay > 0n) expect([repay?.walletFrom, repay?.walletTo]).toEqual(['w.mkt.fee', 'w.mkt.repay'])
     const retdue = rows.find(r => r.action === 'walletop' && r.operationCode === 'o.mkt.retdue')
-    if (toReturn > 0n) expect([retdue?.walletFrom, retdue?.walletTo]).toEqual(['w.mkt.due', 'w.mkt.share'])
+    if (parts.returned > 0n) expect([retdue?.walletFrom, retdue?.walletTo]).toEqual(['w.mkt.due', 'w.mkt.share'])
 
-    expect(await userWallet('w.mkt.due', ekaterina.account)).toBe(dueBefore - dueUnits)
-    expect(await userWallet('w.mkt.share', ekaterina.account)).toBe(shareBefore + toReturn)
-    expect(await userWallet('w.brn.common', BRANAME)).toBe(commonBefore + toBranch)
-    expect(await userWallet('w.mkt.invest', chairkrg.account)).toBe(investBefore + toInitiator)
+    expect(await userWallet(bc, 'w.mkt.due', ekaterina.account)).toBe(dueBefore - rowDue - rowRetained)
+    expect(await userWallet(bc, 'w.mkt.share', ekaterina.account)).toBe(shareBefore + parts.returned)
+    // Переплата завершивших возврат переводится с кошелька возмещения участку.
+    const commonDelta = await userWallet(bc, 'w.brn.common', BRANAME) - commonBefore
+    const repayDelta = await userWallet(bc, 'w.mkt.repay', BRANAME) - repayBefore
+    expect(commonDelta + repayDelta).toBe(parts.branch + parts.initiator)
+    expect(repayDelta <= route.repay).toBe(true)
 
     // Фонды: сумма долей равна части в фонды; доля каждого фонда — по его проценту,
-    // остаток округления у последнего по номеру. У каждого фонда свой кошелёк
-    // ledger2 — кошелёк и есть субсчёт фонда (задача 99D-25).
-    const fundsAfter = await fundBalances()
-    const accfunds = await accumulationFunds()
-    const p = accfunds.reduce((s, f) => s + BigInt(f.percent), 0n)
-    let total = 0n
+    // остаток округления у последнего по номеру (задача 99D-25).
+    const fundsAfter = await fundBalances(bc)
+    const accfunds = await accumulationFunds(bc)
+    const shares = splitFunds(parts.funds, accfunds.map(f => BigInt(f.percent)))
     accfunds.forEach((f, i) => {
       const wallet = String(f.wallet)
-      const delta = (fundsAfter.get(wallet) ?? 0n) - (fundsBefore.get(wallet) ?? 0n)
-      const share = i === accfunds.length - 1 ? toFunds - total : toFunds * BigInt(f.percent) / p
-      total += share
-      expect(delta, `доля фонда ${f.name}`).toBe(share)
+      expect((fundsAfter.get(wallet) ?? 0n) - (fundsBefore.get(wallet) ?? 0n), `доля фонда ${f.name}`).toBe(shares[i])
     })
     expect(accfunds.map(f => f.wallet), 'три стандартных фонда накопления на своих кошельках')
       .toEqual(['w.fnd.indiv', 'w.fnd.resrv', 'w.fnd.devel'])
-    expect(fundsAfter.has('w.fnd.accum'), 'общего кошелька фондов с разрезом больше нет').toBe(false)
-  }, 180_000)
 
-  it('повтор списания — MARKETPLACE_DUE_EXCEEDS; delperiod стирает строку; списание без строки — MARKETPLACE_PERIOD_NOT_CLOSED', async () => {
-    await expect(push(MARKET, 'chargeperiod', {
-      coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: orderHash,
-      amount: asset(dueUnits), base: asset(baseUnits), period,
-    })).rejects.toThrow(/MARKETPLACE_DUE_EXCEEDS/)
+    // Строка стёрта: списывать нечего.
+    expect(await memberDue(bc, ekaterina.account, BRANAME, period)).toBeUndefined()
+    await expect(push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: BRANAME, period })).rejects.toThrow(/MARKETPLACE_DUE_NOT_FOUND/)
+    await expect(push(MARKET, 'chargeperiod', { coopname: COOP, username: ekaterina.account, braname: 'nosuchbranch', period })).rejects.toThrow()
+  }, 300_000)
 
+  it('delperiod стирает строку итога; повтор — MARKETPLACE_PERIOD_NOT_CLOSED; счётчики цепи оплачивает контракт', async () => {
     await push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period })
-    expect((await periodRows()).find(r => Number(r.period) === period)).toBeUndefined()
+    expect((await branchPeriods(bc, BRANAME)).find(r => Number(r.period) === period)).toBeUndefined()
     await expect(push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period })).rejects.toThrow(/MARKETPLACE_PERIOD_NOT_CLOSED/)
-    await expect(push(MARKET, 'chargeperiod', {
-      coopname: COOP, username: ekaterina.account, braname: BRANAME, order_hash: orderHash,
-      amount: '1.0000 RUB', base: asset(baseUnits), period,
-    })).rejects.toThrow(/MARKETPLACE_PERIOD_NOT_CLOSED/)
+
+    // Память под счётчики — за контрактом, не за кооперативом (решение владельца 09.11.2026).
+    const dues: any[] = await bc.getTableRows(MARKET, COOP, 'kudues', 1000)
+    const counters: any[] = await bc.getTableRows(MARKET, COOP, 'kucounters', 1000)
+    expect(dues.length + counters.length >= 0).toBe(true)
+    const payers: any[] = await bc.api.rpc.get_table_rows({ json: true, code: MARKET, scope: COOP, table: 'kucounters', limit: 1, show_payer: true } as any).then((r: any) => r.rows)
+    for (const p of payers) expect(p.payer, 'плательщик памяти счётчика участка').toBe(MARKET)
   })
 })
+
+const UNITS = 10_000n

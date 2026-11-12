@@ -106,21 +106,34 @@ export async function placeOrder(args: { who: Who, offerId: string, quantity: nu
   await gql(token, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
     i: { offer_id: offerId, quantity, delivery_braname: braname },
   })
-  const sp = await gql<any>(token, `query{
-    marketplaceCheckoutSignablePayloads{
-      lines{ offer_id package_id order_hash amount membership_fee from_program from_wallet }
-      convert{ amount membership_fee document{ full_title html hash meta binary } }
+  // Доплата с паевого считается по кошельку на момент оформления. В фазе со
+  // сжатым временем крон узла может вернуть пайщику часть прежних заказов
+  // между превью и оформлением — узел отвечает MARKETPLACE_CONVERT_AMOUNT_CHANGED,
+  // и, как стол пайщика, набор оформляет заново.
+  let result: any
+  for (let attempt = 1; ; attempt++) {
+    const sp = await gql<any>(token, `query{
+      marketplaceCheckoutSignablePayloads{
+        lines{ offer_id package_id order_hash amount membership_fee from_program from_wallet }
+        convert{ amount membership_fee document{ full_title html hash meta binary } }
+      }
+    }`)
+    const preview = sp.marketplaceCheckoutSignablePayloads
+    if (!preview.lines.length)
+      throw new Error('по позиции корзины не пришло превью оформления')
+    const lines = preview.lines.map((p: any) => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
+    const signed_convert = preview.convert ? await signDocument(who.wif, preview.convert.document, who.account, 1) : null
+    try {
+      const co = await gql<any>(token, `mutation($i:MarketplaceCheckoutCartInput){
+        marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }
+      }`, { i: { lines, signed_convert } })
+      result = co.marketplaceCheckoutCart
+      break
+    } catch (e: any) {
+      if (attempt >= 3 || !String(e?.message ?? '').includes('MARKETPLACE_CONVERT_AMOUNT_CHANGED'))
+        throw e
     }
-  }`)
-  const preview = sp.marketplaceCheckoutSignablePayloads
-  if (!preview.lines.length)
-    throw new Error('по позиции корзины не пришло превью оформления')
-  const lines = preview.lines.map((p: any) => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
-  const signed_convert = preview.convert ? await signDocument(who.wif, preview.convert.document, who.account, 1) : null
-  const co = await gql<any>(token, `mutation($i:MarketplaceCheckoutCartInput){
-    marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id status } failed_lines{ reason } }
-  }`, { i: { lines, signed_convert } })
-  const result = co.marketplaceCheckoutCart
+  }
   if (!result.fully_completed)
     throw new Error(`оформление не прошло целиком: ${JSON.stringify(result.failed_lines)}`)
   const orderId = result.created_orders[0].id as string

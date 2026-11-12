@@ -8,6 +8,7 @@ const approval_action_labels: Record<string, string> = {
   'capital::act2pgprp': t('chairman.approvalActionLabels.blagorostPropertyAct'),
   'edubridge::apprvcontr': t('chairman.approvalActionLabels.eduTeacherContract'),
   'edubridge::apprvridact': t('chairman.approvalActionLabels.eduRidAct'),
+  'marketplace::apprvipact': t('chairman.approvalActionLabels.marketplaceInvestPropertyAct'),
   'branch::apprliab': t('chairman.approvalActionLabels.unitChairmanLiabilityContract'),
   'branch::apprauth': t('chairman.approvalActionLabels.unitChairmanPowerOfAttorney'),
 };
@@ -18,7 +19,11 @@ const approval_action_labels: Record<string, string> = {
  * председателя участка: к моменту одобрения решение совета об учреждении участка уже
  * принято, поэтому отказ невозможен (контракт также блокирует отклонение).
  */
-const non_declinable_approvals = new Set<string>(['branch::apprliab', 'branch::apprauth']);
+//
+// Тот же случай — акт приёма имущества паевым взносом в кооперативный участок:
+// совет уже решил принять имущество, подпись председателя исполняет решение
+// (решение владельца 08.11.2026; контракт отклоняет отказ).
+const non_declinable_approvals = new Set<string>(['branch::apprliab', 'branch::apprauth', 'marketplace::apprvipact']);
 
 export const get_approval_action_label = (
   callback_contract: string,

@@ -51,6 +51,8 @@ export const marketplaceBranchReservesSelector = Selector('MarketplaceBranchRese
 export const rawMarketplaceBranchPeriodSelector = {
   braname: true,
   period: true,
+  starts_at: true,
+  ends_at: true,
   turnover: true,
   secured: true,
   planned: true,
@@ -58,6 +60,10 @@ export const rawMarketplaceBranchPeriodSelector = {
   aid_paid: true,
   aid_reserve: true,
   aid_unpaid: true,
+  planned_target: true,
+  target: true,
+  target_prev: true,
+  target_funded: true,
   expenses: true,
   membership: true,
   funds_amount: true,
@@ -67,6 +73,8 @@ export const rawMarketplaceBranchPeriodSelector = {
   deficit: true,
   rate_percent: true,
   initiator: true,
+  invest_phase: true,
+  investor_repaid: true,
   rows_total: true,
   rows_charged: true,
   closed_at: true,
@@ -85,6 +93,8 @@ export const marketplaceBranchPeriodsPaginationSelector = Selector('MarketplaceB
 export const rawMarketplaceBranchCurrentPeriodSelector = {
   braname: true,
   period: true,
+  starts_at: true,
+  ends_at: true,
   planned: true,
   memos: true,
   aid_paid: true,
@@ -93,6 +103,10 @@ export const rawMarketplaceBranchCurrentPeriodSelector = {
   ripening_orders: true,
   ripening_turnover: true,
   ripening_secured: true,
+  planned_target: true,
+  target_prev: true,
+  distributed: true,
+  received: true,
 }
 const _validateBranchCurrentPeriod: MakeAllFieldsRequired<ValueTypes['MarketplaceBranchCurrentPeriod']> = rawMarketplaceBranchCurrentPeriodSelector
 export const marketplaceBranchCurrentPeriodSelector = Selector('MarketplaceBranchCurrentPeriod')(rawMarketplaceBranchCurrentPeriodSelector)

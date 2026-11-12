@@ -3,14 +3,15 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
+import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { api } from '../api';
 import type { IProgramProperty, PropertyPositionForm } from './types';
 
 export * from './types';
 
 /**
- * Паевой взнос имуществом в «Благорост» со стороны пайщика: подать заявление
- * и подписать акт приёма-передачи. Вторую подпись председатель ставит в
+ * Паевой взнос имуществом в «Благорост» со стороны пайщика: собрать заявление,
+ * показать его, подписать и подать; затем подписать акт приёма-передачи. Вторую подпись председатель ставит в
  * запросах одобрений, решение принимает совет — здесь этих шагов нет.
  *
  * Сервер отвечает после факта из цепи (ADR-009): после мутации экран
@@ -20,6 +21,7 @@ export function useProgramProperty() {
   const system = useSystemStore();
   const session = useSessionStore();
   const isSubmitting = ref(false);
+  const isGenerating = ref(false);
 
   /** Оценка в формате цепи: точность и символ токена кооператива. */
   function toAsset(amount: number): string {
@@ -27,10 +29,14 @@ export function useProgramProperty() {
     return `${amount.toFixed(root_govern_precision)} ${root_govern_symbol}`;
   }
 
-  async function submitStatement(form: PropertyPositionForm): Promise<void> {
-    isSubmitting.value = true;
+  /**
+   * Заявление по позиции имущества — для показа до подписи. Пайщик читает
+   * его, возвращается к полям и собирает заново, пока не подпишет.
+   */
+  async function generateStatement(form: PropertyPositionForm): Promise<IGeneratedDocumentOutput> {
+    isGenerating.value = true;
     try {
-      const document = await api.generateStatement({
+      return await api.generateStatement({
         coopname: system.info.coopname,
         username: session.username,
         property_hash: await generateUniqueHash(),
@@ -40,6 +46,15 @@ export function useProgramProperty() {
         property_unit: form.unit.trim(),
         property_amount: toAsset(Number(form.amount)),
       });
+    } finally {
+      isGenerating.value = false;
+    }
+  }
+
+  /** Подписать показанное пайщику заявление и подать его — подписывается ровно прочитанный текст. */
+  async function submitStatement(document: IGeneratedDocumentOutput): Promise<void> {
+    isSubmitting.value = true;
+    try {
       const statement = await new DigitalDocument(document).sign(session.username);
       await api.createProgramProperty({
         coopname: system.info.coopname,
@@ -71,5 +86,5 @@ export function useProgramProperty() {
     }
   }
 
-  return { submitStatement, signAct, isSubmitting };
+  return { generateStatement, submitStatement, signAct, isSubmitting, isGenerating };
 }

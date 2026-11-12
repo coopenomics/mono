@@ -6,3 +6,4 @@ export { useEditorViewportMinHeight } from './useEditorViewportMinHeight';
 export { useFirstLoad } from './useFirstLoad';
 export { useConfirm, useConfirmState, type ConfirmOptions } from './useConfirm';
 export { useFormDraft, type FormDraftOptions } from './useFormDraft';
+export { useTabQuery } from './useTabQuery';

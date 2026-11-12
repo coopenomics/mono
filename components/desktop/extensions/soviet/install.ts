@@ -22,7 +22,7 @@ import { DocumentTemplatesPage } from 'src/pages/Cooperative/DocumentTemplates';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
-import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
+import { ExpenseCounterpartiesPage, ExpensesRegistryPage } from 'app/extensions/expenses/pages';
 import { UnionPageCooperativeDetail } from 'src/pages/Union/CooperativeDetail';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { t, t as i18nT } from './i18n';
@@ -167,6 +167,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.expensesRegistryTitle'),
               icon: 'receipt_long',
+              requires: 'Expense:read:all',
+            },
+          },
+          {
+            // Реестр контрагентов (99D-35): организации и ИП, которым кооператив
+            // платит по реквизитам. Совет ведёт всех, участки видят и выбирают их
+            // в плановых расходах. Право страницы — то же, что у реестра расходов.
+            path: 'counterparties',
+            name: 'soviet-expense-counterparties',
+            component: markRaw(ExpenseCounterpartiesPage),
+            meta: {
+              title: t('soviet.install.counterpartiesTitle'),
+              icon: 'business',
               requires: 'Expense:read:all',
             },
           },

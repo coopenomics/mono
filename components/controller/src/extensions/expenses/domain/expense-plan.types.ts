@@ -1,4 +1,5 @@
 import { registerEnumType } from '@nestjs/graphql';
+import { expensePlanRecurrenceMonths, nextExpensePlanDate } from '@coopenomics/extension-kit';
 
 /**
  * Периодичность планового расхода (requirement b6 «Экономика КУ», раунд 6).
@@ -35,33 +36,17 @@ registerEnumType(ExpensePlanRecurrence, {
   },
 });
 
-/** Сдвиг в месяцах для каждой периодичности. */
-const RECURRENCE_MONTHS: Record<ExpensePlanRecurrence, number> = {
-  [ExpensePlanRecurrence.NONE]: 0,
-  [ExpensePlanRecurrence.MONTHLY]: 1,
-  [ExpensePlanRecurrence.QUARTERLY]: 3,
-  [ExpensePlanRecurrence.YEARLY]: 12,
-};
-
 /**
  * Дата следующего экземпляра серии; `null` для разового расхода.
  *
- * День месяца сохраняется: расход «первого числа» остаётся первым числом.
- * Если в целевом месяце такого дня нет (31-е в феврале) — берётся последний
- * день месяца, а не перескок на начало следующего.
+ * Календарь общий с Столом заказов (`nextExpensePlanDate` каркаса): число
+ * месяца сохраняется, а если в целевом месяце такого числа нет (31-е в
+ * феврале) — берётся последний день месяца. Счёт по UTC, как у месяцев
+ * контракта: сроки на экране и в реестре совпадают при любом поясе сервера.
  */
 export function nextRecurrenceDate(
   from: Date,
   recurrence: ExpensePlanRecurrence
 ): Date | null {
-  const months = RECURRENCE_MONTHS[recurrence];
-  if (!months) return null;
-
-  const day = from.getDate();
-  const target = new Date(from.getTime());
-  target.setDate(1);
-  target.setMonth(target.getMonth() + months);
-  const lastDayOfTargetMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
-  target.setDate(Math.min(day, lastDayOfTargetMonth));
-  return target;
+  return nextExpensePlanDate(from, expensePlanRecurrenceMonths(recurrence));
 }

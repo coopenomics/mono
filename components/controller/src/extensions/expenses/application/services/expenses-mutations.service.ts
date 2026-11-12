@@ -22,6 +22,7 @@ import {
 import type { IExpenseItemBlockchainData } from '../../domain/interfaces/expense-proposal-blockchain.interface'
 import { ExpenseMechanics } from '../../domain/enums/expense-mechanics.enum'
 import { ExpenseRecipientType } from '../../domain/enums/expense-recipient-type.enum'
+import { ExpenseCounterpartiesService } from './expense-counterparties.service'
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
@@ -55,7 +56,8 @@ export class ExpensesMutationsService {
     @Inject(EXPENSE_PROPOSAL_REPOSITORY)
     private readonly proposals: ExpenseProposalRepository,
     @Inject(PAYMENT_PORT)
-    private readonly payments: IPaymentPort
+    private readonly payments: IPaymentPort,
+    private readonly counterparties: ExpenseCounterpartiesService
   ) {}
 
   async generateExpenseProposalStatementDocument(
@@ -75,17 +77,27 @@ export class ExpensesMutationsService {
     const privateItems = await Promise.all(
       data.items.map(async (item) => {
         let requisites = item.requisites
+        let recipientName = item.recipient_name
+        let paymentPurpose = item.payment_purpose
         if (item.payment_method_id) {
           const owner = item.recipient_username || data.username
           requisites = await this.requisiteSnapshots.formatForOwner(owner, item.payment_method_id)
         }
+        // Организация из реестра контрагентов: наименование и реквизиты — из
+        // карточки, назначение по умолчанию — тоже из неё (задача 99D-35).
+        if (item.recipient_type === 'ORG' && item.counterparty_id) {
+          const { record, requisitesText } = await this.counterparties.forPayment(data.coopname, item.counterparty_id)
+          recipientName = record.name
+          requisites = requisitesText
+          paymentPurpose = paymentPurpose || record.payment_purpose || undefined
+        }
         return {
           number: item.number,
-          recipient_name: item.recipient_name,
+          recipient_name: recipientName,
           requisites,
           // Пайщику назначение платежа не вводится — всегда «Аванс под отчёт»
           payment_purpose:
-            item.recipient_type === 'ORG' ? item.payment_purpose : EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose,
+            item.recipient_type === 'ORG' ? paymentPurpose : EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose,
         }
       })
     )
@@ -419,6 +431,7 @@ function toRequisiteItems(proposalHash: string, items: ExpenseItemInputDTO[]): I
     isOrganization: it.recipient_type === ExpenseRecipientType.ORG,
     mechanics: it.mechanics === ExpenseMechanics.DIRECT ? 'DIRECT' : 'ADVANCE',
     paymentMethodId: it.payment_method_id,
+    counterpartyId: it.counterparty_id,
     requisites: it.requisites,
     paymentPurpose: it.payment_purpose,
     recipientName: it.recipient_name,

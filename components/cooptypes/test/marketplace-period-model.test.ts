@@ -7,7 +7,7 @@ import { MarketContract } from '../src'
  * разделы 8, 9, 16; реестр marketplace.order, случаи mkt.order.keu.model.*).
  *
  * Эталон повторяет арифметику контрактов `closeperiod`, `chargeperiod` и
- * `fund::accrue`. Тест цепи `boot/src/tests/marketplace-period-math.test.ts`
+ * `fund::accrue`. Тест цепи `boot/src/tests/marketplace-period.test.ts`
  * сверяет с ним строки, которые посчитал контракт; здесь проверяются свойства
  * самой модели на сотнях ситуаций, без цепи:
  *  - контрольные примеры документа (участки А и Б);
@@ -325,5 +325,484 @@ describe('mkt.order.keu.model.04 — свойства расчёта на слу
       }
       expect(sum.returned >= t.returned, 'остатки округления достаются пайщикам').toBe(true)
     }
+  })
+})
+
+// ── Возврат паевых взносов инициаторам (CRPS), задача 99D-27 ──────────────────────
+// Мир из двух-трёх инициаторов, который ведёт базу участка так же, как
+// `lib/core/marketplace/invest.hpp`: вход в базу, фиксация, приём возмещения.
+describe('эталон возврата паевых взносов инициаторам (CRPS)', () => {
+  const { CRPS_SCALE: S, crpsClaimable, crpsOutstanding, crpsReturned, crpsRoute } = MarketContract.PeriodModel
+  const R = BigInt(10_000) // 1 ₽ в единицах актива
+
+  interface Inv { active: boolean, money: bigint, property: bigint, usedMoney: bigint, claimed: bigint, returnedFixed: bigint, accJoin: bigint }
+  function world() {
+    const b = { base: 0n, acc: 0n, sJoin: 0n, sFixed: 0n, unusedTotal: 0n, reserved: 0n, baseMoney: 0n }
+    const units = (i: Inv) => i.usedMoney + i.property
+    const leave = (i: Inv) => {
+      const u = units(i)
+      if (i.active && u > 0n) {
+        b.sFixed -= i.returnedFixed
+        b.base -= u
+        b.baseMoney -= i.usedMoney
+        b.sJoin -= u * i.accJoin
+        i.returnedFixed = crpsReturned(i, b.acc)
+      }
+      i.accJoin = b.acc
+    }
+    const enter = (i: Inv) => {
+      i.accJoin = b.acc
+      const u = units(i)
+      if (i.active && u > 0n) {
+        b.base += u
+        b.baseMoney += i.usedMoney
+        b.sJoin += u * b.acc
+        b.sFixed += i.returnedFixed
+      }
+    }
+    const investor = (): Inv => ({ active: true, money: 0n, property: 0n, usedMoney: 0n, claimed: 0n, returnedFixed: 0n, accJoin: b.acc })
+    const property = (i: Inv, amount: bigint) => { leave(i); i.property += amount; enter(i) }
+    const money = (i: Inv, amount: bigint) => { leave(i); i.money += amount; b.unusedTotal += amount; enter(i) }
+    const spend = (i: Inv, amount: bigint) => { leave(i); i.usedMoney += amount; b.unusedTotal -= amount; enter(i) }
+    const repay = (share: bigint) => {
+      const r = crpsRoute(b, share)
+      b.acc = r.acc
+      return r
+    }
+    /** Выход из базы для завершения: возвращённое фиксируется, единицы снимаются. */
+    const leaveAll = (i: Inv) => leave(i)
+    return { b, investor, property, money, spend, repay, leaveAll }
+  }
+
+  it('погашение 26 — доля денег в возмещении: 26 гасится ровно на возвращённое по денежным паевым взносам, имущество не гасит', () => {
+    // Решение владельца 09.11.2026: деньги инициаторов, израсходованные
+    // участком, — на 26; возмещение гасит 26 на свою денежную долю.
+    const w = world()
+    const a = w.investor()
+    const c = w.investor()
+    w.property(a, 600_000n * R)
+    w.money(c, 400_000n * R)
+    w.spend(c, 400_000n * R)
+    const r = w.repay(100_000n * R)
+    expect(r.repay).toBe(100_000n * R)
+    expect(r.cover, 'на 26 — 40 % возмещения').toBe(40_000n * R)
+    expect(crpsReturned(c, w.b.acc), 'денежному инициатору возвращено ровно погашенное на 26').toBe(r.cover)
+    // Без денежных взносов в базе 26 не гасится вовсе.
+    const p = world()
+    p.property(p.investor(), 500_000n * R)
+    expect(p.repay(10_000n * R).cover).toBe(0n)
+  })
+
+  it('два инициатора 600 000 и 400 000 ₽ получают возврат 60 % и 40 % до копейки', () => {
+    const w = world()
+    const a = w.investor()
+    const c = w.investor()
+    w.property(a, 600_000n * R)
+    w.property(c, 400_000n * R)
+    const r = w.repay(100_000n * R)
+    expect(r.repay).toBe(100_000n * R)
+    const kop = R / 100n
+    expect(60_000n * R - crpsReturned(a, w.b.acc) < kop, 'до копейки').toBe(true)
+    expect(40_000n * R - crpsReturned(c, w.b.acc) < kop, 'до копейки').toBe(true)
+  })
+
+  it('инициатор, вошедший позже, получает только возвраты после входа', () => {
+    const w = world()
+    const a = w.investor()
+    w.property(a, 100_000n * R)
+    w.repay(10_000n * R)
+    const late = w.investor()
+    w.property(late, 100_000n * R)
+    w.repay(20_000n * R)
+    const kop = R / 100n
+    expect(20_000n * R - crpsReturned(a, w.b.acc) < kop).toBe(true)
+    expect(10_000n * R - crpsReturned(late, w.b.acc) < kop).toBe(true)
+  })
+
+  it('доля сверх невозвращённого направляется участку; непогашенный остаток считается за O(1)', () => {
+    const w = world()
+    const a = w.investor()
+    w.property(a, 50_000n * R)
+    expect(crpsOutstanding(w.b)).toBe(50_000n * R)
+    const r = w.repay(80_000n * R)
+    expect(r.repay).toBe(50_000n * R)
+    expect(r.toBranch).toBe(30_000n * R)
+    expect(crpsOutstanding(w.b)).toBe(0n)
+  })
+
+  it('неиспользованные деньги держатся подушкой до полного возврата использованного', () => {
+    const w = world()
+    const a = w.investor()
+    w.money(a, 300_000n * R)
+    w.spend(a, 180_000n * R)
+    w.repay(60_000n * R)
+    const mid = crpsClaimable(w.b, a)
+    expect(60_000n * R - mid.returned < R / 100n).toBe(true)
+    expect(mid.unused, 'подушка закрыта, пока использованное не возвращено').toBe(0n)
+    // Возврат завершён: контракт выводит инициатора из базы (status done).
+    w.repay(120_000n * R)
+    const done = { ...a, active: false, returnedFixed: crpsReturned(a, w.b.acc) }
+    // Завершённому контракт фиксирует возвращённое ровно в использованное.
+    const fixed = { ...done, returnedFixed: 180_000n * R }
+    const all = crpsClaimable({ ...w.b, base: 0n }, fixed)
+    expect(180_000n * R - done.returnedFixed < R / 100n, 'возвращено до копейки').toBe(true)
+    expect(all.returned).toBe(180_000n * R)
+    expect(all.unused).toBe(120_000n * R)
+    expect(all.total, 'одним заявлением — всё внесённое').toBe(300_000n * R)
+  })
+
+  it('возврат завершён, а деньги инициатора выделены под расход: забрать можно только свободное', () => {
+    const w = world()
+    const a = w.investor()
+    w.money(a, 100_000n * R)
+    w.spend(a, 60_000n * R)
+    // Под новый расход выделено 40 000 — записка ещё не оплачена.
+    w.b.reserved = 40_000n * R
+    w.repay(60_000n * R)
+    // Контракт завершает возврат: инициатор вне базы, деньги остаются в средствах участка.
+    const done = { ...a, active: false, returnedFixed: 60_000n * R }
+    const held = crpsClaimable({ ...w.b, base: 0n }, done)
+    expect(held.returned).toBe(60_000n * R)
+    expect(held.unused, 'выделенное под расход забрать нельзя').toBe(0n)
+    // Записку отклонили, выделение снято наполовину — свободна половина.
+    const half = crpsClaimable({ ...w.b, base: 0n, reserved: 20_000n * R }, done)
+    expect(half.unused).toBe(20_000n * R)
+    const free = crpsClaimable({ ...w.b, base: 0n, reserved: 0n }, done)
+    expect(free.total, 'без выделения — всё внесённое').toBe(100_000n * R)
+  })
+
+  it('выделенное под расходы всегда обеспечено: три тысячи случайных действий, оплата каждого выделения находит деньги', () => {
+    // Правила контракта (invest.hpp, spentipool, claiminv) после ревью 10.11.2026:
+    // неиспользованные деньги завершившего возврат остаются в средствах участка
+    // и в очереди расхода, пока он не забрал их; забрать можно только свободное.
+    const w = world()
+    const rand = prng(3408)
+    const pick = (n: number) => Math.floor(rand() * n)
+    const rows = [w.investor(), w.investor(), w.investor()]
+    const unused = (i: Inv) => i.money - i.usedMoney
+    const units = (i: Inv) => i.usedMoney + i.property
+    /** Деньги завершившего возврат снова в деле: он возвращается в базу. */
+    const reactivate = (i: Inv) => {
+      if (i.active)
+        return
+      i.active = true
+      i.accJoin = w.b.acc
+    }
+    /** Завершение возврата: вне базы, возвращённое ровно в использованное; деньги остаются в очереди. */
+    const completeDone = () => {
+      for (const i of rows) {
+        if (i.active && units(i) > 0n && crpsReturned(i, w.b.acc) >= units(i)) {
+          w.leaveAll(i)
+          i.returnedFixed = units(i)
+          i.active = false
+        }
+      }
+    }
+    /** Оплата выделенного: деньги берутся по очереди входа у всех, у кого они есть. */
+    const pay = (amount: bigint) => {
+      let rest = amount
+      for (const i of rows) {
+        if (rest === 0n)
+          break
+        const take = rest < unused(i) ? rest : unused(i)
+        if (take <= 0n)
+          continue
+        // Завершивший возврат возвращается в базу: его деньги снова израсходованы.
+        reactivate(i)
+        w.spend(i, take)
+        rest -= take
+      }
+      expect(rest, 'оплата выделенного нашла деньги инициаторов').toBe(0n)
+      w.b.reserved -= amount
+    }
+    let completed = 0
+    let heldByReserve = 0
+    for (let step = 0; step < 3000; step++) {
+      const kind = pick(6)
+      const free = w.b.unusedTotal - w.b.reserved
+      if (kind === 0) {
+        const i = rows[pick(3)]
+        reactivate(i)
+        w.money(i, BigInt(1 + pick(50_000)) * R)
+      }
+      else if (kind === 1 && free > 0n) {
+        const want = BigInt(1 + pick(Number(free / R) || 1)) * R
+        w.b.reserved += want > free ? free : want
+      }
+      else if (kind === 2 && w.b.reserved > 0n) {
+        pay(rand() < 0.5 ? w.b.reserved : w.b.reserved / 2n)
+      }
+      else if (kind === 3 && w.b.reserved > 0n) {
+        w.b.reserved -= w.b.reserved / 2n // отказ совета: выделение снято
+      }
+      else if (kind === 4 && w.b.base > 0n) {
+        w.repay(BigInt(1 + pick(80_000)) * R)
+        const before = rows.filter(i => !i.active).length
+        completeDone()
+        completed += rows.filter(i => !i.active).length - before
+      }
+      else if (kind === 5) {
+        const i = rows[pick(3)]
+        const c = crpsClaimable(w.b, i)
+        if (!i.active && unused(i) > c.unused)
+          heldByReserve++
+        i.claimed += c.returned
+        i.money -= c.unused
+        w.b.unusedTotal -= c.unused
+      }
+      const total = rows.reduce((sum, i) => sum + unused(i), 0n)
+      expect(w.b.unusedTotal, `шаг ${step}: средства участка — сумма неиспользованного по строкам`).toBe(total)
+      expect(w.b.unusedTotal >= w.b.reserved, `шаг ${step}: выделенное обеспечено`).toBe(true)
+    }
+    expect(completed, 'среди действий были завершения возврата').toBeGreaterThan(0)
+    expect(heldByReserve, 'выделенное удерживало деньги завершившего возврат').toBeGreaterThan(0)
+  })
+
+  it('фиксация при изменении единиц не меняет возвращённое; сумма возвращённого не больше возмещённого', () => {
+    const w = world()
+    const a = w.investor()
+    const c = w.investor()
+    w.money(a, 1_000_000n * R)
+    w.money(c, 1_000_000n * R)
+    let repaid = 0n
+    for (let m = 1; m <= 24; m++) {
+      w.spend(m % 2 ? a : c, BigInt(13_337 + m * 101) * R)
+      const before = crpsReturned(a, w.b.acc)
+      w.spend(a, 1n)
+      expect(crpsReturned(a, w.b.acc), 'фиксация сохраняет накопленное').toBe(before)
+      repaid += w.repay(BigInt(7_777 + m * 37) * R).repay
+      expect(crpsReturned(a, w.b.acc) + crpsReturned(c, w.b.acc) <= repaid, 'возвращено не больше возмещённого').toBe(true)
+    }
+    expect(S).toBe(1_000_000_000_000n)
+  })
+
+  it('две тысячи случайных месяцев: возвращённое не убывает, не больше использованного; возвращено и переплата не больше возмещённого; внесённое не меняется', () => {
+    // Детерминированный генератор: случай повторяется в любом прогоне.
+    let seed = 0x9E3779B9
+    const rnd = (n: number): number => {
+      seed = (seed + 0x6D2B79F5) | 0
+      let x = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x
+      return ((x ^ (x >>> 14)) >>> 0) % n
+    }
+    const w = world()
+    const people = [w.investor(), w.investor(), w.investor(), w.investor()]
+    const invested = people.map(() => 0n)
+    const lastReturned = people.map(() => 0n)
+    let repaid = 0n
+    let surplus = 0n
+    for (let month = 0; month < 2_000; month++) {
+      const k = rnd(people.length)
+      const p = people[k]!
+      const step = rnd(4)
+      // Завершивший возврат в базу не возвращается: паевые взносы принимает строка активного инициатора.
+      if (p.active && step === 0) {
+        const amount = BigInt(1 + rnd(50_000)) * R
+        w.money(p, amount)
+        invested[k]! += amount
+      }
+      else if (p.active && step === 1) {
+        const amount = BigInt(1 + rnd(30_000)) * R
+        w.property(p, amount)
+        invested[k]! += amount
+      }
+      else if (p.active && step === 2) {
+        const free = p.money - p.usedMoney
+        if (free > 0n)
+          w.spend(p, free / BigInt(1 + rnd(4)))
+      }
+      repaid += w.repay(BigInt(rnd(20_000)) * R).repay
+      // Как контракт после возмещения: завершившие выходят из базы, возвращённое
+      // фиксируется ровно в использованное, переплата на границе — участку.
+      for (const q of people) {
+        const u = q.usedMoney + q.property
+        const r = crpsReturned(q, w.b.acc)
+        if (!q.active || u <= 0n || r < u)
+          continue
+        w.leaveAll(q)
+        q.active = false
+        q.returnedFixed = u
+        surplus += r - u
+      }
+
+      let usedActive = 0n
+      let returnedActive = 0n
+      let returnedAll = 0n
+      people.forEach((q, i) => {
+        const u = q.usedMoney + q.property
+        const r = crpsReturned(q, w.b.acc)
+        expect(r >= lastReturned[i]!, 'возвращённое не убывает').toBe(true)
+        expect(r <= u, 'возвращённое не больше использованного').toBe(true)
+        expect(q.money + q.property, 'внесённое возмещением не меняется').toBe(invested[i])
+        lastReturned[i] = r
+        returnedAll += r
+        if (q.active) {
+          usedActive += u
+          returnedActive += r
+        }
+      })
+      expect(returnedAll + surplus <= repaid, 'возвращено и переплата не больше возмещённого').toBe(true)
+      // Непогашенный остаток считается за O(1) и сходится с суммой по строкам до округления.
+      const gap = crpsOutstanding(w.b) - (usedActive - returnedActive)
+      expect(gap >= -BigInt(people.length) && gap <= BigInt(people.length), 'остаток участка = использовано − возвращено').toBe(true)
+    }
+    expect(people.some(q => !q.active), 'за две тысячи месяцев кто-то завершил возврат').toBe(true)
+  })
+})
+
+// ── Списание строки счётчика пайщика (задача 99D-33) ─────────────────────────
+describe('mkt.order.keu.model.05 — деление строки счётчика пайщика: ставки по стоимости, удержание целиком участку', () => {
+  const { chargeRow, chargeProcessSeed } = MarketContract.PeriodModel
+  const rates = { rateBranch: 166_666n, rateFunds: 44_303n, rateInitiator: 104_460n }
+
+  it('строка со стоимостью и без удержаний равна делению заказа; удержание прибавляется участку и списанному', () => {
+    const plain = chargeRow(rates, rub(3_800), rub(10_000), 0n)
+    expect(plain).toEqual(chargeOrder(rates, rub(3_800), rub(10_000)))
+    const withRetained = chargeRow(rates, rub(3_800), rub(10_000), rub(500))
+    expect(withRetained.branch).toBe(plain.branch + rub(500))
+    expect(withRetained.charged).toBe(plain.charged + rub(500))
+    expect([withRetained.funds, withRetained.initiator, withRetained.returned]).toEqual([plain.funds, plain.initiator, plain.returned])
+  })
+
+  it('строка без стоимости: удержание участку целиком, ставки не нужны, возврат — вся часть к списанию', () => {
+    expect(chargeRow(rates, 0n, 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, returned: 0n, charged: rub(500) })
+    expect(chargeRow(rates, rub(10), 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, returned: rub(10), charged: rub(500) })
+  })
+
+  it('основание хэша нитки списания — строка с кооперативом, пайщиком, участком и периодом, как в контракте', () => {
+    expect(chargeProcessSeed('voskhod', 'ekaterina', 'krg', 24311)).toBe('p.mkt.due:voskhod:ekaterina:krg:24311')
+  })
+})
+
+describe('mkt.order.keu.model.06 — расходы по цели резерва (задача 99D-34)', () => {
+  const { reserveRight } = MarketContract.PeriodModel
+  /** Месяц по цели резерва: траты из денег участка, ЦП, ЦМ и F_пр. */
+  const byTarget = (secured: number, over: Partial<MarketContract.PeriodModel.IPeriodFacts> = {}) =>
+    closePeriod(facts(1_000_000, { secured: rub(secured), planned: 0n, memos: 0n, aidPaid: 0n, reserve: 0n, plannedTarget: 0n, fundedPrev: 0n, ...over }))
+
+  it('аренда собирается вперёд: итог октября берёт ноябрьскую аренду в цель, итог ноября — только прирост цели', () => {
+    const october = byTarget(200_000, { plannedTarget: rub(50_000) })
+    expect(october.target).toBe(rub(50_000))
+    expect(october.expenses).toBe(rub(50_000))
+    expect(october.funded).toBe(rub(50_000))
+    // Ноябрь: аренда оплачена, цель — декабрьская аренда; расходы — одна аренда.
+    const november = byTarget(200_000, { planned: rub(50_000), plannedTarget: rub(50_000), fundedPrev: october.funded })
+    expect(november.expenses).toBe(rub(50_000))
+    // Аренду не оплатили: долг остаётся в цели, второй раз деньги не собираются.
+    const unpaid = byTarget(200_000, { plannedTarget: rub(50_000), fundedPrev: october.funded })
+    expect(unpaid.expenses).toBe(0n)
+    // Расход удалили: цель упала, расходы не бывают меньше нуля.
+    const deleted = byTarget(200_000, { fundedPrev: october.funded })
+    expect(deleted.expenses).toBe(0n)
+    expect(deleted.unpaid).toBe(0n)
+    // Собранные 50 000 остаются собранной частью цели — запасом участка.
+    expect(deleted.target).toBe(0n)
+    expect(deleted.funded, 'излишек прошлого сбора переходит дальше').toBe(rub(50_000))
+    // Аренду вернули в план: деньги на неё уже собраны, второй раз участок их не собирает.
+    const restored = byTarget(200_000, { plannedTarget: rub(50_000), fundedPrev: deleted.funded })
+    expect(restored.expenses).toBe(0n)
+    expect(restored.funded).toBe(rub(50_000))
+  })
+
+  it('заявление подано, но выплачено в следующем месяце: за два месяца участок собирает ровно столько, сколько нужно', () => {
+    // К октябрю право получателя накоплено и собрано: 300 000 (три месяца по 100 000).
+    // Октябрь: получатель подал заявление на все 300 000, выплаты ещё нет. Право
+    // на ноябрь — только сумма строки, 100 000; трат нет.
+    const october = byTarget(500_000, { reserve: rub(100_000), fundedPrev: rub(300_000) })
+    expect(october.expenses, 'собрано больше нужного — расходов нет').toBe(0n)
+    expect(october.funded, 'собранные 300 000 никуда не делись').toBe(rub(300_000))
+    // Ноябрь: 300 000 выплачены, право на декабрь — 200 000.
+    const november = byTarget(500_000, { aidPaid: rub(300_000), reserve: rub(200_000), fundedPrev: october.funded })
+    expect(november.expenses, 'только прирост права за два месяца').toBe(rub(200_000))
+    expect(november.funded).toBe(rub(200_000))
+    // Всего за два месяца: выплачено 300 000, цель выросла со 300 000 до 200 000 —
+    // собрать нужно 300 000 + 200 000 − 300 000 = 200 000.
+    expect(october.branch + november.branch).toBe(rub(200_000))
+  })
+
+  it('движение собранной части цели: за месяц она растёт на собранное участку и убывает на траты', () => {
+    const rand = prng(3407)
+    let fundedPrev = 0n
+    for (let i = 0; i < 400; i++) {
+      const spent = { planned: rub(Math.round(rand() * 60_000)), memos: rub(Math.round(rand() * 40_000)), aidPaid: rub(Math.round(rand() * 100_000)) }
+      const t = byTarget(Math.round(rand() * 400_000), {
+        ...spent,
+        reserve: rub(Math.round(rand() * 300_000)),
+        plannedTarget: rub(Math.round(rand() * 150_000)),
+        fundedPrev,
+      })
+      const total = spent.planned + spent.memos + spent.aidPaid
+      // Дефицит больше цели — траты месяца остались непокрытыми, собранной части нет.
+      if (t.deficit > t.target)
+        expect(t.funded).toBe(0n)
+      else expect(t.funded, `месяц ${i}`).toBe(fundedPrev + t.branch - total)
+      fundedPrev = t.funded
+    }
+  })
+
+  it('помощь как оплата труда: несобранное в дефицитном месяце переходит дальше и гасится первым', () => {
+    // Октябрь: право получателя на ноябрь 100 000, собрано 30 000 — дефицит 70 000.
+    const october = byTarget(30_000, { reserve: rub(100_000) })
+    expect(october.expenses).toBe(rub(100_000))
+    expect(october.deficit).toBe(rub(70_000))
+    expect(october.funded).toBe(rub(30_000))
+    // Ноябрь: получатель взял 30 000, право — 70 000 долга и 100 000 за декабрь.
+    const november = byTarget(200_000, { aidPaid: rub(30_000), reserve: rub(170_000), fundedPrev: october.funded })
+    expect(november.expenses).toBe(rub(170_000))
+    expect(november.branch).toBe(rub(170_000))
+    expect(november.funded).toBe(rub(170_000))
+  })
+
+  it('средства инициаторов оплатили помощь — повторно участок их не собирает', () => {
+    const october = byTarget(30_000, { reserve: rub(100_000) })
+    // Ноябрь: 30 000 с персонального кошелька, 70 000 из средств инициаторов — в траты не входят.
+    const november = byTarget(200_000, { aidPaid: rub(30_000), reserve: rub(100_000), fundedPrev: october.funded })
+    expect(november.expenses).toBe(rub(100_000))
+  })
+
+  it('месяц без выданных заказов: расходы целиком — дефицит, ставки ноль, цель переходит несобранной', () => {
+    const t = closePeriod(facts(0, { turnover: 0n, secured: 0n, planned: 0n, memos: 0n, aidPaid: 0n, reserve: rub(100_000), plannedTarget: rub(50_000), fundedPrev: 0n }))
+    expect(t.expenses).toBe(rub(150_000))
+    expect(t.branch).toBe(0n)
+    expect(t.deficit).toBe(rub(150_000))
+    expect(t.funded).toBe(0n)
+    expect([t.rateBranch, t.rateFunds, t.rateInitiator]).toEqual([0n, 0n, 0n])
+  })
+
+  it('траты месяца покрываются первыми, цель — последней: дефицит больше цели не делает собранную часть отрицательной', () => {
+    const t = byTarget(10_000, { memos: rub(80_000), plannedTarget: rub(20_000) })
+    expect(t.deficit).toBe(rub(90_000))
+    expect(t.funded).toBe(0n)
+  })
+
+  it('сохранение суммы по цели резерва: участку + фонды + инициатору + пайщикам = собрано', () => {
+    const rand = prng(3406)
+    for (let i = 0; i < 300; i++) {
+      const t = byTarget(Math.round(rand() * 900_000), {
+        planned: rub(Math.round(rand() * 60_000)),
+        memos: rub(Math.round(rand() * 40_000)),
+        aidPaid: rub(Math.round(rand() * 100_000)),
+        reserve: rub(Math.round(rand() * 300_000)),
+        plannedTarget: rub(Math.round(rand() * 150_000)),
+        fundedPrev: rub(Math.round(rand() * 400_000)),
+      })
+      const secured = t.branch + t.funds + t.initiator + t.returned
+      expect(t.branch <= t.expenses).toBe(true)
+      // Собранная часть выше цели только на излишек прошлого сбора — при нулевых расходах.
+      if (t.funded > t.target)
+        expect(t.expenses).toBe(0n)
+      expect(secured).toBe(t.membership + t.economy)
+    }
+  })
+
+  it('накопленное право получателя: остаток плюс сумма строки за каждый прошедший период; строка до 99D-34 — сумма минус поданное', () => {
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(70_000) }, 10)).toBe(rub(70_000))
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(70_000) }, 12)).toBe(rub(270_000))
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 12, outstanding: rub(5_000) }, 11)).toBe(rub(5_000))
+    expect(reserveRight({ amount: rub(100_000) }, 12, rub(40_000))).toBe(rub(60_000))
+    expect(reserveRight({ amount: rub(100_000) }, 12, rub(140_000))).toBe(0n)
+    // Смена режима нумерации периодов на стенде: огромный разрыв или номер меньше прежнего — без доначисления.
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 24_323, outstanding: rub(5_000) }, 2_950_000)).toBe(rub(5_000))
+    expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(5_000) }, 10 + 1200)).toBe(rub(5_000) + rub(100_000) * 1200n)
   })
 })

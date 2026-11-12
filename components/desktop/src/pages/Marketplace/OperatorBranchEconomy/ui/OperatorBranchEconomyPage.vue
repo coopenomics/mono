@@ -1,19 +1,22 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { uiLocale, t as i18nT } from 'src/shared/i18n';
-import { useConfirm, useFirstLoad } from 'src/shared/lib/composables'
+import { useConfirm, useFirstLoad, useTabQuery } from 'src/shared/lib/composables'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
-import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { OperatorBranchBar, branchPersonName, branchPersonNames, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { DigitalDocument } from 'src/shared/lib/document'
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper, WalletCard } from 'src/shared/ui/domain'
+import { getBranchInvestment, type MarketplaceBranchInvestmentView } from 'src/entities/MarketplaceInvestment'
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types'
 import { ExpenseCreateDialog, type ExpenseCreatePayload } from 'src/shared/ui/domain/ExpenseCreateDialog'
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect'
+import { ExpensePlanDialog } from 'src/shared/ui/domain/ExpensePlanDialog'
+import PayPlanDialog from './PayPlanDialog.vue'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
@@ -26,8 +29,8 @@ import {
 } from 'src/entities/MarketplaceOrder'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
-import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
-import { NDFL_RATE_PERCENT, marketLiveTables, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
+import { getOperationMeta, getWalletHumanName, operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
+import { NDFL_RATE_PERCENT, type MarketplaceMessageKey, marketLiveTables, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
 import { Ledger2Contract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/shared/lib/payment'
@@ -35,7 +38,6 @@ import {
   type ExpensePlanView,
   type MarketplaceAidView,
   type MarketplaceBranchCurrentPeriodView,
-  type MarketplaceBranchInitiatorView,
   type MarketplaceBranchPeriodRow,
   type MarketplaceBranchReserveRow,
   type MarketplaceBranchReservesView,
@@ -45,7 +47,6 @@ import {
   createAid,
   createBranchExpense,
   type ICreateBranchExpenseInput,
-  createExpensePlan,
   deleteExpensePlan,
   deleteBranchReserve,
   deleteTrusteeWeight,
@@ -53,8 +54,8 @@ import {
   getAidStatementSignablePayload,
   getBranchCurrentPeriod,
   getBranchEconomy,
-  getBranchInitiator,
   getBranchReserves,
+  getBranchMovementParts,
   getBranchWalletHistory,
   getPersonalEconomy,
   getPersonalWalletHistory,
@@ -95,6 +96,7 @@ import {
  *     получателя» у председателя участка стоит справа в строке разделов.
  */
 
+
 const route = useRoute()
 const orderOverlay = useQueryOverlay('order')
 const session = useSessionStore()
@@ -113,17 +115,21 @@ const firstLoad = useFirstLoad(loading)
 const economy = ref<MarketplaceBranchEconomyView | null>(null)
 const plans = ref<ExpensePlanView[]>([])
 const personalBalance = ref('')
+/** Средства инициаторов участка: внесено, израсходовано, выделено, свободно (99D-28). */
+const investView = ref<MarketplaceBranchInvestmentView | null>(null)
 const aids = ref<MarketplaceAidView[]>([])
 const walletHistory = ref<MarketplaceBranchWalletHistoryView['items']>([])
 const personalWalletHistory = ref<MarketplacePersonalWalletHistoryView['items']>([])
 const reserves = ref<MarketplaceBranchReservesView | null>(null)
-const initiator = ref<MarketplaceBranchInitiatorView | null>(null)
 const periods = ref<MarketplaceBranchPeriodRow[]>([])
 const currentPeriod = ref<MarketplaceBranchCurrentPeriodView | null>(null)
+/** Паевые взносы инициаторов участка (99D-31): средства инициаторов и возмещение. */
 
 // ─── Табы страницы (requirement — переверстка без изменения логики) ───
 
-const activeKey = ref<'wallet' | 'turnover' | 'expenses' | 'reserve' | 'distribution' | 'personal' | 'periods'>('wallet')
+// Раздел страницы — в адресе (?tab=): ссылка открывает тот же раздел.
+const TAB_KEYS = ['wallet', 'turnover', 'expenses', 'reserve', 'distribution', 'personal', 'periods'] as const
+const activeKey = useTabQuery<(typeof TAB_KEYS)[number]>(TAB_KEYS, 'wallet')
 
 const tabs = computed<PageTab[]>(() => [
   { key: 'wallet', label: i18nT('marketplace.operatorBranchEconomyPage.walletTabLabel') },
@@ -183,12 +189,84 @@ function goToOrder(orderId: string): void {
  * в ячейке назначения: кнопка отнимала место у текста и заставляла целиться в
  * неё вместо строки.
  */
-function hasOrder(row: WalletHistoryRow): boolean {
-  return Boolean(row.order_id)
+// ─── Панель движения по общему кошельку участка ───
+// Любая строка «Движений по кошельку» открывает правую панель (слово владельца
+// 09.11.2026: «изъятие на распределение — какое распределение, куда пошло?»):
+// сумма и направление, путь денег — с какого кошелька на какой, смысл
+// операции, у распределения — кто из доверенных сколько получил, у взноса по
+// заказу — кнопка «Открыть заказ».
+
+const BRANCH_COMMON_WALLET = 'w.brn.common'
+const DISTRIBUTION_RELEASE = 'o.brn.release'
+const DISTRIBUTION_PERSONAL = 'o.brn.person'
+
+/** Код операции → ключ пояснения «что это» в словаре. */
+const MOVEMENT_DESCRIPTION_KEYS: Record<string, string> = {
+  'o.brn.common': 'common',
+  'o.brn.retfee': 'retfee',
+  'o.brn.release': 'release',
+  'o.brn.expfnd': 'expfnd',
+  'o.brn.expunf': 'expunf',
+  'o.mkt.rpsurp': 'rpsurp',
 }
 
-function openHistoryOrder(row: WalletHistoryRow): void {
-  if (row.order_id) goToOrder(row.order_id)
+type MovementPart = Awaited<ReturnType<typeof getBranchMovementParts>>[number]
+
+const movementDrawerOpen = ref(false)
+const selectedMovement = ref<WalletHistoryRow | null>(null)
+const movementParts = ref<MovementPart[]>([])
+const movementPartsLoading = ref(false)
+
+const movementMeta = computed(() => (selectedMovement.value ? getOperationMeta(selectedMovement.value.operation_code) : undefined))
+/** Поступление на общий кошелёк участка — иначе списание с него. */
+const movementIncoming = computed(() => movementMeta.value?.wallet_to === BRANCH_COMMON_WALLET)
+const movementDescription = computed(() => {
+  const key = selectedMovement.value ? MOVEMENT_DESCRIPTION_KEYS[selectedMovement.value.operation_code] : undefined
+  return key ? i18nT(`marketplace.operatorBranchEconomyPage.movementDescription.${key}` as MarketplaceMessageKey) : ''
+})
+const isDistribution = computed(() => selectedMovement.value?.operation_code === DISTRIBUTION_RELEASE)
+const movementRecipients = computed(() => movementParts.value.filter((p) => p.operation_code === DISTRIBUTION_PERSONAL))
+const movementRecipientsTotal = computed(() =>
+  movementRecipients.value.reduce((sum, p) => sum + assetAmount(p.quantity ?? ''), 0),
+)
+/** Доля, которой соответствует открытая строка изъятия: зачисление сразу за ней в той же транзакции. */
+const movementOwnShare = computed(() => {
+  const row = selectedMovement.value
+  if (!row || !isDistribution.value) return null
+  const after = movementRecipients.value.filter((p) => BigInt(p.global_sequence) > BigInt(row.global_sequence))
+  return after.length ? after[0].global_sequence : null
+})
+
+function walletTitle(name: string | null | undefined): string {
+  if (!name) return '—'
+  return getWalletHumanName(name) ?? name
+}
+
+function recipientLabel(username: string | null | undefined): string {
+  if (!username) return '—'
+  return nameByUsername.value[username] || username
+}
+
+async function openMovement(row: WalletHistoryRow): Promise<void> {
+  selectedMovement.value = row
+  movementParts.value = []
+  movementDrawerOpen.value = true
+  if (row.operation_code !== DISTRIBUTION_RELEASE || !row.order_hash || !braname.value) return
+  movementPartsLoading.value = true
+  try {
+    movementParts.value = await getBranchMovementParts({ braname: braname.value, process_hash: row.order_hash })
+  } catch (e) {
+    FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.movementPartsFailed'))
+  } finally {
+    movementPartsLoading.value = false
+  }
+}
+
+function openMovementOrder(): void {
+  const orderId = selectedMovement.value?.order_id
+  if (!orderId) return
+  movementDrawerOpen.value = false
+  goToOrder(orderId)
 }
 
 function assetAmount(asset: string): number {
@@ -206,11 +284,14 @@ function assetSymbol(asset: string): string {
 // src/shared/lib/payment (тот же, что у стола кассира — ListOfPaymentsWidget).
 function aidStageLabel(aid: MarketplaceAidView): string {
   if (aid.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview')
+  // Выплаченное заявление контракт стирает; строку отдаёт зеркало узла.
+  if (aid.stage === Zeus.MarketplaceAidStage.PAID) return i18nT('marketplace.operatorBranchEconomyPage.statusAidPaid')
   return paymentStatusLabel(aid.payment_status)
 }
 
 function aidStageVariant(aid: MarketplaceAidView): BaseBadgeVariant {
   if (aid.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return 'info'
+  if (aid.stage === Zeus.MarketplaceAidStage.PAID) return 'pos'
   return paymentStatusVariant(aid.payment_status)
 }
 
@@ -252,26 +333,14 @@ const aidSteps = computed(() => {
     { key: 'cashier', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepCashier'), description: a?.payment_failed_at ? i18nT('marketplace.operatorBranchEconomyPage.aidStepFailed') : undefined },
     { key: 'paid', label: i18nT('marketplace.operatorBranchEconomyPage.aidStepPaid'), description: at(a?.payment_completed_at) },
   ]
-  if (a?.payment_completed_at) return { items, active: 'paid', completed: ['submitted', 'council', 'cashier', 'paid'], errored: [] as string[] }
+  if (a?.payment_completed_at || a?.stage === Zeus.MarketplaceAidStage.PAID) return { items, active: 'paid', completed: ['submitted', 'council', 'cashier', 'paid'], errored: [] as string[] }
   if (a?.payment_failed_at) return { items, active: 'cashier', completed: ['submitted', 'council'], errored: ['cashier'] }
   if (a?.stage === Zeus.MarketplaceAidStage.ON_COUNCIL) return { items, active: 'council', completed: ['submitted'], errored: [] as string[] }
   return { items, active: 'cashier', completed: ['submitted', 'council'], errored: [] as string[] }
 })
 
-function personName(p: { first_name?: string; last_name?: string; middle_name?: string; username: string } | undefined): string {
-  if (!p) return ''
-  const full = [p.last_name, p.first_name, p.middle_name].filter(Boolean).join(' ').trim()
-  return full || p.username
-}
-
-const nameByUsername = computed<Record<string, string>>(() => {
-  const b = branch.value
-  if (!b) return {}
-  if (!b.trustee) return {}
-  const map: Record<string, string> = { [b.trustee.username]: personName(b.trustee) }
-  for (const t of b.trusted ?? []) map[t.username] = personName(t)
-  return map
-})
+const personName = branchPersonName
+const nameByUsername = computed<Record<string, string>>(() => branchPersonNames(branch.value))
 
 /** Сколько итогов месяцев показываем: год прогонов. */
 const PERIODS_LIMIT = 12
@@ -280,7 +349,7 @@ async function loadAll(): Promise<void> {
   if (!braname.value) return
   loading.value = true
   try {
-    const [branchEconomy, branchPlans, personal, myAids, history, personalHistory, branchReserves, branchInitiator, branchPeriods, current] = await Promise.all([
+    const [branchEconomy, branchPlans, personal, myAids, history, personalHistory, branchReserves, branchPeriods, current] = await Promise.all([
       getBranchEconomy(braname.value),
       listExpensePlans(braname.value),
       getPersonalEconomy(),
@@ -288,10 +357,12 @@ async function loadAll(): Promise<void> {
       getBranchWalletHistory(braname.value, { page: 1, limit: 20, sortOrder: 'DESC' }),
       getPersonalWalletHistory({ page: 1, limit: 20, sortOrder: 'DESC' }),
       getBranchReserves(braname.value),
-      getBranchInitiator(braname.value),
       listBranchPeriods(braname.value, { page: 1, limit: PERIODS_LIMIT, sortOrder: 'DESC' }),
       getBranchCurrentPeriod(braname.value),
     ])
+    // Средства инициаторов — отдельным запросом: без договора участия у
+    // участка их нет, и экономика участка показывается без этих сведений.
+    investView.value = await getBranchInvestment(braname.value).catch(() => null)
     economy.value = branchEconomy
     plans.value = branchPlans
     personalBalance.value = personal.personal_balance
@@ -299,7 +370,6 @@ async function loadAll(): Promise<void> {
     walletHistory.value = history.items
     personalWalletHistory.value = personalHistory.items
     reserves.value = branchReserves
-    initiator.value = branchInitiator
     periods.value = branchPeriods.items
     currentPeriod.value = current
   } catch (e) {
@@ -332,6 +402,7 @@ useLiveReload(
     { code: 'expenses', table: 'expense_plans' },
     { code: 'marketplace', table: 'marketplace_branch_period' },
     { code: 'marketplace', table: 'marketplace_branch_aid' },
+    { code: 'marketplace', table: 'invbranches' },
   ],
   loadAll,
 )
@@ -345,6 +416,96 @@ const distributing = ref(false)
 const availableToDistribute = computed(() =>
   economy.value ? assetAmount(economy.value.available_to_distribute) : 0
 )
+
+/**
+ * Сумма карточкой кошелька — канон столов Стола заказов (как «Оборот»):
+ * значок, заголовок, короткая подпись в одну строку, подробности — в
+ * подсказке у заголовка, сумма справа с подписью.
+ */
+interface SumCard {
+  key: string
+  icon: string
+  title: string
+  subtitle: string
+  hint?: string
+  balance: string
+  symbol: string
+  label: string
+}
+
+/** Сумма карточки: до копеек и символ актива. */
+function cardMoney(asset: string | null | undefined): Pick<SumCard, 'balance' | 'symbol'> {
+  return { balance: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? '') }
+}
+
+/**
+ * Кошелёк участка четырьмя карточками: что лежит, что держит резерв плановых
+ * расходов, сколько можно распределить и сколько участок уже распределил за
+ * текущий месяц. Те же карточки стоят на вкладке распределения — сумма к
+ * распределению под рукой у кнопки.
+ */
+const walletCards = computed<SumCard[]>(() => {
+  const e = economy.value
+  return [
+    { key: 'common', icon: 'storefront', title: i18nT('marketplace.operatorBranchEconomyPage.commonWalletTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.commonWalletSubtitle'), ...cardMoney(e?.common_balance), label: '' },
+    { key: 'reserve', icon: 'lock_clock', title: i18nT('marketplace.operatorBranchEconomyPage.reserveTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.reserveSubtitle'), ...cardMoney(e?.reserve_amount), label: '' },
+    { key: 'available', icon: 'call_split', title: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle'), ...cardMoney(e?.available_to_distribute), label: '' },
+    // Месяц — тот же, что в «Итогах месяцев»: с начала текущего месяца участка.
+    { key: 'distributed', icon: 'groups', title: i18nT('marketplace.operatorBranchEconomyPage.distributedMonthTitle'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.distributedMonthSubtitle'), ...cardMoney(currentPeriod.value?.distributed), label: '' },
+  ]
+})
+
+/**
+ * Текущий месяц карточками: расходы месяца, выданные заказы, их обеспечительная
+ * часть, ожидаемый итог (недостача или сумма сверх расходов) и средства
+ * инициаторов участка. Итог считается по тем же правилам, что прогон, но
+ * ставок у идущего месяца нет — это ожидание, а не расчёт.
+ */
+const currentCards = computed<SumCard[]>(() => {
+  const c = currentPeriod.value
+  if (!c) return []
+  const fmt = (a: string) => formatAsset2Digits(a)
+  const symbol = assetSymbol(c.expenses)
+  const month = i18nT('marketplace.operatorBranchEconomyPage.currentCardMonth')
+  const gap = assetAmount(c.ripening_secured) - assetAmount(c.expenses)
+  const cards: SumCard[] = [
+    { key: 'expenses', icon: 'receipt_long', title: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesShort'),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentExpensesSub', {
+        planned: fmt(c.planned), memos: fmt(c.memos), aid: fmt(c.aid_paid),
+        plannedTarget: fmt(c.planned_target), aidTarget: fmt(c.aid_reserve), prev: fmt(c.target_prev),
+      }),
+      ...cardMoney(c.expenses), label: month },
+    { key: 'turnover', icon: 'shopping_bag', title: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverShort'),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentTurnoverSub', { n: String(c.ripening_orders) }),
+      ...cardMoney(c.ripening_turnover), label: month },
+    { key: 'secured', icon: 'shield', title: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentSecuredSub'),
+      ...cardMoney(c.ripening_secured), label: month },
+    { key: 'outcome', icon: gap < 0 ? 'trending_down' : 'trending_up',
+      title: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitTile' : 'marketplace.operatorBranchEconomyPage.currentSurplusTile'),
+      subtitle: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitShort' : 'marketplace.operatorBranchEconomyPage.currentSurplusShort'),
+      balance: Math.abs(gap).toFixed(2), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.currentCardExpected') },
+  ]
+  // Средства инициаторов — двумя карточками, по числу в каждой: сколько
+  // свободно и сколько участок из них израсходовал. Карточек не больше шести.
+  const v = investView.value
+  if (v && (assetAmount(v.money_in_total) > 0 || assetAmount(v.property_total) > 0)) {
+    cards.push({ key: 'initiators-free', icon: 'volunteer_activism', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsShort'),
+      hint: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { reserved: fmt(v.reserved) }),
+      balance: initiatorFree.value.toFixed(2), symbol, label: '' })
+    cards.push({ key: 'initiators-spent', icon: 'receipt', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSpentTile'),
+      subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSpentShort'),
+      ...cardMoney(v.spent_total), label: i18nT('marketplace.operatorBranchEconomyPage.cardTotal') })
+  }
+  return cards
+})
 
 async function onDistribute(): Promise<void> {
   const amount = Number(distributeAmount.value)
@@ -380,20 +541,11 @@ const planColumns = computed<BaseTableColumn<ExpensePlanView>[]>(() => [
   { key: 'title', label: i18nT('marketplace.operatorBranchEconomyPage.columnPurpose'), width: '260px', sortable: true, field: 'title' },
   { key: 'amount', label: i18nT('marketplace.operatorBranchEconomyPage.amountLabel'), width: '150px', numeric: true },
   { key: 'due', label: i18nT('marketplace.operatorBranchEconomyPage.columnTerm'), width: '190px' },
-  { key: 'payto', label: i18nT('marketplace.operatorBranchEconomyPage.columnRequisites'), width: '240px', field: 'pay_to' },
+  { key: 'payto', label: i18nT('marketplace.operatorBranchEconomyPage.columnPayee'), width: '260px' },
   ...(store.isOperator
     ? [{ key: 'actions', label: '', width: '220px' } as BaseTableColumn<ExpensePlanView>]
     : []),
 ])
-
-// Приоритетов у расхода нет: всё, что заведено в реестр, подлежит оплате.
-// Единственная ось — регулярность: разовая трата или повторяющаяся.
-const planRecurrenceOptions = [
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceOnce'), value: Zeus.ExpensePlanRecurrence.NONE },
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceMonthly'), value: Zeus.ExpensePlanRecurrence.MONTHLY },
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceQuarterly'), value: Zeus.ExpensePlanRecurrence.QUARTERLY },
-  { label: i18nT('marketplace.operatorBranchEconomyPage.recurrenceYearly'), value: Zeus.ExpensePlanRecurrence.YEARLY },
-]
 
 const RECURRENCE_LABELS: Record<string, string> = {
   [Zeus.ExpensePlanRecurrence.MONTHLY]: i18nT('marketplace.operatorBranchEconomyPage.recurrenceMonthlyShort'),
@@ -401,21 +553,22 @@ const RECURRENCE_LABELS: Record<string, string> = {
   [Zeus.ExpensePlanRecurrence.YEARLY]: i18nT('marketplace.operatorBranchEconomyPage.recurrenceYearlyShort'),
 }
 
-const planTitle = ref('')
-const planAmount = ref<number | null>(null)
-const planRecurrence = ref<Zeus.ExpensePlanRecurrence>(Zeus.ExpensePlanRecurrence.NONE)
-const planDueDate = ref('')
-const planPayTo = ref('')
 const planSaving = ref(false)
 const addPlanOpen = ref(false)
 
 function planDueLabel(plan: ExpensePlanView): string {
-  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString(uiLocale()) : '—'
+  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString(uiLocale(), { timeZone: 'UTC' }) : '—'
 }
 
-/** Подпись повторяемости под сроком; пусто — расход разовый. */
+/**
+ * Подпись повторяемости под сроком со следующим сроком серии:
+ * «ежеквартально · следующий 11.02.2027»; пусто — расход разовый.
+ */
 function planRecurrenceLabel(plan: ExpensePlanView): string {
-  return RECURRENCE_LABELS[String(plan.recurrence)] ?? ''
+  const label = RECURRENCE_LABELS[String(plan.recurrence)] ?? ''
+  if (!label || !plan.next_due_date) return label
+  const next = new Date(String(plan.next_due_date)).toLocaleDateString(uiLocale(), { timeZone: 'UTC' })
+  return `${label} · ${i18nT('marketplace.operatorBranchEconomyPage.nextDueNote', { date: next })}`
 }
 
 /** Просроченный расход подсвечивается: срок прошёл, а оплаты нет. */
@@ -424,36 +577,9 @@ function isPlanOverdue(plan: ExpensePlanView): boolean {
   return new Date(String(plan.due_date)) < new Date()
 }
 
-async function onAddPlan(): Promise<void> {
-  const amount = Number(planAmount.value)
-  if (!braname.value || !planTitle.value.trim() || !Number.isFinite(amount) || amount <= 0) return
-  if (!planDueDate.value) {
-    FailAlert(new Error(i18nT('marketplace.error.paymentDateRequired')), i18nT('marketplace.operatorBranchEconomyPage.paymentDateRequiredHint'))
-    return
-  }
-  planSaving.value = true
-  try {
-    await createExpensePlan({
-      braname: braname.value,
-      title: planTitle.value.trim(),
-      amount,
-      recurrence: planRecurrence.value,
-      due_date: new Date(planDueDate.value).toISOString(),
-      pay_to: planPayTo.value.trim() || '—',
-    })
-    SuccessAlert(i18nT('marketplace.operatorBranchEconomyPage.expenseAddedMessage'))
-    addPlanOpen.value = false
-    planTitle.value = ''
-    planAmount.value = null
-    planRecurrence.value = Zeus.ExpensePlanRecurrence.NONE
-    planDueDate.value = ''
-    planPayTo.value = ''
-    await loadAll()
-  } catch (e) {
-    FailAlert(e, i18nT('marketplace.operatorBranchEconomyPage.addExpenseFailedMessage'))
-  } finally {
-    planSaving.value = false
-  }
+/** Расход добавлен из диалога — реестр и резерв перечитываются сразу. */
+function onPlanCreated(): void {
+  void loadAll()
 }
 
 // ─── Оплата планового расхода через шасси расходов ───
@@ -480,9 +606,48 @@ const payPlanPrefill = computed(() => {
   }
 })
 
+/**
+ * «Оплатить»: у записи со способом оплаты (99D-35) записка собирается из
+ * записи и только подписывается; запись, заведённая до способов оплаты,
+ * открывает прежнюю форму записки.
+ */
+const payReadyOpen = ref(false)
+
 function onPayPlan(plan: ExpensePlanView): void {
   payingPlan.value = plan
-  payPlanOpen.value = true
+  if (plan.recipient_type) payReadyOpen.value = true
+  else payPlanOpen.value = true
+}
+
+function onReadyPlanPaid(): void {
+  payingPlan.value = null
+  void loadAll()
+}
+
+/**
+ * Хватает ли денег на запись: контракт оплачивает платёж целиком из одного
+ * источника — общего кошелька участка, а не хватает — свободных средств
+ * инициаторов. После каждой оплаты сводка перечитывается, и кнопки остальных
+ * записей пересчитываются.
+ */
+function isPlanPayable(plan: ExpensePlanView): boolean {
+  const e = economy.value
+  if (!e) return false
+  const amount = assetAmount(plan.amount)
+  return amount <= assetAmount(e.common_balance) || amount <= assetAmount(e.initiators_free)
+}
+
+/** Получатель записи в реестре: организация, пайщик для аванса или прежний текст реквизитов. */
+function planPayeeTitle(plan: ExpensePlanView): string {
+  if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return plan.counterparty_name ?? '—'
+  if (plan.recipient_type) return plan.recipient_name ?? plan.recipient ?? '—'
+  return plan.pay_to ?? '—'
+}
+
+function planPayeeNote(plan: ExpensePlanView): string {
+  if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return plan.payment_purpose ?? ''
+  if (plan.recipient_type) return i18nT('marketplace.operatorBranchEconomyPage.payeeAdvanceNote')
+  return ''
 }
 
 async function submitBranchExpense(payload: ExpenseCreatePayload): Promise<unknown> {
@@ -504,6 +669,84 @@ function onBranchExpenseCreated(): void {
   payingPlan.value = null
   SuccessAlert(i18nT('marketplace.operatorBranchEconomyPage.expenseSentToCouncilMessage'))
   void loadAll()
+}
+
+// ─── Состояние и панель планового расхода ───
+
+type PlanStatus = { label: string; variant: 'pos' | 'info' | 'warn' }
+
+/**
+ * Этап записи по состоянию её расхода (12.11.2026): до того стол писал
+ * «На рассмотрении совета» у любого запущенного расхода, хотя совет уже
+ * утвердил его и платёж ждал кассира. Пусто — оплата не запускалась.
+ */
+function planStatus(plan: ExpensePlanView): PlanStatus | null {
+  if (plan.paid_at) return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPaid'), variant: 'pos' }
+  if (!plan.proposal_hash) return null
+  switch (plan.proposal_status) {
+    case Zeus.ExpenseProposalStatus.AUTHORIZED:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusAtCashier'), variant: 'warn' }
+    case Zeus.ExpenseProposalStatus.PARTIALLY_PAID:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPartiallyPaid'), variant: 'warn' }
+    case Zeus.ExpenseProposalStatus.REPORT_SUBMITTED:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusReportSubmitted'), variant: 'info' }
+    case Zeus.ExpenseProposalStatus.CLOSED:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPaid'), variant: 'pos' }
+    default:
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview'), variant: 'info' }
+  }
+}
+
+/** Что происходит с записью сейчас — строка под состоянием в панели. */
+function planStage(plan: ExpensePlanView): string {
+  if (plan.paid_at) {
+    return i18nT('marketplace.operatorBranchEconomyPage.planStagePaid', { date: formatDateToLocalTimezone(String(plan.paid_at), 'DD.MM.YYYY') })
+  }
+  if (!plan.proposal_hash) return i18nT('marketplace.operatorBranchEconomyPage.planStageNotStarted')
+  switch (plan.proposal_status) {
+    case Zeus.ExpenseProposalStatus.AUTHORIZED:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageCashier')
+    case Zeus.ExpenseProposalStatus.PARTIALLY_PAID:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStagePartiallyPaid')
+    case Zeus.ExpenseProposalStatus.REPORT_SUBMITTED:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageReport')
+    default:
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageCouncil')
+  }
+}
+
+const PLAN_RECURRENCE_TITLES: Record<string, string> = {
+  [Zeus.ExpensePlanRecurrence.NONE]: i18nT('ui.expensePlanDialog.onceTitle'),
+  [Zeus.ExpensePlanRecurrence.MONTHLY]: i18nT('ui.expensePlanDialog.monthlyTitle'),
+  [Zeus.ExpensePlanRecurrence.QUARTERLY]: i18nT('ui.expensePlanDialog.quarterlyTitle'),
+  [Zeus.ExpensePlanRecurrence.YEARLY]: i18nT('ui.expensePlanDialog.yearlyTitle'),
+}
+
+function planMethodLabel(plan: ExpensePlanView): string {
+  if (plan.recipient_type === Zeus.ExpenseRecipientType.ORG) return i18nT('ui.expensePlanDialog.payeeOrg')
+  if (plan.recipient_type) return i18nT('ui.expensePlanDialog.payeeAdvance')
+  return '—'
+}
+
+const planDrawerOpen = ref(false)
+const selectedPlanId = ref<number | null>(null)
+// Запись берётся из свежего реестра: после оплаты или по ленте изменений
+// панель показывает новое состояние без повторного открытия.
+const selectedPlan = computed(() => plans.value.find((p) => p.id === selectedPlanId.value) ?? null)
+
+function openPlan(plan: ExpensePlanView): void {
+  selectedPlanId.value = plan.id
+  planDrawerOpen.value = true
+}
+
+function onPayPlanFromDrawer(plan: ExpensePlanView): void {
+  planDrawerOpen.value = false
+  onPayPlan(plan)
+}
+
+async function onDeletePlanFromDrawer(plan: ExpensePlanView): Promise<void> {
+  planDrawerOpen.value = false
+  await onDeletePlan(plan)
 }
 
 async function onDeletePlan(plan: ExpensePlanView): Promise<void> {
@@ -708,25 +951,28 @@ async function onDeleteReserve(row: MarketplaceBranchReserveRow): Promise<void> 
 const myReserve = computed(() => reserveRows.value.find((r) => r.username === session.username) ?? null)
 const myReserveRemaining = computed(() => (myReserve.value ? assetAmount(myReserve.value.remaining) : 0))
 
-// ─── Инициатор участка и его паевой кошелёк ───
-
-const initiatorName = computed(() => {
-  const u = initiator.value?.username
-  if (!u) return ''
-  return nameByUsername.value[u] || u
-})
-
 // ─── Итоги месяцев участка ───
 
-/** Месяц по его номеру (год × 12 + месяц): «ноябрь 2026». */
-function monthLabel(period: number): string {
-  const year = Math.floor((period - 1) / 12)
-  const month = (period - 1) % 12
-  return new Date(Date.UTC(year, month, 1)).toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })
+/**
+ * Подпись месяца по его границам от сервера: календарный месяц — «ноябрь
+ * 2026», месяц стенда со сжатым временем (короче суток) — «08.11.2026
+ * 19:20–19:30». Номер месяца на стенде — номер отрезка, годом он не читается.
+ */
+function monthLabel(p: { starts_at: unknown; ends_at: unknown }): string {
+  const start = new Date(String(p.starts_at))
+  const end = new Date(String(p.ends_at))
+  if (end.getTime() - start.getTime() < 24 * 60 * 60 * 1000) {
+    const day = start.toLocaleDateString(uiLocale())
+    const time = (d: Date) => d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' })
+    return `${day} ${time(start)}–${time(end)}`
+  }
+  // Месяц итога идёт по UTC, как у контракта: подпись берётся в UTC, иначе к западу от него она показывала бы прошлый месяц.
+  const label = start.toLocaleDateString(uiLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/\s*г\.$/, '')
+  return label[0].toUpperCase() + label.slice(1)
 }
 
 const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
-  { key: 'month', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnMonth'), width: '150px', nowrap: true },
+  { key: 'month', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnMonth'), width: '210px', nowrap: true },
   { key: 'turnover', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnTurnover'), width: '150px', numeric: true },
   { key: 'secured', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnSecured'), width: '140px', numeric: true },
   { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnExpenses'), width: '140px', numeric: true },
@@ -738,7 +984,67 @@ const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
   { key: 'rate_percent', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnRate'), width: '110px', numeric: true },
 ]
 
+/** Фаза участка по паевым взносам в месяце: бейдж в итогах месяцев. */
+const PERIOD_PHASE: Record<Zeus.MarketplacePeriodInvestPhase, { label: MarketplaceMessageKey; variant: BaseBadgeVariant } | null> = {
+  [Zeus.MarketplacePeriodInvestPhase.NONE]: null,
+  [Zeus.MarketplacePeriodInvestPhase.DEFICIT]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseDeficit', variant: 'warn' },
+  [Zeus.MarketplacePeriodInvestPhase.REPAYING]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseRepaying', variant: 'info' },
+  [Zeus.MarketplacePeriodInvestPhase.BRANCH]: { label: 'marketplace.operatorBranchEconomyPage.periodPhaseBranch', variant: 'pos' },
+}
+
 const selectedPeriod = ref<MarketplaceBranchPeriodRow | null>(null)
+
+/**
+ * Путь денег месяца — связной цепочкой по строке итога: собранная
+ * обеспечительная часть → расходы участка → доля участка и недостача → фонды
+ * → инициаторы (возмещение или участку) → пайщикам обратно. Те же числа, что
+ * ниже группами, но по порядку, в котором их делит контракт (closeperiod).
+ */
+/** Итог по цели резерва (задача 99D-34): у строки есть цель; у прежних итогов её нет. */
+function byTarget(p: MarketplaceBranchPeriodRow): boolean {
+  return p.target !== null && p.target !== undefined
+}
+
+/** Пояснение к расходам месяца в пути денег: по цели резерва либо прежней формуле. */
+function flowExpensesSub(p: MarketplaceBranchPeriodRow): string {
+  const fmt = (a: string | null | undefined) => formatAsset2Digits(a ?? '')
+  if (!byTarget(p))
+    return i18nT('marketplace.operatorBranchEconomyPage.flowExpensesSub', { planned: fmt(p.planned), memos: fmt(p.memos), reserve: fmt(p.aid_reserve), unpaid: fmt(p.aid_unpaid) })
+  return i18nT('marketplace.operatorBranchEconomyPage.flowExpensesTargetSub', {
+    planned: fmt(p.planned), memos: fmt(p.memos), aid: fmt(p.aid_paid),
+    target: fmt(p.target), plannedTarget: fmt(p.planned_target), aidTarget: fmt(p.aid_reserve), prev: fmt(p.target_prev),
+  })
+}
+
+/** Пояснение к доле участка: расходы покрыты, дефицит с переносом цели либо прежний дефицит. */
+function flowBranchSub(p: MarketplaceBranchPeriodRow): string {
+  const fmt = (a: string | null | undefined) => formatAsset2Digits(a ?? '')
+  if (assetAmount(p.deficit) <= 0) return i18nT('marketplace.operatorBranchEconomyPage.flowBranchCoveredSub')
+  if (byTarget(p)) return i18nT('marketplace.operatorBranchEconomyPage.flowBranchCarrySub', { deficit: fmt(p.deficit), funded: fmt(p.target_funded) })
+  return i18nT('marketplace.operatorBranchEconomyPage.flowBranchDeficitSub', { deficit: fmt(p.deficit) })
+}
+
+const periodFlow = computed<StepperStep[]>(() => {
+  const p = selectedPeriod.value
+  if (!p) return []
+  const fmt = (a: string) => formatAsset2Digits(a)
+  const deficit = assetAmount(p.deficit) > 0
+  const steps: StepperStep[] = [
+    { key: 'secured', label: i18nT('marketplace.operatorBranchEconomyPage.flowSecured', { amount: fmt(p.secured) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowSecuredSub', { turnover: fmt(p.turnover) }) },
+    { key: 'expenses', label: i18nT('marketplace.operatorBranchEconomyPage.flowExpenses', { amount: fmt(p.expenses) }), description: flowExpensesSub(p) },
+    { key: 'branch', label: i18nT('marketplace.operatorBranchEconomyPage.flowBranch', { amount: fmt(p.branch_amount) }), description: flowBranchSub(p) },
+  ]
+  if (deficit) {
+    steps.push({ key: 'rest', label: i18nT('marketplace.operatorBranchEconomyPage.flowRestZero'), description: i18nT('marketplace.operatorBranchEconomyPage.flowRestZeroSub') })
+    return steps
+  }
+  steps.push({ key: 'funds', label: i18nT('marketplace.operatorBranchEconomyPage.flowFunds', { amount: fmt(p.funds_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowFundsSub') })
+  const repaying = p.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING
+  steps.push({ key: 'initiators', label: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaid', { amount: fmt(p.investor_repaid) }) : i18nT('marketplace.operatorBranchEconomyPage.flowInitiators', { amount: fmt(p.initiator_amount) }),
+    description: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaidSub') : i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsSub') })
+  steps.push({ key: 'returned', label: i18nT('marketplace.operatorBranchEconomyPage.flowReturned', { amount: fmt(p.return_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowReturnedSub') })
+  return steps
+})
 const periodDrawerOpen = computed({
   get: () => selectedPeriod.value !== null,
   set: (open: boolean) => { if (!open) selectedPeriod.value = null },
@@ -766,13 +1072,52 @@ const aidPaymentMethodId = ref<string | null>(null)
 const getFundsSubmitting = ref(false)
 
 const getFundsTotal = computed(() => Number(aidPart.value) || 0)
-const getFundsOverBalance = computed(
-  () => getFundsTotal.value > assetAmount(personalBalance.value)
-)
+
+/**
+ * Свободные средства инициаторов участка: неиспользованные деньги минус
+ * выделенные под расходы и помощь (`MarketInvest::free_of`). Контракт берёт
+ * помощь из этих средств, когда персонального кошелька не хватает (createaid, 99D-28).
+ */
+const initiatorFree = computed(() => {
+  const v = investView.value
+  if (!v) return 0
+  const free = assetAmount(v.unused_total) - assetAmount(v.reserved)
+  return free > 0 ? free : 0
+})
+
+/** Источник помощи — как выберет контракт: персональный кошелёк, затем средства инициаторов. */
+const aidSource = computed<'personal' | 'initiators' | null>(() => {
+  const amount = getFundsTotal.value
+  if (amount <= 0) return null
+  if (amount <= assetAmount(personalBalance.value)) return 'personal'
+  if (amount <= initiatorFree.value) return 'initiators'
+  return null
+})
+
+/**
+ * Больше всего можно попросить одним заявлением: источник один, поэтому
+ * предел — больший из двух, а при заданном резерве — не больше его остатка.
+ */
+const aidMax = computed(() => {
+  const bySource = Math.max(assetAmount(personalBalance.value), initiatorFree.value)
+  return reserveEnabled.value && myReserve.value ? Math.min(bySource, myReserveRemaining.value) : bySource
+})
+
+const getFundsOverBalance = computed(() => getFundsTotal.value > 0 && aidSource.value === null)
+
 // Предел материальной помощи за месяц — строка резерва получателя. Контракт
 // держит то же правило (BRANCH_AID_OVER_RESERVE); здесь отказ виден до отправки.
 const aidNoReserve = computed(() => reserveEnabled.value && !myReserve.value)
 const aidOverReserve = computed(() => reserveEnabled.value && !!myReserve.value && getFundsTotal.value > myReserveRemaining.value)
+
+/** Почему заявление не будет отправлено в цепь — одной строкой под полем суммы. */
+const aidError = computed(() => {
+  if (aidNoReserve.value) return i18nT('marketplace.operatorBranchEconomyPage.aidNoReserveError')
+  if (aidOverReserve.value) return i18nT('marketplace.operatorBranchEconomyPage.aidOverReserveError')
+  if (getFundsOverBalance.value)
+    return i18nT('marketplace.operatorBranchEconomyPage.aidOverSourceError', { max: aidMax.value.toFixed(2), symbol: assetSymbol(personalBalance.value) })
+  return ''
+})
 
 // Кооператив удерживает НДФЛ с материальной помощи: с кошелька спишется вся
 // заявленная сумма, на счёт придёт остаток. Расчёт зеркалит контракт.
@@ -844,10 +1189,6 @@ q-page.economy
       | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintExpenses') }}
       | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintReserve') }}
       | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintDistribute') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintSpend') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintAidIntro') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintAidCouncil') }}
-      | {{ $t('marketplace.operatorBranchEconomyPage.bannerHintAidNet') }}
 
     PageTabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
       //- Главное действие таба — в правый верхний угол строки вкладок
@@ -882,28 +1223,18 @@ q-page.economy
     //- (членские взносы с исполненных заказов). Персональные средства — не
     //- сюда, это уже распределённое (см. таб «Мои средства»).
     template(v-if='activeKey === "wallet"')
-      .economy__cards
+      .wallet-grid
         WalletCard(
+          v-for='c in walletCards',
+          :key='c.key',
           program='wallet',
-          icon='storefront',
-          :title='$t("marketplace.operatorBranchEconomyPage.commonWalletTitle")',
-          :subtitle='$t("marketplace.operatorBranchEconomyPage.commonWalletSubtitle")',
-          :balance='economy ? assetAmount(economy.common_balance).toFixed(2) : "0.00"',
-          :symbol='economy ? assetSymbol(economy.common_balance) : ""',
+          :icon='c.icon',
+          :title='c.title',
+          :subtitle='c.subtitle',
+          :balance='c.balance',
+          :symbol='c.symbol',
+          :balance-label='c.label',
           :loading='loading && !economy'
-        )
-        //- Паевой кошелёк инициатора участка — доля инициатора в экономии
-        //- месяцев. В общий кошелёк участка он не входит: это паевой взнос
-        //- пайщика по договору участия в хозяйственной деятельности.
-        WalletCard(
-          neutral,
-          icon='trending_up',
-          :title='$t("marketplace.operatorBranchEconomyPage.initiatorWalletTitle")',
-          :subtitle='initiatorName',
-          :hint='$t("marketplace.operatorBranchEconomyPage.initiatorWalletHint")',
-          :balance='initiator ? assetAmount(initiator.invest_balance).toFixed(2) : "0.00"',
-          :symbol='initiator ? assetSymbol(initiator.invest_balance) : ""',
-          :loading='loading && !initiator'
         )
 
       .economy__section
@@ -916,8 +1247,8 @@ q-page.economy
           row-key='global_sequence',
           :loading='firstLoad',
           min-width='900px',
-          :clickable-rows='hasOrder',
-          @row-click='openHistoryOrder'
+          clickable-rows,
+          @row-click='openMovement'
         )
           template(#cell-date='{ row }')
             span.t-mono {{ formatDateToLocalTimezone(row.created_at, 'DD.MM.YYYY HH:mm') }}
@@ -945,7 +1276,7 @@ q-page.economy
       )
 
     template(v-if='activeKey === "expenses"')
-      .economy__cards
+      .wallet-grid
         WalletCard(
           program='wallet',
           icon='lock_clock',
@@ -955,13 +1286,15 @@ q-page.economy
           :symbol='economy ? assetSymbol(economy.reserve_amount) : ""',
           :loading='loading && !economy'
         )
+        //- Чем платить по плановым расходам (99D-35): кошелёк участка и
+        //- свободные средства инициаторов одним числом — источник выбирает контракт.
         WalletCard(
           program='wallet',
-          icon='call_split',
-          :title='$t("marketplace.operatorBranchEconomyPage.availableToDistributeTitle")',
-          :subtitle='$t("marketplace.operatorBranchEconomyPage.availableToDistributeSubtitle")',
-          :balance='economy ? assetAmount(economy.available_to_distribute).toFixed(2) : "0.00"',
-          :symbol='economy ? assetSymbol(economy.available_to_distribute) : ""',
+          icon='payments',
+          :title='$t("marketplace.operatorBranchEconomyPage.availableForExpensesTitle")',
+          :subtitle='$t("marketplace.operatorBranchEconomyPage.availableForExpensesSubtitle")',
+          :balance='economy ? assetAmount(economy.available_for_expenses).toFixed(2) : "0.00"',
+          :symbol='economy ? assetSymbol(economy.available_for_expenses) : ""',
           :loading='loading && !economy'
         )
 
@@ -973,7 +1306,9 @@ q-page.economy
           row-key='id',
           :loading='firstLoad',
           min-width='960px',
-          sort-by='title'
+          sort-by='title',
+          clickable-rows,
+          @row-click='openPlan'
         )
           template(#cell-title='{ row: plan }')
             .economy__name {{ plan.title }}
@@ -985,20 +1320,23 @@ q-page.economy
               q-icon(name='autorenew', size='14px')
               | {{ planRecurrenceLabel(plan) }}
           template(#cell-payto='{ row: plan }')
-            .economy__payto {{ plan.pay_to }}
+            .economy__payto {{ planPayeeTitle(plan) }}
+            .economy__due-note(v-if='planPayeeNote(plan)') {{ planPayeeNote(plan) }}
           template(#cell-actions='{ row: plan }')
-                    .economy__row-actions
-                      BaseBadge(v-if='plan.paid_at', variant='pos') {{ $t('marketplace.operatorBranchEconomyPage.statusPaid') }}
-                      BaseBadge(v-else-if='plan.proposal_hash', variant='info') {{ $t('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview') }}
+                    .economy__row-actions(@click.stop)
+                      //- Этап по состоянию расхода шасси: совет, кассир, отчёт.
+                      BaseBadge(v-if='planStatus(plan)', :variant='planStatus(plan)?.variant') {{ planStatus(plan)?.label }}
                       //- Отправка расхода на решение совета выделяет средства
                       //- участка — это полномочие председателя участка.
-                      BaseButton(
-                        v-else-if='isBranchTrustee',
-                        variant='primary',
-                        size='sm',
-                        :disabled='planSaving',
-                        @click='onPayPlan(plan)'
-                      ) {{ $t('marketplace.operatorBranchEconomyPage.payAction') }}
+                      //- Денег на запись нет — кнопка неактивна, причина подписана под ней.
+                      .economy__pay(v-else-if='isBranchTrustee')
+                        BaseButton(
+                          variant='primary',
+                          size='sm',
+                          :disabled='planSaving || !isPlanPayable(plan)',
+                          @click='onPayPlan(plan)'
+                        ) {{ $t('marketplace.operatorBranchEconomyPage.payAction') }}
+                        span.economy__pay-note(v-if='economy && !isPlanPayable(plan)') {{ $t('marketplace.operatorBranchEconomyPage.payInsufficientFunds') }}
                       BaseButton(variant='ghost', size='sm', icon-only, :aria-label='$t("marketplace.operatorBranchEconomyPage.actionsAriaLabel")')
                         template(#icon-left)
                           q-icon(name='more_vert', size='18px')
@@ -1019,6 +1357,21 @@ q-page.economy
 
     //- Распределение членских взносов — участники (веса) + ручная команда «Распределить»
     template(v-if='activeKey === "distribution"')
+      //- Сумма к распределению — под рукой у кнопки «Распределить»: тот же
+      //- ряд, что на вкладке кошелька участка.
+      .wallet-grid
+        WalletCard(
+          v-for='c in walletCards',
+          :key='c.key',
+          program='wallet',
+          :icon='c.icon',
+          :title='c.title',
+          :subtitle='c.subtitle',
+          :balance='c.balance',
+          :symbol='c.symbol',
+          :balance-label='c.label',
+          :loading='loading && !economy'
+        )
       .economy__section
         BaseTable(
           v-if='firstLoad || (economy && economy.weights.length)',
@@ -1090,7 +1443,7 @@ q-page.economy
       //- строки (ставит администратор) и резерв участка в месяц (сумма строк,
       //- расход участка в итоге месяца). Нет предела — резерв выключен целиком.
       template(v-if='reserveEnabled')
-        .economy__cards
+        .wallet-grid
           WalletCard(
             program='wallet',
             icon='vertical_align_top',
@@ -1160,7 +1513,7 @@ q-page.economy
     //- Мои средства — свободная доля (получена после распределения) и лента
     //- выплат: каждое «Получить» превращается в карточку своего статуса.
     template(v-if='activeKey === "personal"')
-      .economy__cards
+      .wallet-grid
         WalletCard(
           program='wallet',
           :title='$t("marketplace.operatorBranchEconomyPage.myFreeFundsTitle")',
@@ -1168,6 +1521,16 @@ q-page.economy
           :balance='assetAmount(personalBalance).toFixed(2)',
           :symbol='assetSymbol(personalBalance)',
           :loading='loading && !personalBalance'
+        )
+        //- Получено распределением участка с начала текущего месяца участка.
+        WalletCard(
+          program='wallet',
+          icon='south_west',
+          :title='$t("marketplace.operatorBranchEconomyPage.receivedMonthTitle")',
+          :subtitle='$t("marketplace.operatorBranchEconomyPage.receivedMonthSubtitle")',
+          :balance='assetAmount(currentPeriod?.received ?? "").toFixed(2)',
+          :symbol='assetSymbol(currentPeriod?.received ?? "")',
+          :loading='loading && !currentPeriod'
         )
 
       //- Заявления на материальную помощь — таблицей на всю ширину: дата, сумма,
@@ -1227,23 +1590,31 @@ q-page.economy
     //- расходов и прогона справа. Текущий месяц идёт — расходы на сегодня,
     //- резерв и заказы, которые созреют к первому числу; ставок у него нет.
     template(v-if='activeKey === "periods"')
-      BaseCard.economy__current(v-if='currentPeriod')
-        template(#head)
-          div
-            .t-h3 {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodTitle', { month: monthLabel(currentPeriod.period) }) }}
-            .t-muted {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
-          BaseBadge(variant='info') {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodBadge') }}
-        .economy__current-grid
-          .economy__current-col
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(currentPeriod.planned)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(currentPeriod.memos)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(currentPeriod.aid_reserve)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnExpenses")', :value='formatAsset2Digits(currentPeriod.expenses)', mono)
-          .economy__current-col
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(currentPeriod.aid_paid)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.currentRipeningOrders")', :value='currentPeriod.ripening_orders', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnTurnover")', :value='formatAsset2Digits(currentPeriod.ripening_turnover)', mono)
-            DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnSecured")', :value='formatAsset2Digits(currentPeriod.ripening_secured)', mono)
+      //- Текущий месяц: подпись, даты месяца и пояснение, ниже — ряд плиток
+      //- по канону: расходы месяца, выданные заказы, их обеспечительная часть,
+      //- ожидаемый итог и средства инициаторов участка.
+      template(v-if='currentPeriod')
+        //- Шапка — как у «Топа позиций по обороту»: название раздела с
+        //- подсказкой, справа даты месяца; пояснение — в подсказке.
+        .economy__current-head
+          .economy__current-title
+            .t-h3 {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodEyebrow') }}
+            q-icon.economy__current-hint(name='help_outline', size='18px')
+              q-tooltip(max-width='360px') {{ $t('marketplace.operatorBranchEconomyPage.currentPeriodSubtitle') }}
+          .economy__current-dates.t-muted {{ monthLabel(currentPeriod) }}
+        .wallet-grid
+          WalletCard(
+            v-for='c in currentCards',
+            :key='c.key',
+            program='wallet',
+            :icon='c.icon',
+            :title='c.title',
+            :subtitle='c.subtitle',
+            :hint='c.hint',
+            :balance='c.balance',
+            :symbol='c.symbol',
+            :balance-label='c.label'
+          )
 
       BaseTable(
         v-if='firstLoad || periods.length',
@@ -1256,10 +1627,9 @@ q-page.economy
         @row-click='openPeriod'
       )
         template(#cell-month='{ row: p }')
-          .economy__name {{ monthLabel(p.period) }}
-          .economy__due-note(v-if='p.deficit && assetAmount(p.deficit) > 0')
-            q-icon(name='trending_down', size='14px')
-            | {{ $t('marketplace.operatorBranchEconomyPage.periodDeficitNote') }}
+          //- Месяц — одной строкой; недостача — своей колонкой, фаза паевых
+          //- взносов — в панели месяца: строки таблицы одной высоты.
+          .economy__name {{ monthLabel(p) }}
         template(#cell-turnover='{ row: p }')
           span.t-mono {{ formatAsset2Digits(p.turnover) }}
         template(#cell-secured='{ row: p }')
@@ -1287,14 +1657,120 @@ q-page.economy
         template(#icon)
           q-icon(name='event_repeat', size='48px')
 
-  //- Состав итога месяца — правая панель: факты прогона, расчёт контракта,
-  //- получатель доли инициатора.
-  DetailsDrawer(v-model='periodDrawerOpen', :title='selectedPeriod ? monthLabel(selectedPeriod.period) : ""')
+  //- Плановый расход целиком: сумма и срок, состояние и что с ним сейчас,
+  //- повторяемость, получатель и способ оплаты, кто и когда добавил. Внизу —
+  //- «Оплатить» (председатель участка, денег хватает) и «Удалить расход».
+  DetailsDrawer(v-model='planDrawerOpen', :title='selectedPlan?.title ?? ""', :width='520')
+    template(v-if='selectedPlan')
+      .economy__drawer-amount
+        .t-muted {{ $t('marketplace.operatorBranchEconomyPage.amountLabel') }}
+        .economy__drawer-sum {{ formatAsset2Digits(selectedPlan.amount) }}
+        .t-muted(:class='{ "economy__due--overdue": isPlanOverdue(selectedPlan) }') {{ $t('marketplace.operatorBranchEconomyPage.columnTerm') }}: {{ planDueLabel(selectedPlan) }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.planStageTitle') }}
+        div(v-if='planStatus(selectedPlan)')
+          BaseBadge(:variant='planStatus(selectedPlan)?.variant') {{ planStatus(selectedPlan)?.label }}
+        p.economy__drawer-text {{ planStage(selectedPlan) }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.planDetailsTitle') }}
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.columnPurpose")', :value='selectedPlan.title', align='vertical')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planRecurrenceLabel")', :value='PLAN_RECURRENCE_TITLES[String(selectedPlan.recurrence)] ?? "—"', align='spread')
+        DataRow(
+          v-if='selectedPlan.next_due_date',
+          :label='$t("marketplace.operatorBranchEconomyPage.planNextDueLabel")',
+          :value='new Date(String(selectedPlan.next_due_date)).toLocaleDateString(uiLocale(), { timeZone: "UTC" })',
+          align='spread'
+        )
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.planPaymentTitle') }}
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planMethodLabel")', :value='planMethodLabel(selectedPlan)', align='spread')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.columnPayee")', :value='planPayeeTitle(selectedPlan)', align='vertical')
+        DataRow(
+          v-if='selectedPlan.payment_purpose',
+          :label='$t("marketplace.operatorBranchEconomyPage.planPaymentPurposeLabel")',
+          :value='selectedPlan.payment_purpose',
+          align='vertical'
+        )
+        DataRow(
+          v-if='selectedPlan.pay_to',
+          :label='$t("marketplace.operatorBranchEconomyPage.planRequisitesLabel")',
+          :value='selectedPlan.pay_to',
+          align='vertical'
+        )
+      .economy__drawer-group
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planCreatorLabel")', :value='selectedPlan.creator', align='spread')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.planCreatedLabel")', :value='formatDateToLocalTimezone(String(selectedPlan.created_at), "DD.MM.YYYY")', align='spread')
+    template(v-if='selectedPlan && store.isOperator' #footer)
+      .economy__pay(v-if='isBranchTrustee && !selectedPlan.paid_at && !selectedPlan.proposal_hash')
+        BaseButton(
+          variant='primary',
+          :disabled='planSaving || !isPlanPayable(selectedPlan)',
+          @click='onPayPlanFromDrawer(selectedPlan)'
+        ) {{ $t('marketplace.operatorBranchEconomyPage.payAction') }}
+        span.economy__pay-note(v-if='economy && !isPlanPayable(selectedPlan)') {{ $t('marketplace.operatorBranchEconomyPage.payInsufficientFunds') }}
+      BaseButton(variant='danger', :disabled='planSaving', @click='onDeletePlanFromDrawer(selectedPlan)') {{ $t('marketplace.operatorBranchEconomyPage.deleteExpenseAction') }}
+
+  //- Движение по общему кошельку участка: сумма и направление, путь денег
+  //- (с какого кошелька на какой), что это за операция, у распределения —
+  //- получатели долей, у взноса по заказу — кнопка «Открыть заказ» внизу.
+  DetailsDrawer(
+    v-model='movementDrawerOpen',
+    :title='selectedMovement ? operationLabel({ operationCode: selectedMovement.operation_code, action: "apply" }) : ""',
+    :width='520'
+  )
+    template(v-if='selectedMovement')
+      .economy__drawer-amount
+        .t-muted {{ movementIncoming ? $t('marketplace.operatorBranchEconomyPage.movementIncoming') : $t('marketplace.operatorBranchEconomyPage.movementOutgoing') }}
+        .economy__drawer-sum {{ movementIncoming ? '+' : '−' }} {{ formatAsset2Digits(selectedMovement.quantity ?? '') }}
+        .t-muted {{ formatDateToLocalTimezone(selectedMovement.created_at, 'DD.MM.YYYY HH:mm') }}
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.movementPathTitle') }}
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.movementFrom")', :value='walletTitle(movementMeta?.wallet_from)')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.movementTo")', :value='walletTitle(movementMeta?.wallet_to)')
+      .economy__drawer-group(v-if='movementDescription')
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.movementWhatTitle') }}
+        p.economy__drawer-text {{ movementDescription }}
+      .economy__drawer-group(v-if='isDistribution')
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.movementRecipientsTitle') }}
+        template(v-if='movementPartsLoading')
+          q-skeleton(v-for='n in 3', :key='n', type='text')
+        template(v-else-if='movementRecipients.length')
+          DataRow(
+            v-for='p in movementRecipients',
+            :key='p.global_sequence',
+            align='spread',
+            :label='recipientLabel(p.username)',
+            :value='formatAsset2Digits(p.quantity ?? "")',
+            :hint='p.global_sequence === movementOwnShare ? $t("marketplace.operatorBranchEconomyPage.movementOwnShareHint") : undefined',
+            mono
+          )
+          DataRow(
+            align='spread',
+            :label='$t("marketplace.operatorBranchEconomyPage.movementRecipientsTotal")',
+            :value='formatAsset2Digits(`${movementRecipientsTotal.toFixed(4)} ${assetSymbol(selectedMovement.quantity ?? "")}`)',
+            mono
+          )
+        .t-muted(v-else) {{ $t('marketplace.operatorBranchEconomyPage.movementRecipientsEmpty') }}
+      .economy__drawer-group(v-if='selectedMovement.memo')
+        DataRow(:label='$t("marketplace.operatorBranchEconomyPage.columnPurpose")', :value='selectedMovement.memo')
+    template(v-if='selectedMovement?.order_id', #footer)
+      BaseButton(variant='secondary', @click='openMovementOrder') {{ $t('marketplace.operatorBranchEconomyPage.movementOpenOrder') }}
+
+  //- Состав итога месяца — правая панель: путь денег, факты прогона и расчёт
+  //- контракта. Компенсацию получают все инициаторы участка пропорционально —
+  //- одного получателя у неё нет.
+  DetailsDrawer(v-model='periodDrawerOpen', :title='selectedPeriod ? monthLabel(selectedPeriod) : ""')
     template(v-if='selectedPeriod')
       .economy__drawer-amount
         .t-muted {{ $t('marketplace.operatorBranchEconomyPage.periodMembership') }}
         .economy__drawer-sum {{ formatAsset2Digits(selectedPeriod.membership) }}
         .t-muted {{ $t('marketplace.operatorBranchEconomyPage.periodRateLine', { rate: ratePercentLabel(selectedPeriod.rate_percent) }) }}
+      //- Путь денег месяца: шаги в том порядке, в котором итог делит собранное.
+      .economy__drawer-group
+        .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.flowTitle') }}
+        //- Путь денег — справка, не мастер: шаги не нажимаются и не
+        //- подсвечиваются при наведении, активного шага нет.
+        VerticalStepper(:steps='periodFlow', active-key='', :completed='periodFlow.map((s) => s.key)', :clickable-completed='false')
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodFactsTitle') }}
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnTurnover")', :value='formatAsset2Digits(selectedPeriod.turnover)', mono)
@@ -1302,20 +1778,38 @@ q-page.economy
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodRowsLine")', :value='`${selectedPeriod.rows_charged} / ${selectedPeriod.rows_total}`', mono)
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodExpensesTitle') }}
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(selectedPeriod.planned)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(selectedPeriod.memos)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(selectedPeriod.aid_reserve)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidUnpaid")', :value='formatAsset2Digits(selectedPeriod.aid_unpaid)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(selectedPeriod.aid_paid)', mono)
+        //- Итог по цели резерва (99D-34): траты месяца, цель на следующий месяц
+        //- и собранное; у прежних итогов — плановые расходы месяца и невыплаченное.
+        template(v-if='selectedPeriod.target')
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlannedPaid")', :value='formatAsset2Digits(selectedPeriod.planned)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(selectedPeriod.memos)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(selectedPeriod.aid_paid)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlannedTarget")', :value='formatAsset2Digits(selectedPeriod.planned_target ?? "")', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidTarget")', :value='formatAsset2Digits(selectedPeriod.aid_reserve)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodTargetPrev")', :value='formatAsset2Digits(selectedPeriod.target_prev ?? "")', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodTargetFunded")', :value='formatAsset2Digits(selectedPeriod.target_funded ?? "")', mono)
+        template(v-else)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodPlanned")', :value='formatAsset2Digits(selectedPeriod.planned)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodMemos")', :value='formatAsset2Digits(selectedPeriod.memos)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidReserve")', :value='formatAsset2Digits(selectedPeriod.aid_reserve)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidUnpaid")', :value='formatAsset2Digits(selectedPeriod.aid_unpaid)', mono)
+          DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodAidPaid")', :value='formatAsset2Digits(selectedPeriod.aid_paid)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnExpenses")', :value='formatAsset2Digits(selectedPeriod.expenses)', mono)
       .economy__drawer-group
         .economy__section-title {{ $t('marketplace.operatorBranchEconomyPage.periodSplitTitle') }}
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnBranch")', :value='formatAsset2Digits(selectedPeriod.branch_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnFunds")', :value='formatAsset2Digits(selectedPeriod.funds_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnInitiator")', :value='formatAsset2Digits(selectedPeriod.initiator_amount)', mono)
+        DataRow(
+          v-if='PERIOD_PHASE[selectedPeriod.invest_phase]',
+          align='spread',
+          :label='$t("marketplace.operatorBranchEconomyPage.periodInvestorRepaid")',
+          :value='formatAsset2Digits(selectedPeriod.investor_repaid)',
+          :hint='selectedPeriod.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING ? $t("marketplace.operatorBranchEconomyPage.periodInitiatorRepayHint") : $t("marketplace.operatorBranchEconomyPage.periodInitiatorBranchHint")',
+          mono
+        )
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnReturned")', :value='formatAsset2Digits(selectedPeriod.return_amount)', mono)
         DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodColumnDeficit")', :value='formatAsset2Digits(selectedPeriod.deficit)', mono)
-        DataRow(align='spread', :label='$t("marketplace.operatorBranchEconomyPage.periodInitiatorLine")', :value='nameByUsername[selectedPeriod.initiator] || selectedPeriod.initiator')
       .t-muted(v-if='selectedPeriod.archived') {{ $t('marketplace.operatorBranchEconomyPage.periodArchivedNote') }}
 
   //- Заявление на материальную помощь целиком: сумма крупно и состояние,
@@ -1384,27 +1878,21 @@ q-page.economy
     :draft-key='payPlanDraftKey',
     :prefill='payPlanPrefill',
     :submit='submitBranchExpense',
+    :braname='braname',
     @created='onBranchExpenseCreated'
   )
 
+  //- Оплата записи со способом оплаты — подпись готовой записки.
+  PayPlanDialog(
+    v-model='payReadyOpen',
+    :plan='payingPlan',
+    :braname='braname',
+    :source-wallet='BRANCH_EXPENSE_SOURCE_WALLET',
+    @paid='onReadyPlanPaid'
+  )
+
   //- Диалог добавления планового расхода
-  BaseDialog(v-model='addPlanOpen', :title='$t("marketplace.operatorBranchEconomyPage.newExpenseDialogTitle")', size='md')
-    //- Поля идут плотно: каждое из них уже резервирует строку под подсказку,
-    //- и дополнительный зазор растягивал короткую форму на весь экран.
-    .economy__dialog-body.economy__plan-form
-      BaseInput(v-model='planTitle', :label='$t("marketplace.operatorBranchEconomyPage.expensePurposeLabel")')
-      AmountInput(v-model='planAmount', :label='$t("marketplace.operatorBranchEconomyPage.amountLabel")', :precision='2', :min='0')
-      BaseInput(v-model='planDueDate', :label='$t("marketplace.operatorBranchEconomyPage.payByDateLabel")', type='date')
-      BaseSelect(v-model='planRecurrence', :label='$t("marketplace.operatorBranchEconomyPage.recurrenceLabel")', :options='planRecurrenceOptions')
-      BaseInput(v-model='planPayTo', :label='$t("marketplace.operatorBranchEconomyPage.paymentDetailsLabel")')
-    template(#footer)
-      BaseButton(variant='ghost', :disabled='planSaving', @click='addPlanOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(
-        variant='primary',
-        :loading='planSaving',
-        :disabled='!planTitle || !planAmount || !planDueDate',
-        @click='onAddPlan'
-      ) {{ $t('marketplace.operatorBranchEconomyPage.addExpenseAction') }}
+  ExpensePlanDialog(v-model='addPlanOpen', :braname='braname', @created='onPlanCreated')
 
   //- Диалог распределения
   BaseDialog(v-model='distributeOpen', :title='$t("marketplace.operatorBranchEconomyPage.distributeDialogTitle")', size='sm')
@@ -1437,56 +1925,62 @@ q-page.economy
     size='md'
   )
     .economy__dialog-body
-      p
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintIntro') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintApproval') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTax') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTaxTail') }}
+      //- Одна подсказка: как выплачивается помощь и почему на счёт придёт меньше.
+      .banner.banner--info
+        q-icon.banner__icon(name='info', size='18px')
+        .banner__body
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintIntro') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintApproval') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTax') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.aidHintTaxTail') }}
+      //- Откуда возьмётся помощь: персональный кошелёк, при нехватке — средства
+      //- инициаторов участка; предел месяца — остаток резерва получателя.
+      .economy__aid-sources
+        DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourcePersonalTile")', :value='`${assetAmount(personalBalance).toFixed(2)} ${assetSymbol(personalBalance)}`')
+        DataRow(v-if='investView', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsTile")', :value='`${initiatorFree.toFixed(2)} ${assetSymbol(personalBalance)}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsSub")')
+        DataRow(v-if='reserveEnabled && myReserve', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidReserveTile")', :value='`${myReserveRemaining.toFixed(2)} ${reserveSymbol}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidReserveSub")')
       AmountInput(
         v-model='aidPart',
-        :label='$t("marketplace.operatorBranchEconomyPage.aidRadioLabel")',
+        :label='$t("marketplace.operatorBranchEconomyPage.aidAmountLabel")',
         :symbol='assetSymbol(personalBalance)',
         :precision='2',
-        :min='0'
+        :min='0',
+        show-max,
+        show-balance,
+        :balance='aidMax'
       )
-      //- Разбивка удержания: человек вписал одну сумму, а на счёт придёт
-      //- меньше — без этой строки разница читается как ошибка выплаты.
-      .economy__tax-breakdown(v-if='Number(aidPart) > 0')
-        .economy__tax-row
-          span {{ $t('marketplace.operatorBranchEconomyPage.accruedLabel') }}
-          span {{ aidGross.toFixed(2) }} {{ assetSymbol(personalBalance) }}
-        .economy__tax-row
-          span {{ $t('marketplace.operatorBranchEconomyPage.taxWithheldLabel', { percent: NDFL_RATE_PERCENT }) }}
-          span −{{ aidTax.toFixed(2) }} {{ assetSymbol(personalBalance) }}
-        .economy__tax-row.economy__tax-row--total
-          span {{ $t('marketplace.operatorBranchEconomyPage.toTransferLabel') }}
-          span {{ aidNet.toFixed(2) }} {{ assetSymbol(personalBalance) }}
-        //- Без этой сноски округление читается как ошибка: с 10 ₽ тринадцать
-        //- процентов — это 1,30, а удерживается ровно рубль.
-        p.economy__tax-note
-          | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintIntro') }}
-          | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintTail') }}
-      PaymentMethodSelect(
-        v-if='Number(aidPart) > 0',
-        v-model='aidPaymentMethodId',
-        :username='session.username',
-        required
-      )
-      p.economy__get-funds-total(:class='{ "economy__get-funds-total--over": getFundsOverBalance }')
-        | {{ $t('marketplace.operatorBranchEconomyPage.totalAvailableLabel', { available: getFundsTotal.toFixed(2), total: assetAmount(personalBalance).toFixed(2), symbol: assetSymbol(personalBalance) }) }}
-      //- Предел месяца — строка резерва получателя: отказ контракта виден до отправки.
-      p.economy__get-funds-total(v-if='reserveEnabled && myReserve', :class='{ "economy__get-funds-total--over": aidOverReserve }')
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidReserveRemainingLabel', { remaining: myReserveRemaining.toFixed(2), symbol: reserveSymbol }) }}
-        template(v-if='aidOverReserve')
-          |  {{ $t('marketplace.operatorBranchEconomyPage.aidOverReserveError') }}
-      p.economy__get-funds-total.economy__get-funds-total--over(v-else-if='aidNoReserve')
-        | {{ $t('marketplace.operatorBranchEconomyPage.aidNoReserveError') }}
-      //- Заявление о материальной помощи подписывается под капотом: читать
-      //- типовой текст перед подписью незачем, подписанный документ виден в
-      //- заявке.
-      p.economy__get-funds-note(v-if='Number(aidPart) > 0')
-        | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintIntro') }}
-        | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintTail') }}
+      template(v-if='Number(aidPart) > 0')
+        //- Разбивка удержания: человек вписал одну сумму, а на счёт придёт
+        //- меньше — без этих строк разница читается как ошибка выплаты.
+        .economy__aid-breakdown
+          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.accruedLabel")', :value='`${aidGross.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.taxWithheldLabel", { percent: NDFL_RATE_PERCENT })', :value='`−${aidTax.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          .economy__aid-total
+            DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.toTransferLabel")', :value='`${aidNet.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          //- Без этой сноски округление читается как ошибка: с 10 ₽ тринадцать
+          //- процентов — это 1,30, а удерживается ровно рубль.
+          .economy__tax-note
+            | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintIntro') }}
+            | {{ $t('marketplace.operatorBranchEconomyPage.taxRoundingHintTail') }}
+        DataRow(
+          v-if='aidSource',
+          align='spread',
+          :label='$t("marketplace.operatorBranchEconomyPage.aidSourceLabel")',
+          :value='aidSource === "personal" ? $t("marketplace.operatorBranchEconomyPage.aidSourcePersonal") : $t("marketplace.operatorBranchEconomyPage.aidSourceInitiators")'
+        )
+        PaymentMethodSelect(
+          v-model='aidPaymentMethodId',
+          :username='session.username',
+          required
+        )
+        //- Заявление подписывается под капотом: подписанный документ виден в заявке.
+        .economy__get-funds-note
+          | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintIntro') }}
+          | {{ $t('marketplace.operatorBranchEconomyPage.autoSignHintTail') }}
+      //- Правило контракта видно до отправки: источник, предел месяца, резерв.
+      .banner.banner--neg(v-if='aidError')
+        q-icon.banner__icon(name='error', size='18px')
+        .banner__body {{ aidError }}
     template(#footer)
       BaseButton(
         variant='ghost',
@@ -1517,12 +2011,6 @@ q-page.economy
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--p-4, 16px);
-  }
-
   &__section {
     display: flex;
     flex-direction: column;
@@ -1550,15 +2038,30 @@ q-page.economy
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  &__current-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0 var(--p-6, 24px);
+  // Шапка текущего месяца — как у «Топа позиций по обороту»: название
+  // раздела с подсказкой слева, даты месяца справа.
+  &__current-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--p-3);
   }
 
-  &__current-col {
+  &__current-title {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: var(--p-2);
+  }
+
+  &__current-hint {
+    color: var(--p-ink-3);
+    cursor: help;
+  }
+
+  &__current-dates {
+    font-size: var(--p-fs-body-sm);
+    font-variant-numeric: tabular-nums;
   }
 
   &__drawer-amount {
@@ -1592,51 +2095,47 @@ q-page.economy
     align-self: flex-start;
   }
 
+  &__drawer-text {
+    margin: 0;
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: var(--p-lh-body, 1.5);
+  }
+
   &__get-funds-note {
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  &__tax-breakdown {
+  // Источники помощи в диалоге: строки «подпись — сумма» у правого края.
+  &__aid-sources {
     display: flex;
     flex-direction: column;
-    gap: var(--p-1, 4px);
-    padding: var(--p-3, 12px);
+    gap: var(--p-1);
+  }
+
+  // Разбивка удержания налога: строки суммы на сером поле, итог отделён линией.
+  &__aid-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1);
+    padding: var(--p-3);
     border: 1px solid var(--p-line);
-    border-radius: var(--p-r-sm, 8px);
+    border-radius: var(--p-r-sm);
     background: var(--p-surface-2);
   }
 
+  &__aid-total {
+    padding-top: var(--p-1);
+    border-top: 1px solid var(--p-line);
+    font-weight: 600;
+  }
+
   &__tax-note {
-    margin: var(--p-2, 8px) 0 0;
+    margin-top: var(--p-2);
     color: var(--p-ink-3);
-    font-size: var(--p-fs-meta, 12px);
-    line-height: var(--p-lh-meta, 1.4);
-  }
-
-  &__tax-row {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    font-variant-numeric: tabular-nums;
-
-    &--total {
-      color: var(--p-ink);
-      font-weight: 600;
-      padding-top: var(--p-1, 4px);
-      border-top: 1px solid var(--p-line);
-    }
-  }
-
-  &__get-funds-total {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 12px);
-
-    &--over {
-      color: var(--p-neg);
-    }
+    font-size: var(--p-fs-meta);
+    line-height: var(--p-lh-meta);
   }
 
   &__due--overdue {
@@ -1651,6 +2150,19 @@ q-page.economy
     margin-top: 2px;
     font-size: var(--p-fs-meta);
     color: var(--p-ink-3);
+  }
+
+  &__pay {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-1);
+  }
+
+  &__pay-note {
+    font-size: var(--p-fs-meta);
+    color: var(--p-neg);
+    white-space: nowrap;
   }
 
   &__row-actions {

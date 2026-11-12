@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GqlJwtAuthGuard,
@@ -40,17 +41,7 @@ import {
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
-import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 @Resolver()
 @Injectable()

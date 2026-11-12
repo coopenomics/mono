@@ -1895,6 +1895,12 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+	/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean | Variable<any, string>,
+	/** Номер контрагента. */
+	id: number | Variable<any, string>
+};
 	["AssignCapabilitySetInput"]: {
 	/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null | Variable<any, string>,
@@ -2540,6 +2546,8 @@ export type ValueTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Назначение расхода по этой позиции. */
 	description: string | Variable<any, string>,
 	/** Идентификатор позиции расхода. */
@@ -3871,6 +3879,8 @@ export type ValueTypes = {
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
 	["CapitalExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Описание назначения расхода. */
 	description: string | Variable<any, string>,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -5954,6 +5964,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on ChatcoopSecretaryRoom']?: Omit<ValueTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
 }>;
+	["CheckExpenseCounterpartyInput"]: {
+	/** Вид контрагента. */
+	kind: ValueTypes["ExpenseCounterpartyKind"] | Variable<any, string>,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ValueTypes["ExpenseCounterpartyRequisiteInput"]> | Variable<any, string>
+};
 	["CheckMatrixUsernameInput"]: {
 	username: string | Variable<any, string>
 };
@@ -6488,10 +6504,20 @@ export type ValueTypes = {
 	amount: number | Variable<any, string>,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null | Variable<any, string>,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: ValueTypes["DateTime"] | Variable<any, string>,
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string | Variable<any, string>,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null | Variable<any, string>,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null | Variable<any, string>,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null | Variable<any, string>,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: ValueTypes["ExpenseRecipientType"] | undefined | null | Variable<any, string>,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: ValueTypes["ExpensePlanRecurrence"] | undefined | null | Variable<any, string>,
 	/** Назначение расхода. */
@@ -7948,6 +7974,8 @@ export type ValueTypes = {
 }>;
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Назначение расхода по этой позиции */
 	description: string | Variable<any, string>,
 	/** Идентификатор позиции расхода */
@@ -8927,6 +8955,108 @@ export type ValueTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null | Variable<any, string>
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: AliasType<{
+	/** В архиве: не предлагается для новых расходов. */
+	archived?:boolean | `@${string}`,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?:boolean | `@${string}`,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage?:boolean | `@${string}`,
+	/** Когда добавлен. */
+	created_at?:boolean | `@${string}`,
+	/** Кто добавил контрагента. */
+	creator?:boolean | `@${string}`,
+	/** Номер контрагента. */
+	id?:boolean | `@${string}`,
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+	/** Наименование. */
+	name?:boolean | `@${string}`,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?:boolean | `@${string}`,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites?:ValueTypes["ExpenseCounterpartyRequisite"],
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text?:boolean | `@${string}`,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterparty']?: Omit<ValueTypes["ExpenseCounterparty"], "...on ExpenseCounterparty">
+}>;
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: AliasType<{
+	/** Страна кооператива. */
+	country?:boolean | `@${string}`,
+	/** Поля по видам контрагента. */
+	kinds?:ValueTypes["ExpenseCounterpartyFormKind"],
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyForm']?: Omit<ValueTypes["ExpenseCounterpartyForm"], "...on ExpenseCounterpartyForm">
+}>;
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: AliasType<{
+	/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?:boolean | `@${string}`,
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись поля. */
+	label?:boolean | `@${string}`,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?:boolean | `@${string}`,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?:boolean | `@${string}`,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?:boolean | `@${string}`,
+	/** Поле обязательно. */
+	required?:boolean | `@${string}`,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyFormField']?: Omit<ValueTypes["ExpenseCounterpartyFormField"], "...on ExpenseCounterpartyFormField">
+}>;
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: AliasType<{
+	/** Поля в порядке платёжного поручения. */
+	fields?:ValueTypes["ExpenseCounterpartyFormField"],
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyFormKind']?: Omit<ValueTypes["ExpenseCounterpartyFormKind"], "...on ExpenseCounterpartyFormKind">
+}>;
+	["ExpenseCounterpartyIdInput"]: {
+	/** Номер контрагента. */
+	id: number | Variable<any, string>
+};
+	/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+["ExpenseCounterpartyKind"]:ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: AliasType<{
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита. */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyRequisite']?: Omit<ValueTypes["ExpenseCounterpartyRequisite"], "...on ExpenseCounterpartyRequisite">
+}>;
+	["ExpenseCounterpartyRequisiteInput"]: {
+	/** Ключ реквизита — из формы контрагента. */
+	key: string | Variable<any, string>,
+	/** Значение реквизита. */
+	value: string | Variable<any, string>
+};
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: AliasType<{
+	/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpenseCounterpartyRequisiteIssue']?: Omit<ValueTypes["ExpenseCounterpartyRequisiteIssue"], "...on ExpenseCounterpartyRequisiteIssue">
+}>;
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: AliasType<{
 	/** SHA-256 содержимого, hex-lowercase. */
@@ -8992,6 +9122,8 @@ export type ValueTypes = {
 	['...on ExpenseItem']?: Omit<ValueTypes["ExpenseItem"], "...on ExpenseItem">
 }>;
 	["ExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Описание назначения расхода. */
 	description: string | Variable<any, string>,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -9023,6 +9155,10 @@ export type ValueTypes = {
 	amount?:boolean | `@${string}`,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?:boolean | `@${string}`,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?:boolean | `@${string}`,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?:boolean | `@${string}`,
 	/** Когда добавлена запись. */
 	created_at?:boolean | `@${string}`,
 	/** Кто добавил запись. */
@@ -9031,12 +9167,26 @@ export type ValueTypes = {
 	due_date?:boolean | `@${string}`,
 	/** Идентификатор записи. */
 	id?:boolean | `@${string}`,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?:boolean | `@${string}`,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?:boolean | `@${string}`,
-	/** Реквизиты получателя платежа. */
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
 	pay_to?:boolean | `@${string}`,
+	/** Способ получения средств пайщика. */
+	payment_method_id?:boolean | `@${string}`,
+	/** Назначение платежа организации. */
+	payment_purpose?:boolean | `@${string}`,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?:boolean | `@${string}`,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?:boolean | `@${string}`,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?:boolean | `@${string}`,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?:boolean | `@${string}`,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?:boolean | `@${string}`,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?:boolean | `@${string}`,
 	/** Назначение расхода. */
@@ -9046,6 +9196,25 @@ export type ValueTypes = {
 }>;
 	/** Периодичность планового расхода: разовый либо повторяющийся ежемесячно, ежеквартально или ежегодно. */
 ["ExpensePlanRecurrence"]:ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: AliasType<{
+	/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates?:boolean | `@${string}`,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months?:boolean | `@${string}`,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpensePlanSchedule']?: Omit<ValueTypes["ExpensePlanSchedule"], "...on ExpensePlanSchedule">
+}>;
+	["ExpensePlanScheduleInput"]: {
+	/** Сумма платежа. */
+	amount: number | Variable<any, string>,
+	/** Срок первого платежа. */
+	due_date: ValueTypes["DateTime"] | Variable<any, string>,
+	/** Периодичность расхода. */
+	recurrence?: ValueTypes["ExpensePlanRecurrence"] | undefined | null | Variable<any, string>
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: AliasType<{
 	/** Дата создания записи */
@@ -9159,6 +9328,8 @@ export type ValueTypes = {
 	["ExpenseProposalItemInput"]: {
 	/** Сумма строки */
 	amount: string | Variable<any, string>,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null | Variable<any, string>,
 	/** Описание расхода */
 	description: string | Variable<any, string>,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -10765,6 +10936,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on LedgerState']?: Omit<ValueTypes["LedgerState"], "...on LedgerState">
 }>;
+	["ListExpenseCounterpartiesInput"]: {
+	/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null | Variable<any, string>,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null | Variable<any, string>
+};
 	["ListExpensePlansInput"]: {
 	/** Показать планы только этого кооперативного участка. */
 	braname?: string | undefined | null | Variable<any, string>
@@ -10944,7 +11121,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAid']?: Omit<ValueTypes["MarketplaceAid"], "...on MarketplaceAid">
 }>;
-	/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+	/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 ["MarketplaceAidStage"]:MarketplaceAidStage;
 	["MarketplaceAidStatementSignablePayloadInput"]: {
 	/** Сумма материальной помощи. */
@@ -11188,38 +11365,54 @@ export type ValueTypes = {
 };
 	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
 ["MarketplaceBranchCurrentPeriod"]: AliasType<{
-	/** Материальная помощь, выплаченная участком за текущий месяц. */
+	/** Материальная помощь с персонального кошелька, выплаченная за текущий месяц. */
 	aid_paid?:boolean | `@${string}`,
-	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	/** Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца. */
 	aid_reserve?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
-	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed?:boolean | `@${string}`,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
+	/** Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом. */
 	expenses?:boolean | `@${string}`,
-	/** Служебные записки участка сверх плана за текущий месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за текущий месяц. */
 	memos?:boolean | `@${string}`,
 	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period?:boolean | `@${string}`,
-	/** Плановые расходы участка со сроком в текущем месяце. */
+	/** Оплачено по плану с общего кошелька участка за текущий месяц. */
 	planned?:boolean | `@${string}`,
+	/** Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца. */
+	planned_target?:boolean | `@${string}`,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received?:boolean | `@${string}`,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders?:boolean | `@${string}`,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
 	ripening_secured?:boolean | `@${string}`,
 	/** Стоимость заказов, которые созреют к первому числу. */
 	ripening_turnover?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
+	/** Собранная часть цели резерва прошлого итога: она уже лежит на участке. */
+	target_prev?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchCurrentPeriod']?: Omit<ValueTypes["MarketplaceBranchCurrentPeriod"], "...on MarketplaceBranchCurrentPeriod">
 }>;
-	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
+	/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses?:boolean | `@${string}`,
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance?:boolean | `@${string}`,
-	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free?:boolean | `@${string}`,
+	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
 	total_weight?:boolean | `@${string}`,
@@ -11241,13 +11434,42 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchInitiator']?: Omit<ValueTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
 }>;
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
+["MarketplaceBranchInvestment"]: AliasType<{
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Инициаторы участка. */
+	investors?:ValueTypes["MarketplaceInvestor"],
+	/** Внесено деньгами всего по инициаторам участка; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in_total?:boolean | `@${string}`,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money_total?:boolean | `@${string}`,
+	/** Осталось возместить инициаторам из использованного. */
+	outstanding?:boolean | `@${string}`,
+	/** Фаза участка по паевым взносам. */
+	phase?:boolean | `@${string}`,
+	/** Заявления на имущество до приёма. */
+	properties?:ValueTypes["MarketplaceInvestProperty"],
+	/** Внесено имуществом всего. */
+	property_total?:boolean | `@${string}`,
+	/** Возмещено инициаторам из экономии участка всего. */
+	repaid_total?:boolean | `@${string}`,
+	/** Выделено под незакрытые расходы и материальную помощь. */
+	reserved?:boolean | `@${string}`,
+	/** Оплачено из средств инициаторов всего. */
+	spent_total?:boolean | `@${string}`,
+	/** Деньги инициаторов, ещё не израсходованные участком. */
+	unused_total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchInvestment']?: Omit<ValueTypes["MarketplaceBranchInvestment"], "...on MarketplaceBranchInvestment">
+}>;
 	/** Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками. */
 ["MarketplaceBranchPeriod"]: AliasType<{
-	/** Материальная помощь, выплаченная участком за месяц. */
+	/** Материальная помощь с персонального кошелька, выплаченная за месяц. */
 	aid_paid?:boolean | `@${string}`,
-	/** Резерв социально-экономического обеспечения пайщиков на следующий месяц. */
+	/** Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва). */
 	aid_reserve?:boolean | `@${string}`,
-	/** Невыплаченная часть прошлого резерва. */
+	/** Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль. */
 	aid_unpaid?:boolean | `@${string}`,
 	/** Строка уже стёрта из цепи; история хранится здесь. */
 	archived?:boolean | `@${string}`,
@@ -11259,7 +11481,9 @@ export type ValueTypes = {
 	closed_at?:boolean | `@${string}`,
 	/** Дефицит участка: расходы без покрытия. */
 	deficit?:boolean | `@${string}`,
-	/** Расходы участка за прогон. */
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
+	/** Расходы участка за месяц. */
 	expenses?:boolean | `@${string}`,
 	/** В фонды накопления кооператива. */
 	funds_amount?:boolean | `@${string}`,
@@ -11267,14 +11491,20 @@ export type ValueTypes = {
 	initiator?:boolean | `@${string}`,
 	/** Инициатору участка. */
 	initiator_amount?:boolean | `@${string}`,
+	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
+	invest_phase?:boolean | `@${string}`,
+	/** Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня. */
+	investor_repaid?:boolean | `@${string}`,
 	/** Членский взнос участка за прогон. */
 	membership?:boolean | `@${string}`,
-	/** Служебные записки участка сверх плана за месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за месяц. */
 	memos?:boolean | `@${string}`,
 	/** Номер месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period?:boolean | `@${string}`,
-	/** Плановые расходы участка за месяц. */
+	/** Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце). */
 	planned?:boolean | `@${string}`,
+	/** Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва. */
+	planned_target?:boolean | `@${string}`,
 	/** Коэффициент экономического участия за месяц, проценты: участку, в фонды и инициатору вместе. */
 	rate_percent?:boolean | `@${string}`,
 	/** Пайщикам обратно на свободный паевой. */
@@ -11285,6 +11515,14 @@ export type ValueTypes = {
 	rows_total?:boolean | `@${string}`,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
+	/** Цель резерва участка: плановые расходы и накопленное право получателей помощи. */
+	target?:boolean | `@${string}`,
+	/** Собранная часть цели резерва этого месяца; несобранное переходит в следующий. */
+	target_funded?:boolean | `@${string}`,
+	/** Собранная часть цели резерва прошлого месяца. */
+	target_prev?:boolean | `@${string}`,
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -11354,6 +11592,8 @@ export type ValueTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Сумма движения. */
 	quantity?:boolean | `@${string}`,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchWalletOperation']?: Omit<ValueTypes["MarketplaceBranchWalletOperation"], "...on MarketplaceBranchWalletOperation">
 }>;
@@ -11545,6 +11785,14 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
 	package_id?: string | undefined | null | Variable<any, string>
+};
+	["MarketplaceClaimInvestmentInput"]: {
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор заявления из подписанного документа. */
+	claim_hash: string | Variable<any, string>,
+	/** Подписанное заявление о трансляции средств на главный паевой кошелёк. */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -11756,6 +12004,34 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCreateExpressReceptionResult']?: Omit<ValueTypes["MarketplaceCreateExpressReceptionResult"], "...on MarketplaceCreateExpressReceptionResult">
 }>;
+	["MarketplaceCreateInvestPropertyInput"]: {
+	/** Цена приёма. */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Категория имущества. */
+	property_category?: string | undefined | null | Variable<any, string>,
+	/** Описание, характеристики и состояние. */
+	property_description: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
+	property_hash: string | Variable<any, string>,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null | Variable<any, string>,
+	/** Наименование имущества. */
+	property_name: string | Variable<any, string>,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null | Variable<any, string>,
+	/** Количество. */
+	property_quantity: string | Variable<any, string>,
+	/** Единица измерения. */
+	property_unit: string | Variable<any, string>,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null | Variable<any, string>,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null | Variable<any, string>,
+	/** Подписанное заявление о паевом взносе имуществом. */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["MarketplaceCreateOfferInput"]: {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
@@ -11880,6 +12156,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCurrentMember']?: Omit<ValueTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
 }>;
+	["MarketplaceDeclineInvestPropertyInput"]: {
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string | Variable<any, string>,
+	/** Причина отказа. */
+	reason: string | Variable<any, string>
+};
 	/** Параметры отказа поставщика от выбранных активных заказов. */
 ["MarketplaceDeclineOrdersBatchInput"]: {
 	/** Идентификаторы заказов, от которых поставщик отказывается. */
@@ -12095,6 +12379,138 @@ export type ValueTypes = {
 };
 	/** Состояние единицы имущества на складе КУ. */
 ["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
+["MarketplaceInvestAgreement"]: AliasType<{
+	/** Номер договора. */
+	number?:boolean | `@${string}`,
+	/** Дата подписи. */
+	signed_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestAgreement']?: Omit<ValueTypes["MarketplaceInvestAgreement"], "...on MarketplaceInvestAgreement">
+}>;
+	/** Запись истории паевых взносов пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: AliasType<{
+	/** Сумма: деньгами, по цене приёма имущества или трансляции. */
+	amount?:boolean | `@${string}`,
+	/** Когда операция проведена. */
+	created_at?:boolean | `@${string}`,
+	/** Номер операции учёта. */
+	global_sequence?:boolean | `@${string}`,
+	/** Вид записи. */
+	kind?:boolean | `@${string}`,
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestHistoryEntry']?: Omit<ValueTypes["MarketplaceInvestHistoryEntry"], "...on MarketplaceInvestHistoryEntry">
+}>;
+	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
+["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceInvestHistoryEntry"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestHistoryPaginationResult']?: Omit<ValueTypes["MarketplaceInvestHistoryPaginationResult"], "...on MarketplaceInvestHistoryPaginationResult">
+}>;
+	["MarketplaceInvestMoneyInput"]: {
+	/** Сумма паевого взноса деньгами. */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор паевого взноса из подписанного заявления. */
+	invest_hash: string | Variable<any, string>,
+	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
+	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
+["MarketplaceInvestPhase"]:MarketplaceInvestPhase;
+	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
+["MarketplaceInvestProperty"]: AliasType<{
+	/** Цена приёма. */
+	amount?:boolean | `@${string}`,
+	/** Наименование и описание имущества. */
+	description?:boolean | `@${string}`,
+	/** Идентификатор паевого взноса имуществом. */
+	hash?:boolean | `@${string}`,
+	/** Этап заявления. */
+	status?:boolean | `@${string}`,
+	/** Вносящий пайщик. */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestProperty']?: Omit<ValueTypes["MarketplaceInvestProperty"], "...on MarketplaceInvestProperty">
+}>;
+	["MarketplaceInvestPropertyRefInput"]: {
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string | Variable<any, string>
+};
+	["MarketplaceInvestPropertyStatementInput"]: {
+	/** Цена приёма. */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Категория имущества. */
+	property_category?: string | undefined | null | Variable<any, string>,
+	/** Описание, характеристики и состояние. */
+	property_description: string | Variable<any, string>,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null | Variable<any, string>,
+	/** Наименование имущества. */
+	property_name: string | Variable<any, string>,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null | Variable<any, string>,
+	/** Количество. */
+	property_quantity: string | Variable<any, string>,
+	/** Единица измерения. */
+	property_unit: string | Variable<any, string>,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null | Variable<any, string>,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null | Variable<any, string>
+};
+	/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
+["MarketplaceInvestPropertyStatus"]:MarketplaceInvestPropertyStatus;
+	["MarketplaceInvestStatementInput"]: {
+	/** Сумма паевого взноса деньгами. */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>
+};
+	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
+["MarketplaceInvestor"]: AliasType<{
+	/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
+	active?:boolean | `@${string}`,
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Доступно к переводу на главный паевой кошелёк сейчас. Предварительный расчёт; при заявлении сумму считает кооператив. */
+	claimable?:boolean | `@${string}`,
+	/** Уже переведено на главный паевой кошелёк. */
+	claimed?:boolean | `@${string}`,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money?:boolean | `@${string}`,
+	/** Внесено деньгами всего; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in?:boolean | `@${string}`,
+	/** Внесено имуществом по цене приёма. */
+	property?:boolean | `@${string}`,
+	/** Возмещено из экономии участка. */
+	returned?:boolean | `@${string}`,
+	/** Возмещено полностью: использованное возмещено, всё переведено на главный паевой кошелёк, остаток нулевой. */
+	settled?:boolean | `@${string}`,
+	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
+	unused?:boolean | `@${string}`,
+	/** Использовано участком: имущество и израсходованные деньги. */
+	used?:boolean | `@${string}`,
+	/** Пайщик-инициатор. */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInvestor']?: Omit<ValueTypes["MarketplaceInvestor"], "...on MarketplaceInvestor">
+}>;
 	/** Акт с первой подписью заказчика — оператор накладывает закрывающую подпись поверх. */
 ["MarketplaceIssuanceClosePayload"]: AliasType<{
 	act_aggregate?:ValueTypes["DocumentAggregate"],
@@ -12863,6 +13279,8 @@ export type ValueTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
+["MarketplacePeriodInvestPhase"]:MarketplacePeriodInvestPhase;
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: AliasType<{
 	/** Баланс персонального кошелька членских средств. */
@@ -13695,6 +14113,20 @@ export type ValueTypes = {
 	placements?: Array<ValueTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null | Variable<any, string>,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ValueTypes["MarketplaceAplReceptionSignedDocumentInput"]> | Variable<any, string>
+};
+	["MarketplaceSignInvestAgreementInput"]: {
+	/** Подписанный договор участия в хозяйственной деятельности. */
+	agreement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Кооперативный участок договора. */
+	braname: string | Variable<any, string>
+};
+	["MarketplaceSignInvestPropertyInput"]: {
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>,
+	/** Подписанный документ: одобрение заявления или акт приёма-передачи. */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string | Variable<any, string>
 };
 	["MarketplaceSignIssuanceActInput"]: {
 	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
@@ -14740,6 +15172,7 @@ addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any
 applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveModeration?: [{	data: ValueTypes["ApproveModerationInputDTO"] | Variable<any, string>},ValueTypes["ApproveModerationResultDTO"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
+archiveExpenseCounterparty?: [{	data: ValueTypes["ArchiveExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 assignRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -14870,6 +15303,7 @@ confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["Me
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
+createExpenseCounterparty?: [{	data: ValueTypes["SaveExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
 createExpensePlan?: [{	data: ValueTypes["CreateExpensePlanInput"] | Variable<any, string>},ValueTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ValueTypes["CreateExpenseProposalInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
@@ -14883,6 +15317,7 @@ declineDecision?: [{	data: ValueTypes["DeclineDecisionInput"] | Variable<any, st
 deleteAccount?: [{	data: ValueTypes["DeleteAccountInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ValueTypes["DeleteBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
+deleteExpenseCounterparty?: [{	data: ValueTypes["ExpenseCounterpartyIdInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ValueTypes["DeleteExpensePlanInput"] | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
@@ -15004,6 +15439,7 @@ marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategor
 marketplaceAddSupplier?: [{	input: ValueTypes["MarketplaceAddSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ValueTypes["MarketplaceAddToCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceAdmitSupplierClaim?: [{	data: ValueTypes["MarketplaceAdmitSupplierClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierClaimResult"]],
+marketplaceApproveInvestProperty?: [{	data: ValueTypes["MarketplaceSignInvestPropertyInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceApproveSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
@@ -15016,6 +15452,7 @@ marketplaceCancelStockOrder?: [{	data: ValueTypes["MarketplaceCancelStockOrderIn
 marketplaceCancelStockProposal?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposal"]],
 marketplaceCancelWriteoffDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 marketplaceCheckoutCart?: [{	input?: ValueTypes["MarketplaceCheckoutCartInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCheckoutResult"]],
+marketplaceClaimInvestment?: [{	data: ValueTypes["MarketplaceClaimInvestmentInput"] | Variable<any, string>},ValueTypes["MarketplaceInvestor"]],
 	/** Очистить все доступные категории (сделать доступными все) */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
 	/** Очистить корзину (убрать все позиции). */
@@ -15030,6 +15467,7 @@ marketplaceCreateContainerType?: [{	data: ValueTypes["MarketplaceCreateContainer
 marketplaceCreateContainers?: [{	data: ValueTypes["MarketplaceCreateContainersInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
 marketplaceCreateCustomCategory?: [{	input: ValueTypes["CreateCustomCategoryInput"] | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
 marketplaceCreateExpressReception?: [{	data: ValueTypes["MarketplaceCreateExpressReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateExpressReceptionResult"]],
+marketplaceCreateInvestProperty?: [{	data: ValueTypes["MarketplaceCreateInvestPropertyInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceCreateReturnClaim?: [{	data: ValueTypes["MarketplaceCreateReturnClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateReview?: [{	data: ValueTypes["MarketplaceCreateReviewInput"] | Variable<any, string>},ValueTypes["MarketplaceReview"]],
@@ -15038,6 +15476,7 @@ marketplaceCreateStockProposal?: [{	data: ValueTypes["MarketplaceCreateStockProp
 marketplaceCreateStorageCell?: [{	data: ValueTypes["MarketplaceCreateStorageCellInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceCreateStorageGrid?: [{	data: ValueTypes["MarketplaceCreateStorageGridInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceCreateWriteoffDraft?: [{	data: ValueTypes["MarketplaceCreateWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceDeclineInvestProperty?: [{	data: ValueTypes["MarketplaceDeclineInvestPropertyInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceDeclineOrdersBatch?: [{	input: ValueTypes["MarketplaceDeclineOrdersBatchInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceDeclineStockProposal?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposal"]],
 marketplaceDeleteBranchReserve?: [{	data: ValueTypes["MarketplaceDeleteBranchReserveInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
@@ -15049,6 +15488,7 @@ marketplaceFinalizeStockIssuance?: [{	data: ValueTypes["MarketplaceFinalizeStock
 marketplaceFixIssuanceFact?: [{	data: ValueTypes["MarketplaceFixIssuanceFactInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceStatementPayload"]],
 marketplaceGenerateInventoryLabel?: [{	data: ValueTypes["MarketplaceGenerateInventoryLabelInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceHandBackReturn?: [{	data: ValueTypes["MarketplaceHandBackReturnInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
+marketplaceInvestMoney?: [{	data: ValueTypes["MarketplaceInvestMoneyInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceMoveContainer?: [{	data: ValueTypes["MarketplaceMoveContainerInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
 marketplacePublishStock?: [{	data: ValueTypes["MarketplacePublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceReadyIssue?: [{	data: ValueTypes["MarketplaceReadyIssueInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
@@ -15078,6 +15518,8 @@ marketplaceSetSupplierPayoutMethod?: [{	input: ValueTypes["MarketplaceSetSupplie
 marketplaceSetTrusteeWeight?: [{	data: ValueTypes["MarketplaceSetTrusteeWeightInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignAplReceptionAsSupplier?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignInvestAgreement?: [{	data: ValueTypes["MarketplaceSignInvestAgreementInput"] | Variable<any, string>},ValueTypes["MarketplaceInvestAgreement"]],
+marketplaceSignInvestPropertyAct?: [{	data: ValueTypes["MarketplaceSignInvestPropertyInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceSignIssuanceAct?: [{	data: ValueTypes["MarketplaceSignIssuanceActInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceSaga"]],
 marketplaceSignIssuanceStatement?: [{	data: ValueTypes["MarketplaceSignIssuanceStatementInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceSaga"]],
 marketplaceSignOnboardingOffer?: [{	input: ValueTypes["MarketplaceSignOnboardingOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOnboardingState"]],
@@ -15156,6 +15598,7 @@ uninstallExtension?: [{	data: ValueTypes["UninstallExtensionInput"] | Variable<a
 unverifyParticipant?: [{	data: ValueTypes["UnverifyParticipantInput"] | Variable<any, string>},ValueTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ValueTypes["UpdateAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 updateBankAccount?: [{	data: ValueTypes["UpdateBankAccountInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
+updateExpenseCounterparty?: [{	data: ValueTypes["UpdateExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
 updateExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 updateReportRequisites?: [{	input: ValueTypes["UpdateReportRequisitesInput"] | Variable<any, string>},ValueTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ValueTypes["UpdateSettingsInput"] | Variable<any, string>},ValueTypes["Settings"]],
@@ -17178,6 +17621,7 @@ chatcoopListProjectCommunicationRooms?: [{	data: ValueTypes["GetProjectCommunica
 	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
 	chatcoopListSecretaryRooms?:ValueTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"] | Variable<any, string>},boolean | `@${string}`],
+checkExpenseCounterpartyRequisites?: [{	data: ValueTypes["CheckExpenseCounterpartyInput"] | Variable<any, string>},ValueTypes["ExpenseCounterpartyRequisiteIssue"]],
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
@@ -17256,9 +17700,13 @@ edubridgeTeacherContractDocument?: [{	username: string | Variable<any, string>},
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ValueTypes["EduTeacher"],
 expenseAdvancesByCooperative?: [{	coopname: string | Variable<any, string>,	filter?: ValueTypes["ExpenseAdvancesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedExpenseAdvancesPaginationResult"]],
+expenseCounterparties?: [{	data?: ValueTypes["ListExpenseCounterpartiesInput"] | undefined | null | Variable<any, string>},ValueTypes["ExpenseCounterparty"]],
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm?:ValueTypes["ExpenseCounterpartyForm"],
 expenseFile?: [{	id: number | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string | Variable<any, string>,	item_hash: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string | Variable<any, string>,	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseFile"]],
+expensePlanSchedule?: [{	data: ValueTypes["ExpensePlanScheduleInput"] | Variable<any, string>},ValueTypes["ExpensePlanSchedule"]],
 expenseProposal?: [{	proposal_hash: string | Variable<any, string>},ValueTypes["ExpenseProposal"]],
 expenseProposalsByCooperative?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedExpenseProposalsPaginationResult"]],
 expenseProposalsByMember?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["PaginatedExpenseProposalsPaginationResult"]],
@@ -17368,6 +17816,7 @@ lookupOrganization?: [{	data: ValueTypes["LookupOrganizationInput"] | Variable<a
 marketplaceAidStatementSignablePayload?: [{	data: ValueTypes["MarketplaceAidStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceBranchInvestment?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchInvestment"]],
 marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
 	delivery_braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryOfferCount"]],
 	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (стоимость и обеспечительная часть паевого взноса покрываются свободным паевым «Стола заказов») и заявление 1110 о трансляции недостающего из Цифрового кошелька — к подписи заказчиком; если транслировать нечего, null. */
@@ -17385,6 +17834,7 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 marketplaceGetBranchCurrentPeriod?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchInitiator?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchInitiator"]],
+marketplaceGetBranchMovementParts?: [{	braname: string | Variable<any, string>,	process_hash: string | Variable<any, string>},ValueTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
@@ -17404,6 +17854,13 @@ marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Va
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ValueTypes["MarketplaceSupplierPaymentSettings"],
 marketplaceHandoffCode?: [{	data: ValueTypes["MarketplaceHandoffCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceHandoffCode"]],
+marketplaceInvestAgreementSignablePayload?: [{	/** Кооперативный участок договора. */
+	braname: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceInvestClaimSignablePayload?: [{	braname: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceInvestPropertyActSignablePayload?: [{	data: ValueTypes["MarketplaceInvestPropertyRefInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceInvestPropertyApprovalSignablePayload?: [{	data: ValueTypes["MarketplaceInvestPropertyRefInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceInvestPropertyStatementSignablePayload?: [{	data: ValueTypes["MarketplaceInvestPropertyStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceInvestStatementSignablePayload?: [{	data: ValueTypes["MarketplaceInvestStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssuanceActPayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssuanceClosePayload?: [{	data: ValueTypes["MarketplaceIssuanceOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceClosePayload"]],
 marketplaceIssuancePickScan?: [{	data: ValueTypes["MarketplaceIssuancePickScanInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuancePickScan"]],
@@ -17458,8 +17915,13 @@ marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSuppli
 	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
 	marketplaceListWriteoffCandidates?:ValueTypes["MarketplaceWriteoffCandidate"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию. */
+	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
+marketplaceMyInvestAgreement?: [{	/** Кооперативный участок договора. */
+	braname: string | Variable<any, string>},ValueTypes["MarketplaceInvestAgreement"]],
+marketplaceMyInvestHistory?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInvestHistoryPaginationResult"]],
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
+	marketplaceMyInvestments?:ValueTypes["MarketplaceInvestor"],
 marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
 	order_id: string | Variable<any, string>},ValueTypes["MarketplaceReview"]],
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
@@ -18610,6 +19072,18 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string | Variable<any, string>
 };
+	["SaveExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Вид контрагента. */
+	kind: ValueTypes["ExpenseCounterpartyKind"] | Variable<any, string>,
+	/** Наименование. */
+	name: string | Variable<any, string>,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ValueTypes["ExpenseCounterpartyRequisiteInput"]> | Variable<any, string>
+};
 	["SaveReportDraftInput"]: {
 	editedFields: Array<string> | Variable<any, string>,
 	editsJson: string | Variable<any, string>,
@@ -19438,6 +19912,20 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	phone: string | Variable<any, string>,
 	/** Имя пользователя */
 	username: string | Variable<any, string>
+};
+	["UpdateExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Номер контрагента. */
+	id: number | Variable<any, string>,
+	/** Вид контрагента. */
+	kind: ValueTypes["ExpenseCounterpartyKind"] | Variable<any, string>,
+	/** Наименование. */
+	name: string | Variable<any, string>,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null | Variable<any, string>,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ValueTypes["ExpenseCounterpartyRequisiteInput"]> | Variable<any, string>
 };
 	["UpdateIndividualDataInput"]: {
 	/** Дата рождения */
@@ -20947,6 +21435,12 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+	/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean,
+	/** Номер контрагента. */
+	id: number
+};
 	["AssignCapabilitySetInput"]: {
 	/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null,
@@ -21574,6 +22068,8 @@ export type ResolverInputTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции. */
 	description: string,
 	/** Идентификатор позиции расхода. */
@@ -22879,6 +23375,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -24898,6 +25396,12 @@ export type ResolverInputTypes = {
 	secretaryInRoom?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CheckExpenseCounterpartyInput"]: {
+	/** Вид контрагента. */
+	kind: ResolverInputTypes["ExpenseCounterpartyKind"],
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ResolverInputTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
@@ -25424,10 +25928,20 @@ export type ResolverInputTypes = {
 	amount: number,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: ResolverInputTypes["DateTime"],
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: ResolverInputTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: ResolverInputTypes["ExpensePlanRecurrence"] | undefined | null,
 	/** Назначение расхода. */
@@ -26845,6 +27359,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции */
 	description: string,
 	/** Идентификатор позиции расхода */
@@ -27789,6 +28305,102 @@ export type ResolverInputTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: AliasType<{
+	/** В архиве: не предлагается для новых расходов. */
+	archived?:boolean | `@${string}`,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?:boolean | `@${string}`,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage?:boolean | `@${string}`,
+	/** Когда добавлен. */
+	created_at?:boolean | `@${string}`,
+	/** Кто добавил контрагента. */
+	creator?:boolean | `@${string}`,
+	/** Номер контрагента. */
+	id?:boolean | `@${string}`,
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+	/** Наименование. */
+	name?:boolean | `@${string}`,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?:boolean | `@${string}`,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites?:ResolverInputTypes["ExpenseCounterpartyRequisite"],
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text?:boolean | `@${string}`,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: AliasType<{
+	/** Страна кооператива. */
+	country?:boolean | `@${string}`,
+	/** Поля по видам контрагента. */
+	kinds?:ResolverInputTypes["ExpenseCounterpartyFormKind"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: AliasType<{
+	/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?:boolean | `@${string}`,
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись поля. */
+	label?:boolean | `@${string}`,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?:boolean | `@${string}`,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?:boolean | `@${string}`,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?:boolean | `@${string}`,
+	/** Поле обязательно. */
+	required?:boolean | `@${string}`,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: AliasType<{
+	/** Поля в порядке платёжного поручения. */
+	fields?:ResolverInputTypes["ExpenseCounterpartyFormField"],
+	/** Вид контрагента. */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ExpenseCounterpartyIdInput"]: {
+	/** Номер контрагента. */
+	id: number
+};
+	/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+["ExpenseCounterpartyKind"]:ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: AliasType<{
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label?:boolean | `@${string}`,
+	/** Значение реквизита. */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ExpenseCounterpartyRequisiteInput"]: {
+	/** Ключ реквизита — из формы контрагента. */
+	key: string,
+	/** Значение реквизита. */
+	value: string
+};
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: AliasType<{
+	/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code?:boolean | `@${string}`,
+	/** Ключ реквизита. */
+	key?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: AliasType<{
 	/** SHA-256 содержимого, hex-lowercase. */
@@ -27852,6 +28464,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["ExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -27883,6 +28497,10 @@ export type ResolverInputTypes = {
 	amount?:boolean | `@${string}`,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?:boolean | `@${string}`,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?:boolean | `@${string}`,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?:boolean | `@${string}`,
 	/** Когда добавлена запись. */
 	created_at?:boolean | `@${string}`,
 	/** Кто добавил запись. */
@@ -27891,12 +28509,26 @@ export type ResolverInputTypes = {
 	due_date?:boolean | `@${string}`,
 	/** Идентификатор записи. */
 	id?:boolean | `@${string}`,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?:boolean | `@${string}`,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?:boolean | `@${string}`,
-	/** Реквизиты получателя платежа. */
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
 	pay_to?:boolean | `@${string}`,
+	/** Способ получения средств пайщика. */
+	payment_method_id?:boolean | `@${string}`,
+	/** Назначение платежа организации. */
+	payment_purpose?:boolean | `@${string}`,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?:boolean | `@${string}`,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?:boolean | `@${string}`,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?:boolean | `@${string}`,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?:boolean | `@${string}`,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?:boolean | `@${string}`,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?:boolean | `@${string}`,
 	/** Назначение расхода. */
@@ -27905,6 +28537,24 @@ export type ResolverInputTypes = {
 }>;
 	/** Периодичность планового расхода: разовый либо повторяющийся ежемесячно, ежеквартально или ежегодно. */
 ["ExpensePlanRecurrence"]:ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: AliasType<{
+	/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates?:boolean | `@${string}`,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months?:boolean | `@${string}`,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ExpensePlanScheduleInput"]: {
+	/** Сумма платежа. */
+	amount: number,
+	/** Срок первого платежа. */
+	due_date: ResolverInputTypes["DateTime"],
+	/** Периодичность расхода. */
+	recurrence?: ResolverInputTypes["ExpensePlanRecurrence"] | undefined | null
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: AliasType<{
 	/** Дата создания записи */
@@ -28017,6 +28667,8 @@ export type ResolverInputTypes = {
 	["ExpenseProposalItemInput"]: {
 	/** Сумма строки */
 	amount: string,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null,
 	/** Описание расхода */
 	description: string,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -29582,6 +30234,12 @@ export type ResolverInputTypes = {
 	coopname?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ListExpenseCounterpartiesInput"]: {
+	/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null
+};
 	["ListExpensePlansInput"]: {
 	/** Показать планы только этого кооперативного участка. */
 	braname?: string | undefined | null
@@ -29758,7 +30416,7 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+	/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 ["MarketplaceAidStage"]:MarketplaceAidStage;
 	["MarketplaceAidStatementSignablePayloadInput"]: {
 	/** Сумма материальной помощи. */
@@ -29997,37 +30655,53 @@ export type ResolverInputTypes = {
 };
 	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
 ["MarketplaceBranchCurrentPeriod"]: AliasType<{
-	/** Материальная помощь, выплаченная участком за текущий месяц. */
+	/** Материальная помощь с персонального кошелька, выплаченная за текущий месяц. */
 	aid_paid?:boolean | `@${string}`,
-	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	/** Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца. */
 	aid_reserve?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
-	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed?:boolean | `@${string}`,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
+	/** Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом. */
 	expenses?:boolean | `@${string}`,
-	/** Служебные записки участка сверх плана за текущий месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за текущий месяц. */
 	memos?:boolean | `@${string}`,
 	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period?:boolean | `@${string}`,
-	/** Плановые расходы участка со сроком в текущем месяце. */
+	/** Оплачено по плану с общего кошелька участка за текущий месяц. */
 	planned?:boolean | `@${string}`,
+	/** Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца. */
+	planned_target?:boolean | `@${string}`,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received?:boolean | `@${string}`,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders?:boolean | `@${string}`,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
 	ripening_secured?:boolean | `@${string}`,
 	/** Стоимость заказов, которые созреют к первому числу. */
 	ripening_turnover?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
+	/** Собранная часть цели резерва прошлого итога: она уже лежит на участке. */
+	target_prev?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
+	/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses?:boolean | `@${string}`,
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance?:boolean | `@${string}`,
-	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free?:boolean | `@${string}`,
+	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
 	total_weight?:boolean | `@${string}`,
@@ -30047,13 +30721,41 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
+["MarketplaceBranchInvestment"]: AliasType<{
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Инициаторы участка. */
+	investors?:ResolverInputTypes["MarketplaceInvestor"],
+	/** Внесено деньгами всего по инициаторам участка; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in_total?:boolean | `@${string}`,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money_total?:boolean | `@${string}`,
+	/** Осталось возместить инициаторам из использованного. */
+	outstanding?:boolean | `@${string}`,
+	/** Фаза участка по паевым взносам. */
+	phase?:boolean | `@${string}`,
+	/** Заявления на имущество до приёма. */
+	properties?:ResolverInputTypes["MarketplaceInvestProperty"],
+	/** Внесено имуществом всего. */
+	property_total?:boolean | `@${string}`,
+	/** Возмещено инициаторам из экономии участка всего. */
+	repaid_total?:boolean | `@${string}`,
+	/** Выделено под незакрытые расходы и материальную помощь. */
+	reserved?:boolean | `@${string}`,
+	/** Оплачено из средств инициаторов всего. */
+	spent_total?:boolean | `@${string}`,
+	/** Деньги инициаторов, ещё не израсходованные участком. */
+	unused_total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками. */
 ["MarketplaceBranchPeriod"]: AliasType<{
-	/** Материальная помощь, выплаченная участком за месяц. */
+	/** Материальная помощь с персонального кошелька, выплаченная за месяц. */
 	aid_paid?:boolean | `@${string}`,
-	/** Резерв социально-экономического обеспечения пайщиков на следующий месяц. */
+	/** Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва). */
 	aid_reserve?:boolean | `@${string}`,
-	/** Невыплаченная часть прошлого резерва. */
+	/** Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль. */
 	aid_unpaid?:boolean | `@${string}`,
 	/** Строка уже стёрта из цепи; история хранится здесь. */
 	archived?:boolean | `@${string}`,
@@ -30065,7 +30767,9 @@ export type ResolverInputTypes = {
 	closed_at?:boolean | `@${string}`,
 	/** Дефицит участка: расходы без покрытия. */
 	deficit?:boolean | `@${string}`,
-	/** Расходы участка за прогон. */
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at?:boolean | `@${string}`,
+	/** Расходы участка за месяц. */
 	expenses?:boolean | `@${string}`,
 	/** В фонды накопления кооператива. */
 	funds_amount?:boolean | `@${string}`,
@@ -30073,14 +30777,20 @@ export type ResolverInputTypes = {
 	initiator?:boolean | `@${string}`,
 	/** Инициатору участка. */
 	initiator_amount?:boolean | `@${string}`,
+	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
+	invest_phase?:boolean | `@${string}`,
+	/** Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня. */
+	investor_repaid?:boolean | `@${string}`,
 	/** Членский взнос участка за прогон. */
 	membership?:boolean | `@${string}`,
-	/** Служебные записки участка сверх плана за месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за месяц. */
 	memos?:boolean | `@${string}`,
 	/** Номер месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period?:boolean | `@${string}`,
-	/** Плановые расходы участка за месяц. */
+	/** Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце). */
 	planned?:boolean | `@${string}`,
+	/** Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва. */
+	planned_target?:boolean | `@${string}`,
 	/** Коэффициент экономического участия за месяц, проценты: участку, в фонды и инициатору вместе. */
 	rate_percent?:boolean | `@${string}`,
 	/** Пайщикам обратно на свободный паевой. */
@@ -30091,6 +30801,14 @@ export type ResolverInputTypes = {
 	rows_total?:boolean | `@${string}`,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured?:boolean | `@${string}`,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at?:boolean | `@${string}`,
+	/** Цель резерва участка: плановые расходы и накопленное право получателей помощи. */
+	target?:boolean | `@${string}`,
+	/** Собранная часть цели резерва этого месяца; несобранное переходит в следующий. */
+	target_funded?:boolean | `@${string}`,
+	/** Собранная часть цели резерва прошлого месяца. */
+	target_prev?:boolean | `@${string}`,
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -30155,6 +30873,8 @@ export type ResolverInputTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Сумма движения. */
 	quantity?:boolean | `@${string}`,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Параметры отмены своего заказа пайщиком. */
@@ -30335,6 +31055,14 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
 	package_id?: string | undefined | null
+};
+	["MarketplaceClaimInvestmentInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор заявления из подписанного документа. */
+	claim_hash: string,
+	/** Подписанное заявление о трансляции средств на главный паевой кошелёк. */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -30539,6 +31267,34 @@ export type ResolverInputTypes = {
 	apl_receptions?:ResolverInputTypes["MarketplaceAplReception"],
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceCreateInvestPropertyInput"]: {
+	/** Цена приёма. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
+	/** Описание, характеристики и состояние. */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
+	property_hash: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
+	/** Наименование имущества. */
+	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
+	/** Количество. */
+	property_quantity: string,
+	/** Единица измерения. */
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null,
+	/** Подписанное заявление о паевом взносе имуществом. */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceCreateOfferInput"]: {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -30661,6 +31417,14 @@ export type ResolverInputTypes = {
 	warehouse_settings?:ResolverInputTypes["MarketplaceWarehouseSettings"],
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceDeclineInvestPropertyInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string,
+	/** Причина отказа. */
+	reason: string
+};
 	/** Параметры отказа поставщика от выбранных активных заказов. */
 ["MarketplaceDeclineOrdersBatchInput"]: {
 	/** Идентификаторы заказов, от которых поставщик отказывается. */
@@ -30870,6 +31634,133 @@ export type ResolverInputTypes = {
 };
 	/** Состояние единицы имущества на складе КУ. */
 ["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
+["MarketplaceInvestAgreement"]: AliasType<{
+	/** Номер договора. */
+	number?:boolean | `@${string}`,
+	/** Дата подписи. */
+	signed_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запись истории паевых взносов пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: AliasType<{
+	/** Сумма: деньгами, по цене приёма имущества или трансляции. */
+	amount?:boolean | `@${string}`,
+	/** Когда операция проведена. */
+	created_at?:boolean | `@${string}`,
+	/** Номер операции учёта. */
+	global_sequence?:boolean | `@${string}`,
+	/** Вид записи. */
+	kind?:boolean | `@${string}`,
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
+["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceInvestHistoryEntry"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceInvestMoneyInput"]: {
+	/** Сумма паевого взноса деньгами. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса из подписанного заявления. */
+	invest_hash: string,
+	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
+	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
+["MarketplaceInvestPhase"]:MarketplaceInvestPhase;
+	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
+["MarketplaceInvestProperty"]: AliasType<{
+	/** Цена приёма. */
+	amount?:boolean | `@${string}`,
+	/** Наименование и описание имущества. */
+	description?:boolean | `@${string}`,
+	/** Идентификатор паевого взноса имуществом. */
+	hash?:boolean | `@${string}`,
+	/** Этап заявления. */
+	status?:boolean | `@${string}`,
+	/** Вносящий пайщик. */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceInvestPropertyRefInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string
+};
+	["MarketplaceInvestPropertyStatementInput"]: {
+	/** Цена приёма. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
+	/** Описание, характеристики и состояние. */
+	property_description: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
+	/** Наименование имущества. */
+	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
+	/** Количество. */
+	property_quantity: string,
+	/** Единица измерения. */
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null
+};
+	/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
+["MarketplaceInvestPropertyStatus"]:MarketplaceInvestPropertyStatus;
+	["MarketplaceInvestStatementInput"]: {
+	/** Сумма паевого взноса деньгами. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string
+};
+	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
+["MarketplaceInvestor"]: AliasType<{
+	/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
+	active?:boolean | `@${string}`,
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Доступно к переводу на главный паевой кошелёк сейчас. Предварительный расчёт; при заявлении сумму считает кооператив. */
+	claimable?:boolean | `@${string}`,
+	/** Уже переведено на главный паевой кошелёк. */
+	claimed?:boolean | `@${string}`,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money?:boolean | `@${string}`,
+	/** Внесено деньгами всего; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in?:boolean | `@${string}`,
+	/** Внесено имуществом по цене приёма. */
+	property?:boolean | `@${string}`,
+	/** Возмещено из экономии участка. */
+	returned?:boolean | `@${string}`,
+	/** Возмещено полностью: использованное возмещено, всё переведено на главный паевой кошелёк, остаток нулевой. */
+	settled?:boolean | `@${string}`,
+	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
+	unused?:boolean | `@${string}`,
+	/** Использовано участком: имущество и израсходованные деньги. */
+	used?:boolean | `@${string}`,
+	/** Пайщик-инициатор. */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Акт с первой подписью заказчика — оператор накладывает закрывающую подпись поверх. */
 ["MarketplaceIssuanceClosePayload"]: AliasType<{
 	act_aggregate?:ResolverInputTypes["DocumentAggregate"],
@@ -31614,6 +32505,8 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
+["MarketplacePeriodInvestPhase"]:MarketplacePeriodInvestPhase;
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: AliasType<{
 	/** Баланс персонального кошелька членских средств. */
@@ -32426,6 +33319,20 @@ export type ResolverInputTypes = {
 	placements?: Array<ResolverInputTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ResolverInputTypes["MarketplaceAplReceptionSignedDocumentInput"]>
+};
+	["MarketplaceSignInvestAgreementInput"]: {
+	/** Подписанный договор участия в хозяйственной деятельности. */
+	agreement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Кооперативный участок договора. */
+	braname: string
+};
+	["MarketplaceSignInvestPropertyInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Подписанный документ: одобрение заявления или акт приёма-передачи. */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string
 };
 	["MarketplaceSignIssuanceActInput"]: {
 	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
@@ -33431,6 +34338,7 @@ addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},Resol
 applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveModeration?: [{	data: ResolverInputTypes["ApproveModerationInputDTO"]},ResolverInputTypes["ApproveModerationResultDTO"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
+archiveExpenseCounterparty?: [{	data: ResolverInputTypes["ArchiveExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterparty"]],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 assignRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
@@ -33561,6 +34469,7 @@ confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResu
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
+createExpenseCounterparty?: [{	data: ResolverInputTypes["SaveExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterparty"]],
 createExpensePlan?: [{	data: ResolverInputTypes["CreateExpensePlanInput"]},ResolverInputTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ResolverInputTypes["CreateExpenseProposalInput"]},ResolverInputTypes["Transaction"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
@@ -33574,6 +34483,7 @@ declineDecision?: [{	data: ResolverInputTypes["DeclineDecisionInput"]},ResolverI
 deleteAccount?: [{	data: ResolverInputTypes["DeleteAccountInput"]},boolean | `@${string}`],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
 deleteBranchWhitelist?: [{	data: ResolverInputTypes["DeleteBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
+deleteExpenseCounterparty?: [{	data: ResolverInputTypes["ExpenseCounterpartyIdInput"]},boolean | `@${string}`],
 deleteExpensePlan?: [{	data: ResolverInputTypes["DeleteExpensePlanInput"]},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
@@ -33695,6 +34605,7 @@ marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailabl
 marketplaceAddSupplier?: [{	input: ResolverInputTypes["MarketplaceAddSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ResolverInputTypes["MarketplaceAddToCartInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceAdmitSupplierClaim?: [{	data: ResolverInputTypes["MarketplaceAdmitSupplierClaimInput"]},ResolverInputTypes["MarketplaceSupplierClaimResult"]],
+marketplaceApproveInvestProperty?: [{	data: ResolverInputTypes["MarketplaceSignInvestPropertyInput"]},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceApproveSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
@@ -33707,6 +34618,7 @@ marketplaceCancelStockOrder?: [{	data: ResolverInputTypes["MarketplaceCancelStoc
 marketplaceCancelStockProposal?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceStockProposal"]],
 marketplaceCancelWriteoffDraft?: [{	id: string},boolean | `@${string}`],
 marketplaceCheckoutCart?: [{	input?: ResolverInputTypes["MarketplaceCheckoutCartInput"] | undefined | null},ResolverInputTypes["MarketplaceCheckoutResult"]],
+marketplaceClaimInvestment?: [{	data: ResolverInputTypes["MarketplaceClaimInvestmentInput"]},ResolverInputTypes["MarketplaceInvestor"]],
 	/** Очистить все доступные категории (сделать доступными все) */
 	marketplaceClearAvailableCategories?:boolean | `@${string}`,
 	/** Очистить корзину (убрать все позиции). */
@@ -33721,6 +34633,7 @@ marketplaceCreateContainerType?: [{	data: ResolverInputTypes["MarketplaceCreateC
 marketplaceCreateContainers?: [{	data: ResolverInputTypes["MarketplaceCreateContainersInput"]},ResolverInputTypes["MarketplaceContainer"]],
 marketplaceCreateCustomCategory?: [{	input: ResolverInputTypes["CreateCustomCategoryInput"]},ResolverInputTypes["MarketplaceCategory"]],
 marketplaceCreateExpressReception?: [{	data: ResolverInputTypes["MarketplaceCreateExpressReceptionInput"]},ResolverInputTypes["MarketplaceCreateExpressReceptionResult"]],
+marketplaceCreateInvestProperty?: [{	data: ResolverInputTypes["MarketplaceCreateInvestPropertyInput"]},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceCreateReturnClaim?: [{	data: ResolverInputTypes["MarketplaceCreateReturnClaimInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateReview?: [{	data: ResolverInputTypes["MarketplaceCreateReviewInput"]},ResolverInputTypes["MarketplaceReview"]],
@@ -33729,6 +34642,7 @@ marketplaceCreateStockProposal?: [{	data: ResolverInputTypes["MarketplaceCreateS
 marketplaceCreateStorageCell?: [{	data: ResolverInputTypes["MarketplaceCreateStorageCellInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceCreateStorageGrid?: [{	data: ResolverInputTypes["MarketplaceCreateStorageGridInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceCreateWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceCreateWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceDeclineInvestProperty?: [{	data: ResolverInputTypes["MarketplaceDeclineInvestPropertyInput"]},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceDeclineOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceDeclineOrdersBatchInput"]},ResolverInputTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceDeclineStockProposal?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceStockProposal"]],
 marketplaceDeleteBranchReserve?: [{	data: ResolverInputTypes["MarketplaceDeleteBranchReserveInput"]},ResolverInputTypes["MarketplaceBranchReserves"]],
@@ -33740,6 +34654,7 @@ marketplaceFinalizeStockIssuance?: [{	data: ResolverInputTypes["MarketplaceFinal
 marketplaceFixIssuanceFact?: [{	data: ResolverInputTypes["MarketplaceFixIssuanceFactInput"]},ResolverInputTypes["MarketplaceIssuanceStatementPayload"]],
 marketplaceGenerateInventoryLabel?: [{	data: ResolverInputTypes["MarketplaceGenerateInventoryLabelInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceHandBackReturn?: [{	data: ResolverInputTypes["MarketplaceHandBackReturnInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
+marketplaceInvestMoney?: [{	data: ResolverInputTypes["MarketplaceInvestMoneyInput"]},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceMoveContainer?: [{	data: ResolverInputTypes["MarketplaceMoveContainerInput"]},ResolverInputTypes["MarketplaceContainer"]],
 marketplacePublishStock?: [{	data: ResolverInputTypes["MarketplacePublishStockInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceReadyIssue?: [{	data: ResolverInputTypes["MarketplaceReadyIssueInput"]},ResolverInputTypes["MarketplaceOrder"]],
@@ -33769,6 +34684,8 @@ marketplaceSetSupplierPayoutMethod?: [{	input: ResolverInputTypes["MarketplaceSe
 marketplaceSetTrusteeWeight?: [{	data: ResolverInputTypes["MarketplaceSetTrusteeWeightInput"]},boolean | `@${string}`],
 marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceSignAplReceptionAsSupplier?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
+marketplaceSignInvestAgreement?: [{	data: ResolverInputTypes["MarketplaceSignInvestAgreementInput"]},ResolverInputTypes["MarketplaceInvestAgreement"]],
+marketplaceSignInvestPropertyAct?: [{	data: ResolverInputTypes["MarketplaceSignInvestPropertyInput"]},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceSignIssuanceAct?: [{	data: ResolverInputTypes["MarketplaceSignIssuanceActInput"]},ResolverInputTypes["MarketplaceIssuanceSaga"]],
 marketplaceSignIssuanceStatement?: [{	data: ResolverInputTypes["MarketplaceSignIssuanceStatementInput"]},ResolverInputTypes["MarketplaceIssuanceSaga"]],
 marketplaceSignOnboardingOffer?: [{	input: ResolverInputTypes["MarketplaceSignOnboardingOfferInput"]},ResolverInputTypes["MarketplaceOnboardingState"]],
@@ -33847,6 +34764,7 @@ uninstallExtension?: [{	data: ResolverInputTypes["UninstallExtensionInput"]},boo
 unverifyParticipant?: [{	data: ResolverInputTypes["UnverifyParticipantInput"]},ResolverInputTypes["ParticipantVerification"]],
 updateAccount?: [{	data: ResolverInputTypes["UpdateAccountInput"]},ResolverInputTypes["Account"]],
 updateBankAccount?: [{	data: ResolverInputTypes["UpdateBankAccountInput"]},ResolverInputTypes["PaymentMethod"]],
+updateExpenseCounterparty?: [{	data: ResolverInputTypes["UpdateExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterparty"]],
 updateExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 updateReportRequisites?: [{	input: ResolverInputTypes["UpdateReportRequisitesInput"]},ResolverInputTypes["ReportRequisitesView"]],
 updateSettings?: [{	data: ResolverInputTypes["UpdateSettingsInput"]},ResolverInputTypes["Settings"]],
@@ -35776,6 +36694,7 @@ chatcoopListProjectCommunicationRooms?: [{	data: ResolverInputTypes["GetProjectC
 	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
 	chatcoopListSecretaryRooms?:ResolverInputTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDatesWithNewRoomMessagesInput"]},boolean | `@${string}`],
+checkExpenseCounterpartyRequisites?: [{	data: ResolverInputTypes["CheckExpenseCounterpartyInput"]},ResolverInputTypes["ExpenseCounterpartyRequisiteIssue"]],
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
@@ -35854,9 +36773,13 @@ edubridgeTeacherContractDocument?: [{	username: string},ResolverInputTypes["Docu
 	/** Преподаватели кооператива с договором и числом назначений */
 	edubridgeTeachers?:ResolverInputTypes["EduTeacher"],
 expenseAdvancesByCooperative?: [{	coopname: string,	filter?: ResolverInputTypes["ExpenseAdvancesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedExpenseAdvancesPaginationResult"]],
+expenseCounterparties?: [{	data?: ResolverInputTypes["ListExpenseCounterpartiesInput"] | undefined | null},ResolverInputTypes["ExpenseCounterparty"]],
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm?:ResolverInputTypes["ExpenseCounterpartyForm"],
 expenseFile?: [{	id: number},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByItem?: [{	coopname: string,	item_hash: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
 expenseFilesByProposal?: [{	coopname: string,	proposal_hash: string},ResolverInputTypes["ExpenseFile"]],
+expensePlanSchedule?: [{	data: ResolverInputTypes["ExpensePlanScheduleInput"]},ResolverInputTypes["ExpensePlanSchedule"]],
 expenseProposal?: [{	proposal_hash: string},ResolverInputTypes["ExpenseProposal"]],
 expenseProposalsByCooperative?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedExpenseProposalsPaginationResult"]],
 expenseProposalsByMember?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null,	username: string},ResolverInputTypes["PaginatedExpenseProposalsPaginationResult"]],
@@ -35966,6 +36889,7 @@ lookupOrganization?: [{	data: ResolverInputTypes["LookupOrganizationInput"]},Res
 marketplaceAidStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceAidStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceBranchInvestment?: [{	braname: string},ResolverInputTypes["MarketplaceBranchInvestment"]],
 marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
 	delivery_braname?: string | undefined | null},ResolverInputTypes["MarketplaceCategoryOfferCount"]],
 	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (стоимость и обеспечительная часть паевого взноса покрываются свободным паевым «Стола заказов») и заявление 1110 о трансляции недостающего из Цифрового кошелька — к подписи заказчиком; если транслировать нечего, null. */
@@ -35983,6 +36907,7 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 marketplaceGetBranchCurrentPeriod?: [{	braname: string},ResolverInputTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string},ResolverInputTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchInitiator?: [{	braname: string},ResolverInputTypes["MarketplaceBranchInitiator"]],
+marketplaceGetBranchMovementParts?: [{	braname: string,	process_hash: string},ResolverInputTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string},ResolverInputTypes["MarketplaceBranchReserves"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
@@ -36002,6 +36927,13 @@ marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInpu
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ResolverInputTypes["MarketplaceSupplierPaymentSettings"],
 marketplaceHandoffCode?: [{	data: ResolverInputTypes["MarketplaceHandoffCodeInput"]},ResolverInputTypes["MarketplaceHandoffCode"]],
+marketplaceInvestAgreementSignablePayload?: [{	/** Кооперативный участок договора. */
+	braname: string},ResolverInputTypes["GeneratedDocument"]],
+marketplaceInvestClaimSignablePayload?: [{	braname: string},ResolverInputTypes["GeneratedDocument"]],
+marketplaceInvestPropertyActSignablePayload?: [{	data: ResolverInputTypes["MarketplaceInvestPropertyRefInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceInvestPropertyApprovalSignablePayload?: [{	data: ResolverInputTypes["MarketplaceInvestPropertyRefInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceInvestPropertyStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceInvestPropertyStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceInvestStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceInvestStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssuanceActPayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssuanceClosePayload?: [{	data: ResolverInputTypes["MarketplaceIssuanceOrderInput"]},ResolverInputTypes["MarketplaceIssuanceClosePayload"]],
 marketplaceIssuancePickScan?: [{	data: ResolverInputTypes["MarketplaceIssuancePickScanInput"]},ResolverInputTypes["MarketplaceIssuancePickScan"]],
@@ -36056,8 +36988,13 @@ marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceLi
 	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
 	marketplaceListWriteoffCandidates?:ResolverInputTypes["MarketplaceWriteoffCandidate"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
-	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию. */
+	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
+marketplaceMyInvestAgreement?: [{	/** Кооперативный участок договора. */
+	braname: string},ResolverInputTypes["MarketplaceInvestAgreement"]],
+marketplaceMyInvestHistory?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceInvestHistoryPaginationResult"]],
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
+	marketplaceMyInvestments?:ResolverInputTypes["MarketplaceInvestor"],
 marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
 	order_id: string},ResolverInputTypes["MarketplaceReview"]],
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
@@ -37163,6 +38100,18 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
 };
+	["SaveExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Вид контрагента. */
+	kind: ResolverInputTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ResolverInputTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["SaveReportDraftInput"]: {
 	editedFields: Array<string>,
 	editsJson: string,
@@ -37970,6 +38919,20 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	phone: string,
 	/** Имя пользователя */
 	username: string
+};
+	["UpdateExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: ResolverInputTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ResolverInputTypes["ExpenseCounterpartyRequisiteInput"]>
 };
 	["UpdateIndividualDataInput"]: {
 	/** Дата рождения */
@@ -39440,6 +40403,12 @@ export type ModelTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+	/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean,
+	/** Номер контрагента. */
+	id: number
+};
 	["AssignCapabilitySetInput"]: {
 	/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null,
@@ -40049,6 +41018,8 @@ export type ModelTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции. */
 	description: string,
 	/** Идентификатор позиции расхода. */
@@ -41323,6 +42294,8 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["CapitalExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -43273,6 +44246,12 @@ export type ModelTypes = {
 	/** Секретарь присутствует в комнате */
 	secretaryInRoom: boolean
 };
+	["CheckExpenseCounterpartyInput"]: {
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
@@ -43786,10 +44765,20 @@ export type ModelTypes = {
 	amount: number,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: ModelTypes["DateTime"],
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: ModelTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: ModelTypes["ExpensePlanRecurrence"] | undefined | null,
 	/** Назначение расхода. */
@@ -45146,6 +46135,8 @@ export type ModelTypes = {
 };
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Назначение расхода по этой позиции */
 	description: string,
 	/** Идентификатор позиции расхода */
@@ -46042,6 +47033,95 @@ export type ModelTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: {
+		/** В архиве: не предлагается для новых расходов. */
+	archived: boolean,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?: string | undefined | null,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage: boolean,
+	/** Когда добавлен. */
+	created_at: ModelTypes["DateTime"],
+	/** Кто добавил контрагента. */
+	creator: string,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisite"]>,
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text: string,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id: string
+};
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: {
+		/** Страна кооператива. */
+	country: string,
+	/** Поля по видам контрагента. */
+	kinds: Array<ModelTypes["ExpenseCounterpartyFormKind"]>
+};
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: {
+		/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?: string | undefined | null,
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group: string,
+	/** Ключ реквизита. */
+	key: string,
+	/** Подпись поля. */
+	label: string,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?: number | undefined | null,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?: string | undefined | null,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?: string | undefined | null,
+	/** Поле обязательно. */
+	required: boolean,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id: boolean
+};
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: {
+		/** Поля в порядке платёжного поручения. */
+	fields: Array<ModelTypes["ExpenseCounterpartyFormField"]>,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"]
+};
+	["ExpenseCounterpartyIdInput"]: {
+	/** Номер контрагента. */
+	id: number
+};
+	["ExpenseCounterpartyKind"]:ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: {
+		/** Ключ реквизита. */
+	key: string,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label: string,
+	/** Значение реквизита. */
+	value: string
+};
+	["ExpenseCounterpartyRequisiteInput"]: {
+	/** Ключ реквизита — из формы контрагента. */
+	key: string,
+	/** Значение реквизита. */
+	value: string
+};
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: {
+		/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code: string,
+	/** Ключ реквизита. */
+	key: string
+};
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: {
 		/** SHA-256 содержимого, hex-lowercase. */
@@ -46102,6 +47182,8 @@ export type ModelTypes = {
 	status: ModelTypes["ExpenseItemStatus"]
 };
 	["ExpenseItemInput"]: {
+	/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
 	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
@@ -46131,6 +47213,10 @@ export type ModelTypes = {
 	amount: string,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?: number | undefined | null,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?: string | undefined | null,
 	/** Когда добавлена запись. */
 	created_at: ModelTypes["DateTime"],
 	/** Кто добавил запись. */
@@ -46139,18 +47225,49 @@ export type ModelTypes = {
 	due_date?: ModelTypes["DateTime"] | undefined | null,
 	/** Идентификатор записи. */
 	id: number,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?: ModelTypes["DateTime"] | undefined | null,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?: ModelTypes["DateTime"] | undefined | null,
-	/** Реквизиты получателя платежа. */
-	pay_to: string,
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации. */
+	payment_purpose?: string | undefined | null,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?: string | undefined | null,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?: ModelTypes["ExpenseProposalStatus"] | undefined | null,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?: string | undefined | null,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?: string | undefined | null,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?: ModelTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence: ModelTypes["ExpensePlanRecurrence"],
 	/** Назначение расхода. */
 	title: string
 };
 	["ExpensePlanRecurrence"]:ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: {
+		/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates: Array<ModelTypes["DateTime"]>,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months: number,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month: string
+};
+	["ExpensePlanScheduleInput"]: {
+	/** Сумма платежа. */
+	amount: number,
+	/** Срок первого платежа. */
+	due_date: ModelTypes["DateTime"],
+	/** Периодичность расхода. */
+	recurrence?: ModelTypes["ExpensePlanRecurrence"] | undefined | null
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: {
 		/** Дата создания записи */
@@ -46262,6 +47379,8 @@ export type ModelTypes = {
 	["ExpenseProposalItemInput"]: {
 	/** Сумма строки */
 	amount: string,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null,
 	/** Описание расхода */
 	description: string,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -47772,6 +48891,12 @@ export type ModelTypes = {
 	/** Имя кооператива */
 	coopname: string
 };
+	["ListExpenseCounterpartiesInput"]: {
+	/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null
+};
 	["ListExpensePlansInput"]: {
 	/** Показать планы только этого кооперативного участка. */
 	braname?: string | undefined | null
@@ -48171,36 +49296,52 @@ export type ModelTypes = {
 };
 	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
 ["MarketplaceBranchCurrentPeriod"]: {
-		/** Материальная помощь, выплаченная участком за текущий месяц. */
+		/** Материальная помощь с персонального кошелька, выплаченная за текущий месяц. */
 	aid_paid: string,
-	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	/** Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца. */
 	aid_reserve: string,
 	/** Кооперативный участок. */
 	braname: string,
-	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed: string,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: ModelTypes["DateTime"],
+	/** Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом. */
 	expenses: string,
-	/** Служебные записки участка сверх плана за текущий месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за текущий месяц. */
 	memos: string,
 	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period: number,
-	/** Плановые расходы участка со сроком в текущем месяце. */
+	/** Оплачено по плану с общего кошелька участка за текущий месяц. */
 	planned: string,
+	/** Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца. */
+	planned_target: string,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received: string,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders: number,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
 	ripening_secured: string,
 	/** Стоимость заказов, которые созреют к первому числу. */
-	ripening_turnover: string
+	ripening_turnover: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: ModelTypes["DateTime"],
+	/** Собранная часть цели резерва прошлого итога: она уже лежит на участке. */
+	target_prev: string
 };
-	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
-		/** Доступно к распределению: общий кошелёк за вычетом резерва. */
+		/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses: string,
+	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute: string,
 	/** Кооперативный участок. */
 	braname: string,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance: string,
-	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free: string,
+	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount: string,
 	/** Сумма весов участников распределения. */
 	total_weight: number,
@@ -48218,13 +49359,40 @@ export type ModelTypes = {
 	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
 	username?: string | undefined | null
 };
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
+["MarketplaceBranchInvestment"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Инициаторы участка. */
+	investors: Array<ModelTypes["MarketplaceInvestor"]>,
+	/** Внесено деньгами всего по инициаторам участка; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in_total: string,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money_total: string,
+	/** Осталось возместить инициаторам из использованного. */
+	outstanding: string,
+	/** Фаза участка по паевым взносам. */
+	phase: ModelTypes["MarketplaceInvestPhase"],
+	/** Заявления на имущество до приёма. */
+	properties: Array<ModelTypes["MarketplaceInvestProperty"]>,
+	/** Внесено имуществом всего. */
+	property_total: string,
+	/** Возмещено инициаторам из экономии участка всего. */
+	repaid_total: string,
+	/** Выделено под незакрытые расходы и материальную помощь. */
+	reserved: string,
+	/** Оплачено из средств инициаторов всего. */
+	spent_total: string,
+	/** Деньги инициаторов, ещё не израсходованные участком. */
+	unused_total: string
+};
 	/** Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками. */
 ["MarketplaceBranchPeriod"]: {
-		/** Материальная помощь, выплаченная участком за месяц. */
+		/** Материальная помощь с персонального кошелька, выплаченная за месяц. */
 	aid_paid: string,
-	/** Резерв социально-экономического обеспечения пайщиков на следующий месяц. */
+	/** Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва). */
 	aid_reserve: string,
-	/** Невыплаченная часть прошлого резерва. */
+	/** Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль. */
 	aid_unpaid: string,
 	/** Строка уже стёрта из цепи; история хранится здесь. */
 	archived: boolean,
@@ -48236,7 +49404,9 @@ export type ModelTypes = {
 	closed_at: ModelTypes["DateTime"],
 	/** Дефицит участка: расходы без покрытия. */
 	deficit: string,
-	/** Расходы участка за прогон. */
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: ModelTypes["DateTime"],
+	/** Расходы участка за месяц. */
 	expenses: string,
 	/** В фонды накопления кооператива. */
 	funds_amount: string,
@@ -48244,14 +49414,20 @@ export type ModelTypes = {
 	initiator: string,
 	/** Инициатору участка. */
 	initiator_amount: string,
+	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
+	invest_phase: ModelTypes["MarketplacePeriodInvestPhase"],
+	/** Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня. */
+	investor_repaid: string,
 	/** Членский взнос участка за прогон. */
 	membership: string,
-	/** Служебные записки участка сверх плана за месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за месяц. */
 	memos: string,
 	/** Номер месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period: number,
-	/** Плановые расходы участка за месяц. */
+	/** Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце). */
 	planned: string,
+	/** Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва. */
+	planned_target?: string | undefined | null,
 	/** Коэффициент экономического участия за месяц, проценты: участку, в фонды и инициатору вместе. */
 	rate_percent: string,
 	/** Пайщикам обратно на свободный паевой. */
@@ -48262,6 +49438,14 @@ export type ModelTypes = {
 	rows_total: number,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: ModelTypes["DateTime"],
+	/** Цель резерва участка: плановые расходы и накопленное право получателей помощи. */
+	target?: string | undefined | null,
+	/** Собранная часть цели резерва этого месяца; несобранное переходит в следующий. */
+	target_funded?: string | undefined | null,
+	/** Собранная часть цели резерва прошлого месяца. */
+	target_prev?: string | undefined | null,
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover: string
 };
@@ -48320,7 +49504,9 @@ export type ModelTypes = {
 	/** Идентификатор заказа-источника — для перехода на страницу заказа. Пусто для движений без заказа. */
 	order_id?: string | undefined | null,
 	/** Сумма движения. */
-	quantity?: string | undefined | null
+	quantity?: string | undefined | null,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?: string | undefined | null
 };
 	/** Параметры отмены своего заказа пайщиком. */
 ["MarketplaceCancelOrderInput"]: {
@@ -48489,6 +49675,14 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
 	package_id?: string | undefined | null
+};
+	["MarketplaceClaimInvestmentInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор заявления из подписанного документа. */
+	claim_hash: string,
+	/** Подписанное заявление о трансляции средств на главный паевой кошелёк. */
+	statement: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -48685,6 +49879,34 @@ export type ModelTypes = {
 		/** Сформированные акты приёмки (по одному на заявку поставщика на этом КУ). */
 	apl_receptions: Array<ModelTypes["MarketplaceAplReception"]>
 };
+	["MarketplaceCreateInvestPropertyInput"]: {
+	/** Цена приёма. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
+	/** Описание, характеристики и состояние. */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
+	property_hash: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
+	/** Наименование имущества. */
+	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
+	/** Количество. */
+	property_quantity: string,
+	/** Единица измерения. */
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null,
+	/** Подписанное заявление о паевом взносе имуществом. */
+	statement: ModelTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceCreateOfferInput"]: {
 	/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -48804,6 +50026,14 @@ export type ModelTypes = {
 	username: string,
 	/** Настройки адресного хранения, включённые в кооперативе. */
 	warehouse_settings: ModelTypes["MarketplaceWarehouseSettings"]
+};
+	["MarketplaceDeclineInvestPropertyInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string,
+	/** Причина отказа. */
+	reason: string
 };
 	/** Параметры отказа поставщика от выбранных активных заказов. */
 ["MarketplaceDeclineOrdersBatchInput"]: {
@@ -49003,6 +50233,125 @@ export type ModelTypes = {
 	quantity: number
 };
 	["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
+["MarketplaceInvestAgreement"]: {
+		/** Номер договора. */
+	number: string,
+	/** Дата подписи. */
+	signed_at: string
+};
+	/** Запись истории паевых взносов пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: {
+		/** Сумма: деньгами, по цене приёма имущества или трансляции. */
+	amount: string,
+	/** Когда операция проведена. */
+	created_at: ModelTypes["DateTime"],
+	/** Номер операции учёта. */
+	global_sequence: string,
+	/** Вид записи. */
+	kind: ModelTypes["MarketplaceInvestHistoryKind"],
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash: string
+};
+	["MarketplaceInvestHistoryKind"]:MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceInvestHistoryEntry"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["MarketplaceInvestMoneyInput"]: {
+	/** Сумма паевого взноса деньгами. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса из подписанного заявления. */
+	invest_hash: string,
+	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
+	statement: ModelTypes["SignedDigitalDocumentInput"]
+};
+	["MarketplaceInvestPhase"]:MarketplaceInvestPhase;
+	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
+["MarketplaceInvestProperty"]: {
+		/** Цена приёма. */
+	amount: string,
+	/** Наименование и описание имущества. */
+	description: string,
+	/** Идентификатор паевого взноса имуществом. */
+	hash: string,
+	/** Этап заявления. */
+	status: ModelTypes["MarketplaceInvestPropertyStatus"],
+	/** Вносящий пайщик. */
+	username: string
+};
+	["MarketplaceInvestPropertyRefInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string
+};
+	["MarketplaceInvestPropertyStatementInput"]: {
+	/** Цена приёма. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
+	/** Описание, характеристики и состояние. */
+	property_description: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
+	/** Наименование имущества. */
+	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
+	/** Количество. */
+	property_quantity: string,
+	/** Единица измерения. */
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null
+};
+	["MarketplaceInvestPropertyStatus"]:MarketplaceInvestPropertyStatus;
+	["MarketplaceInvestStatementInput"]: {
+	/** Сумма паевого взноса деньгами. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string
+};
+	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
+["MarketplaceInvestor"]: {
+		/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
+	active: boolean,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Доступно к переводу на главный паевой кошелёк сейчас. Предварительный расчёт; при заявлении сумму считает кооператив. */
+	claimable: string,
+	/** Уже переведено на главный паевой кошелёк. */
+	claimed: string,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money: string,
+	/** Внесено деньгами всего; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in: string,
+	/** Внесено имуществом по цене приёма. */
+	property: string,
+	/** Возмещено из экономии участка. */
+	returned: string,
+	/** Возмещено полностью: использованное возмещено, всё переведено на главный паевой кошелёк, остаток нулевой. */
+	settled: boolean,
+	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
+	unused: string,
+	/** Использовано участком: имущество и израсходованные деньги. */
+	used: string,
+	/** Пайщик-инициатор. */
+	username: string
+};
 	/** Акт с первой подписью заказчика — оператор накладывает закрывающую подпись поверх. */
 ["MarketplaceIssuanceClosePayload"]: {
 		act_aggregate: ModelTypes["DocumentAggregate"],
@@ -49713,6 +51062,7 @@ export type ModelTypes = {
 	withheld_amount: string
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	["MarketplacePeriodInvestPhase"]:MarketplacePeriodInvestPhase;
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: {
 		/** Баланс персонального кошелька членских средств. */
@@ -50494,6 +51844,20 @@ export type ModelTypes = {
 	placements?: Array<ModelTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ModelTypes["MarketplaceAplReceptionSignedDocumentInput"]>
+};
+	["MarketplaceSignInvestAgreementInput"]: {
+	/** Подписанный договор участия в хозяйственной деятельности. */
+	agreement: ModelTypes["SignedDigitalDocumentInput"],
+	/** Кооперативный участок договора. */
+	braname: string
+};
+	["MarketplaceSignInvestPropertyInput"]: {
+	/** Кооперативный участок. */
+	braname: string,
+	/** Подписанный документ: одобрение заявления или акт приёма-передачи. */
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string
 };
 	["MarketplaceSignIssuanceActInput"]: {
 	/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
@@ -51455,6 +52819,8 @@ export type ModelTypes = {
 	approveModeration: ModelTypes["ApproveModerationResultDTO"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: ModelTypes["VerificationReview"],
+	/** Убрать контрагента в архив или вернуть из архива. Контрагент в архиве не предлагается для новых расходов. */
+	archiveExpenseCounterparty: ModelTypes["ExpenseCounterparty"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Назначить роль пайщику */
@@ -51711,6 +53077,8 @@ export type ModelTypes = {
 	createBranch: ModelTypes["Branch"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: ModelTypes["GatewayPayment"],
+	/** Добавить контрагента. Контрагента кооператива добавляет совет; председатель участка и его доверенные лица добавляют контрагента с пометкой своего участка. */
+	createExpenseCounterparty: ModelTypes["ExpenseCounterparty"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
 	createExpensePlan: ModelTypes["ExpensePlan"],
 	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя). */
@@ -51737,6 +53105,8 @@ export type ModelTypes = {
 	deleteBranch: boolean,
 	/** Удалить пайщика из белого списка приватного кооперативного участка */
 	deleteBranchWhitelist: ModelTypes["Branch"],
+	/** Удалить контрагента. Контрагента из неоплаченных плановых расходов удалить нельзя — его убирают в архив. */
+	deleteExpenseCounterparty: boolean,
 	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
 	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
@@ -51977,6 +53347,8 @@ export type ModelTypes = {
 	marketplaceAddToCart: ModelTypes["MarketplaceCart"],
 	/** Поставщик признаёт гарантийную претензию: сумма становится долгом и удерживается из следующих выплат. */
 	marketplaceAdmitSupplierClaim: ModelTypes["MarketplaceSupplierClaimResult"],
+	/** Одобрить заявление на имущество; вопрос о приёме выносится на совет. Доступно председателю участка. */
+	marketplaceApproveInvestProperty: ModelTypes["MarketplaceBranchInvestment"],
 	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
@@ -52001,6 +53373,8 @@ export type ModelTypes = {
 	marketplaceCancelWriteoffDraft: boolean,
 	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы выполняется отдельной транзакцией до заказов. */
 	marketplaceCheckoutCart: ModelTypes["MarketplaceCheckoutResult"],
+	/** Транслировать доступный паевой взнос в главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив. */
+	marketplaceClaimInvestment: Array<ModelTypes["MarketplaceInvestor"]>,
 	/** Очистить все доступные категории (сделать доступными все) */
 	marketplaceClearAvailableCategories: boolean,
 	/** Очистить корзину (убрать все позиции). */
@@ -52025,6 +53399,8 @@ export type ModelTypes = {
 	marketplaceCreateCustomCategory: ModelTypes["MarketplaceCategory"],
 	/** Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку. */
 	marketplaceCreateExpressReception: ModelTypes["MarketplaceCreateExpressReceptionResult"],
+	/** Подать заявление о паевом взносе имуществом в участок; заявление ждёт одобрения председателя участка. */
+	marketplaceCreateInvestProperty: ModelTypes["MarketplaceBranchInvestment"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
 	marketplaceCreateOffer: ModelTypes["MarketplaceOffer"],
 	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
@@ -52041,6 +53417,8 @@ export type ModelTypes = {
 	marketplaceCreateStorageGrid: Array<ModelTypes["MarketplaceStorageCell"]>,
 	/** Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет. */
 	marketplaceCreateWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Отклонить заявление на имущество до передачи в совет. Доступно председателю участка. */
+	marketplaceDeclineInvestProperty: ModelTypes["MarketplaceBranchInvestment"],
 	/** Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются. */
 	marketplaceDeclineOrdersBatch: ModelTypes["MarketplaceSupplierBatchActionResult"],
 	/** Пайщик отказывается от предложения со склада кооператива. */
@@ -52053,7 +53431,7 @@ export type ModelTypes = {
 	marketplaceDeleteTrusteeWeight: boolean,
 	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно. */
 	marketplaceDetailKU: ModelTypes["MarketplaceKUDetails"],
-	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка. */
+	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше резерва плановых расходов до конца текущего месяца. Доступно председателю участка. */
 	marketplaceDistributeBranchFunds: boolean,
 	/** Пайщик одним нажатием подписывает заявления по всем строкам бандла (и заявление 1110 на бандл, если членского кошелька не хватает — перевод идёт отдельной транзакцией до заказов): по докладке создаётся заказ из остатка, по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны. */
 	marketplaceFinalizeStockIssuance: ModelTypes["MarketplaceStockProposalAcceptResult"],
@@ -52063,6 +53441,8 @@ export type ModelTypes = {
 	marketplaceGenerateInventoryLabel: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор выдал имущество обратно пайщику: после отказа совета либо по истечении срока ожидания решения (7 дней с приёма). Записи в цепи не остаётся, заказ остаётся выданным. */
 	marketplaceHandBackReturn: ModelTypes["MarketplaceReturnClaimResult"],
+	/** Внести деньги в кооперативный участок по подписанному заявлению: паевой взнос переходит на кошелёк договора участия. */
+	marketplaceInvestMoney: ModelTypes["MarketplaceBranchInvestment"],
 	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: ModelTypes["MarketplaceContainer"],
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
@@ -52121,6 +53501,10 @@ export type ModelTypes = {
 	marketplaceSignAplReceptionAsChairman: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б). */
 	marketplaceSignAplReceptionAsSupplier: ModelTypes["MarketplaceAplReceptionResult"],
+	/** Подписать договор об участии в хозяйственной деятельности участка. Договор заключается на каждый участок отдельно. */
+	marketplaceSignInvestAgreement: ModelTypes["MarketplaceInvestAgreement"],
+	/** Подписать акт приёма-передачи имущества первой подписью вносящего. */
+	marketplaceSignInvestPropertyAct: ModelTypes["MarketplaceBranchInvestment"],
 	/** Первая подпись акта заказчиком: дальше оператор закрывает выдачу. */
 	marketplaceSignIssuanceAct: ModelTypes["MarketplaceIssuanceSaga"],
 	/** Заказчик подписал заявление: оно уходит совету. Если робот решений совета ответил сразу, в ответе уже есть протокол и акт к подписи; иначе выдача ждёт решение — придёт уведомление. */
@@ -52269,6 +53653,8 @@ export type ModelTypes = {
 	updateAccount: ModelTypes["Account"],
 	/** Обновить банковский счёт */
 	updateBankAccount: ModelTypes["PaymentMethod"],
+	/** Изменить наименование, реквизиты или назначение платежа контрагента. Поданные записки сохраняют прежние реквизиты. */
+	updateExpenseCounterparty: ModelTypes["ExpenseCounterparty"],
 	/** Обновить расширение */
 	updateExtension: ModelTypes["Extension"],
 	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн */
@@ -54152,6 +55538,8 @@ export type ModelTypes = {
 	chatcoopListSecretaryRooms: Array<ModelTypes["ChatcoopSecretaryRoom"]>,
 	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix */
 	chatcoopListUtcDatesWithNewRoomMessages: Array<string>,
+	/** Проверка реквизитов контрагента до сохранения: какие поля пусты, неверного вида или не проходят контрольную сумму. */
+	checkExpenseCounterpartyRequisites: Array<ModelTypes["ExpenseCounterpartyRequisiteIssue"]>,
 	/** Проверить готовность реквизитов для генерации конкретной формы */
 	checkReportReadiness: ModelTypes["ReportReadinessView"],
 	/** Конфиг соглашений кооператива: какие типы соглашений требуются с пайщика */
@@ -54262,12 +55650,18 @@ export type ModelTypes = {
 	edubridgeTeachers: Array<ModelTypes["EduTeacher"]>,
 	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
 	expenseAdvancesByCooperative: ModelTypes["PaginatedExpenseAdvancesPaginationResult"],
+	/** Контрагенты кооператива с поиском по наименованию и налоговому номеру. Видят совет и операторы кооперативных участков. */
+	expenseCounterparties: Array<ModelTypes["ExpenseCounterparty"]>,
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm: ModelTypes["ExpenseCounterpartyForm"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: ModelTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByItem: Array<ModelTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<ModelTypes["ExpenseFile"]>,
+	/** Показ планового расхода до добавления: сроки платежей по периодичности и сколько резерв участка откладывает под платёж за месяц. Запись в реестр не создаётся. */
+	expensePlanSchedule: ModelTypes["ExpensePlanSchedule"],
 	/** Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк. */
 	expenseProposal?: ModelTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
@@ -54443,6 +55837,8 @@ export type ModelTypes = {
 	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<ModelTypes["GeneratedDocument"]>,
+	/** Паевые взносы инициаторов кооперативного участка, фаза возмещения и заявления на имущество до приёма. */
+	marketplaceBranchInvestment: ModelTypes["MarketplaceBranchInvestment"],
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
 	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (стоимость и обеспечительная часть паевого взноса покрываются свободным паевым «Стола заказов») и заявление 1110 о трансляции недостающего из Цифрового кошелька — к подписи заказчиком; если транслировать нечего, null. */
@@ -54457,12 +55853,14 @@ export type ModelTypes = {
 	marketplaceGetAvailableCategories: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
-	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу. */
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков, заказы, которые созреют к первому числу, распределено участком и получено текущим пайщиком. */
 	marketplaceGetBranchCurrentPeriod: ModelTypes["MarketplaceBranchCurrentPeriod"],
-	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и их резерв до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: ModelTypes["MarketplaceBranchEconomy"],
 	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
 	marketplaceGetBranchInitiator: ModelTypes["MarketplaceBranchInitiator"],
+	/** Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается. */
+	marketplaceGetBranchMovementParts: Array<ModelTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
 	marketplaceGetBranchReserves: ModelTypes["MarketplaceBranchReserves"],
 	/** Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов. */
@@ -54491,6 +55889,18 @@ export type ModelTypes = {
 	marketplaceGetSupplierPaymentSettings: ModelTypes["MarketplaceSupplierPaymentSettings"],
 	/** Код передачи пайщика для показа оператору участка: на получение заказов или на приёмку поставки. */
 	marketplaceHandoffCode: ModelTypes["MarketplaceHandoffCode"],
+	/** Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком. */
+	marketplaceInvestAgreementSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
+	marketplaceInvestClaimSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Акт приёма-передачи имущества после решения совета: вносящий подписывает первым, председатель участка — вторым. */
+	marketplaceInvestPropertyActSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Заявление на имущество для подписи председателем участка — одобрение. */
+	marketplaceInvestPropertyApprovalSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Сформировать заявление о паевом взносе имуществом в кооперативный участок. */
+	marketplaceInvestPropertyStatementSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Сформировать заявление о трансляции паевого взноса в договор участия по выбранному участку. */
+	marketplaceInvestStatementSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Акт приёма-передачи к первой подписи заказчиком после решения совета. */
 	marketplaceIssuanceActPayload: ModelTypes["GeneratedDocument"],
 	/** Акт с подписью заказчика для закрывающей подписи оператора участка. */
@@ -54581,8 +55991,14 @@ export type ModelTypes = {
 	marketplaceListWriteoffCandidates: Array<ModelTypes["MarketplaceWriteoffCandidate"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию. */
+	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
+	/** Договор текущего пайщика об участии в хозяйственной деятельности участка; пусто — договор с участком не подписан. */
+	marketplaceMyInvestAgreement?: ModelTypes["MarketplaceInvestAgreement"] | undefined | null,
+	/** История паевых взносов текущего пайщика: деньги, принятое имущество, трансляции в Цифровой Кошелёк. Новые первыми. */
+	marketplaceMyInvestHistory: ModelTypes["MarketplaceInvestHistoryPaginationResult"],
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
+	marketplaceMyInvestments: Array<ModelTypes["MarketplaceInvestor"]>,
 	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
 	marketplaceMyReviewByOrder?: ModelTypes["MarketplaceReview"] | undefined | null,
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
@@ -55666,6 +57082,18 @@ export type ModelTypes = {
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
 };
+	["SaveExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["SaveReportDraftInput"]: {
 	editedFields: Array<string>,
 	editsJson: string,
@@ -56448,6 +57876,20 @@ export type ModelTypes = {
 	phone: string,
 	/** Имя пользователя */
 	username: string
+};
+	["UpdateExpenseCounterpartyInput"]: {
+	/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: ModelTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<ModelTypes["ExpenseCounterpartyRequisiteInput"]>
 };
 	["UpdateIndividualDataInput"]: {
 	/** Дата рождения */
@@ -57931,6 +59373,12 @@ export type GraphQLTypes = {
 		/** Хеш метрики */
 	metric_hash: string
 };
+	["ArchiveExpenseCounterpartyInput"]: {
+		/** true — убрать в архив, false — вернуть из архива. */
+	archived: boolean,
+	/** Номер контрагента. */
+	id: number
+};
 	["AssignCapabilitySetInput"]: {
 		/** Срок действия назначения; пусто — бессрочно */
 	expires_at?: string | undefined | null,
@@ -58576,7 +60024,9 @@ export type GraphQLTypes = {
 };
 	/** Позиция расхода кооперативного участка: кому, сколько и каким способом платим. */
 ["BranchExpenseItemInput"]: {
-		/** Назначение расхода по этой позиции. */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Назначение расхода по этой позиции. */
 	description: string,
 	/** Идентификатор позиции расхода. */
 	item_hash: string,
@@ -59907,7 +61357,9 @@ export type GraphQLTypes = {
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
 };
 	["CapitalExpenseItemInput"]: {
-		/** Описание назначения расхода. */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
 	item_hash: string,
@@ -61990,6 +63442,12 @@ export type GraphQLTypes = {
 	secretaryInRoom: boolean,
 	['...on ChatcoopSecretaryRoom']: Omit<GraphQLTypes["ChatcoopSecretaryRoom"], "...on ChatcoopSecretaryRoom">
 };
+	["CheckExpenseCounterpartyInput"]: {
+		/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["CheckMatrixUsernameInput"]: {
 		username: string
 };
@@ -62524,10 +63982,20 @@ export type GraphQLTypes = {
 	amount: number,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель — для оплаты организации по реквизитам. */
+	counterparty_id?: number | undefined | null,
 	/** Дата, к которой расход должен быть оплачен. */
 	due_date: GraphQLTypes["DateTime"],
-	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
-	pay_to: string,
+	/** Реквизиты получателя текстом — только без выбора способа оплаты (прежние клиенты). */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика — получателя аванса. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации; пусто — назначение по умолчанию из карточки контрагента. */
+	payment_purpose?: string | undefined | null,
+	/** Пайщик — получатель аванса под отчёт, если это не сам добавляющий. */
+	recipient?: string | undefined | null,
+	/** Получатель платежа: организация из реестра контрагентов (оплата по реквизитам) либо пайщик — сам добавляющий или другой (аванс под отчёт). */
+	recipient_type?: GraphQLTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence?: GraphQLTypes["ExpensePlanRecurrence"] | undefined | null,
 	/** Назначение расхода. */
@@ -63984,7 +65452,9 @@ export type GraphQLTypes = {
 };
 	/** Позиция расхода программы: кому, сколько и каким способом платим. */
 ["EduExpenseItemInput"]: {
-		/** Назначение расхода по этой позиции */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Назначение расхода по этой позиции */
 	description: string,
 	/** Идентификатор позиции расхода */
 	item_hash: string,
@@ -64963,6 +66433,108 @@ export type GraphQLTypes = {
 	/** Payload (hex bytes) */
 	data?: string | undefined | null
 };
+	/** Контрагент кооператива — организация или ИП, которым кооператив платит по реквизитам. */
+["ExpenseCounterparty"]: {
+	__typename: "ExpenseCounterparty",
+	/** В архиве: не предлагается для новых расходов. */
+	archived: boolean,
+	/** Кооперативный участок, который добавил контрагента; пусто — контрагент кооператива. */
+	braname?: string | undefined | null,
+	/** Тот, кто спрашивает, вправе править контрагента. */
+	can_manage: boolean,
+	/** Когда добавлен. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Кто добавил контрагента. */
+	creator: string,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты в порядке платёжного поручения. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisite"]>,
+	/** Реквизиты строкой — как в служебной записке и поручении кассиру. */
+	requisites_text: string,
+	/** Налоговый номер (в России — ИНН). */
+	tax_id: string,
+	['...on ExpenseCounterparty']: Omit<GraphQLTypes["ExpenseCounterparty"], "...on ExpenseCounterparty">
+};
+	/** Форма контрагента по стране кооператива: какие реквизиты и с какими правилами заполняются. */
+["ExpenseCounterpartyForm"]: {
+	__typename: "ExpenseCounterpartyForm",
+	/** Страна кооператива. */
+	country: string,
+	/** Поля по видам контрагента. */
+	kinds: Array<GraphQLTypes["ExpenseCounterpartyFormKind"]>,
+	['...on ExpenseCounterpartyForm']: Omit<GraphQLTypes["ExpenseCounterpartyForm"], "...on ExpenseCounterpartyForm">
+};
+	/** Поле реквизитов в форме контрагента. */
+["ExpenseCounterpartyFormField"]: {
+	__typename: "ExpenseCounterpartyFormField",
+	/** Ключ поля, вместе с которым сверяется номер (расчётный счёт — с БИК); пусто — номер сверяется сам по себе. */
+	checked_with?: string | undefined | null,
+	/** Раздел формы: organization — сведения об организации, bank — банковские реквизиты. */
+	group: string,
+	/** Ключ реквизита. */
+	key: string,
+	/** Подпись поля. */
+	label: string,
+	/** Длина значения в цифрах; пусто — значение не только из цифр. */
+	length?: number | undefined | null,
+	/** Маска ввода: # — цифра, X — латинская буква или цифра. */
+	mask?: string | undefined | null,
+	/** Шаблон значения целиком, если оно не только из цифр. */
+	pattern?: string | undefined | null,
+	/** Поле обязательно. */
+	required: boolean,
+	/** Налоговый номер: по нему заполняются сведения из реестра страны. */
+	tax_id: boolean,
+	['...on ExpenseCounterpartyFormField']: Omit<GraphQLTypes["ExpenseCounterpartyFormField"], "...on ExpenseCounterpartyFormField">
+};
+	/** Поля реквизитов вида контрагента. */
+["ExpenseCounterpartyFormKind"]: {
+	__typename: "ExpenseCounterpartyFormKind",
+	/** Поля в порядке платёжного поручения. */
+	fields: Array<GraphQLTypes["ExpenseCounterpartyFormField"]>,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	['...on ExpenseCounterpartyFormKind']: Omit<GraphQLTypes["ExpenseCounterpartyFormKind"], "...on ExpenseCounterpartyFormKind">
+};
+	["ExpenseCounterpartyIdInput"]: {
+		/** Номер контрагента. */
+	id: number
+};
+	/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+["ExpenseCounterpartyKind"]: ExpenseCounterpartyKind;
+	/** Реквизит контрагента: подпись и значение. */
+["ExpenseCounterpartyRequisite"]: {
+	__typename: "ExpenseCounterpartyRequisite",
+	/** Ключ реквизита. */
+	key: string,
+	/** Подпись реквизита — как в платёжном поручении. */
+	label: string,
+	/** Значение реквизита. */
+	value: string,
+	['...on ExpenseCounterpartyRequisite']: Omit<GraphQLTypes["ExpenseCounterpartyRequisite"], "...on ExpenseCounterpartyRequisite">
+};
+	["ExpenseCounterpartyRequisiteInput"]: {
+		/** Ключ реквизита — из формы контрагента. */
+	key: string,
+	/** Значение реквизита. */
+	value: string
+};
+	/** Нарушение в реквизитах контрагента. */
+["ExpenseCounterpartyRequisiteIssue"]: {
+	__typename: "ExpenseCounterpartyRequisiteIssue",
+	/** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+	code: string,
+	/** Ключ реквизита. */
+	key: string,
+	['...on ExpenseCounterpartyRequisiteIssue']: Omit<GraphQLTypes["ExpenseCounterpartyRequisiteIssue"], "...on ExpenseCounterpartyRequisiteIssue">
+};
 	/** Запись о первичном файле расхода (платёжка/чек/возврат). */
 ["ExpenseFile"]: {
 	__typename: "ExpenseFile",
@@ -65028,7 +66600,9 @@ export type GraphQLTypes = {
 	['...on ExpenseItem']: Omit<GraphQLTypes["ExpenseItem"], "...on ExpenseItem">
 };
 	["ExpenseItemInput"]: {
-		/** Описание назначения расхода. */
+		/** Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки. */
+	counterparty_id?: number | undefined | null,
+	/** Описание назначения расхода. */
 	description: string,
 	/** Хеш строки расхода (детерминированный, из UI). */
 	item_hash: string,
@@ -65060,6 +66634,10 @@ export type GraphQLTypes = {
 	amount: string,
 	/** Кооперативный участок; пусто — расход уровня кооператива. */
 	braname?: string | undefined | null,
+	/** Контрагент-получатель оплаты по реквизитам. */
+	counterparty_id?: number | undefined | null,
+	/** Наименование контрагента-получателя. */
+	counterparty_name?: string | undefined | null,
 	/** Когда добавлена запись. */
 	created_at: GraphQLTypes["DateTime"],
 	/** Кто добавил запись. */
@@ -65068,12 +66646,26 @@ export type GraphQLTypes = {
 	due_date?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Идентификатор записи. */
 	id: number,
+	/** Срок следующего платежа повторяющегося расхода; пусто у разового расхода. */
+	next_due_date?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Когда расход фактически оплачен; оплаченные записи не удерживают резерв. */
 	paid_at?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Реквизиты получателя платежа. */
-	pay_to: string,
+	/** Реквизиты получателя текстом — у записей, заведённых до выбора способа оплаты. */
+	pay_to?: string | undefined | null,
+	/** Способ получения средств пайщика. */
+	payment_method_id?: string | undefined | null,
+	/** Назначение платежа организации. */
+	payment_purpose?: string | undefined | null,
 	/** Расход, которым оплачивается запись; пусто — оплата ещё не запускалась. */
 	proposal_hash?: string | undefined | null,
+	/** Состояние расхода, которым оплачивается запись: на рассмотрении совета, утверждён и ждёт кассира, ждёт отчёта; пусто — оплата не запускалась. */
+	proposal_status?: GraphQLTypes["ExpenseProposalStatus"] | undefined | null,
+	/** Пайщик — получатель аванса под отчёт. */
+	recipient?: string | undefined | null,
+	/** Имя пайщика — получателя аванса под отчёт. */
+	recipient_name?: string | undefined | null,
+	/** Получатель платежа: организация по реквизитам контрагента либо пайщик авансом под отчёт; пусто — запись заведена до выбора способа оплаты. */
+	recipient_type?: GraphQLTypes["ExpenseRecipientType"] | undefined | null,
 	/** Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока. */
 	recurrence: GraphQLTypes["ExpensePlanRecurrence"],
 	/** Назначение расхода. */
@@ -65082,6 +66674,25 @@ export type GraphQLTypes = {
 };
 	/** Периодичность планового расхода: разовый либо повторяющийся ежемесячно, ежеквартально или ежегодно. */
 ["ExpensePlanRecurrence"]: ExpensePlanRecurrence;
+	/** Сроки платежей планового расхода и резерв под них — показ до добавления расхода в реестр. */
+["ExpensePlanSchedule"]: {
+	__typename: "ExpensePlanSchedule",
+	/** Сроки платежей: первый и следующие по периодичности; у разового расхода — один срок. */
+	due_dates: Array<GraphQLTypes["DateTime"]>,
+	/** Сколько месяцев резерв участка копит один платёж: три у квартального, двенадцать у годового, один у прочих. */
+	reserve_months: number,
+	/** Сколько резерв откладывает под платёж за месяц; последний месяц перед сроком добирает остаток. */
+	reserve_per_month: string,
+	['...on ExpensePlanSchedule']: Omit<GraphQLTypes["ExpensePlanSchedule"], "...on ExpensePlanSchedule">
+};
+	["ExpensePlanScheduleInput"]: {
+		/** Сумма платежа. */
+	amount: number,
+	/** Срок первого платежа. */
+	due_date: GraphQLTypes["DateTime"],
+	/** Периодичность расхода. */
+	recurrence?: GraphQLTypes["ExpensePlanRecurrence"] | undefined | null
+};
 	/** Смета расхода (СЗ). */
 ["ExpenseProposal"]: {
 	__typename: "ExpenseProposal",
@@ -65195,6 +66806,8 @@ export type GraphQLTypes = {
 	["ExpenseProposalItemInput"]: {
 		/** Сумма строки */
 	amount: string,
+	/** Контрагент-получатель из реестра контрагентов — сервер подставит наименование и реквизиты организации в документ. */
+	counterparty_id?: number | undefined | null,
 	/** Описание расхода */
 	description: string,
 	/** Способ оплаты (ADVANCE / DIRECT) */
@@ -66801,6 +68414,12 @@ export type GraphQLTypes = {
 	coopname: string,
 	['...on LedgerState']: Omit<GraphQLTypes["LedgerState"], "...on LedgerState">
 };
+	["ListExpenseCounterpartiesInput"]: {
+		/** Показать и контрагентов в архиве. */
+	include_archived?: boolean | undefined | null,
+	/** Поиск по наименованию или налоговому номеру. */
+	search?: string | undefined | null
+};
 	["ListExpensePlansInput"]: {
 		/** Показать планы только этого кооперативного участка. */
 	braname?: string | undefined | null
@@ -66980,7 +68599,7 @@ export type GraphQLTypes = {
 	username: string,
 	['...on MarketplaceAid']: Omit<GraphQLTypes["MarketplaceAid"], "...on MarketplaceAid">
 };
-	/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+	/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 ["MarketplaceAidStage"]: MarketplaceAidStage;
 	["MarketplaceAidStatementSignablePayloadInput"]: {
 		/** Сумма материальной помощи. */
@@ -67225,38 +68844,54 @@ export type GraphQLTypes = {
 	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа. */
 ["MarketplaceBranchCurrentPeriod"]: {
 	__typename: "MarketplaceBranchCurrentPeriod",
-	/** Материальная помощь, выплаченная участком за текущий месяц. */
+	/** Материальная помощь с персонального кошелька, выплаченная за текущий месяц. */
 	aid_paid: string,
-	/** Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям. */
+	/** Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца. */
 	aid_reserve: string,
 	/** Кооперативный участок. */
 	braname: string,
-	/** Расходы участка на сегодня: плановые, служебные записки и резерв. */
+	/** Распределено участком доверенным за текущий месяц. */
+	distributed: string,
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: GraphQLTypes["DateTime"],
+	/** Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом. */
 	expenses: string,
-	/** Служебные записки участка сверх плана за текущий месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за текущий месяц. */
 	memos: string,
 	/** Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period: number,
-	/** Плановые расходы участка со сроком в текущем месяце. */
+	/** Оплачено по плану с общего кошелька участка за текущий месяц. */
 	planned: string,
+	/** Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца. */
+	planned_target: string,
+	/** Получено текущим пайщиком распределением за текущий месяц. */
+	received: string,
 	/** Заказов, которые созреют к первому числу. */
 	ripening_orders: number,
 	/** Обеспечительная часть по заказам, которые созреют к первому числу. */
 	ripening_secured: string,
 	/** Стоимость заказов, которые созреют к первому числу. */
 	ripening_turnover: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: GraphQLTypes["DateTime"],
+	/** Собранная часть цели резерва прошлого итога: она уже лежит на участке. */
+	target_prev: string,
 	['...on MarketplaceBranchCurrentPeriod']: Omit<GraphQLTypes["MarketplaceBranchCurrentPeriod"], "...on MarketplaceBranchCurrentPeriod">
 };
-	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
 	__typename: "MarketplaceBranchEconomy",
+	/** Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника. */
+	available_for_expenses: string,
 	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
 	available_to_distribute: string,
 	/** Кооперативный участок. */
 	braname: string,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance: string,
-	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	/** Свободные средства инициаторов участка: неиспользованные деньги за вычетом выделенных под расходы и помощь. Из них оплачивается расход, если общего кошелька не хватает. */
+	initiators_free: string,
+	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount: string,
 	/** Сумма весов участников распределения. */
 	total_weight: number,
@@ -67277,14 +68912,43 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on MarketplaceBranchInitiator']: Omit<GraphQLTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
 };
+	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
+["MarketplaceBranchInvestment"]: {
+	__typename: "MarketplaceBranchInvestment",
+	/** Кооперативный участок. */
+	braname: string,
+	/** Инициаторы участка. */
+	investors: Array<GraphQLTypes["MarketplaceInvestor"]>,
+	/** Внесено деньгами всего по инициаторам участка; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in_total: string,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money_total: string,
+	/** Осталось возместить инициаторам из использованного. */
+	outstanding: string,
+	/** Фаза участка по паевым взносам. */
+	phase: GraphQLTypes["MarketplaceInvestPhase"],
+	/** Заявления на имущество до приёма. */
+	properties: Array<GraphQLTypes["MarketplaceInvestProperty"]>,
+	/** Внесено имуществом всего. */
+	property_total: string,
+	/** Возмещено инициаторам из экономии участка всего. */
+	repaid_total: string,
+	/** Выделено под незакрытые расходы и материальную помощь. */
+	reserved: string,
+	/** Оплачено из средств инициаторов всего. */
+	spent_total: string,
+	/** Деньги инициаторов, ещё не израсходованные участком. */
+	unused_total: string,
+	['...on MarketplaceBranchInvestment']: Omit<GraphQLTypes["MarketplaceBranchInvestment"], "...on MarketplaceBranchInvestment">
+};
 	/** Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками. */
 ["MarketplaceBranchPeriod"]: {
 	__typename: "MarketplaceBranchPeriod",
-	/** Материальная помощь, выплаченная участком за месяц. */
+	/** Материальная помощь с персонального кошелька, выплаченная за месяц. */
 	aid_paid: string,
-	/** Резерв социально-экономического обеспечения пайщиков на следующий месяц. */
+	/** Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва). */
 	aid_reserve: string,
-	/** Невыплаченная часть прошлого резерва. */
+	/** Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль. */
 	aid_unpaid: string,
 	/** Строка уже стёрта из цепи; история хранится здесь. */
 	archived: boolean,
@@ -67296,7 +68960,9 @@ export type GraphQLTypes = {
 	closed_at: GraphQLTypes["DateTime"],
 	/** Дефицит участка: расходы без покрытия. */
 	deficit: string,
-	/** Расходы участка за прогон. */
+	/** Конец месяца (не включительно): начало следующего месяца. */
+	ends_at: GraphQLTypes["DateTime"],
+	/** Расходы участка за месяц. */
 	expenses: string,
 	/** В фонды накопления кооператива. */
 	funds_amount: string,
@@ -67304,14 +68970,20 @@ export type GraphQLTypes = {
 	initiator: string,
 	/** Инициатору участка. */
 	initiator_amount: string,
+	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
+	invest_phase: GraphQLTypes["MarketplacePeriodInvestPhase"],
+	/** Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня. */
+	investor_repaid: string,
 	/** Членский взнос участка за прогон. */
 	membership: string,
-	/** Служебные записки участка сверх плана за месяц. */
+	/** Служебные записки участка сверх плана с общего кошелька за месяц. */
 	memos: string,
 	/** Номер месяца: год × 12 + месяц по часовому поясу кооператива. */
 	period: number,
-	/** Плановые расходы участка за месяц. */
+	/** Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце). */
 	planned: string,
+	/** Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва. */
+	planned_target?: string | undefined | null,
 	/** Коэффициент экономического участия за месяц, проценты: участку, в фонды и инициатору вместе. */
 	rate_percent: string,
 	/** Пайщикам обратно на свободный паевой. */
@@ -67322,6 +68994,14 @@ export type GraphQLTypes = {
 	rows_total: number,
 	/** Собранная обеспечительная часть по заказам прогона. */
 	secured: string,
+	/** Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца. */
+	starts_at: GraphQLTypes["DateTime"],
+	/** Цель резерва участка: плановые расходы и накопленное право получателей помощи. */
+	target?: string | undefined | null,
+	/** Собранная часть цели резерва этого месяца; несобранное переходит в следующий. */
+	target_funded?: string | undefined | null,
+	/** Собранная часть цели резерва прошлого месяца. */
+	target_prev?: string | undefined | null,
 	/** Стоимость заказов прогона, списанных по итогу месяца. */
 	turnover: string,
 	['...on MarketplaceBranchPeriod']: Omit<GraphQLTypes["MarketplaceBranchPeriod"], "...on MarketplaceBranchPeriod">
@@ -67391,6 +69071,8 @@ export type GraphQLTypes = {
 	order_id?: string | undefined | null,
 	/** Сумма движения. */
 	quantity?: string | undefined | null,
+	/** Чьё это движение: участок для общего кошелька, пайщик-получатель для персонального кошелька. */
+	username?: string | undefined | null,
 	['...on MarketplaceBranchWalletOperation']: Omit<GraphQLTypes["MarketplaceBranchWalletOperation"], "...on MarketplaceBranchWalletOperation">
 };
 	/** Параметры отмены своего заказа пайщиком. */
@@ -67581,6 +69263,14 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
 	package_id?: string | undefined | null
+};
+	["MarketplaceClaimInvestmentInput"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор заявления из подписанного документа. */
+	claim_hash: string,
+	/** Подписанное заявление о трансляции средств на главный паевой кошелёк. */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 		/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -67792,6 +69482,34 @@ export type GraphQLTypes = {
 	apl_receptions: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	['...on MarketplaceCreateExpressReceptionResult']: Omit<GraphQLTypes["MarketplaceCreateExpressReceptionResult"], "...on MarketplaceCreateExpressReceptionResult">
 };
+	["MarketplaceCreateInvestPropertyInput"]: {
+		/** Цена приёма. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
+	/** Описание, характеристики и состояние. */
+	property_description: string,
+	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
+	property_hash: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
+	/** Наименование имущества. */
+	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
+	/** Количество. */
+	property_quantity: string,
+	/** Единица измерения. */
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null,
+	/** Подписанное заявление о паевом взносе имуществом. */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceCreateOfferInput"]: {
 		/** Стратегия маркировки штрих-кодом при приёмке на КУ. По умолчанию «по заказу» (PER_ORDER). */
 	barcode_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
@@ -67915,6 +69633,14 @@ export type GraphQLTypes = {
 	/** Настройки адресного хранения, включённые в кооперативе. */
 	warehouse_settings: GraphQLTypes["MarketplaceWarehouseSettings"],
 	['...on MarketplaceCurrentMember']: Omit<GraphQLTypes["MarketplaceCurrentMember"], "...on MarketplaceCurrentMember">
+};
+	["MarketplaceDeclineInvestPropertyInput"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string,
+	/** Причина отказа. */
+	reason: string
 };
 	/** Параметры отказа поставщика от выбранных активных заказов. */
 ["MarketplaceDeclineOrdersBatchInput"]: {
@@ -68131,6 +69857,138 @@ export type GraphQLTypes = {
 };
 	/** Состояние единицы имущества на складе КУ. */
 ["MarketplaceInventoryStatus"]: MarketplaceInventoryStatus;
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
+["MarketplaceInvestAgreement"]: {
+	__typename: "MarketplaceInvestAgreement",
+	/** Номер договора. */
+	number: string,
+	/** Дата подписи. */
+	signed_at: string,
+	['...on MarketplaceInvestAgreement']: Omit<GraphQLTypes["MarketplaceInvestAgreement"], "...on MarketplaceInvestAgreement">
+};
+	/** Запись истории паевых взносов пайщика в кооперативные участки. */
+["MarketplaceInvestHistoryEntry"]: {
+	__typename: "MarketplaceInvestHistoryEntry",
+	/** Сумма: деньгами, по цене приёма имущества или трансляции. */
+	amount: string,
+	/** Когда операция проведена. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Номер операции учёта. */
+	global_sequence: string,
+	/** Вид записи. */
+	kind: GraphQLTypes["MarketplaceInvestHistoryKind"],
+	/** Идентификатор процесса: по нему находится документ в реестре документов. */
+	process_hash: string,
+	['...on MarketplaceInvestHistoryEntry']: Omit<GraphQLTypes["MarketplaceInvestHistoryEntry"], "...on MarketplaceInvestHistoryEntry">
+};
+	/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
+["MarketplaceInvestHistoryKind"]: MarketplaceInvestHistoryKind;
+	["MarketplaceInvestHistoryPaginationResult"]: {
+	__typename: "MarketplaceInvestHistoryPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceInvestHistoryEntry"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceInvestHistoryPaginationResult']: Omit<GraphQLTypes["MarketplaceInvestHistoryPaginationResult"], "...on MarketplaceInvestHistoryPaginationResult">
+};
+	["MarketplaceInvestMoneyInput"]: {
+		/** Сумма паевого взноса деньгами. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса из подписанного заявления. */
+	invest_hash: string,
+	/** Подписанное заявление о трансляции паевого взноса в договор участия. */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"]
+};
+	/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
+["MarketplaceInvestPhase"]: MarketplaceInvestPhase;
+	/** Заявление о паевом взносе имуществом в кооперативный участок до приёма. */
+["MarketplaceInvestProperty"]: {
+	__typename: "MarketplaceInvestProperty",
+	/** Цена приёма. */
+	amount: string,
+	/** Наименование и описание имущества. */
+	description: string,
+	/** Идентификатор паевого взноса имуществом. */
+	hash: string,
+	/** Этап заявления. */
+	status: GraphQLTypes["MarketplaceInvestPropertyStatus"],
+	/** Вносящий пайщик. */
+	username: string,
+	['...on MarketplaceInvestProperty']: Omit<GraphQLTypes["MarketplaceInvestProperty"], "...on MarketplaceInvestProperty">
+};
+	["MarketplaceInvestPropertyRefInput"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string
+};
+	["MarketplaceInvestPropertyStatementInput"]: {
+		/** Цена приёма. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
+	/** Описание, характеристики и состояние. */
+	property_description: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
+	/** Наименование имущества. */
+	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
+	/** Количество. */
+	property_quantity: string,
+	/** Единица измерения. */
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null
+};
+	/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
+["MarketplaceInvestPropertyStatus"]: MarketplaceInvestPropertyStatus;
+	["MarketplaceInvestStatementInput"]: {
+		/** Сумма паевого взноса деньгами. */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string
+};
+	/** Паевые взносы пайщика-инициатора в кооперативный участок. */
+["MarketplaceInvestor"]: {
+	__typename: "MarketplaceInvestor",
+	/** Возмещение ещё идёт; ложь — использованное возмещено целиком. */
+	active: boolean,
+	/** Кооперативный участок. */
+	braname: string,
+	/** Доступно к переводу на главный паевой кошелёк сейчас. Предварительный расчёт; при заявлении сумму считает кооператив. */
+	claimable: string,
+	/** Уже переведено на главный паевой кошелёк. */
+	claimed: string,
+	/** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+	money: string,
+	/** Внесено деньгами всего; перевод на главный паевой кошелёк эту сумму не уменьшает. */
+	money_in: string,
+	/** Внесено имуществом по цене приёма. */
+	property: string,
+	/** Возмещено из экономии участка. */
+	returned: string,
+	/** Возмещено полностью: использованное возмещено, всё переведено на главный паевой кошелёк, остаток нулевой. */
+	settled: boolean,
+	/** Деньги, которые участок ещё не израсходовал: запас на месяцы, когда своих средств участка не хватает. */
+	unused: string,
+	/** Использовано участком: имущество и израсходованные деньги. */
+	used: string,
+	/** Пайщик-инициатор. */
+	username: string,
+	['...on MarketplaceInvestor']: Omit<GraphQLTypes["MarketplaceInvestor"], "...on MarketplaceInvestor">
+};
 	/** Акт с первой подписью заказчика — оператор накладывает закрывающую подпись поверх. */
 ["MarketplaceIssuanceClosePayload"]: {
 	__typename: "MarketplaceIssuanceClosePayload",
@@ -68899,6 +70757,8 @@ export type GraphQLTypes = {
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
+	/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
+["MarketplacePeriodInvestPhase"]: MarketplacePeriodInvestPhase;
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: {
 	__typename: "MarketplacePersonalEconomy",
@@ -69731,6 +71591,20 @@ export type GraphQLTypes = {
 	placements?: Array<GraphQLTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<GraphQLTypes["MarketplaceAplReceptionSignedDocumentInput"]>
+};
+	["MarketplaceSignInvestAgreementInput"]: {
+		/** Подписанный договор участия в хозяйственной деятельности. */
+	agreement: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Кооперативный участок договора. */
+	braname: string
+};
+	["MarketplaceSignInvestPropertyInput"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Подписанный документ: одобрение заявления или акт приёма-передачи. */
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Идентификатор паевого взноса имуществом. */
+	property_hash: string
 };
 	["MarketplaceSignIssuanceActInput"]: {
 		/** Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг. */
@@ -70786,6 +72660,8 @@ export type GraphQLTypes = {
 	approveModeration: GraphQLTypes["ApproveModerationResultDTO"],
 	/** Совет подтвердил сверку личности; снимки удаляются */
 	approveVerification: GraphQLTypes["VerificationReview"],
+	/** Убрать контрагента в архив или вернуть из архива. Контрагент в архиве не предлагается для новых расходов. */
+	archiveExpenseCounterparty: GraphQLTypes["ExpenseCounterparty"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
 	/** Назначить роль пайщику */
@@ -71042,6 +72918,8 @@ export type GraphQLTypes = {
 	createBranch: GraphQLTypes["Branch"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
+	/** Добавить контрагента. Контрагента кооператива добавляет совет; председатель участка и его доверенные лица добавляют контрагента с пометкой своего участка. */
+	createExpenseCounterparty: GraphQLTypes["ExpenseCounterparty"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
 	createExpensePlan: GraphQLTypes["ExpensePlan"],
 	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя). */
@@ -71068,6 +72946,8 @@ export type GraphQLTypes = {
 	deleteBranch: boolean,
 	/** Удалить пайщика из белого списка приватного кооперативного участка */
 	deleteBranchWhitelist: GraphQLTypes["Branch"],
+	/** Удалить контрагента. Контрагента из неоплаченных плановых расходов удалить нельзя — его убирают в архив. */
+	deleteExpenseCounterparty: boolean,
 	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
 	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
@@ -71308,6 +73188,8 @@ export type GraphQLTypes = {
 	marketplaceAddToCart: GraphQLTypes["MarketplaceCart"],
 	/** Поставщик признаёт гарантийную претензию: сумма становится долгом и удерживается из следующих выплат. */
 	marketplaceAdmitSupplierClaim: GraphQLTypes["MarketplaceSupplierClaimResult"],
+	/** Одобрить заявление на имущество; вопрос о приёме выносится на совет. Доступно председателю участка. */
+	marketplaceApproveInvestProperty: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
@@ -71332,6 +73214,8 @@ export type GraphQLTypes = {
 	marketplaceCancelWriteoffDraft: boolean,
 	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы выполняется отдельной транзакцией до заказов. */
 	marketplaceCheckoutCart: GraphQLTypes["MarketplaceCheckoutResult"],
+	/** Транслировать доступный паевой взнос в главный паевой кошелёк по подписанному заявлению. Сумму считает кооператив. */
+	marketplaceClaimInvestment: Array<GraphQLTypes["MarketplaceInvestor"]>,
 	/** Очистить все доступные категории (сделать доступными все) */
 	marketplaceClearAvailableCategories: boolean,
 	/** Очистить корзину (убрать все позиции). */
@@ -71356,6 +73240,8 @@ export type GraphQLTypes = {
 	marketplaceCreateCustomCategory: GraphQLTypes["MarketplaceCategory"],
 	/** Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку. */
 	marketplaceCreateExpressReception: GraphQLTypes["MarketplaceCreateExpressReceptionResult"],
+	/** Подать заявление о паевом взносе имуществом в участок; заявление ждёт одобрения председателя участка. */
+	marketplaceCreateInvestProperty: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
 	marketplaceCreateOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
@@ -71372,6 +73258,8 @@ export type GraphQLTypes = {
 	marketplaceCreateStorageGrid: Array<GraphQLTypes["MarketplaceStorageCell"]>,
 	/** Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет. */
 	marketplaceCreateWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Отклонить заявление на имущество до передачи в совет. Доступно председателю участка. */
+	marketplaceDeclineInvestProperty: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются. */
 	marketplaceDeclineOrdersBatch: GraphQLTypes["MarketplaceSupplierBatchActionResult"],
 	/** Пайщик отказывается от предложения со склада кооператива. */
@@ -71384,7 +73272,7 @@ export type GraphQLTypes = {
 	marketplaceDeleteTrusteeWeight: boolean,
 	/** Детализирует существующий в core кооперативный участок как ПВЗ Стола заказов. Создаёт запись marketplace_ku_details, либо обновляет существующую. При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING и обновляются асинхронно. */
 	marketplaceDetailKU: GraphQLTypes["MarketplaceKUDetails"],
-	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка. */
+	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше резерва плановых расходов до конца текущего месяца. Доступно председателю участка. */
 	marketplaceDistributeBranchFunds: boolean,
 	/** Пайщик одним нажатием подписывает заявления по всем строкам бандла (и заявление 1110 на бандл, если членского кошелька не хватает — перевод идёт отдельной транзакцией до заказов): по докладке создаётся заказ из остатка, по каждому заказу заявление уходит в цепь и на повестку совета; робот решений совета зовётся напрямую и ждётся у стойки. Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны. */
 	marketplaceFinalizeStockIssuance: GraphQLTypes["MarketplaceStockProposalAcceptResult"],
@@ -71394,6 +73282,8 @@ export type GraphQLTypes = {
 	marketplaceGenerateInventoryLabel: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор выдал имущество обратно пайщику: после отказа совета либо по истечении срока ожидания решения (7 дней с приёма). Записи в цепи не остаётся, заказ остаётся выданным. */
 	marketplaceHandBackReturn: GraphQLTypes["MarketplaceReturnClaimResult"],
+	/** Внести деньги в кооперативный участок по подписанному заявлению: паевой взнос переходит на кошелёк договора участия. */
+	marketplaceInvestMoney: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние. */
 	marketplaceMoveContainer: GraphQLTypes["MarketplaceContainer"],
 	/** Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой. */
@@ -71452,6 +73342,10 @@ export type GraphQLTypes = {
 	marketplaceSignAplReceptionAsChairman: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б). */
 	marketplaceSignAplReceptionAsSupplier: GraphQLTypes["MarketplaceAplReceptionResult"],
+	/** Подписать договор об участии в хозяйственной деятельности участка. Договор заключается на каждый участок отдельно. */
+	marketplaceSignInvestAgreement: GraphQLTypes["MarketplaceInvestAgreement"],
+	/** Подписать акт приёма-передачи имущества первой подписью вносящего. */
+	marketplaceSignInvestPropertyAct: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Первая подпись акта заказчиком: дальше оператор закрывает выдачу. */
 	marketplaceSignIssuanceAct: GraphQLTypes["MarketplaceIssuanceSaga"],
 	/** Заказчик подписал заявление: оно уходит совету. Если робот решений совета ответил сразу, в ответе уже есть протокол и акт к подписи; иначе выдача ждёт решение — придёт уведомление. */
@@ -71600,6 +73494,8 @@ export type GraphQLTypes = {
 	updateAccount: GraphQLTypes["Account"],
 	/** Обновить банковский счёт */
 	updateBankAccount: GraphQLTypes["PaymentMethod"],
+	/** Изменить наименование, реквизиты или назначение платежа контрагента. Поданные записки сохраняют прежние реквизиты. */
+	updateExpenseCounterparty: GraphQLTypes["ExpenseCounterparty"],
 	/** Обновить расширение */
 	updateExtension: GraphQLTypes["Extension"],
 	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн */
@@ -73705,6 +75601,8 @@ export type GraphQLTypes = {
 	chatcoopListSecretaryRooms: Array<GraphQLTypes["ChatcoopSecretaryRoom"]>,
 	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix */
 	chatcoopListUtcDatesWithNewRoomMessages: Array<string>,
+	/** Проверка реквизитов контрагента до сохранения: какие поля пусты, неверного вида или не проходят контрольную сумму. */
+	checkExpenseCounterpartyRequisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteIssue"]>,
 	/** Проверить готовность реквизитов для генерации конкретной формы */
 	checkReportReadiness: GraphQLTypes["ReportReadinessView"],
 	/** Конфиг соглашений кооператива: какие типы соглашений требуются с пайщика */
@@ -73815,12 +75713,18 @@ export type GraphQLTypes = {
 	edubridgeTeachers: Array<GraphQLTypes["EduTeacher"]>,
 	/** Выданные авансы под отчёт по кооперативу (paginated) с отбором по состоянию. Видят совет, кассир и ревизор. */
 	expenseAdvancesByCooperative: GraphQLTypes["PaginatedExpenseAdvancesPaginationResult"],
+	/** Контрагенты кооператива с поиском по наименованию и налоговому номеру. Видят совет и операторы кооперативных участков. */
+	expenseCounterparties: Array<GraphQLTypes["ExpenseCounterparty"]>,
+	/** Форма контрагента по стране кооператива: реквизиты, обязательность и длины значений. */
+	expenseCounterpartyForm: GraphQLTypes["ExpenseCounterpartyForm"],
 	/** Получить запись о файле + свежий короткоживущий read-URL. */
 	expenseFile: GraphQLTypes["ExpenseFile"],
 	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByItem: Array<GraphQLTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<GraphQLTypes["ExpenseFile"]>,
+	/** Показ планового расхода до добавления: сроки платежей по периодичности и сколько резерв участка откладывает под платёж за месяц. Запись в реестр не создаётся. */
+	expensePlanSchedule: GraphQLTypes["ExpensePlanSchedule"],
 	/** Получить смету расхода по хешу. Видят совет, ревизор, кассир, подавший смету и получатели её строк. */
 	expenseProposal?: GraphQLTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
@@ -73996,6 +75900,8 @@ export type GraphQLTypes = {
 	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
 	marketplaceAplReceptionSupplierSignablePayloads: Array<GraphQLTypes["GeneratedDocument"]>,
+	/** Паевые взносы инициаторов кооперативного участка, фаза возмещения и заявления на имущество до приёма. */
+	marketplaceBranchInvestment: GraphQLTypes["MarketplaceBranchInvestment"],
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
 	/** Превью оформления: по каждой позиции корзины — идентификатор будущего заказа и суммы по частям (стоимость и обеспечительная часть паевого взноса покрываются свободным паевым «Стола заказов») и заявление 1110 о трансляции недостающего из Цифрового кошелька — к подписи заказчиком; если транслировать нечего, null. */
@@ -74010,12 +75916,14 @@ export type GraphQLTypes = {
 	marketplaceGetAvailableCategories: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Получить дерево доступных категорий и типов для кооператива */
 	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
-	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу. */
+	/** Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков, заказы, которые созреют к первому числу, распределено участком и получено текущим пайщиком. */
 	marketplaceGetBranchCurrentPeriod: GraphQLTypes["MarketplaceBranchCurrentPeriod"],
-	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и их резерв до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: GraphQLTypes["MarketplaceBranchEconomy"],
 	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
 	marketplaceGetBranchInitiator: GraphQLTypes["MarketplaceBranchInitiator"],
+	/** Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается. */
+	marketplaceGetBranchMovementParts: Array<GraphQLTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
 	marketplaceGetBranchReserves: GraphQLTypes["MarketplaceBranchReserves"],
 	/** Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов. */
@@ -74044,6 +75952,18 @@ export type GraphQLTypes = {
 	marketplaceGetSupplierPaymentSettings: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
 	/** Код передачи пайщика для показа оператору участка: на получение заказов или на приёмку поставки. */
 	marketplaceHandoffCode: GraphQLTypes["MarketplaceHandoffCode"],
+	/** Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком. */
+	marketplaceInvestAgreementSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
+	marketplaceInvestClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Акт приёма-передачи имущества после решения совета: вносящий подписывает первым, председатель участка — вторым. */
+	marketplaceInvestPropertyActSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Заявление на имущество для подписи председателем участка — одобрение. */
+	marketplaceInvestPropertyApprovalSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать заявление о паевом взносе имуществом в кооперативный участок. */
+	marketplaceInvestPropertyStatementSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать заявление о трансляции паевого взноса в договор участия по выбранному участку. */
+	marketplaceInvestStatementSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Акт приёма-передачи к первой подписи заказчиком после решения совета. */
 	marketplaceIssuanceActPayload: GraphQLTypes["GeneratedDocument"],
 	/** Акт с подписью заказчика для закрывающей подписи оператора участка. */
@@ -74134,8 +76054,14 @@ export type GraphQLTypes = {
 	marketplaceListWriteoffCandidates: Array<GraphQLTypes["MarketplaceWriteoffCandidate"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
-	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию. */
+	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
+	/** Договор текущего пайщика об участии в хозяйственной деятельности участка; пусто — договор с участком не подписан. */
+	marketplaceMyInvestAgreement?: GraphQLTypes["MarketplaceInvestAgreement"] | undefined | null,
+	/** История паевых взносов текущего пайщика: деньги, принятое имущество, трансляции в Цифровой Кошелёк. Новые первыми. */
+	marketplaceMyInvestHistory: GraphQLTypes["MarketplaceInvestHistoryPaginationResult"],
+	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
+	marketplaceMyInvestments: Array<GraphQLTypes["MarketplaceInvestor"]>,
 	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
 	marketplaceMyReviewByOrder?: GraphQLTypes["MarketplaceReview"] | undefined | null,
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
@@ -75320,6 +77246,18 @@ export type GraphQLTypes = {
 	["SaveCapitalProgramDocDataInput"]: {
 		doc_data_hash: string
 };
+	["SaveExpenseCounterpartyInput"]: {
+		/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteInput"]>
+};
 	["SaveReportDraftInput"]: {
 		editedFields: Array<string>,
 	editsJson: string,
@@ -76150,6 +78088,20 @@ export type GraphQLTypes = {
 	phone: string,
 	/** Имя пользователя */
 	username: string
+};
+	["UpdateExpenseCounterpartyInput"]: {
+		/** Кооперативный участок, который добавляет контрагента; пусто — контрагент кооператива (добавляет совет). */
+	braname?: string | undefined | null,
+	/** Номер контрагента. */
+	id: number,
+	/** Вид контрагента. */
+	kind: GraphQLTypes["ExpenseCounterpartyKind"],
+	/** Наименование. */
+	name: string,
+	/** Назначение платежа по умолчанию. */
+	payment_purpose?: string | undefined | null,
+	/** Реквизиты по полям формы контрагента. */
+	requisites: Array<GraphQLTypes["ExpenseCounterpartyRequisiteInput"]>
 };
 	["UpdateIndividualDataInput"]: {
 		/** Дата рождения */
@@ -77279,6 +79231,11 @@ export enum ExpenseAdvanceState {
 	REPORTED = "REPORTED",
 	SETTLEMENT = "SETTLEMENT"
 }
+/** Вид контрагента: юридическое лицо или индивидуальный предприниматель. */
+export enum ExpenseCounterpartyKind {
+	ENTREPRENEUR = "ENTREPRENEUR",
+	LEGAL = "LEGAL"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -77480,10 +79437,11 @@ export enum ManagedRoomKind {
 	MEMBERS = "MEMBERS",
 	SECRETARY = "SECRETARY"
 }
-/** Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты. */
+/** Стадия заявления на материальную помощь: рассмотрение советом, ожидание выплаты или выплачено. */
 export enum MarketplaceAidStage {
 	AWAITING_PAYOUT = "AWAITING_PAYOUT",
-	ON_COUNCIL = "ON_COUNCIL"
+	ON_COUNCIL = "ON_COUNCIL",
+	PAID = "PAID"
 }
 /** Статус АПП приёмки на КУ. */
 export enum MarketplaceAplReceptionStatus {
@@ -77549,6 +79507,27 @@ export enum MarketplaceInventoryStatus {
 	RECEIVED = "RECEIVED",
 	RETURNED = "RETURNED",
 	WRITTEN_OFF = "WRITTEN_OFF"
+}
+/** Вид записи истории паевых взносов: взнос деньгами; имущество принято; трансляция в Цифровой Кошелёк; перенос остатка при выходе из кооператива. */
+export enum MarketplaceInvestHistoryKind {
+	CLAIM = "CLAIM",
+	EXIT = "EXIT",
+	MONEY = "MONEY",
+	PROPERTY = "PROPERTY"
+}
+/** Фаза кооперативного участка по паевым взносам инициаторов: взносов нет; взносы есть, возмещения ещё не было; доля инициаторов возмещает взносы; использованное возмещено. */
+export enum MarketplaceInvestPhase {
+	FUNDING = "FUNDING",
+	NONE = "NONE",
+	RETURNED = "RETURNED",
+	RETURNING = "RETURNING"
+}
+/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
+export enum MarketplaceInvestPropertyStatus {
+	ACT1 = "ACT1",
+	APPROVED = "APPROVED",
+	AUTHORIZED = "AUTHORIZED",
+	CREATED = "CREATED"
 }
 /** Как принимается решение совета по выдаче: роботом за секунды, людьми в повестке или ещё не известно. */
 export enum MarketplaceIssuanceDecisionMode {
@@ -77627,6 +79606,13 @@ export enum MarketplaceOutgoingPaymentRequestStatus {
 	COMPLETED = "COMPLETED",
 	DECLINED = "DECLINED",
 	PENDING = "PENDING"
+}
+/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
+export enum MarketplacePeriodInvestPhase {
+	BRANCH = "BRANCH",
+	DEFICIT = "DEFICIT",
+	NONE = "NONE",
+	REPAYING = "REPAYING"
 }
 /** Кто решает по заявлению в совете: робот решений совета либо люди (нет кворума, крупная сумма, робот не настроен). */
 export enum MarketplaceReturnClaimDecisionMode {
@@ -78196,6 +80182,7 @@ type ZEUS_VARIABLES = {
 	["ApproveVerificationInput"]: ValueTypes["ApproveVerificationInput"];
 	["AppsPublisherAssignmentInputDTO"]: ValueTypes["AppsPublisherAssignmentInputDTO"];
 	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
+	["ArchiveExpenseCounterpartyInput"]: ValueTypes["ArchiveExpenseCounterpartyInput"];
 	["AssignCapabilitySetInput"]: ValueTypes["AssignCapabilitySetInput"];
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["AuthorizeForceRecoveryInput"]: ValueTypes["AuthorizeForceRecoveryInput"];
@@ -78294,6 +80281,7 @@ type ZEUS_VARIABLES = {
 	["ChairmanOnboardingAgendaInput"]: ValueTypes["ChairmanOnboardingAgendaInput"];
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];
+	["CheckExpenseCounterpartyInput"]: ValueTypes["CheckExpenseCounterpartyInput"];
 	["CheckMatrixUsernameInput"]: ValueTypes["CheckMatrixUsernameInput"];
 	["CloseKuDecisionInput"]: ValueTypes["CloseKuDecisionInput"];
 	["CloseProjectInput"]: ValueTypes["CloseProjectInput"];
@@ -78457,12 +80445,16 @@ type ZEUS_VARIABLES = {
 	["ExpenseAdvanceState"]: ValueTypes["ExpenseAdvanceState"];
 	["ExpenseAdvancesFilterInput"]: ValueTypes["ExpenseAdvancesFilterInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];
+	["ExpenseCounterpartyIdInput"]: ValueTypes["ExpenseCounterpartyIdInput"];
+	["ExpenseCounterpartyKind"]: ValueTypes["ExpenseCounterpartyKind"];
+	["ExpenseCounterpartyRequisiteInput"]: ValueTypes["ExpenseCounterpartyRequisiteInput"];
 	["ExpenseFileKind"]: ValueTypes["ExpenseFileKind"];
 	["ExpenseFilter"]: ValueTypes["ExpenseFilter"];
 	["ExpenseItemInput"]: ValueTypes["ExpenseItemInput"];
 	["ExpenseItemStatus"]: ValueTypes["ExpenseItemStatus"];
 	["ExpenseMechanics"]: ValueTypes["ExpenseMechanics"];
 	["ExpensePlanRecurrence"]: ValueTypes["ExpensePlanRecurrence"];
+	["ExpensePlanScheduleInput"]: ValueTypes["ExpensePlanScheduleInput"];
 	["ExpenseProposalDecisionBodyInput"]: ValueTypes["ExpenseProposalDecisionBodyInput"];
 	["ExpenseProposalDecisionGenerateDocumentInput"]: ValueTypes["ExpenseProposalDecisionGenerateDocumentInput"];
 	["ExpenseProposalDecisionHeaderInput"]: ValueTypes["ExpenseProposalDecisionHeaderInput"];
@@ -78568,6 +80560,7 @@ type ZEUS_VARIABLES = {
 	["KuProtocolQuestionInput"]: ValueTypes["KuProtocolQuestionInput"];
 	["KuTrustRequestFilterInput"]: ValueTypes["KuTrustRequestFilterInput"];
 	["KuVoteItemInput"]: ValueTypes["KuVoteItemInput"];
+	["ListExpenseCounterpartiesInput"]: ValueTypes["ListExpenseCounterpartiesInput"];
 	["ListExpensePlansInput"]: ValueTypes["ListExpensePlansInput"];
 	["ListMarketplaceKUInput"]: ValueTypes["ListMarketplaceKUInput"];
 	["ListReportDraftsFilterInput"]: ValueTypes["ListReportDraftsFilterInput"];
@@ -78607,6 +80600,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCartItemBlocker"]: ValueTypes["MarketplaceCartItemBlocker"];
 	["MarketplaceCheckoutCartInput"]: ValueTypes["MarketplaceCheckoutCartInput"];
 	["MarketplaceCheckoutSignedLineInput"]: ValueTypes["MarketplaceCheckoutSignedLineInput"];
+	["MarketplaceClaimInvestmentInput"]: ValueTypes["MarketplaceClaimInvestmentInput"];
 	["MarketplaceClearInventoryLabelInput"]: ValueTypes["MarketplaceClearInventoryLabelInput"];
 	["MarketplaceConfirmWriteoffInput"]: ValueTypes["MarketplaceConfirmWriteoffInput"];
 	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
@@ -78617,6 +80611,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCreateContainerTypeInput"]: ValueTypes["MarketplaceCreateContainerTypeInput"];
 	["MarketplaceCreateContainersInput"]: ValueTypes["MarketplaceCreateContainersInput"];
 	["MarketplaceCreateExpressReceptionInput"]: ValueTypes["MarketplaceCreateExpressReceptionInput"];
+	["MarketplaceCreateInvestPropertyInput"]: ValueTypes["MarketplaceCreateInvestPropertyInput"];
 	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];
 	["MarketplaceCreateOrderProposalLineInput"]: ValueTypes["MarketplaceCreateOrderProposalLineInput"];
 	["MarketplaceCreateReturnClaimInput"]: ValueTypes["MarketplaceCreateReturnClaimInput"];
@@ -78627,6 +80622,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCreateStorageCellInput"]: ValueTypes["MarketplaceCreateStorageCellInput"];
 	["MarketplaceCreateStorageGridInput"]: ValueTypes["MarketplaceCreateStorageGridInput"];
 	["MarketplaceCreateWriteoffDraftInput"]: ValueTypes["MarketplaceCreateWriteoffDraftInput"];
+	["MarketplaceDeclineInvestPropertyInput"]: ValueTypes["MarketplaceDeclineInvestPropertyInput"];
 	["MarketplaceDeclineOrdersBatchInput"]: ValueTypes["MarketplaceDeclineOrdersBatchInput"];
 	["MarketplaceDeleteBranchReserveInput"]: ValueTypes["MarketplaceDeleteBranchReserveInput"];
 	["MarketplaceDeleteTrusteeWeightInput"]: ValueTypes["MarketplaceDeleteTrusteeWeightInput"];
@@ -78645,6 +80641,13 @@ type ZEUS_VARIABLES = {
 	["MarketplaceInventoryOwnership"]: ValueTypes["MarketplaceInventoryOwnership"];
 	["MarketplaceInventorySplitEntryInput"]: ValueTypes["MarketplaceInventorySplitEntryInput"];
 	["MarketplaceInventoryStatus"]: ValueTypes["MarketplaceInventoryStatus"];
+	["MarketplaceInvestHistoryKind"]: ValueTypes["MarketplaceInvestHistoryKind"];
+	["MarketplaceInvestMoneyInput"]: ValueTypes["MarketplaceInvestMoneyInput"];
+	["MarketplaceInvestPhase"]: ValueTypes["MarketplaceInvestPhase"];
+	["MarketplaceInvestPropertyRefInput"]: ValueTypes["MarketplaceInvestPropertyRefInput"];
+	["MarketplaceInvestPropertyStatementInput"]: ValueTypes["MarketplaceInvestPropertyStatementInput"];
+	["MarketplaceInvestPropertyStatus"]: ValueTypes["MarketplaceInvestPropertyStatus"];
+	["MarketplaceInvestStatementInput"]: ValueTypes["MarketplaceInvestStatementInput"];
 	["MarketplaceIssuanceDecisionMode"]: ValueTypes["MarketplaceIssuanceDecisionMode"];
 	["MarketplaceIssuanceOrderInput"]: ValueTypes["MarketplaceIssuanceOrderInput"];
 	["MarketplaceIssuancePickScanInput"]: ValueTypes["MarketplaceIssuancePickScanInput"];
@@ -78683,6 +80686,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
 	["MarketplaceOutgoingPaymentRequestStatus"]: ValueTypes["MarketplaceOutgoingPaymentRequestStatus"];
+	["MarketplacePeriodInvestPhase"]: ValueTypes["MarketplacePeriodInvestPhase"];
 	["MarketplacePublishStockInput"]: ValueTypes["MarketplacePublishStockInput"];
 	["MarketplaceReadyIssueInput"]: ValueTypes["MarketplaceReadyIssueInput"];
 	["MarketplaceRejectOfferInput"]: ValueTypes["MarketplaceRejectOfferInput"];
@@ -78733,6 +80737,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceShipmentStatus"]: ValueTypes["MarketplaceShipmentStatus"];
 	["MarketplaceShipmentTTNDataInput"]: ValueTypes["MarketplaceShipmentTTNDataInput"];
 	["MarketplaceSignAplReceptionInput"]: ValueTypes["MarketplaceSignAplReceptionInput"];
+	["MarketplaceSignInvestAgreementInput"]: ValueTypes["MarketplaceSignInvestAgreementInput"];
+	["MarketplaceSignInvestPropertyInput"]: ValueTypes["MarketplaceSignInvestPropertyInput"];
 	["MarketplaceSignIssuanceActInput"]: ValueTypes["MarketplaceSignIssuanceActInput"];
 	["MarketplaceSignIssuanceStatementInput"]: ValueTypes["MarketplaceSignIssuanceStatementInput"];
 	["MarketplaceSignOnboardingOfferInput"]: ValueTypes["MarketplaceSignOnboardingOfferInput"];
@@ -78898,6 +80904,7 @@ type ZEUS_VARIABLES = {
 	["RolePermissionAccess"]: ValueTypes["RolePermissionAccess"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
+	["SaveExpenseCounterpartyInput"]: ValueTypes["SaveExpenseCounterpartyInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];
 	["SbpDataInput"]: ValueTypes["SbpDataInput"];
 	["SearchDocumentsInput"]: ValueTypes["SearchDocumentsInput"];
@@ -78958,6 +80965,7 @@ type ZEUS_VARIABLES = {
 	["UpdateChatCoopCalendarEventInput"]: ValueTypes["UpdateChatCoopCalendarEventInput"];
 	["UpdateComponentMetricInput"]: ValueTypes["UpdateComponentMetricInput"];
 	["UpdateEntrepreneurDataInput"]: ValueTypes["UpdateEntrepreneurDataInput"];
+	["UpdateExpenseCounterpartyInput"]: ValueTypes["UpdateExpenseCounterpartyInput"];
 	["UpdateIndividualDataInput"]: ValueTypes["UpdateIndividualDataInput"];
 	["UpdateIssueInput"]: ValueTypes["UpdateIssueInput"];
 	["UpdateMeasureInput"]: ValueTypes["UpdateMeasureInput"];

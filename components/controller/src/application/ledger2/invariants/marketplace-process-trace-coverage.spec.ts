@@ -79,6 +79,9 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.offset',
 ] as const
 
+/** Типы процессов Стола заказов, под которыми идут его операции; p.mkt.due — списание по итогу периода (99D-33). */
+const MARKETPLACE_PROCESS_TYPES = ['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim', 'p.mkt.due']
+
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
   it('canonical список содержит 22 кода', () => {
     expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(22)
@@ -102,9 +105,18 @@ describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () =
     (code) => {
       const op = Ledger2.LEDGER2_OPERATION_REGISTRY.find((o) => o.code === code)!
       expect(op).toBeDefined()
-      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']).toContain(op.process_type)
+      expect(MARKETPLACE_PROCESS_TYPES).toContain(op.process_type)
     },
   )
+
+  it('списание по итогу периода идёт ниткой строки счётчика пайщика (p.mkt.due), а не заказа', () => {
+    // Задача 99D-33: строка счётчика объединяет заказы пайщика за период, хэша заказа у списания нет.
+    for (const code of ['o.mkt.charge', 'o.mkt.retdue']) {
+      expect(OPERATION_CODE_TO_PROCESS_TYPE[code]).toBe('p.mkt.due')
+    }
+    expect(PROCESS_HASH_LOCATOR['p.mkt.due']).toEqual([])
+    expect(KNOWN_PROCESS_TYPES.has('p.mkt.due')).toBe(true)
+  })
 
   it.each(EXPECTED_MARKETPLACE_OP_CODES)(
     '%s — OPERATION_CODE_TO_PROCESS_TYPE возвращает контрактный process_type (Phase A якорь)',
@@ -247,7 +259,7 @@ describe('Story 11.2 — синтетическая трассировка apply
       // process_type (Phase A якорь в ProcessRegistryService.getProcess
       // делает ровно эту проверку).
       const processType = OPERATION_CODE_TO_PROCESS_TYPE[code]
-      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']).toContain(processType)
+      expect(MARKETPLACE_PROCESS_TYPES).toContain(processType)
     },
   )
 

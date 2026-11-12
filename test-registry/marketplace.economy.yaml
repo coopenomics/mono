@@ -1,6 +1,10 @@
 feature: marketplace.economy
 title: Экономика кооперативного участка — членские взносы на балансе и распределение по доверенным
 
+# 09.11.2026 (99D-33): набор economy.test.ts списывает обеспечительную часть по итогу
+# периода и потому идёт в фазе полигона со сжатым временем (stack.sh cmd_keu,
+# BLACKBOX_STAND_MONTH_SECONDS); в настоящем времени набор пропускается.
+
 # Членский взнос с каждого исполненного заказа оседает в общем кошельке
 # участка (`w.brn.common`). Председатель участка распределяет его между
 # доверенными по сетке весов: доля каждого = вес / Σ весов, деньги уходят в
@@ -58,6 +62,10 @@ title: Экономика кооперативного участка — чле
 # @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
 # cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
 
+
+# Правка 07.11.2026 (99D-30): резолвер экономики переводит сгенерированный
+# документ в ответ общим помощником `application/shared/generated-document.util.ts`.
+# Поведение и случаи не менялись.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-economy.service.ts
@@ -162,7 +170,7 @@ cases:
     scenario: >
       Кооператив не задавал ставку членского взноса, либо задаёт её вне диапазона 0…100 процентов
     expect: >
-      без своей ставки действует умолчание 30%; ставка вне диапазона на цепь не уходит
+      без своей ставки действует умолчание 38% (решение владельца 02.11.2026); ставка вне диапазона в цепь не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     api: components/api-tests/src/marketplace/economy.test.ts
     status: passing
@@ -233,7 +241,9 @@ cases:
     expect: >
       до решения совета у получателя заявка на выплату за вычетом налога, платежа
       у кассира нет; платёж кассиру создаёт решение совета (решение владельца
-      04.11.2026), с персонального кошелька списывается вся сумма заявления
+      04.11.2026); вся сумма заявления переходит с персонального кошелька на
+      кошелёк заявлений уже при подаче (решение владельца 08.11.2026) — свободный
+      остаток меньше на сумму заявления до решения совета
     test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
     api: components/api-tests/src/marketplace/economy.test.ts
     status: passing
@@ -357,4 +367,63 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-aid-council-sync.test.ts
     external: unreachable
     external_reason: "решение совета приходит действием цепи — снаружи проверяется сценарием экономики участка после голосования"
+    status: written
+
+  - id: mkt.eco.side.13
+    level: backend
+    kind: side
+    scenario: >
+      Председатель участка открывает строку «Движений по кошельку»: распределение,
+      взнос по заказу, процесс чужого участка
+    expect: >
+      у распределения — изъятия из общего кошелька и зачисления доверенным с именами
+      получателей; у заказа — только операции участка, движения кошельков пайщика в
+      панель не попадают, заказ найден по хэшу; процесс чужого участка не раскрывается
+    test: components/controller/tests/unit/marketplace/marketplace-branch-movement-parts.test.ts
+    external: unreachable
+    external_reason: "панель движения проверяется сценарием стола экономики участка; API — тем же запросом, что история кошелька"
+    status: written
+
+  - id: mkt.eco.side.14
+    level: backend
+    kind: side
+    scenario: >
+      Председатель участка подаёт заявление на материальную помощь: персонального
+      кошелька хватает; персональный пуст, но у инициаторов участка свободно
+      достаточно; не хватает ни того, ни другого
+    expect: >
+      узел проверяет источник так же, как контракт (createaid, 99D-28): персональный
+      кошелёк, затем свободные средства инициаторов (неиспользованное минус
+      выделенное); в первых двух случаях заявление идёт дальше, в третьем — отказ до
+      цепи MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS с обоими остатками
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
+    status: passing
+
+  # 11.11.2026 (99D-35, слово владельца): на вкладке «Плановые расходы» вместо
+  # «Доступно к распределению» — «Доступно для расходов»; «Оплатить» неактивна,
+  # когда денег на запись не хватает.
+  - id: mkt.economy.expense-funds.01
+    level: backend
+    kind: happy
+    scenario: Председатель участка смотрит, чем платить по плановым расходам
+    expect: >
+      «Доступно для расходов» — общий кошелёк участка и свободные средства
+      инициаторов (неиспользованное за вычетом выделенного под расходы и помощь);
+      без инициаторов — только кошелёк; выделено больше неиспользованного —
+      свободных средств ноль, а не минус
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    external: unreachable
+    external_reason: "свободные средства инициаторов на стенде бывают только после паевого взноса инициатора; сумма проверяется на уровне сервиса"
+    status: written
+
+  - id: mkt.economy.expense-funds.02
+    level: ui
+    kind: side
+    scenario: Две записи плана, денег хватает на одну
+    expect: >
+      «Оплатить» активна у записи, на которую хватает общего кошелька или свободных
+      средств инициаторов (платёж целиком из одного источника); после оплаты сводка
+      перечитывается, и кнопка второй записи гаснет
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/expense-plans.mjs
     status: written

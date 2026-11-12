@@ -307,15 +307,17 @@ KEU_MONTH_SECONDS="${KEU_MONTH_SECONDS:-600}"
 KEU_DAY_SECONDS="${KEU_DAY_SECONDS:-60}"
 
 # Шкала времени стенда: длины суток и месяца в окружении контроллера и его
-# пересоздание. Пустые значения — настоящее время.
+# пересоздание. Пустые значения — настоящее время. Пятый аргумент — шаг фоновых
+# обходов (STAND_WORKER_PACE_SECONDS); пусто — минута.
 keu_stand_time() {
-  local day="$1" month="$2" label="$3" saved_log="$4"
+  local day="$1" month="$2" label="$3" saved_log="$4" pace="${5:-}"
   # Пересоздание контейнера стирает его журнал: сохраняем прожитое до него,
   # иначе по артефактам прогона не разобрать ни сценарные наборы, ни саму фазу.
   mkdir -p "$OUT/logs"
   docker compose logs --no-color --timestamps coopback > "$OUT/logs/$saved_log" 2>&1 || true
   set_env components/controller/.env STAND_DAY_SECONDS "$day"
   set_env components/controller/.env STAND_MONTH_SECONDS "$month"
+  set_env components/controller/.env STAND_WORKER_PACE_SECONDS "$pace"
   echo "▸ ${label} — пересоздаём контроллер..."
   docker compose up -d --no-deps --force-recreate coopback
   if ! stack_wait_for "API контроллера" 300 3 api_ready; then
@@ -332,9 +334,30 @@ cmd_keu() {
   local failed=0
   (
     cd components/api-tests
-    pnpm exec vitest run src/marketplace/period-cycle.test.ts \
+    # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
+    # Экономика участка (economy) ждёт списания обеспечительной части по
+    # итогу периода (99D-33): в настоящем времени его не дождаться.
+    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
+  ) || failed=1
+  # Контрактные тесты счётчиков списания (99D-33): итог участка и списание строки
+  # пайщика после окончания периода стенда — та же сжатая шкала. Тесты сами
+  # считают итог и списывают строку и сверяют кошельки до и после, поэтому
+  # крон списания узла на это время молчит: шаг обходов — год. Иначе узел
+  # списывает строку раньше теста, и проверять нечего.
+  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Контрактные тесты — обходы узла остановлены" coopback-keu-api.log 31536000
+  (
+    CHAIN_ID="$(chain_id)"
+    export CHAIN_ID
+    export API_URL="http://127.0.0.1:${API_PORT}/v1/graphql"
+    export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
+    export SERVER_SECRET="${SERVER_SECRET:-SECRET}"
+    export TEST_EMAIL="${TEST_EMAIL:-ivanov@example.com}"
+    cd components/boot
+    pnpm exec vitest run src/tests/marketplace-period.test.ts src/tests/marketplace-invest.test.ts \
+      --reporter=default --reporter=junit \
+      --outputFile.junit="$OUT/junit-keu-boot.xml"
   ) || failed=1
   keu_stand_time "" "" "Возвращаем настоящее время стенда" coopback-keu.log
   return $failed
@@ -456,13 +479,13 @@ cmd_summary() {
     echo "## Black-box: тесты"
     echo
     local junit found=0
-    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml" "$OUT/junit-keu.xml"; do
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml" "$OUT/junit-keu.xml" "$OUT/junit-keu-boot.xml"; do
       # Пустой отчёт — набор не нашёл файлов или упал до старта.
       [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
-titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-keu.xml": "коэффициент экономического участия: прогон первого числа на сжатом времени", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-keu.xml": "коэффициент экономического участия: прогон первого числа на сжатом времени", "junit-keu-boot.xml": "коэффициент экономического участия: счётчики списания в цепи (boot) на сжатом времени","junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0

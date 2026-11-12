@@ -13,6 +13,7 @@
     :error='!!error',
     :error-message='error',
     :placeholder='placeholder',
+    :stack-label='stackLabel',
     :readonly='readonly',
     :disable='disabled',
     :name='name',

@@ -1,0 +1,49 @@
+feature: documents.package-filter
+title: Документы процесса по его хэшу
+
+# Операции учёта ссылаются на документы хэшем процесса (process_hash) — это
+# пакет документов в реестре. Хэш самого документа-заявления в пакете другой.
+# Панель записи истории паевых взносов (страница «Инициаторы участка») искала
+# документ по хэшу документа и показывала «Документ появится в реестре…», хотя
+# заявление 1119 в реестре было (владелец 08.11.2026). Реестр получил фильтр
+# по пакету; охват пайщика ставит сервис поверх фильтра.
+
+sources:
+  backend:
+    - components/controller/src/application/document/interactors/document.interactor.ts
+    - components/controller/src/application/document/services/document.service.ts
+    - components/controller/src/domain/document/repository/signed-document.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/signed-document.kysely-repository.ts
+  ui:
+    - components/desktop/src/entities/Document/model/store.ts
+
+cases:
+  - id: documents.package-filter.01
+    level: backend
+    kind: happy
+    scenario: Пайщик открывает запись истории паевых взносов; стол просит документы по хэшу процесса
+    expect: фильтр package доходит до реестра вместе с охватом пайщика
+    test: components/controller/tests/unit/document/document-package-filter.test.ts
+    # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: documents.package-filter.02
+    level: backend
+    kind: break
+    scenario: Пайщик подставляет в фильтр чужого получателя рядом с пакетом
+    expect: охват берётся из запроса пайщика, чужой пакет фильтром не открыть
+    test: components/controller/tests/unit/document/document-package-filter.test.ts
+    # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: documents.package-filter.03
+    level: backend
+    kind: side
+    scenario: Список документов без фильтра пакета
+    expect: реестр не ограничивается пакетом — прежние списки не меняются
+    test: components/controller/tests/unit/document/document-package-filter.test.ts
+    # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing

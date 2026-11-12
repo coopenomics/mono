@@ -614,7 +614,7 @@ export async function planLesson(groupId: string, over: Record<string, unknown> 
     await gql(chairman, SET_GROUP_SCHEDULE, { d: { group_id: groupId, slots: [{ weekday: 8, time: '', minutes: 600, hourly_rate: PLANNED_RATE }], report_days: 365 } })
     longReportWindow.add(groupId)
   }
-  const d = { group_id: groupId, held_at: new Date(Date.now() - 2 * 3600_000).toISOString(), ...over }
+  const d = { group_id: groupId, held_at: new Date(await defaultHeldAt()).toISOString(), ...over }
   return (await gql<any>(chairman, PLAN_LESSON, { d })).edubridgePlanLesson
 }
 
@@ -631,22 +631,75 @@ export async function groupOfAssignment(token: string, assignmentId: string, gro
 }
 
 /**
+ * Время занятия под отчёт по умолчанию — два часа назад, но не раньше начала
+ * текущего дня UTC. Подписка, оплаченная в этом же прогоне, открывает доступ с
+ * начала дня оплаты: занятие «два часа назад» после полуночи UTC попадало на
+ * вчера, и контракт честно отклонял расчёт («на дату занятия доступ не
+ * оплачен», прогон blackbox 42533643672, 00:44 UTC). Первый час после полуночи
+ * часовое занятие сегодня ещё не закончилось — тогда остаётся прежнее время.
+ */
+/** Начало текущего дня UTC в миллисекундах. */
+export function startOfTodayUtc(): number {
+  return new Date(new Date().toISOString().slice(0, 10)).getTime()
+}
+
+/**
+ * Время занятия «столько-то часов назад», но не раньше начала дня UTC плюс
+ * `orderMinute` минут: подписка, оплаченная в этом же прогоне, покрывает только
+ * занятия с начала дня оплаты. Разные `orderMinute` сохраняют порядок занятий,
+ * когда после полуночи все они упираются в начало дня.
+ */
+export function lessonHoursAgo(hours: number, orderMinute = 1): string {
+  return new Date(Math.max(Date.now() - hours * 3600_000, startOfTodayUtc() + orderMinute * 60_000)).toISOString()
+}
+
+/** Длина суток узла, секунд: на полигоне время сжато, и занятие длится секунды. Читается один раз. */
+let daySecondsCache: number | null = null
+async function standDaySeconds(): Promise<number> {
+  if (daySecondsCache === null) {
+    const chairman = await tokenOf(CHAIRMAN)
+    const d = await gql<any>(chairman, 'query{ edubridgeEconomySettings{ day_seconds } }')
+    daySecondsCache = Number(d.edubridgeEconomySettings.day_seconds) || 86_400
+  }
+  return daySecondsCache
+}
+
+/**
+ * Время занятия под отчёт: два часа назад, но не раньше начала дня UTC —
+ * подписка, оплаченная в этом же запуске тестов, покрывает занятия только с начала
+ * дня оплаты. Занятие должно успеть закончиться: отчёт о занятии, которое ещё
+ * идёт, узел не принимает.
+ *
+ * Раньше запас на длину занятия был 61 минута настоящего времени. Тест,
+ * который шёл в первые 61 минуту суток UTC, ставил занятие на вчера, и
+ * контракт верно считал его неоплаченным — набор падал в зависимости от
+ * времени суток. Теперь запас считается по шкале времени узла: на полигоне
+ * час занятия длится секунды, и тест ждёт их после полуночи, а не падает.
+ */
+async function defaultHeldAt(): Promise<number> {
+  const scale = (await standDaySeconds()) / 86_400
+  // Час занятия по шкале узла и запас на часы узла и цепи.
+  const lessonMs = Math.ceil(61 * 60_000 * scale) + 5_000
+  const startOfToday = startOfTodayUtc() + 1000
+  const wait = startOfToday + lessonMs - Date.now()
+  if (wait > 0 && wait <= 120_000) {
+    // timing: schedule — после полуночи UTC ждём, пока занятие этого дня успеет закончиться
+    await new Promise(resolve => setTimeout(resolve, wait))
+  }
+  const now = Date.now()
+  const twoHoursAgo = now - 2 * 3600_000
+  // Настоящее время и первый час суток: занятие этого дня закончиться не успевает — прежнее поведение.
+  return now - startOfToday >= lessonMs ? Math.max(twoHoursAgo, startOfToday) : twoHoursAgo
+}
+
+/**
  * Занятие календаря под отчёт: запланированное занятие группы с этим номером
  * либо новое занятие сверх расписания на два часа назад (номер выдаёт сервер:
  * наименьший свободный в программе).
  */
 export async function calendarLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<any> {
   const { assignment, group } = await groupOfAssignment(token, assignmentId, over.group_id as string | undefined)
-  // Занятие по умолчанию — два часа назад, но не раньше начала текущих суток
-  // UTC: контракт засчитывает занятие подписке с начала суток (UTC) её оплаты
-  // (lesson_covered в economy.hpp). Прогон после полуночи UTC иначе ставил
-  // занятие во вчерашний день, и отчёт отклонялся «нет оплаченных учениками
-  // часов» (Blackbox на ветке 07.11.2026). В первые минуты суток, пока занятие
-  // ещё не кончилось, отчёт по-прежнему рано — такого окна ночной прогон не задевает.
-  const dayStartUtc = new Date(new Date().toISOString().slice(0, 10)).getTime()
-  const held_at = typeof over.held_at === 'string'
-    ? new Date(over.held_at as string)
-    : new Date(Math.max(Date.now() - 2 * 3600_000, dayStartUtc + 1000))
+  const held_at = typeof over.held_at === 'string' ? new Date(over.held_at as string) : new Date(await defaultHeldAt())
   // Занятие не раньше дня начала занятий группы: контракт сравнивает с началом дня.
   const floor = group.starts_at ? new Date(group.starts_at).getTime() + 1000 : 0
   const target = new Date(Math.max(held_at.getTime(), floor)).toISOString()
@@ -659,7 +712,7 @@ export async function calendarLesson(token: string, assignmentId: string, lesson
   // считает его оплаченным) или ещё впереди (отчёт рано). Под отчёт
   // администратор переносит его на то же время, что и внеочередное занятие;
   // номер занятия сохраняется. Явное время в over — тоже перенос.
-  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < dayStartUtc
+  const unusable = new Date(planned.ends_at).getTime() > Date.now() || new Date(planned.held_at).getTime() < startOfTodayUtc()
   if (planned.status === 'PLANNED' && (unusable || typeof over.held_at === 'string')) {
     const chairman = await tokenOf(CHAIRMAN)
     return (await gql<any>(chairman, MOVE_LESSON, { d: { lesson_id: planned.id, held_at: target } })).edubridgeMoveLesson

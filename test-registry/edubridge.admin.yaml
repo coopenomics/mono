@@ -166,3 +166,7 @@ cases:
     test: components/controller/tests/unit/edubridge/search.provider.test.ts
     api: components/api-tests/src/edubridge/admin.test.ts
     status: written
+
+# 2026-11-10: плитки чисел StatStrip/StatTile удалены из системы по слову владельца.
+# Остатки кошельков экономики образования — карточками WalletCard по две в ряд, числа
+# курса в шапке и итоги формы курса — строками DataRow. Сценарии фичи и её проверки не менялись.

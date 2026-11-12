@@ -120,6 +120,27 @@ inline uint32_t utc_month_period(eosio::time_point_sec at) {
   return static_cast<uint32_t>(year * 12 + m);
 }
 
+/// Длина периода предела материальной помощи, секунд; ноль — календарный месяц UTC.
+inline uint32_t aid_period_seconds(eosio::name coopname) {
+  brnconfig_singleton cfg(_branch, coopname.value);
+  if (!cfg.exists()) return 0;
+  const auto state = cfg.get();
+  return state.aid_period_seconds.has_value() ? state.aid_period_seconds.value() : 0;
+}
+
+/**
+ * @brief Номер периода, за который считается предел материальной помощи.
+ *
+ * В рабочем режиме — календарный месяц UTC (`utc_month_period`). Если в
+ * настройках участков задана длина периода (стенд со сжатым временем) — номер
+ * отрезка этой длины от эпохи, как у итогов месяцев на стенде. Номера двух
+ * режимов не пересекаются по величине, смена режима начинает период заново.
+ */
+inline uint32_t aid_period(eosio::name coopname, eosio::time_point_sec at) {
+  const uint32_t seconds = aid_period_seconds(coopname);
+  return seconds > 0 ? at.sec_since_epoch() / seconds : utc_month_period(at);
+}
+
 /// Потолок резерва на получателя в месяц; ноль — резерв выключен.
 inline eosio::asset aid_month_limit(eosio::name coopname) {
   brnconfig_singleton cfg(_branch, coopname.value);
@@ -136,10 +157,74 @@ inline eosio::asset reserve_of(eosio::name coopname, eosio::name braname,
   return found ? it->amount : eosio::asset(0, _root_govern_symbol);
 }
 
+/// Наибольший разрыв периодов, за который доначисляется право получателя помощи.
+constexpr uint32_t MAX_ACCRUAL_GAP = 1200;
+
 /**
- * @brief Сумма резерва социально-экономического обеспечения пайщиков участка —
- * слагаемое расходов участка в расчёте итога месяца Стола заказов. Строк у
- * участка единицы (председатель и доверенные), перебор по индексу участка.
+ * @brief Накопленное право получателя на материальную помощь на период `now`
+ * (задача 99D-34): остаток на период начисления плюс сумма строки за каждый
+ * прошедший период. Строка до 99D-34 — право текущего периода: сумма строки
+ * минус поданное за период по накопителю `aidmonths`.
+ */
+inline eosio::asset outstanding_of(eosio::name coopname, const branch_reserve &r, uint32_t now) {
+  if (!r.accrued_period.has_value() || !r.outstanding.has_value()) {
+    branch_aidmonths_index months(_branch, coopname.value);
+    auto month = months.find(r.username.value);
+    const int64_t used = (month != months.end() && month->period == now) ? month->total.amount : 0;
+    return eosio::asset(r.amount.amount > used ? r.amount.amount - used : 0, r.amount.symbol);
+  }
+  eosio::asset total = r.outstanding.value();
+  const uint32_t last = r.accrued_period.value();
+  // Разрыв больше MAX_ACCRUAL_GAP периодов или номер меньше прежнего — смена
+  // режима нумерации (длина периода стенда `setaidperiod`, календарный месяц ↔
+  // отрезок секунд), а не прошедшее время: право не доначисляется, отсчёт
+  // начнётся заново при следующей записи строки. В рабочем режиме 1200
+  // периодов — сто лет.
+  if (now > last && now - last <= MAX_ACCRUAL_GAP) total.amount += r.amount.amount * static_cast<int64_t>(now - last);
+  return total;
+}
+
+/// Подано получателем заявлений на помощь за период `now` (накопитель `aidmonths`).
+inline eosio::asset aid_used_in(eosio::name coopname, eosio::name username, uint32_t now) {
+  branch_aidmonths_index months(_branch, coopname.value);
+  auto month = months.find(username.value);
+  if (month == months.end() || month->period != now) return eosio::asset(0, _root_govern_symbol);
+  return month->total;
+}
+
+/**
+ * @brief Учесть поданное (`delta` > 0) или отклонённое (`delta` < 0) заявление
+ * в накопителе периода. Накопитель держит одно правило: строка резерва,
+ * заведённая заново в том же периоде, не возвращает получателю право, которое
+ * он уже израсходовал (снятие и новая запись резерва, снятие и возврат
+ * доверенного лица). Одна строка на получателя, истории нет: первое заявление
+ * нового периода перезаписывает строку.
+ */
+inline void note_aid_used(eosio::name coopname, eosio::name username, uint32_t now, int64_t delta) {
+  branch_aidmonths_index months(_branch, coopname.value);
+  auto month = months.find(username.value);
+  if (month == months.end()) {
+    if (delta <= 0) return;
+    months.emplace(RamPayer::of(months, coopname), [&](auto &m) {
+      m.username = username;
+      m.period = now;
+      m.total = eosio::asset(delta, _root_govern_symbol);
+    });
+    return;
+  }
+  // Отказ по заявлению прошлого периода текущий накопитель не трогает.
+  if (month->period != now && delta <= 0) return;
+  const int64_t base = month->period == now ? month->total.amount : 0;
+  const int64_t next = base + delta;
+  months.modify(month, RamPayer::of(months, coopname), [&](auto &m) {
+    m.period = now;
+    m.total = eosio::asset(next > 0 ? next : 0, _root_govern_symbol);
+  });
+}
+
+/**
+ * @brief Сумма строк резерва участка за один месяц — прежняя формула итога
+ * месяца (до 99D-34), ею считает старый узел, пока не выложен новый.
  */
 inline eosio::asset sum_reserves(eosio::name coopname, eosio::name braname) {
   branch_reserves_index reserves(_branch, coopname.value);
@@ -148,6 +233,22 @@ inline eosio::asset sum_reserves(eosio::name coopname, eosio::name braname) {
   for (auto it = idx.lower_bound(braname.value);
        it != idx.end() && it->braname == braname; ++it) {
     total += it->amount;
+  }
+  return total;
+}
+
+/**
+ * @brief Сумма накопленного права получателей участка на период `now` —
+ * слагаемое цели резерва участка в итоге месяца Стола заказов. Строк у
+ * участка единицы (председатель и доверенные), перебор по индексу участка.
+ */
+inline eosio::asset sum_outstanding(eosio::name coopname, eosio::name braname, uint32_t now) {
+  branch_reserves_index reserves(_branch, coopname.value);
+  auto idx = reserves.get_index<"bybranch"_n>();
+  eosio::asset total(0, _root_govern_symbol);
+  for (auto it = idx.lower_bound(braname.value);
+       it != idx.end() && it->braname == braname; ++it) {
+    total += outstanding_of(coopname, *it, now);
   }
   return total;
 }

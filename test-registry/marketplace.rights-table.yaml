@@ -47,6 +47,14 @@ title: Стол заказов — таблица прав с условиями
 # вид `Review` (владелец — автор отзыва). Случаи этих прав — в marketplace.reviews
 # (mkt.review.rights.*, mkt.profile.rights.*); набор случаев этой фичи прежний.
 
+
+# Правка 07.11.2026 (598-55): право председателя кооператива завести партию
+# боксов на любом участке переименовано из `Container:manage:all` в
+# `Container:create:all`. Строка `manage:all` по правилу «все объекты
+# включают свои» покрывала и `manage:own-KU`, и председатель кооператива
+# проходил перемещение и правку чужих боксов (`marketplaceMoveContainer`,
+# `marketplaceUpdateContainer`) — это поймал снимок матрицы прав на полигоне.
+# По решению владельца 11.10.2026 ставит боксы и выводит их из оборота участок.
 sources:
   backend:
     - components/extension-kit/src/auth/rights.ts

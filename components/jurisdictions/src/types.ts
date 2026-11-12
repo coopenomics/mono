@@ -58,6 +58,70 @@ export interface PersonalIncomeTax {
 }
 
 /**
+ * Вид контрагента — получателя платежа по реквизитам. Физическое лицо
+ * контрагентом не бывает: пайщику платят авансом под отчёт на его
+ * собственные реквизиты, а не по реквизитам из реестра контрагентов.
+ */
+export type CounterpartyKind = 'LEGAL' | 'ENTREPRENEUR';
+
+/** Алгоритм контрольной суммы реквизита — у каждой страны свои. */
+export type RequisiteChecksum = 'ru-inn' | 'ru-ogrn' | 'ru-account' | 'ru-corr-account';
+
+/**
+ * Поле реквизитов контрагента: как называется, у какого вида контрагента
+ * есть, обязательно ли и как проверяется. Набор полей и правила — страновые:
+ * ИНН из 10 цифр и БИК из 9 есть только в России.
+ */
+export interface CounterpartyRequisiteField {
+  /** Ключ значения в реквизитах контрагента. */
+  key: string;
+  /** Подпись поля в форме и в строке реквизитов. */
+  label: string;
+  /** Подпись для отдельного вида, если она другая (ОГРН и ОГРНИП). */
+  labelByKind?: Partial<Record<CounterpartyKind, string>>;
+  /** Виды контрагента, у которых поле есть. */
+  kinds: CounterpartyKind[];
+  /** Виды контрагента, у которых поле обязательно. */
+  required: CounterpartyKind[];
+  /** Значение — только цифры ровно такой длины (по виду контрагента). */
+  digits?: number | Partial<Record<CounterpartyKind, number>>;
+  /** Шаблон значения целиком, если оно не только из цифр (КПП). */
+  pattern?: string;
+  /**
+   * Маска ввода в форме: `#` — цифра, `X` — латинская буква или цифра
+   * (заглавная). Задаётся полю, длину которого не определяют одни цифры (КПП).
+   */
+  mask?: string;
+  /** Контрольная сумма значения. */
+  checksum?: RequisiteChecksum;
+  /**
+   * Ключ поля, вместе с которым считается контрольная сумма (счёт — с БИК).
+   * Пока это поле не заполнено верно, контрольная сумма не проверяется: ошибку
+   * показывает само это поле.
+   */
+  checkedWith?: string;
+  /** Раздел формы: сведения об организации или банковские реквизиты. */
+  group: 'organization' | 'bank';
+  /** Налоговый номер: по нему ищут контрагента и узнают повтор. */
+  taxId?: boolean;
+  /** Номер счёта получателя: вместе с налоговым номером отличает контрагентов. */
+  accountId?: boolean;
+}
+
+/** Реквизиты контрагента в стране: поля в порядке платёжного поручения. */
+export interface CounterpartyRequisitesProfile {
+  fields: CounterpartyRequisiteField[];
+}
+
+/** Нарушение в реквизитах контрагента. */
+export interface CounterpartyRequisiteIssue {
+  /** Ключ поля. */
+  field: string;
+  /** REQUIRED — не заполнено, FORMAT — не тот вид или длина, CHECKSUM — не сходится контрольная сумма. */
+  code: 'REQUIRED' | 'FORMAT' | 'CHECKSUM';
+}
+
+/**
  * Страновой профиль. Растёт по мере надобности: сюда попадает то, что уже
  * понадобилось коду, а не гипотезы о чужих юрисдикциях.
  */
@@ -73,4 +137,6 @@ export interface JurisdictionProfile {
   taxTransfer: EffectiveRecord<TaxTransferRequisites>[];
   /** Параметры НДФЛ (или его местного аналога) по датам вступления в силу. */
   personalIncomeTax: EffectiveRecord<PersonalIncomeTax>[];
+  /** Реквизиты контрагента — получателя оплаты по счёту. */
+  counterpartyRequisites: CounterpartyRequisitesProfile;
 }

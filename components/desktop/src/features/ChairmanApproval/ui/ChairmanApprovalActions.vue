@@ -3,7 +3,7 @@
 //- председатель; остальным видно, что документ ждёт его подписи.
 .chairman-approval-actions
   template(v-if="session.isChairman")
-    BaseButton(variant="ghost" size="sm" :disabled="busy" @click="ask('decline')") {{ $t('document.chairmanApprovalActions.decline') }}
+    BaseButton(v-if="declinable" variant="ghost" size="sm" :disabled="busy" @click="ask('decline')") {{ $t('document.chairmanApprovalActions.decline') }}
     BaseButton(variant="primary" size="sm" :loading="busy && kind === 'approve'" @click="ask('approve')") {{ $t('common.action.sign') }}
   span.t-meta.t-muted(v-else) {{ $t('document.chairmanApprovalActions.awaitingChairman') }}
 
@@ -30,12 +30,17 @@ import { BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { useChairmanApprovalDecision } from '../model';
 import { t } from 'src/shared/i18n';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   coopname: string;
   approvalHash: string;
   /** Что подписывается — для текста подтверждения. */
   title: string;
-}>();
+  /**
+   * Можно ли отказать. Нет — когда подпись председателя только исполняет уже
+   * принятое решение совета (акт приёма имущества в участок): кнопки отказа нет.
+   */
+  declinable?: boolean;
+}>(), { declinable: true });
 const emit = defineEmits<{ decided: [kind: 'approve' | 'decline'] }>();
 
 const session = useSessionStore();

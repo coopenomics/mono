@@ -45,6 +45,12 @@ const DUE_WALLET = 'w.mkt.due';
 const ORDER_WALLET = 'w.mkt.order';
 /** Обеспечительная часть паевого взноса под заказы до их выдачи — отдельно от стоимости. */
 const SECURE_ORDER_WALLET = 'w.mkt.secure';
+/**
+ * Паевой взнос инициатора в кооперативные участки (задача 99D-31): паевой взнос
+ * по договору участия. Заказы им не оплачиваются; возврат — заявлением на
+ * странице «Инициаторы участка». Карточка есть только у инициаторов.
+ */
+const INVEST_WALLET = 'w.mkt.invest';
 
 const walletStore = useWalletStore();
 const session = useSessionStore();
@@ -87,6 +93,7 @@ const WALLET_CARDS = [
     neutral: false,
     showLocked: true,
     payable: true,
+    hideWhenEmpty: false,
   },
   {
     name: ORDER_WALLET,
@@ -96,6 +103,7 @@ const WALLET_CARDS = [
     neutral: true,
     showLocked: false,
     payable: false,
+    hideWhenEmpty: false,
   },
   {
     name: SECURE_ORDER_WALLET,
@@ -105,6 +113,7 @@ const WALLET_CARDS = [
     neutral: true,
     showLocked: false,
     payable: false,
+    hideWhenEmpty: false,
   },
   {
     name: DUE_WALLET,
@@ -114,6 +123,17 @@ const WALLET_CARDS = [
     neutral: true,
     showLocked: false,
     payable: false,
+    hideWhenEmpty: false,
+  },
+  {
+    name: INVEST_WALLET,
+    icon: 'volunteer_activism',
+    title: t('marketplace.walletHeaderButton.investWalletLabel'),
+    subtitle: t('marketplace.walletHeaderButton.investWalletHint'),
+    neutral: true,
+    showLocked: false,
+    payable: false,
+    hideWhenEmpty: true,
   },
   {
     name: SHARE_WALLET,
@@ -123,11 +143,12 @@ const WALLET_CARDS = [
     neutral: true,
     showLocked: false,
     payable: true,
+    hideWhenEmpty: false,
   },
 ] as const;
 
 const walletCards = computed(() =>
-  WALLET_CARDS.map((card) => ({
+  WALLET_CARDS.filter((card) => !card.hideWhenEmpty || walletValue(card.name) > 0).map((card) => ({
     ...card,
     balance: walletAmount(card.name),
     locked: card.showLocked ? walletLocked(card.name) : undefined,

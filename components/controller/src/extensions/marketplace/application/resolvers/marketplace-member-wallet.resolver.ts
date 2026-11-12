@@ -22,7 +22,8 @@ import { t } from '../../i18n';
  * Стола заказов: остатки, источник заказов из остатка и доплат, вывод обратно)
  * → `w.mkt.secure` (обеспечительная часть под невыданные заказы, решение
  * владельца 05.11.2026) → `w.mkt.due` (обеспечительная часть к списанию в
- * членский взнос по условиям ЦПП, задача 99D-18).
+ * членский взнос по условиям ЦПП, задача 99D-18) → `w.mkt.invest` (паевой взнос
+ * инициатора в участки по договору участия, задача 99D-30).
  *
  * `label` — UX-метка в формате `<тип взноса> | <программа>`. Не та же что
  * `human_name` из cooptypes (там длинное юр.описание); этот label короткий,
@@ -38,6 +39,8 @@ const MARKETPLACE_RELEVANT_WALLETS: ReadonlyArray<{
   { name: 'w.mkt.share', program_id: 2, label: t('marketplace.memberWallet.shareFreeLabel') },
   { name: 'w.mkt.secure', program_id: 2, label: t('marketplace.memberWallet.securePartOrderLabel') },
   { name: 'w.mkt.due', program_id: 2, label: t('marketplace.memberWallet.securePartDueLabel') },
+  // Паевой взнос инициатора в кооперативные участки по договору участия (задача 99D-30): паевой взнос на счёте 80.
+  { name: 'w.mkt.invest', program_id: 2, label: t('marketplace.memberWallet.investLabel') },
 ];
 
 /**
@@ -67,7 +70,7 @@ export class MarketplaceMemberWalletResolver {
   @Query(() => MarketplaceMemberWalletDTO, {
     name: 'marketplaceMemberWallet',
     description:
-      'Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию.',
+      'Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('MemberWallet', 'read:own', SELF)

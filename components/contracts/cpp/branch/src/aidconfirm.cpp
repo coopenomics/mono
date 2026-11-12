@@ -8,9 +8,9 @@
  * кооператив удерживает НДФЛ, поэтому сумма заявления расходится надвое:
  *
  *  - Ledger2::apply(o.brn.aidtax, tax, …, hash=aid.hash) — TRANSFER
- *    w.brn.person → w.sov.ndfl, Дт 86 / Кт 68 (удержанный налог);
+ *    w.brn.aidreq → w.sov.ndfl, Дт 86 / Кт 68 (удержанный налог);
  *  - Ledger2::apply(o.brn.aidfnd, net, …, hash=aid.hash) — TRANSFER
- *    w.brn.person → w.fnd.mutual, без проводки (транзит через фонд взаимного
+ *    w.brn.aidreq → w.fnd.mutual, без проводки (транзит через фонд взаимного
  *    обеспечения, задача 99D-25);
  *  - Ledger2::apply(o.brn.aid, net, …, hash=aid.hash) — BURN с кошелька
  *    фонда w.fnd.mutual, Дт 86 / Кт 51 (выплата на руки).
@@ -50,6 +50,39 @@
   const eosio::asset tax = BranchNdfl::calc_tax(it->amount);
   const eosio::asset net = it->amount - tax;
 
+  // Выплата из средств инициаторов участка (задача 99D-28): налог и сумма на
+  // руки списываются с пула по счёту 26 «Общехозяйственные расходы», транзита через фонд
+  // взаимного обеспечения нет — средства не фондовые; затем вся сумма
+  // заявления входит в базу возврата вложений инициаторов.
+  // Пул — кошелёк кооператива, пайщик в операции — метка. Метка — получатель,
+  // как у выплаты с фонда (o.brn.aid): по ней 6-НДФЛ относит доход и налог к
+  // налогоплательщику. С меткой участка такая помощь в отчёт не попадала.
+  if (it->source.has_value() && it->source.value() == ledger2_wallets::MARKETPLACE_INVEST_POOL) {
+    if (tax.amount > 0) {
+      Ledger2::apply(_branch, coopname,
+                     operations::marketplace::INVEST_AID_TAX,
+                     processes::branch::AID,
+                     tax, it->username, it->hash,
+                     "Удержание налога на доходы физических лиц из материальной помощи, получатель " +
+                       it->username.to_string());
+    }
+    Ledger2::apply(_branch, coopname,
+                   operations::marketplace::INVEST_AID,
+                   processes::branch::AID,
+                   net, it->username, it->hash,
+                   "Материальная помощь из средств инициаторов участка, получатель " + it->username.to_string());
+    MarketInvest::spent_pool(_branch, coopname, it->braname, it->amount, it->hash);
+    byhash.erase(it);
+    return;
+  }
+
+  // Заявление, поданное до кошелька заявлений (08.11.2026), переводит сумму
+  // с персонального кошелька в момент выплаты; дальше путь общий.
+  if (!(it->source.has_value() && it->source.value() == ledger2_wallets::BRANCH_AID_REQUEST)) {
+    Ledger2::apply(_branch, coopname, operations::branch::AID_REQUEST, processes::branch::AID,
+                   it->amount, it->username, it->hash,
+                   "Сумма заявления на материальную помощь переведена на кошелёк заявлений");
+  }
   if (tax.amount > 0) {
     Ledger2::apply(_branch, coopname,
                    operations::branch::FINANCIAL_AID_TAX,

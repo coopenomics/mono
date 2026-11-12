@@ -58,7 +58,7 @@
       "invalidCodeMessage": "Код восстановления неверен или уже использован."
     },
     "passportChangeListener": {
-      "revokeReasonMessage": "Паспортные данные изменены советом — нужна повторная сверка"
+      "revokeReasonMessage": "Паспортные данные изменены советом — требуется повторная сверка"
     },
     "passwordPolicy": {
       "digitRequiredRule": "Хотя бы одна цифра",

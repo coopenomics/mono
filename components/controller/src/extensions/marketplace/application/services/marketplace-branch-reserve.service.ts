@@ -1,5 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { DomainError, platformSettings, rethrowChainError } from '@coopenomics/extension-kit';
+import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { DomainError, platformSettings, rethrowChainError, standMonthSeconds } from '@coopenomics/extension-kit';
+import { MarketContract, type BranchContract } from 'cooptypes';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -7,7 +8,6 @@ import {
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplaceKuChairmanService } from './marketplace-ku-chairman.service';
 import { MarketplaceBranchAidMirrorService } from './marketplace-branch-aid-mirror.service';
-import { periodBounds, periodKeyOf } from '../shared/period-bounds';
 import { t as i18nT } from '../../i18n';
 
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1 000 000) = 100 %. */
@@ -70,15 +70,41 @@ export interface MarketplaceAccumulationFundView {
  * Резерв ведёт контракт branch (таблица `reserves`, потолок `brnconfig`);
  * здесь — чтение для столов, проверка роли председателя участка до отправки и
  * предварительная проверка предела материальной помощи: контракт держит то же
- * правило по месяцу UTC, ИСТОК показывает отказ до обращения в цепь по
- * часовому поясу кооператива. Суммы резерва называет председатель — это
+ * правило за тот же период (`aidPeriodKey`), ИСТОК показывает отказ до
+ * обращения в цепь. Суммы резерва называет председатель — это
  * допустимый случай суммы-аргумента.
  */
 /** Паевой кошелёк инициатора участка (ledger2, счёт 80). */
 const INVEST_WALLET = 'w.mkt.invest';
 
+/**
+ * Номер периода предела материальной помощи — тот же, что считает контракт
+ * (`Branch::aid_period`): при длине периода в настройках участков — номер
+ * отрезка этой длины от эпохи, иначе календарный месяц UTC (год × 12 + месяц).
+ */
+export function aidPeriodKey(config: BranchContract.Tables.BranchConfig.IBranchConfig | null, now: Date): number {
+  const seconds = Number(config?.aid_period_seconds ?? 0);
+  if (seconds > 0) return Math.floor(now.getTime() / 1000 / seconds);
+  return now.getUTCFullYear() * 12 + now.getUTCMonth() + 1;
+}
+
+/** Границы периода материальной помощи, идущего в момент `now`: отрезок стенда либо календарный месяц UTC. */
+export function aidPeriodBounds(config: BranchContract.Tables.BranchConfig.IBranchConfig | null, now: Date): { start: Date; end: Date } {
+  const seconds = Number(config?.aid_period_seconds ?? 0);
+  if (seconds > 0) {
+    const key = Math.floor(now.getTime() / 1000 / seconds);
+    return { start: new Date(key * seconds * 1000), end: new Date((key + 1) * seconds * 1000) };
+  }
+  return {
+    start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+    end: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)),
+  };
+}
+
 @Injectable()
-export class MarketplaceBranchReserveService {
+export class MarketplaceBranchReserveService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(MarketplaceBranchReserveService.name);
+
   constructor(
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
@@ -87,6 +113,32 @@ export class MarketplaceBranchReserveService {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly aidMirror: MarketplaceBranchAidMirrorService
   ) {}
+
+  /**
+   * Длина периода предела материальной помощи в цепи совпадает со временем
+   * узла (решение владельца 09.11.2026): стенд со сжатым временем ставит длину
+   * своего месяца, рабочий узел — ноль (календарный месяц). Пишется только при
+   * расхождении; отказ цепи запуск не роняет — предел тогда живёт по прежней
+   * длине, в журнале предупреждение.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    const coopname = platformSettings().coopname;
+    if (!coopname) return;
+    try {
+      await this.syncAidPeriod(coopname);
+    } catch (e) {
+      this.logger.warn(`длина периода материальной помощи не записана: ${(e as Error)?.message ?? e}`);
+    }
+  }
+
+  async syncAidPeriod(coopname: string): Promise<boolean> {
+    const desired = standMonthSeconds();
+    const config = await this.chainPort.getBranchConfig(coopname);
+    if (Number(config?.aid_period_seconds ?? 0) === desired) return false;
+    await this.chainPort.setAidPeriod({ coopname, seconds: desired });
+    this.logger.log(`длина периода материальной помощи: ${desired > 0 ? `${desired} с` : 'календарный месяц'}`);
+    return true;
+  }
 
   // ── Настройки администратора ───────────────────────────────────────────
 
@@ -161,22 +213,26 @@ export class MarketplaceBranchReserveService {
 
   // ── Резерв участка ─────────────────────────────────────────────────────
 
+  /**
+   * Строки резерва участка (задача 99D-34): сумма в месяц, подано в текущем
+   * периоде и доступно — накопленное право получателя, как его считает
+   * контракт (`Branch::outstanding_of`, эталон `PeriodModel.reserveRight`).
+   */
   async getReserves(coopname: string, braname: string, now = new Date()): Promise<MarketplaceBranchReservesView> {
     const [rows, branchConfig] = await Promise.all([
       this.chainPort.listBranchReserves(coopname, braname),
       this.chainPort.getBranchConfig(coopname),
     ]);
-    const bounds = this.currentMonth(now);
+    const period = aidPeriodKey(branchConfig, now);
+    const bounds = aidPeriodBounds(branchConfig, now);
     const views: MarketplaceBranchReserveView[] = [];
     for (const r of rows) {
-      const amount = this.economyService.assetToUnits(String(r.amount));
-      const submitted = await this.aidMirror.submittedWithin(coopname, r.username, bounds.start, bounds.end);
-      const remaining = amount > submitted ? amount - submitted : 0n;
+      const submitted = await this.aidMirror.submittedWithin(coopname, String(r.username), bounds.start, bounds.end);
       views.push({
         username: r.username,
-        amount: this.economyService.unitsToAsset(amount),
+        amount: this.economyService.unitsToAsset(this.economyService.assetToUnits(String(r.amount))),
         submitted: this.economyService.unitsToAsset(submitted),
-        remaining: this.economyService.unitsToAsset(remaining),
+        remaining: this.economyService.unitsToAsset(await this.rightOf(coopname, r, period)),
       });
     }
     return {
@@ -212,8 +268,7 @@ export class MarketplaceBranchReserveService {
   /**
    * Предварительная проверка предела материальной помощи — то же правило, что
    * в `createaid` контракта: при потолке больше нуля у получателя есть резерв
-   * на участке, и сумма заявлений за месяц не выше резерва. Месяц — по
-   * часовому поясу кооператива; контракт считает по UTC.
+   * на участке, и сумма заявления не выше его накопленного права (задача 99D-34).
    */
   async assertAidWithinReserve(coopname: string, braname: string, username: string, amountHuman: number, now = new Date()): Promise<void> {
     const branchConfig = await this.chainPort.getBranchConfig(coopname);
@@ -221,22 +276,48 @@ export class MarketplaceBranchReserveService {
     if (limit <= 0n) return;
     const reserve = (await this.chainPort.listBranchReserves(coopname, braname)).find((r) => r.username === username);
     if (!reserve) throw DomainError.badRequest('MARKETPLACE_AID_NO_RESERVE');
-    const bounds = this.currentMonth(now);
-    const submitted = await this.aidMirror.submittedWithin(coopname, username, bounds.start, bounds.end);
+    const available = await this.rightOf(coopname, reserve, aidPeriodKey(branchConfig, now));
     const requested = this.economyService.assetToUnits(amountHuman.toFixed(4));
-    const reserveUnits = this.economyService.assetToUnits(String(reserve.amount));
-    if (submitted + requested > reserveUnits) {
+    if (requested > available) {
       throw DomainError.badRequest('MARKETPLACE_AID_OVER_RESERVE', {
         requested: this.economyService.unitsToAsset(requested),
-        submitted: this.economyService.unitsToAsset(submitted),
-        reserve: this.economyService.unitsToAsset(reserveUnits),
+        available: this.economyService.unitsToAsset(available),
       });
     }
   }
 
-  private currentMonth(now: Date) {
-    const timeZone = platformSettings().timezone || 'UTC';
-    return periodBounds(periodKeyOf(now, timeZone), timeZone);
+  /**
+   * Накопленное право получателей помощи участка на следующий период —
+   * слагаемое цели резерва, которое соберёт итог текущего месяца (так же
+   * считает `closeperiod`: `Branch::sum_outstanding` на период + 1).
+   */
+  async rightNextPeriod(coopname: string, braname: string, now = new Date()): Promise<bigint> {
+    const [rows, branchConfig] = await Promise.all([
+      this.chainPort.listBranchReserves(coopname, braname),
+      this.chainPort.getBranchConfig(coopname),
+    ]);
+    const next = aidPeriodKey(branchConfig, now) + 1;
+    let total = 0n;
+    for (const row of rows) total += await this.rightOf(coopname, row, next);
+    return total;
+  }
+
+  /**
+   * Накопленное право получателя на период `period` по строке резерва цепи.
+   * Строка до 99D-34 полей права не имеет: её право — сумма строки минус
+   * поданное за период по накопителю контракта `branch::aidmonths`.
+   */
+  private async rightOf(coopname: string, row: BranchContract.Tables.Reserves.IBranchReserve, period: number): Promise<bigint> {
+    const amount = this.economyService.assetToUnits(String(row.amount));
+    if (row.accrued_period === undefined || row.accrued_period === null || !row.outstanding) {
+      const month = await this.chainPort.getAidMonth(coopname, String(row.username));
+      const used = month && Number(month.period) === period ? this.economyService.assetToUnits(String(month.total)) : 0n;
+      return MarketContract.PeriodModel.reserveRight({ amount }, period, used);
+    }
+    return MarketContract.PeriodModel.reserveRight(
+      { amount, accruedPeriod: Number(row.accrued_period), outstanding: this.economyService.assetToUnits(String(row.outstanding)) },
+      period
+    );
   }
 
   private toContractPercent(human: number, label: string): number {

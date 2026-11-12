@@ -172,7 +172,7 @@
       }
     },
     "onsiteConnector": {
-      "pingOk": "Очным занятиям ключи не нужны"
+      "pingOk": "Очным занятиям ключи не требуются"
     },
     "sections": {
       "reorderItems": {
@@ -303,7 +303,7 @@
     "EDUBRIDGE_ENROLLMENT_STATEMENT_STALE": "Условия оплаты изменились с момента формирования заявления — сформируйте и подпишите его заново",
     "EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED": "Взнос за год больше не принимается: выберите взнос помесячно или за весь курс",
     "EDUBRIDGE_EXTENSION_CONFIG_NOT_FOUND": "Конфиг расширения edubridge не найден",
-    "EDUBRIDGE_INSUFFICIENT_FUNDS": "Недостаточно средств: нужно {amount}, на кошельке программы {programBalance}, на главном паевом {mainBalance}. Пополните главный кошелёк.",
+    "EDUBRIDGE_INSUFFICIENT_FUNDS": "Недостаточно средств: требуется {amount}, на кошельке программы {programBalance}, на главном паевом {mainBalance}. Пополните главный кошелёк.",
     "EDUBRIDGE_INSUFFICIENT_RIGHTS": "Недостаточно прав доступа",
     "EDUBRIDGE_LEARNER_CONTACT_DUPLICATE": "У вас уже есть обучающийся с таким контактом — у каждого обучающегося свой адрес",
     "EDUBRIDGE_LEARNER_FOREIGN": "Обучающийся принадлежит другому пайщику",

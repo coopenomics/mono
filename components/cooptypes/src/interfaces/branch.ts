@@ -146,6 +146,8 @@ export interface IDeltrusted {
 export interface IBrnconfig {
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц; ноль — резерв выключен. */
   aid_month_limit: IAsset
+  /** Длина периода, за который считается предел материальной помощи, секунд; нет или ноль — календарный месяц UTC. */
+  aid_period_seconds?: IUint32
 }
 
 export interface IBranchReserve {
@@ -154,6 +156,10 @@ export interface IBranchReserve {
   username: IName
   /** Резерв социально-экономического обеспечения получателя в месяц. */
   amount: IAsset
+  /** Период, по который начислено право на помощь (задача 99D-34); у строк до 99D-34 нет. */
+  accrued_period?: IUint32
+  /** Накопленное право на помощь на период `accrued_period`: начислено минус подано. */
+  outstanding?: IAsset
 }
 
 export interface IBranchAidmonth {
@@ -167,6 +173,11 @@ export interface IBranchAidmonth {
 export interface ISetaidlimit {
   coopname: IName
   limit: IAsset
+}
+
+export interface ISetaidperiod {
+  coopname: IName
+  seconds: IUint32
 }
 
 export interface ISetreserve {

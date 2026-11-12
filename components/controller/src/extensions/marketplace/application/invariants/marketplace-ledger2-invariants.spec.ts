@@ -861,6 +861,37 @@ describe('I2 — счёт 86: только списание обеспечите
     expect(res.expected).toBe('dr=0.0000 RUB / cr=150.0000 RUB')
   })
 
+  it('happy path: возмещение паевых взносов инициаторов при списании по итогу месяца (Кт 86) — законная проводка', () => {
+    // Задача 99D-27: доля инициаторов из списания заказа ложится на кошелёк
+    // возмещения участка (Дт 80 / Кт 86) в нитке заказа.
+    const res = checkInvariantI2Account86Usage(
+      buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.repay',
+        amount: 30,
+        walletFrom: 'w.mkt.fee',
+        walletTo: 'w.mkt.repay',
+        debitAccount: 80,
+        creditAccount: 86,
+      }),
+    )
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=0.0000 RUB / cr=30.0000 RUB')
+  })
+
+  it('happy path: погашение 26 членскими взносами (Дт 86) и его сторно на переплату (Кт 86) — законные проводки', () => {
+    // Решение владельца 09.11.2026: доля денег в возмещении гасит расходы
+    // участка из средств инициаторов — Дт 86 / Кт 26, только проводка; денежная
+    // доля переплаты, переведённой участку, — сторно Дт 26 / Кт 86.
+    const hash = newProcessHash()
+    const res = checkInvariantI2Account86Usage([
+      ...buildApplyTrio({ processHash: hash, operationCode: 'o.mkt.icover', amount: 12, walletFrom: null, walletTo: null, debitAccount: 86, creditAccount: 26 }),
+      ...buildApplyTrio({ processHash: hash, operationCode: 'o.mkt.iuncov', amount: 2, walletFrom: null, walletTo: null, debitAccount: 26, creditAccount: 86 }),
+    ])
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=12.0000 RUB / cr=2.0000 RUB')
+  })
+
   it('violation: трансляция с проводкой на 86 — прежняя конвертация в членский при заказе', () => {
     const res = checkInvariantI2Account86Usage(
       buildApplyTrio({

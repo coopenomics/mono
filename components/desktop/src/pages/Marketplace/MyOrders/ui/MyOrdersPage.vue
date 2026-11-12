@@ -65,25 +65,29 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 // Код получения (account-bound QR) — диалогом из шапки, в одном месте.
 const receiveDialogOpen = ref(false);
 
-// Фильтр по этапу. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
-// каждый статус заказа попадает хотя бы в одну вкладку. Иначе заказ молча
-// «растекается» — пропадает из всех вкладок, кроме «Все» (баг: молоко в статусе
-// SUPPLY_PREPARED не показывалось нигде). Вкладка может покрывать несколько
-// статусов: «Ждут поставщика» — сводные и индивидуальные (оба ждут акцепта);
-// «Готовятся» — принят → готовится → принят кооперативом (для заказчика это
-// единый этап «в работе»); «Отменены» — отмены, истёкшие циклы и возвраты.
+// Фильтр по состоянию. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
+// каждый статус заказа попадает хотя бы в одну вкладку, иначе заказ молча
+// пропадает из всех списков, кроме «Все». Фильтров четыре (решение владельца
+// 10.11.2026): «Активные» — всё, что ещё впереди, от сбора партии до подписи
+// акта; стадию внутри показывает бейдж строки. Прежние «Активные» значили
+// только сбор партии и пересекались по смыслу с «Ждут поставщика» и «В работе».
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
   { key: 'all', label: t('marketplace.myOrdersPage.filterAll'), statuses: null },
-  { key: 'active', label: t('marketplace.myOrdersPage.filterActive'), statuses: ['ACTIVE'] },
   {
-    key: 'pending-supplier',
-    label: t('marketplace.myOrdersPage.filterAwaitingSupplier'),
-    statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
-  },
-  {
-    key: 'in-progress',
-    label: t('marketplace.myOrdersPage.filterInProgress'),
-    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
+    key: 'active',
+    label: t('marketplace.myOrdersPage.filterActive'),
+    statuses: [
+      'ACTIVE',
+      'ACCEPTED_PENDING_SUPPLIER',
+      'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+      'ACCEPTED',
+      'SUPPLY_PREPARED',
+      'ACCEPTED_TO_COOP',
+      'READY_TO_RECEIVE',
+      'ISSUE_PENDING',
+      'ISSUE_AUTHORIZED',
+      'ISSUE_ACT1',
+    ],
   },
   { key: 'received', label: t('marketplace.myOrdersPage.filterReceived'), statuses: ['RECEIVED'] },
   {
@@ -292,10 +296,7 @@ q-page.orders(role="region", :aria-label="$t('marketplace.myOrdersPage.ariaLabel
         q-icon(name="qr_code_2", size="16px")
       | {{ $t('marketplace.myOrdersPage.showQrAction') }}
 
-  PageHint(storage-key="mp:my-orders:banner-dismissed")
-    | {{ $t('marketplace.myOrdersPage.bannerHintIntro') }}
-    | {{ $t('marketplace.myOrdersPage.bannerHintCancelWindow') }}
-    | {{ $t('marketplace.myOrdersPage.bannerHintOperatorSign') }}
+  PageHint(storage-key="mp:my-orders:banner-dismissed") {{ $t('marketplace.myOrdersPage.bannerHint') }}
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 

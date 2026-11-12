@@ -4,7 +4,7 @@ import { useLiveReload } from 'src/shared/lib/realtime'
 import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
-import { AmountInput, PageHint, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { AmountInput, PageHint, WalletCard } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
@@ -37,11 +37,11 @@ import { t } from 'src/shared/i18n';
  *
  * Проценты фондов накопления здесь только читаются: ими распоряжается совет.
  *
- * Раскладка (замечание владельца 04.11.2026): настройки и фонды — одним рядом
- * общих плиток чисел `StatStrip`: короткая подпись, число крупно, пояснение
- * строкой ниже, подробности — подсказкой у подписи. Правка — карандашом у
- * числа, в отдельном диалоге: экран не притворяется формой там, где меняют
- * одну цифру.
+ * Раскладка: настройки и фонды — карточками кошельков, как «Оборот» ниже
+ * (канон столов Стола заказов, слово владельца 10.11.2026): значок, название,
+ * короткая подпись, подробности — подсказкой у названия, число справа.
+ * Правка — кнопкой «Изменить» в карточке, в отдельном диалоге: экран не
+ * притворяется формой там, где меняют одну цифру.
  */
 
 type SettingKey = 'fee' | 'initiator' | 'aidLimit'
@@ -84,8 +84,21 @@ const fundsHint = computed(() => {
   return t('marketplace.marketEconomy.fundsHint', { funds: parts.join(', ') })
 })
 
-/** Плитки по пути денег заказа: ставка → доля инициатора в экономии → потолок резерва → фонды. */
-const tiles = computed<StatStripItem[]>(() => {
+/** Карточка настройки: число справа, кнопка правки — у настраиваемых. */
+interface SettingCard {
+  key: string
+  caption: string
+  value: string
+  symbol: string
+  sub: string
+  hint: string
+  icon: string
+  label: string
+  editable: boolean
+}
+
+/** Карточки по пути денег заказа: ставка → доля инициатора в экономии → потолок резерва → фонды. */
+const tiles = computed<SettingCard[]>(() => {
   const s = settings.value
   const limitOn = assetAmount(s?.aid_month_limit) > 0
   return [
@@ -97,7 +110,8 @@ const tiles = computed<StatStripItem[]>(() => {
       sub: t('marketplace.marketEconomy.feeTileSub'),
       hint: t('marketplace.marketEconomy.feeTileHint'),
       icon: 'receipt_long',
-      editLabel: t('marketplace.marketEconomy.feeLabel'),
+      label: t('marketplace.marketEconomy.cardRate'),
+      editable: true,
     },
     {
       key: 'initiator',
@@ -107,7 +121,8 @@ const tiles = computed<StatStripItem[]>(() => {
       sub: t('marketplace.marketEconomy.initiatorShareSubtitle'),
       hint: t('marketplace.marketEconomy.periodSettingsHint'),
       icon: 'trending_up',
-      editLabel: t('marketplace.marketEconomy.initiatorShareLabel'),
+      label: t('marketplace.marketEconomy.cardShare'),
+      editable: true,
     },
     {
       key: 'aidLimit',
@@ -117,7 +132,8 @@ const tiles = computed<StatStripItem[]>(() => {
       sub: limitOn ? t('marketplace.marketEconomy.aidLimitTileSub') : t('marketplace.marketEconomy.aidLimitTileOffSub'),
       hint: t('marketplace.marketEconomy.aidLimitTileHint'),
       icon: 'volunteer_activism',
-      editLabel: t('marketplace.marketEconomy.aidLimitLabel'),
+      label: t('marketplace.marketEconomy.cardPerMonth'),
+      editable: true,
     },
     {
       key: 'funds',
@@ -127,6 +143,8 @@ const tiles = computed<StatStripItem[]>(() => {
       sub: t('marketplace.marketEconomy.fundsTileSub'),
       hint: fundsHint.value,
       icon: 'account_balance',
+      label: t('marketplace.marketEconomy.cardTotal'),
+      editable: false,
     },
   ]
 })
@@ -247,10 +265,25 @@ q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
     | {{ $t('marketplace.marketEconomy.intro') }}
 
-  //- Модель кооператива одним рядом плиток: три настройки администратора
-  //- (правка — карандашом у числа, своим диалогом) и проценты фондов накопления
-  //- только для чтения — ими распоряжается совет. Подробности — подсказкой у подписи.
-  StatStrip(:items='tiles' :loading='firstLoad' :framed='false' @edit='onEditTile')
+  //- Модель кооператива карточками: три настройки администратора (кнопка
+  //- «Изменить» в карточке, своим диалогом) и проценты фондов накопления
+  //- только для чтения — ими распоряжается совет. Подробности — подсказкой у названия.
+  .wallet-grid
+    WalletCard(
+      v-for='c in tiles',
+      :key='c.key',
+      program='wallet',
+      :icon='c.icon',
+      :title='c.caption',
+      :subtitle='c.sub',
+      :hint='c.hint',
+      :balance='c.value',
+      :symbol='c.symbol',
+      :balance-label='c.label',
+      :loading='firstLoad'
+    )
+      template(v-if='c.editable', #actions)
+        BaseButton(variant='secondary', size='sm', :disabled='firstLoad || saving', @click='onEditTile(c.key)') {{ $t('common.action.edit') }}
 
   TurnoverTop(
     v-model='periodDays',

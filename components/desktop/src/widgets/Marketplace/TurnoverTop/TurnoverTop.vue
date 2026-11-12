@@ -10,7 +10,7 @@
  */
 import { computed } from 'vue'
 import { BaseTable, EmptyState } from 'src/shared/ui/base'
-import { MenuSelectButton, StatStrip, type StatStripItem } from 'src/shared/ui/domain'
+import { MenuSelectButton, WalletCard } from 'src/shared/ui/domain'
 import type { BaseTableColumn } from 'src/shared/ui/base'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units'
@@ -53,6 +53,12 @@ const periodLabel = computed(
   () => TURNOVER_PERIODS.find((p) => p.value === props.modelValue)?.label.toLowerCase() ?? '',
 )
 
+/** Подпись под суммой карточки — выбранный период с прописной: «За 30 дней». */
+const periodCaption = computed(() => {
+  const label = TURNOVER_PERIODS.find((p) => p.value === props.modelValue)?.label ?? ''
+  return label ? label[0].toUpperCase() + label.slice(1) : ''
+})
+
 const turnover = computed(() =>
   buildTurnover(props.inventory, props.orders, turnoverSince(props.modelValue)),
 )
@@ -72,7 +78,6 @@ const columns = computed<BaseTableColumn<TurnoverTableRow>[]>(() => {
     list.push({ key: 'branch', label: t('marketplace.turnoverTop.column.deliveryPoint'), width: '240px' })
   }
   list.push(
-    { key: 'accepted', label: t('marketplace.turnoverTop.column.accepted'), width: '170px', numeric: true },
     { key: 'issued', label: t('marketplace.turnoverTop.column.issued'), width: '170px', numeric: true },
     { key: 'fee', label: t('marketplace.turnoverTop.column.fee'), width: '200px', numeric: true },
   )
@@ -98,10 +103,14 @@ function units(value: number, row: TurnoverRow): string {
   return `${value} ${marketplaceOrderUnitLabel(row.unitOfMeasure)}`
 }
 
-const totals = computed<StatStripItem[]>(() => [
-  { key: 'accepted', caption: t('marketplace.turnoverTop.totalAcceptedLabel'), value: money(turnover.value.totals.acceptedAmount), icon: 'inventory_2' },
-  { key: 'issued', caption: t('marketplace.turnoverTop.totalIssuedLabel'), value: money(turnover.value.totals.issuedAmount), icon: 'local_shipping' },
-  { key: 'fee', caption: t('marketplace.turnoverTop.totalFeeLabel'), value: money(turnover.value.totals.feeAmount), icon: 'savings' },
+/**
+ * Итоги оборота — карточками сумм, как кошельки на «Экономике участка»:
+ * значок, название, пояснение и сумма справа. Оборот считается по выдаче
+ * пайщикам, приём на склад не показывается (слово владельца 08.11.2026).
+ */
+const totals = computed(() => [
+  { key: 'issued', icon: 'local_shipping', title: t('marketplace.turnoverTop.totalIssuedLabel'), subtitle: t('marketplace.turnoverTop.totalIssuedSub'), amount: turnover.value.totals.issuedAmount },
+  { key: 'fee', icon: 'savings', title: t('marketplace.turnoverTop.totalFeeLabel'), subtitle: t('marketplace.turnoverTop.totalFeeSub'), amount: turnover.value.totals.feeAmount },
 ])
 </script>
 
@@ -121,7 +130,18 @@ section.turnover
           | {{ $t('marketplace.turnoverTop.descriptionPart3') }}
     MenuSelectButton(v-model='period' :options='TURNOVER_PERIODS' icon='date_range')
 
-  StatStrip(:items='totals' :loading='loading' :framed='false')
+  .row.q-col-gutter-md
+    .col-12.col-md-6(v-for='c in totals' :key='c.key')
+      WalletCard(
+        program='wallet'
+        :icon='c.icon'
+        :title='c.title'
+        :subtitle='c.subtitle'
+        :balance='c.amount.toFixed(2)'
+        symbol='RUB'
+        :balance-label='periodCaption'
+        :loading='loading'
+      )
 
   BaseTable(
     v-if='loading || rows.length',
@@ -137,10 +157,6 @@ section.turnover
       .turnover__branch
         span.turnover__branch-name {{ row.branchName }}
         span.turnover__branch-addr(v-if='row.branchAddress') {{ row.branchAddress }}
-    template(#cell-accepted='{ row }')
-      .turnover__amount
-        strong {{ money(row.acceptedAmount) }}
-        span.turnover__units {{ units(row.acceptedUnits, row) }}
     template(#cell-issued='{ row }')
       .turnover__amount
         strong {{ money(row.issuedAmount) }}

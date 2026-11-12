@@ -22,6 +22,9 @@ sources:
     - components/controller/src/extensions/expenses/application/dto/expense-plan.dto.ts
     - components/controller/src/extensions/expenses/infrastructure/entities/expense-plan.entity.ts
     - components/controller/src/extensions/expenses/domain/expense-plan.types.ts
+    - components/extension-kit/src/expense/expense-plan-schedule.ts
+  ui:
+    - components/desktop/src/shared/ui/domain/ExpensePlanDialog/**
 
 cases:
   - id: exp.plan.happy.01
@@ -169,4 +172,124 @@ cases:
     expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
     test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  # Ревью перед выпуском 10.11.2026: записка по записи плана проверяется до цепи.
+  - id: exp.plan.break.12
+    level: backend
+    kind: break
+    scenario: >
+      По записи плана оплата уже запущена либо запись оплачена, а председатель
+      участка подаёт по ней ещё одну записку; две подачи идут одновременно
+    expect: >
+      EXPENSES_PLAN_PAYMENT_ALREADY_STARTED до отправки в цепь; оплаченная запись
+      к новой записке не привязывается; участок не выделяет деньги дважды
+    test: components/controller/tests/unit/marketplace/marketplace-branch-economy.test.ts
+    external: unreachable
+    external_reason: "вторая подача требует второй подписанной записки председателя по той же записи; условие проверяется на уровне сервиса до цепи"
+    status: written
+
+  # Решение владельца 11.11.2026 (99D-34): сроки серии видны до добавления,
+  # квартальный и годовой платёж резерв копит равными долями. Календарь и доля —
+  # общие функции каркаса, по ним же реестр продолжает серию.
+  - id: exp.plan.schedule.01
+    level: backend
+    kind: happy
+    scenario: Председатель выбирает срок и повторяемость — диалог показывает сроки платежей и резерв в месяц
+    expect: >
+      квартал от 31.01.2027 — 31.01, 30.04, 30.07, 30.10 (число по предыдущему сроку,
+      без перескока месяца); резерв копится три месяца по трети суммы; разовый —
+      один срок, вся сумма за месяц; большие суммы делятся без потери точности
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.schedule.02
+    level: backend
+    kind: happy
+    scenario: В реестре повторяющаяся запись показывает следующий срок серии
+    expect: >
+      следующий срок записи совпадает со вторым сроком показа; у разовой записи и
+      записи без срока — пусто; воркер реестра заводит записи ровно по срокам показа
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.schedule.03
+    level: backend
+    kind: side
+    scenario: Гость запрашивает показ расхода
+    expect: отказ 401, расчёт не выполняется
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.schedule.04
+    level: backend
+    kind: side
+    scenario: Календарь серии на краях месяца и года и доля резерва на случайных суммах
+    expect: >
+      число месяца сохраняется, 31-е переходит на последний день короткого месяца,
+      29.02 — на 28.02 невисокосного года; счёт по UTC; доля не убывает к сроку,
+      шаг — n-я часть суммы, к сроку в резерве вся сумма
+    test: components/controller/tests/unit/extension-kit/expense-plan-schedule.test.ts
+    external: unreachable
+    external_reason: "чистые функции календаря и доли без состояния; снаружи они видны через показ расхода (exp.plan.schedule.01)"
+    status: written
+
+  # Задача 99D-35: способ оплаты задаётся в записи плана.
+  - id: exp.plan.payee.01
+    level: backend
+    kind: happy
+    scenario: Плановый расход по реквизитам организации из реестра контрагентов
+    expect: >
+      запись хранит контрагента и назначение платежа; назначение по умолчанию —
+      из карточки контрагента; реестр показывает наименование контрагента;
+      текст реквизитов в записи не хранится
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.plan.payee.02
+    level: backend
+    kind: happy
+    scenario: Плановый расход авансом под отчёт — себе или другому пайщику
+    expect: >
+      себе — получатель тот, кто добавляет; другому — пайщик обязателен; способ
+      получения средств обязателен и принадлежит получателю (чужой отклоняется
+      портом способов получения средств); реестр показывает имя пайщика
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    external: unreachable
+    external_reason: "у пайщиков набора стенда нет заведённых способов получения средств; правило проверяется на уровне сервиса"
+    status: written
+
+  - id: exp.plan.payee.03
+    level: backend
+    kind: side
+    scenario: Запись без способа оплаты и без текста реквизитов; организация без контрагента
+    expect: EXPENSES_PLAN_RECIPIENT_REQUIRED; прежние клиенты с текстом реквизитов работают как раньше
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: written
+
+  - id: exp.plan.payee.04
+    level: backend
+    kind: side
+    scenario: Серия повторяющегося расхода продолжается
+    expect: следующий платёж серии наследует получателя, контрагента, назначение и способ получения средств
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    external: unreachable
+    external_reason: "продолжение серии — фоновый воркер по наступлении срока; на стенде срок записи наступает через месяц"
+    status: written
+
+  - id: exp.plan.ui.01
+    level: ui
+    kind: happy
+    scenario: Председатель участка открывает окно нового планового расхода
+    expect: >
+      повторяемость сегментами с подписью выбранного варианта; способ оплаты —
+      по реквизитам организации (выбор контрагента с «Добавить» в поле, назначение
+      платежа) или аванс под отчёт (себе или пайщику, способ получения средств);
+      справа план платежей — сроки, резерв в месяц и как он формируется
+    test: components/docs-harness/scenarios/marketplace/branch-chairman/expense-plans.mjs
     status: written

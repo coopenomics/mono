@@ -7,6 +7,7 @@ import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/ex
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 import { DomainError, bankSafeText } from '@coopenomics/extension-kit';
+import { ExpenseCounterpartiesService } from './expense-counterparties.service';
 
 /**
  * Получатель в снимке. У организации аккаунта нет (recipient пуст) — её
@@ -32,7 +33,8 @@ export class ExpenseRequisiteSnapshotsService {
     @Inject(PAYMENT_METHOD_PORT)
     private readonly paymentMethods: IPaymentMethodPort,
     @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
-    private readonly repository: TableStore<ExpenseRequisiteSnapshotRecord>
+    private readonly repository: TableStore<ExpenseRequisiteSnapshotRecord>,
+    private readonly counterparties: ExpenseCounterpartiesService
   ) {}
 
   async validate(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
@@ -98,6 +100,31 @@ export class ExpenseRequisiteSnapshotsService {
     }
   }
 
+  /**
+   * Организация из реестра контрагентов (задача 99D-35): наименование и
+   * реквизиты для кассира — из карточки контрагента, а не из текста формы.
+   * Текст реквизитов в подписанной записке обязан совпасть с карточкой: если
+   * контрагента поправили между составлением и подачей, записку составляют
+   * заново — иначе совет утвердил бы одни реквизиты, а кассир заплатил бы по
+   * другим.
+   */
+  private async fromCounterparty(
+    coopname: string,
+    it: InnerExpenseRequisiteItemInput,
+    snapshot: ExpenseRequisiteSnapshotRecord
+  ): Promise<void> {
+    const { record, requisitesText } = await this.counterparties.forPayment(coopname, it.counterpartyId as number)
+    if (it.requisites?.trim() && it.requisites.trim() !== requisitesText) {
+      throw DomainError.badRequest('EXPENSES_COUNTERPARTY_CHANGED')
+    }
+    snapshot.recipient = record.name
+    snapshot.method_id = String(record.id)
+    snapshot.method_type = 'counterparty'
+    snapshot.data = { counterparty_id: record.id, kind: record.kind, name: record.name, requisites: record.requisites }
+    snapshot.requisites = requisitesText
+    snapshot.payment_purpose = bankSafeText(it.paymentPurpose || record.payment_purpose || undefined) ?? null
+  }
+
   private async resolve(
     coopname: string,
     items: InnerExpenseRequisiteItemInput[]
@@ -128,6 +155,7 @@ export class ExpenseRequisiteSnapshotsService {
         })
 
         if (it.isOrganization) {
+          if (it.counterpartyId) await this.fromCounterparty(coopname, it, snapshot)
           return snapshot
         }
 

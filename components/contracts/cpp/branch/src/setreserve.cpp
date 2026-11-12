@@ -5,9 +5,10 @@
  * Председатель участка записывает сумму материальной помощи в месяц по
  * каждому получателю — себе и доверенным лицам. Суммы произвольные, по сменам
  * и договорённости; усреднения нет. Строка создаётся или перезаписывается.
- * Строка одновременно служит пределом материальной помощи получателя за месяц
- * (`createaid`) и слагаемым расходов участка в расчёте итога месяца Стола
- * заказов (сумма строк участка — резерв Р).
+ * Сумма строки — начисление права получателя на материальную помощь за каждый
+ * период: право копится и не сгорает (задача 99D-34), его предел проверяет
+ * `createaid`. Накопленное право получателей участка — слагаемое цели резерва
+ * в расчёте итога месяца Стола заказов.
  *
  * Авторизация как у `setweight`: действие подаёт кооператив, роль
  * председателя участка проверяет ИСТОК до отправки.
@@ -40,14 +41,28 @@
   branch_reserves_index reserves(_branch, coopname.value);
   auto idx = reserves.get_index<"bybruser"_n>();
   auto it = idx.find(combine_ids(braname.value, username.value));
+  // Накопленное право (задача 99D-34): новая строка начисляет право текущего
+  // периода сразу; у прежней право сначала доначисляется по старой сумме по
+  // текущий период включительно, новая сумма действует со следующего.
+  const uint32_t period = Branch::aid_period(coopname, eosio::time_point_sec(eosio::current_time_point()));
   if (it == idx.end()) {
     reserves.emplace(RamPayer::of(reserves, coopname), [&](auto &r) {
       r.id = reserves.available_primary_key();
       r.braname = braname;
       r.username = username;
       r.amount = amount;
+      r.accrued_period = period;
+      // Поданное получателем в этом периоде по прежней строке вычитается:
+      // снятие и новая запись резерва не возвращают израсходованное право.
+      const eosio::asset used = Branch::aid_used_in(coopname, username, period);
+      r.outstanding = amount > used ? amount - used : eosio::asset(0, _root_govern_symbol);
     });
   } else {
-    idx.modify(it, RamPayer::of(idx, coopname), [&](auto &r) { r.amount = amount; });
+    const eosio::asset available = Branch::outstanding_of(coopname, *it, period);
+    idx.modify(it, RamPayer::of(idx, coopname), [&](auto &r) {
+      r.amount = amount;
+      r.accrued_period = period;
+      r.outstanding = available;
+    });
   }
 }

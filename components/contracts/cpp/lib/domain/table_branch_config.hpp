@@ -3,6 +3,7 @@
 #include "../core/ram_payer.hpp"
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/singleton.hpp>
 
 #include "../consts.hpp"
@@ -18,12 +19,19 @@
  * контрактов). Ставит администратор действием `setaidlimit`, один на все
  * участки кооператива.
  *
+ * `aid_period_seconds` — длина периода, за который считается предел
+ * материальной помощи. Пусто или ноль — календарный месяц UTC (рабочий режим).
+ * Стенд со сжатым временем ставит длину своего месяца (`setaidperiod`), чтобы
+ * резерв обновлялся вместе с итогами месяцев Стола заказов (решение владельца
+ * 09.11.2026). Поле добавлено расширением: прежние строки читаются без него.
+ *
  * @ingroup public_tables
  * @ingroup public_branch_tables
  * @par table: brnconfig
  */
 struct [[eosio::table, eosio::contract(BRANCH)]] brnconfig {
   eosio::asset aid_month_limit;  ///< потолок резерва на получателя в месяц; ноль — резерв выключен
+  eosio::binary_extension<uint32_t> aid_period_seconds;  ///< длина периода предела помощи, секунд; пусто или ноль — календарный месяц UTC
 };
 
 typedef eosio::singleton<"brnconfig"_n, brnconfig> brnconfig_singleton;

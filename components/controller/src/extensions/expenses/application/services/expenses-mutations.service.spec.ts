@@ -44,6 +44,7 @@ describe('ExpensesMutationsService', () => {
   }
   let proposals: { findByProposalHash: jest.Mock }
   let payments: { findByHash: jest.Mock; create: jest.Mock; update: jest.Mock }
+  let counterparties: { forPayment: jest.Mock }
 
   const fakeResult = { response: { transaction_id: 'tx_abc' } } as never
 
@@ -70,6 +71,12 @@ describe('ExpensesMutationsService', () => {
       getCooperativeRequisiteData: jest.fn().mockResolvedValue({ data: { bank_name: 'Банк кооператива' }, requisites: 'счёт кооператива' }),
     }
     proposals = { findByProposalHash: jest.fn().mockResolvedValue(null) }
+    counterparties = {
+      forPayment: jest.fn().mockResolvedValue({
+        record: { id: 7, name: 'ООО «Энергосбыт»', kind: 'LEGAL', payment_purpose: 'Оплата электроэнергии', requisites: {} },
+        requisitesText: 'ИНН 7707083893, КПП 773601001\nРасчётный счёт 40702810938000000001, Банк ПАО Сбербанк, БИК 044525225',
+      }),
+    }
     payments = {
       findByHash: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockImplementation((p) => Promise.resolve({ ...p, id: 'pay-1' })),
@@ -80,7 +87,8 @@ describe('ExpensesMutationsService', () => {
       generator as unknown as IDocumentPort,
       requisiteSnapshots as never,
       proposals as unknown as ExpenseProposalRepository,
-      payments as unknown as IPaymentPort
+      payments as unknown as IPaymentPort,
+      counterparties as never
     )
   })
 
@@ -398,5 +406,40 @@ describe('ExpensesMutationsService', () => {
     await service.submitExpenseReport(input)
 
     expect(chain.closeExp).toHaveBeenCalledWith({ coopname: 'voskhod', proposal_hash: '0xabc' })
+  })
+
+  // 99D-35: организация из реестра контрагентов — наименование и реквизиты в
+  // документе записки берутся из карточки, назначение по умолчанию — тоже.
+  describe('документ записки с контрагентом', () => {
+    const generateInput = (item: Record<string, unknown>) =>
+      ({
+        coopname: 'voskhod',
+        username: 'chair',
+        proposal_hash: 'a'.repeat(64),
+        proposal: { description: 'Электроэнергия', total_amount: '1000.0000 RUB', items_count: 1, source_wallet: 'w.brn.expns', deadline: '11.12.2026' },
+        items: [{ number: '1', description: 'Электроэнергия', amount: '1000.0000 RUB', recipient_type: 'ORG', mechanics: 'DIRECT', ...item }],
+      }) as any
+
+    it('наименование и реквизиты — из карточки контрагента, назначение по умолчанию — из неё же', async () => {
+      await service.generateExpenseProposalStatementDocument(generateInput({ counterparty_id: 7, recipient_name: 'подмена', requisites: 'подмена' }), {} as any)
+      expect(counterparties.forPayment).toHaveBeenCalledWith('voskhod', 7)
+      const saved = (generator.saveData.mock.calls[0][0] as any).items[0]
+      expect(saved).toMatchObject({ recipient_name: 'ООО «Энергосбыт»', payment_purpose: 'Оплата электроэнергии' })
+      expect(saved.requisites).toContain('ИНН 7707083893')
+    })
+
+    it('назначение из записки важнее назначения по умолчанию', async () => {
+      await service.generateExpenseProposalStatementDocument(generateInput({ counterparty_id: 7, payment_purpose: 'Счёт № 5' }), {} as any)
+      expect((generator.saveData.mock.calls[0][0] as any).items[0].payment_purpose).toBe('Счёт № 5')
+    })
+
+    it('без контрагента организация идёт в документ по тексту формы', async () => {
+      await service.generateExpenseProposalStatementDocument(
+        generateInput({ recipient_name: 'ООО «Хостинг»', requisites: 'ИНН 9719026854', payment_purpose: 'Оплата хостинга' }),
+        {} as any
+      )
+      expect(counterparties.forPayment).not.toHaveBeenCalled()
+      expect((generator.saveData.mock.calls[0][0] as any).items[0]).toMatchObject({ recipient_name: 'ООО «Хостинг»', requisites: 'ИНН 9719026854' })
+    })
   })
 })

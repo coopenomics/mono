@@ -48,6 +48,11 @@ title: Доступные категории кооператива — огра
 # Правка 2026-10-10 (598-61, профиль поставщика и отзывы): таблица прав получила права профиля поставщика и отзывов
 # (`SupplierProfile:*`, `Review:*`); права категорий (`Whitelist:manage`) прежние, набор случаев прежний.
 
+
+# Правка 07.11.2026 (598-55): в таблице прав Стола заказов право
+# председателя кооператива завести боксы переименовано в `Container:create:all`
+# (было `manage:all`, оно покрывало и `manage:own-KU`). Права категорий не
+# менялись, случаи прежние.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts

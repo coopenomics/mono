@@ -94,6 +94,11 @@ void marketplace::issueact2(eosio::name coopname,
       ? eosio::time_point_sec(now.sec_since_epoch() + o.warranty_period_secs)
       : eosio::time_point_sec(0);
 
+  // Счётчики списания (задача 99D-33): стоимость выданного и обеспечительная
+  // часть по факту встают в период, в котором кончается гарантийный срок, —
+  // по ним первого числа считается итог участка и списывается строка пайщика.
+  Marketplace::Dues::note_issue(coopname, o, fact_cost, fact_fee, warranty_until);
+
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status         = OrderStatus::RECEIVED;
     upd.issue_act2     = act;

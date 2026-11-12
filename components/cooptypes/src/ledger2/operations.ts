@@ -269,9 +269,10 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Постановка обеспечительной части паевого взноса на списание' },
 
-  // Списание по условиям ЦПП — первая нога chargedue; проводку Дт 80 / Кт 86
-  // делает вторая нога o.brn.common в той же транзакции.
-  { code: 'o.mkt.charge',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  // Списание по итогу периода — первая нога chargeperiod; проводку Дт 80 / Кт 86
+  // делает вторая нога o.brn.common в той же транзакции. Нитка — строка
+  // счётчика пайщика за период (p.mkt.due, задача 99D-33), не заказ.
+  { code: 'o.mkt.charge',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'CHARGE_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.fee',
     debit: null, credit: null,
     human_name: 'Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП' },
@@ -300,18 +301,112 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Списание обеспечительной части в членский взнос при выходе пайщика из кооператива' },
 
-  // Списание по итогу месяца участка (задача 99D-21): o.mkt.charge на сумму
-  // участку + фонды + инициатору, затем три ноги из пула — o.brn.common,
-  // o.fnd.accrue, o.mkt.initr; остаток пайщику — o.mkt.retdue.
-  { code: 'o.mkt.initr',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+  // Списание по итогу периода участка (задачи 99D-21, 99D-33): o.mkt.charge на
+  // сумму участку + фонды + инициатору, затем ноги из пула — o.brn.common,
+  // o.fnd.*, o.mkt.repay; остаток пайщику — o.mkt.retdue. Нитка p.mkt.due.
+  { code: 'o.mkt.initr',   process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INITIATOR_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.invest',
     debit: null, credit: null,
     human_name: 'Вознаграждение инициатора кооперативного участка из экономии месяца' },
 
-  { code: 'o.mkt.retdue',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+  { code: 'o.mkt.retdue',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'RETURN_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.share',
     debit: null, credit: null,
     human_name: 'Возврат части обеспечительной части паевого взноса по итогу месяца участка' },
+
+  // p.mkt.invest — инвестиционный этап участка (задача 99D-27). Паевой взнос
+  // инициатора на 80 не меняется; имущество Дт 10 / Кт 80; возмещение из
+  // экономии — Дт 80 / Кт 86 на кошелёк возмещения участка.
+  { code: 'o.mkt.inv',     process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_MONEY', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.invest',
+    debit: null, credit: null,
+    human_name: 'Трансляция паевого взноса в договор участия в хозяйственной деятельности' },
+
+  { code: 'o.mkt.iprop',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_PROPERTY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.invest',
+    debit: 10, credit: 80,
+    human_name: 'Приём имущества паевым взносом в кооперативный участок' },
+
+  { code: 'o.mkt.ipool',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_POOL_FUND', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.ipool',
+    debit: null, credit: null,
+    human_name: 'Выделение средств инициаторов под расход кооперативного участка' },
+
+  { code: 'o.mkt.iunpl',   process_type: 'p.mkt.invest',  contract: 'marketplace',
+    name: 'INVEST_POOL_UNFUND', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Возврат невыделенных средств инициаторов из пула' },
+
+  { code: 'o.mkt.repay',   process_type: 'p.mkt.due',     contract: 'marketplace',
+    name: 'INVEST_REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.repay',
+    debit: 80, credit: 86,
+    human_name: 'Возмещение паевых взносов инициаторов из экономии месяца участка' },
+
+  { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.due',     contract: 'marketplace',
+    name: 'INVEST_REPAY_SURPLUS', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.repay', wallet_to: 'w.brn.common',
+    debit: null, credit: null,
+    human_name: 'Перевод переплаты возмещения паевых взносов на общий кошелёк участка' },
+
+  // Погашение 26 (решение владельца 09.11.2026, бухгалтер подтвердила
+  // 10.11.2026): доля денег в возмещении гасит расходы и помощь участка,
+  // оплаченные деньгами инициаторов; имущество остаётся на 10.
+  { code: 'o.mkt.icover',  process_type: 'p.mkt.due',     contract: 'marketplace',
+    name: 'INVEST_COST_COVER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 86, credit: 26,
+    human_name: 'Погашение расходов участка из средств инициаторов членскими взносами' },
+
+  { code: 'o.mkt.iuncov',  process_type: 'p.mkt.due',     contract: 'marketplace',
+    name: 'INVEST_COST_UNCOVER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 26, credit: 86,
+    human_name: 'Сторно погашения расходов участка на переплату возмещения, переведённую участку' },
+
+  { code: 'o.mkt.iback',   process_type: 'p.mkt.icomp',   contract: 'marketplace',
+    name: 'INVEST_BACK', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Трансляция паевого взноса из договора участия в главный паевой кошелёк' },
+
+  { code: 'o.mkt.iexit',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'INVEST_EXIT', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.invest', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Перенос паевого взноса инициатора на главный паевой при выходе из кооператива' },
+
+  // Расходы и материальная помощь участка из средств инициаторов (задача
+  // 99D-28): счёт 26 «Общехозяйственные расходы» (решение владельца
+  // 09.11.2026, бухгалтер подтвердила 10.11.2026), без транзита через фонд.
+  { code: 'o.mkt.iadv',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
+    debit: 26, credit: 51,
+    human_name: 'Выдача аванса под отчёт по расходу участка из средств инициаторов' },
+
+  { code: 'o.mkt.idir',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_DIRECT', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
+    debit: 26, credit: 51,
+    human_name: 'Оплата расхода участка из средств инициаторов по реквизитам' },
+
+  { code: 'o.mkt.irpt',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта по расходу участка из средств инициаторов' },
+
+  { code: 'o.mkt.iret',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.mkt.ipool',
+    debit: 51, credit: 26,
+    human_name: 'Возврат неиспользованного аванса в средства инициаторов участка' },
+
+  { code: 'o.mkt.iovr',    process_type: 'p.exp.expns',   contract: 'expense',
+    name: 'INVEST_EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.exp.adv',
+    debit: 26, credit: 51,
+    human_name: 'Доплата сверх аванса по расходу участка из средств инициаторов' },
+
+  { code: 'o.mkt.iaid',    process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'INVEST_AID', wallet_op: 'BURN', wallet_from: 'w.mkt.ipool', wallet_to: null,
+    debit: 26, credit: 51,
+    human_name: 'Выплата материальной помощи из средств инициаторов участка' },
+
+  { code: 'o.mkt.iaidtx',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'INVEST_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.ipool', wallet_to: 'w.sov.ndfl',
+    debit: 26, credit: 68,
+    human_name: 'Удержание налога из материальной помощи, выплаченной из средств инициаторов' },
 
   // p.mkt.claim — гарантийная претензия поставщику (99D-13)
   { code: 'o.mkt.claim',   process_type: 'p.mkt.claim',   contract: 'marketplace',
@@ -547,8 +642,21 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   // Транзит материальной помощи через фонд взаимного обеспечения (задача 99D-25):
   // разрез по получателю остаётся на w.brn.person, выплата идёт с кошелька фонда.
+  // Материальная помощь движется по кошелькам, без блокировки (решение
+  // владельца 08.11.2026): при подаче сумма переходит на кошелёк заявлений,
+  // отказ совета её возвращает, выплата идёт с кошелька заявлений.
+  { code: 'o.brn.aidreq',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'AID_REQUEST',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.brn.aidreq',
+    debit: null, credit: null,
+    human_name: 'Перевод суммы заявления на материальную помощь на кошелёк заявлений' },
+
+  { code: 'o.brn.aidret',  process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'AID_RETURN',     wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.brn.person',
+    debit: null, credit: null,
+    human_name: 'Возврат суммы заявления на материальную помощь после отказа совета' },
+
   { code: 'o.brn.aidfnd',  process_type: 'p.brn.aid',     contract: 'branch',
-    name: 'AID_TO_FUND',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.fnd.mutual',
+    name: 'AID_TO_FUND',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.fnd.mutual',
     debit: null, credit: null,
     human_name: 'Направление материальной помощи в фонд взаимного обеспечения' },
 
@@ -558,7 +666,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Выплата материальной помощи доверенному кооперативного участка' },
 
   { code: 'o.brn.aidtax',  process_type: 'p.brn.aid',     contract: 'branch',
-    name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.sov.ndfl',
+    name: 'FINANCIAL_AID_TAX', wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.sov.ndfl',
     debit: 86, credit: 68,
     human_name: 'Удержание налога на доходы физических лиц из материальной помощи' },
 

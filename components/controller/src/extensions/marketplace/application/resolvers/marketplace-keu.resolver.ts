@@ -10,6 +10,8 @@ import {
   RequireRight,
 } from '@coopenomics/extension-kit';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceBranchReserveService } from '../services/marketplace-branch-reserve.service';
 import { MarketplacePeriodService } from '../services/marketplace-period.service';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from '../services/marketplace-economy.service';
@@ -29,6 +31,7 @@ import {
   toMarketplaceBranchReservesDTO,
   toMarketplaceEconomySettingsDTO,
 } from '../dto/marketplace-keu.dto';
+import { PERIOD_TIME_ZONE, periodBounds } from '../shared/period-bounds';
 
 const paginatedBranchPeriods = createPaginationResult(MarketplaceBranchPeriodDTO, 'MarketplaceBranchPeriods');
 
@@ -168,39 +171,58 @@ export class MarketplaceKeuResolver {
     const result = await this.periods.listForBranch(platformSettings().coopname, braname, options);
     return {
       ...result,
-      items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row))),
+      // Границы месяца — по той же шкале, что списание: на стенде со сжатым
+      // временем месяц — отрезок STAND_MONTH_SECONDS, его номер годом не читается.
+      items: result.items.map((row) => toMarketplaceBranchPeriodDTO(row, this.periods.ratePercentOf(row), periodBounds(row.period, PERIOD_TIME_ZONE))),
     };
   }
 
   @Query(() => MarketplaceBranchCurrentPeriodDTO, {
     name: 'marketplaceGetBranchCurrentPeriod',
     description:
-      'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков и заказы, которые созреют к первому числу.',
+      'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения пайщиков, заказы, которые созреют к первому числу, распределено участком и получено текущим пайщиком.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
-  async marketplaceGetBranchCurrentPeriod(@Args('braname') braname: string): Promise<MarketplaceBranchCurrentPeriodDTO> {
+  async marketplaceGetBranchCurrentPeriod(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('braname') braname: string
+  ): Promise<MarketplaceBranchCurrentPeriodDTO> {
     const coopname = platformSettings().coopname;
     const now = new Date();
-    const period = monthKey(now, platformSettings().timezone || 'UTC');
-    const [facts, reserves, ripening] = await Promise.all([
+    const period = monthKey(now, PERIOD_TIME_ZONE);
+    const bounds = periodBounds(period, PERIOD_TIME_ZONE);
+    // Показ до расчёта (правило «деньги считает контракт», п. 6): ожидаемые
+    // расходы по той же формуле, что closeperiod, — траты месяца из денег
+    // участка, цель резерва и собранное прошлым итогом. Итог считает контракт.
+    const [facts, aidRight, fundedPrev, ripening, distributed, received] = await Promise.all([
       this.periods.collectFacts(coopname, braname, period),
-      this.reserves.getReserves(coopname, braname, now),
+      this.reserves.rightNextPeriod(coopname, braname, now),
+      this.periods.fundedBefore(coopname, braname, period),
       this.secureDue.ripeningForBranch(coopname, braname, now),
+      this.periods.distributedWithin(coopname, braname, bounds),
+      this.periods.receivedWithin(coopname, member.username, bounds),
     ]);
-    const reserve = reserves.rows.reduce((sum, r) => sum + this.economyService.assetToUnits(r.amount), 0n);
+    const spent = facts.planned + facts.memos + facts.aidPaid;
+    const expected = spent + facts.plannedTarget + aidRight - fundedPrev;
     const asset = (units: bigint) => this.economyService.unitsToAsset(units);
     return {
       braname,
       period,
+      starts_at: bounds.start,
+      ends_at: bounds.end,
       planned: asset(facts.planned),
       memos: asset(facts.memos),
       aid_paid: asset(facts.aidPaid),
-      aid_reserve: asset(reserve),
-      expenses: asset(facts.planned + facts.memos + reserve),
+      aid_reserve: asset(aidRight),
+      planned_target: asset(facts.plannedTarget),
+      target_prev: asset(fundedPrev),
+      expenses: asset(expected > 0n ? expected : 0n),
       ripening_orders: ripening.count,
       ripening_turnover: asset(ripening.turnover),
       ripening_secured: asset(ripening.secured),
+      distributed: asset(distributed),
+      received: asset(received),
     };
   }
 }

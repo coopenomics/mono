@@ -1198,5 +1198,53 @@
       "body": "Списано {{payload.amount}}, возвращено {{payload.returnedAmount}} по условиям ЦПП «Стол заказов».",
       "subject": "Обеспечительная часть списана"
     }
+  },
+  "marketplaceInvestPropertySubmitted": {
+    "description": "Уведомление председателю кооперативного участка: пайщик подал заявление о паевом взносе имуществом в участок.",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Пайщик {{payload.investorName}} подал заявление о паевом взносе имуществом в кооперативный участок {{payload.branchName}}: {{payload.propertyName}}, цена {{payload.amount}}.<br>Одобрите заявление или откажите на странице «Инициаторы участка».<br><br>Подробности: {{payload.deepLinkUrl}}",
+      "subject": "Заявление о паевом взносе имуществом ждёт одобрения"
+    },
+    "inApp": {
+      "body": "{{payload.investorName}}: {{payload.propertyName}}, цена {{payload.amount}}. Одобрите заявление или откажите.",
+      "subject": "Заявление на имущество ждёт одобрения"
+    },
+    "name": "Заявление о паевом взносе имуществом в участок",
+    "push": {
+      "body": "{{payload.investorName}} вносит в участок {{payload.propertyName}}.",
+      "subject": "Заявление на имущество"
+    }
+  },
+  "marketplaceInvestPropertyDecided": {
+    "description": "Уведомление вносящему пайщику: совет решил по заявлению о паевом взносе имуществом в кооперативный участок.",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>{{payload.decision}}<br>Имущество: {{payload.propertyName}}, кооперативный участок {{payload.branchName}}.<br><br>Подробности: {{payload.deepLinkUrl}}",
+      "subject": "Решение совета по паевому взносу имуществом"
+    },
+    "inApp": {
+      "body": "{{payload.propertyName}}: {{payload.decision}}",
+      "subject": "Решение совета по имуществу"
+    },
+    "name": "Решение совета по паевому взносу имуществом в участок",
+    "push": {
+      "body": "{{payload.decision}}",
+      "subject": "Решение совета по имуществу"
+    }
+  },
+  "marketplaceInvestReturned": {
+    "description": "Уведомление инициатору кооперативного участка: доля инициаторов возместила его паевой взнос, сумма доступна к трансляции на главный паевой кошелёк.",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>{{payload.status}}<br>Кооперативный участок {{payload.branchName}}: доступно к трансляции на главный паевой кошелёк {{payload.amount}}.<br><br>Подать заявление: {{payload.deepLinkUrl}}",
+      "subject": "Возмещение паевого взноса в кооперативный участок"
+    },
+    "inApp": {
+      "body": "{{payload.branchName}}: доступно {{payload.amount}}. {{payload.status}}",
+      "subject": "Возмещение паевого взноса"
+    },
+    "name": "Возмещение паевого взноса инициатора участка",
+    "push": {
+      "body": "{{payload.branchName}}: доступно {{payload.amount}}",
+      "subject": "Возмещение паевого взноса"
+    }
   }
 }

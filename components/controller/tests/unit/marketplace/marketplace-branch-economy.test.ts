@@ -13,6 +13,7 @@
  * деньги в чужих руках, либо участок без средств на плановый расход.
  */
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Registry } from '@coopenomics/docs-templates';
 import { MarketplaceEconomyService } from '~/extensions/marketplace/application/services/marketplace-economy.service';
 import type { MarketplaceCanonicalBlockchainPort } from '~/extensions/marketplace/domain/ports/marketplace-canonical-blockchain.port';
 import type { MarketplaceAssetConfig } from '~/extensions/marketplace/application/services/marketplace-asset.config';
@@ -38,6 +39,8 @@ interface StandSetup {
   trustee?: string | null;
   /** Ставка членского взноса on-chain; null — кооператив её не задавал. */
   feePercent?: number | null;
+  /** Строка паевых взносов инициаторов участка; null — инициаторов нет. */
+  investBranch?: { unused_total: string; reserved: string } | null;
 }
 
 function buildService(setup: StandSetup = {}) {
@@ -48,6 +51,7 @@ function buildService(setup: StandSetup = {}) {
     reserve = 0,
     trustee = CHAIRMAN,
     feePercent = null,
+    investBranch = null,
   } = setup;
 
   const chainPort = {
@@ -65,6 +69,7 @@ function buildService(setup: StandSetup = {}) {
     setFee: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
     setWeight: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
     delWeight: jest.fn().mockResolvedValue({ transaction_id: 'tx-1' }),
+    getInvestBranch: jest.fn().mockResolvedValue(investBranch),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
   const kuChairmanService = {
@@ -72,10 +77,15 @@ function buildService(setup: StandSetup = {}) {
     isMemberOfBranch: jest.fn().mockResolvedValue(true),
   } as any;
 
-  // Плановый резерв приходит из шасси расходов через межрасширенческий порт:
-  // горизонт планирования — правило шасси, потребитель его только показывает.
+  // Резерв общего кошелька — цель плановых расходов (задача 99D-34): реестр
+  // планов участка из шасси расходов, неоплаченные записи со сроком до конца
+  // текущего месяца. Здесь резерв — одна просроченная неоплаченная запись.
   const expenseChassis = {
-    getPlannedReserve: jest.fn().mockResolvedValue({ amount: reserve, horizonDays: 30 }),
+    listPlans: jest.fn().mockResolvedValue(
+      reserve > 0
+        ? [{ id: 1, branchName: BRANCH, title: 'Аренда', amount: `${reserve.toFixed(4)} RUB`, dueDate: new Date(Date.now() - 86_400_000), proposalHash: null, paidAt: null }]
+        : []
+    ),
     attachPlanToProposal: jest.fn().mockResolvedValue(undefined),
   } as any;
 
@@ -151,6 +161,32 @@ describe('Членские взносы на балансе участка', () 
 
     expect(economy.common_balance).toBe('0.0000 RUB');
     expect(economy.available_to_distribute).toBe('0.0000 RUB');
+  });
+});
+
+describe('Доступно для расходов (99D-35)', () => {
+  it('общий кошелёк и свободные средства инициаторов складываются; выделенное под расходы не считается', async () => {
+    const { service } = buildService({
+      balances: [common('300.0000')],
+      investBranch: { unused_total: '1500.0000 RUB', reserved: '500.0000 RUB' },
+    });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.initiators_free).toBe('1000.0000 RUB');
+    expect(economy.available_for_expenses).toBe('1300.0000 RUB');
+  });
+
+  it('у участка нет инициаторов — доступно столько, сколько на общем кошельке', async () => {
+    const { service } = buildService({ balances: [common('700.0000')] });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.initiators_free).toBe('0.0000 RUB');
+    expect(economy.available_for_expenses).toBe('700.0000 RUB');
+  });
+
+  it('выделено больше неиспользованного — свободных средств ноль, а не минус', async () => {
+    const { service } = buildService({ balances: [], investBranch: { unused_total: '100.0000 RUB', reserved: '400.0000 RUB' } });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.initiators_free).toBe('0.0000 RUB');
+    expect(economy.available_for_expenses).toBe('0.0000 RUB');
   });
 });
 
@@ -289,6 +325,30 @@ describe('Распределение членских взносов', () => {
   });
 });
 
+describe('Одновременные распределения участка', () => {
+  it('второе распределение читает остаток после первого: вместе они резерв плановых расходов не трогают', async () => {
+    // Общий кошелёк 10 000, резерв 2 500 — распределить можно 7 500. Два
+    // запроса по 5 000 пришли одновременно: по одному остатку оба прошли бы.
+    const balances = [common('10000.0000')];
+    const { service, chainPort } = buildService({ balances, reserve: 2500, weights: [weight(CHAIRMAN, 1)], totals: [{ coopname: COOP, braname: BRANCH, contract: 'marketplace', total_weight: 1 }] });
+    chainPort.distribute.mockImplementation(async (data: any) => {
+      // Цепь уменьшает общий кошелёк с задержкой на блок.
+      await new Promise((resolve) => setImmediate(resolve));
+      balances[0] = common((Number.parseFloat(balances[0].available) - Number.parseFloat(data.amount)).toFixed(4));
+      return { transaction_id: 'tx' } as any;
+    });
+    const results = await Promise.allSettled([
+      service.distributeBranchFunds(COOP, CHAIRMAN, BRANCH, 5000),
+      service.distributeBranchFunds(COOP, CHAIRMAN, BRANCH, 5000),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected']);
+    expect(chainPort.distribute).toHaveBeenCalledTimes(1);
+    expect(balances[0].available).toBe('5000.0000 RUB');
+    // Очередь не застревает после отказа: следующее распределение в пределах доступного проходит.
+    await expect(service.distributeBranchFunds(COOP, CHAIRMAN, BRANCH, 2500)).resolves.toBeDefined();
+  });
+});
+
 describe('Правка сетки весов', () => {
   it('председатель задаёт вес доверенного', async () => {
     const { service, chainPort } = buildService();
@@ -357,5 +417,141 @@ describe('Ставка членского взноса', () => {
     await expect(service.setMembershipFee(COOP, 101)).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.setMembershipFee(COOP, -1)).rejects.toBeInstanceOf(BadRequestException);
     expect(chainPort.setFee).not.toHaveBeenCalled();
+  });
+});
+
+describe('Заявление на материальную помощь: источник денег до цепи', () => {
+  // Подпись и реквизиты здесь не проверяются: заявление подписано, реквизитов
+  // в заглушке нет — значит, дошли до них, и проверка денег пройдена.
+  const signed = (amount: number) => ({ meta: { registry_id: Registry.BranchFinancialAidStatement.registry_id, aid_hash: 'h1', amount: `${amount.toFixed(4)} RUB` } }) as any;
+  const submit = (setup: StandSetup, amount: number) => {
+    const { service } = buildService(setup);
+    jest.spyOn(service as any, 'verifyDocumentSignature').mockImplementation(() => undefined);
+    return service.createAid(COOP, CHAIRMAN, BRANCH, amount, 'h1', signed(amount), 'pm-1');
+  };
+
+  it('персонального кошелька хватает — проверка денег пройдена', async () => {
+    await expect(submit({ balances: [personal(CHAIRMAN, '150.0000')] }, 100)).rejects.toMatchObject({ code: 'MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND' });
+  });
+
+  it('персональный пуст, у инициаторов участка свободно достаточно — заявление идёт в цепь, как принимает контракт (99D-28)', async () => {
+    const setup = { investBranch: { unused_total: '700.0000 RUB', reserved: '200.0000 RUB' } };
+    await expect(submit(setup, 500)).rejects.toMatchObject({ code: 'MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND' });
+  });
+
+  it('не хватает ни персонального, ни свободных средств инициаторов — отказ до цепи с кодом', async () => {
+    const setup = { balances: [personal(CHAIRMAN, '50.0000')], investBranch: { unused_total: '700.0000 RUB', reserved: '200.0000 RUB' } };
+    await expect(submit(setup, 501)).rejects.toMatchObject({ code: 'MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS' });
+    await expect(submit({ balances: [personal(CHAIRMAN, '50.0000')] }, 100)).rejects.toMatchObject({ code: 'MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS' });
+  });
+});
+
+describe('Записка на расход по записи плана: проверка записи до цепи', () => {
+  // Контракт о реестре планов не знает: вторую записку по той же записи он
+  // примет, участок выделит деньги дважды, а совет получит два вопроса об одном
+  // расходе. Поэтому запись проверяет узел — до отправки в цепь.
+  const input = (planId: number) => ({ braname: BRANCH, expense_hash: 'e'.repeat(64), items: [], statement: {}, plan_id: planId }) as any;
+  const plan = (over: Record<string, unknown> = {}) => ({ id: 7, branchName: BRANCH, title: 'Аренда', amount: '50000.0000 RUB', dueDate: new Date(), proposalHash: null, paidAt: null, ...over });
+
+  function build(plans: unknown[]) {
+    const ctx = buildService({});
+    ctx.expenseChassis.listPlans.mockResolvedValue(plans);
+    jest.spyOn(ctx.service as any, 'verifyDocumentSignature').mockImplementation(() => undefined);
+    const submit = jest.spyOn(ctx.service as any, 'submitBranchExpense').mockResolvedValue('e'.repeat(64));
+    return { ...ctx, submit };
+  }
+
+  it('оплата по записи уже запущена — вторая записка в цепь не подаётся', async () => {
+    const { service, submit } = build([plan({ proposalHash: 'a'.repeat(64) })]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_ALREADY_STARTED' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('запись уже оплачена — записка в цепь не подаётся', async () => {
+    const { service, submit } = build([plan({ paidAt: new Date() })]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_ALREADY_STARTED' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('записи нет в реестре этого участка — отказ до цепи', async () => {
+    const { service, submit } = build([plan({ id: 8 }), plan({ id: 7, branchName: 'odn' })]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_NOT_FOUND' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('две подачи по одной записи одновременно: вторая отклоняется, пока первая в цепи; после первой запись снова проверяется по реестру', async () => {
+    const { service, submit } = build([plan()]);
+    let release: (hash: string) => void = () => undefined;
+    submit.mockImplementationOnce(() => new Promise<string>((resolve) => { release = resolve; }));
+    const first = service.createBranchExpense(COOP, CHAIRMAN, input(7));
+    // Первая подача дошла до цепи и ждёт ответа.
+    await new Promise((resolve) => setImmediate(resolve));
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PAYMENT_ALREADY_STARTED' });
+    release('e'.repeat(64));
+    await expect(first).resolves.toBe('e'.repeat(64));
+    expect(submit).toHaveBeenCalledTimes(1);
+    // Первая подача упала бы — запись освобождается, и подать можно заново.
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, input(7))).resolves.toBe('e'.repeat(64));
+  });
+
+  // Запись со способом оплаты (99D-35): записку собирает стол, но сервер сверяет
+  // её с записью — иначе по записи «электроэнергия» можно заплатить другому.
+  const orgPlan = plan({ recipientType: 'ORG', counterpartyId: 3, paymentPurpose: 'Оплата электроэнергии' });
+  const advancePlan = plan({ recipientType: 'MEMBER', recipient: 'petrov', paymentMethodId: 'm2' });
+  const orgItem = (over: Record<string, unknown> = {}) => ({
+    item_hash: 'f'.repeat(64), mechanics: 'DIRECT', recipient_type: 'ORG', recipient: '', description: 'Аренда',
+    planned_amount: '50000.0000 RUB', counterparty_id: 3, payment_purpose: 'Оплата электроэнергии', ...over,
+  });
+  const advanceItem = (over: Record<string, unknown> = {}) => ({
+    item_hash: 'f'.repeat(64), mechanics: 'ADVANCE', recipient_type: 'MEMBER', recipient: 'petrov', description: 'Аренда',
+    planned_amount: '50000.0000 RUB', payment_method_id: 'm2', ...over,
+  });
+  const withItems = (items: unknown[]) => ({ ...input(7), items });
+
+  it('записка совпадает с записью плана — подаётся (организация и аванс)', async () => {
+    const org = build([orgPlan]);
+    await expect(org.service.createBranchExpense(COOP, CHAIRMAN, withItems([orgItem()]))).resolves.toBe('e'.repeat(64));
+    const adv = build([advancePlan]);
+    await expect(adv.service.createBranchExpense(COOP, CHAIRMAN, withItems([advanceItem()]))).resolves.toBe('e'.repeat(64));
+  });
+
+  it.each([
+    ['planned_amount', orgItem({ planned_amount: '50000.0001 RUB' })],
+    ['recipient_type', advanceItem()],
+    ['counterparty_id', orgItem({ counterparty_id: 4 })],
+    ['payment_purpose', orgItem({ payment_purpose: 'Оплата чужого счёта' })],
+  ])('организация: расхождение в %s — отказ до цепи', async (field, item) => {
+    const { service, submit } = build([orgPlan]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([item]))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PROPOSAL_MISMATCH' });
+    expect(submit).not.toHaveBeenCalled();
+    expect(field).toBeTruthy();
+  });
+
+  it.each([
+    ['recipient', advanceItem({ recipient: 'sidorov' })],
+    ['payment_method_id', advanceItem({ payment_method_id: 'm9' })],
+  ])('аванс: расхождение в %s — отказ до цепи', async (_field, item) => {
+    const { service, submit } = build([advancePlan]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([item]))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PROPOSAL_MISMATCH' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('два пункта в записке по одной записи — отказ: запись — один платёж', async () => {
+    const { service, submit } = build([orgPlan]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([orgItem(), orgItem()]))).rejects.toMatchObject({ code: 'EXPENSES_PLAN_PROPOSAL_MISMATCH' });
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('запись до способов оплаты сверку пунктов не проходит — подаётся, как прежде', async () => {
+    const { service, submit } = build([plan()]);
+    await expect(service.createBranchExpense(COOP, CHAIRMAN, withItems([orgItem({ counterparty_id: 99 })]))).resolves.toBe('e'.repeat(64));
+    expect(submit).toHaveBeenCalledTimes(1);
+  });
+
+  it('записка без записи плана реестр не читает', async () => {
+    const { service, submit, expenseChassis } = build([]);
+    await service.createBranchExpense(COOP, CHAIRMAN, { ...input(7), plan_id: undefined });
+    expect(expenseChassis.listPlans).not.toHaveBeenCalled();
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 });

@@ -86,7 +86,8 @@ title: Выдача заказа на пункте выдачи — заявле
 # её возвраты и удержание при отказе остаются на счёте 80; на выдаче факт
 # обеспечительной части ложится на кошелёк пайщика к списанию w.mkt.due, а
 # членским взносом участка (Дт 80 / Кт 86) она становится только при списании
-# по условиям ЦПП первого числа месяца после гарантийного срока (chargedue).
+# по условиям ЦПП по окончании периода конца гарантийного срока (с 09.11.2026 —
+# chargeperiod по строке счётчика пайщика, задача 99D-33).
 # Членский кошелёк программы w.mkt.member и ожидание довнесения при
 # гарантийном возврате (feepend, payretfee) сняты. Случаи слайса,
 # описывавшие прежнюю модель, переписаны.
@@ -112,6 +113,9 @@ sources:
     - components/innercoop/src/cross-plugin-ports/soviet-robot.port.ts
   ui:
     - components/desktop/src/pages/Marketplace/OperatorIssuance/**
+    # Ход получения у пайщика (OnsiteSignatureGateOverlay) — холст на весь экран,
+    # колонка по центру у верха (слово владельца 08.11.2026): за маленьким окном
+    # мелькала обновляемая страница. Вёрстку проверяет владелец, сценария нет.
     - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/**
     - components/desktop/src/pages/Marketplace/OrdererReceiveCode/**
     - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**

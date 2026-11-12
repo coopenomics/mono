@@ -306,26 +306,27 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Оператор выдал имущество обратно после отказа совета или по истечении срока ожидания. */
   handBack(data: MarketContract.Actions.HandBack.IHandBack): Promise<InnerTransactResult>;
 
+  // ── Коэффициент экономического участия (задачи 99D-22, 99D-33; процесс p.mkt.due) ──
   /**
-   * Списание обеспечительной части паевого взноса в членский взнос участка по
-   * условиям ЦПП (задача 99D-18). Сумму и момент называет бэкенд по своему
-   * учёту; контракт держит потолок остатка кошелька пайщика к списанию.
+   * Расчёт итога периода участка (marketplace::closeperiod): стоимость заказов и
+   * обеспечительную часть контракт берёт из своего счётчика, узел передаёт факты
+   * о расходах — план, записки, выплаченную помощь.
    */
-  chargeDue(data: MarketContract.Actions.ChargeDue.IChargeDue): Promise<InnerTransactResult>;
-
-  // ── Коэффициент экономического участия (задача 99D-22) ──
-  /** Расчёт итога месяца участка по пяти фактам ИСТОКА (marketplace::closeperiod). */
   closePeriod(data: MarketContract.Actions.ClosePeriod.IClosePeriod): Promise<InnerTransactResult>;
   /** Стирание строки итога месяца из цепи (marketplace::delperiod). */
   deletePeriod(data: MarketContract.Actions.DelPeriod.IDelPeriod): Promise<InnerTransactResult>;
-  /** Списание обеспечительной части заказа по ставкам итога месяца (marketplace::chargeperiod). */
+  /** Списание строки счётчика пайщика за период по ставкам итога (marketplace::chargeperiod): суммы — из цепи. */
   chargePeriod(data: MarketContract.Actions.ChargePeriod.IChargePeriod): Promise<InnerTransactResult>;
+  /** Переходный перенос строки зеркала в счётчики списания (marketplace::migratedue); под потолком кошелька пайщика. */
+  migrateDue(data: MarketContract.Actions.MigrateDue.IMigrateDue): Promise<InnerTransactResult>;
   /** Доля инициатора участка в экономии месяца (marketplace::setshares). */
   setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult>;
   /** Инициатор участка; пустое имя снимает назначение (marketplace::setinitiator). */
   setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */
   setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult>;
+  /** Длина периода предела материальной помощи, секунд; ноль — календарный месяц UTC (стенд ставит длину своего месяца). */
+  setAidPeriod(data: BranchContract.Actions.SetAidPeriod.ISetaidperiod): Promise<InnerTransactResult>;
   /** Резерв получателя на участке (branch::setreserve). */
   setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult>;
   /** Снятие резерва получателя (branch::delreserve). */
@@ -379,6 +380,8 @@ export interface MarketplaceCanonicalBlockchainPort {
    * администратора (выплаченные и отклонённые строки цепь стирает).
    */
   listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+  /** Накопитель материальной помощи получателя за календарный месяц по UTC (branch::aidmonths); null — заявлений не было. */
+  getAidMonth(coopname: string, username: string): Promise<BranchContract.Tables.AidMonths.IBranchAidmonth | null>;
 
   /**
    * Кошелёк пайщика либо участка в ledger2 по имени кошелька (w.brn.person,
@@ -390,14 +393,57 @@ export interface MarketplaceCanonicalBlockchainPort {
   // ── Чтение таблиц коэффициента экономического участия (задача 99D-22) ──
   /** Итоги месяцев участка, которые ещё лежат в цепи (marketplace::kuperiods), — по индексу участка; строк не больше двух. */
   listBranchPeriods(coopname: string, braname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]>;
+  /** Итоги всех участков кооператива, которые ещё лежат в цепи, — не больше двух строк на участок. */
+  listAllBranchPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]>;
+  /**
+   * Счётчики участков за периоды списания (marketplace::kucounters) — все строки
+   * кооператива: по строке на участок и открытый период, стираются расчётом итога.
+   */
+  listDueCounters(coopname: string): Promise<MarketContract.Tables.Counters.IKuCounter[]>;
+  /** Счётчики пайщиков участка за все открытые периоды (marketplace::kudues) — по индексу участка. */
+  listBranchDues(coopname: string, braname: string): Promise<MarketContract.Tables.Dues.IKuDue[]>;
+  /** Счётчики пайщика по всем участкам (marketplace::kudues) — по индексу пайщика; единицы строк. */
+  listMemberDues(coopname: string, username: string): Promise<MarketContract.Tables.Dues.IKuDue[]>;
+  /** В цепи есть хоть одна строка счётчика пайщика — счётчики уже ведутся (переходный перенос не нужен). */
+  hasAnyDues(coopname: string): Promise<boolean>;
   /** Назначенный инициатор участка (marketplace::initiators) — по ключу участка; null — не назначен. */
   getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null>;
   /** Резерв социально-экономического обеспечения участка по получателям (branch::reserves) — по индексу участка. */
   listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
+  /** Строки резерва всех участков кооператива (branch::reserves): по строке на получателя, таблица не растёт с историей. */
+  listAllBranchReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
   /** Потолок резерва на получателя в месяц (branch::brnconfig); null — не задан. */
   getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null>;
   /** Фонды накопления кооператива с процентами и кошельками (fund::funds, вид `accum`). */
   listAccumulationFunds(coopname: string): Promise<FundContract.Tables.Funds.IFund[]>;
+
+  // ── Инвестиционный этап кооперативного участка (задача 99D-30) ──
+  /** Договор участия в хозяйственной деятельности (marketplace::signinvagr). */
+  signInvestAgreement(data: MarketContract.Actions.SignInvAgr.ISignInvAgr): Promise<InnerTransactResult>;
+  /** Паевой взнос деньгами: трансляция паевого взноса в договор участия (marketplace::investmoney). */
+  investMoney(data: MarketContract.Actions.InvestMoney.IInvestMoney): Promise<InnerTransactResult>;
+  /** Заявление о паевом взносе имуществом в участок (marketplace::createiprop). */
+  createInvestProperty(data: MarketContract.Actions.CreateIProp.ICreateIProp): Promise<InnerTransactResult>;
+  /** Одобрение заявления председателем участка и повестка совета (marketplace::approveiprop). */
+  approveInvestProperty(data: MarketContract.Actions.ApproveIProp.IApproveIProp): Promise<InnerTransactResult>;
+  /** Отказ председателя участка до совета (marketplace::declineiprop). */
+  declineInvestProperty(data: MarketContract.Actions.DeclineIProp.IDeclineIProp): Promise<InnerTransactResult>;
+  /** Акт приёма-передачи: подпись вносящего (marketplace::act1iprop). */
+  signInvestPropertyAct1(data: MarketContract.Actions.Act1IProp.IAct1IProp): Promise<InnerTransactResult>;
+  /** Трансляция возвращённого паевого взноса в главный паевой; сумму считает контракт (marketplace::claiminv). */
+  claimInvestment(data: MarketContract.Actions.ClaimInv.IClaimInv): Promise<InnerTransactResult>;
+  /** Договор пайщика с участком — по индексу «пайщик + участок»; null — не подписан. */
+  getInvestAgreement(coopname: string, username: string, braname: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null>;
+  /** Паевые взносы инициаторов участка и счётчик возврата — по первичному ключу; null — паевых взносов нет. */
+  getInvestBranch(coopname: string, braname: string): Promise<MarketContract.Tables.InvBranches.IMktInvBranch | null>;
+  /** Инициаторы участка — по индексу участка. */
+  listBranchInvestors(coopname: string, braname: string): Promise<MarketContract.Tables.Investors.IMktInvestor[]>;
+  /** Паевые взносы пайщика во все участки — по индексу пайщика. */
+  listUserInvestments(coopname: string, username: string): Promise<MarketContract.Tables.Investors.IMktInvestor[]>;
+  /** Заявления на имущество участка до второй подписи акта — по индексу участка. */
+  listBranchInvestProperties(coopname: string, braname: string): Promise<MarketContract.Tables.InvProps.IMktInvProp[]>;
+  /** Заявление на имущество по хэшу паевого взноса; null — нет (принято или отклонено). */
+  getInvestProperty(coopname: string, hash: string): Promise<MarketContract.Tables.InvProps.IMktInvProp | null>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');

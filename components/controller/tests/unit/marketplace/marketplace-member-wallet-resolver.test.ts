@@ -40,7 +40,7 @@ const member = {
 };
 
 describe('MarketplaceMemberWalletResolver', () => {
-  it('пайщик с записями share + mkt.order → массив из 4 кошельков, свободный паевой и членский нулевые', async () => {
+  it('пайщик с записями share + mkt.order → массив из 6 кошельков, свободный паевой и членский нулевые', async () => {
     const repo = makeRepo([
       { wallet_name: 'w.wal.share', available: '125.0000 RUB', blocked: '5.0000 RUB' },
       { wallet_name: 'w.mkt.order', available: '80.0000 RUB', blocked: '0.0000 RUB' },
@@ -55,7 +55,7 @@ describe('MarketplaceMemberWalletResolver', () => {
     expect(dto.username).toBe('alice');
     expect(dto.coopname).toBe('voskhod');
 
-    expect(dto.wallets).toHaveLength(5);
+    expect(dto.wallets).toHaveLength(6);
     expect(dto.wallets[0]).toMatchObject({
       name: 'w.wal.share',
       program_id: 1,
@@ -94,13 +94,13 @@ describe('MarketplaceMemberWalletResolver', () => {
     });
   });
 
-  it('пайщик без L3-записей вообще → 5 кошельков с 0/0 (а не NotFoundException)', async () => {
+  it('пайщик без L3-записей вообще → 6 кошельков с 0/0 (а не NotFoundException)', async () => {
     const repo = makeRepo([]);
     const resolver = new MarketplaceMemberWalletResolver(repo);
 
     const dto = await resolver.marketplaceMemberWallet(member as any);
 
-    expect(dto.wallets).toHaveLength(5);
+    expect(dto.wallets).toHaveLength(6);
     for (const w of dto.wallets) {
       expect(w.available).toBe('0');
       expect(w.blocked).toBe('0');
@@ -111,6 +111,8 @@ describe('MarketplaceMemberWalletResolver', () => {
       'w.mkt.share',
       'w.mkt.secure',
       'w.mkt.due',
+      // Паевой взнос инициатора в кооперативные участки (99D-30).
+      'w.mkt.invest',
     ]);
   });
 

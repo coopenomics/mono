@@ -16,8 +16,11 @@
     template(#cell-title='{ row }')
       .contrib-feed__title {{ row.title }}
       .contrib-feed__subject(v-if='row.subject') {{ row.subject }}
+    //- Состояние в строке — текстом цвета этапа, с переносом: длинный этап
+    //- («Акт на подписи у председателя») не раздувает колонку (слово владельца
+    //- 12.11.2026). В панели справа состояние остаётся бейджем.
     template(#cell-status='{ row }')
-      BaseBadge(:variant='row.status.variant') {{ row.status.label }}
+      .contrib-feed__status(:class='`contrib-feed__status--${row.status.variant}`') {{ row.status.label }}
     //- Ход за пайщиком — кнопка прямо в строке, без захода в панель.
     template(#cell-actions='{ row }')
       BaseButton(
@@ -126,8 +129,8 @@ const columns: BaseTableColumn<FeedItem>[] = [
   { key: 'date', label: t('capital.contributionsFeed.column.date'), field: (row) => formatDateToHumanDateTime(row.date), width: '180px', nowrap: true },
   { key: 'title', label: t('capital.contributionsFeed.column.contribution'), field: (row) => row.title },
   { key: 'amount', label: t('capital.contributionsFeed.column.amount'), field: (row) => formatAsset2Digits(row.amount), numeric: true, nowrap: true, width: '170px' },
-  { key: 'status', label: t('capital.contributionsFeed.column.status'), field: (row) => row.status.label, nowrap: true, width: '320px' },
-  { key: 'actions', label: '', field: () => '', nowrap: true, width: '170px', align: 'right' },
+  { key: 'status', label: t('capital.contributionsFeed.column.status'), field: (row) => row.status.label, width: '200px' },
+  { key: 'actions', label: '', field: () => '', nowrap: true, width: '150px', align: 'right' },
 ];
 
 const steps = computed<StepperStep[]>(() => [
@@ -238,6 +241,18 @@ defineExpose({ reload: () => live.refresh() });
   &__subject {
     font-size: var(--p-fs-body-sm);
     color: var(--p-ink-3);
+  }
+
+  &__status {
+    white-space: normal;
+    font-size: var(--p-fs-body-sm);
+    font-weight: 600;
+    color: var(--p-ink-2);
+
+    &--pos { color: var(--p-pos); }
+    &--neg { color: var(--p-neg); }
+    &--warn { color: var(--p-warn); }
+    &--info { color: var(--p-info); }
   }
 }
 

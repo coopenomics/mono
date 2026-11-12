@@ -80,13 +80,14 @@ BaseDialog(
                 @update:model-value='item.payment_method_id = null'
               )
 
-            BaseInput(
-              v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG',
-              v-model='item.recipient_name',
-              :label='$t("ui.expenseCreateDialog.recipientOrgNameLabel")',
-              :placeholder='$t("ui.expenseCreateDialog.recipientOrgNamePlaceholder")',
-              required
-            )
+            //- Организация — из реестра контрагентов: наименование и реквизиты
+            //- подставляются из карточки, нужного нет — «Добавить» в поле.
+            .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
+              ExpenseCounterpartySelect(
+                v-model='item.counterparty_id',
+                :braname='braname ?? null',
+                @selected='(cp) => onCounterparty(item, cp)'
+              )
 
             AmountInput(
               :model-value='amountAsNumber(item.amount)',
@@ -123,13 +124,6 @@ BaseDialog(
 
             .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
               BaseInput(
-                v-model='item.requisites',
-                :label='$t("ui.expenseCreateDialog.recipientDetailsLabel")',
-                :placeholder='$t("ui.expenseCreateDialog.recipientDetailsPlaceholder")',
-                required
-              )
-            .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
-              BaseInput(
                 v-model='item.payment_purpose',
                 :label='$t("ui.expenseCreateDialog.paymentPurposeLabel")',
                 :placeholder='$t("ui.expenseCreateDialog.paymentPurposePlaceholder")',
@@ -159,14 +153,19 @@ BaseDialog(
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { Mutations, Zeus } from '@coopenomics/sdk';
+import { Zeus } from '@coopenomics/sdk';
 import type { Registry } from '@coopenomics/docs-templates';
-import { client } from 'src/shared/api/client';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
+import {
+  formatStatementDeadline,
+  generateExpenseItemHash,
+  generateExpenseStatement,
+  type IGenerateExpenseStatementInput,
+} from 'src/shared/lib/expenses/statement';
 import { formatToAsset } from 'src/shared/lib/utils/formatToAsset';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -177,6 +176,8 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
+import { ExpenseCounterpartySelect } from 'src/shared/ui/domain/ExpenseCounterpartySelect';
+import type { ExpenseCounterpartyView } from 'src/shared/lib/expenses/counterparties';
 import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
 import type {
   ExpenseCreateDialogProps,
@@ -303,6 +304,21 @@ function mechanicsFor(recipientType: Zeus.ExpenseRecipientType): Zeus.ExpenseMec
     : Zeus.ExpenseMechanics.ADVANCE;
 }
 
+/**
+ * Контрагент выбран: наименование и реквизиты — из его карточки (их же сервер
+ * подставит в документ и сверит при подаче), назначение по умолчанию — если
+ * своё ещё не введено.
+ */
+function onCounterparty(item: ExpenseCreateDraftItem, cp: ExpenseCounterpartyView | null): void {
+  const previousDefault = item.counterparty_default_purpose ?? '';
+  item.recipient_name = cp?.name ?? '';
+  item.requisites = cp?.requisites_text ?? '';
+  item.counterparty_default_purpose = cp?.payment_purpose ?? '';
+  if (!item.payment_purpose?.trim() || item.payment_purpose === previousDefault) {
+    item.payment_purpose = cp?.payment_purpose ?? '';
+  }
+}
+
 function onRecipientTypeChange(item: ExpenseCreateDraftItem): void {
   item.payment_method_id = null;
   item.mechanics = mechanicsFor(item.recipient_type);
@@ -320,7 +336,7 @@ const canSubmit = computed(
         i.description.trim() &&
         (i.recipient_type !== Zeus.ExpenseRecipientType.MEMBER || i.recipient_account?.trim()) &&
         (i.recipient_type === Zeus.ExpenseRecipientType.ORG
-          ? Boolean(i.recipient_name?.trim() && i.requisites?.trim() && i.payment_purpose?.trim())
+          ? Boolean(i.counterparty_id && i.payment_purpose?.trim())
           : Boolean(i.payment_method_id)),
     ),
 );
@@ -337,6 +353,8 @@ function addItem(): void {
     payment_purpose: '',
     recipient_account: '',
     payment_method_id: null,
+    counterparty_id: null,
+    counterparty_default_purpose: '',
   });
 }
 
@@ -363,27 +381,6 @@ function resolveRecipient(item: ExpenseCreateDraftItem, creator: string): string
   return creator;
 }
 
-function generateItemHash(expenseHash: string, idx: number): string {
-  return `${expenseHash.slice(0, 56)}${idx.toString(16).padStart(8, '0')}`;
-}
-
-/** `YYYY-MM-DD` (date-input) → `DD.MM.YYYY` (документ). */
-/**
- * Срок исполнения обязателен: он попадает в текст служебной записки, и без
- * него совет рассматривал бы расход без указания, к какому сроку платить.
- * Пустое или неполное значение выводит документ в нечитаемый вид, поэтому
- * подача прерывается здесь, а не «доезжает» до документа.
- */
-function formatDeadline(value: string): string {
-  const [year, month, day] = value.split('-');
-  if (!year || !month || !day) {
-    throw new Error(t('ui.error.expenseDueDateRequired'));
-  }
-  return `${day}.${month}.${year}`;
-}
-
-type GenerateStatementInput =
-  Mutations.Expense.GenerateExpenseProposalStatementDocument.IInput['data'];
 
 async function submitForm(): Promise<void> {
   try {
@@ -411,13 +408,14 @@ async function submitForm(): Promise<void> {
       requisites: it.requisites ?? '',
       payment_purpose: it.payment_purpose || undefined,
       payment_method_id: it.payment_method_id ?? undefined,
+      counterparty_id: it.recipient_type === Zeus.ExpenseRecipientType.ORG ? it.counterparty_id ?? undefined : undefined,
       recipient_username:
         it.recipient_type === Zeus.ExpenseRecipientType.MEMBER
           ? it.recipient_account?.trim()
           : undefined,
     }));
 
-    const generateInput: GenerateStatementInput = {
+    const generateInput: IGenerateExpenseStatementInput = {
       coopname: system.info.coopname,
       username: session.username,
       proposal_hash: expense_hash,
@@ -426,16 +424,12 @@ async function submitForm(): Promise<void> {
         total_amount,
         items_count: form.items.length,
         source_wallet: props.sourceWallet,
-        deadline: formatDeadline(form.deadline),
+        deadline: formatStatementDeadline(form.deadline),
       },
       items: itemsForDoc,
     };
 
-    const { [Mutations.Expense.GenerateExpenseProposalStatementDocument.name]: generatedDoc } =
-      await client.Mutation(
-        Mutations.Expense.GenerateExpenseProposalStatementDocument.mutation,
-        { variables: { data: generateInput, options: { lang: 'ru' } } },
-      );
+    const generatedDoc = await generateExpenseStatement(generateInput);
 
     const digital = new DigitalDocument(generatedDoc);
     const signed = await digital.sign<Registry.ExpenseProposalStatement.Meta>(
@@ -444,7 +438,7 @@ async function submitForm(): Promise<void> {
     );
 
     const itemsForChain = form.items.map((it, idx) => ({
-      item_hash: it.item_hash ?? generateItemHash(expense_hash, idx),
+      item_hash: it.item_hash ?? generateExpenseItemHash(expense_hash, idx),
       mechanics: it.mechanics,
       recipient_type: it.recipient_type,
       recipient: resolveRecipient(it, session.username),
@@ -455,6 +449,7 @@ async function submitForm(): Promise<void> {
       description: it.description,
       planned_amount: formatToAsset(it.amount, assetSymbol, assetPrecision),
       payment_method_id: it.payment_method_id ?? undefined,
+      counterparty_id: it.recipient_type === Zeus.ExpenseRecipientType.ORG ? it.counterparty_id ?? undefined : undefined,
       requisites: it.requisites || undefined,
       payment_purpose: it.payment_purpose || undefined,
     }));

@@ -35,7 +35,7 @@ sources:
     - components/contracts/cpp/ledger2/src/migrate/migrate.cpp
     - components/contracts/cpp/soviet/p.sov.spend.standard.yaml
     - components/contracts/cpp/branch/src/aidconfirm.cpp
-    - components/contracts/cpp/marketplace/src/p.mkt.supply/closeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.due/closeperiod.cpp
   backend:
     - components/cooptypes/scripts/gen-from-cpp.ts
     - components/cooptypes/src/ledger2/wallets.generated.ts
@@ -54,6 +54,9 @@ sources:
     - components/desktop/extensions/reports/pages/WalletsPage/ui/CoopWalletsPage.vue
 
 cases:
+  # 07.11.2026 (99D-27): в общие реестры ledger2 добавлены кошельки и операции
+  # инвестиционного этапа Стола заказов (w.mkt.ipool, w.mkt.repay, o.mkt.inv…);
+  # кошельки и операции этой фичи не менялись, проверки сборки реестров зелёные.
   # ── Уровень контракта ─────────────────────────────────────────────────────
 
   - id: fnd.wal.happy.01

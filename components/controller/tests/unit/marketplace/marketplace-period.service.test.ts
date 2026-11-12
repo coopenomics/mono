@@ -13,6 +13,7 @@ jest.mock('@coopenomics/extension-kit', () => {
   };
 });
 
+import { MarketplacePeriodInvestPhase } from '~/extensions/marketplace/domain/entities/marketplace-branch-period.types';
 import { MarketplacePeriodService } from '~/extensions/marketplace/application/services/marketplace-period.service';
 import { useRealCalendar } from './helpers/real-calendar';
 
@@ -39,13 +40,18 @@ function memoryStore() {
     Object.entries(where).every(([k, v]) => {
       if (v && typeof v === 'object' && 'operator' in v) {
         if (v.operator === 'is null') return row[k] == null;
+        if (v.operator === '<') return row[k] < v.value;
         return true;
       }
       return row[k] === v;
     });
   return {
     rows,
-    findOne: jest.fn(async (where: any) => [...rows.values()].find((r) => matches(r, where)) ?? null),
+    findOne: jest.fn(async (where: any, options: any = {}) => {
+      let list = [...rows.values()].filter((r) => matches(r, where));
+      if (options.order?.period === 'DESC') list = list.sort((a, b) => b.period - a.period);
+      return list[0] ?? null;
+    }),
     find: jest.fn(async (where: any) => [...rows.values()].filter((r) => matches(r, where))),
     findAndCount: jest.fn(async (where: any, options: any = {}) => {
       let list = [...rows.values()].filter((r) => matches(r, where));
@@ -96,6 +102,9 @@ function build(opts: {
   plans?: any[];
   history?: any[];
   aidPaid?: string;
+  /** Хэши выплаченных заявлений, оплаченных средствами инициаторов (в нитке есть o.mkt.ipool). */
+  poolAids?: string[];
+  reserves?: any[];
   chainRows?: any[];
   closeError?: Error;
   deleteError?: Error;
@@ -103,6 +112,8 @@ function build(opts: {
   const store = memoryStore();
   const chainRows = opts.chainRows ?? [chainRow()];
   const chainPort = {
+    // Паевых взносов инициаторов у участка нет (задача 99D-30): фаза итога — NONE.
+    getInvestBranch: jest.fn(async () => null),
     closePeriod: jest.fn(async () => {
       if (opts.closeError) throw opts.closeError;
       return {};
@@ -116,10 +127,23 @@ function build(opts: {
   };
   const expenseChassis = { listPlans: jest.fn(async () => opts.plans ?? []) };
   const ledger2History = {
-    getHistory: jest.fn(async () => ({ items: opts.history ?? [], totalCount: (opts.history ?? []).length, totalPages: 1, currentPage: 1 })),
+    getHistory: jest.fn(async (query: any) => {
+      // Нитка заявления на помощь: выделение из средств инициаторов — по списку poolAids.
+      if (query.processHash) {
+        const items = (opts.poolAids ?? []).includes(query.processHash) ? [{ globalSequence: '9', action: 'apply', operationCode: 'o.mkt.ipool', processHash: query.processHash, quantity: '1.0000 RUB' }] : [];
+        return { items, totalCount: items.length, totalPages: 1, currentPage: 1 };
+      }
+      return { items: opts.history ?? [], totalCount: (opts.history ?? []).length, totalPages: 1, currentPage: 1 };
+    }),
   };
   const economy = { assetToUnits: (v: string) => toUnits(v), unitsToAsset: (u: bigint) => toAsset(u) };
-  const aidMirror = { paidWithin: jest.fn(async () => toUnits(opts.aidPaid ?? '0')) };
+  const aidMirror = {
+    // Выплаченная помощь участка за месяц: одно заявление на всю сумму, хэш a1.
+    paidRowsWithin: jest.fn(async () => (opts.aidPaid ? [{ hash: 'a1', amount: toUnits(opts.aidPaid) }] : [])),
+  };
+  (chainPort as any).listBranchReserves = jest.fn(async () => opts.reserves ?? []);
+  (chainPort as any).listAllBranchPeriods = jest.fn(async () => chainRows);
+  (chainPort as any).listAllBranchReserves = jest.fn(async () => opts.reserves ?? []);
   const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn(), log: jest.fn(), debug: jest.fn() };
   const service = new MarketplacePeriodService(
     store as never,
@@ -137,27 +161,32 @@ describe('mkt.order.keu.11 — факты месяца', () => {
   const inNov = new Date('2026-11-15T10:00:00.000Z');
   const inOct = new Date('2026-10-15T10:00:00.000Z');
 
-  it('плановые расходы: записи участка со сроком внутри месяца, оплаченные и нет; чужой участок, без участка и другой месяц — нет', async () => {
+  it('mkt.order.keu.19 — цель плановых расходов: неоплаченные и не запущенные в оплату записи участка со сроком до конца следующего месяца, включая просроченные', async () => {
+    const inDec = new Date('2026-12-20T10:00:00.000Z');
+    const inJan = new Date('2027-01-10T10:00:00.000Z');
     const { service, aidMirror, ledger2History } = build({
       plans: [
-        { id: 1, branchName: BRANAME, title: 'Аренда', amount: '150000.0000 RUB', dueDate: inNov, proposalHash: null, paidAt: null },
-        { id: 2, branchName: BRANAME, title: 'Транспорт', amount: '50000.0000 RUB', dueDate: inNov, proposalHash: 'p1', paidAt: inNov },
-        { id: 3, branchName: BRANAME, title: 'Октябрь', amount: '999.0000 RUB', dueDate: inOct, proposalHash: null, paidAt: null },
-        { id: 4, branchName: 'msk', title: 'Чужой', amount: '999.0000 RUB', dueDate: inNov, proposalHash: null, paidAt: null },
-        { id: 5, branchName: null, title: 'Кооператив', amount: '999.0000 RUB', dueDate: inNov, proposalHash: null, paidAt: null },
-        { id: 6, branchName: BRANAME, title: 'Без срока', amount: '999.0000 RUB', dueDate: null, proposalHash: null, paidAt: null },
+        { id: 1, branchName: BRANAME, title: 'Аренда ноября', amount: '150000.0000 RUB', dueDate: inNov, proposalHash: null, paidAt: null },
+        { id: 2, branchName: BRANAME, title: 'Аренда декабря', amount: '150000.0000 RUB', dueDate: inDec, proposalHash: null, paidAt: null },
+        { id: 3, branchName: BRANAME, title: 'Просрочено', amount: '10000.0000 RUB', dueDate: inOct, proposalHash: null, paidAt: null },
+        { id: 4, branchName: BRANAME, title: 'Оплата запущена', amount: '999.0000 RUB', dueDate: inDec, proposalHash: 'p1', paidAt: null },
+        { id: 5, branchName: BRANAME, title: 'Оплачено', amount: '999.0000 RUB', dueDate: inDec, proposalHash: 'p2', paidAt: inNov },
+        { id: 6, branchName: BRANAME, title: 'Январь', amount: '999.0000 RUB', dueDate: inJan, proposalHash: null, paidAt: null },
+        { id: 7, branchName: 'msk', title: 'Чужой', amount: '999.0000 RUB', dueDate: inDec, proposalHash: null, paidAt: null },
+        { id: 8, branchName: BRANAME, title: 'Без срока', amount: '999.0000 RUB', dueDate: null, proposalHash: null, paidAt: null },
       ],
     });
     const facts = await service.collectFacts(COOP, BRANAME, NOVEMBER);
-    expect(facts.planned).toBe(toUnits('200000.0000'));
-    // Границы месяца по Москве передаются в запросы помощи и истории.
-    const [, , from, to] = aidMirror.paidWithin.mock.calls[0] as unknown as [string, string, Date, Date];
-    expect(from.toISOString()).toBe('2026-10-31T21:00:00.000Z');
-    expect(to.toISOString()).toBe('2026-11-30T21:00:00.000Z');
+    expect(facts.plannedTarget).toBe(toUnits('310000.0000'));
+    // Границы ноября по UTC, как у контракта, передаются в запросы помощи и истории;
+    // пояс кооператива (в тесте — Москва) на них не влияет (решение владельца 11.11.2026).
+    const [, , from, to] = aidMirror.paidRowsWithin.mock.calls[0] as unknown as [string, string, Date, Date];
+    expect(from.toISOString()).toBe('2026-11-01T00:00:00.000Z');
+    expect(to.toISOString()).toBe('2026-12-01T00:00:00.000Z');
     expect(ledger2History.getHistory).toHaveBeenCalledWith(expect.objectContaining({ coopname: COOP, username: BRANAME, operationCodes: ['o.brn.expfnd', 'o.brn.expunf'], dateFrom: from, dateTo: to }));
   });
 
-  it('служебные записки: выделено минус возвращено, записки по плану не удваивают планы, ниже нуля не бывает', async () => {
+  it('mkt.order.keu.19 — траты общего кошелька: записки по плану — оплачено по плану, прочие — сверх плана, выделено минус возвращено, ниже нуля не бывает', async () => {
     const { service } = build({
       plans: [{ id: 2, branchName: BRANAME, title: 'Транспорт', amount: '50000.0000 RUB', dueDate: inNov, proposalHash: 'P1', paidAt: inNov }],
       history: [
@@ -167,31 +196,77 @@ describe('mkt.order.keu.11 — факты месяца', () => {
       ],
     });
     const facts = await service.collectFacts(COOP, BRANAME, NOVEMBER);
-    expect(facts.memos).toBe(toUnits('50000.0000'));
     expect(facts.planned).toBe(toUnits('50000.0000'));
+    expect(facts.memos).toBe(toUnits('50000.0000'));
 
     const onlyRefund = build({ history: [{ globalSequence: '1', action: 'apply', operationCode: 'o.brn.expunf', processHash: 'x', quantity: '10.0000 RUB' }] });
     expect((await onlyRefund.service.collectFacts(COOP, BRANAME, NOVEMBER)).memos).toBe(0n);
+
+    // Возврат неизрасходованного по записке плана пришёл в месяц после выделения:
+    // сумма по плану меньше нуля и вычитается из записок сверх плана — траты месяца считаются вместе.
+    const lateRefund = build({
+      plans: [{ id: 2, branchName: BRANAME, title: 'Транспорт', amount: '50000.0000 RUB', dueDate: inNov, proposalHash: 'P1', paidAt: inNov }],
+      history: [
+        { globalSequence: '1', action: 'apply', operationCode: 'o.brn.expunf', processHash: 'p1', quantity: '30000.0000 RUB' },
+        { globalSequence: '2', action: 'apply', operationCode: 'o.brn.expfnd', processHash: 'm1', quantity: '70000.0000 RUB' },
+      ],
+    });
+    const late = await lateRefund.service.collectFacts(COOP, BRANAME, NOVEMBER);
+    expect(late.planned).toBe(0n);
+    expect(late.memos).toBe(toUnits('40000.0000'));
   });
 
-  it('материальная помощь берётся из зеркала заявлений за месяц', async () => {
-    const { service } = build({ aidPaid: '250000.0000' });
-    expect((await service.collectFacts(COOP, BRANAME, NOVEMBER)).aidPaid).toBe(toUnits('250000.0000'));
+  it('mkt.order.keu.19 — помощь за месяц: с персонального кошелька — в тратах; оплаченная средствами инициаторов — нет', async () => {
+    const own = build({ aidPaid: '250000.0000' });
+    expect((await own.service.collectFacts(COOP, BRANAME, NOVEMBER)).aidPaid).toBe(toUnits('250000.0000'));
+    const pool = build({ aidPaid: '250000.0000', poolAids: ['a1'] });
+    expect((await pool.service.collectFacts(COOP, BRANAME, NOVEMBER)).aidPaid).toBe(0n);
+  });
+
+  it('mkt.order.keu.18 — распределено участком и получено пайщиком за месяц: сумма операций своего кода по своему пайщику в границах месяца', async () => {
+    const { service, ledger2History } = build({
+      history: [
+        { globalSequence: '1', action: 'apply', operationCode: 'o.brn.release', processHash: 'd1', quantity: '300.0000 RUB' },
+        { globalSequence: '2', action: 'apply', operationCode: 'o.brn.release', processHash: 'd2', quantity: '200.5000 RUB' },
+      ],
+    });
+    const bounds = service.boundsOf(NOVEMBER);
+    expect(await service.distributedWithin(COOP, BRANAME, bounds)).toBe(toUnits('500.5000'));
+    expect(ledger2History.getHistory).toHaveBeenLastCalledWith(expect.objectContaining({ coopname: COOP, username: BRANAME, operationCodes: ['o.brn.release'], dateFrom: bounds.start, dateTo: bounds.end }));
+
+    await service.receivedWithin(COOP, 'ivanov', bounds);
+    expect(ledger2History.getHistory).toHaveBeenLastCalledWith(expect.objectContaining({ coopname: COOP, username: 'ivanov', operationCodes: ['o.brn.person'], dateFrom: bounds.start, dateTo: bounds.end }));
+
+    const empty = build();
+    expect(await empty.service.receivedWithin(COOP, 'ivanov', bounds)).toBe(0n);
+  });
+
+  it('mkt.order.keu.18 — сумма за месяц читается до последней страницы истории', async () => {
+    const { service, ledger2History } = build();
+    (ledger2History.getHistory as jest.Mock).mockImplementation(async (query: { page: number }) => ({
+      items: [{ globalSequence: String(query.page), action: 'apply', operationCode: 'o.brn.release', processHash: `d${query.page}`, quantity: '1.0000 RUB' }],
+      totalCount: 3,
+      totalPages: 3,
+      currentPage: query.page,
+    }));
+    expect(await service.distributedWithin(COOP, BRANAME, service.boundsOf(NOVEMBER))).toBe(toUnits('3.0000'));
+    expect(ledger2History.getHistory).toHaveBeenCalledTimes(3);
   });
 });
 
 describe('mkt.order.keu.11 — расчёт контрактом и зеркало', () => {
-  it('ensureClosed передаёт пять фактов активами, читает строку цепи и зеркалирует её с числом строк прогона', async () => {
+  it('ensureClosed передаёт факты о расходах и цель плановых расходов активами — без стоимости и собранного, читает строку цепи и зеркалирует её с числом строк', async () => {
     const { service, chainPort, store } = build({
       plans: [{ id: 1, branchName: BRANAME, title: 'Аренда', amount: '200000.0000 RUB', dueDate: new Date('2026-11-15T10:00:00.000Z'), proposalHash: null, paidAt: null }],
       history: [{ globalSequence: '2', action: 'apply', operationCode: 'o.brn.expfnd', processHash: 'm1', quantity: '50000.0000 RUB' }],
       aidPaid: '250000.0000',
     });
-    const row = await service.ensureClosed(COOP, BRANAME, NOVEMBER, toUnits('3000000.0000'), toUnits('1140000.0000'), 2);
+    const row = await service.ensureClosed(COOP, BRANAME, NOVEMBER, 2);
+    // Стоимость заказов и собранная обеспечительная часть — из счётчика участка в цепи (задача 99D-33).
+    // Аренда со сроком в ноябре не оплачена и не запущена — она в цели на следующий месяц.
     expect(chainPort.closePeriod).toHaveBeenCalledWith({
       coopname: COOP, braname: BRANAME, period: NOVEMBER,
-      turnover: '3000000.0000 RUB', secured: '1140000.0000 RUB',
-      planned: '200000.0000 RUB', memos: '50000.0000 RUB', aid_paid: '250000.0000 RUB',
+      planned: '0.0000 RUB', memos: '50000.0000 RUB', aid_paid: '250000.0000 RUB', planned_target: '200000.0000 RUB',
     });
     expect(row).toMatchObject({
       braname: BRANAME, period: NOVEMBER, membership: '632911.3924', funds_amount: '132911.3924', branch_amount: '500000.0000',
@@ -204,23 +279,23 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('повтор в том же месяце: зеркало есть — контракт не зовётся', async () => {
     const { service, chainPort } = build();
-    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1);
-    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1);
+    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1);
+    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1);
     expect(chainPort.closePeriod).toHaveBeenCalledTimes(1);
   });
 
   it('контракт отвечает MARKETPLACE_PERIOD_EXISTS — строка читается из цепи и зеркалируется; другой отказ — наверх', async () => {
     const tolerant = build({ closeError: new Error('MARKETPLACE_PERIOD_EXISTS: Итог участка за период уже рассчитан') });
-    const row = await tolerant.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 3);
+    const row = await tolerant.service.ensureClosed(COOP, BRANAME, NOVEMBER, 3);
     expect(row.membership).toBe('632911.3924');
 
-    const failing = build({ closeError: new Error('MARKETPLACE_PERIOD_AMOUNT_INVALID: ноль') });
-    await expect(failing.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 3)).rejects.toThrow(/MARKETPLACE_PERIOD_AMOUNT_INVALID/);
+    const failing = build({ closeError: new Error('MARKETPLACE_PERIOD_EMPTY: за период нет заказов') });
+    await expect(failing.service.ensureClosed(COOP, BRANAME, NOVEMBER, 3)).rejects.toThrow(/MARKETPLACE_PERIOD_EMPTY/);
   });
 
   it('строки в цепи нет после расчёта — ошибка с именем участка и периода', async () => {
     const { service } = build({ chainRows: [] });
-    await expect(service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 1)).rejects.toMatchObject({
+    await expect(service.ensureClosed(COOP, BRANAME, NOVEMBER, 1)).rejects.toMatchObject({
       code: 'MARKETPLACE_PERIOD_NOT_IN_CHAIN',
       params: { braname: BRANAME, period: NOVEMBER },
     });
@@ -228,7 +303,7 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('итог прежнего прохода: зеркало есть — цепь не читается; зеркала нет — строка цепи участка зеркалируется с числом строк прогона; нет нигде — null', async () => {
     const mirrored = build();
-    await mirrored.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 2);
+    await mirrored.service.ensureClosed(COOP, BRANAME, NOVEMBER, 2);
     mirrored.chainPort.listBranchPeriods.mockClear();
     expect(await mirrored.service.adoptClosed(COOP, BRANAME, NOVEMBER, 9)).toMatchObject({ period: NOVEMBER, rows_total: 2 });
     expect(mirrored.chainPort.listBranchPeriods).not.toHaveBeenCalled();
@@ -263,22 +338,73 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
 
   it('noteCharged увеличивает число списанных строк', async () => {
     const { service, store } = build();
-    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 1n, 1n, 2);
+    await service.ensureClosed(COOP, BRANAME, NOVEMBER, 2);
     await service.noteCharged(COOP, BRANAME, NOVEMBER, 1);
     await service.noteCharged(COOP, BRANAME, NOVEMBER, 1);
     expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER}`)?.rows_charged).toBe(2);
   });
 });
 
+describe('mkt.order.keu.19 — итог месяца без выданных заказов и собранная часть цели', () => {
+  it('зеркало переносит поля цели резерва; у строки до 99D-34 их нет — колонки пустые', async () => {
+    const byTarget = build({ chainRows: [chainRow({ planned_target: '50000.0000 RUB', target: '150000.0000 RUB', target_prev: '20000.0000 RUB', target_funded: '120000.0000 RUB' })] });
+    const row = await byTarget.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1);
+    expect(row).toMatchObject({ planned_target: '50000.0000', target: '150000.0000', target_prev: '20000.0000', target_funded: '120000.0000' });
+    const legacy = build();
+    expect(await legacy.service.ensureClosed(COOP, BRANAME, NOVEMBER, 1)).toMatchObject({ planned_target: null, target: null, target_prev: null, target_funded: null });
+  });
+
+  it('собранная часть цели прошлого итога: последний итог раньше периода; итог до 99D-34 — его резерв помощи; итогов нет — ноль', async () => {
+    const { service, store } = build();
+    expect(await service.fundedBefore(COOP, BRANAME, NOVEMBER)).toBe(0n);
+    await store.insert({ coopname: COOP, braname: BRANAME, period: NOVEMBER - 2, aid_reserve: '300000.0000', target_funded: null });
+    expect(await service.fundedBefore(COOP, BRANAME, NOVEMBER)).toBe(toUnits('300000.0000'));
+    await store.insert({ coopname: COOP, braname: BRANAME, period: NOVEMBER - 1, aid_reserve: '100000.0000', target_funded: '40000.0000' });
+    expect(await service.fundedBefore(COOP, BRANAME, NOVEMBER)).toBe(toUnits('40000.0000'));
+    // Итог того же периода не берётся: нужен прошлый.
+    await store.insert({ coopname: COOP, braname: BRANAME, period: NOVEMBER, aid_reserve: '1.0000', target_funded: '1.0000' });
+    expect(await service.fundedBefore(COOP, BRANAME, NOVEMBER)).toBe(toUnits('40000.0000'));
+  });
+
+  it('месяц без заказов: нечего нести — строки нет, контракт не зовётся; есть резерв помощи, цель или собранное прошлым итогом — итог считается', async () => {
+    const idle = build({ chainRows: [] });
+    expect(await idle.service.ensureQuietClosed(COOP, BRANAME, NOVEMBER)).toBeNull();
+    expect(idle.chainPort.closePeriod).not.toHaveBeenCalled();
+
+    const withReserve = build({ reserves: [{ braname: BRANAME, username: 'chairkrg', amount: '100000.0000 RUB' }] });
+    expect(await withReserve.service.ensureQuietClosed(COOP, BRANAME, NOVEMBER)).not.toBeNull();
+    expect(withReserve.chainPort.closePeriod).toHaveBeenCalledWith(expect.objectContaining({ period: NOVEMBER, planned_target: '0.0000 RUB' }));
+
+    const withPlan = build({ plans: [{ id: 1, branchName: BRANAME, title: 'Аренда', amount: '50000.0000 RUB', dueDate: new Date('2026-12-05T10:00:00.000Z'), proposalHash: null, paidAt: null }] });
+    expect(await withPlan.service.ensureQuietClosed(COOP, BRANAME, NOVEMBER)).not.toBeNull();
+    expect(withPlan.chainPort.closePeriod).toHaveBeenCalledWith(expect.objectContaining({ planned_target: '50000.0000 RUB' }));
+
+    const carried = build();
+    await carried.store.insert({ coopname: COOP, braname: BRANAME, period: NOVEMBER - 1, aid_reserve: '0.0000', target_funded: '30000.0000' });
+    expect(await carried.service.ensureQuietClosed(COOP, BRANAME, NOVEMBER)).not.toBeNull();
+  });
+
+  it('участки для итога без заказов: со строками итога в цепи, со строками резерва и с записями реестра планов, без повторов', async () => {
+    const { service } = build({
+      chainRows: [chainRow({ braname: 'krg' })],
+      reserves: [{ braname: 'odn', username: 'u1', amount: '1.0000 RUB' }, { braname: 'krg', username: 'u2', amount: '1.0000 RUB' }],
+      plans: [{ id: 1, branchName: 'msk', title: 'Аренда', amount: '1.0000 RUB', dueDate: null, proposalHash: null, paidAt: null }, { id: 2, branchName: null, title: 'Кооператив', amount: '1.0000 RUB', dueDate: null, proposalHash: null, paidAt: null }],
+    });
+    expect(await service.quietCandidates(COOP)).toEqual(['krg', 'msk', 'odn']);
+  });
+});
+
 describe('mkt.order.keu.11 — стирание старых строк и чтение', () => {
-  it('pruneOld стирает из цепи строки старше прошлого месяца и отмечает их; текущий и прошлый остаются', async () => {
+  it('pruneOld стирает из цепи строки старше прошлого месяца и отмечает их; текущий, прошлый и период с несписанными строками остаются', async () => {
     const { service, chainPort, store } = build();
-    for (const period of [NOVEMBER - 3, NOVEMBER - 2, NOVEMBER - 1]) {
+    for (const period of [NOVEMBER - 4, NOVEMBER - 3, NOVEMBER - 2, NOVEMBER - 1]) {
       await store.insert({ coopname: COOP, braname: BRANAME, period, deleted_at: null, rows_total: 1, rows_charged: 1 });
     }
-    await service.pruneOld(COOP, BRANAME, NOVEMBER);
-    expect(chainPort.deletePeriod.mock.calls.map((c: any[]) => c[0].period).sort()).toEqual([NOVEMBER - 3, NOVEMBER - 2]);
-    expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 3}`)?.deleted_at).not.toBeNull();
+    // За период NOVEMBER − 3 в цепи ещё есть строка счётчика пайщика: его ставки нужны для её списания (задача 99D-33).
+    await service.pruneOld(COOP, BRANAME, NOVEMBER, new Set([NOVEMBER - 3]));
+    expect(chainPort.deletePeriod.mock.calls.map((c: any[]) => c[0].period).sort()).toEqual([NOVEMBER - 4, NOVEMBER - 2]);
+    expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 4}`)?.deleted_at).not.toBeNull();
+    expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 3}`)?.deleted_at).toBeNull();
     expect(store.rows.get(`${COOP}/${BRANAME}/${NOVEMBER - 1}`)?.deleted_at).toBeNull();
   });
 
@@ -304,6 +430,41 @@ describe('mkt.order.keu.11 — стирание старых строк и чт�
     expect(page.items.map((r) => r.period)).toEqual([NOVEMBER, NOVEMBER - 1]);
     expect(page.totalCount).toBe(3);
     expect(page.totalPages).toBe(2);
+  });
+
+  it('mkt.order.invest.istok.07 — фаза паевых взносов фиксируется при первом зеркале итога: нет паевых взносов, дефицит, возмещение, участку; повтор зеркала её не переписывает', async () => {
+    const branch = (over: Record<string, unknown> = {}) => ({
+      braname: BRANAME,
+      money_total: '0.0000 RUB',
+      property_total: '1000000.0000 RUB',
+      unused_total: '0.0000 RUB',
+      reserved: '0.0000 RUB',
+      base: '10000000000',
+      acc: '0',
+      s_join: '0',
+      s_fixed: '0',
+      ...over,
+    });
+    const phaseWith = async (row: unknown, deficit = '0.0000 RUB') => {
+      const { service, chainPort } = build();
+      chainPort.getInvestBranch.mockResolvedValue(row as never);
+      const mirrored = await service.mirror(COOP, chainRow({ deficit }) as never, 3);
+      return { mirrored, service, chainPort };
+    };
+    expect((await phaseWith(null)).mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.NONE);
+    expect((await phaseWith(branch(), '1000.0000 RUB')).mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.DEFICIT);
+    expect((await phaseWith(branch())).mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.REPAYING);
+    const { mirrored, service, chainPort } = await phaseWith(branch({ base: '0' }));
+    expect(mirrored.invest_phase).toBe(MarketplacePeriodInvestPhase.BRANCH);
+    expect(mirrored.investor_repaid).toBe('0.0000');
+
+    // Возмещение за прогон растёт по строкам; фаза — история месяца.
+    await service.noteCharged(COOP, BRANAME, NOVEMBER, 1, 15_000_000n);
+    await service.noteCharged(COOP, BRANAME, NOVEMBER, 1, 5_000_000n);
+    chainPort.getInvestBranch.mockResolvedValue(branch() as never);
+    const again = await service.mirror(COOP, chainRow() as never, 3);
+    expect(again.invest_phase).toBe(MarketplacePeriodInvestPhase.BRANCH);
+    expect(again.investor_repaid).toBe('2000.0000');
   });
 
   it('ratePercentOf: сумма трёх ставок в процентах с двумя знаками, округление половины вверх', () => {

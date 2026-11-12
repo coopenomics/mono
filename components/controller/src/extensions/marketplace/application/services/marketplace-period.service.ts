@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { MarketContract } from 'cooptypes';
+import { MarketContract } from 'cooptypes';
 import {
   EXPENSE_CHASSIS_PORT,
   LEDGER2_HISTORY_PORT,
@@ -8,16 +8,18 @@ import {
   type ILedger2HistoryPort,
   type ILoggerPort,
 } from '@coopenomics/innercoop';
-import { DomainError, TableStore, chainErrorCode, isNull, platformSettings, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
+import { DomainError, TableStore, chainErrorCode, isNull, lessThan, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { MARKETPLACE_BRANCH_PERIOD_STORE } from '../../infrastructure/database/marketplace-stores';
 import { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplaceBranchAidMirrorService } from './marketplace-branch-aid-mirror.service';
-import { periodBounds, type PeriodBounds } from '../shared/period-bounds';
+import { PERIOD_TIME_ZONE, periodBounds, periodKeyOf, type PeriodBounds } from '../shared/period-bounds';
+import { plannedTargetUnits } from '../shared/planned-target.util';
 
 /** Отказы контракта, которые для прогона — норма, а не сбой. */
 const PERIOD_EXISTS = 'MARKETPLACE_PERIOD_EXISTS';
@@ -26,21 +28,42 @@ const PERIOD_NOT_CLOSED = 'MARKETPLACE_PERIOD_NOT_CLOSED';
 /** Операции служебных записок участка по общему кошельку: выделение под расход и возврат неизрасходованного. */
 const MEMO_FUND_CODE = 'o.brn.expfnd';
 const MEMO_UNFUND_CODE = 'o.brn.expunf';
+/**
+ * Выделение из средств инициаторов участка (задача 99D-30) — под служебную
+ * записку и под материальную помощь. С задачи 99D-34 траты из средств
+ * инициаторов в расходы участка не входят: по этой операции в нитке
+ * заявления узел узнаёт, что помощь оплачена ими.
+ */
+const POOL_FUND_CODE = 'o.mkt.ipool';
 
 /** Сколько операций по общему кошельку участка читается за страницу истории; страницы читаются до последней. */
 const HISTORY_PAGE = 200;
 
+/**
+ * Распределение участка: изъятие из общего кошелька под распределение
+ * (`o.brn.release`, пайщик операции — участок) и зачисление доверенному на
+ * персональный кошелёк (`o.brn.person`, пайщик операции — доверенный).
+ */
+const RELEASE_CODE = 'o.brn.release';
+const PERSON_CODE = 'o.brn.person';
+
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1 000 000) = 100 %. */
 const HUNDR_PERCENTS = 1_000_000n;
 
-/** Факты закончившегося месяца, которые ИСТОК передаёт контракту. */
+/**
+ * Факты закончившегося месяца, которые ИСТОК передаёт контракту (задача 99D-34:
+ * расходы по цели резерва). Траты — только из денег участка: средства
+ * инициаторов возмещает компенсация инициаторам.
+ */
 export interface MarketplacePeriodFacts {
-  /** ПР — плановые расходы участка со сроком внутри месяца. */
+  /** ПО — оплачено по плану с общего кошелька участка за месяц. */
   planned: bigint;
-  /** СЗ — служебные записки участка сверх плана за месяц. */
+  /** СЗ — служебные записки сверх плана с общего кошелька участка за месяц. */
   memos: bigint;
-  /** МП — материальная помощь участка, выплаченная за месяц. */
+  /** МП — материальная помощь участка с персонального кошелька, выплаченная за месяц. */
   aidPaid: bigint;
+  /** ЦП — цель плановых расходов: неоплаченные записи со сроком до конца следующего месяца. */
+  plannedTarget: bigint;
 }
 
 /**
@@ -77,34 +100,46 @@ export class MarketplacePeriodService {
     this.logger.setContext(MarketplacePeriodService.name);
   }
 
-  /** Границы месяца по его номеру в часовом поясе кооператива. */
+  /** Границы месяца по его номеру — по UTC, как у контракта. */
   boundsOf(period: number): PeriodBounds {
-    return periodBounds(period, platformSettings().timezone || 'UTC');
+    return periodBounds(period, PERIOD_TIME_ZONE);
   }
 
   // ── Факты месяца ──────────────────────────────────────────────────────
 
   async collectFacts(coopname: string, braname: string, period: number): Promise<MarketplacePeriodFacts> {
     const bounds = this.boundsOf(period);
-    const [plans, aidPaid] = await Promise.all([
+    const next = this.boundsOf(period + 1);
+    const [plans, paidAids] = await Promise.all([
       this.expenseChassis.listPlans(coopname, braname),
-      this.aidMirror.paidWithin(coopname, braname, bounds.start, bounds.end),
+      this.aidMirror.paidRowsWithin(coopname, braname, bounds.start, bounds.end),
     ]);
-    const planned = plans
-      .filter((p) => p.branchName === braname && p.dueDate && p.dueDate >= bounds.start && p.dueDate < bounds.end)
-      .reduce((sum, p) => sum + this.economyService.assetToUnits(p.amount), 0n);
     const planHashes = new Set(plans.map((p) => p.proposalHash?.toLowerCase()).filter((h): h is string => !!h));
-    const memos = await this.memosWithin(coopname, braname, bounds, planHashes);
-    return { planned, memos, aidPaid };
+    const { planned, memos } = await this.commonSpentWithin(coopname, braname, bounds, planHashes);
+    let aidPaid = 0n;
+    for (const aid of paidAids) {
+      if (!(await this.paidByInitiators(coopname, aid.hash))) aidPaid += aid.amount;
+    }
+    const plannedTarget = plannedTargetUnits(
+      plans,
+      braname,
+      next.end,
+      (a) => this.economyService.assetToUnits(a),
+      (d) => periodKeyOf(d, PERIOD_TIME_ZONE)
+    );
+    return { planned, memos, aidPaid, plannedTarget };
   }
 
   /**
-   * Служебные записки участка сверх плана за месяц: выделено под расходы минус
-   * возвращено неизрасходованное, без записок, которыми оплачены записи
-   * реестра планов — они уже в плановых расходах.
+   * Траты общего кошелька участка за месяц: выделено под расходы минус
+   * возвращено неизрасходованное. Записки, которыми оплачены записи реестра
+   * планов, — оплачено по плану (ПО), прочие — служебные записки сверх плана
+   * (СЗ). Ниже нуля ни то, ни другое не бывает: отрицательная сумма одного
+   * вида вычитается из другого.
    */
-  private async memosWithin(coopname: string, braname: string, bounds: PeriodBounds, planHashes: Set<string>): Promise<bigint> {
-    let total = 0n;
+  private async commonSpentWithin(coopname: string, braname: string, bounds: PeriodBounds, planHashes: Set<string>): Promise<{ planned: bigint; memos: bigint }> {
+    let planned = 0n;
+    let memos = 0n;
     for (let page = 1; ; page++) {
       const result = await this.ledger2History.getHistory({
         coopname,
@@ -116,20 +151,84 @@ export class MarketplacePeriodService {
         page,
         limit: HISTORY_PAGE,
       });
-      for (const op of result.items) total += this.memoDelta(op, planHashes);
+      for (const op of result.items) {
+        const delta = this.memoDelta(op);
+        if (op.processHash && planHashes.has(op.processHash.toLowerCase())) planned += delta;
+        else memos += delta;
+      }
       // Пустая страница — страховка от неверного числа страниц в ответе истории.
       if (page >= result.totalPages || result.items.length === 0) break;
     }
-    return total > 0n ? total : 0n;
+    // Возврат неизрасходованного мог прийти в месяц после выделения — тогда
+    // одна из сумм меньше нуля. Она вычитается из другой: траты месяца считаются
+    // вместе, и раздельное обнуление завышало бы расходы участка.
+    if (planned < 0n) {
+      memos += planned;
+      planned = 0n;
+    }
+    if (memos < 0n) {
+      planned += memos;
+      memos = 0n;
+    }
+    return { planned: planned > 0n ? planned : 0n, memos };
+  }
+
+  /** Помощь оплачена средствами инициаторов: в нитке заявления есть выделение из их средств. */
+  private async paidByInitiators(coopname: string, aidHash: string): Promise<boolean> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      processHash: aidHash,
+      actionNames: ['apply'],
+      operationCodes: [POOL_FUND_CODE],
+      page: 1,
+      limit: 1,
+    });
+    return result.items.length > 0;
   }
 
   /**
-   * Сколько одна операция общего кошелька добавляет к служебным запискам месяца: выделение
-   * под расход — плюс, возврат неизрасходованного — минус; записка по записи
-   * реестра планов уже учтена в плановых расходах и не считается.
+   * Сколько участок распределил за месяц: сумма изъятий общего кошелька под
+   * распределение. Показ на вкладках «Кошелёк участка» и «Распределение».
    */
-  private memoDelta(op: { processHash?: string | null; quantity?: unknown; operationCode?: string | null }, planHashes: Set<string>): bigint {
-    if (op.processHash && planHashes.has(op.processHash.toLowerCase())) return 0n;
+  async distributedWithin(coopname: string, braname: string, bounds: PeriodBounds): Promise<bigint> {
+    return this.sumWithin(coopname, braname, RELEASE_CODE, bounds);
+  }
+
+  /**
+   * Сколько пайщик получил распределением за месяц: сумма зачислений на его
+   * персональный кошелёк участка. Показ на вкладке «Мои средства».
+   */
+  async receivedWithin(coopname: string, username: string, bounds: PeriodBounds): Promise<bigint> {
+    return this.sumWithin(coopname, username, PERSON_CODE, bounds);
+  }
+
+  /**
+   * Сумма операций одного кода по одному пайщику в границах месяца. Запрос
+   * идёт по индексу истории (пайщик, код, даты): распределение оператор
+   * запускает вручную, за месяц таких операций единицы.
+   */
+  private async sumWithin(coopname: string, username: string, operationCode: string, bounds: PeriodBounds): Promise<bigint> {
+    let total = 0n;
+    for (let page = 1; ; page++) {
+      const result = await this.ledger2History.getHistory({
+        coopname,
+        username,
+        actionNames: ['apply'],
+        operationCodes: [operationCode],
+        dateFrom: bounds.start,
+        dateTo: bounds.end,
+        page,
+        limit: HISTORY_PAGE,
+      });
+      for (const op of result.items) total += this.economyService.assetToUnits(String(op.quantity ?? '0'));
+      // Пустая страница — страховка от неверного числа страниц в ответе истории.
+      if (page >= result.totalPages || result.items.length === 0) break;
+    }
+    return total;
+  }
+
+  /** Сколько одна операция общего кошелька добавляет к тратам месяца: выделение под расход — плюс, возврат неизрасходованного — минус. */
+  private memoDelta(op: { quantity?: unknown; operationCode?: string | null }): bigint {
     const units = this.economyService.assetToUnits(String(op.quantity ?? '0'));
     if (op.operationCode === MEMO_FUND_CODE) return units;
     if (op.operationCode === MEMO_UNFUND_CODE) return -units;
@@ -151,32 +250,27 @@ export class MarketplacePeriodService {
   }
 
   /**
-   * Строка итога месяца участка: уже рассчитанная — из зеркала; иначе расчёт
-   * контрактом по фактам и зеркалирование строки цепи. Повторный вызов в том
-   * же месяце ничего не пересчитывает.
+   * Строка итога периода участка: уже рассчитанная — из зеркала; иначе расчёт
+   * контрактом и зеркалирование строки цепи. Стоимость заказов и собранную
+   * обеспечительную часть контракт берёт из своего счётчика участка (задача
+   * 99D-33); узел передаёт только факты о расходах. `rowsTotal` — строк
+   * счётчиков пайщиков за период, столько списаний предстоит. Повторный вызов
+   * в том же периоде ничего не пересчитывает.
    */
-  async ensureClosed(
-    coopname: string,
-    braname: string,
-    period: number,
-    turnover: bigint,
-    secured: bigint,
-    rowsTotal: number
-  ): Promise<MarketplaceBranchPeriodEntity> {
+  async ensureClosed(coopname: string, braname: string, period: number, rowsTotal: number, known?: MarketplacePeriodFacts): Promise<MarketplaceBranchPeriodEntity> {
     const existing = await this.store.findOne({ coopname, braname, period });
     if (existing) return existing;
 
-    const facts = await this.collectFacts(coopname, braname, period);
+    const facts = known ?? (await this.collectFacts(coopname, braname, period));
     try {
       await this.chainPort.closePeriod({
         coopname,
         braname,
         period,
-        turnover: this.economyService.unitsToAsset(turnover),
-        secured: this.economyService.unitsToAsset(secured),
         planned: this.economyService.unitsToAsset(facts.planned),
         memos: this.economyService.unitsToAsset(facts.memos),
         aid_paid: this.economyService.unitsToAsset(facts.aidPaid),
+        planned_target: this.economyService.unitsToAsset(facts.plannedTarget),
       });
     } catch (err: any) {
       // Итог уже рассчитан прежним проходом, а зеркало его не дождалось —
@@ -189,6 +283,56 @@ export class MarketplacePeriodService {
       throw DomainError.internal('MARKETPLACE_PERIOD_NOT_IN_CHAIN', { braname, period });
     }
     return this.mirror(coopname, chainRow, rowsTotal);
+  }
+
+  /**
+   * Итог месяца без выданных заказов (задача 99D-34): обеспечительной части
+   * нет, расходы месяца становятся дефицитом и переходят дальше. Строка в цепи
+   * нужна, только если месяцу есть что нести: траты, цель плановых расходов,
+   * строки резерва помощи (право получателей копится) или собранная часть
+   * цели прошлого итога. Иначе — null, строки нет.
+   */
+  async ensureQuietClosed(coopname: string, braname: string, period: number): Promise<MarketplaceBranchPeriodEntity | null> {
+    const existing = await this.store.findOne({ coopname, braname, period });
+    if (existing) return existing;
+    const [facts, reserves, fundedPrev] = await Promise.all([
+      this.collectFacts(coopname, braname, period),
+      this.chainPort.listBranchReserves(coopname, braname),
+      this.fundedBefore(coopname, braname, period),
+    ]);
+    const busy = facts.planned + facts.memos + facts.aidPaid + facts.plannedTarget > 0n || reserves.length > 0 || fundedPrev > 0n;
+    if (!busy) return null;
+    return this.ensureClosed(coopname, braname, period, 0, facts);
+  }
+
+  /**
+   * Участки, которым итог месяца нужен и без выданных заказов: со строками
+   * итога в цепи, со строками резерва помощи и с записями реестра планов.
+   * Все три источника не растут с историей: строки итога — две на участок,
+   * резерв — строка на получателя, реестр планов — записи участков.
+   */
+  async quietCandidates(coopname: string): Promise<string[]> {
+    const [periods, reserves, plans] = await Promise.all([
+      this.chainPort.listAllBranchPeriods(coopname),
+      this.chainPort.listAllBranchReserves(coopname),
+      this.expenseChassis.listPlans(coopname, null),
+    ]);
+    const branches = new Set<string>();
+    for (const row of periods) branches.add(String(row.braname));
+    for (const row of reserves) branches.add(String(row.braname));
+    for (const plan of plans) if (plan.branchName) branches.add(plan.branchName);
+    return [...branches].sort();
+  }
+
+  /**
+   * Собранная часть цели резерва последнего итога участка до периода `period`
+   * (F_пр) — по зеркалу итогов. Итог до 99D-34 собранной части не знает: его
+   * резерв помощи считался собранным целиком, как и в контракте. Итогов нет — ноль.
+   */
+  async fundedBefore(coopname: string, braname: string, period: number): Promise<bigint> {
+    const prev = await this.store.findOne({ coopname, braname, period: lessThan(period) }, { order: { period: 'DESC' } });
+    if (!prev) return 0n;
+    return this.economyService.assetToUnits(String(prev.target_funded ?? prev.aid_reserve));
   }
 
   /** Зеркало строки цепи в базе узла. */
@@ -211,6 +355,10 @@ export class MarketplacePeriodService {
       initiator_amount: dec(row.initiator_amount),
       return_amount: dec(row.return_amount),
       deficit: dec(row.deficit),
+      planned_target: row.planned_target ? dec(row.planned_target) : null,
+      target: row.target ? dec(row.target) : null,
+      target_prev: row.target_prev ? dec(row.target_prev) : null,
+      target_funded: row.target_funded ? dec(row.target_funded) : null,
       rate_branch: String(row.rate_branch),
       rate_funds: String(row.rate_funds),
       rate_initiator: String(row.rate_initiator),
@@ -223,28 +371,54 @@ export class MarketplacePeriodService {
     };
     const existing = await this.store.findOne(key);
     if (existing) {
+      // Фаза и возмещение прогона — история этого месяца: повторное зеркало их не переписывает.
       await this.store.update(key, { ...fields, rows_total: Math.max(existing.rows_total, rowsTotal), rows_charged: existing.rows_charged });
       return { ...existing, ...fields, rows_total: Math.max(existing.rows_total, rowsTotal), rows_charged: existing.rows_charged };
     }
-    return this.store.insert(fields);
+    const invest_phase = await this.investPhaseOf(coopname, key.braname, this.economyService.assetToUnits(String(row.deficit ?? '0')));
+    return this.store.insert({ ...fields, invest_phase, investor_repaid: this.toDecimal(0n) });
   }
 
-  /** Строк прогона списано ещё `count`. */
-  async noteCharged(coopname: string, braname: string, period: number, count: number): Promise<void> {
+  /**
+   * Фаза участка по паевым взносам инициаторов при расчёте итога (задача 99D-30):
+   * по строке участка `invbranches` — паевые взносы есть ли, остаток к возврату по
+   * формуле контракта (`PeriodModel.crpsOutstanding`) — и по недостаче месяца.
+   */
+  private async investPhaseOf(coopname: string, braname: string, deficit: bigint): Promise<MarketplacePeriodInvestPhase> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    const units = (asset: unknown) => this.economyService.assetToUnits(String(asset ?? '0'));
+    if (!branch || units(branch.money_total) + units(branch.property_total) <= 0n) return MarketplacePeriodInvestPhase.NONE;
+    if (deficit > 0n) return MarketplacePeriodInvestPhase.DEFICIT;
+    const outstanding = MarketContract.PeriodModel.crpsOutstanding({
+      base: BigInt(branch.base ?? 0),
+      acc: BigInt(branch.acc ?? 0),
+      sJoin: BigInt(branch.s_join ?? 0),
+      sFixed: BigInt(branch.s_fixed ?? 0),
+      unusedTotal: units(branch.unused_total),
+      reserved: units(branch.reserved),
+    });
+    return outstanding > 0n ? MarketplacePeriodInvestPhase.REPAYING : MarketplacePeriodInvestPhase.BRANCH;
+  }
+
+  /** Строк прогона списано ещё `count`; доля инициаторов по ним возместила паевые взносы на `investorRepaid`. */
+  async noteCharged(coopname: string, braname: string, period: number, count: number, investorRepaid = 0n): Promise<void> {
     const row = await this.store.findOne({ coopname, braname, period });
     if (!row) return;
-    await this.store.update({ coopname, braname, period }, { rows_charged: row.rows_charged + count });
+    const repaid = this.economyService.assetToUnits(String(row.investor_repaid ?? '0')) + investorRepaid;
+    await this.store.update({ coopname, braname, period }, { rows_charged: row.rows_charged + count, investor_repaid: this.toDecimal(repaid) });
   }
 
   /**
    * В цепи у участка остаются итоги текущего и прошлого месяца: прошлый нужен
    * ради невыплаченной части резерва. Более старые строки стираются перед
-   * расчётом нового итога.
+   * расчётом нового итога. Период, у которого в цепи ещё есть несписанные
+   * строки счётчиков пайщиков (`keep`), не стирается: их списание идёт по его
+   * ставкам (задача 99D-33).
    */
-  async pruneOld(coopname: string, braname: string, currentPeriod: number): Promise<void> {
+  async pruneOld(coopname: string, braname: string, currentPeriod: number, keep: ReadonlySet<number> = new Set()): Promise<void> {
     const rows = await this.store.find({ coopname, braname, deleted_at: isNull() });
     for (const row of rows) {
-      if (row.period >= currentPeriod - 1) continue;
+      if (row.period >= currentPeriod - 1 || keep.has(row.period)) continue;
       try {
         await this.chainPort.deletePeriod({ coopname, braname, period: row.period });
       } catch (err: any) {

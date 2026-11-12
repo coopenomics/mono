@@ -114,9 +114,6 @@ export * as CancelIssue from './cancelIssue'
  */
 export * as SetFee from './setFee'
 
-/** Списание обеспечительной части паевого взноса в членский взнос участка по условиям ЦПП (задача 99D-18). */
-export * as ChargeDue from './chargeDue'
-
 /**
  * Доля инициатора участка в экономии месяца (задача 99D-21).
  */
@@ -127,8 +124,9 @@ export * as SetShares from './setShares'
  */
 export * as SetInitiator from './setInitiator'
 
+// ── Списание обеспечительной части по итогу периода (процесс p.mkt.due; задачи 99D-21, 99D-33) ──
 /**
- * Расчёт итога прогона участка по фактам ИСТОКА (задача 99D-21).
+ * Расчёт итога периода участка: T и C из счётчика цепи, от узла — факты о расходах.
  */
 export * as ClosePeriod from './closePeriod'
 
@@ -138,9 +136,30 @@ export * as ClosePeriod from './closePeriod'
 export * as DelPeriod from './delPeriod'
 
 /**
- * Списание обеспечительной части заказа по ставкам прогона (задача 99D-21).
+ * Списание строки счётчика пайщика за период по ставкам итога (задача 99D-33).
  */
 export * as ChargePeriod from './chargePeriod'
+
+/**
+ * Выход пайщика состоялся: остаток к списанию — участку, строки счётчиков стираются (зовёт registrator).
+ */
+export * as ExitDue from './exitDue'
+
+/**
+ * Переходный перенос строки зеркала узла в счётчики списания (задача 99D-33, п. 6).
+ */
+export * as MigrateDue from './migrateDue'
+
+// ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
+export * as SignInvAgr from './signInvAgr'
+export * as InvestMoney from './investMoney'
+export * as CreateIProp from './createIProp'
+export * as ApproveIProp from './approveIProp'
+export * as DeclineIProp from './declineIProp'
+export * as Act1IProp from './act1IProp'
+export * as ApprvIpAct from './apprvIpAct'
+export * as DclIpAct from './dclIpAct'
+export * as ClaimInv from './claimInv'
 
 /**
  * Отсечка персонального распределения членского взноса КУ (requirement b6).

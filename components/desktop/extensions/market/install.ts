@@ -1,5 +1,11 @@
 import './i18n';
 import { markRaw } from 'vue'
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges'
+import { registerLiveReload } from 'src/shared/lib/realtime'
+import { useSessionStore } from 'src/entities/Session'
+import { useSystemStore } from 'src/entities/System/model'
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { getBranchInvestment, propertyActionsCount } from 'src/entities/MarketplaceInvestment'
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
@@ -11,6 +17,7 @@ import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 // route'а 'trusted-persons' ниже — импорт временно отключён, файл страницы не удалён.
 // import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorBranchEconomyPage } from 'src/pages/Marketplace/OperatorBranchEconomy'
+import { OperatorBranchInitiatorsPage } from 'src/pages/Marketplace/OperatorBranchInitiators'
 import { OperatorBranchOrdersPage } from 'src/pages/Marketplace/OperatorBranchOrders'
 import { OperatorBranchOrderDetailPage } from 'src/pages/Marketplace/OperatorBranchOrderDetail'
 import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy'
@@ -101,6 +108,20 @@ import { t } from './i18n';
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
   registerMarketplaceProcessInfoHandlers()
+
+  // Стол ПВЗ, «Инициаторы участка»: сколько заявлений на имущество ждут этого
+  // пайщика — одобрить (председатель участка), подписать акт (вносящий), подписать
+  // акт второй подписью (председатель совета) (слово владельца
+  // 08.11.2026: иначе по меню не догадаться, что есть что подписать).
+  registerMenuBadge('marketplace-pvz-initiators', async () => {
+    const branches = useOperatorBranchStore()
+    await branches.ensureLoaded(useSystemStore().info.coopname)
+    if (!branches.activeBraname) return 0
+    const view = await getBranchInvestment(branches.activeBraname)
+    const session = useSessionStore()
+    return propertyActionsCount(view.properties, { username: session.username, isTrustee: Boolean(branches.activeBranch?.isTrustee), isChairman: session.isChairman })
+  })
+  registerLiveReload([{ code: 'marketplace', table: 'invprops' }], () => refreshMenuBadges(['marketplace-pvz-initiators']))
 
   // Глобальный гейт подписи на месте (Фаза 1) — расширение само вкладывает свой
   // оверлей в универсальный реестр ядра, как и process-info-хендлеры выше. App
@@ -679,6 +700,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Инициаторы участка (задача 99D-31, решение владельца
+              // 07.11.2026): договор участия, паевые взносы деньгами и имуществом,
+              // одобрение и акт председателя участка, возврат из экономии.
+              path: 'initiators',
+              name: 'marketplace-pvz-initiators',
+              component: markRaw(OperatorBranchInitiatorsPage),
+              meta: {
+                title: t('market.install.branchInitiatorsTitle'),
+                icon: 'volunteer_activism',
+                requires: 'Economy:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // requirement (2026-08-03): реестр заказов своего участка —
               // та же вёрстка, что у администратора, отфильтрованная по
               // своему КУ; «Экономика участка» (движения по кошельку)
@@ -1133,5 +1169,14 @@ export const walletCards: DesktopWalletCard[] = [
     description: t('market.install.walletDescription'),
     accent: 'wallet',
     icon: 'lock_clock',
+  },
+  {
+    // Паевой взнос инициатора в кооперативные участки (99D-31) — только у инициаторов.
+    wallet_name: 'w.mkt.invest',
+    label: t('market.install.walletInvestLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'volunteer_activism',
+    hideWhenEmpty: true,
   },
 ]

@@ -4,15 +4,18 @@
  * остатком на месяц, предварительная проверка предела материальной помощи.
  * Реестр: mkt.order.keu.10.
  */
+// Длина месяца стенда (STAND_MONTH_SECONDS) — переключается случаем; ноль — рабочий узел.
+let standMonth = 0;
 jest.mock('@coopenomics/extension-kit', () => {
   const actual = jest.requireActual('@coopenomics/extension-kit');
   return {
     ...actual,
     platformSettings: () => ({ coopname: 'voskhod', timezone: 'Europe/Moscow', frontendUrl: 'https://coop.test' }),
+    standMonthSeconds: () => standMonth,
   };
 });
 
-import { MarketplaceBranchReserveService } from '~/extensions/marketplace/application/services/marketplace-branch-reserve.service';
+import { MarketplaceBranchReserveService, aidPeriodKey } from '~/extensions/marketplace/application/services/marketplace-branch-reserve.service';
 import { useRealCalendar } from './helpers/real-calendar';
 
 useRealCalendar();
@@ -30,15 +33,22 @@ function toAsset(units: bigint): string {
 
 function build(opts: {
   limit?: string | null;
-  reserves?: Array<{ braname: string; username: string; amount: string }>;
+  reserves?: Array<{ braname: string; username: string; amount: string; accrued_period?: number; outstanding?: string }>;
+  /** Подано за текущий период по зеркалу заявлений узла (колонка «Подано в текущем месяце»). */
+  mirrorSubmitted?: Record<string, string>;
   initiators?: Array<{ braname: string; username: string }>;
   config?: { membership_fee_percent: number; initiator_share_percent?: number } | null;
   submitted?: Record<string, string>;
+  aidPeriod?: number;
+  /** Длина периода предела помощи в настройках участков, секунд (brnconfig.aid_period_seconds). */
+  aidPeriodSeconds?: number;
   trusted?: string[];
 } = {}) {
   const chainPort = {
     getEconomyConfig: jest.fn(async () => opts.config === undefined ? { membership_fee_percent: 380_000 } : opts.config),
-    getBranchConfig: jest.fn(async () => (opts.limit === null ? null : { aid_month_limit: opts.limit ?? '200000.0000 RUB' })),
+    getBranchConfig: jest.fn(async () =>
+      opts.limit === null ? null : { aid_month_limit: opts.limit ?? '200000.0000 RUB', aid_period_seconds: opts.aidPeriodSeconds }
+    ),
     // Реестр фондов `funds` (задача 99D-25): у каждого фонда накопления свой кошелёк ledger2.
     listAccumulationFunds: jest.fn(async () => [
       { id: 1, kind: 'accum', name: 'Неделимый фонд', percent: 10_000, wallet: 'w.fnd.indiv' },
@@ -58,6 +68,7 @@ function build(opts: {
     ),
     setShares: jest.fn(async () => ({})),
     setAidLimit: jest.fn(async () => ({})),
+    setAidPeriod: jest.fn(async () => ({})),
     setInitiator: jest.fn(async () => ({})),
     setReserve: jest.fn(async () => ({})),
     deleteReserve: jest.fn(async () => ({})),
@@ -71,8 +82,15 @@ function build(opts: {
     isMemberOfBranch: jest.fn(async (_c: string, _b: string, u: string) => (opts.trusted ?? ['chairkrg', 'oper1']).includes(u)),
     getTrusteeOfBranch: jest.fn(async () => 'chairkrg'),
   };
+  // Накопитель контракта branch::aidmonths: месяц — год × 12 + месяц по UTC.
+  Object.assign(chainPort, {
+    getAidMonth: jest.fn(async (_c: string, username: string) => {
+      const total = opts.submitted?.[username];
+      return total === undefined ? null : { username, period: opts.aidPeriod ?? 2026 * 12 + 11, total: `${total} RUB` };
+    }),
+  });
   const aidMirror = {
-    submittedWithin: jest.fn(async (_c: string, username: string) => toUnits(opts.submitted?.[username] ?? '0')),
+    submittedWithin: jest.fn(async (_c: string, username: string) => toUnits(opts.mirrorSubmitted?.[username] ?? '0')),
   };
   const service = new MarketplaceBranchReserveService(chainPort as never, economy as never, kuChairman as never, aidMirror as never);
   return { service, chainPort, aidMirror };
@@ -126,7 +144,7 @@ describe('mkt.order.keu.10 — настройки экономики для ад
 });
 
 describe('mkt.order.keu.10 — резерв участка', () => {
-  it('строки с остатком на месяц: резерв минус поданное; чужой участок не входит', async () => {
+  it('строки до 99D-34: доступно — резерв минус поданное за месяц по накопителю контракта; подано — по зеркалу заявлений; чужой участок не входит', async () => {
     const { service } = build({
       reserves: [
         { braname: 'krg', username: 'chairkrg', amount: '200000.0000 RUB' },
@@ -134,6 +152,7 @@ describe('mkt.order.keu.10 — резерв участка', () => {
         { braname: 'msk', username: 'other', amount: '50000.0000 RUB' },
       ],
       submitted: { oper1: '60000.0000' },
+      mirrorSubmitted: { oper1: '60000.0000' },
     });
     const view = await service.getReserves(COOP, 'krg', new Date('2026-11-10T10:00:00.000Z'));
     expect(view.limit).toBe('200000.0000 RUB');
@@ -141,6 +160,25 @@ describe('mkt.order.keu.10 — резерв участка', () => {
       { username: 'chairkrg', amount: '200000.0000 RUB', submitted: '0.0000 RUB', remaining: '200000.0000 RUB' },
       { username: 'oper1', amount: '100000.0000 RUB', submitted: '60000.0000 RUB', remaining: '40000.0000 RUB' },
     ]);
+  });
+
+  it('mkt.order.keu.20 — накопленное право (99D-34): остаток плюс сумма строки за каждый прошедший период, невзятое не сгорает; в право на следующий период входит его начисление', async () => {
+    const now = new Date('2026-11-10T10:00:00.000Z');
+    const november = 2026 * 12 + 11;
+    const { service } = build({
+      reserves: [
+        { braname: 'krg', username: 'chairkrg', amount: '100000.0000 RUB', accrued_period: november - 2, outstanding: '70000.0000 RUB' },
+        { braname: 'krg', username: 'oper1', amount: '50000.0000 RUB', accrued_period: november, outstanding: '0.0000 RUB' },
+      ],
+      mirrorSubmitted: { oper1: '50000.0000' },
+    });
+    const view = await service.getReserves(COOP, 'krg', now);
+    expect(view.rows).toEqual([
+      { username: 'chairkrg', amount: '100000.0000 RUB', submitted: '0.0000 RUB', remaining: '270000.0000 RUB' },
+      { username: 'oper1', amount: '50000.0000 RUB', submitted: '50000.0000 RUB', remaining: '0.0000 RUB' },
+    ]);
+    // Право на декабрь соберёт итог ноября: 370 000 у председателя и 50 000 у доверенного.
+    expect(await service.rightNextPeriod(COOP, 'krg', now)).toBe(toUnits('420000.0000'));
   });
 
   it('setReserve: получатель вне участка — отказ до цепи; сумма ноль — отказ; иначе действие с активом', async () => {
@@ -162,9 +200,9 @@ describe('mkt.order.keu.10 — предел материальной помощ�
   const now = new Date('2026-11-10T10:00:00.000Z');
 
   it('потолок ноль — предела нет', async () => {
-    const { service, aidMirror } = build({ limit: '0.0000 RUB' });
+    const { service, chainPort } = build({ limit: '0.0000 RUB' });
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 999999, now)).resolves.toBeUndefined();
-    expect(aidMirror.submittedWithin).not.toHaveBeenCalled();
+    expect((chainPort as any).getAidMonth).not.toHaveBeenCalled();
   });
 
   it('без строки резерва — MARKETPLACE_AID_NO_RESERVE', async () => {
@@ -172,20 +210,89 @@ describe('mkt.order.keu.10 — предел материальной помощ�
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 10, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_NO_RESERVE' });
   });
 
-  it('в пределах резерва проходит; сверх — MARKETPLACE_AID_OVER_RESERVE с суммами', async () => {
+  it('в пределах права проходит; сверх — MARKETPLACE_AID_OVER_RESERVE с заявленным и доступным', async () => {
     const { service } = build({ reserves: [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB' }], submitted: { oper1: '60000.0000' } });
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 40000, now)).resolves.toBeUndefined();
     await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 40000.01, now)).rejects.toMatchObject({
       code: 'MARKETPLACE_AID_OVER_RESERVE',
-      params: { requested: '40000.0100 RUB', submitted: '60000.0000 RUB', reserve: '100000.0000 RUB' },
+      params: { requested: '40000.0100 RUB', available: '40000.0000 RUB' },
     });
   });
 
-  it('поданное считается за месяц по часовому поясу кооператива', async () => {
-    const { service, aidMirror } = build({ reserves: [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB' }] });
-    await service.assertAidWithinReserve(COOP, 'krg', 'oper1', 1, new Date('2026-10-31T21:30:00.000Z')); // 1 ноября 00:30 по Москве
-    const [, , from, to] = aidMirror.submittedWithin.mock.calls[0] as unknown as [string, string, Date, Date];
-    expect(from.toISOString()).toBe('2026-10-31T21:00:00.000Z');
-    expect(to.toISOString()).toBe('2026-11-30T21:00:00.000Z');
+  it('mkt.order.keu.20 — накопленное право позволяет заявление больше суммы строки: долг прошлых месяцев не сгорает', async () => {
+    const november = 2026 * 12 + 11;
+    const { service } = build({ reserves: [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB', accrued_period: november - 1, outstanding: '70000.0000 RUB' }] });
+    await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 170000, now)).resolves.toBeUndefined();
+    await expect(service.assertAidWithinReserve(COOP, 'krg', 'oper1', 170000.01, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_OVER_RESERVE' });
+  });
+
+  // Поданное — из накопителя контракта за тот же календарный месяц UTC, по
+  // которому контракт отказывает «превысит резерв»; накопитель прошлого
+  // месяца не считается (владелец 08.11.2026: стол показывал 0, контракт — 9 590).
+  it('поданное — из накопителя контракта за текущий месяц UTC; прошлый месяц не считается', async () => {
+    const reserves = [{ braname: 'krg', username: 'oper1', amount: '100000.0000 RUB' }];
+    const current = build({ reserves, submitted: { oper1: '99999.0000' } });
+    await expect(current.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 2, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_OVER_RESERVE' });
+    const stale = build({ reserves, submitted: { oper1: '99999.0000' }, aidPeriod: 2026 * 12 + 10 });
+    await expect(stale.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 2, now)).resolves.toBeUndefined();
+    const view = await current.service.getReserves(COOP, 'krg', now);
+    expect(view.rows[0]).toMatchObject({ remaining: '1.0000 RUB' });
+  });
+});
+
+// Стенд со сжатым временем: месяц — отрезок STAND_MONTH_SECONDS, и предел
+// материальной помощи обновляется вместе с итогами месяцев (владелец 09.11.2026:
+// резерв считался по настоящему месяцу, разбиение по месяцам проверить нельзя).
+describe('mkt.order.keu.10 — период предела материальной помощи на стенде', () => {
+  const now = new Date('2026-11-10T10:00:00.000Z');
+  const standKey = Math.floor(now.getTime() / 1000 / 600);
+
+  afterEach(() => {
+    standMonth = 0;
+  });
+
+  it('aidPeriodKey: без длины — календарный месяц UTC, с длиной — номер отрезка от эпохи, как в контракте', () => {
+    expect(aidPeriodKey(null, now)).toBe(2026 * 12 + 11);
+    expect(aidPeriodKey({ aid_month_limit: '0.0000 RUB', aid_period_seconds: 0 } as never, now)).toBe(2026 * 12 + 11);
+    expect(aidPeriodKey({ aid_month_limit: '0.0000 RUB', aid_period_seconds: 600 } as never, now)).toBe(standKey);
+  });
+
+  it('поданное считается за текущий отрезок стенда; прошлый отрезок и календарный месяц не считаются', async () => {
+    const reserves = [{ braname: 'krg', username: 'oper1', amount: '10000.0000 RUB' }];
+    const current = build({ reserves, submitted: { oper1: '10000.0000' }, aidPeriodSeconds: 600, aidPeriod: standKey });
+    await expect(current.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 1, now)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_OVER_RESERVE' });
+    const previous = build({ reserves, submitted: { oper1: '10000.0000' }, aidPeriodSeconds: 600, aidPeriod: standKey - 1 });
+    await expect(previous.service.assertAidWithinReserve(COOP, 'krg', 'oper1', 100, now)).resolves.toBeUndefined();
+    const calendar = build({ reserves, submitted: { oper1: '10000.0000' }, aidPeriodSeconds: 600 });
+    const view = await calendar.service.getReserves(COOP, 'krg', now);
+    expect(view.rows[0]).toMatchObject({ submitted: '0.0000 RUB', remaining: '10000.0000 RUB' });
+  });
+
+  it('syncAidPeriod пишет длину месяца стенда только при расхождении с цепью', async () => {
+    standMonth = 600;
+    const stale = build({ aidPeriodSeconds: 0 });
+    expect(await stale.service.syncAidPeriod(COOP)).toBe(true);
+    expect(stale.chainPort.setAidPeriod).toHaveBeenCalledWith({ coopname: COOP, seconds: 600 });
+
+    const same = build({ aidPeriodSeconds: 600 });
+    expect(await same.service.syncAidPeriod(COOP)).toBe(false);
+    expect(same.chainPort.setAidPeriod).not.toHaveBeenCalled();
+  });
+
+  it('рабочий узел возвращает календарный месяц, если в цепи осталась длина стенда; без настроек ничего не пишет', async () => {
+    const leftover = build({ aidPeriodSeconds: 600 });
+    expect(await leftover.service.syncAidPeriod(COOP)).toBe(true);
+    expect(leftover.chainPort.setAidPeriod).toHaveBeenCalledWith({ coopname: COOP, seconds: 0 });
+
+    const fresh = build({ limit: null });
+    expect(await fresh.service.syncAidPeriod(COOP)).toBe(false);
+    expect(fresh.chainPort.setAidPeriod).not.toHaveBeenCalled();
+  });
+
+  it('отказ цепи при запуске не роняет узел', async () => {
+    standMonth = 600;
+    const { service, chainPort } = build({ aidPeriodSeconds: 0 });
+    chainPort.setAidPeriod.mockRejectedValueOnce(new Error('нет действия setaidperiod'));
+    await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
   });
 });

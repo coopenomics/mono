@@ -54,6 +54,9 @@ import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplac
 import { workflow as marketplaceSupplierClaimIssuedWorkflow } from './marketplace-supplier-claim-issued';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 import { workflow as marketplaceSecurePartChargedWorkflow } from './marketplace-secure-part-charged';
+import { workflow as marketplaceInvestPropertySubmittedWorkflow } from './marketplace-invest-property-submitted';
+import { workflow as marketplaceInvestPropertyDecidedWorkflow } from './marketplace-invest-property-decided';
+import { workflow as marketplaceInvestReturnedWorkflow } from './marketplace-invest-returned';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
 import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
 import { workflow as marketplaceOfferApprovedWorkflow } from './marketplace-offer-approved';
@@ -137,6 +140,9 @@ export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-sup
 export * as MarketplaceSupplierClaimIssued from './marketplace-supplier-claim-issued';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
 export * as MarketplaceSecurePartCharged from './marketplace-secure-part-charged';
+export * as MarketplaceInvestPropertySubmitted from './marketplace-invest-property-submitted';
+export * as MarketplaceInvestPropertyDecided from './marketplace-invest-property-decided';
+export * as MarketplaceInvestReturned from './marketplace-invest-returned';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
 export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
 export * as MarketplaceOfferApproved from './marketplace-offer-approved';
@@ -216,6 +222,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierClaimIssuedWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
   marketplaceSecurePartChargedWorkflow,
+  marketplaceInvestPropertySubmittedWorkflow,
+  marketplaceInvestPropertyDecidedWorkflow,
+  marketplaceInvestReturnedWorkflow,
   marketplaceNewSupplierRequestWorkflow,
   marketplaceOfferOnModerationWorkflow,
   marketplaceOfferApprovedWorkflow,

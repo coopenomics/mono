@@ -1,21 +1,23 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { createHash } from 'crypto';
+import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Ledger2Contract } from 'cooptypes';
+import { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
 import { Workflows } from '@coopenomics/notifications';
 import {
   ACCOUNT_PORT,
+  LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   NOTIFICATION_PORT,
   type IAccountPort,
+  type ILedger2HistoryPort,
   type ILoggerPort,
   type INotificationPort,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
-import { AmountFormatterUtils, TableStore, chainErrorCode, isNull, lessOrEqual, lessThan, moreThan, notNull, oneOf, platformSettings, standNextPeriodStart, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
+import { AmountFormatterUtils, TableStore, chainErrorCode, isNull, moreOrEqual, moreThan, platformSettings, standNextPeriodStart, standPeriodKey, isStandWorkerTurn } from '@coopenomics/extension-kit';
 import { MARKETPLACE_SECURE_DUE_STORE } from '../../infrastructure/database/marketplace-stores';
-import { MarketplaceSecureDueRunQueries } from '../../infrastructure/database/marketplace-secure-due-run.queries';
-import { periodBounds } from '../shared/period-bounds';
+import { MARKETPLACE_INVEST_REPAID_EVENT, type MarketplaceInvestRepaidEvent } from '../events/marketplace-notification.events';
 import { MarketplaceSecureDueEntity } from '../../infrastructure/entities/marketplace-secure-due.entity';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -31,8 +33,8 @@ import {
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from './marketplace-economy.service';
 import { MarketplacePeriodService } from './marketplace-period.service';
-import { MARKETPLACE_DUE_WALLET } from './marketplace-convert.service';
-import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import { PERIOD_TIME_ZONE } from '../shared/period-bounds';
+import { aidPeriodKey } from './marketplace-branch-reserve.service';
 import { MarketplaceSecurePartState, type MarketplaceSecurePartDTO } from '../dto/marketplace-secure-part.dto';
 import { MarketplaceOrderStatuses, type MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 
@@ -51,18 +53,15 @@ export enum MarketplaceSecureDueOperation {
   PENALTY = 'o.mkt.penal',
   /** Гарантийный возврат: обеспечительная часть за возвращённое — обратно на свободный паевой. */
   UNDUE = 'o.mkt.undue',
-  /** Списание в членский взнос по условиям ЦПП. */
+  /** Списание в членский взнос по итогу периода — нитка строки счётчика пайщика (p.mkt.due). */
   CHARGE = 'o.mkt.charge',
   /** Выход пайщика: остаток списывается немедленно. */
   EXIT = 'o.mkt.exfee',
-  /** Факт выдачи — стоимость заказа, основание деления списания по ставкам итога месяца (задача 99D-22). */
+  /** Факт выдачи — стоимость заказа, основание деления списания по ставкам итога (задача 99D-22). */
   CONSUM = 'o.mkt.consum',
-  /** Возврат части обеспечительной части пайщику по итогу месяца участка (задача 99D-22). */
+  /** Возврат части обеспечительной части пайщику по итогу периода — нитка строки счётчика (p.mkt.due). */
   RETURN_DUE = 'o.mkt.retdue',
 }
-
-/** Что делает операция с остатком строки: списывает, возвращает пайщику либо просто уменьшает. */
-type ReduceKind = 'charged' | 'returned' | 'none';
 
 /** Сводка списаний одного пайщика за прогон — для письма. */
 interface ChargedSummary {
@@ -71,7 +70,7 @@ interface ChargedSummary {
   /** Возвращено пайщику на свободный паевой. */
   returned: bigint;
   orders: number;
-  /** Коэффициент экономического участия за месяц, проценты с двумя знаками. */
+  /** Коэффициент экономического участия за период, проценты с двумя знаками. */
   rate: string;
 }
 
@@ -79,15 +78,17 @@ interface ChargedSummary {
 class ChargedCollector {
   charged = 0;
   readonly byUser = new Map<string, ChargedSummary>();
+  /** Участки, где доля инициаторов в этом проходе возместила паевые взносы. */
+  readonly repaidBranches = new Set<string>();
 
-  note(row: MarketplaceSecureDueEntity, units: bigint, returned: bigint, rate: string): void {
+  note(username: string, units: bigint, returned: bigint, orders: number, rate: string): void {
     this.charged++;
-    const acc = this.byUser.get(row.username) ?? { units: 0n, returned: 0n, orders: 0, rate };
-    this.byUser.set(row.username, { units: acc.units + units, returned: acc.returned + returned, orders: acc.orders + 1, rate: acc.rate });
+    const acc = this.byUser.get(username) ?? { units: 0n, returned: 0n, orders: 0, rate };
+    this.byUser.set(username, { units: acc.units + units, returned: acc.returned + returned, orders: acc.orders + orders, rate: acc.rate });
   }
 }
 
-/** Коэффициент экономического участия удержаний и остатков без итога месяца: вся сумма участку. */
+/** Коэффициент экономического участия удержаний без стоимости: вся сумма участку. */
 const FULL_RATE_PERCENT = '100.00';
 
 /** Шаг крона списания в работе — час. */
@@ -95,27 +96,45 @@ const CHARGE_PACE_SECONDS = 60 * 60;
 
 /**
  * Сколько транзакций списания крон отправляет за проход — защита от лавины
- * транзакций. Итог месяца считается по всем строкам прогона, предел касается
- * только отправки: остальные строки списывает следующий проход.
+ * транзакций. Остальные строки списывает следующий проход.
  */
 const CHARGE_BATCH_LIMIT = 200;
 
-/** Начала строк журнала узла о списании: удержание при отказе и заказ по ставкам итога месяца. */
-const LOG_CHARGE_DUE = 'Списание обеспечительной части'; // i18n-ignore: строка журнала узла, не текст интерфейса
-const LOG_CHARGE_PERIOD = 'Списание по итогу месяца'; // i18n-ignore: строка журнала узла, не текст интерфейса
+/** Отказы контракта на списание строки, которые для прогона — норма, а не сбой. */
+const DUE_RETURN_PENDING = 'MARKETPLACE_DUE_RETURN_PENDING';
+const PERIOD_NOT_CLOSED = 'MARKETPLACE_PERIOD_NOT_CLOSED';
+const PERIOD_EMPTY = 'MARKETPLACE_PERIOD_EMPTY';
+/** На сколько месяцев назад участок догоняет итоги месяцев без выданных заказов. */
+const QUIET_CATCHUP_LIMIT = 12;
 
-/** Отказ контракта, когда на кошельке к списанию меньше заявленного. */
+/** Месяц участка, которому нужен итог: строк счётчиков пайщиков и признак месяца без счётчика участка. */
+interface MonthToClose {
+  rows: number;
+  quiet: boolean;
+}
+/** Отказ контракта, когда учтено больше, чем лежит на кошельке, — расхождение, требующее разбора. */
 const DUE_EXCEEDS = 'MARKETPLACE_DUE_EXCEEDS';
 
 /** Операция ledger2, разобранная из события цепи. */
 interface AppliedOperation {
   coopname: string;
   username: string;
-  /** Хэш процесса в нижнем регистре: заказа, а у гарантийного возврата — заявления. */
+  /** Хэш процесса в нижнем регистре: заказа, заявления о возврате либо строки счётчика. */
   hash: string;
   units: bigint;
   blockTime: Date;
   sequence: string;
+}
+
+/** Строка счётчика пайщика из цепи с числами в единицах актива. */
+interface DueRow {
+  username: string;
+  braname: string;
+  period: number;
+  turnover: bigint;
+  due: bigint;
+  retained: bigint;
+  orders: number;
 }
 
 /** Более поздний из двух моментов; пустой не участвует. */
@@ -124,39 +143,49 @@ function laterOf(a: Date | null | undefined, b: Date): Date {
 }
 
 /**
- * Номер расчётного месяца: в работе — календарный месяц в часовом поясе
+ * Номер расчётного месяца узла: в работе — календарный месяц в часовом поясе
  * кооператива (год × 12 + месяц), на стенде со сжатым временем — отрезок
- * длиной `STAND_MONTH_SECONDS` (шкала времени стенда в `extension-kit`).
+ * длиной `STAND_MONTH_SECONDS`. Для границ периода в экранах; периоды
+ * списания нумерует контракт (`aidPeriodKey`).
  */
 export function monthKey(date: Date, timeZone: string): number {
   return standPeriodKey(date, timeZone);
 }
 
 /**
- * Обеспечительная часть паевого взноса к списанию (задача 99D-18, решение
- * владельца 31.10.2026).
+ * Хэш нитки списания строки счётчика — тот же, что считает контракт
+ * (`Marketplace::Dues::charge_hash`): sha256 строки-основания из `PeriodModel`.
+ */
+export function chargeHashOf(coopname: string, username: string, braname: string, period: number): string {
+  return createHash('sha256').update(MarketContract.PeriodModel.chargeProcessSeed(coopname, username, braname, period)).digest('hex');
+}
+
+/**
+ * Обеспечительная часть паевого взноса к списанию (задачи 99D-18, 99D-33).
  *
  * При заказе пайщик сверх стоимости имущества вносит обеспечительную часть —
  * паевой взнос по ставке кооператива. На выдаче её факт ложится на кошелёк
  * пайщика к списанию `w.mkt.due`; на этот же кошелёк ложится удержание при
- * отказе от получения. Членским взносом участка она становится только при
- * списании по условиям ЦПП, без подписи пайщика: первого числа месяца,
- * следующего за окончанием гарантийного срока заказа (часовой пояс
- * кооператива). Пока гарантия идёт, гарантийный возврат возвращает её на
- * свободный паевой без обратных проводок.
+ * отказе от получения. Членским взносом участка она становится при списании
+ * по условиям ЦПП, без подписи пайщика: по окончании периода, в котором
+ * кончился гарантийный срок заказа. Пока гарантия идёт, гарантийный возврат
+ * возвращает её на свободный паевой без обратных проводок.
  *
- * Контракт не хранит, кому и когда списывать: десятки тысяч строк на месяц в
- * оперативной памяти цепи держать нельзя. Учёт ведёт узел — таблица
- * `marketplace_secure_due`, строка на заказ. Суммы в неё пишет слушатель
- * операций ledger2 из того, что провёл контракт; узел их не вычисляет. Крон
- * зовёт `chargedue` по каждой созревшей строке, контракт держит потолок —
- * не больше остатка кошелька пайщика.
+ * Сколько и за какой период списывать, знает контракт: счётчики `kudues`
+ * (пайщик, участок, период) и `kucounters` (участок, период) он пишет теми же
+ * транзакциями, что двигают кошелёк. Узел первого числа только называет
+ * контракту участок и период для итога (`closeperiod`, с фактами о расходах) и
+ * пайщика, участок и период для списания строки (`chargeperiod`); суммы в
+ * цепь он не передаёт.
  *
- * Коэффициент экономического участия (следующая задача) делит сумму внутри
- * `chargedue` на контракте; узел продолжит называть сумму-основание.
+ * Зеркало `marketplace_secure_due` (строка на заказ) остаётся для показа
+ * пайщику: что по заказу ждёт списания, что списано и возвращено. Его
+ * заполняет слушатель операций ledger2 из того, что провёл контракт; на
+ * списание оно не влияет. Списание строки счётчика закрывает все заказы
+ * пайщика того же участка и периода разом — узел узнаёт их по хэшу нитки.
  */
 @Injectable()
-export class MarketplaceSecureDueService {
+export class MarketplaceSecureDueService implements OnApplicationBootstrap {
   private running = false;
 
   constructor(
@@ -172,23 +201,99 @@ export class MarketplaceSecureDueService {
     private readonly economyService: MarketplaceEconomyService,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
+    @Inject(LEDGER2_HISTORY_PORT) private readonly ledger2History: ILedger2HistoryPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly periodService: MarketplacePeriodService,
-    private readonly runQueries: MarketplaceSecureDueRunQueries
+    private readonly eventBus: EventEmitter2
   ) {
     this.logger.setContext(MarketplaceSecureDueService.name);
   }
 
-  // ── Учёт по операциям контракта ──────────────────────────────────────
+  // ── Периоды списания ────────────────────────────────────────────────
+
+  /** Настройки участков из цепи: длина периода списания (она же — периода предела помощи). */
+  private branchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null> {
+    return this.chainPort.getBranchConfig(coopname);
+  }
+
+  /** Период списания для момента — так же, как контракт (`Marketplace::Dues::period_of`). */
+  private periodOf(config: BranchContract.Tables.BranchConfig.IBranchConfig | null, at: Date): number {
+    return aidPeriodKey(config, at);
+  }
+
+  /** Период строки зеркала: конец гарантийного срока, у удержания — момент удержания. */
+  private rowPeriod(config: BranchContract.Tables.BranchConfig.IBranchConfig | null, row: MarketplaceSecureDueEntity): number {
+    return this.periodOf(config, row.due_from ?? row.created_at);
+  }
+
+  // ── Переходный перенос (задача 99D-33, п. 6) ────────────────────────
+
+  /**
+   * Первый старт после обновления: строки зеркала, выданные до появления
+   * счётчиков, переносятся в цепь действием `migratedue` — иначе их
+   * обеспечительная часть не списалась бы никогда. Признак переноса — в цепи
+   * нет ни одной строки счётчика пайщика. Старт узла перенос не держит.
+   */
+  onApplicationBootstrap(): void {
+    void this.migrateMirror().catch((err: any) => {
+      this.logger.error(`Перенос учёта обеспечительной части в счётчики цепи не выполнен (${err.message})`, err.stack);
+    });
+  }
+
+  async migrateMirror(): Promise<{ moved: number; failed: number }> {
+    const coopname = platformSettings().coopname;
+    if (!coopname) return { moved: 0, failed: 0 };
+    if (await this.chainPort.hasAnyDues(coopname)) return { moved: 0, failed: 0 };
+
+    const open = await this.dueStore.find(
+      { coopname, charged_at: isNull(), due_amount: moreThan('0') },
+      { order: { due_from: 'ASC' } }
+    );
+    if (open.length === 0) return { moved: 0, failed: 0 };
+
+    const config = await this.branchConfig(coopname);
+    let moved = 0;
+    let failed = 0;
+    for (const row of open) {
+      if (!row.braname) {
+        this.logger.error(`Перенос учёта обеспечительной части: у заказа ${row.order_hash} не известен участок — строка не перенесена.`);
+        failed++;
+        continue;
+      }
+      const base = this.fromDecimal(row.base_amount);
+      const due = this.fromDecimal(row.due_amount);
+      // Строка, уже вошедшая в рассчитанный итог, остаётся в его периоде —
+      // списание идёт по его ставкам; остальные — по концу гарантийного срока.
+      const period = row.run_period ?? this.rowPeriod(config, row);
+      try {
+        await this.chainPort.migrateDue({
+          coopname,
+          username: row.username,
+          braname: row.braname,
+          period,
+          turnover: this.economyService.unitsToAsset(base),
+          due: this.economyService.unitsToAsset(base > 0n ? due : 0n),
+          retained: this.economyService.unitsToAsset(base > 0n ? 0n : due),
+        });
+        moved++;
+      } catch (err: any) {
+        this.logger.error(`Перенос учёта обеспечительной части: заказ ${row.order_hash} не перенесён (${err.message})`);
+        failed++;
+      }
+    }
+    this.logger.info(`Перенос учёта обеспечительной части в счётчики цепи: перенесено ${moved}, не перенесено ${failed} (coopname=${coopname})`);
+    return { moved, failed };
+  }
+
+  // ── Зеркало по операциям контракта ──────────────────────────────────
 
   /**
    * Операции учёта идут строго по очереди, в порядке цепи. Шина выпускает
    * действия одного блока разом и слушателей не ждёт, а одна транзакция несёт
    * по заказу сразу две операции: выдача — стоимость и постановку к списанию,
-   * списание по итогу месяца — списанную и возвращённую части. Обе читают и
-   * пишут одну строку; без очереди вторая вставка падала по ключу, а второе
-   * обновление затирало первое (журнал полигона 04.11.2026: 32 потерянные
-   * операции) — строка оставалась без суммы к списанию либо без стоимости.
+   * списание строки счётчика — списанную и возвращённую части. Обе читают и
+   * пишут одни строки; без очереди вторая вставка падала по ключу, а второе
+   * обновление затирало первое (журнал полигона 04.11.2026).
    */
   private applyQueue: Promise<void> = Promise.resolve();
 
@@ -221,14 +326,14 @@ export class MarketplaceSecureDueService {
   }
 
   /** Обработчик на каждую операцию — без ветвлений в общем методе. */
-  private readonly handlers: Record<MarketplaceSecureDueOperation, (op: AppliedOperation) => Promise<void>> = {
+  private readonly handlers: Record<MarketplaceSecureDueOperation, (_op: AppliedOperation) => Promise<void>> = {
     [MarketplaceSecureDueOperation.TO_DUE]: (op) => this.accrue(op),
     [MarketplaceSecureDueOperation.PENALTY]: (op) => this.accrue(op),
-    [MarketplaceSecureDueOperation.CHARGE]: (op) => this.reduce(op.hash, op, 'charged'),
+    [MarketplaceSecureDueOperation.CHARGE]: (op) => this.settleGroup(op, 'charged'),
     [MarketplaceSecureDueOperation.UNDUE]: (op) => this.reduceByClaim(op),
     [MarketplaceSecureDueOperation.EXIT]: (op) => this.settleOnExit(op),
     [MarketplaceSecureDueOperation.CONSUM]: (op) => this.setBase(op),
-    [MarketplaceSecureDueOperation.RETURN_DUE]: (op) => this.reduce(op.hash, op, 'returned'),
+    [MarketplaceSecureDueOperation.RETURN_DUE]: (op) => this.settleGroup(op, 'returned'),
   };
 
   /**
@@ -263,8 +368,6 @@ export class MarketplaceSecureDueService {
         // Позднее созревание побеждает: строка списывается целиком.
         due_from: laterOf(row.due_from, due_from),
         charged_at: null,
-        // Закрытая строка открывается заново: прежние отметки прогона к новой сумме не относятся.
-        ...(row.charged_at ? { run_period: null, charge_sent_at: null } : {}),
         last_sequence: op.sequence,
       }
     );
@@ -272,8 +375,8 @@ export class MarketplaceSecureDueService {
 
   /**
    * Стоимость заказа — факт выдачи по операции o.mkt.consum (задача 99D-22):
-   * основание деления списания по ставкам итога месяца. Выдача и постановка
-   * к списанию идут одной транзакцией в любом порядке: строка заводится тем,
+   * основание деления списания по ставкам итога. Выдача и постановка к
+   * списанию идут одной транзакцией в любом порядке: строка заводится тем,
    * что пришло первым. У удержания при отказе выдачи нет — стоимость ноль, и
    * оно списывается целиком участку.
    */
@@ -321,35 +424,64 @@ export class MarketplaceSecureDueService {
       this.logger.error(`Учёт обеспечительной части: заявление на возврат ${op.hash} не найдено — возврат ${this.toDecimal(op.units)} не учтён.`);
       return;
     }
-    await this.reduce(claim.order_hash.toLowerCase(), op, 'none');
-  }
-
-  /**
-   * Списание, возврат пайщику по итогу месяца и гарантийный возврат уменьшают
-   * остаток к списанию; списанное и возвращённое копятся в своих полях.
-   */
-  private async reduce(order_hash: string, op: AppliedOperation, kind: ReduceKind): Promise<void> {
+    const order_hash = claim.order_hash.toLowerCase();
     const row = await this.dueStore.findOne({ order_hash });
     if (!row) {
-      this.logger.error(`Учёт обеспечительной части: по заказу ${order_hash} строки нет — операция на ${this.toDecimal(op.units)} не учтена.`);
+      this.logger.error(`Учёт обеспечительной части: по заказу ${order_hash} строки нет — возврат на ${this.toDecimal(op.units)} не учтён.`);
       return;
     }
     if (this.alreadyApplied(row, op.sequence)) return;
     const before = this.fromDecimal(row.due_amount);
     if (before < op.units) {
-      this.logger.error(`Учёт обеспечительной части: по заказу ${order_hash} списано больше учтённого (${this.toDecimal(op.units)} при остатке ${row.due_amount}).`);
+      this.logger.error(`Учёт обеспечительной части: по заказу ${order_hash} возвращено больше учтённого (${this.toDecimal(op.units)} при остатке ${row.due_amount}).`);
     }
     const due = before > op.units ? before - op.units : 0n;
     await this.dueStore.update(
       { order_hash },
-      {
-        due_amount: this.toDecimal(due),
-        charged_amount: kind === 'charged' ? this.toDecimal(this.fromDecimal(row.charged_amount) + op.units) : row.charged_amount,
-        returned_amount: kind === 'returned' ? this.toDecimal(this.fromDecimal(row.returned_amount) + op.units) : row.returned_amount,
-        charged_at: due === 0n ? op.blockTime : null,
-        last_sequence: op.sequence,
-      }
+      { due_amount: this.toDecimal(due), charged_at: due === 0n ? op.blockTime : null, last_sequence: op.sequence }
     );
+  }
+
+  /**
+   * Списание строки счётчика (нитка p.mkt.due): одна операция закрывает все
+   * заказы пайщика того же участка и периода. Заказы узнаются по хэшу нитки —
+   * он считается из участка и периода созревания каждой строки зеркала так же,
+   * как в контракте. Сумма операции раскладывается по заказам пропорционально
+   * их обеспечительной части, остаток округления — последнему: по заказу это
+   * показ, факт списания — вся строка счётчика. Вторая операция той же
+   * транзакции (возврат пайщику) находит уже закрытые строки по моменту блока.
+   */
+  private async settleGroup(op: AppliedOperation, kind: 'charged' | 'returned'): Promise<void> {
+    const config = await this.branchConfig(op.coopname);
+    const candidates = [
+      ...(await this.dueStore.find({ coopname: op.coopname, username: op.username, charged_at: isNull() })),
+      ...(await this.dueStore.find({ coopname: op.coopname, username: op.username, charged_at: moreOrEqual(op.blockTime) })),
+    ];
+    const group = candidates.filter(
+      (row) => !this.alreadyApplied(row, op.sequence) && chargeHashOf(op.coopname, op.username, row.braname, this.rowPeriod(config, row)) === op.hash
+    );
+    if (group.length === 0) {
+      this.logger.error(`Учёт обеспечительной части: списание ${op.hash} пайщика ${op.username} на ${this.toDecimal(op.units)} не нашло заказов в зеркале.`);
+      return;
+    }
+    const weights = group.map((row) => this.fromDecimal(row.due_amount) + this.fromDecimal(row.charged_amount) + this.fromDecimal(row.returned_amount));
+    const total = weights.reduce((sum, w) => sum + w, 0n);
+    let distributed = 0n;
+    for (let i = 0; i < group.length; i++) {
+      const row = group[i];
+      const share = i === group.length - 1 ? op.units - distributed : total > 0n ? (op.units * weights[i]) / total : 0n;
+      distributed += share;
+      await this.dueStore.update(
+        { order_hash: row.order_hash },
+        {
+          due_amount: this.toDecimal(0n),
+          charged_amount: kind === 'charged' ? this.toDecimal(this.fromDecimal(row.charged_amount) + share) : row.charged_amount,
+          returned_amount: kind === 'returned' ? this.toDecimal(this.fromDecimal(row.returned_amount) + share) : row.returned_amount,
+          charged_at: row.charged_at ?? op.blockTime,
+          last_sequence: op.sequence,
+        }
+      );
+    }
   }
 
   /** Выход пайщика: контракт списал весь остаток кошелька — все его строки закрыты. */
@@ -380,7 +512,7 @@ export class MarketplaceSecureDueService {
   // ── Обеспечительная часть в карточке заказа ─────────────────────────
 
   /**
-   * Сколько, в каком состоянии и когда спишется — по строке учёта узла.
+   * Сколько, в каком состоянии и когда спишется — по строке зеркала.
    * Строки нет: до получения обеспечительная часть в резерве, у отменённого
    * заказа — возвращена. У полученного заказа прежней модели (с членским
    * взносом при заказе) строки нет и блока нет — `null`.
@@ -430,53 +562,56 @@ export class MarketplaceSecureDueService {
   }
 
   /**
-   * Когда строка спишется: первое число месяца после гарантийного срока. Срок
-   * прошёл, а в список идущего прогона строка не вошла (гарантийный возврат
-   * закрыт после расчёта итога) — ближайшее первое число.
+   * Когда строка спишется: начало периода, следующего за концом гарантийного
+   * срока. Срок прошёл, а строка ещё не списана (ждёт решения совета по
+   * возврату либо своего прохода) — ближайшее начало периода.
    */
   private chargeDateOf(row: MarketplaceSecureDueEntity, now: Date): Date | null {
     if (!row.due_from) return null;
-    const timeZone = platformSettings().timezone || 'UTC';
+    const timeZone = PERIOD_TIME_ZONE;
     const byWarranty = standNextPeriodStart(row.due_from, timeZone);
-    const waitsNextRun = byWarranty <= now && row.run_period !== monthKey(now, timeZone) - 1;
-    return waitsNextRun ? standNextPeriodStart(now, timeZone) : byWarranty;
+    return byWarranty <= now ? standNextPeriodStart(now, timeZone) : byWarranty;
   }
 
   /**
    * Ставка, по которой списана строка: у заказа со стоимостью — ставка итога
-   * месяца участка (месяц перед списанием), у удержания при отказе — вся сумма
-   * участку. Итога в зеркале нет (списано до модели) — ставки нет.
+   * участка за период созревания, у удержания при отказе — вся сумма участку.
+   * Итога в зеркале нет (списано до модели) — ставки нет.
    */
   private async ratePercentOfRow(coopname: string, row: MarketplaceSecureDueEntity): Promise<string | null> {
     if (this.fromDecimal(row.base_amount) <= 0n) return FULL_RATE_PERCENT;
-    if (!row.charged_at || !row.braname) return null;
-    const period = monthKey(row.charged_at, platformSettings().timezone || 'UTC') - 1;
+    if (!row.braname) return null;
+    const period = this.rowPeriod(await this.branchConfig(coopname), row);
     const periodRow = await this.periodService.findOne(coopname, row.braname, period);
     return periodRow ? this.periodService.ratePercentOf(periodRow) : null;
   }
 
   /**
-   * Заказы участка, которые созреют к ближайшему первому числу: выданы, не
-   * списаны, гарантийный срок кончается до начала следующего месяца. Для строки
-   * «текущий месяц, идёт» на экономике участка — без учёта открытых возвратов,
-   * они решаются до прогона.
+   * Заказы участка, которые созреют к ближайшему началу периода, — из
+   * счётчиков участка в цепи: открытые счётчики с периодом не позже текущего.
+   * Для строки «текущий период, идёт» на экономике участка.
    */
   async ripeningForBranch(coopname: string, braname: string, now: Date): Promise<{ count: number; turnover: bigint; secured: bigint }> {
-    const timeZone = platformSettings().timezone || 'UTC';
-    // Созреет к первому числу всё, у чего гарантия кончается до конца текущего месяца.
-    const nextMonthStart = periodBounds(monthKey(now, timeZone), timeZone).end;
-    const totals = await this.runQueries.ripeningTotals(coopname, braname, nextMonthStart);
-    return { count: totals.rows, turnover: this.fromDecimal(totals.turnover), secured: this.fromDecimal(totals.secured) };
+    const current = this.periodOf(await this.branchConfig(coopname), now);
+    const counters = (await this.chainPort.listDueCounters(coopname)).filter((c) => String(c.braname) === braname && Number(c.period) <= current);
+    return counters.reduce(
+      (acc, c) => ({
+        count: acc.count + Number(c.orders ?? 0),
+        turnover: acc.turnover + this.economyService.assetToUnits(String(c.turnover ?? '0')),
+        secured: acc.secured + this.economyService.assetToUnits(String(c.secured ?? '0')),
+      }),
+      { count: 0, turnover: 0n, secured: 0n }
+    );
   }
 
-  // ── Списание первого числа ──────────────────────────────────────────
+  // ── Списание по окончании периода ────────────────────────────────────
 
   /**
-   * Раз в час (на стенде со сжатым временем — с шагом стенда): строки,
-   * созревшие до начала текущего месяца по часовому поясу кооператива,
-   * списываются. Первый прогон месяца — в первый час первого числа; остальные
-   * прогоны дописывают то, что не прошло. Крон просыпается каждую минуту, а
-   * работает в свой черёд — так шаг стенда меняется без правки расписания.
+   * Раз в час (на стенде со сжатым временем — с шагом стенда) проход по
+   * счётчикам цепи: закончившиеся периоды участков получают итог, строки
+   * пайщиков закончившихся периодов списываются. Крон просыпается каждую
+   * минуту, а работает в свой черёд — так шаг стенда меняется без правки
+   * расписания.
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async tick(): Promise<void> {
@@ -495,273 +630,256 @@ export class MarketplaceSecureDueService {
   }
 
   /**
-   * Проход списания: сверка отправленных строк с кошельками в цепи → список
-   * прогона и итог месяца по каждому участку → списание строк списка, не
-   * больше предела транзакций за проход. Строки в память целиком не
-   * загружаются: отметки ставит одно обновление, суммы итога считает база,
-   * читается только страница к списанию.
+   * Проход списания: итог по каждому закончившемуся периоду участка (счётчик
+   * участка с периодом раньше текущего) → строки счётчиков пайщиков
+   * закончившихся периодов, не больше предела транзакций за проход. Суммы в
+   * цепь не передаются: контракт берёт их из своих строк.
    */
   async chargeDue(coopname: string, now: Date): Promise<{ charged: number; failed: number }> {
-    await this.reconcileSent(coopname);
+    const current = this.periodOf(await this.branchConfig(coopname), now);
+    const counters = (await this.chainPort.listDueCounters(coopname)).filter((c) => Number(c.period) < current);
+    const { queue, keepByBranch } = await this.ripeRows(coopname, counters, current);
 
-    const timeZone = platformSettings().timezone || 'UTC';
-    const currentMonth = monthKey(now, timeZone);
-    // Итог считается за закончившийся месяц: его номер на единицу меньше текущего.
-    const period = currentMonth - 1;
-    // Строка созрела, если гарантийный срок кончился до начала текущего месяца.
-    const monthStart = periodBounds(currentMonth, timeZone).start;
-
-    // Заказ с открытым гарантийным возвратом не списывается: решение совета
-    // вернёт обеспечительную часть с кошелька к списанию.
-    const blocked = await this.claimRepo.listActiveOrderHashes(coopname);
-
-    const periods = new Map<string, MarketplaceBranchPeriodEntity | null>();
-    for (const braname of await this.runQueries.ripeBranches(coopname, monthStart)) {
-      periods.set(braname, await this.assignRun(coopname, braname, period, monthStart, blocked));
-    }
-
-    const queue = await this.nextToCharge(coopname, period, monthStart, blocked);
-    if (queue.length === 0) return { charged: 0, failed: 0 };
-
+    await this.closeEndedPeriods(coopname, current, counters, keepByBranch);
     const summary = new ChargedCollector();
     let failed = 0;
-    for (const row of queue) {
-      const done = await this.chargeQueued(coopname, row, period, periods.get(row.braname) ?? null, summary);
+    for (const row of queue.slice(0, CHARGE_BATCH_LIMIT)) {
+      const done = await this.chargeRow(coopname, row, summary);
       if (!done) failed++;
     }
-    const charged = summary.charged;
 
-    this.logger.info(`Списание обеспечительной части: списано ${charged}, не прошло ${failed} (coopname=${coopname})`);
+    this.logger.info(`Списание обеспечительной части: списано строк ${summary.charged}, не прошло ${failed} (coopname=${coopname})`);
     await this.notifyCharged(coopname, summary.byUser);
-    return { charged, failed };
-  }
-
-  /**
-   * Списание одной строки страницы: заказ со стоимостью — по ставкам итога
-   * месяца участка, удержание при отказе — целиком участку. Возвращает false,
-   * если строка не списана (итог участка не рассчитан либо отправка не прошла).
-   */
-  private async chargeQueued(
-    coopname: string,
-    row: MarketplaceSecureDueEntity,
-    period: number,
-    periodRow: MarketplaceBranchPeriodEntity | null,
-    summary: ChargedCollector
-  ): Promise<boolean> {
-    if (!this.hasBase(row)) {
-      const units = await this.chargeRow(coopname, row);
-      if (units === null) return false;
-      summary.note(row, units, 0n, FULL_RATE_PERCENT);
-      return true;
+    if (summary.repaidBranches.size > 0) {
+      const event: MarketplaceInvestRepaidEvent = { coopname, branames: [...summary.repaidBranches] };
+      this.eventBus.emit(MARKETPLACE_INVEST_REPAID_EVENT, event);
     }
-    if (!periodRow) return false;
-    const result = await this.chargePeriodRow(coopname, row, period);
-    if (result === null) return false;
-    summary.note(row, result.charged, result.returned, this.periodService.ratePercentOf(periodRow));
-    return true;
-  }
-
-  /** Заказ со стоимостью идёт по ставкам итога месяца; удержание при отказе стоимости не имеет. */
-  private hasBase(row: MarketplaceSecureDueEntity): boolean {
-    return this.fromDecimal(row.base_amount) > 0n;
+    return { charged: summary.charged, failed };
   }
 
   /**
-   * Список прогона участка и итог месяца по нему.
+   * Итоги закончившихся периодов прохода: по каждому участку от старых месяцев
+   * к новым, затем стирание старых итогов.
    *
-   * Пока итог месяца не рассчитан, все созревшие строки участка получают номер
-   * прогона одним обновлением, и итог считается по сумме всех этих строк —
-   * сколько бы их ни было. После расчёта список закрыт: строка, которая созрела
-   * к списанию позже (гарантийный возврат закрыт в середине месяца), номера не
-   * получает и ждёт следующего первого числа — так она входит в расчёт того
-   * итога, по ставкам которого списывается. Возвращает строку итога; null —
-   * итог не рассчитан, строки участка ждут следующего прохода.
+   * Месяцы участка — периоды его счётчиков и месяцы без выданных заказов между
+   * последним итогом участка в цепи и текущим месяцем. Счётчик без стоимости
+   * (одни удержания при отказе или всё возвращено по гарантии) тоже получает
+   * итог: расчёт стирает счётчик из цепи, иначе он оставался бы в ней навсегда.
+   *
+   * Порядок итогов участка — строгий: собранная часть цели резерва переходит
+   * из итога в итог (задача 99D-34). Итог не рассчитан (сбой цепи) — более
+   * поздние месяцы этого участка в проходе не считаются: расчёт следующего
+   * месяца взял бы собранную часть цели из позапрошлой строки, и участок
+   * собрал бы цель резерва второй раз. Участок ждёт следующего прохода.
    */
-  private async assignRun(
+  private async closeEndedPeriods(
     coopname: string,
-    braname: string,
-    period: number,
-    monthStart: Date,
-    blocked: string[]
-  ): Promise<MarketplaceBranchPeriodEntity | null> {
-    if (!braname) {
-      this.logger.error('Списание обеспечительной части: у заказов, созревших к списанию, не известен участок выдачи — итог месяца по ним не считается.');
-      return null;
-    }
-    try {
-      // Итог уже рассчитан прежним проходом (в том числе тем, что не успел записать
-      // зеркало): список закрыт, новые строки в него не добавляются.
-      const marked = await this.runQueries.runTotals(coopname, braname, period);
-      const closed = await this.periodService.adoptClosed(coopname, braname, period, marked.rows);
-      if (closed) return closed;
-
-      await this.dueStore.update(
-        {
-          coopname,
-          braname,
-          charged_at: isNull(),
-          charge_sent_at: isNull(),
-          due_from: lessThan(monthStart),
-          base_amount: moreThan('0'),
-          due_amount: moreThan('0'),
-        },
-        { run_period: period }
-      );
-      // Заказ с открытым гарантийным возвратом в список не входит.
-      if (blocked.length > 0) {
-        await this.dueStore.update({ coopname, braname, run_period: period, charged_at: isNull(), order_hash: oneOf(blocked) }, { run_period: null });
+    current: number,
+    counters: MarketContract.Tables.Counters.IKuCounter[],
+    keepByBranch: Map<string, Set<number>>
+  ): Promise<void> {
+    const months = await this.monthsToClose(coopname, current, counters);
+    for (const braname of [...months.keys()].sort()) {
+      const periods = months.get(braname) ?? new Map<number, MonthToClose>();
+      let failed = false;
+      for (const period of [...periods.keys()].sort((a, b) => a - b)) {
+        const month = periods.get(period) as MonthToClose;
+        if (await this.ensurePeriod(coopname, braname, period, month.rows, month.quiet)) continue;
+        failed = true;
+        break;
       }
+      // Старые итоги стираются после всех расчётов участка: каждый месяц
+      // считается по строке предыдущего, и стирать её между расчётами нельзя.
+      // Участок со сбоем не трогаем: следующему проходу нужна прошлая строка.
+      if (!failed) await this.periodService.pruneOld(coopname, braname, current, keepByBranch.get(braname) ?? new Set());
+    }
+  }
 
-      const run = await this.runQueries.runTotals(coopname, braname, period);
-      if (run.rows === 0) return null;
-      await this.periodService.pruneOld(coopname, braname, period);
-      return await this.periodService.ensureClosed(coopname, braname, period, this.fromDecimal(run.turnover), this.fromDecimal(run.secured), run.rows);
+  /**
+   * Месяцы, которым в этом проходе нужен итог, по участкам. Месяц без выданных
+   * заказов (задача 99D-34): счётчика нет, но расходы, цель резерва и право
+   * получателей помощи у месяца есть. Участки — со строками итога в цепи, со
+   * строками резерва помощи или с записями реестра планов; нечего нести —
+   * строки не будет (решает `ensureQuietClosed`).
+   *
+   * Участок догоняет все пропущенные месяцы — от месяца после его последнего
+   * итога в цепи, не глубже `QUIET_CATCHUP_LIMIT`: узел мог простоять дольше
+   * месяца, и траты пропущенных месяцев иначе не попали бы в расходы. Участок
+   * без итогов в цепи начинает с прошлого месяца.
+   */
+  private async monthsToClose(
+    coopname: string,
+    current: number,
+    counters: MarketContract.Tables.Counters.IKuCounter[]
+  ): Promise<Map<string, Map<number, MonthToClose>>> {
+    const months = new Map<string, Map<number, MonthToClose>>();
+    const of = (braname: string): Map<number, MonthToClose> => {
+      let periods = months.get(braname);
+      if (!periods) {
+        periods = new Map<number, MonthToClose>();
+        months.set(braname, periods);
+      }
+      return periods;
+    };
+    for (const counter of counters) of(String(counter.braname)).set(Number(counter.period), { rows: Number(counter.members ?? 0), quiet: false });
+
+    // Участки для месяцев без заказов читаются из реестра планов и цепи. Сбой
+    // чтения проход не роняет: месяцы по счётчикам считаются, месяцы без
+    // заказов ждут следующего прохода.
+    let candidates: string[] = [];
+    try {
+      candidates = await this.periodService.quietCandidates(coopname);
     } catch (err: any) {
-      this.logger.error(`Итог месяца ${period} участка ${braname} не рассчитан: ${err.message}`);
-      return null;
+      this.logger.warn(`Участки для итога месяца без заказов не прочитаны: ${err.message}`);
+      return months;
     }
-  }
-
-  /**
-   * Страница строк к списанию: строки списка этого прогона и удержания при
-   * отказе (стоимости нет, в расчёт итога они не входят), созревшие до начала
-   * месяца и не отправленные в цепь. Строка без номера прогона ждёт следующего
-   * первого числа. Не больше предела транзакций за проход — остальное берёт
-   * следующий проход.
-   */
-  private async nextToCharge(coopname: string, period: number, monthStart: Date, blocked: string[]): Promise<MarketplaceSecureDueEntity[]> {
-    const ripe = { coopname, charged_at: isNull(), charge_sent_at: isNull(), due_from: lessThan(monthStart), due_amount: moreThan('0') };
-    const rows = await this.dueStore.find(
-      [
-        { ...ripe, run_period: period },
-        { ...ripe, base_amount: lessOrEqual('0') },
-      ],
-      // Запас на строки с открытым гарантийным возвратом: они отсеиваются после чтения.
-      { order: { due_from: 'ASC' }, limit: CHARGE_BATCH_LIMIT + blocked.length }
-    );
-    const skip = new Set(blocked);
-    return rows.filter((row) => !skip.has(row.order_hash)).slice(0, CHARGE_BATCH_LIMIT);
-  }
-
-  /**
-   * Сверка отправленных строк с кошельками в цепи. Строку закрывает слушатель
-   * операций; отметка отправки осталась, а строка не закрыта — значит, либо
-   * транзакция не прошла (узел цепи не ответил), либо операции не дошли до
-   * учёта. Различает их остаток кошелька пайщика: если в цепи лежит не меньше,
-   * чем числится в учёте, списания не было — отметка снимается, строка идёт в
-   * этот же проход. Если меньше — деньги списаны, а учёт отстал: строка
-   * остаётся с отметкой и повторно не списывается, в журнал пишется тревога.
-   */
-  private async reconcileSent(coopname: string): Promise<void> {
-    const sent = await this.dueStore.find({ coopname, charged_at: isNull(), charge_sent_at: notNull() });
-    if (sent.length === 0) return;
-
-    for (const username of new Set(sent.map((row) => row.username))) {
-      const mine = sent.filter((row) => row.username === username);
-      let onChain: bigint;
-      try {
-        const wallet = await this.chainPort.getUserWallet(coopname, MARKETPLACE_DUE_WALLET, username);
-        onChain = this.economyService.assetToUnits(String(wallet?.available ?? '0'));
-      } catch (err: any) {
-        this.logger.warn(`Списание обеспечительной части: кошелёк пайщика ${username} в цепи не прочитан (${err.message}) — ${mine.length} отправленных строк ждут сверки.`);
-        continue;
-      }
-      const open = await this.dueStore.find({ coopname, username, charged_at: isNull() });
-      const inLedger = open.reduce((sum, row) => sum + this.fromDecimal(row.due_amount), 0n);
-      if (onChain >= inLedger) {
-        for (const row of mine) await this.dueStore.update({ order_hash: row.order_hash }, { charge_sent_at: null });
-        this.logger.warn(`Списание обеспечительной части: у пайщика ${username} ${mine.length} отправленных списаний в цепи не прошли — строки возвращены в прогон.`);
-      } else {
-        this.logger.error(
-          `Списание обеспечительной части: учёт пайщика ${username} разошёлся с кошельком в цепи (в учёте ${this.toDecimal(inLedger)}, в цепи ${this.toDecimal(onChain)}) — отправленные строки ${mine.map((row) => row.order_hash).join(', ')} повторно не списываются и ждут разбора.`
-        );
+    const lastClosed = new Map<string, number>();
+    for (const row of await this.chainPort.listAllBranchPeriods(coopname)) {
+      const braname = String(row.braname);
+      lastClosed.set(braname, Math.max(lastClosed.get(braname) ?? 0, Number(row.period)));
+    }
+    for (const braname of candidates) {
+      const last = lastClosed.get(braname);
+      const from = last === undefined ? current - 1 : Math.max(last + 1, current - QUIET_CATCHUP_LIMIT);
+      const periods = of(braname);
+      for (let period = from; period < current; period++) {
+        if (!periods.has(period)) periods.set(period, { rows: 0, quiet: true });
       }
     }
+    return months;
   }
 
   /**
-   * Отправка списания строки. Отметка отправки ставится до транзакции: если
-   * узел упадёт или операции не дойдут до учёта, следующий проход строку не
-   * возьмёт и заказ не спишется второй раз. Отказ контракта означает, что
-   * списание точно не прошло, — отметка снимается сразу. При любом другом сбое
-   * исход неизвестен, отметку снимает только сверка с кошельком в цепи.
+   * Строки пайщиков закончившихся периодов — по участкам прохода: с открытым
+   * счётчиком закончившегося периода и с итогом в цепи (у такого итога могут
+   * оставаться несписанные строки). Заодно — периоды, у которых строки ещё
+   * есть: их итоги стирать нельзя.
    */
-  private async sendCharge(row: MarketplaceSecureDueEntity, label: string, send: () => Promise<unknown>): Promise<boolean> {
-    await this.dueStore.update({ order_hash: row.order_hash }, { charge_sent_at: new Date() });
+  private async ripeRows(
+    coopname: string,
+    counters: MarketContract.Tables.Counters.IKuCounter[],
+    current: number
+  ): Promise<{ queue: DueRow[]; keepByBranch: Map<string, Set<number>> }> {
+    const branches = new Set<string>(counters.map((c) => String(c.braname)));
+    for (const row of await this.chainPort.listAllBranchPeriods(coopname)) branches.add(String(row.braname));
+
+    const queue: DueRow[] = [];
+    const keepByBranch = new Map<string, Set<number>>();
+    for (const braname of [...branches].sort()) {
+      const rows = (await this.chainPort.listBranchDues(coopname, braname)).map((r) => this.dueRowOf(r)).filter((r) => r.period < current);
+      keepByBranch.set(braname, new Set(rows.map((r) => r.period)));
+      queue.push(...rows);
+    }
+    queue.sort((a, b) => a.period - b.period || a.username.localeCompare(b.username));
+    return { queue, keepByBranch };
+  }
+
+  private dueRowOf(r: MarketContract.Tables.Dues.IKuDue): DueRow {
+    const units = (asset: unknown) => this.economyService.assetToUnits(String(asset ?? '0'));
+    return {
+      username: String(r.username),
+      braname: String(r.braname),
+      period: Number(r.period),
+      turnover: units(r.turnover),
+      due: units(r.due),
+      retained: units(r.retained),
+      orders: Number(r.orders ?? 0),
+    };
+  }
+
+  /**
+   * Итог участка за закончившийся период: расчёт контрактом и зеркало. Сбой
+   * расчёта не роняет проход: `false` — участок ждёт следующего прохода, и его
+   * более поздние месяцы в этом проходе не считаются. `quiet` — месяц без
+   * счётчика участка: строки может не быть, это не сбой.
+   */
+  private async ensurePeriod(coopname: string, braname: string, period: number, rowsTotal: number, quiet = false): Promise<boolean> {
     try {
-      await send();
+      if (quiet) await this.periodService.ensureQuietClosed(coopname, braname, period);
+      else await this.periodService.ensureClosed(coopname, braname, period, rowsTotal);
       return true;
     } catch (err: any) {
       const code = chainErrorCode(err);
-      if (!code) {
-        this.logger.warn(`${label} по заказу ${row.order_hash}: исход отправки неизвестен (${err.message}) — строка ждёт сверки с кошельком в цепи.`);
-        return false;
-      }
-      await this.dueStore.update({ order_hash: row.order_hash }, { charge_sent_at: null });
-      // Превышение остатка — расхождение учёта узла с цепью, остальное — отказ по условиям контракта.
-      if (code === DUE_EXCEEDS) {
-        this.logger.error(`${label} по заказу ${row.order_hash}: учёт разошёлся с кошельком (${err.message})`);
+      if (code === PERIOD_EMPTY) {
+        this.logger.warn(`Итог периода ${period} участка ${braname}: контракт не нашёл заказов — счётчик стёрт другим проходом.`);
       } else {
-        this.logger.warn(`${label} по заказу ${row.order_hash} не прошло: ${err.message}`);
+        this.logger.error(`Итог периода ${period} участка ${braname} не рассчитан: ${err.message}`);
       }
       return false;
     }
   }
 
-  /** Одна строка — одна транзакция `chargedue`. Возвращает списанное либо null при отказе. */
-  private async chargeRow(coopname: string, row: MarketplaceSecureDueEntity): Promise<bigint | null> {
-    if (!row.braname) {
-      this.logger.error(`Списание обеспечительной части: у заказа ${row.order_hash} не известен участок выдачи.`);
-      return null;
+  /**
+   * Одна строка счётчика — одна транзакция `chargeperiod`. Списанное и
+   * возвращённое пайщику читаются из операций нитки списания после разбора
+   * блока; возмещение паевых взносов инициаторов — разницей счётчика участка до
+   * и после. Отказ контракта, когда у пайщика открыт гарантийный возврат, —
+   * норма: строка ждёт решения совета.
+   */
+  private async chargeRow(coopname: string, row: DueRow, summary: ChargedCollector): Promise<boolean> {
+    if (row.turnover > 0n) {
+      const closed = await this.periodService.adoptClosed(coopname, row.braname, row.period, 0);
+      if (!closed) {
+        this.logger.warn(`Списание строки пайщика ${row.username} (участок ${row.braname}, период ${row.period}): итог участка не рассчитан — строка ждёт.`);
+        return false;
+      }
     }
-    const units = this.fromDecimal(row.due_amount);
-    const sent = await this.sendCharge(row, LOG_CHARGE_DUE, () =>
-      this.chainPort.chargeDue({
-        coopname,
-        username: row.username,
-        braname: row.braname,
-        order_hash: row.order_hash,
-        amount: this.economyService.unitsToAsset(units),
-      })
-    );
-    return sent ? units : null;
+    const repaidBefore = await this.investorRepaidTotal(coopname, row.braname);
+    try {
+      await this.chainPort.chargePeriod({ coopname, username: row.username, braname: row.braname, period: row.period });
+    } catch (err: any) {
+      this.logChargeRefusal(row, err);
+      return false;
+    }
+
+    const parts = await this.chargedParts(coopname, chargeHashOf(coopname, row.username, row.braname, row.period));
+    const delta = (await this.investorRepaidTotal(coopname, row.braname)) - repaidBefore;
+    const repaid = delta > 0n ? delta : 0n;
+    if (repaid > 0n) summary.repaidBranches.add(row.braname);
+    await this.periodService.noteCharged(coopname, row.braname, row.period, 1, repaid);
+
+    const periodRow = row.turnover > 0n ? await this.periodService.findOne(coopname, row.braname, row.period) : null;
+    const rate = periodRow ? this.periodService.ratePercentOf(periodRow) : FULL_RATE_PERCENT;
+    summary.note(row.username, parts.charged, parts.returned, Math.max(1, row.orders), rate);
+    return true;
   }
 
   /**
-   * Одна строка прогона — одна транзакция `chargeperiod` (задача 99D-22):
-   * контракт делит остаток по ставкам итога месяца. Транзакция возвращается
-   * после разбора блока, поэтому строка учёта уже обновлена слушателем:
-   * списанное и возвращённое читаются из неё, а не считаются здесь.
+   * Отказ списания строки в журнал: открытый гарантийный возврат — норма,
+   * расхождение счётчика с кошельком — тревога, остальное — предупреждение.
    */
-  private async chargePeriodRow(
-    coopname: string,
-    row: MarketplaceSecureDueEntity,
-    period: number
-  ): Promise<{ charged: bigint; returned: bigint } | null> {
-    const amount = this.fromDecimal(row.due_amount);
-    const sent = await this.sendCharge(row, LOG_CHARGE_PERIOD, () =>
-      this.chainPort.chargePeriod({
-        coopname,
-        username: row.username,
-        braname: row.braname,
-        order_hash: row.order_hash,
-        amount: this.economyService.unitsToAsset(amount),
-        base: this.economyService.unitsToAsset(this.fromDecimal(row.base_amount)),
-        period,
-      })
-    );
-    if (!sent) return null;
-    await this.periodService.noteCharged(coopname, row.braname, period, 1);
-    const after = await this.dueStore.findOne({ order_hash: row.order_hash });
-    if (!after || this.fromDecimal(after.due_amount) === amount) {
-      // Слушатель ещё не донёс операции — письмо получит сумму списания без деления.
-      this.logger.warn(`Списание по итогу месяца по заказу ${row.order_hash}: учёт не успел обновиться к письму.`);
-      return { charged: amount, returned: 0n };
+  private logChargeRefusal(row: DueRow, err: any): void {
+    const label = `Списание строки пайщика ${row.username} (участок ${row.braname}, период ${row.period})`; // i18n-ignore: строка журнала узла, не текст интерфейса
+    const code = chainErrorCode(err);
+    if (code === DUE_RETURN_PENDING) {
+      this.logger.info(`${label} отложено: открыт гарантийный возврат.`);
+    } else if (code === DUE_EXCEEDS) {
+      this.logger.error(`${label}: счётчик разошёлся с кошельком (${err.message})`);
+    } else if (code === PERIOD_NOT_CLOSED) {
+      this.logger.warn(`${label}: итога в цепи нет.`);
+    } else {
+      this.logger.warn(`${label} не прошло: ${err.message}`);
     }
-    return {
-      charged: this.fromDecimal(after.charged_amount) - this.fromDecimal(row.charged_amount),
-      returned: this.fromDecimal(after.returned_amount) - this.fromDecimal(row.returned_amount),
-    };
+  }
+
+  /** Списанное и возвращённое по нитке списания — по операциям ledger2, которые провёл контракт. */
+  private async chargedParts(coopname: string, hash: string): Promise<{ charged: bigint; returned: bigint }> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      processHash: hash,
+      actionNames: ['apply'],
+      operationCodes: [MarketplaceSecureDueOperation.CHARGE, MarketplaceSecureDueOperation.RETURN_DUE],
+      page: 1,
+      limit: 50,
+    });
+    let charged = 0n;
+    let returned = 0n;
+    for (const op of result.items) {
+      const units = this.economyService.assetToUnits(String(op.quantity ?? '0'));
+      if (op.operationCode === MarketplaceSecureDueOperation.CHARGE) charged += units;
+      if (op.operationCode === MarketplaceSecureDueOperation.RETURN_DUE) returned += units;
+    }
+    return { charged, returned };
   }
 
   /** Письмо пайщику — одно за прогон и только если по нему что-то списано. */
@@ -788,6 +906,12 @@ export class MarketplaceSecureDueService {
 
   private toDecimal(units: bigint): string {
     return this.economyService.unitsToAsset(units).split(' ')[0] ?? '0';
+  }
+
+  /** Возмещено инициаторам участка всего — строка участка `invbranches` по ключу; нет строки — ноль. */
+  private async investorRepaidTotal(coopname: string, braname: string): Promise<bigint> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    return branch ? this.economyService.assetToUnits(String(branch.repaid_total ?? '0')) : 0n;
   }
 
   private fromDecimal(value: string | null | undefined): bigint {

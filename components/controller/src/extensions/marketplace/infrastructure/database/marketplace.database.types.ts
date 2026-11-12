@@ -104,10 +104,13 @@ export interface MarketplaceBranchPeriod {
   funds_amount: Generated<Numeric>;
   initiator: Generated<string>;
   initiator_amount: Generated<Numeric>;
+  invest_phase: Generated<string>;
+  investor_repaid: Generated<Numeric>;
   membership: Generated<Numeric>;
   memos: Generated<Numeric>;
   period: number;
   planned: Generated<Numeric>;
+  planned_target: Numeric | null;
   rate_branch: Generated<Int8>;
   rate_funds: Generated<Int8>;
   rate_initiator: Generated<Int8>;
@@ -115,6 +118,9 @@ export interface MarketplaceBranchPeriod {
   rows_charged: Generated<number>;
   rows_total: Generated<number>;
   secured: Generated<Numeric>;
+  target: Numeric | null;
+  target_funded: Numeric | null;
+  target_prev: Numeric | null;
   turnover: Generated<Numeric>;
   updated_at: Generated<Timestamp>;
 }

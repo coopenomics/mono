@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GeneratedDocumentDTO,
@@ -17,7 +18,6 @@ import { canAccess } from '../access/marketplace-access-matrix';
 import { CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
@@ -46,15 +46,6 @@ const paginatedBranchWalletHistoryResult = createPaginationResult(
   'MarketplaceBranchWalletHistory'
 );
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * requirement b6 «Экономика КУ» (раунд 5 — приоритет общего кошелька):
@@ -109,7 +100,7 @@ export class MarketplaceEconomyResolver {
   @Query(() => MarketplaceBranchEconomyDTO, {
     name: 'marketplaceGetBranchEconomy',
     description:
-      'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков.',
+      'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и их резерв до конца текущего месяца, веса участников распределения и балансы персональных кошельков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
@@ -138,10 +129,25 @@ export class MarketplaceEconomyResolver {
     };
   }
 
+  @Query(() => [MarketplaceBranchWalletOperationDTO], {
+    name: 'marketplaceGetBranchMovementParts',
+    description:
+      'Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
+  async marketplaceGetBranchMovementParts(
+    @Args('braname') braname: string,
+    @Args('process_hash') processHash: string
+  ): Promise<MarketplaceBranchWalletOperationDTO[]> {
+    const parts = await this.economyService.getBranchMovementParts(platformSettings().coopname, braname, processHash);
+    return parts.map(toMarketplaceBranchWalletOperationDTO);
+  }
+
   @Mutation(() => Boolean, {
     name: 'marketplaceDistributeBranchFunds',
     description:
-      'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка.',
+      'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше резерва плановых расходов до конца текущего месяца. Доступно председателю участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'configure:chaired-KU', { ku: 'data.braname' })

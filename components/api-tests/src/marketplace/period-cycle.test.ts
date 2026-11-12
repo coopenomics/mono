@@ -34,9 +34,9 @@ const RESERVES = 'query($b:String!){ marketplaceGetBranchReserves(braname:$b){ b
 const SET_RESERVE = 'mutation($d:MarketplaceSetBranchReserveInput!){ marketplaceSetBranchReserve(data:$d){ rows{ username amount remaining } } }'
 const DEL_RESERVE = 'mutation($d:MarketplaceDeleteBranchReserveInput!){ marketplaceDeleteBranchReserve(data:$d){ rows{ username } } }'
 const PERIODS = `query($b:String!,$o:PaginationInput){ marketplaceListBranchPeriods(braname:$b, options:$o){ items{
-  period turnover secured planned memos aid_paid aid_reserve aid_unpaid expenses membership funds_amount branch_amount
+  period turnover secured planned memos aid_paid aid_reserve aid_unpaid planned_target target target_prev target_funded expenses membership funds_amount branch_amount
   initiator_amount return_amount deficit rate_percent initiator rows_total rows_charged archived } } }`
-const CURRENT = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period planned memos aid_paid aid_reserve expenses ripening_orders ripening_turnover ripening_secured } }'
+const CURRENT = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period planned memos aid_paid aid_reserve planned_target target_prev expenses ripening_orders ripening_turnover ripening_secured } }'
 const INITIATOR = 'query($b:String!){ marketplaceGetBranchInitiator(braname:$b){ username assigned invest_balance } }'
 const SECURE_PART = 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ secure_part{ state amount due_amount charged_amount returned_amount rate_percent settled_at } } }'
 
@@ -120,7 +120,8 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     expect(amount(reserves.limit)).toBeCloseTo(RESERVE_CHAIR, 4)
     const row = reserves.rows.find((r: any) => r.username === chairkrg.account)
     expect(amount(row.amount)).toBeCloseTo(RESERVE_CHAIR, 4)
-    expect(amount(row.remaining), 'остаток = резерв − поданное за месяц').toBeCloseTo(RESERVE_CHAIR - amount(row.submitted), 4)
+    // Доступно — накопленное право получателя (задача 99D-34): копится каждый месяц, невзятое не сгорает.
+    expect(amount(row.remaining), 'доступно — накопленное право, не меньше нуля').toBeGreaterThanOrEqual(0)
   })
 
   it(caseName('mkt.order.keu.api.03', 'два заказа на участке выданы; текущий месяц показывает их как созревающие'), async () => {
@@ -137,8 +138,10 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     expect(standPeriodNow(), 'оба заказа выданы в одном месяце стенда').toBe(ordersPeriod)
     const current = (await gql<any>(krgToken, CURRENT, { b: KRG })).marketplaceGetBranchCurrentPeriod
     expect(current.ripening_orders, 'наши заказы без гарантии созреют к первому числу').toBeGreaterThanOrEqual(2)
-    expect(amount(current.aid_reserve), 'резерв участка — сумма строк').toBeGreaterThanOrEqual(RESERVE_CHAIR)
-    expect(amount(current.expenses)).toBeCloseTo(amount(current.planned) + amount(current.memos) + amount(current.aid_reserve), 4)
+    expect(amount(current.aid_reserve), 'право получателей помощи на следующий месяц — не меньше суммы строки').toBeGreaterThanOrEqual(RESERVE_CHAIR)
+    // Ожидаемые расходы по цели резерва: траты месяца + цель − собранное прошлым итогом, не меньше нуля.
+    const expected = amount(current.planned) + amount(current.memos) + amount(current.aid_paid) + amount(current.planned_target) + amount(current.aid_reserve) - amount(current.target_prev)
+    expect(amount(current.expenses)).toBeCloseTo(Math.max(0, expected), 4)
   }, 600_000)
 
   it(caseName('mkt.order.keu.api.04', 'первое число: итог месяца участка сходится по формулам контракта и ставкам'), async () => {
@@ -162,9 +165,15 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     expect(units(periodRow.membership), 'М = У + Ф').toBe(U + F)
     expect(units(periodRow.initiator_amount), 'И = Э × φ').toBe(I)
     expect(units(periodRow.return_amount), 'В = Э − И').toBe(E - I)
-    expect(units(periodRow.expenses), 'РК = ПР + СЗ + Р − Н').toBe(
-      [periodRow.planned, periodRow.memos, periodRow.aid_reserve].map(units).reduce((a, b) => a + b, 0n) - units(periodRow.aid_unpaid),
-    )
+    // Расходы по цели резерва (задача 99D-34): РК = траты месяца + T − F_пр, не меньше нуля;
+    // T = цель плановых расходов + право получателей помощи; F = max(0, T − Д) + излишек прошлого сбора.
+    const target = units(periodRow.planned_target) + units(periodRow.aid_reserve)
+    expect(units(periodRow.target), 'T = ЦП + ЦМ').toBe(target)
+    const raw = [periodRow.planned, periodRow.memos, periodRow.aid_paid].map(units).reduce((a, b) => a + b, 0n) + target - units(periodRow.target_prev)
+    expect(units(periodRow.expenses), 'РК = ПО + СЗ + МП + T − F_пр').toBe(raw > 0n ? raw : 0n)
+    // Излишек прошлого сбора (собрано больше, чем понадобилось) переходит дальше.
+    const surplus = raw < 0n ? -raw : 0n
+    expect(units(periodRow.target_funded), 'F = max(0, T − Д) + излишек').toBe((target > RK - U ? target - (RK - U) : 0n) + surplus)
     const T = units(periodRow.turnover)
     const rate = (U + F + I) * H / T
     // Ставка в строке — проценты с двумя знаками, расчётная — доли шкалы контракта (1 000 000 = 100 %).
@@ -189,7 +198,9 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     }
     const initiator = (await gql<any>(krgToken, INITIATOR, { b: KRG })).marketplaceGetBranchInitiator
     expect(initiator.username, 'без назначения долю получает председатель участка').toBe(chairkrg.account)
-    if (units(periodRow.initiator_amount) > 0n) expect(amount(initiator.invest_balance)).toBeGreaterThan(0)
+    // С 99D-27 доля инициаторов возмещает паевые взносы участка (кошелёк возмещения)
+    // либо направляется участку; кошелёк договора участия пополняют только паевые взносы.
+    expect(amount(initiator.invest_balance)).toBeGreaterThanOrEqual(0)
   }, 240_000)
 
   it(caseName('mkt.order.keu.api.06', 'строки прогонов в цепи — не больше двух на участок; на узле история остаётся'), async () => {

@@ -47,6 +47,20 @@ export async function getBranchWalletHistory(
   return result;
 }
 
+export type MarketplaceBranchMovementPartsView =
+  Queries.Marketplace.GetBranchMovementParts.IOutput['marketplaceGetBranchMovementParts'];
+
+/** Движения участка в одном процессе — получатели распределения, взнос по заказу. */
+export async function getBranchMovementParts(
+  data: Queries.Marketplace.GetBranchMovementParts.IInput,
+): Promise<MarketplaceBranchMovementPartsView> {
+  const { [Queries.Marketplace.GetBranchMovementParts.name]: result } = await client.Query(
+    Queries.Marketplace.GetBranchMovementParts.query,
+    { variables: data },
+  );
+  return result;
+}
+
 export async function getPersonalEconomy(): Promise<MarketplacePersonalEconomyView> {
   const { [Queries.Marketplace.GetPersonalEconomy.name]: result } = await client.Query(
     Queries.Marketplace.GetPersonalEconomy.query,
@@ -99,14 +113,6 @@ export async function listExpensePlans(braname: string): Promise<ExpensePlanView
     { variables: { data: { braname } } },
   );
   return result;
-}
-
-export type ICreateExpensePlanInput = Mutations.Expenses.CreateExpensePlan.IInput['data'];
-
-export async function createExpensePlan(data: ICreateExpensePlanInput): Promise<void> {
-  await client.Mutation(Mutations.Expenses.CreateExpensePlan.mutation, {
-    variables: { data },
-  });
 }
 
 export type IDeleteExpensePlanInput = Mutations.Expenses.DeleteExpensePlan.IInput['data'];

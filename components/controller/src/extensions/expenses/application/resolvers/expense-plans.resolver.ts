@@ -10,6 +10,8 @@ import {
   CreateExpensePlanInputDTO,
   DeleteExpensePlanInputDTO,
   ExpensePlanDTO,
+  ExpensePlanScheduleDTO,
+  ExpensePlanScheduleInputDTO,
   ListExpensePlansInputDTO,
   toExpensePlanDTO,
 } from '../dto/expense-plan.dto';
@@ -44,6 +46,21 @@ export class ExpensePlansResolver {
     return plans.map(toExpensePlanDTO);
   }
 
+  @Query(() => ExpensePlanScheduleDTO, {
+    name: 'expensePlanSchedule',
+    description:
+      'Показ планового расхода до добавления: сроки платежей по периодичности и сколько резерв участка откладывает под платёж за месяц. Запись в реестр не создаётся.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpensePlan', 'manage')
+  expensePlanSchedule(@Args('data') data: ExpensePlanScheduleInputDTO): ExpensePlanScheduleDTO {
+    return this.plansService.previewSchedule({
+      amount: data.amount,
+      due_date: data.due_date,
+      recurrence: data.recurrence ?? null,
+    });
+  }
+
   @Mutation(() => ExpensePlanDTO, {
     name: 'createExpensePlan',
     description:
@@ -61,7 +78,12 @@ export class ExpensePlansResolver {
       amount: data.amount,
       due_date: data.due_date,
       recurrence: data.recurrence ?? null,
-      pay_to: data.pay_to,
+      pay_to: data.pay_to ?? null,
+      recipient_type: data.recipient_type ?? null,
+      counterparty_id: data.counterparty_id ?? null,
+      recipient: data.recipient ?? null,
+      payment_method_id: data.payment_method_id ?? null,
+      payment_purpose: data.payment_purpose ?? null,
     });
     return toExpensePlanDTO(plan);
   }

@@ -86,13 +86,31 @@ export class MarketplaceBranchAidMirrorService {
     await this.store.update({ aid_hash }, { status, paid_at: paidAt ?? row.paid_at });
   }
 
+  /**
+   * Хэш — заявление на материальную помощь (задача 99D-30). Выделение средств
+   * инициаторов идёт одной операцией и под служебную записку, и под помощь;
+   * помощь в итоге месяца считается как МП, поэтому её выделение не входит в СЗ.
+   */
+  async isAidHash(coopname: string, hash: string): Promise<boolean> {
+    return (await this.store.findOne({ coopname, aid_hash: hash.toLowerCase() })) !== null;
+  }
+
   /** Материальная помощь участка, выплаченная за отрезок времени [from, to). Сумма заявлений целиком, с налогом. */
   async paidWithin(coopname: string, braname: string, from: Date, to: Date): Promise<bigint> {
+    return (await this.paidRowsWithin(coopname, braname, from, to)).reduce((sum, r) => sum + r.amount, 0n);
+  }
+
+  /**
+   * Заявления участка, выплаченные за отрезок [from, to): хэш и сумма целиком.
+   * Итогу месяца нужно отделить помощь из средств инициаторов (задача 99D-34):
+   * источник виден по операциям нитки заявления, поэтому отдаётся и хэш.
+   */
+  async paidRowsWithin(coopname: string, braname: string, from: Date, to: Date): Promise<Array<{ hash: string; amount: bigint }>> {
     // Отбор по дате делает база: строк за все прошлые месяцы узел не читает.
     const rows = await this.store.find({ coopname, braname, status: MarketplaceBranchAidStatus.PAID, paid_at: moreOrEqual(from) });
     return rows
       .filter((r) => r.paid_at && r.paid_at < to)
-      .reduce((sum, r) => sum + this.fromDecimal(r.amount), 0n);
+      .map((r) => ({ hash: r.aid_hash, amount: this.fromDecimal(r.amount) }));
   }
 
   /**

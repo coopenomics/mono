@@ -17,6 +17,7 @@ interface IDocumentStore {
   changePage: (page: number, username: string, filter: Record<string, any>, hidden?: boolean) => Promise<IDocumentPackageAggregate[]>
   changeDocumentType: (type: DocumentType, username: string, filter: Record<string, any>) => Promise<void>
   loadDocument: (username: string, hash: string) => Promise<IDocumentPackageAggregate | null>
+  loadPackage: (username: string, packageHash: string) => Promise<IDocumentPackageAggregate | null>
   resetDocuments: () => void
   reloadLoaded: (username: string, filter: Record<string, any>) => Promise<void>
 }
@@ -133,6 +134,25 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
   }
 
   /**
+   * Пакет документов процесса по его хэшу — тому, что стоит в операциях учёта
+   * (`process_hash`). Хэш документа-заявления в пакете другой, поэтому
+   * `loadDocument` здесь не подходит.
+   */
+  const loadPackage = async (
+    username: string,
+    packageHash: string
+  ): Promise<IDocumentPackageAggregate | null> => {
+    const result = await api.loadDocuments({
+      username,
+      filter: { package: packageHash.toUpperCase() },
+      type: 'newsubmitted',
+      page: 1,
+      limit: 1
+    })
+    return result.items[0] ?? null
+  }
+
+  /**
    * Перечитать уже показанные страницы одним запросом и заменить список:
    * так список живёт по ленте изменений — новый документ встаёт на место,
    * решения и аннулирования обновляются. Тихо: без индикатора и без
@@ -166,6 +186,7 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
     changePage,
     changeDocumentType,
     loadDocument,
+    loadPackage,
     resetDocuments,
     reloadLoaded
   }

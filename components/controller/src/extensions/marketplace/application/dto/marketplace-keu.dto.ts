@@ -1,6 +1,8 @@
-import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import type { PeriodBounds } from '../shared/period-bounds';
+import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
 import type {
   MarketplaceBranchReservesView,
   MarketplaceBranchReserveView,
@@ -151,6 +153,12 @@ export class MarketplaceDeleteBranchReserveInputDTO {
 
 // ── Итоги месяцев участка ─────────────────────────────────────────────────
 
+registerEnumType(MarketplacePeriodInvestPhase, {
+  name: 'MarketplacePeriodInvestPhase',
+  description:
+    'Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку.',
+});
+
 @ObjectType('MarketplaceBranchPeriod', {
   description:
     'Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками.',
@@ -162,28 +170,46 @@ export class MarketplaceBranchPeriodDTO {
   @Field(() => Int, { description: 'Номер месяца: год × 12 + месяц по часовому поясу кооператива.' })
   period!: number;
 
+  @Field(() => Date, { description: 'Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца.' })
+  starts_at!: Date;
+
+  @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
+  ends_at!: Date;
+
   @Field({ description: 'Стоимость заказов прогона, списанных по итогу месяца.' })
   turnover!: string;
 
   @Field({ description: 'Собранная обеспечительная часть по заказам прогона.' })
   secured!: string;
 
-  @Field({ description: 'Плановые расходы участка за месяц.' })
+  @Field({ description: 'Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце).' })
   planned!: string;
 
-  @Field({ description: 'Служебные записки участка сверх плана за месяц.' })
+  @Field({ description: 'Служебные записки участка сверх плана с общего кошелька за месяц.' })
   memos!: string;
 
-  @Field({ description: 'Материальная помощь, выплаченная участком за месяц.' })
+  @Field({ description: 'Материальная помощь с персонального кошелька, выплаченная за месяц.' })
   aid_paid!: string;
 
-  @Field({ description: 'Резерв социально-экономического обеспечения пайщиков на следующий месяц.' })
+  @Field({ description: 'Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва).' })
   aid_reserve!: string;
 
-  @Field({ description: 'Невыплаченная часть прошлого резерва.' })
+  @Field({ description: 'Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль.' })
   aid_unpaid!: string;
 
-  @Field({ description: 'Расходы участка за прогон.' })
+  @Field(() => String, { nullable: true, description: 'Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва.' })
+  planned_target!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Цель резерва участка: плановые расходы и накопленное право получателей помощи.' })
+  target!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Собранная часть цели резерва прошлого месяца.' })
+  target_prev!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Собранная часть цели резерва этого месяца; несобранное переходит в следующий.' })
+  target_funded!: string | null;
+
+  @Field({ description: 'Расходы участка за месяц.' })
   expenses!: string;
 
   @Field({ description: 'Членский взнос участка за прогон.' })
@@ -210,6 +236,12 @@ export class MarketplaceBranchPeriodDTO {
   @Field({ description: 'Получатель доли инициатора в этом месяце.' })
   initiator!: string;
 
+  @Field(() => MarketplacePeriodInvestPhase, { description: 'Фаза участка по паевым взносам инициаторов на момент расчёта итога.' })
+  invest_phase!: MarketplacePeriodInvestPhase;
+
+  @Field({ description: 'Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня.' })
+  investor_repaid!: string;
+
   @Field(() => Int, { description: 'Заказов в прогоне.' })
   rows_total!: number;
 
@@ -234,19 +266,31 @@ export class MarketplaceBranchCurrentPeriodDTO {
   @Field(() => Int, { description: 'Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива.' })
   period!: number;
 
-  @Field({ description: 'Плановые расходы участка со сроком в текущем месяце.' })
+  @Field(() => Date, { description: 'Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца.' })
+  starts_at!: Date;
+
+  @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
+  ends_at!: Date;
+
+  @Field({ description: 'Оплачено по плану с общего кошелька участка за текущий месяц.' })
   planned!: string;
 
-  @Field({ description: 'Служебные записки участка сверх плана за текущий месяц.' })
+  @Field({ description: 'Служебные записки участка сверх плана с общего кошелька за текущий месяц.' })
   memos!: string;
 
-  @Field({ description: 'Материальная помощь, выплаченная участком за текущий месяц.' })
+  @Field({ description: 'Материальная помощь с персонального кошелька, выплаченная за текущий месяц.' })
   aid_paid!: string;
 
-  @Field({ description: 'Резерв социально-экономического обеспечения пайщиков участка — сумма строк по получателям.' })
+  @Field({ description: 'Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца.' })
   aid_reserve!: string;
 
-  @Field({ description: 'Расходы участка на сегодня: плановые, служебные записки и резерв.' })
+  @Field({ description: 'Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца.' })
+  planned_target!: string;
+
+  @Field({ description: 'Собранная часть цели резерва прошлого итога: она уже лежит на участке.' })
+  target_prev!: string;
+
+  @Field({ description: 'Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом.' })
   expenses!: string;
 
   @Field(() => Int, { description: 'Заказов, которые созреют к первому числу.' })
@@ -257,6 +301,12 @@ export class MarketplaceBranchCurrentPeriodDTO {
 
   @Field({ description: 'Обеспечительная часть по заказам, которые созреют к первому числу.' })
   ripening_secured!: string;
+
+  @Field({ description: 'Распределено участком доверенным за текущий месяц.' })
+  distributed!: string;
+
+  @Field({ description: 'Получено текущим пайщиком распределением за текущий месяц.' })
+  received!: string;
 }
 
 // ── Преобразования ────────────────────────────────────────────────────────
@@ -269,10 +319,12 @@ export function toMarketplaceBranchReservesDTO(view: MarketplaceBranchReservesVi
   return { braname: view.braname, limit: view.limit, rows: view.rows.map((r: MarketplaceBranchReserveView) => ({ ...r })) };
 }
 
-export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity, ratePercent: string): MarketplaceBranchPeriodDTO {
+export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity, ratePercent: string, bounds: PeriodBounds): MarketplaceBranchPeriodDTO {
   return {
     braname: row.braname,
     period: row.period,
+    starts_at: bounds.start,
+    ends_at: bounds.end,
     turnover: row.turnover,
     secured: row.secured,
     planned: row.planned,
@@ -281,6 +333,10 @@ export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity,
     aid_reserve: row.aid_reserve,
     aid_unpaid: row.aid_unpaid,
     expenses: row.expenses,
+    planned_target: row.planned_target,
+    target: row.target,
+    target_prev: row.target_prev,
+    target_funded: row.target_funded,
     membership: row.membership,
     funds_amount: row.funds_amount,
     branch_amount: row.branch_amount,
@@ -289,6 +345,8 @@ export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity,
     deficit: row.deficit,
     rate_percent: ratePercent,
     initiator: row.initiator,
+    invest_phase: row.invest_phase,
+    investor_repaid: row.investor_repaid,
     rows_total: row.rows_total,
     rows_charged: row.rows_charged,
     closed_at: row.closed_at,

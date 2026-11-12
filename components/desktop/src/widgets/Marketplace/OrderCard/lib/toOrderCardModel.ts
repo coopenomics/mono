@@ -1,6 +1,6 @@
 import { Queries } from '@coopenomics/sdk';
 import { uiLocale, t } from 'src/shared/i18n';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderQuantityText, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import type { Order, OrderStatus } from '../OrderCard.types';
 import { orderStatusDisplay } from './orderStatusDisplay';
 
@@ -63,6 +63,11 @@ export interface OrderCardSource {
    */
   is_ready_announced?: boolean;
   created_at: string | Date;
+  /**
+   * Последняя смена состояния заказа — дата получения или отмены под бейджем.
+   * Скаляр даты клиент GraphQL отдаёт без типа; значение сужается в `statusDate`.
+   */
+  updated_at?: unknown;
   delivery_braname: string;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
@@ -86,14 +91,28 @@ export function orderProgress(o: OrderCardSource): number | undefined {
 }
 
 /**
+ * Имя пункта выдачи сплошными заглавными («РОМАШКА») в строке списка звучит
+ * громче названия товара. Слово длиннее четырёх букв переводится в обычный
+ * регистр; короткие сокращения (ПВЗ, ООО) остаются как есть.
+ */
+function softenCaps(name: string): string {
+  return name.replace(/[A-ZА-ЯЁ]{5,}/g, (w) => w.charAt(0) + w.slice(1).toLocaleLowerCase('ru'));
+}
+
+/**
  * `role` определяет, что показывает «Сумма» карточки (requirement b6):
  *  - 'orderer' (по умолчанию) — цена С членским взносом, как в каталоге:
  *    это то, что заказчик реально платит.
  *  - 'offerer' — себестоимость поставщика БЕЗ взноса (его деньги), плюс
  *    отдельная строка «Цена для заказчика» с суммой для справки.
  */
+/** Дата из скаляра GraphQL: строка либо Date; прочее — даты нет. */
+function statusDate(value: unknown): string | Date | undefined {
+  return typeof value === 'string' || value instanceof Date ? value : undefined;
+}
+
 export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer' = 'orderer'): Order {
-  const name = o.delivery_point_name || undefined;
+  const name = o.delivery_point_name ? softenCaps(o.delivery_point_name) : undefined;
   const address = o.delivery_point_address || undefined;
   // Объявленная готовность к выдаче показывается заказчику как «Готов к выдаче»,
   // хотя on-chain статус ещё ACCEPTED_TO_COOP (переиспользуем вид READY_TO_RECEIVE).
@@ -112,6 +131,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     imageUrl: o.image_url ?? undefined,
     units: saleUnit.units,
     unitLabel: saleUnit.unitLabel,
+    qtyLabel: marketplaceOrderQuantityText(o.quantity, o.unit_of_measure, o.package_size),
     totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
     feeNote:
       isOfferer && feeAmount > 0
@@ -124,6 +144,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     statusLabel: display.label,
     statusVariant: display.variant,
     createdAt: o.created_at,
+    statusAt: statusDate(o.updated_at),
     // Имя КУ — основная строка ПВЗ, адрес — вторичная. Если нет ни имени, ни
     // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.
     pvzName: name ?? (address ? undefined : o.delivery_braname),

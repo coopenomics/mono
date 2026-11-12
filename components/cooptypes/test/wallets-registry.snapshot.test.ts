@@ -49,7 +49,7 @@ describe('ledger2 wallets registry (generated from C++)', () => {
   // членский взнос «Образования» — с 20.09.2026 (п. 4.2.5 его Положения).
   it('возврат при выходе: паевые кошельки и членский взнос «Образования»', () => {
     expect([...LEDGER2_EXIT_REFUND_WALLETS].sort()).toEqual(
-      ['w.cap.blago', 'w.edu.member', 'w.edu.share', 'w.mkt.share', 'w.reg.minshr', 'w.wal.share'],
+      ['w.cap.blago', 'w.edu.member', 'w.edu.share', 'w.mkt.invest', 'w.mkt.share', 'w.reg.minshr', 'w.wal.share'],
     )
     // алиас-обёртка ссылается на тот же сет
     expect(EXIT_REFUND_WALLET_NAMES).toEqual(LEDGER2_EXIT_REFUND_WALLETS)
@@ -72,8 +72,8 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     }
   })
 
-  it('выход держат резерв и обеспечительная часть под заказы, незакрытый подотчёт, материалы на хранении и остаток инициатора участка', () => {
-    expect(EXIT_BLOCKER_WALLET_RULES.map(r => r.wallet_name).sort()).toEqual(['w.edu.hold', 'w.exp.adv', 'w.mkt.invest', 'w.mkt.order', 'w.mkt.secure'])
+  it('выход держат резерв и обеспечительная часть под заказы, незакрытый подотчёт и материалы на хранении', () => {
+    expect(EXIT_BLOCKER_WALLET_RULES.map(r => r.wallet_name).sort()).toEqual(['w.edu.hold', 'w.exp.adv', 'w.mkt.order', 'w.mkt.secure'])
     for (const r of EXIT_BLOCKER_WALLET_RULES) expect(r.note.length).toBeGreaterThan(0)
   })
 
@@ -86,5 +86,11 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     expect(exitRuleForWallet('w.edu.share')?.policy).toBe('RETURN_TO_MAIN')
     expect(exitRuleForWallet('w.edu.share')?.transfer_op).toBe('o.edu.wthshr')
     expect(exitRuleForWallet('w.sov.fund')).toBeUndefined()
+  })
+
+  it('паевой взнос инициатора в участок при выходе переносится на главный паевой (99D-27)', () => {
+    expect(exitRuleForWallet('w.mkt.invest')?.policy).toBe('RETURN_TO_MAIN')
+    expect(exitRuleForWallet('w.mkt.invest')?.transfer_op).toBe('o.mkt.iexit')
+    expect(exitRuleForWallet('w.mkt.repay')?.policy).toBe('UNTOUCHED')
   })
 })

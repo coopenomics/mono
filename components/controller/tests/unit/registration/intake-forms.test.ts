@@ -274,8 +274,8 @@ describe('анкеты вступления: проверка значений �
       contacts: { telegram: 'слишком длинно' },
     });
     expect(issues).toEqual([
-      { path: ['hours'], message: 'нужно целое число' },
-      { path: ['remote'], message: 'нужно «да» или «нет»' },
+      { path: ['hours'], message: 'введите целое число' },
+      { path: ['remote'], message: 'выберите «да» или «нет»' },
       { path: ['level'], message: 'выберите значение из списка' },
       { path: ['contacts', 'telegram'], message: 'не длиннее 5 символов' },
     ]);
@@ -290,7 +290,7 @@ describe('анкеты вступления: проверка значений �
     ]);
     expect(validateIntakeValues(schema, null).issues.map((i) => i.path[0])).toEqual(['hours', 'level', 'contacts']);
     expect(validateIntakeValues(schema, { hours: 'много', level: 'junior', contacts: { telegram: 'a' } }).issues).toEqual(
-      [{ path: ['hours'], message: 'нужно число' }]
+      [{ path: ['hours'], message: 'введите число' }]
     );
   });
 });

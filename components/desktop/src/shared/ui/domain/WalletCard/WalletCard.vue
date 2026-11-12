@@ -31,7 +31,8 @@
             <template v-else-if="empty">0,00<span class="ccy">{{ symbol }}</span></template>
             <template v-else>{{ balance }}<span class="ccy">{{ symbol }}</span></template>
           </div>
-          <div class="wallet__metric-label">{{ balanceLabel ?? $t('ui.walletCard.availableLabel') }}</div>
+          <!-- Пустая строка снимает подпись: у суммы без условия («сейчас») подпись не нужна. -->
+          <div v-if="balanceLabel !== ''" class="wallet__metric-label">{{ balanceLabel ?? $t('ui.walletCard.availableLabel') }}</div>
         </div>
 
         <div v-if="lockedBalance !== undefined" class="wallet__locked-line">

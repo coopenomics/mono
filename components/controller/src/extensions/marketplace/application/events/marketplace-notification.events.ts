@@ -611,3 +611,15 @@ export interface MarketplaceReturnCouncilDecidedEvent {
   delivery_braname: string;
   authorized: boolean;
 }
+
+/**
+ * Проход списания возместил паевые взносы инициаторов участков (задача 99D-30):
+ * инициаторам — уведомление, сколько доступно к возврату. Одно событие на
+ * проход, участки — без повторов.
+ */
+export const MARKETPLACE_INVEST_REPAID_EVENT = 'marketplace.invest.repaid';
+
+export interface MarketplaceInvestRepaidEvent {
+  coopname: string;
+  branames: string[];
+}

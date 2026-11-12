@@ -73,9 +73,14 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.mkt.topay",
   },
   {
+    "program_label": "Marketplace — паевой взнос по договору участия в хозяйственной деятельности программы «Стол заказов» (99D-27)",
+    "required_program_id": 2,
+    "wallet_name": "w.mkt.invest",
+  },
+  {
     "program_label": null,
     "required_program_id": 0,
-    "wallet_name": "w.mkt.invest",
+    "wallet_name": "w.mkt.repay",
   },
   {
     "program_label": null,
@@ -197,9 +202,15 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
   },
   {
     "account": 80000,
-    "human_name": "ЦПП «Стол Заказов» — паевой кошелёк инициатора участка",
+    "human_name": "ЦПП «Стол Заказов» — паевой взнос инициатора в кооперативный участок",
     "kind": "USER_SHARED",
     "name": "w.mkt.invest",
+  },
+  {
+    "account": 86000,
+    "human_name": "ЦПП «Стол Заказов» — возмещение паевых взносов инициаторов участка",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.repay",
   },
   {
     "account": 86000,
@@ -347,6 +358,12 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
   },
   {
     "account": 86000,
+    "human_name": "Материальная помощь по заявлению",
+    "kind": "COOPERATIVE",
+    "name": "w.brn.aidreq",
+  },
+  {
+    "account": 86000,
     "human_name": "Пул расходов кооперативного участка",
     "kind": "COOPERATIVE",
     "name": "w.brn.expns",
@@ -356,6 +373,12 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Пул программных расходов ЦПП «Благорост»",
     "kind": "COOPERATIVE",
     "name": "w.cap.pgexp",
+  },
+  {
+    "account": 0,
+    "human_name": "Пул средств инициаторов кооперативных участков Стола заказов",
+    "kind": "COOPERATIVE",
+    "name": "w.mkt.ipool",
   },
   {
     "account": 68000,

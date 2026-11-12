@@ -76,3 +76,42 @@ export async function processDecision(blockchain: Blockchain, decisionId: number
 
   getTotalRamUsage(result)
 }
+
+/**
+ * Отклоняет решение советом: три голоса «против» и отказ по большинству одной транзакцией.
+ *
+ * Контракт отклоняет решение, только когда против высказалось больше половины совета;
+ * отказ вызывает обратный вызов процесса (например, возврат суммы заявления на
+ * материальную помощь).
+ */
+export async function declineDecision(blockchain: Blockchain, decisionId: number) {
+  const voteActions = await Promise.all(VOTERS.map(async voter => ({
+    account: SovietContract.contractName.production,
+    name: SovietContract.Actions.Decisions.VoteAgainst.actionName,
+    authorization: [{ actor: voter, permission: 'active' }],
+    data: await signVote(COOP, voter, decisionId, undefined, 'active', 'voteagainst'),
+  })))
+
+  const declineData: SovietContract.Actions.Decisions.Declinedec.IDeclineDecision = {
+    coopname: COOP,
+    decision_id: decisionId,
+  }
+
+  const result = await blockchain.api.transact(
+    {
+      actions: [
+        ...voteActions,
+        {
+          account: SovietContract.contractName.production,
+          name: SovietContract.Actions.Decisions.Declinedec.actionName,
+          // declinedec требует require_auth(coopname), как authorize и exec.
+          authorization: [{ actor: COOP, permission: 'active' }],
+          data: declineData,
+        },
+      ],
+    },
+    { blocksBehind: 3, expireSeconds: 30 },
+  )
+
+  getTotalRamUsage(result)
+}

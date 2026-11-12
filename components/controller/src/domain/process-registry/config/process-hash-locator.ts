@@ -65,7 +65,7 @@ export const OPERATIONS_NOT_NAMING_PROCESS: ReadonlySet<string> = new Set([
   'o.brn.common',
   'o.brn.retfee',
   // Отчисления в фонды (o.fnd.indiv / o.fnd.resrv / o.fnd.devel — кошелёк на
-  // каждый фонд, задача 99D-25) и o.mkt.initr идут в нитке поставки при списании
+  // каждый фонд, задача 99D-25) и o.mkt.initr (до 99D-27) идут в нитке поставки при списании
   // по итогу месяца (задача 99D-22); имя нитке даёт заказ, а не отчисление.
   'o.fnd.indiv',
   'o.fnd.resrv',
@@ -186,6 +186,18 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
   'p.mkt.claim':  [{ code: 'marketplace', table: 'claims',      field: 'hash' }],
+  // Инвестиционный этап участка (99D-27): паевой взнос имуществом живёт в
+  // `invprops.hash` до второй подписи акта; паевой взнос деньгами и заявление
+  // обратно — одноактовые, без строки (история — по операциям ledger2).
+  'p.mkt.invest': [{ code: 'marketplace', table: 'invprops',    field: 'hash' }],
+  // Возмещение паевого взноса инициатору: заявление 1123 одноактовое, строки
+  // нет — история по операции o.mkt.iback.
+  'p.mkt.icomp':  [],
+  // Списание обеспечительной части по итогу периода (99D-33): нитка — строка
+  // счётчика пайщика за период, хэш детерминирован (sha256 от
+  // `p.mkt.due:<coopname>:<username>:<braname>:<period>`), строка стирается
+  // самим списанием — одноактовый процесс, данные по операциям ledger2.
+  'p.mkt.due':    [],
 
   // edubridge — ЦПП «Образование». Две entity-таблицы из
   // contracts/cpp/lib/domain/table_edubridge_*.hpp:
