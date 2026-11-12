@@ -60,9 +60,10 @@ export async function ensurePoolFree(bc: Blockchain, who: Who, token: string, br
     return
   const need = amount - free
   await ensureShareFunds(who.account, Number(need / 10_000n) + 1_000, token)
-  const agreements: any[] = await bc.getTableRows(MARKET, COOP, 'invagreemnts', 1, who.account, who.account)
-  if (!agreements.some(r => r.username === who.account))
-    await push(MARKET, 'signinvagr', { coopname: COOP, username: who.account, agreement: await signedDoc(who, 1118) })
+  // Договор об участии заключается на каждый участок (решение владельца 12.11.2026).
+  const agreements: any[] = await bc.getTableRows(MARKET, COOP, 'invagrbranch', 1000)
+  if (!agreements.some(r => r.username === who.account && r.braname === braname))
+    await push(MARKET, 'signinvagr', { coopname: COOP, username: who.account, braname, agreement: await signedDoc(who, 1118) })
   await push(MARKET, 'investmoney', {
     coopname: COOP,
     username: who.account,

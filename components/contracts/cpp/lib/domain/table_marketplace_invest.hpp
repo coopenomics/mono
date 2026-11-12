@@ -59,23 +59,34 @@ namespace PropertyStatus {
 } // namespace MarketInvest
 
 /**
- * @brief Договор участия в хозяйственной деятельности по ЦПП «Стол заказов»
- * (registry 1118). Один на пайщика в кооперативе; подписывается один раз,
- * затем пайщик вносит средства в любой кооперативный участок.
+ * @brief Договор об участии в хозяйственной деятельности кооперативного
+ * участка (registry 1118). Заключается на каждый участок отдельно (решение
+ * владельца 12.11.2026; прежняя таблица `invagreemnts` с договором на
+ * пайщика выведена): пайщик подписывает его на странице «Инициаторы
+ * участка» и затем вносит паевые взносы в этот участок.
  *
  * @ingroup public_tables
  * @ingroup public_marketplace_tables
- * @par table: invagreemnts
+ * @par table: invagrbranch
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_invagreement {
-  eosio::name           username;   ///< пайщик (первичный ключ)
+  uint64_t              id;         ///< первичный ключ
+  eosio::name           username;   ///< пайщик
+  eosio::name           braname;    ///< кооперативный участок договора
   eosio::time_point_sec signed_at;  ///< время подписи
   document2             agreement;  ///< подписанный договор
 
-  uint64_t primary_key() const { return username.value; }
+  uint64_t primary_key() const { return id; }
+  /// Пайщик и участок — один договор на пару.
+  uint128_t by_user_branch() const { return combine_ids(username.value, braname.value); }
+  uint64_t  by_branch() const { return braname.value; }
 };
 
-typedef eosio::multi_index<"invagreemnts"_n, mkt_invagreement> mkt_invagreements_index;
+typedef eosio::multi_index<
+  "invagrbranch"_n, mkt_invagreement,
+  eosio::indexed_by<"byuserbr"_n, eosio::const_mem_fun<mkt_invagreement, uint128_t, &mkt_invagreement::by_user_branch>>,
+  eosio::indexed_by<"bybranch"_n, eosio::const_mem_fun<mkt_invagreement, uint64_t, &mkt_invagreement::by_branch>>
+> mkt_invagreements_index;
 RAM_PAYER_CLASS(mkt_invagreement, contract);
 
 /**

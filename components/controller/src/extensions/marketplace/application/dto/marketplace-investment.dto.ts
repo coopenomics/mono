@@ -1,6 +1,6 @@
 import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Min, ValidateNested } from 'class-validator';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
 import {
@@ -34,7 +34,7 @@ type ToAsset = (units: bigint) => string;
 
 // ── Ответы ───────────────────────────────────────────────────────────────
 
-@ObjectType('MarketplaceInvestAgreement', { description: 'Договор участия в хозяйственной деятельности по программе «Стол заказов».' })
+@ObjectType('MarketplaceInvestAgreement', { description: 'Договор об участии в хозяйственной деятельности кооперативного участка.' })
 export class MarketplaceInvestAgreementDTO {
   @Field({ description: 'Номер договора.' })
   number!: string;
@@ -203,6 +203,11 @@ export function toMarketplaceBranchInvestmentDTO(v: MarketplaceInvestBranchView,
 
 @InputType('MarketplaceSignInvestAgreementInput')
 export class MarketplaceSignInvestAgreementInputDTO {
+  @Field({ description: 'Кооперативный участок договора.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный договор участия в хозяйственной деятельности.' })
   @ValidateNested()
   @Type(() => SignedDigitalDocumentInputDTO)
@@ -266,6 +271,31 @@ export class MarketplaceInvestPropertyStatementInputDTO {
   @IsNumber()
   @Min(0.0001)
   amount!: number;
+
+  @Field({ nullable: true, description: 'Категория имущества.' })
+  @IsOptional()
+  @IsString()
+  property_category?: string;
+
+  @Field({ nullable: true, description: 'Ссылки на фото, видео и аудиоматериалы.' })
+  @IsOptional()
+  @IsString()
+  property_media_links?: string;
+
+  @Field({ nullable: true, description: 'Гарантийные условия и предлагаемый срок действия.' })
+  @IsOptional()
+  @IsString()
+  property_warranty_terms?: string;
+
+  @Field({ nullable: true, description: 'Прочие характеристики и описание.' })
+  @IsOptional()
+  @IsString()
+  property_other?: string;
+
+  @Field({ nullable: true, description: 'Срок гарантийных обязательств, дней.' })
+  @IsOptional()
+  @Matches(/^\d{0,5}$/)
+  property_warranty_days?: string;
 }
 
 @InputType('MarketplaceCreateInvestPropertyInput')

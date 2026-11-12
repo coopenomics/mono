@@ -390,7 +390,7 @@ public:
    * (registry 1118): один на пайщика в кооперативе.
    * @ingroup public_marketplace_actions
    */
-  [[eosio::action]] void signinvagr(eosio::name coopname, eosio::name username, document2 agreement);
+  [[eosio::action]] void signinvagr(eosio::name coopname, eosio::name username, eosio::name braname, document2 agreement);
   /**
    * @brief Вложение деньгами в участок: трансляция паевого взноса в договор
    * участия по заявлению 1119.

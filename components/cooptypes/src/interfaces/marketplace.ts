@@ -772,6 +772,7 @@ export interface ISubmretrn {
 export interface ISignInvAgr {
   coopname: IName
   username: IName
+  braname: IName
   agreement: IDocument2
 }
 
@@ -839,7 +840,9 @@ export interface IClaimInv {
 }
 
 export interface IMktInvAgreement {
+  id: IUint64
   username: IName
+  braname: IName
   signed_at: ITimePointSec
   agreement: IDocument2
 }

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Name, UInt128 } from '@wharfkit/session';
 import { BranchContract, FundContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
 import {
@@ -744,9 +745,15 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ClaimInv.actionName, data, 'claiminv');
   }
 
-  async getInvestAgreement(coopname: string, username: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null> {
+  /**
+   * Договор пайщика с участком: индекс `byuserbr` (второй) — ключ uint128 из
+   * имени пайщика (старшие 64 бита) и имени участка, как `combine_ids` в контракте.
+   */
+  async getInvestAgreement(coopname: string, username: string, braname: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null> {
+    const nameValue = (name: string): bigint => BigInt(Name.from(name).value.toString());
+    const key = (nameValue(username) << 64n) | nameValue(braname);
     return this.blockchainService.getSingleRow<MarketContract.Tables.InvAgreements.IMktInvAgreement>(
-      MarketContract.contractName.production, coopname, MarketContract.Tables.InvAgreements.tableName, username, 'primary', 'name'
+      MarketContract.contractName.production, coopname, MarketContract.Tables.InvAgreements.tableName, UInt128.from(key.toString()), 'secondary', 'i128'
     );
   }
 

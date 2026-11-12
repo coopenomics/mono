@@ -9,14 +9,16 @@
  * сверяются приращениями.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { ROLES, type Who, amount, caseName, ensureShareFunds, freshMember, gql, tokenOf, waitFor } from '../core'
+import { ROLES, type Who, amount, caseName, docMeta, ensureShareFunds, freshMember, gql, tokenOf, waitFor } from '../core'
 import { KRG } from './flow'
 import { refusal } from './mkt-flows.helpers'
 import { onboardOrderer } from './onboarding.helpers'
 import {
   BRANCH_INVESTMENT,
   INVEST_MONEY,
+  AGREEMENT_DOC,
   MY_AGREEMENT,
+  PROPERTY_STATEMENT,
   MY_HISTORY,
   MY_INVESTMENTS,
   chainInvestment,
@@ -53,16 +55,16 @@ describe('инвестиционный этап участка: договор, 
   it(caseName('mkt.order.invest.istok.05', 'оператор участка без договора участия: заявления не формируются, договора нет'), async () => {
     // Председатель чужого участка — оператор своего участка odn, договора не подписывал.
     const token = await tokenOf(chairodn)
-    expect((await gql<any>(token, MY_AGREEMENT)).marketplaceMyInvestAgreement, 'договора у председателя участка odn нет').toBeNull()
+    expect((await gql<any>(token, MY_AGREEMENT, { b: ODN })).marketplaceMyInvestAgreement, 'договора у председателя участка odn с его участком нет').toBeNull()
     const r = await refusal(token, 'query($b:String!){ marketplaceInvestClaimSignablePayload(braname:$b){ hash } }', { b: ODN })
     expect(r?.codeText ?? '').toMatch(/MARKETPLACE_INVAGR_REQUIRED/)
   })
 
   it(caseName('mkt.order.invest.istok.06', 'председатель участка с договором: заявление 1119 с номером договора, участком и суммой'), async () => {
     const number = await ensureAgreement(chairkrg)
-    expect(number).toMatch(/^[0-9A-F]{8}$/)
-    const again = (await gql<any>(krgToken, MY_AGREEMENT)).marketplaceMyInvestAgreement
-    expect(again.number, 'договор один на пайщика: номер не меняется').toBe(number)
+    expect(number).toMatch(/^УХД-[0-9A-F]{8}$/)
+    const again = (await gql<any>(krgToken, MY_AGREEMENT, { b: KRG })).marketplaceMyInvestAgreement
+    expect(again.number, 'договор с участком один: номер не меняется').toBe(number)
     const { meta } = await investStatement(chairkrg, KRG, SUM)
     expect(Number(meta.registry_id)).toBe(1119)
     expect(meta.agreement_number).toBe(number)
@@ -148,7 +150,7 @@ describe('инвестиционный этап участка: договор, 
   it(caseName('mkt.order.invest.istok.04', 'вносит только оператор своего участка: пайщику без роли и председателю чужого участка — отказ, строки участка не меняются'), async () => {
     const before = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
     // Пайщик без роли оператора: паевые взносы ему недоступны с договора — отказ правом.
-    const agreement = await refusal(outsiderToken, 'query{ marketplaceInvestAgreementSignablePayload{ hash } }')
+    const agreement = await refusal(outsiderToken, 'query($b:String!){ marketplaceInvestAgreementSignablePayload(braname:$b){ hash } }', { b: KRG })
     expect(agreement?.codeText ?? '', 'договор участия — только операторам участка').toMatch(/KIT_INSUFFICIENT_RIGHTS/)
     // Председатель участка odn вносит в участок krg: участок не его — отказ до цепи.
     const foreign = await refusal(await tokenOf(chairodn), INVEST_MONEY, {
@@ -159,5 +161,45 @@ describe('инвестиционный этап участка: договор, 
     expect(investorOf(after, outsider.account)).toBeUndefined()
     expect(investorOf(after, chairodn.account)).toBeUndefined()
     expect(amount(after.money_total)).toBeCloseTo(amount(before.money_total), 4)
+  })
+
+  // Договор об участии в хозяйственной деятельности — на каждый участок (решение владельца 12.11.2026).
+  it(caseName('mkt.order.invest.istok.15', 'договор с одним участком не действует для другого: у председателя krg договор с krg есть, с odn — нет'), async () => {
+    await ensureAgreement(chairkrg)
+    expect((await gql<any>(krgToken, MY_AGREEMENT, { b: KRG })).marketplaceMyInvestAgreement, 'договор с krg').toBeTruthy()
+    expect((await gql<any>(krgToken, MY_AGREEMENT, { b: ODN })).marketplaceMyInvestAgreement, 'договора с odn нет').toBeNull()
+    // Оператор участка odn без договора с odn: заявление в свой участок не формируется.
+    const r = await refusal(await tokenOf(chairodn), 'query($d:MarketplaceInvestStatementInput!){ marketplaceInvestStatementSignablePayload(data:$d){ hash } }', { d: { braname: ODN, amount: SUM } })
+    expect(r?.codeText ?? '').toMatch(/MARKETPLACE_INVAGR_REQUIRED/)
+  })
+
+  it(caseName('mkt.order.invest.istok.16', 'договор участка через API: номер «УХД-…», в данных и тексте договора — участок; у другого участка номер другой'), async () => {
+    const doc = (await gql<any>(krgToken, AGREEMENT_DOC, { b: KRG })).marketplaceInvestAgreementSignablePayload
+    const meta = docMeta(doc.meta)
+    expect(Number(meta.registry_id)).toBe(1118)
+    expect(String(meta.agreement_number)).toMatch(/^УХД-[0-9A-F]{8}$/)
+    expect(meta.braname).toBe(KRG)
+    expect(String(meta.branch_name ?? '')).not.toBe('')
+    expect(doc.html).toContain(String(meta.branch_name))
+    const other = (await gql<any>(await tokenOf(chairodn), AGREEMENT_DOC, { b: ODN })).marketplaceInvestAgreementSignablePayload
+    expect(docMeta(other.meta).agreement_number).not.toBe(meta.agreement_number)
+  })
+
+  it(caseName('mkt.order.invest.istok.17', 'заявление 1120 через API несёт поля бланка владельца и стоимость единицы'), async () => {
+    await ensureAgreement(chairkrg)
+    const fields = {
+      braname: KRG, property_name: 'Витрина', property_description: 'Исправна', property_quantity: '3', property_unit: 'шт.', amount: 1000,
+      property_category: 'Холодильное оборудование', property_media_links: 'https://example.ru/v', property_warranty_terms: 'Ремонт за счёт Пайщика',
+      property_other: 'Паспорт изделия', property_warranty_days: '180',
+    }
+    const doc = (await gql<any>(krgToken, PROPERTY_STATEMENT, { d: fields })).marketplaceInvestPropertyStatementSignablePayload
+    const meta = docMeta(doc.meta)
+    expect(Number(meta.registry_id)).toBe(1120)
+    expect(meta).toMatchObject({
+      property_category: 'Холодильное оборудование', property_media_links: 'https://example.ru/v',
+      property_warranty_terms: 'Ремонт за счёт Пайщика', property_other: 'Паспорт изделия', property_warranty_days: '180',
+    })
+    expect(amount(meta.property_unit_cost)).toBeCloseTo(333.33, 2)
+    expect(doc.html).toContain('Холодильное оборудование')
   })
 })

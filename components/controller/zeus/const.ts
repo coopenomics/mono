@@ -3876,6 +3876,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceHandoffCode:{
 			data:"MarketplaceHandoffCodeInput"
 		},
+		marketplaceInvestAgreementSignablePayload:{
+
+		},
 		marketplaceInvestClaimSignablePayload:{
 
 		},
@@ -4008,6 +4011,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceListWriteoffProposals:{
 			data:"MarketplaceListWriteoffProposalsInput",
 			options:"PaginationInput"
+		},
+		marketplaceMyInvestAgreement:{
+
 		},
 		marketplaceMyInvestHistory:{
 			options:"PaginationInput"

@@ -38,7 +38,7 @@ describe('MarketplaceLiveFeedSubscriber', () => {
     expect(MARKETPLACE_LIVE_CHAIN_TABLES).toEqual([
       { code: 'marketplace', table: 'config' },
       // Инвестиционный этап участка (99D-30): страница «Инициаторы участка».
-      { code: 'marketplace', table: 'invagreemnts' },
+      { code: 'marketplace', table: 'invagrbranch' },
       { code: 'marketplace', table: 'invbranches' },
       { code: 'marketplace', table: 'investors' },
       { code: 'marketplace', table: 'invprops' },

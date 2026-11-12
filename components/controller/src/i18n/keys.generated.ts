@@ -2865,6 +2865,7 @@ export type MessageKey =
   | 'marketplace.notification.signActPromptBody'
   | 'marketplace.offer.rejectedStatusLabel'
   | 'marketplace.offer.unpublishedStatusLabel'
+  | 'marketplace.onboardingSteps.approveInvestAgreementTitle'
   | 'marketplace.onboardingSteps.approveOfferTemplateTitle'
   | 'marketplace.onboardingSteps.approveRegulationTitle'
   | 'marketplace.orderCancel.cancelledByCustomerLabel'

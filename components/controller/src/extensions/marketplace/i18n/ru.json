@@ -664,6 +664,7 @@
     },
     "onboardingSteps": {
       "approveOfferTemplateTitle": "Утверждение шаблона публичной оферты ЦПП «Стол заказов»",
+      "approveInvestAgreementTitle": "Утверждение бланка договора об участии в хозяйственной деятельности кооперативного участка, заявлений и акта",
       "approveRegulationTitle": "Утверждение Положения ЦПП «Стол заказов»"
     },
     "orderCancel": {

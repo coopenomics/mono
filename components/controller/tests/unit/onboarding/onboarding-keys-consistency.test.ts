@@ -107,7 +107,8 @@ describe('ключи подключения: пакет документов у�
 
   it('Стол заказов: у каждого пакета есть шаг с тем же ключом, общий приёмник ставит его флаг', async () => {
     const bundles = stepBundles(await declarationsOf(registerMarketplaceDocuments));
-    expect(bundles.length).toBe(2);
+    // Положение, оферта и договор об участии с бланками (99D-35).
+    expect(bundles.length).toBe(3);
 
     const steps = new OnboardingStepsRegistryService();
     registerMarketplaceOnboardingSteps(steps as any);

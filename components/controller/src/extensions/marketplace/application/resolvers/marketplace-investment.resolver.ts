@@ -60,27 +60,33 @@ export class MarketplaceInvestmentResolver {
   @Query(() => MarketplaceInvestAgreementDTO, {
     name: 'marketplaceMyInvestAgreement',
     nullable: true,
-    description: 'Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан.',
+    description: 'Договор текущего пайщика об участии в хозяйственной деятельности участка; пусто — договор с участком не подписан.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
-  async marketplaceMyInvestAgreement(@CurrentMarketplaceMember() member: IMarketplaceCurrentMember): Promise<MarketplaceInvestAgreementDTO | null> {
-    return this.investment.getAgreement(platformSettings().coopname, member.username);
+  async marketplaceMyInvestAgreement(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('braname', { description: 'Кооперативный участок договора.' }) braname: string
+  ): Promise<MarketplaceInvestAgreementDTO | null> {
+    return this.investment.getAgreement(platformSettings().coopname, member.username, braname);
   }
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceInvestAgreementSignablePayload',
-    description: 'Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком.',
+    description: 'Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
-  async marketplaceInvestAgreementSignablePayload(@CurrentMarketplaceMember() member: IMarketplaceCurrentMember): Promise<GeneratedDocumentDTO> {
-    return toGeneratedDocumentDTO(await this.investment.generateAgreement(platformSettings().coopname, member.username));
+  async marketplaceInvestAgreementSignablePayload(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('braname', { description: 'Кооперативный участок договора.' }) braname: string
+  ): Promise<GeneratedDocumentDTO> {
+    return toGeneratedDocumentDTO(await this.investment.generateAgreement(platformSettings().coopname, member.username, braname));
   }
 
   @Mutation(() => MarketplaceInvestAgreementDTO, {
     name: 'marketplaceSignInvestAgreement',
-    description: 'Подписать договор участия в хозяйственной деятельности. Договор один на пайщика в кооперативе.',
+    description: 'Подписать договор об участии в хозяйственной деятельности участка. Договор заключается на каждый участок отдельно.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
@@ -89,8 +95,8 @@ export class MarketplaceInvestmentResolver {
     @Args('data') data: MarketplaceSignInvestAgreementInputDTO
   ): Promise<MarketplaceInvestAgreementDTO | null> {
     const coopname = platformSettings().coopname;
-    await this.investment.signAgreement(coopname, member.username, data.agreement);
-    return this.investment.getAgreement(coopname, member.username);
+    await this.investment.signAgreement(coopname, member.username, data.braname, data.agreement);
+    return this.investment.getAgreement(coopname, member.username, data.braname);
   }
 
   // ── Паевой взнос деньгами ──────────────────────────────────────────────────

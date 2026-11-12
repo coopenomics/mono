@@ -81,10 +81,15 @@ async function signed(who: Who, registry_id: number) {
   return chainDoc(await signAs(who.wif, draft(registry_id), who.account, 1))
 }
 
-async function ensureAgreement(who: Who) {
-  const rows: any[] = await bc.getTableRows(MARKET, COOP, 'invagreemnts', 1, who.account, who.account)
-  if (rows.some(r => r.username === who.account)) return
-  await push(MARKET, 'signinvagr', { coopname: COOP, username: who.account, agreement: await signed(who, 1118) })
+/** Договор об участии в хозяйственной деятельности участка: один на пару «пайщик — участок». */
+async function hasAgreement(who: Who, braname = BRANAME): Promise<boolean> {
+  const rows: any[] = await bc.getTableRows(MARKET, COOP, 'invagrbranch', 1000)
+  return rows.some(r => r.username === who.account && r.braname === braname)
+}
+
+async function ensureAgreement(who: Who, braname = BRANAME) {
+  if (await hasAgreement(who, braname)) return
+  await push(MARKET, 'signinvagr', { coopname: COOP, username: who.account, braname, agreement: await signed(who, 1118) })
 }
 
 /** Программа «Стол заказов» в цепи (`_marketplace_program_id`). */
@@ -125,9 +130,8 @@ describe('стол заказов — инвестиционный этап ко
     await push(MARKET, 'delperiod', { coopname: COOP, braname: BRANAME, period }).catch(() => {})
   })
 
-  it('mkt.order.invest.01 — договор участия подписывается один раз; без договора паевой взнос не принимается', async () => {
-    const rows: any[] = await bc.getTableRows(MARKET, COOP, 'invagreemnts', 1, ekaterina.account, ekaterina.account)
-    if (!rows.some(r => r.username === ekaterina.account)) {
+  it('mkt.order.invest.01 — договор участия подписывается один раз на участок; без договора паевой взнос не принимается', async () => {
+    if (!(await hasAgreement(ekaterina))) {
       await expect(push(MARKET, 'investmoney', {
         coopname: COOP, username: ekaterina.account, braname: BRANAME, invest_hash: hex(), amount: asset(rub(100)), statement: await signed(ekaterina, 1119),
       }), 'без договора').rejects.toThrow(/MARKETPLACE_INVAGR_REQUIRED/)
@@ -136,7 +140,7 @@ describe('стол заказов — инвестиционный этап ко
     await ensureMarketplaceProgram(trustedkrg)
     await ensureAgreement(trustedkrg)
     await ensureAgreement(ekaterina)
-    await expect(push(MARKET, 'signinvagr', { coopname: COOP, username: chairkrg.account, agreement: await signed(chairkrg, 1118) }), 'второй договор')
+    await expect(push(MARKET, 'signinvagr', { coopname: COOP, username: chairkrg.account, braname: BRANAME, agreement: await signed(chairkrg, 1118) }), 'второй договор с тем же участком')
       .rejects.toThrow(/MARKETPLACE_INVAGR_EXISTS/)
   }, 300_000)
 

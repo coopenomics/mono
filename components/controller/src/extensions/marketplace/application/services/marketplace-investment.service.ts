@@ -132,6 +132,13 @@ export interface MarketplaceInvestPropertyFields {
   property_unit: string;
   /** Цена приёма, рубли. */
   amount: number;
+  /** Поля бланка владельца 12.11.2026 (Приложение № 1 к договору); необязательны. */
+  property_category?: string;
+  property_media_links?: string;
+  property_warranty_terms?: string;
+  property_other?: string;
+  /** Срок Гарантийных обязательств в днях. */
+  property_warranty_days?: string;
 }
 
 const units = (asset: unknown, economy: MarketplaceEconomyService): bigint => economy.assetToUnits(String(asset ?? '0'));
@@ -167,33 +174,40 @@ export class MarketplaceInvestmentService {
 
   // ── Договор участия ────────────────────────────────────────────────────
 
-  /** Номер договора — короткий отпечаток пайщика в кооперативе: один договор на пайщика. */
-  agreementNumber(coopname: string, username: string): string {
-    return createHash('sha256').update(`${coopname}:${username}:invest`).digest('hex').slice(0, 8).toUpperCase();
+  /**
+   * Номер договора «УХД-…» — короткий отпечаток пары «пайщик — участок»:
+   * договор заключается на каждый участок отдельно (решение владельца 12.11.2026).
+   */
+  agreementNumber(coopname: string, username: string, braname: string): string {
+    const print = createHash('sha256').update(`${coopname}:${username}:${braname}:invest`).digest('hex').slice(0, 8).toUpperCase();
+    return `УХД-${print}`; // i18n-ignore: префикс номера договора — часть идентификатора документа, не текст интерфейса
   }
 
-  async getAgreement(coopname: string, username: string): Promise<{ number: string; signed_at: string } | null> {
-    const row = await this.chainPort.getInvestAgreement(coopname, username);
-    return row ? { number: this.agreementNumber(coopname, username), signed_at: String(row.signed_at) } : null;
+  async getAgreement(coopname: string, username: string, braname: string): Promise<{ number: string; signed_at: string } | null> {
+    const row = await this.chainPort.getInvestAgreement(coopname, username, braname);
+    return row ? { number: this.agreementNumber(coopname, username, braname), signed_at: String(row.signed_at) } : null;
   }
 
-  async generateAgreement(coopname: string, username: string): Promise<InnerGeneratedDocument> {
+  async generateAgreement(coopname: string, username: string, braname: string): Promise<InnerGeneratedDocument> {
     const data: Registry.MarketplaceInvestAgreement.Action = {
       registry_id: Registry.MarketplaceInvestAgreement.registry_id,
       coopname,
       username,
       lang: 'ru',
-      agreement_number: this.agreementNumber(coopname, username),
+      agreement_number: this.agreementNumber(coopname, username, braname),
+      braname,
+      branch_name: await this.branchName(braname),
       skip_save: false,
     };
     return this.documentPort.generate({ data });
   }
 
-  async signAgreement(coopname: string, username: string, signed: SignedDigitalDocumentInputDTO): Promise<void> {
+  async signAgreement(coopname: string, username: string, braname: string, signed: SignedDigitalDocumentInputDTO): Promise<void> {
     await this.submit(() =>
       this.chainPort.signInvestAgreement({
         coopname,
         username,
+        braname,
         agreement: new SignedDigitalDocumentInputDTO(signed).toDocument() as MarketContract.Actions.SignInvAgr.ISignInvAgr['agreement'],
       })
     );
@@ -202,7 +216,7 @@ export class MarketplaceInvestmentService {
   // ── Паевой взнос деньгами ──────────────────────────────────────────────────
 
   async generateInvestStatement(coopname: string, username: string, braname: string, amount: number): Promise<InnerGeneratedDocument> {
-    const agreement = await this.requireAgreement(coopname, username);
+    const agreement = await this.requireAgreement(coopname, username, braname);
     const data: Registry.MarketplaceInvestStatement.Action = {
       registry_id: Registry.MarketplaceInvestStatement.registry_id,
       coopname,
@@ -242,7 +256,7 @@ export class MarketplaceInvestmentService {
     fields: MarketplaceInvestPropertyFields,
     propertyHash = this.newHash()
   ): Promise<InnerGeneratedDocument> {
-    const agreement = await this.requireAgreement(coopname, username);
+    const agreement = await this.requireAgreement(coopname, username, braname);
     const data: Registry.MarketplaceInvestPropertyStatement.Action = {
       registry_id: Registry.MarketplaceInvestPropertyStatement.registry_id,
       coopname,
@@ -260,6 +274,7 @@ export class MarketplaceInvestmentService {
       property_quantity: fields.property_quantity,
       property_unit: fields.property_unit,
       property_amount: this.toAsset(fields.amount),
+      ...this.ownerFormFields(fields),
       skip_save: false,
     };
     return this.documentPort.generate({ data });
@@ -320,7 +335,7 @@ export class MarketplaceInvestmentService {
     const decisionId = await this.propertyDecisionId(coopname, prop);
     if (decisionId === null) throw DomainError.badRequest('MARKETPLACE_IPROP_DECISION_MISSING');
     const meta = this.statementMeta(prop);
-    const agreement = await this.requireAgreement(coopname, prop.username);
+    const agreement = await this.requireAgreement(coopname, prop.username, prop.braname);
     const data: Registry.MarketplaceInvestPropertyAct.Action = {
       registry_id: Registry.MarketplaceInvestPropertyAct.registry_id,
       coopname,
@@ -339,6 +354,7 @@ export class MarketplaceInvestmentService {
       property_quantity: meta.property_quantity,
       property_unit: meta.property_unit,
       property_amount: String(prop.amount),
+      ...this.ownerFormFields(meta),
       skip_save: false,
     };
     const doc = await this.documentPort.generate({ data });
@@ -383,7 +399,7 @@ export class MarketplaceInvestmentService {
   }
 
   async generateClaimStatement(coopname: string, username: string, braname: string): Promise<InnerGeneratedDocument> {
-    const agreement = await this.requireAgreement(coopname, username);
+    const agreement = await this.requireAgreement(coopname, username, braname);
     const amount = await this.previewClaim(coopname, braname, username);
     if (amount <= 0n) throw DomainError.badRequest('MARKETPLACE_INVEST_NOTHING_TO_CLAIM');
     const data: Registry.MarketplaceInvestClaimStatement.Action = {
@@ -568,11 +584,38 @@ export class MarketplaceInvestmentService {
       property_quantity: String(meta.property_quantity ?? '1'),
       property_unit: String(meta.property_unit ?? t('marketplace.investment.defaultUnit')),
       amount: Number(this.economyService.assetToUnits(String(prop.amount))) / 10_000,
+      property_category: this.metaText(meta.property_category),
+      property_media_links: this.metaText(meta.property_media_links),
+      property_warranty_terms: this.metaText(meta.property_warranty_terms),
+      property_other: this.metaText(meta.property_other),
+      property_warranty_days: this.metaText(meta.property_warranty_days),
     };
   }
 
-  private async requireAgreement(coopname: string, username: string): Promise<{ number: string; signed_at: string }> {
-    const agreement = await this.getAgreement(coopname, username);
+  private metaText(value: unknown): string | undefined {
+    return value === undefined || value === null ? undefined : String(value);
+  }
+
+  /**
+   * Поля бланка владельца для заявления 1120 и акта 1122. Стоимость единицы —
+   * показ в документе: цена приёма, делённая на количество, с округлением
+   * вниз до копейки; цену приёма называет пайщик, контракт её не делит.
+   */
+  private ownerFormFields(fields: MarketplaceInvestPropertyFields) {
+    const quantity = Number(String(fields.property_quantity).replace(',', '.'));
+    const unitCost = Number.isFinite(quantity) && quantity > 0 ? Math.floor((fields.amount / quantity) * 100) / 100 : undefined;
+    return {
+      property_category: fields.property_category ?? '',
+      property_media_links: fields.property_media_links ?? '',
+      property_warranty_terms: fields.property_warranty_terms ?? '',
+      property_other: fields.property_other ?? '',
+      property_warranty_days: fields.property_warranty_days ?? '',
+      property_unit_cost: unitCost === undefined ? '' : this.toAsset(unitCost),
+    };
+  }
+
+  private async requireAgreement(coopname: string, username: string, braname: string): Promise<{ number: string; signed_at: string }> {
+    const agreement = await this.getAgreement(coopname, username, braname);
     if (!agreement) throw DomainError.badRequest('MARKETPLACE_INVAGR_REQUIRED');
     return agreement;
   }

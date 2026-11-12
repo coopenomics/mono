@@ -12009,16 +12009,26 @@ export type ValueTypes = {
 	amount: number | Variable<any, string>,
 	/** Кооперативный участок. */
 	braname: string | Variable<any, string>,
+	/** Категория имущества. */
+	property_category?: string | undefined | null | Variable<any, string>,
 	/** Описание, характеристики и состояние. */
 	property_description: string | Variable<any, string>,
 	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
 	property_hash: string | Variable<any, string>,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null | Variable<any, string>,
 	/** Наименование имущества. */
 	property_name: string | Variable<any, string>,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null | Variable<any, string>,
 	/** Количество. */
 	property_quantity: string | Variable<any, string>,
 	/** Единица измерения. */
 	property_unit: string | Variable<any, string>,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null | Variable<any, string>,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null | Variable<any, string>,
 	/** Подписанное заявление о паевом взносе имуществом. */
 	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
@@ -12369,7 +12379,7 @@ export type ValueTypes = {
 };
 	/** Состояние единицы имущества на складе КУ. */
 ["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
-	/** Договор участия в хозяйственной деятельности по программе «Стол заказов». */
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
 ["MarketplaceInvestAgreement"]: AliasType<{
 	/** Номер договора. */
 	number?:boolean | `@${string}`,
@@ -12445,14 +12455,24 @@ export type ValueTypes = {
 	amount: number | Variable<any, string>,
 	/** Кооперативный участок. */
 	braname: string | Variable<any, string>,
+	/** Категория имущества. */
+	property_category?: string | undefined | null | Variable<any, string>,
 	/** Описание, характеристики и состояние. */
 	property_description: string | Variable<any, string>,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null | Variable<any, string>,
 	/** Наименование имущества. */
 	property_name: string | Variable<any, string>,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null | Variable<any, string>,
 	/** Количество. */
 	property_quantity: string | Variable<any, string>,
 	/** Единица измерения. */
-	property_unit: string | Variable<any, string>
+	property_unit: string | Variable<any, string>,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null | Variable<any, string>,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null | Variable<any, string>
 };
 	/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
 ["MarketplaceInvestPropertyStatus"]:MarketplaceInvestPropertyStatus;
@@ -14096,7 +14116,9 @@ export type ValueTypes = {
 };
 	["MarketplaceSignInvestAgreementInput"]: {
 	/** Подписанный договор участия в хозяйственной деятельности. */
-	agreement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+	agreement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Кооперативный участок договора. */
+	braname: string | Variable<any, string>
 };
 	["MarketplaceSignInvestPropertyInput"]: {
 	/** Кооперативный участок. */
@@ -17834,8 +17856,8 @@ marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Va
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ValueTypes["MarketplaceSupplierPaymentSettings"],
 marketplaceHandoffCode?: [{	data: ValueTypes["MarketplaceHandoffCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceHandoffCode"]],
-	/** Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком. */
-	marketplaceInvestAgreementSignablePayload?:ValueTypes["GeneratedDocument"],
+marketplaceInvestAgreementSignablePayload?: [{	/** Кооперативный участок договора. */
+	braname: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceInvestClaimSignablePayload?: [{	braname: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceInvestPropertyActSignablePayload?: [{	data: ValueTypes["MarketplaceInvestPropertyRefInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceInvestPropertyApprovalSignablePayload?: [{	data: ValueTypes["MarketplaceInvestPropertyRefInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -17898,8 +17920,8 @@ marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSuppli
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
-	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
-	marketplaceMyInvestAgreement?:ValueTypes["MarketplaceInvestAgreement"],
+marketplaceMyInvestAgreement?: [{	/** Кооперативный участок договора. */
+	braname: string | Variable<any, string>},ValueTypes["MarketplaceInvestAgreement"]],
 marketplaceMyInvestHistory?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInvestHistoryPaginationResult"]],
 	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
 	marketplaceMyInvestments?:ValueTypes["MarketplaceInvestor"],
@@ -31253,16 +31275,26 @@ export type ResolverInputTypes = {
 	amount: number,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
 	/** Описание, характеристики и состояние. */
 	property_description: string,
 	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
 	property_hash: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
 	/** Наименование имущества. */
 	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
 	/** Количество. */
 	property_quantity: string,
 	/** Единица измерения. */
 	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null,
 	/** Подписанное заявление о паевом взносе имуществом. */
 	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
@@ -31605,7 +31637,7 @@ export type ResolverInputTypes = {
 };
 	/** Состояние единицы имущества на складе КУ. */
 ["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
-	/** Договор участия в хозяйственной деятельности по программе «Стол заказов». */
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
 ["MarketplaceInvestAgreement"]: AliasType<{
 	/** Номер договора. */
 	number?:boolean | `@${string}`,
@@ -31677,14 +31709,24 @@ export type ResolverInputTypes = {
 	amount: number,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
 	/** Описание, характеристики и состояние. */
 	property_description: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
 	/** Наименование имущества. */
 	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
 	/** Количество. */
 	property_quantity: string,
 	/** Единица измерения. */
-	property_unit: string
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null
 };
 	/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
 ["MarketplaceInvestPropertyStatus"]:MarketplaceInvestPropertyStatus;
@@ -33283,7 +33325,9 @@ export type ResolverInputTypes = {
 };
 	["MarketplaceSignInvestAgreementInput"]: {
 	/** Подписанный договор участия в хозяйственной деятельности. */
-	agreement: ResolverInputTypes["SignedDigitalDocumentInput"]
+	agreement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Кооперативный участок договора. */
+	braname: string
 };
 	["MarketplaceSignInvestPropertyInput"]: {
 	/** Кооперативный участок. */
@@ -36888,8 +36932,8 @@ marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInpu
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ResolverInputTypes["MarketplaceSupplierPaymentSettings"],
 marketplaceHandoffCode?: [{	data: ResolverInputTypes["MarketplaceHandoffCodeInput"]},ResolverInputTypes["MarketplaceHandoffCode"]],
-	/** Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком. */
-	marketplaceInvestAgreementSignablePayload?:ResolverInputTypes["GeneratedDocument"],
+marketplaceInvestAgreementSignablePayload?: [{	/** Кооперативный участок договора. */
+	braname: string},ResolverInputTypes["GeneratedDocument"]],
 marketplaceInvestClaimSignablePayload?: [{	braname: string},ResolverInputTypes["GeneratedDocument"]],
 marketplaceInvestPropertyActSignablePayload?: [{	data: ResolverInputTypes["MarketplaceInvestPropertyRefInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceInvestPropertyApprovalSignablePayload?: [{	data: ResolverInputTypes["MarketplaceInvestPropertyRefInput"]},ResolverInputTypes["GeneratedDocument"]],
@@ -36952,8 +36996,8 @@ marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceLi
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
-	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
-	marketplaceMyInvestAgreement?:ResolverInputTypes["MarketplaceInvestAgreement"],
+marketplaceMyInvestAgreement?: [{	/** Кооперативный участок договора. */
+	braname: string},ResolverInputTypes["MarketplaceInvestAgreement"]],
 marketplaceMyInvestHistory?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceInvestHistoryPaginationResult"]],
 	/** Паевые взносы текущего пайщика по участкам: внесено, использовано, возмещено и доступно для трансляции. */
 	marketplaceMyInvestments?:ResolverInputTypes["MarketplaceInvestor"],
@@ -49846,16 +49890,26 @@ export type ModelTypes = {
 	amount: number,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
 	/** Описание, характеристики и состояние. */
 	property_description: string,
 	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
 	property_hash: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
 	/** Наименование имущества. */
 	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
 	/** Количество. */
 	property_quantity: string,
 	/** Единица измерения. */
 	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null,
 	/** Подписанное заявление о паевом взносе имуществом. */
 	statement: ModelTypes["SignedDigitalDocumentInput"]
 };
@@ -50185,7 +50239,7 @@ export type ModelTypes = {
 	quantity: number
 };
 	["MarketplaceInventoryStatus"]:MarketplaceInventoryStatus;
-	/** Договор участия в хозяйственной деятельности по программе «Стол заказов». */
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
 ["MarketplaceInvestAgreement"]: {
 		/** Номер договора. */
 	number: string,
@@ -50251,14 +50305,24 @@ export type ModelTypes = {
 	amount: number,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
 	/** Описание, характеристики и состояние. */
 	property_description: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
 	/** Наименование имущества. */
 	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
 	/** Количество. */
 	property_quantity: string,
 	/** Единица измерения. */
-	property_unit: string
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null
 };
 	["MarketplaceInvestPropertyStatus"]:MarketplaceInvestPropertyStatus;
 	["MarketplaceInvestStatementInput"]: {
@@ -51789,7 +51853,9 @@ export type ModelTypes = {
 };
 	["MarketplaceSignInvestAgreementInput"]: {
 	/** Подписанный договор участия в хозяйственной деятельности. */
-	agreement: ModelTypes["SignedDigitalDocumentInput"]
+	agreement: ModelTypes["SignedDigitalDocumentInput"],
+	/** Кооперативный участок договора. */
+	braname: string
 };
 	["MarketplaceSignInvestPropertyInput"]: {
 	/** Кооперативный участок. */
@@ -53443,7 +53509,7 @@ export type ModelTypes = {
 	marketplaceSignAplReceptionAsChairman: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б). */
 	marketplaceSignAplReceptionAsSupplier: ModelTypes["MarketplaceAplReceptionResult"],
-	/** Подписать договор участия в хозяйственной деятельности. Договор один на пайщика в кооперативе. */
+	/** Подписать договор об участии в хозяйственной деятельности участка. Договор заключается на каждый участок отдельно. */
 	marketplaceSignInvestAgreement: ModelTypes["MarketplaceInvestAgreement"],
 	/** Подписать акт приёма-передачи имущества первой подписью вносящего. */
 	marketplaceSignInvestPropertyAct: ModelTypes["MarketplaceBranchInvestment"],
@@ -55831,7 +55897,7 @@ export type ModelTypes = {
 	marketplaceGetSupplierPaymentSettings: ModelTypes["MarketplaceSupplierPaymentSettings"],
 	/** Код передачи пайщика для показа оператору участка: на получение заказов или на приёмку поставки. */
 	marketplaceHandoffCode: ModelTypes["MarketplaceHandoffCode"],
-	/** Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком. */
+	/** Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком. */
 	marketplaceInvestAgreementSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
 	marketplaceInvestClaimSignablePayload: ModelTypes["GeneratedDocument"],
@@ -55937,7 +56003,7 @@ export type ModelTypes = {
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
-	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
+	/** Договор текущего пайщика об участии в хозяйственной деятельности участка; пусто — договор с участком не подписан. */
 	marketplaceMyInvestAgreement?: ModelTypes["MarketplaceInvestAgreement"] | undefined | null,
 	/** История паевых взносов текущего пайщика: деньги, принятое имущество, трансляции в Цифровой Кошелёк. Новые первыми. */
 	marketplaceMyInvestHistory: ModelTypes["MarketplaceInvestHistoryPaginationResult"],
@@ -69431,16 +69497,26 @@ export type GraphQLTypes = {
 	amount: number,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
 	/** Описание, характеристики и состояние. */
 	property_description: string,
 	/** Идентификатор паевого взноса имуществом из подписанного заявления. */
 	property_hash: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
 	/** Наименование имущества. */
 	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
 	/** Количество. */
 	property_quantity: string,
 	/** Единица измерения. */
 	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null,
 	/** Подписанное заявление о паевом взносе имуществом. */
 	statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
@@ -69791,7 +69867,7 @@ export type GraphQLTypes = {
 };
 	/** Состояние единицы имущества на складе КУ. */
 ["MarketplaceInventoryStatus"]: MarketplaceInventoryStatus;
-	/** Договор участия в хозяйственной деятельности по программе «Стол заказов». */
+	/** Договор об участии в хозяйственной деятельности кооперативного участка. */
 ["MarketplaceInvestAgreement"]: {
 	__typename: "MarketplaceInvestAgreement",
 	/** Номер договора. */
@@ -69867,14 +69943,24 @@ export type GraphQLTypes = {
 	amount: number,
 	/** Кооперативный участок. */
 	braname: string,
+	/** Категория имущества. */
+	property_category?: string | undefined | null,
 	/** Описание, характеристики и состояние. */
 	property_description: string,
+	/** Ссылки на фото, видео и аудиоматериалы. */
+	property_media_links?: string | undefined | null,
 	/** Наименование имущества. */
 	property_name: string,
+	/** Прочие характеристики и описание. */
+	property_other?: string | undefined | null,
 	/** Количество. */
 	property_quantity: string,
 	/** Единица измерения. */
-	property_unit: string
+	property_unit: string,
+	/** Срок гарантийных обязательств, дней. */
+	property_warranty_days?: string | undefined | null,
+	/** Гарантийные условия и предлагаемый срок действия. */
+	property_warranty_terms?: string | undefined | null
 };
 	/** Этап заявления о паевом взносе имуществом: подано; председатель участка одобрил, вопрос в совете; совет принял решение, вносящий подписывает акт; акт ждёт подписи председателя участка. */
 ["MarketplaceInvestPropertyStatus"]: MarketplaceInvestPropertyStatus;
@@ -71518,7 +71604,9 @@ export type GraphQLTypes = {
 };
 	["MarketplaceSignInvestAgreementInput"]: {
 		/** Подписанный договор участия в хозяйственной деятельности. */
-	agreement: GraphQLTypes["SignedDigitalDocumentInput"]
+	agreement: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Кооперативный участок договора. */
+	braname: string
 };
 	["MarketplaceSignInvestPropertyInput"]: {
 		/** Кооперативный участок. */
@@ -73266,7 +73354,7 @@ export type GraphQLTypes = {
 	marketplaceSignAplReceptionAsChairman: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б). */
 	marketplaceSignAplReceptionAsSupplier: GraphQLTypes["MarketplaceAplReceptionResult"],
-	/** Подписать договор участия в хозяйственной деятельности. Договор один на пайщика в кооперативе. */
+	/** Подписать договор об участии в хозяйственной деятельности участка. Договор заключается на каждый участок отдельно. */
 	marketplaceSignInvestAgreement: GraphQLTypes["MarketplaceInvestAgreement"],
 	/** Подписать акт приёма-передачи имущества первой подписью вносящего. */
 	marketplaceSignInvestPropertyAct: GraphQLTypes["MarketplaceBranchInvestment"],
@@ -75876,7 +75964,7 @@ export type GraphQLTypes = {
 	marketplaceGetSupplierPaymentSettings: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
 	/** Код передачи пайщика для показа оператору участка: на получение заказов или на приёмку поставки. */
 	marketplaceHandoffCode: GraphQLTypes["MarketplaceHandoffCode"],
-	/** Сформировать договор участия в хозяйственной деятельности по программе «Стол заказов» для подписи пайщиком. */
+	/** Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком. */
 	marketplaceInvestAgreementSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
 	marketplaceInvestClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
@@ -75982,7 +76070,7 @@ export type GraphQLTypes = {
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы, свободный паевой Стола заказов и обеспечительная часть к списанию, паевой взнос в кооперативные участки. */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
-	/** Договор участия в хозяйственной деятельности текущего пайщика; пусто — договор не подписан. */
+	/** Договор текущего пайщика об участии в хозяйственной деятельности участка; пусто — договор с участком не подписан. */
 	marketplaceMyInvestAgreement?: GraphQLTypes["MarketplaceInvestAgreement"] | undefined | null,
 	/** История паевых взносов текущего пайщика: деньги, принятое имущество, трансляции в Цифровой Кошелёк. Новые первыми. */
 	marketplaceMyInvestHistory: GraphQLTypes["MarketplaceInvestHistoryPaginationResult"],

@@ -413,6 +413,39 @@ cases:
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
 
+  - id: mkt.order.invest.istok.15
+    level: backend
+    kind: break
+    scenario: >
+      Договор об участии в хозяйственной деятельности заключается на каждый участок (решение владельца 12.11.2026). У пайщика договор с участком «msk», он формирует заявление о паевом взносе в участок «krg», затем в «msk».
+    expect: >
+      для «krg» — MARKETPLACE_INVAGR_REQUIRED до формирования документа, договор ищется по паре «пайщик + участок»; для «msk» заявление формируется
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.16
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик открывает договор участка «krg» и подписывает его.
+    expect: >
+      номер договора «УХД-» и восемь знаков, у другого участка номер другой; в данных документа 1118 участок и его название; узел передаёт подпись в цепь с участком
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
+  - id: mkt.order.invest.istok.17
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик заполняет заявление о паевом взносе имуществом по бланку владельца: категория, ссылки, гарантийные условия, прочее, срок гарантии; три единицы за 1000 рублей. Затем то же с количеством словами.
+    expect: >
+      поля бланка в данных документа 1120; стоимость единицы 333,33 — деление вниз до копейки; при нечисловом количестве стоимость единицы пустая
+    test: components/controller/tests/unit/marketplace/marketplace-investment.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: passing
+
   - id: mkt.order.invest.08
     level: contract
     kind: break

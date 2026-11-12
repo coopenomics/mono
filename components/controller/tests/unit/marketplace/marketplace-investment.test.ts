@@ -35,7 +35,7 @@ function toAsset(units: bigint): string {
 const rub = (n: number) => BigInt(n) * 10_000n;
 
 /** Строка участка, где два инициатора: имущество 600 000 и 400 000 ₽, возмещено 100 000 ₽. */
-function world(opts: { operator?: boolean; walletExtra?: bigint; agreement?: boolean; repaid?: bigint } = {}) {
+function world(opts: { operator?: boolean; walletExtra?: bigint; agreement?: boolean; agreementBranch?: string; repaid?: bigint } = {}) {
   const base = rub(1_000_000);
   const repaid = opts.repaid ?? rub(100_000);
   const acc = (repaid * S) / base;
@@ -67,7 +67,10 @@ function world(opts: { operator?: boolean; walletExtra?: bigint; agreement?: boo
       const inv = investors.find((i) => i.username === u)!;
       return { available: toAsset(toUnits(inv.property) + (opts.walletExtra ?? 0n)) };
     }),
-    getInvestAgreement: jest.fn(async () => (opts.agreement === false ? null : { username: 'anna', signed_at: '2026-11-07T10:00:00' })),
+    // Договор заключается на участок: agreementBranch — участок единственного договора пайщика.
+    getInvestAgreement: jest.fn(async (_c: string, _u: string, b: string) =>
+      opts.agreement === false || (opts.agreementBranch && b !== opts.agreementBranch) ? null : { username: 'anna', braname: b, signed_at: '2026-11-07T10:00:00' }
+    ),
     investMoney: jest.fn(async () => ({})),
   };
   const economyService = { assetToUnits: toUnits, unitsToAsset: toAsset };
@@ -190,7 +193,7 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
     await service.generateInvestStatement(COOP, 'anna', 'krg', 300_000);
     const data = documentPort.generate.mock.calls[0][0].data;
     expect(data.registry_id).toBe(1119);
-    expect(data.agreement_number).toBe(service.agreementNumber(COOP, 'anna'));
+    expect(data.agreement_number).toBe(service.agreementNumber(COOP, 'anna', 'krg'));
     expect(data.branch_name).toBe('KRG');
     expect(data.amount).toBe('300000.0000 RUB');
   });
@@ -260,5 +263,47 @@ describe('mkt.order.invest.istok — паевые взносы инициато�
 
     (chainPort as any).getInvestProperty.mockResolvedValue({ ...prop, status: 'created', decision: { meta: '' } });
     await expect(service.generatePropertyAct(COOP, 'ab')).rejects.toMatchObject({ code: 'MARKETPLACE_IPROP_DECISION_MISSING' });
+  });
+
+  // Договор об участии в хозяйственной деятельности заключается на каждый
+  // участок отдельно (решение владельца 12.11.2026).
+  it('istok.15 — договор другого участка не открывает паевой взнос в этот участок: отказ с кодом до документа', async () => {
+    const { service, documentPort, chainPort } = world({ agreementBranch: 'msk' });
+    await expect(service.generateInvestStatement(COOP, 'anna', 'krg', 1000)).rejects.toMatchObject({ code: 'MARKETPLACE_INVAGR_REQUIRED' });
+    expect(chainPort.getInvestAgreement).toHaveBeenCalledWith(COOP, 'anna', 'krg');
+    expect(documentPort.generate).not.toHaveBeenCalled();
+    await service.generateInvestStatement(COOP, 'anna', 'msk', 1000);
+    expect(documentPort.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('istok.16 — договор участка: номер «УХД-…» свой у каждого участка, в данных документа участок и его название; узел передаёт подпись в цепь вместе с участком', async () => {
+    const { service, documentPort, chainPort } = world();
+    const krg = service.agreementNumber(COOP, 'anna', 'krg');
+    expect(krg).toMatch(/^УХД-[0-9A-F]{8}$/);
+    expect(service.agreementNumber(COOP, 'anna', 'msk')).not.toBe(krg);
+    await service.generateAgreement(COOP, 'anna', 'krg');
+    const data = documentPort.generate.mock.calls[0][0].data;
+    expect(data).toMatchObject({ registry_id: 1118, agreement_number: krg, braname: 'krg', branch_name: 'KRG' });
+    Object.assign(chainPort, { signInvestAgreement: jest.fn(async () => ({})) });
+    await service.signAgreement(COOP, 'anna', 'krg', { version: '1.1.0', hash: 'H', doc_hash: 'D', meta_hash: 'M', meta: {}, signatures: [] } as any);
+    expect((chainPort as any).signInvestAgreement.mock.calls[0][0]).toMatchObject({ coopname: COOP, username: 'anna', braname: 'krg' });
+  });
+
+  it('istok.17 — заявление 1120 несёт поля бланка владельца; стоимость единицы — цена, делённая на количество, вниз до копейки; без количества — пусто', async () => {
+    const { service, documentPort } = world();
+    const fields = {
+      property_name: 'Витрина', property_description: 'Исправна', property_quantity: '3', property_unit: 'шт.', amount: 1000,
+      property_category: 'Холодильное оборудование', property_media_links: 'https://x', property_warranty_terms: 'Ремонт за счёт пайщика',
+      property_other: 'Паспорт', property_warranty_days: '180',
+    };
+    await service.generatePropertyStatement(COOP, 'anna', 'krg', fields, 'ab');
+    const data = documentPort.generate.mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      registry_id: 1120, property_category: 'Холодильное оборудование', property_media_links: 'https://x',
+      property_warranty_terms: 'Ремонт за счёт пайщика', property_other: 'Паспорт', property_warranty_days: '180',
+      property_unit_cost: '333.3300 RUB',
+    });
+    await service.generatePropertyStatement(COOP, 'anna', 'krg', { ...fields, property_quantity: 'много' }, 'ac');
+    expect(documentPort.generate.mock.calls[1][0].data.property_unit_cost).toBe('');
   });
 });

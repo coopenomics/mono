@@ -44,7 +44,9 @@ export async function registerMarketplaceDocuments(port: IDocumentDeclarationPor
 
     // Инвестиционный этап кооперативного участка (задача 99D-29): договор
     // участия утверждает совет как соглашение, заявления и акт — бланки.
-    doc(R.MarketplaceInvestAgreement.registry_id, 'agreement', 21, { bundle: 'marketplace_invest' }),
+    // Реквизиты протокола пакета пишутся в vars.marketplace_invest_agreement_template:
+    // шапка договора «Утвержден Собранием Совета, Протокол № … от …» (99D-35).
+    doc(R.MarketplaceInvestAgreement.registry_id, 'agreement', 21, { bundle: 'marketplace_invest', vars_field: 'marketplace_invest_agreement_template' }),
     doc(R.MarketplaceInvestStatement.registry_id, 'form', 40, { bundle: 'marketplace_invest' }),
     doc(R.MarketplaceInvestPropertyStatement.registry_id, 'form', 41, { bundle: 'marketplace_invest' }),
     doc(R.MarketplaceInvestPropertyAct.registry_id, 'form', 42, { bundle: 'marketplace_invest' }),

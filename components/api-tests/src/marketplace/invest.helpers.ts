@@ -6,12 +6,13 @@
 import { MarketContract } from 'cooptypes'
 import { COOP, ROLES, type Who, authorizeDecisionOnChain, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
 
-export const MY_AGREEMENT = 'query{ marketplaceMyInvestAgreement{ number signed_at } }'
-const AGREEMENT_DOC = 'query{ marketplaceInvestAgreementSignablePayload{ full_title html hash meta binary } }'
+// Договор об участии заключается на каждый участок (решение владельца 12.11.2026).
+export const MY_AGREEMENT = 'query($b:String!){ marketplaceMyInvestAgreement(braname:$b){ number signed_at } }'
+export const AGREEMENT_DOC = 'query($b:String!){ marketplaceInvestAgreementSignablePayload(braname:$b){ full_title html hash meta binary } }'
 const SIGN_AGREEMENT = 'mutation($d:MarketplaceSignInvestAgreementInput!){ marketplaceSignInvestAgreement(data:$d){ number signed_at } }'
 export const INVEST_STATEMENT = 'query($d:MarketplaceInvestStatementInput!){ marketplaceInvestStatementSignablePayload(data:$d){ full_title html hash meta binary } }'
 export const INVEST_MONEY = 'mutation($d:MarketplaceInvestMoneyInput!){ marketplaceInvestMoney(data:$d){ phase money_total } }'
-const PROPERTY_STATEMENT = 'query($d:MarketplaceInvestPropertyStatementInput!){ marketplaceInvestPropertyStatementSignablePayload(data:$d){ full_title html hash meta binary } }'
+export const PROPERTY_STATEMENT = 'query($d:MarketplaceInvestPropertyStatementInput!){ marketplaceInvestPropertyStatementSignablePayload(data:$d){ full_title html hash meta binary } }'
 const CREATE_PROPERTY = 'mutation($d:MarketplaceCreateInvestPropertyInput!){ marketplaceCreateInvestProperty(data:$d){ phase } }'
 const APPROVAL_DOC = 'query($d:MarketplaceInvestPropertyRefInput!){ marketplaceInvestPropertyApprovalSignablePayload(data:$d){ full_title html hash meta binary } }'
 const APPROVE_PROPERTY = 'mutation($d:MarketplaceSignInvestPropertyInput!){ marketplaceApproveInvestProperty(data:$d){ phase } }'
@@ -28,14 +29,14 @@ export const MY_HISTORY = 'query($o:PaginationInput){ marketplaceMyInvestHistory
 export const MY_INVESTMENTS = 'query{ marketplaceMyInvestments{ braname username active settled money money_in property used returned claimed claimable unused } }'
 
 /** Договор участия пайщика: подписывает, если ещё не подписан. Возвращает номер договора. */
-export async function ensureAgreement(who: Who): Promise<string> {
+export async function ensureAgreement(who: Who, braname = 'krg'): Promise<string> {
   const token = await tokenOf(who)
-  const existing = (await gql<any>(token, MY_AGREEMENT)).marketplaceMyInvestAgreement
+  const existing = (await gql<any>(token, MY_AGREEMENT, { b: braname })).marketplaceMyInvestAgreement
   if (existing)
     return existing.number
-  const doc = (await gql<any>(token, AGREEMENT_DOC)).marketplaceInvestAgreementSignablePayload
+  const doc = (await gql<any>(token, AGREEMENT_DOC, { b: braname })).marketplaceInvestAgreementSignablePayload
   const agreement = await signDocument(who.wif, doc, who.account, 1)
-  const signed = (await gql<any>(token, SIGN_AGREEMENT, { d: { agreement } })).marketplaceSignInvestAgreement
+  const signed = (await gql<any>(token, SIGN_AGREEMENT, { d: { braname, agreement } })).marketplaceSignInvestAgreement
   return signed.number
 }
 

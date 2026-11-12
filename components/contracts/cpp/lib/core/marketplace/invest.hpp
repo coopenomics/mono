@@ -207,10 +207,12 @@ inline bool is_operator(eosio::name coopname, eosio::name braname, eosio::name u
   return branch.trustee == username || branch.is_account_in_trusted(username);
 }
 
-/// Договор участия в хозяйственной деятельности подписан.
-inline bool has_agreement(eosio::name coopname, eosio::name username) {
+/// Договор об участии в хозяйственной деятельности участка подписан:
+/// договор заключается на каждый участок отдельно (решение владельца 12.11.2026).
+inline bool has_agreement(eosio::name coopname, eosio::name username, eosio::name braname) {
   mkt_invagreements_index agreements(_marketplace, coopname.value);
-  return agreements.find(username.value) != agreements.end();
+  auto by_pair = agreements.get_index<"byuserbr"_n>();
+  return by_pair.find(combine_ids(username.value, braname.value)) != by_pair.end();
 }
 
 /// Есть ли у пайщика строки инициатора: выходу нужно вычесть его из базы.

@@ -32,7 +32,8 @@ import { t } from './i18n';
 export const MARKETPLACE_FILE_STORAGE_PORT = Symbol('MARKETPLACE_FILE_STORAGE_PORT');
 
 /** Шаги подключения ЦПП советом; ключ шага = пакет документов = поле vars. */
-const MARKETPLACE_L1_STEPS = ['marketplace_provision', 'marketplace_offer_template'] as const;
+// Шаги подключения: Положение, оферта и договор об участии с бланками (99D-35).
+const MARKETPLACE_L1_STEPS = ['marketplace_provision', 'marketplace_offer_template', 'marketplace_invest'] as const;
 
 export interface IMarketplaceFileStoragePort {
   ensureBucket(bucketName: string): Promise<void>;

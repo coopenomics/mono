@@ -166,7 +166,7 @@ async function loadAll(): Promise<void> {
   if (!braname.value) return
   loading.value = true
   try {
-    agreement.value = await getMyAgreement()
+    agreement.value = await getMyAgreement(braname.value)
     if (!agreement.value) {
       void loadAgreementDoc()
       return
@@ -192,7 +192,11 @@ onMounted(async () => {
   void loadAll()
 })
 
-watch(braname, () => void loadAll())
+// Договор заключается на каждый участок: при смене участка страница запрашивает текст договора заново.
+watch(braname, () => {
+  agreementDoc.value = null
+  void loadAll()
+})
 
 // Договоры, паевые взносы, заявления на имущество — таблицы контракта; кошелёк
 // паевые взносы — ledger2; документы истории — реестр документов узла.
@@ -474,7 +478,7 @@ async function loadAgreementDoc(): Promise<void> {
   agreementDocLoading.value = true
   agreementDocError.value = false
   try {
-    agreementDoc.value = await getAgreementPayload()
+    agreementDoc.value = await getAgreementPayload(braname.value)
   } catch {
     agreementDocError.value = true
   } finally {
@@ -494,7 +498,7 @@ async function onSignAgreement(): Promise<void> {
   const doc = agreementDoc.value
   if (!doc) return
   await run(
-    async () => signAgreement({ agreement: await signed(doc) }),
+    async () => signAgreement({ braname: braname.value, agreement: await signed(doc) }),
     'marketplace.initiatorsPage.agreementSigned',
     'marketplace.initiatorsPage.agreementSignFailed',
   )
@@ -523,11 +527,27 @@ async function onInvestMoney(): Promise<void> {
 
 // Паевой взнос имуществом: наименование, описание, количество, цена → заявление 1120.
 const propertyOpen = ref(false)
-const emptyProperty = () => ({ name: '', description: '', quantity: '1', unit: '', amount: null as number | null })
+// Поля бланка владельца 12.11.2026 (Приложение № 1 к договору): категория, ссылки,
+// гарантийные условия, прочее и срок гарантии — необязательные.
+const emptyProperty = () => ({
+  name: '',
+  category: '',
+  description: '',
+  mediaLinks: '',
+  warrantyTerms: '',
+  other: '',
+  quantity: '1',
+  unit: '',
+  amount: null as number | null,
+  warrantyDays: '',
+})
 const propertyForm = ref(emptyProperty())
+const WARRANTY_DAYS = /^\d{0,5}$/
+const warrantyDaysRule = (v: string) => WARRANTY_DAYS.test(String(v ?? '').trim()) || i18nT('marketplace.initiatorsPage.propertyWarrantyDaysInvalid')
 const propertyValid = computed(() => {
   const f = propertyForm.value
   return Boolean(f.name.trim() && f.description.trim() && f.quantity.trim() && f.unit.trim() && Number(f.amount) > 0)
+    && WARRANTY_DAYS.test(f.warrantyDays.trim())
 })
 
 async function onCreateProperty(): Promise<void> {
@@ -540,6 +560,11 @@ async function onCreateProperty(): Promise<void> {
     property_quantity: f.quantity.trim(),
     property_unit: f.unit.trim(),
     amount: Number(f.amount),
+    property_category: f.category.trim(),
+    property_media_links: f.mediaLinks.trim(),
+    property_warranty_terms: f.warrantyTerms.trim(),
+    property_other: f.other.trim(),
+    property_warranty_days: f.warrantyDays.trim(),
   }
   const ok = await run(
     async () => {
@@ -931,7 +956,11 @@ q-page.initiators(:style-fn='pageStyle')
     BaseForm(:loading='busy', @submit='onCreateProperty')
       .initiators__muted.q-mb-md {{ $t('marketplace.initiatorsPage.propertyDialogHint') }}
       BaseInput(v-model='propertyForm.name', :label='$t("marketplace.initiatorsPage.propertyNameLabel")')
+      BaseInput(v-model='propertyForm.category', :label='$t("marketplace.initiatorsPage.propertyCategoryLabel")')
       BaseInput(v-model='propertyForm.description', type='textarea', autogrow, :label='$t("marketplace.initiatorsPage.propertyDescriptionLabel")')
+      BaseInput(v-model='propertyForm.mediaLinks', type='textarea', autogrow, :label='$t("marketplace.initiatorsPage.propertyMediaLinksLabel")')
+      BaseInput(v-model='propertyForm.warrantyTerms', type='textarea', autogrow, :label='$t("marketplace.initiatorsPage.propertyWarrantyTermsLabel")')
+      BaseInput(v-model='propertyForm.other', type='textarea', autogrow, :label='$t("marketplace.initiatorsPage.propertyOtherLabel")')
       .row.q-col-gutter-md
         .col-6
           BaseInput(v-model='propertyForm.quantity', :label='$t("marketplace.initiatorsPage.propertyQuantityLabel")')
@@ -944,6 +973,12 @@ q-page.initiators(:style-fn='pageStyle')
         :symbol='symbol',
         :precision='2',
         :min='0'
+      )
+      BaseInput(
+        v-model='propertyForm.warrantyDays',
+        inputmode='numeric',
+        :label='$t("marketplace.initiatorsPage.propertyWarrantyDaysLabel")',
+        :rules='[warrantyDaysRule]'
       )
       template(#footer)
         BaseButton(variant='ghost', @click='propertyOpen = false') {{ $t('common.action.cancel') }}

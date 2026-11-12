@@ -29,8 +29,8 @@ void marketplace::createiprop(eosio::name coopname, eosio::name username, eosio:
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
   get_active_participant_or_fail(coopname, username);
-  eosio::check(MarketInvest::has_agreement(coopname, username),
-               "MARKETPLACE_INVAGR_REQUIRED: Сначала подпишите договор участия в хозяйственной деятельности");
+  eosio::check(MarketInvest::has_agreement(coopname, username, braname),
+               "MARKETPLACE_INVAGR_REQUIRED: Сначала подпишите договор об участии в хозяйственной деятельности этого участка");
   eosio::check(MarketInvest::is_operator(coopname, braname, username),
                "MARKETPLACE_INVEST_NOT_OPERATOR: Вносить имущество в участок может председатель или доверенное лицо участка");
 

@@ -29,8 +29,11 @@ export type IPaginationInput = NonNullable<Queries.Marketplace.MyInvestHistory.I
 
 // ─── Чтение ───
 
-export async function getMyAgreement(): Promise<MarketplaceInvestAgreementView | null> {
-  const { [Queries.Marketplace.MyInvestAgreement.name]: result } = await client.Query(Queries.Marketplace.MyInvestAgreement.query);
+/** Договор пайщика с участком: договор заключается на каждый участок отдельно. */
+export async function getMyAgreement(braname: string): Promise<MarketplaceInvestAgreementView | null> {
+  const { [Queries.Marketplace.MyInvestAgreement.name]: result } = await client.Query(Queries.Marketplace.MyInvestAgreement.query, {
+    variables: { braname },
+  });
   return result ?? null;
 }
 
@@ -55,9 +58,10 @@ export async function getMyInvestHistory(options: IPaginationInput): Promise<Mar
 
 // ─── Документы к подписи ───
 
-export async function getAgreementPayload(): Promise<InvestDocumentView> {
+export async function getAgreementPayload(braname: string): Promise<InvestDocumentView> {
   const { [Queries.Marketplace.InvestAgreementSignablePayload.name]: result } = await client.Query(
     Queries.Marketplace.InvestAgreementSignablePayload.query,
+    { variables: { braname } },
   );
   return result;
 }

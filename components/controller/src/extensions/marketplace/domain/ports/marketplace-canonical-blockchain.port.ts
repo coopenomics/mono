@@ -432,8 +432,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   signInvestPropertyAct1(data: MarketContract.Actions.Act1IProp.IAct1IProp): Promise<InnerTransactResult>;
   /** Трансляция возвращённого паевого взноса в главный паевой; сумму считает контракт (marketplace::claiminv). */
   claimInvestment(data: MarketContract.Actions.ClaimInv.IClaimInv): Promise<InnerTransactResult>;
-  /** Договор участия пайщика — по первичному ключу; null — не подписан. */
-  getInvestAgreement(coopname: string, username: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null>;
+  /** Договор пайщика с участком — по индексу «пайщик + участок»; null — не подписан. */
+  getInvestAgreement(coopname: string, username: string, braname: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null>;
   /** Паевые взносы инициаторов участка и счётчик возврата — по первичному ключу; null — паевых взносов нет. */
   getInvestBranch(coopname: string, braname: string): Promise<MarketContract.Tables.InvBranches.IMktInvBranch | null>;
   /** Инициаторы участка — по индексу участка. */
