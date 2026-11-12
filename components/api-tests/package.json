@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@coopenomics/docs-templates": "1.6.3",
+    "@coopenomics/docs-templates": "1.6.4",
     "@coopenomics/sdk": "workspace:*",
     "cooptypes": "workspace:*"
   },
