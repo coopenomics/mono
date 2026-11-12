@@ -30,11 +30,11 @@ importers:
         specifier: workspace:*
         version: link:components/desktop
       '@coopenomics/docs-factory':
-        specifier: 1.6.5
-        version: 1.6.5(chokidar@3.6.0)(cooptypes@components+cooptypes)
+        specifier: 1.6.6
+        version: 1.6.6(chokidar@3.6.0)(cooptypes@components+cooptypes)
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/extension-kit':
         specifier: workspace:*
         version: link:components/extension-kit
@@ -97,8 +97,8 @@ importers:
   components/api-tests:
     dependencies:
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -226,11 +226,11 @@ importers:
   components/boot:
     dependencies:
       '@coopenomics/docs-factory':
-        specifier: 1.6.5
-        version: 1.6.5(chokidar@3.6.0)(cooptypes@components+cooptypes)
+        specifier: 1.6.6
+        version: 1.6.6(chokidar@3.6.0)(cooptypes@components+cooptypes)
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -327,11 +327,11 @@ importers:
   components/contracts/standards-site:
     dependencies:
       '@coopenomics/docs-factory':
-        specifier: 1.6.5
-        version: 1.6.5(chokidar@3.6.0)(cooptypes@components+cooptypes)
+        specifier: 1.6.6
+        version: 1.6.6(chokidar@3.6.0)(cooptypes@components+cooptypes)
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@dagrejs/dagre':
         specifier: ^1.1.8
         version: 1.1.8
@@ -400,11 +400,11 @@ importers:
         specifier: ^7.0.0
         version: 7.0.1
       '@coopenomics/docs-factory':
-        specifier: 1.6.5
-        version: 1.6.5(chokidar@3.6.0)(cooptypes@components+cooptypes)
+        specifier: 1.6.6
+        version: 1.6.6(chokidar@3.6.0)(cooptypes@components+cooptypes)
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/extension-kit':
         specifier: workspace:*
         version: link:../extension-kit
@@ -878,8 +878,8 @@ importers:
   components/cooptypes:
     dependencies:
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@typescript-eslint/parser':
         specifier: ^7.8.0
         version: 7.18.0(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
@@ -957,8 +957,8 @@ importers:
         specifier: workspace:*
         version: link:../auth
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -1323,8 +1323,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.1
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -1471,11 +1471,11 @@ importers:
   components/migrator:
     dependencies:
       '@coopenomics/docs-factory':
-        specifier: 1.6.5
-        version: 1.6.5(chokidar@3.6.0)(cooptypes@components+cooptypes)
+        specifier: 1.6.6
+        version: 1.6.6(chokidar@3.6.0)(cooptypes@components+cooptypes)
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@wharfkit/antelope':
         specifier: ^1.1.1
         version: 1.2.0
@@ -1624,8 +1624,8 @@ importers:
   components/sdk:
     dependencies:
       '@coopenomics/docs-templates':
-        specifier: 1.6.5
-        version: 1.6.5
+        specifier: 1.6.6
+        version: 1.6.6
       '@coopenomics/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -3064,13 +3064,13 @@ packages:
   '@coopenomics/coopos-ship-reader@0.4.0':
     resolution: {integrity: sha512-Dq16zdDWZzKvmu7jAx01QcbnncT/UAxlHZ7XUlnXy42PYj+zJaZGto8+ZNoQ7nokofHOv1kWpeRTUfnYYCVCYw==}
 
-  '@coopenomics/docs-factory@1.6.5':
-    resolution: {integrity: sha512-xgKr1/t/pVbTa1LTm9QZjNCMaCHdIQe5uNP3hM+I8nfAarvWXuQ6cckv8i3evt5t1nFW9CkhJHO7Ltb5brUWrg==}
+  '@coopenomics/docs-factory@1.6.6':
+    resolution: {integrity: sha512-GlUD5odmOLIKFLbTqz2IY6imOadDqTLknQtUAUu3mDaVFTsyUK+DvP6/dxMaNzL832/lE+/SiPgzAihNAX5pgg==}
     peerDependencies:
       cooptypes: '*'
 
-  '@coopenomics/docs-templates@1.6.5':
-    resolution: {integrity: sha512-/H7Vk+k2YzdonNbbp0qwUC7SXJN/ot8P+lwun+t9kQWTXZDKhjQXLz1d5rV/EoBEDwmKDanRx7HYRrQLrpoBMw==}
+  '@coopenomics/docs-templates@1.6.6':
+    resolution: {integrity: sha512-g4rERviFvB2BHNsKa07kgmXfYMXgPYJ7NMKi7lDdEWUn+un3m/Q+n+fr+B9bJZskpn005cXuOJiPqVfZffx0/w==}
 
   '@coopenomics/parser2@1.9.0':
     resolution: {integrity: sha512-9XKWslu5frjipGhbwgotBbcZciojEXQAaC1qLEFy8vmdRKpZdi8wA10eIbDA/k1/i8C7s3qMxaLfMD975bwuGw==}
@@ -21945,9 +21945,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@coopenomics/docs-factory@1.6.5(chokidar@3.6.0)(cooptypes@components+cooptypes)':
+  '@coopenomics/docs-factory@1.6.6(chokidar@3.6.0)(cooptypes@components+cooptypes)':
     dependencies:
-      '@coopenomics/docs-templates': 1.6.5
+      '@coopenomics/docs-templates': 1.6.6
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       ajv-i18n: 4.2.0(ajv@8.18.0)
@@ -21969,7 +21969,7 @@ snapshots:
       - debug
       - pg-native
 
-  '@coopenomics/docs-templates@1.6.5': {}
+  '@coopenomics/docs-templates@1.6.6': {}
 
   '@coopenomics/parser2@1.9.0':
     dependencies:
