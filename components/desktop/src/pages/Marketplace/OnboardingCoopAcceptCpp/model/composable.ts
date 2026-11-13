@@ -18,12 +18,19 @@ import { t } from 'src/shared/i18n';
 /**
  * L1-онбординг ЦПП «Стол заказов» на платформенном механизме онбординга.
  *
- * Два документа утверждаются Советом по очереди (free-decision):
- *  1. Положение ЦПП «Стол заказов»   — cooptypes MarketplaceProgramTemplate;
- *  2. Шаблон публичной оферты ЦПП     — бланк cooptypes MarketplaceOffer.
+ * Три документа утверждаются Советом по очереди (free-decision):
+ *  1. Положение ЦПП «Стол заказов»   — Registry.MarketplaceProgramTemplate;
+ *  2. Шаблон публичной оферты ЦПП     — бланк Registry.MarketplaceOffer;
+ *  3. Договор об участии в хозяйственной деятельности участка — бланк
+ *     Registry.MarketplaceInvestAgreement (1118); заявления и акт пакета
+ *     `marketplace_invest` совет утверждает тем же решением.
+ *
+ * Список шагов повторяет реестр шагов контроллера
+ * (register-marketplace-onboarding-steps.ts, MARKETPLACE_L1_STEPS): шаг без
+ * карточки здесь председатель объявить не может, и подключение не завершается.
  *
  * Статус каждого шага приходит с бэкенда (`done`/`hash`) и обновляется по
- * РЕАЛЬНОМУ ончейн-решению совета. Когда оба шага done — расширение
+ * РЕАЛЬНОМУ ончейн-решению совета. Когда все шаги done — расширение
  * рестартится и `coopAcceptance.accepted` выставляется автоматически.
  */
 
@@ -33,6 +40,7 @@ import { t } from 'src/shared/i18n';
 const stepToRegistryId: Record<string, number> = {
   marketplace_provision: Registry.MarketplaceProgramTemplate.registry_id,
   marketplace_offer_template: Registry.MarketplaceOffer.registry_id,
+  marketplace_invest: Registry.MarketplaceInvestAgreement.registry_id,
 };
 
 interface StepMeta {
@@ -61,6 +69,15 @@ const STEP_META: StepMeta[] = [
       t('marketplace.composable.stepOfferTemplateQuestion'),
     decisionPrefix:
       t('marketplace.composable.stepOfferTemplateDecisionPrefix'),
+  },
+  {
+    // Третий шаг с 12.11.2026 (99D-35, 0e265d7d9e8): договор УХД заключается
+    // на каждый участок по бланку, который совет утверждает при подключении.
+    id: 'marketplace_invest',
+    title: t('marketplace.composable.stepInvestTitle'),
+    description: t('marketplace.composable.stepInvestDescription'),
+    question: t('marketplace.composable.stepInvestQuestion'),
+    decisionPrefix: t('marketplace.composable.stepInvestDecisionPrefix'),
   },
 ];
 
@@ -117,7 +134,7 @@ export const useMarketplaceOnboarding = () => {
       stepsConfig.value.every((s) => s.status === 'completed'),
   );
 
-  // Как только онбординг завершился (оба документа утверждены Советом →
+  // Как только онбординг завершился (все документы утверждены Советом →
   // расширение подключилось), grants в getDesktop меняются. Перечитываем
   // desktop workspace, чтобы рабочие столы и страницы Стола заказов появились
   // сразу, без перезагрузки страницы. watch не срабатывает на initial mount —
@@ -134,7 +151,7 @@ export const useMarketplaceOnboarding = () => {
       await systemStore.loadSystemInfo();
       onboardingState.value = await fetchOnboardingState();
 
-      // Заранее рендерим бланки обоих документов (registry 1100 + 1102).
+      // Заранее рендерим бланки всех документов (registry 1100, 1102, 1118).
       const coopname = systemStore.info?.coopname || '';
       const entries = await Promise.all(
         STEP_META.map(async (meta) => {
