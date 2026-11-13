@@ -4,7 +4,18 @@
  * совета по имуществу — через цепь, как в остальных наборах с советом.
  */
 import { MarketContract } from 'cooptypes'
-import { CHAIRMAN, COOP, ROLES, type Who, authorizeDecisionOnChain, chainDoc, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
+// Помощники core — по модулям, не из индекса '../core': индекс тянет
+// core/expect с раннером тестов, а этот файл грузит засев стенда вне прогона
+// тестов (seed/edubridge через mkt-flows.helpers) — засев Образования падал
+// «failed to access its internal state».
+import { CHAIRMAN, ROLES } from '../core/roles'
+import { COOP } from '../core/env'
+import { type Who, tokenOf } from '../core/auth'
+import { authorizeDecisionOnChain, decisionByHash, voteOnDecision } from '../core/council'
+import { chainDoc, docMeta, signDocument } from '../core/documents'
+import { gql } from '../core/client'
+import { tableRows } from '../core/chain'
+import { waitFor } from '../core/wait'
 
 // Договор об участии заключается на каждый участок (решение владельца 12.11.2026).
 export const MY_AGREEMENT = 'query($b:String!){ marketplaceMyInvestAgreement(braname:$b){ number signed_at } }'
