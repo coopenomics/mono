@@ -321,4 +321,15 @@ describe('RobotDecisionService.protocolData', () => {
     expect(data.items_count).toBe(2);
     expect(data.meet_hash).toBe('AB'.repeat(32));
   });
+
+  // sov.rob.side.95: версия сборщика заявления не переходит в протокол — у
+  // протокола свои версии, фабрика выбирает их сама.
+  it('не переносит версию сборщика заявления в данные протокола', () => {
+    const decision = makeDecision({
+      statement: { meta: JSON.stringify({ registry_id: 1120, builder: '1.1', property_hash: 'PH', braname: 'krg' }) },
+    });
+    const data = service.protocolData(R.MarketplaceInvestPropertyDecision.registry_id, 'voskhod', decision);
+    expect(data).not.toHaveProperty('builder');
+    expect(data).toMatchObject({ registry_id: R.MarketplaceInvestPropertyDecision.registry_id, property_hash: 'PH', braname: 'krg' });
+  });
 });

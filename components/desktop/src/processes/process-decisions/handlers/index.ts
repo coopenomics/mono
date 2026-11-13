@@ -18,6 +18,13 @@ import { BranchAidDecisionInfo } from 'src/widgets/Marketplace/BranchAidDecision
 /** Поля метаданных заявления, которые фабрика документов проставляет сама. */
 const META_SERVICE_KEYS = new Set([
   'title', 'registry_id', 'lang', 'generator', 'version', 'coopname', 'username', 'created_at', 'block_num', 'timezone', 'links',
+  // Версия сборщика принадлежит виду документа: заявление 1120 собрано
+  // сборщиком 1.1, а у протокола 1121 есть только 1.0. Перенесённая в данные
+  // протокола, она заставляла фабрику искать сборщик 1.1 у протокола
+  // (UnknownBuilderVersionError), и протокол не собирался — так робот совета
+  // застревал на Blackbox 13.11.2026, список полей у него тот же. Версию
+  // протокола выбирает фабрика сама.
+  'builder',
 ]);
 
 /**
