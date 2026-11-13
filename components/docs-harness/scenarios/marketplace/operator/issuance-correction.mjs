@@ -208,12 +208,13 @@ export default async ({ page, shot, expect }) => {
 
   const droppedTotal = await sumByLabel(dialog, 'Итого к оплате');
   const droppedRefund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
-  const leftOnStock = dialog.locator('.act-summary__line').filter({ hasText: 'Остаётся на складе' });
+  // «Остаётся на складе» — факт сводки (ActSummaryCard.facts), не строка расчёта.
+  const leftOnStock = dialog.locator('.act-summary__facts').filter({ hasText: 'Остаётся на складе' });
 
   await shot(
     page,
     '05-position-dropped',
-    'Позиция снята с выдачи: к оплате не остаётся ничего, и в итогах появляется строка «Остаётся на складе». Возврата здесь нет — снятая позиция просто не выдаётся сегодня, деньги пайщика остаются в резерве заказа.',
+    'Позиция снята с выдачи: к оплате не остаётся ничего, и в сводке акта появляется строка «Остаётся на складе». Возврата здесь нет — снятая позиция просто не выдаётся сегодня, деньги пайщика остаются в резерве заказа.',
     {
       preserveNotifications: true,
       expect: async () => {
@@ -241,13 +242,15 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '06-zero-quantity',
-    'Позиция остаётся в выдаче, но количество нулевое: к оплате ничего, а вся сумма показана как возврат в кошелёк Стола заказов. Подписать акт на ноль нельзя — внизу об этом сказано прямо.',
+    'Позиция остаётся в выдаче, но количество нулевое: к оплате ничего. Подписать акт на ноль нельзя — окно закрывает отправку на подпись.',
     {
       preserveNotifications: true,
       expect: async () => {
         expect(zeroTotal).toBe(0);
-        // Деньги не должны раствориться: они обязаны быть названы возвратом.
-        expect(zeroRefund).toBeGreaterThan(0);
+        // Строка возврата в сводке скрыта по слову владельца 02.11.2026
+        // (SHOW_MONEY_FLOW_LINES); акт на ноль отправить на подпись нельзя.
+        expect(zeroRefund).toBeNull();
+        await expect(dialog.locator('button:has-text("Отправить пайщику на подпись")').first()).toBeDisabled({ timeout: 10000 });
       },
     },
   );
