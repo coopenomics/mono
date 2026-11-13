@@ -196,5 +196,33 @@ describe('ProviderService.getCooperativesRegistry — тариф заявки', 
     expect(rows).toHaveLength(2);
     expect(rows.every((row) => row.tariff === undefined)).toBe(true);
   });
+
+  // break (C28-97): витрина лежит — один отказ не размножается по кооперативам
+  it('витрина не ответила за сеткой → подписки по кооперативам в этом обходе не запрашиваются', async () => {
+    mockedAxios.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/selections')) return { data: [] };
+      throw new Error('connect ETIMEDOUT');
+    });
+    const service = build();
+
+    const rows = await service.getCooperativesRegistry();
+
+    expect(service.getUserSubscriptions).not.toHaveBeenCalled();
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.subscriptions.length === 0 && row.has_provider_data === false)).toBe(true);
+  });
+
+  // side: старый провайдер без адреса выборов — подписки отдаёт, реестр их спрашивает
+  it('витрина отдала сетку и не отдала выборы →подписки по кооперативам запрашиваются', async () => {
+    mockedAxios.get.mockImplementation(async (url: string) => {
+      if (url.endsWith('/selections')) throw new Error('Request failed with status code 404');
+      return { data: { tariffs: [TARIFF] } };
+    });
+    const service = build();
+
+    await service.getCooperativesRegistry();
+
+    expect(service.getUserSubscriptions).toHaveBeenCalledTimes(2);
+  });
 });
 

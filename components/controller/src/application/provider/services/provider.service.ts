@@ -140,7 +140,16 @@ export class ProviderService {
 
     // Тариф каждой заявки — двумя запросами на весь реестр: сетка тарифов и
     // список выборов. Провайдер без сетки или недоступный — реестр без тарифов.
-    const tariffs = providerAvailable ? await this.loadRegistryTariffs() : new Map();
+    const { tariffs, providerReachable } = providerAvailable
+      ? await this.loadRegistryTariffs()
+      : { tariffs: new Map(), providerReachable: false };
+
+    // Витрина не ответила за сеткой — в этом обходе подписки по кооперативам не
+    // спрашиваются. Иначе один отказ провайдера повторяется по числу
+    // кооперативов, каждый запрос ждёт свой тайм-аут, и такт биллинга наезжает
+    // на следующий (C28-97: авария provider-1 09–10.11.2026 дала 1 263 строки
+    // «ошибка» вместо ~110).
+    const askSubscriptions = providerAvailable && providerReachable;
 
     return Promise.all(
       coops.map(async (coop) => {
@@ -155,7 +164,7 @@ export class ProviderService {
         item.created_at = coop.created_at;
         item.subscriptions = [];
 
-        if (providerAvailable) {
+        if (askSubscriptions) {
           try {
             item.subscriptions = await this.getUserSubscriptions(coop.username);
           } catch (error: any) {
@@ -176,35 +185,53 @@ export class ProviderService {
     );
   }
 
-  /** Выбранные кооперативами тарифы: coopname → тариф сетки и период оплаты. */
-  private async loadRegistryTariffs(): Promise<
-    Map<string, { tariff: ProviderConnectionCatalogDTO['tariffs'][number]; billing_period: ProviderBillingPeriod }>
-  > {
-    const result = new Map<string, { tariff: ProviderConnectionCatalogDTO['tariffs'][number]; billing_period: ProviderBillingPeriod }>();
+  /**
+   * Выбранные кооперативами тарифы: coopname → тариф сетки и период оплаты.
+   *
+   * `providerReachable` — ответила ли витрина за сеткой тарифов. Сетка
+   * спрашивается первой в обходе реестра, и её отказ — признак, что провайдер
+   * лежит целиком: обходить кооперативы по одному после этого незачем. Отказ
+   * одного списка выборов о недоступности не говорит — провайдер до тарифной
+   * сетки (16.10.2026) этого адреса не знает, а подписки отдаёт. Без токена
+   * витрину не спросить, и о доступности судить не по чему — подписки
+   * запрашиваются, как раньше.
+   */
+  private async loadRegistryTariffs(): Promise<{
+    tariffs: Map<string, { tariff: ProviderConnectionCatalogDTO['tariffs'][number]; billing_period: ProviderBillingPeriod }>;
+    providerReachable: boolean;
+  }> {
+    const tariffs = new Map<string, { tariff: ProviderConnectionCatalogDTO['tariffs'][number]; billing_period: ProviderBillingPeriod }>();
     const token = config.provider_bearer_token;
-    if (!token) return result;
-    try {
-      const [catalog, selections] = await Promise.all([
-        this.getConnectionCatalog(),
-        axios.get(`${config.provider_base_url}/v1/subscription-types/selections`, {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 10_000,
-        }),
-      ]);
-      const byCode = new Map(catalog.tariffs.map((tariff) => [tariff.code, tariff]));
-      for (const row of listOf<{ coopname: string; tariff_code: string; billing_period: string }>(selections.data)) {
-        const tariff = byCode.get(row.tariff_code);
-        if (!tariff) continue;
-        result.set(row.coopname, {
-          tariff,
-          billing_period: row.billing_period === 'year' ? ProviderBillingPeriod.year : ProviderBillingPeriod.month,
-        });
-      }
-    } catch (error: any) {
+    if (!token) return { tariffs, providerReachable: true };
+
+    const [catalog, selections] = await Promise.allSettled([
+      this.getConnectionCatalog(),
+      axios.get(`${config.provider_base_url}/v1/subscription-types/selections`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10_000,
+      }),
+    ]);
+
+    // Отказ сетки уже записан в журнал getConnectionCatalog — второй строкой
+    // о том же отказе журнал не засоряем.
+    if (catalog.status === 'rejected') return { tariffs, providerReachable: false };
+
+    if (selections.status === 'rejected') {
       // Тарифы — подсказка совету, а не основа реестра: без них реестр работает.
-      this.logger.warn(`Тарифы кооперативов для реестра не получены: ${error?.message || error}`);
+      this.logger.warn(`Тарифы кооперативов для реестра не получены: ${describeProviderError(selections.reason)}`);
+      return { tariffs, providerReachable: true };
     }
-    return result;
+
+    const byCode = new Map(catalog.value.tariffs.map((tariff) => [tariff.code, tariff]));
+    for (const row of listOf<{ coopname: string; tariff_code: string; billing_period: string }>(selections.value.data)) {
+      const tariff = byCode.get(row.tariff_code);
+      if (!tariff) continue;
+      tariffs.set(row.coopname, {
+        tariff,
+        billing_period: row.billing_period === 'year' ? ProviderBillingPeriod.year : ProviderBillingPeriod.month,
+      });
+    }
+    return { tariffs, providerReachable: true };
   }
 
   /**
@@ -237,31 +264,29 @@ export class ProviderService {
       throw DomainError.internal('PROVIDER_NOT_CONFIGURED');
     }
 
-    try {
-      this.logger.log(`Получаем подписки для пользователя: ${username}`);
+    this.logger.log(`Получаем подписки для пользователя: ${username}`);
 
-      // Получаем подписки через provider-client (уже обогащенные данными)
-      const subscriptions = await Client.SubscriptionsService.subscriptionControllerGetSubscriptionsByUsername(username);
+    // Отказ провайдера здесь не журналируется: реестр пишет его предупреждением
+    // со своим контекстом, запрос пайщика — общий фильтр ошибок GraphQL.
+    // Строка-ошибка здесь дублировала предупреждение реестра на каждом
+    // кооперативе (C28-97).
+    const subscriptions = await Client.SubscriptionsService.subscriptionControllerGetSubscriptionsByUsername(username);
 
-      const result: ProviderSubscriptionDTO[] = [];
+    const result: ProviderSubscriptionDTO[] = [];
 
-      for (const subscription of subscriptions) {
-        // Провайдер уже возвращает обогащенные данные
-        const providerSubscription = new ProviderSubscriptionDTO(subscription);
-        // Порог докупки пакета знает хаб, а не провайдер: пакетная услуга
-        // платится по расходу ресурса, и без этого числа кооперативу неоткуда
-        // понять, когда именно спишется следующие деньги.
-        if (providerSubscription.kind === 'package') {
-          providerSubscription.package_low_water_axon = config.billing.package_low_water_axon;
-        }
-        result.push(providerSubscription);
+    for (const subscription of subscriptions) {
+      // Провайдер уже возвращает обогащенные данные
+      const providerSubscription = new ProviderSubscriptionDTO(subscription);
+      // Порог докупки пакета знает хаб, а не провайдер: пакетная услуга
+      // платится по расходу ресурса, и без этого числа кооперативу неоткуда
+      // понять, когда именно спишется следующие деньги.
+      if (providerSubscription.kind === 'package') {
+        providerSubscription.package_low_water_axon = config.billing.package_low_water_axon;
       }
-
-      return result;
-    } catch (error: any) {
-      this.logger.error(`Ошибка при получении подписок для ${username}: ${describeProviderError(error)}`);
-      throw error;
+      result.push(providerSubscription);
     }
+
+    return result;
   }
 
   /**
