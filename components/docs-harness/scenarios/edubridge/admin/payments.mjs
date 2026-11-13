@@ -20,9 +20,17 @@ export const meta = {
 
 const PROOF = path.join(HARNESS_ROOT, 'fixtures', 'sok.jpg');
 
-/** Первая исходящая строка реестра, которая ждёт кассира. */
+/**
+ * Первая исходящая строка реестра, которая ждёт кассира. Колонки «Направление»
+ * в реестре кассира нет: исходящий платёж отмечен стрелкой вверх у суммы
+ * (иконка arrow_upward), слово «Исходящий» — только во всплывающей подсказке.
+ */
 function pendingRow(page) {
-  return page.locator('tr.data-row').filter({ hasText: 'Исходящий' }).filter({ has: page.locator('button:has-text("Подтвердить")') }).first();
+  return page
+    .locator('tr.data-row')
+    .filter({ has: page.locator('i.q-icon', { hasText: 'arrow_upward' }) })
+    .filter({ has: page.locator('button:has-text("Подтвердить")') })
+    .first();
 }
 
 /** Кассир подтверждает платёж строки: кнопка в строке, подтверждение в окне. */
