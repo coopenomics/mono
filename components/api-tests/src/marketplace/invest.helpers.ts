@@ -95,15 +95,28 @@ export async function investPropertyAccepted(opts: { investor: Who, chairman: Wh
     // Протокол несёт номер решения в мете, как протокол робота и стола: акт
     // приёма контроллер собирает по decision_id из документа утверждения, а
     // строку решения совет стирает после исполнения. Пустая мета chainDoc
-    // давала MARKETPLACE_IPROP_DECISION_MISSING (ночь 12→13.11.2026).
-    const protocol = { ...chainDoc([CHAIRMAN]), meta: JSON.stringify({ decision_id: Number(decision.id) }) }
+    // давала MARKETPLACE_IPROP_DECISION_MISSING (ночь 12→13.11.2026). Дату
+    // протокола фабрика берёт из created_at меты утверждения: без неё акт не
+    // собирается («Поле created_at не найдено», Blackbox 13.11.2026).
+    const protocol = {
+      ...chainDoc([CHAIRMAN]),
+      meta: JSON.stringify({ decision_id: Number(decision.id), created_at: new Date().toISOString() }),
+    }
     await authorizeDecisionOnChain(Number(decision.id), protocol)
   }
   await waitFor(async () => ((await authorized()) ? true : null), { timeoutMs: 60_000, intervalMs: 1_000, label: `решение совета о приёме ${name}` })
 
   // Акт один на обе подписи: вносящий подписывает первым, контракт создаёт
   // одобрение, председатель совета подписывает тот же документ второй подписью.
-  const actDoc = (await gql<any>(investorToken, ACT_DOC, { d: { braname, property_hash: propertyHash } })).marketplaceInvestPropertyActSignablePayload
+  // Статус «authorized» в строке имущества появляется в блоке утверждения, а
+  // фабрика читает утверждение из истории действий: парсер кладёт его туда
+  // позже, и сборка акта сразу после статуса отвечает «Принятое решение не
+  // найдено в действиях authorize» (Blackbox 13.11.2026, фаза КЭУ). Акт
+  // запрашивается повторно, пока история не догонит цепь.
+  const actDoc = await waitFor(
+    async () => (await gql<any>(investorToken, ACT_DOC, { d: { braname, property_hash: propertyHash } })).marketplaceInvestPropertyActSignablePayload,
+    { timeoutMs: 30_000, intervalMs: 1_000, label: `акт приёма ${name}` },
+  )
   const act1 = await signDocument(investor.wif, actDoc, investor.account, 1)
   await gql(investorToken, SIGN_ACT, { d: { braname, property_hash: propertyHash, document: act1 } })
   const coopChairman = ROLES.chairman()
