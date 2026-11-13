@@ -172,10 +172,15 @@ describe('робот решений совета: кворум, повтор г�
     expect(waiting.waiting_for).toContain('olga')
 
     await voteOnDecision(id, 'for', ['olga'])
-    await votesFor(id, ['anna', 'olga', 'petr'], 'цепочка дошла до конца')
-    const done = await journalAt(id, ['EXECUTED', 'CLOSED'], 'решение утверждено')
+    // Цепочка доходит до конца за секунды, и робот сразу исполняет решение —
+    // строку решения совет стирает. Поэтому звенья читаются из журнала робота,
+    // а не из цепи: в ночь 12→13.11.2026 тест не нашёл стёртую строку и ждал
+    // 120 с, хотя анна и пётр проголосовали через 1 и 2 с после ольги.
+    const done = await journalAt(id, ['EXECUTED', 'CLOSED'], 'цепочка дошла до конца, решение утверждено')
     const anna = (done.votes as any[]).find(v => v.member === 'anna')
     const petr = (done.votes as any[]).find(v => v.member === 'petr')
+    expect(anna, 'робот проголосовал за анну вслед за ольгой').toBeTruthy()
+    expect(petr, 'робот проголосовал за петра вслед за анной').toBeTruthy()
     // Звенья голосуют разными транзакциями: сначала второй, за ним первый.
     expect(anna.tx_id).not.toBe(petr.tx_id)
     expect(Date.parse(anna.at)).toBeLessThanOrEqual(Date.parse(petr.at))
