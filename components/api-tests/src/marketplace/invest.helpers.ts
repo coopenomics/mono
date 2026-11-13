@@ -4,7 +4,7 @@
  * совета по имуществу — через цепь, как в остальных наборах с советом.
  */
 import { MarketContract } from 'cooptypes'
-import { COOP, ROLES, type Who, authorizeDecisionOnChain, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
+import { CHAIRMAN, COOP, ROLES, type Who, authorizeDecisionOnChain, chainDoc, decisionByHash, docMeta, gql, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
 
 // Договор об участии заключается на каждый участок (решение владельца 12.11.2026).
 export const MY_AGREEMENT = 'query($b:String!){ marketplaceMyInvestAgreement(braname:$b){ number signed_at } }'
@@ -92,7 +92,12 @@ export async function investPropertyAccepted(opts: { investor: Who, chairman: Wh
   )
   if (!('robot' in decision) && !(await authorized())) {
     await voteOnDecision(Number(decision.id))
-    await authorizeDecisionOnChain(Number(decision.id))
+    // Протокол несёт номер решения в мете, как протокол робота и стола: акт
+    // приёма контроллер собирает по decision_id из документа утверждения, а
+    // строку решения совет стирает после исполнения. Пустая мета chainDoc
+    // давала MARKETPLACE_IPROP_DECISION_MISSING (ночь 12→13.11.2026).
+    const protocol = { ...chainDoc([CHAIRMAN]), meta: JSON.stringify({ decision_id: Number(decision.id) }) }
+    await authorizeDecisionOnChain(Number(decision.id), protocol)
   }
   await waitFor(async () => ((await authorized()) ? true : null), { timeoutMs: 60_000, intervalMs: 1_000, label: `решение совета о приёме ${name}` })
 
