@@ -9,7 +9,7 @@
     :options='options',
     :label='label ?? $t("ui.expenseCounterparty.selectLabel")',
     :placeholder='$t("ui.expenseCounterparty.selectPlaceholder")',
-    :hint='selected ? selected.requisites_text : (loaded && !items.length ? $t("ui.expenseCounterparty.selectEmpty") : undefined)',
+    :hint='!selected && loaded && !items.length ? $t("ui.expenseCounterparty.selectEmpty") : undefined',
     :error='error',
     :disabled='disabled',
     searchable,
@@ -26,6 +26,11 @@
         template(#icon-left)
           q-icon(name='add', size='16px')
         | {{ $t('ui.expenseCounterparty.addAction') }}
+
+  //- Реквизиты выбранного контрагента — блоком под полем, а не подсказкой:
+  //- строка подсказки поля одна и с абсолютной позицией, длинные реквизиты
+  //- налезали на поле суммы ниже (кадры ui-docs 13.11.2026, 598-63).
+  .cp-select__requisites(v-if='selected') {{ selected.requisites_text }}
 
   ExpenseCounterpartyFormDialog(
     v-model='addOpen',
@@ -95,5 +100,14 @@ onMounted(load);
 <style lang="scss" scoped>
 .cp-select {
   min-width: 0;
+
+  &__requisites {
+    margin-top: var(--p-1);
+    padding: 0 var(--p-3);
+    font-size: var(--p-fs-body-sm);
+    line-height: 1.4;
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
 }
 </style>

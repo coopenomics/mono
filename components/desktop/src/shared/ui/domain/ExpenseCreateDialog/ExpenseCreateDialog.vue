@@ -93,7 +93,6 @@ BaseDialog(
               :model-value='amountAsNumber(item.amount)',
               :label='$t("ui.expenseCreateDialog.plannedAmountLabel")',
               :symbol='symbol',
-              :precision='precision',
               placeholder='1000',
               @update:model-value='(v) => onAmountChange(item, v)'
             )

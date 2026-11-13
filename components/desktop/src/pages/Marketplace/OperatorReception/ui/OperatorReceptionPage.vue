@@ -460,12 +460,15 @@ const pickupLines = computed(() => [...declaredOrders.value, ...addonOrders.valu
 
 // Таблица позиций окна приёмки: галка · позиция · заказано · принять · цена · сумма.
 const receptionColumns = computed<ActLinesColumn[]>(() => [
+  // Таблица стоит в левой колонке окна (~660 px при экране 1120): числовые
+  // колонки узкие, чтобы позиции осталось ~150 px — при прежних ширинах
+  // название товара переносилось по буквам (кадры ui-docs 13.11.2026, 598-63).
   { key: 'check', label: '', width: 'var(--p-6, 24px)' },
   { key: 'item', label: t('marketplace.operatorReception.columnPosition'), wide: true },
-  { key: 'ordered', label: t('marketplace.operatorReception.orderedLabel'), width: '88px', align: 'right' },
-  { key: 'receive', label: t('marketplace.operatorReception.receiveQtyLabel'), width: '128px', align: 'right' },
-  { key: 'price', label: t('marketplace.operatorReception.columnPrice'), width: '128px', align: 'right' },
-  { key: 'sum', label: t('marketplace.operatorReception.columnSum'), width: '112px', align: 'right', strong: true },
+  { key: 'ordered', label: t('marketplace.operatorReception.orderedLabel'), width: '72px', align: 'right' },
+  { key: 'receive', label: t('marketplace.operatorReception.receiveQtyLabel'), width: '104px', align: 'right' },
+  { key: 'price', label: t('marketplace.operatorReception.columnPrice'), width: '104px', align: 'right' },
+  { key: 'sum', label: t('marketplace.operatorReception.columnSum'), width: '104px', align: 'right', strong: true },
 ]);
 
 /** Строка таблицы: позиция заказа либо подзаголовок раздела. */
