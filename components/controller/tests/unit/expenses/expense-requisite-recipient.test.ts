@@ -162,6 +162,21 @@ describe('Выплата по утверждённой записке', () => {
     expect(created[0].memo).toBe('Пополнение лицевого счёта #53144');
     expect((created[0].payment_details as { data: Record<string, unknown> }).data).toMatchObject({ recipient_name: 'ООО «Хостинг»' });
   });
+
+  it('оплата контрагенту из реестра: реквизиты в платеже — строкой из снимка, а не карточкой-объектом', async () => {
+    const { l, created } = listener({
+      [ITEM_ORG.toLowerCase()]: {
+        recipient: 'ПАО Сбербанк',
+        payment_purpose: 'Оплата по договору № 1. Без НДС',
+        requisites: CARD_TEXT,
+        method_type: 'counterparty',
+        data: { counterparty_id: 3, kind: 'LEGAL', name: 'ПАО Сбербанк', requisites: { inn: '7707083893' } },
+      },
+    });
+    await l.handleProposalSynced(authorized([{ item_hash: ITEM_ORG, recipient_type: 2, recipient: '' }]) as never);
+    const data = (created[0].payment_details as { data: Record<string, unknown> }).data;
+    expect(data).toEqual({ recipient_name: 'ПАО Сбербанк', requisites: CARD_TEXT, counterparty_id: 3 });
+  });
 });
 
 describe('Снимок реквизитов: организация из реестра контрагентов (99D-35)', () => {

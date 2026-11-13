@@ -30,6 +30,23 @@ const RECIPIENT_ORG = 2;
  * OnModuleInit — heal для AUTHORIZED СЗ без платежей (в т.ч. после бага
  * `if (entity.id)` / id=0, когда listener не видел items).
  */
+/**
+ * Реквизиты получателя для реестра кассира. Для пайщика — снимок данных
+ * платёжного метода (банк/СБП — рендерится в реестре как обычные реквизиты).
+ * Для организации — имя получателя и реквизиты СТРОКОЙ из снимка: у контрагента
+ * из реестра `snapshot.data` хранит карточку с реквизитами-объектом, и реестр
+ * кассира печатал его как «[object Object]» без имени получателя (598-63).
+ */
+function recipientPaymentData(
+  snapshot: { recipient?: string | null; requisites?: string | null; data?: Record<string, unknown> | null },
+  isOrganization: boolean
+): Record<string, unknown> {
+  const free = { recipient_name: snapshot.recipient, requisites: snapshot.requisites };
+  if (!isOrganization) return snapshot.data ?? free;
+  const counterpartyId = snapshot.data?.counterparty_id;
+  return counterpartyId != null ? { ...free, counterparty_id: counterpartyId } : free;
+}
+
 @Injectable()
 export class ExpensePaymentsListener implements OnModuleInit {
   constructor(
@@ -124,13 +141,7 @@ export class ExpensePaymentsListener implements OnModuleInit {
         secret: generateUniqueHash(),
         payment_method_id: snapshot.method_id ?? undefined,
         payment_details: {
-          // Для пайщика — снимок данных платёжного метода (банк/СБП — рендерится
-          // в реестре как обычные реквизиты); для организации — свободные
-          // реквизиты строкой + имя получателя.
-          data: snapshot.data ?? {
-            recipient_name: snapshot.recipient,
-            requisites: snapshot.requisites,
-          },
+          data: recipientPaymentData(snapshot, isOrganization),
           amount_plus_fee: String(amount),
           amount_without_fee: String(amount),
           fee_amount: '0',

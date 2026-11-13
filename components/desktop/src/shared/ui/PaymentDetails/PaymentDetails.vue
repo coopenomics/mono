@@ -102,11 +102,22 @@ const sbpData = computed(() => {
   return null;
 });
 
-// Свободные реквизиты (оплата расхода организации/ИП по снимку СЗ)
+// Свободные реквизиты (оплата расхода организации/ИП по снимку СЗ). Сервер
+// отдаёт имя получателя и реквизиты строкой. Платежи контрагентам, созданные
+// 11–13.11.2026, хранят карточку контрагента: имя в `name`, реквизиты объектом —
+// такой объект печатался как «[object Object]» (598-63), его значения
+// выводятся через запятую.
 const freeData = computed(() => {
   const data = payment.payment_details?.data;
   if (data && typeof data === 'object' && ('requisites' in data || 'recipient_name' in data)) {
-    return data as { recipient_name?: string; requisites?: string };
+    const raw = data as { recipient_name?: string; name?: string; requisites?: unknown };
+    const requisites =
+      raw.requisites && typeof raw.requisites === 'object'
+        ? Object.values(raw.requisites as Record<string, unknown>).filter(Boolean).join(', ')
+        : typeof raw.requisites === 'string'
+          ? raw.requisites
+          : '';
+    return { recipient_name: raw.recipient_name || raw.name || '', requisites };
   }
   return null;
 });

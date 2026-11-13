@@ -609,3 +609,18 @@ cases:
     external: unreachable
     external_reason: "гонка правки карточки и подачи записки снаружи надёжно не воспроизводится"
     status: written
+
+  # 13.11.2026 (598-63): реестр кассира показывал «[object Object]» в реквизитах
+  # оплаты контрагенту — выплата несла карточку контрагента с реквизитами-объектом.
+  - id: exp.chassis.cp.03
+    level: backend
+    kind: side
+    scenario: Совет утвердил записку с оплатой организации из реестра контрагентов
+    expect: >
+      выплата кассиру несёт имя получателя и реквизиты строкой из снимка записки
+      и номер контрагента; карточка контрагента с реквизитами-объектом в выплату
+      не попадает
+    test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    external: unreachable
+    external_reason: "вид поля «Реквизиты» в реестре кассира снимает сценарий docs-harness edubridge/admin/payments; состав выплаты проверяет модульный тест"
+    status: written
