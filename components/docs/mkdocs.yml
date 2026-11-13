@@ -261,6 +261,8 @@ nav:
       - Гарантийные возвраты: new/marketplace/operator/returns.md
       - Списание на участке: new/marketplace/operator/writeoffs.md
       - Экономика участка: new/marketplace/operator/economy.md
+      - Плановые расходы участка: new/marketplace/branch-chairman/expense-plans.md
+      - Инициаторы участка: new/marketplace/branch-chairman/initiators-money.md
       - История заказов: new/marketplace/operator/orders-history.md
       - Поставки на чужом пункте: new/marketplace/operator/incoming-shipments-foreign.md
     - Стол администратора:
