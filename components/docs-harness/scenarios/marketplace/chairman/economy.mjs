@@ -48,7 +48,15 @@ export default async ({ page, shot, expect, env, context }) => {
   );
 
   // Окно правки доли инициатора: подсказка о том, что прошедшие месяцы не пересчитываются.
-  await page.locator('button[aria-label="Доля инициатора в экономии участка"]').first().click();
+  // Числа экрана — карточки WalletCard, правка — кнопка «Редактировать» под
+  // числом карточки (до 04.11 был карандаш с подписью для чтения с экрана).
+  await page
+    .locator('.wallet')
+    .filter({ has: page.locator('.wallet__title', { hasText: 'Доля инициатора' }) })
+    .first()
+    .locator('button:has-text("Редактировать")')
+    .first()
+    .click();
   await page.waitForTimeout(600);
   await shot(
     page,

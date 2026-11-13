@@ -11,13 +11,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, confirmIdentityIfAsked, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { scanButton, scanOnPvz } from '../../../lib/marketplace-scan.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
-const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:orderer2`;
+// Код получателя — логин пайщика: ручной ввод общего сканера стола (598-62).
+const RECEIVER_CODE = 'orderer2';
 
 export const meta = {
   title: 'Стол ПВЗ — выдача заказа из остатка второму пайщику',
@@ -47,7 +49,7 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('text=Сканировать QR', { timeout: 60000 });
+  await scanButton(page).waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
@@ -58,17 +60,7 @@ export default async ({ page, shot, expect }) => {
     'Поток выдач участка: заказ из остатка стоит в очереди наравне с обычными — для оператора разницы нет, имущество уже на складе.',
   );
 
-  await page.getByText('Сканировать QR').first().click({ force: true });
-  await page.waitForSelector('text=Или введите код вручную', { timeout: 20000 });
-  const scanDialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Сканирование QR' }).first();
-  const codeInput = scanDialog.locator('input').first();
-  await codeInput.click();
-  await codeInput.type(RECEIVER_CODE, { delay: 20 });
-  await page.waitForTimeout(400);
-  await scanDialog.locator('button:has-text("Применить")').first().click();
-  await page.waitForTimeout(8000);
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await cleanViteOverlays(page);
+  await scanOnPvz(page, RECEIVER_CODE, { matter: 'issuance' });
   await confirmIdentityIfAsked(page, { shot });
 
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
@@ -80,7 +72,7 @@ export default async ({ page, shot, expect }) => {
     {
       preserveNotifications: true,
       expect: async (p) => {
-        await expect(p.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
+        await expect(p.locator('text=Код не распознан')).toHaveCount(0, { timeout: 15000 });
         await expect(dialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 20000 });
       },
     },

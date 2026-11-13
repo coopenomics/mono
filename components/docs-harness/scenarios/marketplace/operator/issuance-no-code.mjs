@@ -5,8 +5,9 @@
 // месте. Отдельной кнопки «выдать» на карточке нет: оператор не должен иметь
 // возможности отдать заказ «на глаз», по совпадению фамилии.
 //
-// Проверяем обе стороны: действие на столе одно — «Сканировать QR заказа», и
-// произвольный код сканер не принимает, а объясняет, что именно он ждёт.
+// Проверяем обе стороны: действие на столе одно — общий сканер «Сканировать»
+// в шапке (598-62), и произвольный код сервер не принимает, а объясняет, что
+// именно он ждёт.
 //
 // Фикстура: chairkrg — председатель Красногорск.
 
@@ -14,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { openScanner, scanButton, submitCode } from '../../../lib/marketplace-scan.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -61,8 +63,7 @@ export default async ({ page, shot, expect }) => {
     'Стол выдачи: карточки показывают, что кому причитается, но открыть выдачу с них нельзя — единственное действие вынесено в шапку и требует кода получателя.',
     {
       expect: async (p) => {
-        await expect(p.locator('button:has-text("Сканировать QR заказа")').first())
-          .toBeVisible({ timeout: 20000 });
+        await expect(scanButton(p)).toBeVisible({ timeout: 20000 });
       },
     },
   );
@@ -77,37 +78,31 @@ export default async ({ page, shot, expect }) => {
     .catch(() => {});
   await cleanViteOverlays(page);
 
-  await page.locator('button:has-text("Сканировать QR заказа")').first().click({ timeout: 20000 });
-  const dialog = page
-    .locator('.q-dialog__inner:visible')
-    .filter({ hasText: 'Сканирование QR' })
-    .first();
-  await dialog.waitFor({ state: 'visible', timeout: 20000 });
+  const dialog = await openScanner(page);
   await page.waitForTimeout(800);
 
   await shot(
     page,
     '02-scan-dialog',
-    'Диалог сканирования: оператор наводит камеру на код получения, который заказчик показывает с телефона, либо вводит его вручную. Без кода дальше пути нет.',
+    'Окно общего сканера стола: оператор наводит камеру на код, который пайщик показывает с телефона, либо вводит код вручную. Без кода дальше пути нет.',
   );
 
   // Ручной ввод произвольного кода — то, чем оператор попытался бы обойти
   // требование. Сканер обязан отбить и назвать, какие коды принимает.
-  await dialog.locator('input').first().type(BOGUS_CODE, { delay: 30 });
-  await dialog.locator('button:has-text("Применить")').first().click();
+  await submitCode(page, dialog, BOGUS_CODE);
 
   // Отказ показывается всплывающим уведомлением и живёт секунды — ждём именно
   // его появления, а не фиксированную паузу, иначе кадр снимется уже пустым.
-  const rejection = page.locator('.q-notification', { hasText: 'Нераспознанный код' }).first();
+  const rejection = page.locator('.q-notification', { hasText: 'Код не распознан' }).first();
   await rejection.waitFor({ state: 'visible', timeout: 20000 });
 
   await shot(
     page,
     '03-code-rejected',
-    'Произвольный код не принят: система называет, какие коды подходят — код получения заказчика, код поставщика, QR товарно-транспортной накладной или логин пайщика. Выдача не открыта.',
+    'Произвольный код не принят: система просит отсканировать код из Стола заказов или ввести логин пайщика. Выдача не открыта.',
     {
       expect: async (p) => {
-        await expect(p.locator('.q-notification', { hasText: 'Нераспознанный код' }).first())
+        await expect(p.locator('.q-notification', { hasText: 'Код не распознан' }).first())
           .toBeVisible({ timeout: 20000 });
       },
     },

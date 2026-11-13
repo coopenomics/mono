@@ -191,6 +191,13 @@ const GROUPS = [
       'marketplace/chairman/offers-registry',
       'marketplace/chairman/economy',
       'marketplace/operator/orders-history',
+      // Коэффициент экономического участия и плановые расходы участка
+      // (99D-23, 99D-34, 99D-35): только смотрят вкладки и окна, расход не
+      // заводят. Списанная обеспечительная часть появится в карточке заказа
+      // после первого числа; до него снимается блок в состоянии до списания.
+      'marketplace/branch-chairman/economy-reserve-periods',
+      'marketplace/branch-chairman/expense-plans',
+      'marketplace/orderer/order-secure-part-charged',
     ],
   },
 ];

@@ -61,18 +61,30 @@ export default async ({ page, shot, expect }) => {
   await openTab(page, 'Имущество');
   await page.locator('button:has-text("Внести имуществом")').first().click();
   const dialog = page.locator('.q-dialog').last();
-  const inputs = dialog.locator('input, textarea');
+  // Поля — по подписи, не по порядку: форма заявления о взносе имуществом
+  // выросла до десяти полей (категория, ссылки на материалы, гарантийные
+  // условия, срок гарантии), и порядковые номера разъехались. Подпись — точно:
+  // «Описание» входит в «Прочие характеристики и описание».
+  const field = (label) =>
+    dialog
+      .locator('label.q-field')
+      .filter({ has: page.locator('.q-field__label', { hasText: new RegExp(`^\\s*${label}\\s*$`) }) })
+      .locator('input, textarea')
+      .first();
   const name = `Холодильная витрина ${Date.now().toString(36)}`;
-  await inputs.nth(0).fill(name);
-  await inputs.nth(1).fill('Двухметровая, исправна, проверена при приёме');
-  await inputs.nth(2).fill('1');
-  await inputs.nth(3).fill('шт.');
-  await inputs.nth(4).fill('25000');
+  await field('Наименование').fill(name);
+  await field('Категория Имущества').fill('Торговое оборудование');
+  await field('Описание').fill('Двухметровая, исправна, проверена при приёме');
+  await field('Гарантийные условия и предлагаемый срок действия').fill('Исправная работа компрессора 12 месяцев');
+  await field('Количество').fill('1');
+  await field('Единица измерения').fill('шт.');
+  await field('Цена приёма').fill('25000');
+  await field('Срок Гарантийных обязательств, дней').fill('365');
   await page.waitForTimeout(500);
   await shot(
     page,
     '01-property-dialog',
-    'Окно паевого взноса имуществом: наименование, описание и состояние, количество, единица и цена приёма. Заявление одобряет председатель участка, решение о приёме принимает совет, затем акт подписывают вносящий и председатель участка.',
+    'Окно паевого взноса имуществом: наименование, категория, описание, гарантийные условия, количество, единица, цена приёма и срок гарантийных обязательств. Заявление одобряет председатель участка, решение о приёме принимает совет, затем акт подписывают вносящий и председатель участка.',
   );
   await dialog.locator('button[type="submit"]').last().click();
 

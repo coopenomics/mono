@@ -2,9 +2,9 @@
 //
 // Заказы на пункте выдачи сгруппированы по заказчикам. Открыть выдачу можно
 // только по QR-коду получателя — так подтверждается, что пришёл именно он.
-// Код имеет вид `blago:receive:<кооператив>:<пайщик>` и показывается заказчику
-// в разделе «Показать QR». В harness камеры нет, используется штатный ручной
-// ввод кода.
+// Код показывается заказчику в разделе «Показать QR»; оператор читает его
+// общим сканером стола — кнопкой «Сканировать» в шапке (598-62). В harness
+// камеры нет, используется штатный ручной ввод: логин пайщика.
 //
 // Прежняя версия требовала ручного ввода «ID кооперативного участка выдачи» —
 // такого шага больше нет, участок берётся из контекста стола.
@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, confirmIdentityIfAsked, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { openScanner, pickMatterIfAsked, scanButton, submitCode } from '../../../lib/marketplace-scan.mjs';
 // Цена приёмки — оттуда, где её задаёт акт: две копии числа разъехались бы
 // молча, и проверка цены выдачи перестала бы что-либо значить.
 import { FACT_UNIT_PRICE as RECEPTION_UNIT_PRICE } from './apl-reception-create.mjs';
@@ -24,7 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
-const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ekaterina`;
+const RECEIVER_CODE = 'ekaterina';
 
 /**
  * Заказчица забирает не всё принятое: приняли девять единиц, выдаём восемь.
@@ -61,7 +62,7 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('text=Сканировать QR', { timeout: 60000 });
+  await scanButton(page).waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
@@ -72,8 +73,7 @@ export default async ({ page, shot, expect }) => {
     'Поток выдач участка: заказы сгруппированы по заказчикам, карточки показывают, что кому причитается. Выдачу нельзя открыть «просто так» — нужен код получателя.',
   );
 
-  await page.getByText('Сканировать QR').first().click({ force: true });
-  await page.waitForSelector('text=Или введите код вручную', { timeout: 20000 });
+  const scanDialog = await openScanner(page);
   await page.waitForTimeout(1000);
 
   await shot(
@@ -82,19 +82,16 @@ export default async ({ page, shot, expect }) => {
     'Оператор читает код получателя: заказчик показывает его с экрана телефона или с распечатки. Код подтверждает, что за заказом пришёл именно тот пайщик.',
   );
 
-  // Поле ввода — внутри диалога: первым input на странице идёт поиск.
-  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Сканирование QR' }).first();
-  const input = dialog.locator('input').first();
-  await input.click();
-  await input.type(RECEIVER_CODE, { delay: 20 });
-  await page.waitForTimeout(400);
-  await dialog.locator('button:has-text("Применить")').first().click();
-  await page.waitForTimeout(8000);
+  // Окно уже открыто ради кадра — дальше тот же ход, что у scanOnPvz.
+  await submitCode(page, scanDialog, RECEIVER_CODE);
+  await scanDialog.waitFor({ state: 'hidden', timeout: 20000 });
+  await pickMatterIfAsked(page, 'issuance');
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
   await confirmIdentityIfAsked(page, { shot });
 
-  await expect(page.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
+  await expect(page.locator('text=Код не распознан')).toHaveCount(0, { timeout: 15000 });
   const issueDialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
   await expect(issueDialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 15000 });
 
