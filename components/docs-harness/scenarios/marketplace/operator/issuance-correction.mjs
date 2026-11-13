@@ -56,11 +56,18 @@ const parseMoney = (text) =>
       .replace(',', '.')
   );
 
-/** Значение строки итогов по её подписи. */
+/**
+ * Значение строки сводки акта по её подписи. Сводка — общая ActSummaryCard:
+ * строки расчёта `.act-summary__line`, итог крупно — `.act-summary__total`.
+ */
 async function sumByLabel(dialog, label) {
-  const row = dialog.locator('.issue-act__sum').filter({ hasText: label }).first();
+  const total = dialog.locator('.act-summary__total').filter({ hasText: label }).first();
+  if ((await total.count()) > 0) {
+    return parseMoney(await total.locator('.act-summary__total-amount').innerText());
+  }
+  const row = dialog.locator('.act-summary__line').filter({ hasText: label }).first();
   if ((await row.count()) === 0) return null;
-  return parseMoney(await row.locator('.issue-act__sum-value').innerText());
+  return parseMoney(await row.locator('.act-summary__line-value').innerText());
 }
 
 /**
@@ -71,7 +78,7 @@ async function sumByLabel(dialog, label) {
  * читать сумму сразу после ввода значит читать доредактированное состояние.
  */
 async function setFactField(dialog, index, value, prevTotal) {
-  const input = dialog.locator('.correction-table__row input[type="number"]').nth(index);
+  const input = dialog.locator('.act-lines__cell input[type="number"]').nth(index);
   await input.click();
   await input.fill(String(value));
   await input.blur();
@@ -107,8 +114,8 @@ export default async ({ page, shot, expect }) => {
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
   await expect(dialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 20000 });
 
-  const qtyInput = dialog.locator('.correction-table__row input[type="number"]').first();
-  const priceInput = dialog.locator('.correction-table__row input[type="number"]').nth(1);
+  const qtyInput = dialog.locator('.act-lines__cell input[type="number"]').first();
+  const priceInput = dialog.locator('.act-lines__cell input[type="number"]').nth(1);
   const plannedQty = Number.parseFloat(await qtyInput.inputValue());
   const unitPrice = Number.parseFloat(await priceInput.inputValue());
   const baseTotal = await sumByLabel(dialog, 'Итого к оплате');
@@ -196,12 +203,12 @@ export default async ({ page, shot, expect }) => {
   // заказа, имущество — на складе участка. Возврат — это другая ситуация:
   // позиция выдаётся, но на меньшую сумму (следующий шаг).
   await setFactField(dialog, 0, plannedQty);
-  await dialog.locator('.correction-table__check .q-checkbox').first().click();
+  await dialog.locator('.act-lines__cell .q-checkbox').first().click();
   await page.waitForTimeout(2000);
 
   const droppedTotal = await sumByLabel(dialog, 'Итого к оплате');
   const droppedRefund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
-  const leftOnStock = dialog.locator('.issue-act__sum').filter({ hasText: 'Остаётся на складе' });
+  const leftOnStock = dialog.locator('.act-summary__line').filter({ hasText: 'Остаётся на складе' });
 
   await shot(
     page,
@@ -223,7 +230,7 @@ export default async ({ page, shot, expect }) => {
   // Вот это уже возврат: позиция в выдаче, а забрать по ней нечего — вся
   // сумма уходит обратно в кошелёк Стола заказов. Подписать такой акт нельзя,
   // и форма об этом честно предупреждает.
-  await dialog.locator('.correction-table__check .q-checkbox').first().click();
+  await dialog.locator('.act-lines__cell .q-checkbox').first().click();
   await page.waitForTimeout(2000);
   await setFactField(dialog, 0, 0);
   await page.waitForTimeout(1500);

@@ -97,7 +97,7 @@ export default async ({ page, shot, expect }) => {
 
   // Выдаём меньше принятого: поле факта управляемое, без blur модель остаётся
   // с прежним количеством и акт уйдёт на полном объёме.
-  const factQty = issueDialog.locator('.correction-table__row input[type="number"]').first();
+  const factQty = issueDialog.locator('.act-lines__cell input[type="number"]').first();
   const acceptedQty = Number.parseFloat(await factQty.inputValue());
 
   // Цена, с которой открылась выдача. Имущество приняли дешевле объявленного
@@ -107,7 +107,7 @@ export default async ({ page, shot, expect }) => {
   // прихода, и счёт материалов уйдёт в минус на всю разницу (так и было до
   // 14 августа: приход 1800 ₽, выбытие 2000 ₽).
   // В блоке правки два поля подряд: количество и цена за единицу отпуска.
-  const factPriceInput = issueDialog.locator('.correction-table__row input[type="number"]').nth(1);
+  const factPriceInput = issueDialog.locator('.act-lines__cell input[type="number"]').nth(1);
   const openedPrice = Number.parseFloat(await factPriceInput.inputValue());
   await factQty.click();
   await factQty.fill(String(ISSUE_QUANTITY));
@@ -130,7 +130,7 @@ export default async ({ page, shot, expect }) => {
         // цене заказа — иначе выбытие со склада пойдёт дороже прихода.
         expect(openedPrice).toBe(RECEPTION_UNIT_PRICE);
         // Недовыдача обязана быть названа деньгами, а не просто уменьшить итог.
-        const refund = issueDialog.locator('.issue-act__sum').filter({ hasText: 'Вернётся в кошелёк' });
+        const refund = issueDialog.locator('.act-summary__line').filter({ hasText: 'Вернётся в кошелёк' });
         await expect(refund.first()).toBeVisible({ timeout: 15000 });
       },
     },
