@@ -47,7 +47,11 @@ export default async ({ page, shot, expect }) => {
 
   // Оверлей подписи на месте — persistent: пока акт не подписан (или приёмка
   // не отменена), увести окно нельзя.
-  const signBtn = page.locator('button:has-text("Подписать поставку")').first();
+  // Кнопка экрана подписи поставщика — «Подписать акты» (общий экран подписи
+  // актов с 01.11.2026, прежняя подпись «Подписать поставку»). Со старой
+  // подписью сценарий молча пропускал подпись, и приёмка вставала на
+  // «Ждёт подписи поставщика».
+  const signBtn = page.locator('button:has-text("Подписать акты")').first();
   let gateShown = await signBtn.waitFor({ state: 'visible', timeout: 30000 })
     .then(() => true)
     .catch(() => false);
