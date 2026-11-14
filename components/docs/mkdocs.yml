@@ -236,6 +236,7 @@ nav:
       - Мои заказы: new/marketplace/orderer/my-orders.md
       - Получение на пункте выдачи: new/marketplace/orderer/receive.md
       - Гарантийный возврат: new/marketplace/orderer/returns.md
+      - Обеспечительная часть паевого взноса: new/marketplace/orderer/order-secure-part-charged.md
       - Заказ до получения: new/marketplace/orderer/order-no-return-yet.md
       - Пустой каталог: new/marketplace/orderer/catalog-empty.md
       - Нет заказов: new/marketplace/orderer/orders-empty.md
