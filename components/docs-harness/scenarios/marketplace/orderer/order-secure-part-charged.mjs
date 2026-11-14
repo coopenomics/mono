@@ -41,11 +41,12 @@ export default async ({ page, shot, expect }) => {
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
-  // Заказ со списанной обеспечительной частью — по бейджу «Списана» в списке;
-  // иначе первый заказ.
-  const charged = page.locator('.order-card:has-text("Списана")').first();
-  const card = (await charged.count()) ? charged : page.locator('.order-card').first();
-  if (!(await card.count())) return;
+  // Список «Мои заказы» — строки OrderCard (`.order-row`, с 10.11.2026). В сюите
+  // marketplace-keu у пайщицы один заказ, и его обеспечительная часть списана
+  // фазой mktkeu:01-common. Заказов нет — сценарий падает: молчаливый выход
+  // оставлял страницу без кадра.
+  const card = page.locator('.order-row').first();
+  await expect(card, 'в «Моих заказах» нет ни одного заказа').toBeVisible({ timeout: 30000 });
   await card.click();
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1500);
