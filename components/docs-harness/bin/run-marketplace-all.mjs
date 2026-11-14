@@ -161,13 +161,6 @@ const GROUPS = [
     ],
   },
   {
-    // После всех возвратов: приём возврата снимает членский взнос обратно из
-    // того же пула участка, который здесь распределяется. Распределив его
-    // раньше, мы обрушили бы возврат на пустом кошельке.
-    name: 'Экономика участка',
-    scenarios: ['marketplace/operator/branch-economy'],
-  },
-  {
     // Инвестиционный этап участка (99D-31): договор участия и паевой взнос
     // деньгами раньше имущества — имущество вносится по подписанному договору.
     name: 'Инициаторы участка',
@@ -191,13 +184,9 @@ const GROUPS = [
       'marketplace/chairman/offers-registry',
       'marketplace/chairman/economy',
       'marketplace/operator/orders-history',
-      // Коэффициент экономического участия и плановые расходы участка
-      // (99D-23, 99D-34, 99D-35): только смотрят вкладки и окна, расход не
-      // заводят. Списанная обеспечительная часть появится в карточке заказа
-      // после первого числа; до него снимается блок в состоянии до списания.
-      'marketplace/branch-chairman/economy-reserve-periods',
+      // Плановые расходы участка (99D-34, 99D-35): только смотрит раздел и окно,
+      // расход не заводит.
       'marketplace/branch-chairman/expense-plans',
-      'marketplace/orderer/order-secure-part-charged',
     ],
   },
 ];
@@ -205,4 +194,13 @@ const GROUPS = [
 
 // Фазы засева ждут всех председателей участков и пул гейта (chairmyt — участок
 // Мытищи, petrova — первый кандидат пула), хотя сценарии их по имени не зовут.
-process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2), extraFixtures: ['chairmyt', 'petrova'] }));
+// Экономика участка по итогу месяца снимается отдельной сюитой на стенде со
+// сжатым временем (bin/run-marketplace-keu-all.mjs): участок получает членский
+// взнос первого числа, в настоящем времени общий кошелёк участка пуст.
+const KEU_SUITE = [
+  'marketplace/operator/branch-economy',
+  'marketplace/branch-chairman/economy-reserve-periods',
+  'marketplace/orderer/order-secure-part-charged',
+];
+
+process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2), extraFixtures: ['chairmyt', 'petrova'], elsewhere: KEU_SUITE }));

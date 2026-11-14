@@ -26,7 +26,7 @@ on:
         type: choice
         required: true
         default: marketplace
-        options: [marketplace, edubridge, blagorost]
+        options: [marketplace, marketplace-keu, edubridge, blagorost]
 
 # Прогоны не отменяют друг друга — как у blackbox: полигон общий для
 # нескольких агентов, каждый пуш доводится до исхода.
@@ -134,6 +134,16 @@ jobs:
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh app
 
+      # Сюита «экономика участка по итогу месяца»: итог месяца считает обход
+      # узла, поэтому стенд получает засев Стола заказов из внешних тестов
+      # (участки, поставщик с предложениями, пайщики) и сжатое время.
+      - name: Стенд — засев и сжатое время
+        if: steps.app.outputs.app == 'marketplace-keu'
+        timeout-minutes: 40
+        run: |
+          bash scripts/blackbox/stack.sh seed
+          bash scripts/blackbox/stack.sh standtime compress
+
       - name: Стенд — рабочий стол (SSR)
         timeout-minutes: 15
         run: bash scripts/blackbox/stack.sh desktop
@@ -144,7 +154,7 @@ jobs:
 
       - name: Сценарии ${{ steps.app.outputs.app }}
         id: ui
-        timeout-minutes: 150
+        timeout-minutes: 200
         run: bash scripts/blackbox/stack.sh ui "${{ steps.app.outputs.app }}"
 
       # Сравнение идёт и после красной сюиты: зелёные сценарии кадры сняли.

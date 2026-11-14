@@ -363,6 +363,19 @@ cmd_keu() {
   return $failed
 }
 
+# Шкала времени стенда отдельной командой — для сюиты документации «экономика
+# участка по итогу месяца» (ui marketplace-keu): итог месяца считает обход узла,
+# в настоящем времени его не дождаться. `standtime compress` сжимает время
+# теми же значениями, что фаза keu, `standtime real` возвращает настоящее.
+cmd_standtime() {
+  load_stack
+  case "${1:-}" in
+    compress) keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с)" coopback-before-standtime.log ;;
+    real) keu_stand_time "" "" "Возвращаем настоящее время стенда" coopback-standtime.log ;;
+    *) echo "использование: $0 standtime <compress|real>" >&2; exit 2 ;;
+  esac
+}
+
 cmd_rights() {
   api_tests_env
   export RIGHTS_OUT="$OUT/rights"
@@ -587,6 +600,8 @@ cmd_ui() {
   cd "$HARNESS_DIR"
   case "$app" in
     marketplace) node bin/run-marketplace-all.mjs ;;
+    # Экономика участка по итогу месяца: стенд с засевом и сжатым временем.
+    marketplace-keu) node bin/run-marketplace-keu-all.mjs ;;
     edubridge) node bin/run-edubridge-all.mjs ;;
     ku) node bin/run-ku-all.mjs ;;
     robot) node bin/run-robot-all.mjs ;;
@@ -608,7 +623,8 @@ cmd_ui() {
 cmd_uidiff() {
   local app="${1:?приложение}"
   cd "$HARNESS_DIR"
-  node bin/diff-shots.mjs --app="$app" --summary
+  # Сценарии сюиты marketplace-keu лежат в каталоге приложения marketplace.
+  node bin/diff-shots.mjs --app="${app%-keu}" --summary
 }
 
 cmd_uisummary() {
@@ -653,6 +669,7 @@ case "${1:-}" in
   faults) cmd_faults ;;
   cardcoop) cmd_cardcoop ;;
   keu) cmd_keu ;;
+  standtime) cmd_standtime "${2:-}" ;;
   dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
@@ -661,5 +678,5 @@ case "${1:-}" in
   ui) shift; cmd_ui "$@" ;;
   uidiff) shift; cmd_uidiff "$@" ;;
   uisummary) shift; cmd_uisummary "$@" ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|keu|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|keu|standtime|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
 esac
