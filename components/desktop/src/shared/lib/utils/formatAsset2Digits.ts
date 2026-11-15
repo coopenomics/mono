@@ -3,6 +3,13 @@ import { decimalSeparator } from '@coopenomics/i18n';
 import { currentLocale, uiLocale } from 'src/shared/i18n';
 
 /**
+ * Ноль в том же виде, что любая сумма: десятичный знак по языку интерфейса
+ * («0,00»). Прежде пустое значение и строка «0» давали «0.00» с точкой, и
+ * пустой кошелёк стоял рядом с «36 600,00» в другом виде (598-63).
+ */
+const zeroAmount = (): string => `0${decimalSeparator(currentLocale())}00`;
+
+/**
  * Форматирует актив для отображения: truncate (toward-zero) до 2 знаков
  * после запятой + локальная группировка разрядов (ru-RU).
  *
@@ -16,10 +23,10 @@ import { currentLocale, uiLocale } from 'src/shared/i18n';
  * @returns отформатированная строка (например "99 999,99 RUB")
  */
 // null/undefined допустимы: суммы приходят из GraphQL как string | null,
-// а функция и так возвращает '0.00' на пустом значении — тип лишь
+// а функция и так возвращает ноль на пустом значении — тип лишь
 // приведён к фактическому поведению.
 export const formatAsset2Digits = (value: string | null | undefined): string => {
-  if (!value || value === '0') return '0.00';
+  if (!value || value === '0') return zeroAmount();
 
   const parts = value.trim().split(' ');
   const cleanValue = parts[0] || value;
@@ -27,7 +34,7 @@ export const formatAsset2Digits = (value: string | null | undefined): string => 
   const numericValue = cleanValue.replace(/[^\d.-]/g, '');
 
   if (!numericValue || numericValue === '-' || isNaN(parseFloat(numericValue))) {
-    return '0.00';
+    return zeroAmount();
   }
 
   const truncated = floorDecimalString(numericValue, 2);
