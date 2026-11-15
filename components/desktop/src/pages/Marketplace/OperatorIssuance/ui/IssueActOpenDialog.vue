@@ -182,12 +182,14 @@ function isPackaged(o: MarketplaceOrderIssuanceView): boolean {
 // помещались в карточку рядом со сводкой (слово владельца 01.11.2026).
 const issueColumns = computed<ActLinesColumn[]>(() => [
   { key: 'check', label: '', width: 'var(--p-6, 24px)' },
-  { key: 'item', label: t('marketplace.issueActOpenDialog.columnItem'), wide: true, width: 'minmax(200px, 1fr)' },
-  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: '136px', align: 'right' },
-  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: '160px', align: 'right' },
-  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: '112px', align: 'right', strong: true },
-  // Самый длинный бейдж — «Больше принятого».
-  { key: 'status', label: t('marketplace.issueActOpenDialog.columnStatus'), width: '144px' },
+  // Таблица стоит в левой колонке окна (~640 px при экране 1120). Шесть колонок
+  // требовали ~880 px: «Сумму» обрезала карточка акта, «Состояние» стояло за
+  // краем. Состояние позиции перенесено под её название, числовые колонки
+  // сужены — позиции остаётся от 180 px (598-63).
+  { key: 'item', label: t('marketplace.issueActOpenDialog.columnItem'), wide: true, width: 'minmax(180px, 1fr)' },
+  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: '104px', align: 'right' },
+  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: '128px', align: 'right' },
+  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: '104px', align: 'right', strong: true },
 ]);
 
 type IssueRow = { key: string; off: boolean; order: MarketplaceOrderIssuanceView };
@@ -737,11 +739,21 @@ BaseDialog(
         )
         q-tooltip(v-if='availableOf(row.order) <= 0') {{ $t('marketplace.issueActOpenDialog.outOfStockHint') }}
       template(#cell-item='{ row }')
-        ActLineItem(
-          :title='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
-          :meta='lineMeta(row.order)',
-          :image-url='row.order.image_url'
-        )
+        .issue-act__item
+          ActLineItem(
+            :title='row.order.product_name || $t("marketplace.issueActOpenDialog.productOfferFallback")',
+            :meta='lineMeta(row.order)',
+            :image-url='row.order.image_url'
+          )
+          //- Состояние позиции — под её названием: отдельная колонка не помещалась.
+          .issue-act__status(:aria-label='$t("marketplace.issueActOpenDialog.columnStatus")')
+            BaseBadge(:variant='lineStatus(row.order).variant') {{ lineStatus(row.order).label }}
+            .issue-act__pick(
+              v-if='pickLine(row.order)',
+              :class='{ "issue-act__pick--done": pickLine(row.order)?.done }'
+            )
+              q-icon(:name='pickLine(row.order)?.done ? "check_circle" : "radio_button_unchecked"', size='14px')
+              span {{ pickLine(row.order)?.text }}
       template(#cell-issue='{ row }')
         BaseInput(
           :model-value='factUnits(row.order)',
@@ -766,15 +778,6 @@ BaseDialog(
           @update:model-value='(v) => onPriceInput(row.order, v)'
         )
       template(#cell-sum='{ row }') {{ rub(lineSum(row.order)) }}
-      template(#cell-status='{ row }')
-        .issue-act__status
-          BaseBadge(:variant='lineStatus(row.order).variant') {{ lineStatus(row.order).label }}
-          .issue-act__pick(
-            v-if='pickLine(row.order)',
-            :class='{ "issue-act__pick--done": pickLine(row.order)?.done }'
-          )
-            q-icon(:name='pickLine(row.order)?.done ? "check_circle" : "radio_button_unchecked"', size='14px')
-            span {{ pickLine(row.order)?.text }}
 
     .issue-act__restock(v-if='restockLines.length')
       .issue-act__restock-head
@@ -927,11 +930,19 @@ BaseDialog(
     }
   }
 
-  &__status {
+  // Ячейка позиции: название с миниатюрой, под ним — состояние и ход подбора.
+  &__item {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: var(--p-1, 4px);
+    gap: var(--p-2, 8px);
+    min-width: 0;
+  }
+
+  &__status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--p-1, 4px) var(--p-2, 8px);
   }
 
   // Ход подбора под бейджем сверки: новое о строке, а не повтор бейджа.

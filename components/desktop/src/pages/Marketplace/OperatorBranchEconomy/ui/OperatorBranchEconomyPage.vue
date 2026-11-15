@@ -433,9 +433,18 @@ interface SumCard {
   label: string
 }
 
+/**
+ * Число суммы по канону стола: два знака, разряды и десятичный знак по языку
+ * интерфейса («1 000,00»). `toFixed(2)` давал «1000.00» — карточки расходились
+ * с таблицами той же страницы (598-63).
+ */
+function amountText(value: number): string {
+  return formatAsset2Digits((Number.isFinite(value) ? value : 0).toFixed(4))
+}
+
 /** Сумма карточки: до копеек и символ актива. */
 function cardMoney(asset: string | null | undefined): Pick<SumCard, 'balance' | 'symbol'> {
-  return { balance: assetAmount(asset ?? '').toFixed(2), symbol: assetSymbol(asset ?? '') }
+  return { balance: amountText(assetAmount(asset ?? '')), symbol: assetSymbol(asset ?? '') }
 }
 
 /**
@@ -490,7 +499,7 @@ const currentCards = computed<SumCard[]>(() => {
     { key: 'outcome', icon: gap < 0 ? 'trending_down' : 'trending_up',
       title: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitTile' : 'marketplace.operatorBranchEconomyPage.currentSurplusTile'),
       subtitle: i18nT(gap < 0 ? 'marketplace.operatorBranchEconomyPage.currentDeficitShort' : 'marketplace.operatorBranchEconomyPage.currentSurplusShort'),
-      balance: Math.abs(gap).toFixed(2), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.currentCardExpected') },
+      balance: amountText(Math.abs(gap)), symbol, label: i18nT('marketplace.operatorBranchEconomyPage.currentCardExpected') },
   ]
   // Средства инициаторов — двумя карточками, по числу в каждой: сколько
   // свободно и сколько участок из них израсходовал. Карточек не больше шести.
@@ -499,7 +508,7 @@ const currentCards = computed<SumCard[]>(() => {
     cards.push({ key: 'initiators-free', icon: 'volunteer_activism', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsTile'),
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsShort'),
       hint: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSub', { reserved: fmt(v.reserved) }),
-      balance: initiatorFree.value.toFixed(2), symbol, label: '' })
+      balance: amountText(initiatorFree.value), symbol, label: '' })
     cards.push({ key: 'initiators-spent', icon: 'receipt', title: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSpentTile'),
       subtitle: i18nT('marketplace.operatorBranchEconomyPage.currentInitiatorsSpentShort'),
       ...cardMoney(v.spent_total), label: i18nT('marketplace.operatorBranchEconomyPage.cardTotal') })
@@ -1115,7 +1124,7 @@ const aidError = computed(() => {
   if (aidNoReserve.value) return i18nT('marketplace.operatorBranchEconomyPage.aidNoReserveError')
   if (aidOverReserve.value) return i18nT('marketplace.operatorBranchEconomyPage.aidOverReserveError')
   if (getFundsOverBalance.value)
-    return i18nT('marketplace.operatorBranchEconomyPage.aidOverSourceError', { max: aidMax.value.toFixed(2), symbol: assetSymbol(personalBalance.value) })
+    return i18nT('marketplace.operatorBranchEconomyPage.aidOverSourceError', { max: amountText(aidMax.value), symbol: assetSymbol(personalBalance.value) })
   return ''
 })
 
@@ -1282,7 +1291,7 @@ q-page.economy
           icon='lock_clock',
           :title='$t("marketplace.operatorBranchEconomyPage.reserveTitle")',
           :subtitle='$t("marketplace.operatorBranchEconomyPage.reserveSubtitle")',
-          :balance='economy ? assetAmount(economy.reserve_amount).toFixed(2) : "0.00"',
+          :balance='amountText(economy ? assetAmount(economy.reserve_amount) : 0)',
           :symbol='economy ? assetSymbol(economy.reserve_amount) : ""',
           :loading='loading && !economy'
         )
@@ -1293,7 +1302,7 @@ q-page.economy
           icon='payments',
           :title='$t("marketplace.operatorBranchEconomyPage.availableForExpensesTitle")',
           :subtitle='$t("marketplace.operatorBranchEconomyPage.availableForExpensesSubtitle")',
-          :balance='economy ? assetAmount(economy.available_for_expenses).toFixed(2) : "0.00"',
+          :balance='amountText(economy ? assetAmount(economy.available_for_expenses) : 0)',
           :symbol='economy ? assetSymbol(economy.available_for_expenses) : ""',
           :loading='loading && !economy'
         )
@@ -1449,7 +1458,7 @@ q-page.economy
             icon='vertical_align_top',
             :title='$t("marketplace.operatorBranchEconomyPage.reserveLimitTitle")',
             :subtitle='$t("marketplace.operatorBranchEconomyPage.reserveLimitSubtitle")',
-            :balance='reserveLimit.toFixed(2)',
+            :balance='amountText(reserveLimit)',
             :symbol='reserveSymbol',
             :loading='loading && !reserves'
           )
@@ -1458,7 +1467,7 @@ q-page.economy
             icon='volunteer_activism',
             :title='$t("marketplace.operatorBranchEconomyPage.reserveTotalTitle")',
             :subtitle='$t("marketplace.operatorBranchEconomyPage.reserveTotalSubtitle")',
-            :balance='reserveTotal.toFixed(2)',
+            :balance='amountText(reserveTotal)',
             :symbol='reserveSymbol',
             :loading='loading && !reserves'
           )
@@ -1518,7 +1527,7 @@ q-page.economy
           program='wallet',
           :title='$t("marketplace.operatorBranchEconomyPage.myFreeFundsTitle")',
           :subtitle='$t("marketplace.operatorBranchEconomyPage.myFreeFundsSubtitle")',
-          :balance='assetAmount(personalBalance).toFixed(2)',
+          :balance='amountText(assetAmount(personalBalance))',
           :symbol='assetSymbol(personalBalance)',
           :loading='loading && !personalBalance'
         )
@@ -1528,7 +1537,7 @@ q-page.economy
           icon='south_west',
           :title='$t("marketplace.operatorBranchEconomyPage.receivedMonthTitle")',
           :subtitle='$t("marketplace.operatorBranchEconomyPage.receivedMonthSubtitle")',
-          :balance='assetAmount(currentPeriod?.received ?? "").toFixed(2)',
+          :balance='amountText(assetAmount(currentPeriod?.received ?? ""))',
           :symbol='assetSymbol(currentPeriod?.received ?? "")',
           :loading='loading && !currentPeriod'
         )
@@ -1856,7 +1865,7 @@ q-page.economy
         :precision='2',
         :min='0',
         :max='reserveLimit',
-        :hint='$t("marketplace.operatorBranchEconomyPage.reserveAmountHint", { limit: reserveLimit.toFixed(2), symbol: reserveSymbol })',
+        :hint='$t("marketplace.operatorBranchEconomyPage.reserveAmountHint", { limit: amountText(reserveLimit), symbol: reserveSymbol })',
         :error='reserveOverLimit ? $t("marketplace.operatorBranchEconomyPage.reserveOverLimitError") : undefined'
       )
     template(#footer)
@@ -1936,9 +1945,9 @@ q-page.economy
       //- Откуда возьмётся помощь: персональный кошелёк, при нехватке — средства
       //- инициаторов участка; предел месяца — остаток резерва получателя.
       .economy__aid-sources
-        DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourcePersonalTile")', :value='`${assetAmount(personalBalance).toFixed(2)} ${assetSymbol(personalBalance)}`')
-        DataRow(v-if='investView', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsTile")', :value='`${initiatorFree.toFixed(2)} ${assetSymbol(personalBalance)}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsSub")')
-        DataRow(v-if='reserveEnabled && myReserve', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidReserveTile")', :value='`${myReserveRemaining.toFixed(2)} ${reserveSymbol}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidReserveSub")')
+        DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourcePersonalTile")', :value='`${amountText(assetAmount(personalBalance))} ${assetSymbol(personalBalance)}`')
+        DataRow(v-if='investView', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsTile")', :value='`${amountText(initiatorFree)} ${assetSymbol(personalBalance)}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidSourceInitiatorsSub")')
+        DataRow(v-if='reserveEnabled && myReserve', align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.aidReserveTile")', :value='`${amountText(myReserveRemaining)} ${reserveSymbol}`', :hint='$t("marketplace.operatorBranchEconomyPage.aidReserveSub")')
       AmountInput(
         v-model='aidPart',
         :label='$t("marketplace.operatorBranchEconomyPage.aidAmountLabel")',
@@ -1953,10 +1962,10 @@ q-page.economy
         //- Разбивка удержания: человек вписал одну сумму, а на счёт придёт
         //- меньше — без этих строк разница читается как ошибка выплаты.
         .economy__aid-breakdown
-          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.accruedLabel")', :value='`${aidGross.toFixed(2)} ${assetSymbol(personalBalance)}`')
-          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.taxWithheldLabel", { percent: NDFL_RATE_PERCENT })', :value='`−${aidTax.toFixed(2)} ${assetSymbol(personalBalance)}`')
+          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.accruedLabel")', :value='`${amountText(aidGross)} ${assetSymbol(personalBalance)}`')
+          DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.taxWithheldLabel", { percent: NDFL_RATE_PERCENT })', :value='`−${amountText(aidTax)} ${assetSymbol(personalBalance)}`')
           .economy__aid-total
-            DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.toTransferLabel")', :value='`${aidNet.toFixed(2)} ${assetSymbol(personalBalance)}`')
+            DataRow(align='spread', mono, :label='$t("marketplace.operatorBranchEconomyPage.toTransferLabel")', :value='`${amountText(aidNet)} ${assetSymbol(personalBalance)}`')
           //- Без этой сноски округление читается как ошибка: с 10 ₽ тринадцать
           //- процентов — это 1,30, а удерживается ровно рубль.
           .economy__tax-note

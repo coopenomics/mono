@@ -317,11 +317,15 @@ const historyColumns = computed<BaseTableColumn<MarketplaceInvestHistoryEntry>[]
 ])
 
 const propertyColumns = computed<BaseTableColumn<PropertyListRow>[]>(() => [
+  // Таблица стоит в странице шириной ~830 px при экране 1120: фиксированные
+  // колонки вместе с min-width 820 оставляют имуществу ~160 px. Прежние
+  // ширины (min-width 960) уводили кнопки строки за край, а этап — длинный
+  // бейдж «Акт на подписи председателя совета» — переносится по словам (598-63).
   { key: 'title', label: i18nT('marketplace.initiatorsPage.columnProperty') },
-  { key: 'investor', label: i18nT('marketplace.initiatorsPage.columnInvestor'), width: '220px' },
-  { key: 'amount', label: i18nT('marketplace.initiatorsPage.columnPrice'), width: '160px', numeric: true },
-  { key: 'stage', label: i18nT('marketplace.initiatorsPage.columnStage'), width: '230px', nowrap: true },
-  { key: 'actions', label: '', width: '220px', align: 'right' },
+  { key: 'investor', label: i18nT('marketplace.initiatorsPage.columnInvestor'), width: '160px' },
+  { key: 'amount', label: i18nT('marketplace.initiatorsPage.columnPrice'), width: '130px', numeric: true },
+  { key: 'stage', label: i18nT('marketplace.initiatorsPage.columnStage'), width: '170px' },
+  { key: 'actions', label: '', width: '200px', align: 'right' },
 ])
 
 const investorColumns = computed<BaseTableColumn<MarketplaceInvestorView>[]>(() => [
@@ -334,7 +338,7 @@ const investorColumns = computed<BaseTableColumn<MarketplaceInvestorView>[]>(() 
 
 /** Внесено всего: деньгами (без вычета переведённого на главный паевой) и имуществом. */
 function invested(r: MarketplaceInvestorView): string {
-  return `${(amountOf(r.money_in) + amountOf(r.property)).toFixed(2)} ${symbolOf(r.money_in)}`
+  return formatAsset2Digits(`${(amountOf(r.money_in) + amountOf(r.property)).toFixed(4)} ${symbolOf(r.money_in)}`)
 }
 
 /**
@@ -775,7 +779,7 @@ q-page.initiators(:style-fn='pageStyle')
                 :icon='c.icon',
                 :title='c.title',
                 :subtitle='c.subtitle',
-                :balance='amountOf(c.asset).toFixed(2)',
+                :balance='formatAsset2Digits(amountOf(c.asset).toFixed(4))',
                 :symbol='symbolOf(c.asset)',
                 :balance-label='c.label'
               )
@@ -804,7 +808,7 @@ q-page.initiators(:style-fn='pageStyle')
           :rows='propertyRows',
           row-key='key',
           :loading='firstLoad',
-          min-width='960px',
+          min-width='820px',
           clickable-rows,
           @row-click='openPropertyRow'
         )
@@ -862,7 +866,7 @@ q-page.initiators(:style-fn='pageStyle')
                 :icon='c.icon',
                 :title='c.title',
                 :subtitle='c.subtitle',
-                :balance='amountOf(c.asset).toFixed(2)',
+                :balance='formatAsset2Digits(amountOf(c.asset).toFixed(4))',
                 :symbol='symbolOf(c.asset)',
                 :balance-label='c.label'
               )

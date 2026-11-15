@@ -137,7 +137,7 @@ section.turnover
         :icon='c.icon'
         :title='c.title'
         :subtitle='c.subtitle'
-        :balance='c.amount.toFixed(2)'
+        :balance='formatAsset2Digits(c.amount.toFixed(4))'
         symbol='RUB'
         :balance-label='periodCaption'
         :loading='loading'
