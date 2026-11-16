@@ -597,7 +597,7 @@
       "i8Expected": "итог месяца участка сходится: фонды + участку = членский взнос, инициатору + пайщикам = собрано − членский взнос, списано строк не больше строк месяца",
       "i8Violation": "итог месяца участка не сходится",
       "i8MembershipSplit": "фонды {funds} + участку {branch} ≠ членский взнос {membership}",
-      "i8EconomySplit": "инициатору {initiator} + пайщикам {returned} ≠ собрано {secured} − членский взнос {membership}",
+      "i8EconomySplit": "инициатору {initiator} + фонду социального обеспечения {social} + пайщикам {returned} ≠ собрано {secured} − членский взнос {membership}",
       "i8RowsOverflow": "списано строк {charged} больше, чем строк за месяц {total}",
       "i2Violation": "I2: на счёте 86 есть marketplace-проводки вне списания обеспечительной части в членский взнос участка.",
       "i3Violation": "I3: баланс счёта 10 не совпадает с marketplace-вкладом (purch+return2 − consum−wroff). ",

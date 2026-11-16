@@ -122,6 +122,8 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
     "Распределение кооперативного участка — назначает председатель участка" },
   { ledger2_wallets::BRANCH_COMMON, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
+  { ledger2_wallets::FUND_SOCIAL_BRANCH, ExitWalletPolicy::UNTOUCHED, eosio::name{},
+    "Средства фонда социального обеспечения по участкам: L3-разрез по участку, а не по пайщику" },
   { ledger2_wallets::MARKETPLACE_INVEST_REPAY, ExitWalletPolicy::UNTOUCHED, eosio::name{},
     "Возмещение паевых взносов инициаторов участка: L3-разрез по участку, а не по пайщику" },
   { ledger2_wallets::REGISTRATION_PENDING, ExitWalletPolicy::UNTOUCHED, eosio::name{},

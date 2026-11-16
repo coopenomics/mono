@@ -29,6 +29,10 @@ title: Биллинг инфраструктурных подписок (Epic 12
 # гарантийном возврате (feepend, payretfee) сняты. Случаи слайса,
 # описывавшие прежнюю модель, переписаны.
 
+# 16.11.2026: общие реестры ledger2 (wallets.hpp, operations.hpp) дополнены
+# кошельком w.fnd.social и операцией o.mkt.social Стола заказов — подписок
+# биллинга правка не касается, случаи не меняются.
+
 sources:
   contract:
     - components/contracts/cpp/billing/**

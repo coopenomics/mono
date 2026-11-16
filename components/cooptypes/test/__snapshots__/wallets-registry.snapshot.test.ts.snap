@@ -95,6 +95,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": null,
     "required_program_id": 0,
+    "wallet_name": "w.fnd.social",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
     "wallet_name": "w.exp.adv",
   },
   {
@@ -406,9 +411,15 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
   },
   {
     "account": 86000,
-    "human_name": "Фонд взаимного обеспечения",
+    "human_name": "Фонд социально-экономического взаимодействия и социального обеспечения",
     "kind": "COOPERATIVE",
     "name": "w.fnd.mutual",
+  },
+  {
+    "account": 86000,
+    "human_name": "Фонд социально-экономического взаимодействия и социального обеспечения — средства кооперативных участков",
+    "kind": "USER_SHARED",
+    "name": "w.fnd.social",
   },
 ]
 `;

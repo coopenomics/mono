@@ -244,6 +244,10 @@ export interface IKuPeriod {
   target_prev?: IAsset
   /** F — собранная часть цели этой строки. */
   target_funded?: IAsset
+  /** СФ — в фонд социально-экономического взаимодействия и социального обеспечения участка (с 16.11.2026; у прежних строк нет). */
+  social_amount?: IAsset
+  /** r_с — доля стоимости заказа в этот фонд. */
+  rate_social?: IUint64
 }
 
 export interface ICancelOrder {

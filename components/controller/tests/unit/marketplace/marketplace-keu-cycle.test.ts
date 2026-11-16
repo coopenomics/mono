@@ -186,7 +186,7 @@ describe('mkt.order.keu.cycle.01 — год роста оборота участ
     expect(economyMonths).toBeGreaterThanOrEqual(4);
     expect(prevRate < 300_000n).toBe(true);
     // Собранное за год разошлось без остатка: участку, в фонды, инициатору и обратно пайщикам.
-    const distributed = walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.share);
+    const distributed = walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.social) + walletTotal(world.wallets.share);
     expect(distributed).toBe(collected);
     expect(walletTotal(world.wallets.share) > 0n).toBe(true);
     expect(world.logger.error).not.toHaveBeenCalled();
@@ -693,7 +693,7 @@ describe('mkt.order.invest.cycle.01 — год прогонов участка �
     if (repaidSum >= base) expect(world.investOutstanding('branch1') <= 12n).toBe(true);
     // Собранное разошлось без остатка: участку, в фонды, инициатору, на возмещение паевых взносов и пайщикам.
     const distributed =
-      walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.repay) + walletTotal(world.wallets.share);
+      walletTotal(world.wallets.branch) + world.wallets.funds + walletTotal(world.wallets.invest) + walletTotal(world.wallets.repay) + walletTotal(world.wallets.social) + walletTotal(world.wallets.share);
     expect(distributed).toBe(collected);
     // Пока паевые взносы не возвращены, доля инициатора возмещает их, а не начисляется инициатору.
     expect(walletTotal(world.wallets.invest)).toBe(0n);

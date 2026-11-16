@@ -31,7 +31,7 @@ inline constexpr uint64_t INDIVISIBLE_ID = 1;  ///< Неделимый фонд 
 inline constexpr uint64_t RESERVE_ID     = 2;  ///< Резервный фонд (накопления)
 inline constexpr uint64_t DEVELOPMENT_ID = 3;  ///< Фонд развития кооперации (накопления)
 inline constexpr uint64_t ECONOMIC_ID    = 4;  ///< Фонд обеспечения хозяйственной деятельности (списания)
-inline constexpr uint64_t MUTUAL_ID      = 5;  ///< Фонд взаимного обеспечения (списания)
+inline constexpr uint64_t MUTUAL_ID      = 5;  ///< Фонд социально-экономического взаимодействия и социального обеспечения (списания; до 16.11.2026 — «Фонд взаимного обеспечения»)
 
 inline constexpr eosio::name KIND_ACCUMULATION = "accum"_n;   ///< Фонд накопления: процент отчислений, остаток растёт
 inline constexpr eosio::name KIND_EXPENDITURE  = "expend"_n;  ///< Фонд списания: выплаты проходят через него транзитом
@@ -46,13 +46,15 @@ struct StandardFund {
   eosio::name       accrue_op;   ///< Операция отчисления; у фондов списания пустое имя
 };
 
-/// Пять стандартных фондов по Положению о фондах; проценты по умолчанию 1 / 15 / 5.
+/// Пять стандартных фондов по Положению о фондах; проценты по умолчанию 1 / 10 / 5 —
+/// 16 % в сумме, как в модели Стола заказов методолога 13.11.2026 (решение владельца
+/// 16.11.2026; совет меняет проценты сам, правкой фонда).
 inline constexpr StandardFund STANDARD_FUNDS[] = {
   { INDIVISIBLE_ID, KIND_ACCUMULATION, "Неделимый фонд",                                ledger2_wallets::FUND_INDIVISIBLE,  1 * ONE_PERCENT, operations::fund::ACCRUE_INDIVISIBLE },
-  { RESERVE_ID,     KIND_ACCUMULATION, "Резервный фонд",                                ledger2_wallets::FUND_RESERVE,     15 * ONE_PERCENT, operations::fund::ACCRUE_RESERVE },
+  { RESERVE_ID,     KIND_ACCUMULATION, "Резервный фонд",                                ledger2_wallets::FUND_RESERVE,     10 * ONE_PERCENT, operations::fund::ACCRUE_RESERVE },
   { DEVELOPMENT_ID, KIND_ACCUMULATION, "Фонд развития кооперации",                      ledger2_wallets::FUND_DEVELOPMENT,  5 * ONE_PERCENT, operations::fund::ACCRUE_DEVELOPMENT },
   { ECONOMIC_ID,    KIND_EXPENDITURE,  "Фонд обеспечения хозяйственной деятельности",   ledger2_wallets::SOV_EXPENSES,      0,               eosio::name{} },
-  { MUTUAL_ID,      KIND_EXPENDITURE,  "Фонд взаимного обеспечения",                    ledger2_wallets::FUND_MUTUAL,       0,               eosio::name{} },
+  { MUTUAL_ID,      KIND_EXPENDITURE,  "Фонд социально-экономического взаимодействия и социального обеспечения", ledger2_wallets::FUND_MUTUAL, 0, eosio::name{} },
 };
 inline constexpr size_t STANDARD_FUNDS_SIZE = sizeof(STANDARD_FUNDS) / sizeof(STANDARD_FUNDS[0]);
 

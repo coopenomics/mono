@@ -792,3 +792,17 @@ cases:
     test: components/controller/tests/unit/marketplace/express-reception-fact-precheck.test.ts
     api: components/api-tests/src/marketplace/supply.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+
+  # 16.11.2026 (решение владельца, модель методолога 13.11.2026): часть экономии
+  # месяца копится в фонде социального обеспечения участка — сверка I8 её учитывает.
+  - id: mkt.supply.invariant.i8.social
+    level: backend
+    kind: side
+    scenario: >
+      Итог месяца с долей фонда социального обеспечения участка в сверке учёта I8.
+    expect: >
+      инициатору + фонду + пайщикам = собрано − членский взнос; без доли фонда — нарушение с упоминанием фонда
+    test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    external: unreachable
+    external_reason: "сверка учёта — чистая функция узла над строками итога"
+    status: passing

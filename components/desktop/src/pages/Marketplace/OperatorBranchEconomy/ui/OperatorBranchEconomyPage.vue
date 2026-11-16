@@ -989,6 +989,7 @@ const periodColumns: BaseTableColumn<MarketplaceBranchPeriodRow>[] = [
   { key: 'branch_amount', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnBranch'), width: '130px', numeric: true },
   { key: 'initiator_amount', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnInitiator'), width: '130px', numeric: true },
   { key: 'return_amount', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnReturned'), width: '140px', numeric: true },
+  { key: 'social_amount', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnSocial'), width: '150px', numeric: true },
   { key: 'deficit', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnDeficit'), width: '130px', numeric: true },
   { key: 'rate_percent', label: i18nT('marketplace.operatorBranchEconomyPage.periodColumnRate'), width: '110px', numeric: true },
 ]
@@ -1047,11 +1048,15 @@ const periodFlow = computed<StepperStep[]>(() => {
     steps.push({ key: 'rest', label: i18nT('marketplace.operatorBranchEconomyPage.flowRestZero'), description: i18nT('marketplace.operatorBranchEconomyPage.flowRestZeroSub') })
     return steps
   }
+  // Порядок дележа экономии — модель методолога 13.11.2026 (решение владельца
+  // 16.11.2026): пайщикам, фонды накопления, инициаторам, фонд социального обеспечения.
+  steps.push({ key: 'returned', label: i18nT('marketplace.operatorBranchEconomyPage.flowReturned', { amount: fmt(p.return_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowReturnedSub') })
   steps.push({ key: 'funds', label: i18nT('marketplace.operatorBranchEconomyPage.flowFunds', { amount: fmt(p.funds_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowFundsSub') })
   const repaying = p.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING
   steps.push({ key: 'initiators', label: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaid', { amount: fmt(p.investor_repaid) }) : i18nT('marketplace.operatorBranchEconomyPage.flowInitiators', { amount: fmt(p.initiator_amount) }),
     description: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaidSub') : i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsSub') })
-  steps.push({ key: 'returned', label: i18nT('marketplace.operatorBranchEconomyPage.flowReturned', { amount: fmt(p.return_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowReturnedSub') })
+  if (assetAmount(p.social_amount) > 0)
+    steps.push({ key: 'social', label: i18nT('marketplace.operatorBranchEconomyPage.flowSocial', { amount: fmt(p.social_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowSocialSub') })
   return steps
 })
 const periodDrawerOpen = computed({
@@ -1653,6 +1658,8 @@ q-page.economy
           span.t-mono {{ formatAsset2Digits(p.initiator_amount) }}
         template(#cell-return_amount='{ row: p }')
           span.t-mono {{ formatAsset2Digits(p.return_amount) }}
+        template(#cell-social_amount='{ row: p }')
+          span.t-mono {{ formatAsset2Digits(p.social_amount) }}
         template(#cell-deficit='{ row: p }')
           span.t-mono(:class='{ "economy__due--overdue": assetAmount(p.deficit) > 0 }') {{ formatAsset2Digits(p.deficit) }}
         template(#cell-rate_percent='{ row: p }')

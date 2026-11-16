@@ -35,7 +35,7 @@ const SET_RESERVE = 'mutation($d:MarketplaceSetBranchReserveInput!){ marketplace
 const DEL_RESERVE = 'mutation($d:MarketplaceDeleteBranchReserveInput!){ marketplaceDeleteBranchReserve(data:$d){ rows{ username } } }'
 const PERIODS = `query($b:String!,$o:PaginationInput){ marketplaceListBranchPeriods(braname:$b, options:$o){ items{
   period turnover secured planned memos aid_paid aid_reserve aid_unpaid planned_target target target_prev target_funded expenses membership funds_amount branch_amount
-  initiator_amount return_amount deficit rate_percent initiator rows_total rows_charged archived } } }`
+  initiator_amount return_amount social_amount deficit rate_percent initiator rows_total rows_charged archived } } }`
 const CURRENT = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period planned memos aid_paid aid_reserve planned_target target_prev expenses ripening_orders ripening_turnover ripening_secured } }'
 const INITIATOR = 'query($b:String!){ marketplaceGetBranchInitiator(braname:$b){ username assigned invest_balance } }'
 const SECURE_PART = 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ secure_part{ state amount due_amount charged_amount returned_amount rate_percent settled_at } } }'
@@ -156,15 +156,21 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     const RK = units(periodRow.expenses)
     const U = C < RK ? C : RK
     const p = percentUnits(settings.funds_percent)
-    const F = (C - U) * p / H
-    const E = C - U - F
-    const I = E * percentUnits(settings.initiator_share_percent) / H
+    const phi = percentUnits(settings.initiator_share_percent)
+    // Дележ экономии по модели методолога 13.11.2026 (решение владельца 16.11.2026):
+    // 38,2 % пайщикам, фонды с остальной части, остаток — инициатору и фонду социального обеспечения участка.
+    const S = C - U
+    const K = S * phi / H
+    const F = K * p / H
+    const E = K - F
+    const I = E * phi / H
     expect(units(periodRow.branch_amount), 'У = min(C, РК)').toBe(U)
     expect(units(periodRow.deficit), 'Д = РК − У').toBe(RK - U)
-    expect(units(periodRow.funds_amount), 'Ф = (C − У) × p').toBe(F)
+    expect(units(periodRow.funds_amount), 'Ф = (S × φ) × p').toBe(F)
     expect(units(periodRow.membership), 'М = У + Ф').toBe(U + F)
+    expect(units(periodRow.return_amount), 'В = S − S × φ').toBe(S - K)
     expect(units(periodRow.initiator_amount), 'И = Э × φ').toBe(I)
-    expect(units(periodRow.return_amount), 'В = Э − И').toBe(E - I)
+    expect(units(periodRow.social_amount), 'СФ = Э − И').toBe(E - I)
     // Расходы по цели резерва (задача 99D-34): РК = траты месяца + T − F_пр, не меньше нуля;
     // T = цель плановых расходов + право получателей помощи; F = max(0, T − Д) + излишек прошлого сбора.
     const target = units(periodRow.planned_target) + units(periodRow.aid_reserve)
@@ -175,9 +181,9 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     const surplus = raw < 0n ? -raw : 0n
     expect(units(periodRow.target_funded), 'F = max(0, T − Д) + излишек').toBe((target > RK - U ? target - (RK - U) : 0n) + surplus)
     const T = units(periodRow.turnover)
-    const rate = (U + F + I) * H / T
+    const rate = (U + F + I + (E - I)) * H / T
     // Ставка в строке — проценты с двумя знаками, расчётная — доли шкалы контракта (1 000 000 = 100 %).
-    expect(Number(periodRow.rate_percent.replace(',', '.')), 'коэффициент экономического участия = (У + Ф + И) / T').toBeCloseTo(Number(rate) / 10_000, 1)
+    expect(Number(periodRow.rate_percent.replace(',', '.')), 'коэффициент экономического участия = (У + Ф + И + СФ) / T').toBeCloseTo(Number(rate) / 10_000, 1)
     expect(periodRow.rows_total).toBeGreaterThanOrEqual(2)
   }, 60 * 60_000)
 
@@ -190,9 +196,9 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
         return sp && sp.state === 'CHARGED' ? sp : null
       }, { timeoutMs: 180_000, intervalMs: 3_000, label: `списание заказа ${order.orderId}` })
       const base = units(String(order.unitPrice * order.quantity))
-      const expectedCharged = base * (units(periodRow.branch_amount) + units(periodRow.funds_amount) + units(periodRow.initiator_amount)) * H / units(periodRow.turnover) / H
+      const expectedCharged = base * (units(periodRow.branch_amount) + units(periodRow.funds_amount) + units(periodRow.initiator_amount) + units(periodRow.social_amount)) * H / units(periodRow.turnover) / H
       // Части считаются по ставкам в единицах; остаток округления достаётся пайщику.
-      expect(Number(units(part.charged_amount) - expectedCharged), 'списано по трём ставкам').toBeLessThanOrEqual(3)
+      expect(Number(units(part.charged_amount) - expectedCharged), 'списано по четырём ставкам').toBeLessThanOrEqual(4)
       expect(units(part.charged_amount) + units(part.returned_amount), 'списано + возвращено = обеспечительная часть').toBe(units(part.amount))
       expect(part.rate_percent, 'ставка месяца в карточке').toBe(periodRow.rate_percent)
     }

@@ -9,6 +9,7 @@ import { MarketplaceKeuPeriod1793520000000 } from './migrations/database/1793520
 import { MarketplaceSecureDueRun1793880530030 } from './migrations/database/1793880530030-secure-due-run';
 import { MarketplaceInvestPeriod1794056162296 } from './migrations/database/1794056162296-invest-period';
 import { MarketplaceReserveTarget1794329384387 } from './migrations/database/1794329384387-reserve-target';
+import { MarketplaceSocialFundPeriod1794816521910 } from './migrations/database/1794816521910-social-fund-period';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -25,4 +26,4 @@ export const marketplaceDatabaseMigrations = [MarketplaceBaseline1790197276758,
   MarketplaceOrderReviewInvite1791723152953,
   MarketplaceKeuPeriod1793520000000,
   MarketplaceSecureDueRun1793880530030,
-  MarketplaceInvestPeriod1794056162296, MarketplaceReserveTarget1794329384387];
+  MarketplaceInvestPeriod1794056162296, MarketplaceReserveTarget1794329384387, MarketplaceSocialFundPeriod1794816521910];

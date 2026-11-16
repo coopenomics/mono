@@ -72,7 +72,8 @@ struct ledger2_wallets {
   static constexpr eosio::name FUND_INDIVISIBLE     = "w.fnd.indiv"_n;   ///< Неделимый фонд (COOPERATIVE, счёт 86). Пополняется отчислением из членского взноса участка по проценту фонда (o.fnd.indiv, fund::accrue инлайн от контракта-источника). Вывод — отдельная задача.
   static constexpr eosio::name FUND_RESERVE         = "w.fnd.resrv"_n;   ///< Резервный фонд (COOPERATIVE, счёт 86). Пополняется o.fnd.resrv тем же путём.
   static constexpr eosio::name FUND_DEVELOPMENT     = "w.fnd.devel"_n;   ///< Фонд развития кооперации (COOPERATIVE, счёт 86). Пополняется o.fnd.devel тем же путём.
-  static constexpr eosio::name FUND_MUTUAL          = "w.fnd.mutual"_n;  ///< Фонд взаимного обеспечения (COOPERATIVE, счёт 86). Транзит материальной помощи пайщикам: сумма на руки переводится с персонального кошелька получателя (o.brn.aidfnd, внутри 86) и списывается с фонда (o.brn.aid, Дт 86 / Кт 51) одной транзакцией. Остаток фонда не растёт, оборот фонда — выплаченная помощь.
+  static constexpr eosio::name FUND_MUTUAL          = "w.fnd.mutual"_n;  ///< Фонд социально-экономического взаимодействия и социального обеспечения (фонд №5; до 16.11.2026 — «Фонд взаимного обеспечения»; COOPERATIVE, счёт 86). Транзит материальной помощи пайщикам: сумма на руки переводится с персонального кошелька получателя (o.brn.aidfnd, внутри 86) и списывается с фонда (o.brn.aid, Дт 86 / Кт 51) одной транзакцией. Остаток фонда не растёт, оборот фонда — выплаченная помощь.
+  static constexpr eosio::name FUND_SOCIAL_BRANCH   = "w.fnd.social"_n;  ///< Средства фонда социально-экономического взаимодействия и социального обеспечения по кооперативным участкам (USER_SHARED с разрезом по braname участка, счёт 86). Принимает вторые 38,2 % экономии месяца участка — остаток после доли пайщиков, фондов накопления и доли инициатора (o.mkt.social, нога chargeperiod; решение владельца 16.11.2026 по модели методолога 13.11.2026). Пока только пополняется: расход — решением совета, отдельной задачей.
 
   // capital — единые программные кошельки + займы + пред-импорт
   static constexpr eosio::name LOAN_ISSUED          = "w.cap.loan"_n;    ///< Выданные пайщикам беспроцентные займы (COOPERATIVE; Dr 58 / Cr 51)
@@ -149,7 +150,7 @@ struct Ledger2WalletMeta {
   uint64_t         account;
 };
 
-inline constexpr std::array<Ledger2WalletMeta, 48> LEDGER2_WALLET_REGISTRY = {{
+inline constexpr std::array<Ledger2WalletMeta, 49> LEDGER2_WALLET_REGISTRY = {{
   // USER_SHARED (20) — L3-разрез по пайщику (у w.brn.common — по braname КУ)
   { ledger2_wallets::MIN_SHARE_FUND,        "Минимальный паевой взнос",                                 WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
   { ledger2_wallets::SHARE_FUND_PAY,        "Паевой взнос пайщика",                                     WalletKind::USER_SHARED, ledger2_accounts::SHARE_FUND },
@@ -209,7 +210,8 @@ inline constexpr std::array<Ledger2WalletMeta, 48> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::FUND_INDIVISIBLE,   "Неделимый фонд",                                           WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::FUND_RESERVE,       "Резервный фонд",                                           WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::FUND_DEVELOPMENT,   "Фонд развития кооперации",                                 WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
-  { ledger2_wallets::FUND_MUTUAL,        "Фонд взаимного обеспечения",                               WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
+  { ledger2_wallets::FUND_MUTUAL,        "Фонд социально-экономического взаимодействия и социального обеспечения", WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
+  { ledger2_wallets::FUND_SOCIAL_BRANCH, "Фонд социально-экономического взаимодействия и социального обеспечения — средства кооперативных участков", WalletKind::USER_SHARED, ledger2_accounts::TARGET_RECEIPTS },
 }};
 
 static constexpr size_t LEDGER2_WALLET_REGISTRY_SIZE = LEDGER2_WALLET_REGISTRY.size();
@@ -342,7 +344,7 @@ struct Ledger2WalletProgramMapping {
   uint64_t    required_program_id; // 0 = исключение (без проверки)
 };
 
-inline constexpr std::array<Ledger2WalletProgramMapping, 23> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
+inline constexpr std::array<Ledger2WalletProgramMapping, 24> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
   { ledger2_wallets::MIN_SHARE_FUND,         0 /* w.reg.minshr — без проверки */    },
   { ledger2_wallets::SHARE_FUND_PAY,         1 /* ЦК */                              },
   { ledger2_wallets::CK_MEMBER,              1 /* ЦК */                              },
@@ -361,6 +363,7 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 23> LEDGER2_USER_SHARED
   { ledger2_wallets::MARKETPLACE_INVEST_REPAY, 0 /* w.mkt.repay — L3-разрез по braname участка (не по пайщику), без проверки */ },
   { ledger2_wallets::BRANCH_PERSONAL,        0 /* w.brn.person — распределение назначает председатель КУ, программное соглашение не требуется */ },
   { ledger2_wallets::BRANCH_COMMON,          0 /* w.brn.common — L3-разрез по braname КУ (не по пайщику), без проверки */ },
+  { ledger2_wallets::FUND_SOCIAL_BRANCH,     0 /* w.fnd.social — L3-разрез по braname КУ (не по пайщику), без проверки */ },
   { ledger2_wallets::ADVANCE_HOLD,           0 /* w.exp.adv — подотчёт пайщика по СЗ; программа-источник проверена контрактом expense, повторная gate не нужна */ },
   { ledger2_wallets::REGISTRATION_PENDING,   0 /* w.reg.pend — кандидат ещё не член, соглашения нет, без проверки */ },
   { ledger2_wallets::EDU_MEMBER_FEE,         5 /* Образование */ }, // w.edu.member — членский взнос по ЦПП «Образование»: конвертация только при подписанной оферте родителя-слушателя (program_id 5, draft 3002)

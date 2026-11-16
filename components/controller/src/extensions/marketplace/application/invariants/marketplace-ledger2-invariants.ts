@@ -661,6 +661,8 @@ export interface MarketplaceBranchPeriodRow {
   branch_amount: string
   initiator_amount: string
   return_amount: string
+  /** СФ — доля фонда социального обеспечения участка; у итогов до 16.11.2026 нет. */
+  social_amount?: string
   rows_total: number
   rows_charged: number
 }
@@ -675,11 +677,12 @@ export function checkInvariantI8PeriodConsistency(periods: readonly MarketplaceB
     const branch = parseAssetToBigInt(p.branch_amount)
     const initiator = parseAssetToBigInt(p.initiator_amount)
     const returned = parseAssetToBigInt(p.return_amount)
+    const social = parseAssetToBigInt(p.social_amount ?? '0')
     if (funds + branch !== membership) {
       details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8MembershipSplit', { funds: p.funds_amount, branch: p.branch_amount, membership: p.membership }) })
     }
-    if (initiator + returned !== secured - membership) {
-      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8EconomySplit', { initiator: p.initiator_amount, returned: p.return_amount, secured: p.secured, membership: p.membership }) })
+    if (initiator + returned + social !== secured - membership) {
+      details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8EconomySplit', { initiator: p.initiator_amount, social: p.social_amount ?? '0', returned: p.return_amount, secured: p.secured, membership: p.membership }) })
     }
     if (p.rows_charged > p.rows_total) {
       details.push({ processHash: key, message: i18nT('marketplace.ledgerInvariants.i8RowsOverflow', { charged: String(p.rows_charged), total: String(p.rows_total) }) })

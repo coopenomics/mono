@@ -70,6 +70,7 @@ export const rawMarketplaceBranchPeriodSelector = {
   branch_amount: true,
   initiator_amount: true,
   return_amount: true,
+  social_amount: true,
   deficit: true,
   rate_percent: true,
   initiator: true,

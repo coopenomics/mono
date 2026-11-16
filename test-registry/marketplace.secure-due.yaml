@@ -199,3 +199,18 @@ cases:
     external: unreachable
     external_reason: "первый старт узла после обновления через API стенда не вызвать"
     status: passing
+
+  - id: mkt.secure.due.side.14
+    level: contract
+    kind: side
+    scenario: >
+      Строка счётчика пайщика списывается по итогу месяца, посчитанному после
+      16.11.2026: у итога есть ставка фонда социально-экономического
+      взаимодействия и социального обеспечения участка
+    expect: >
+      chargeperiod проводит ногу o.mkt.social (w.mkt.fee → w.fnd.social участка,
+      Дт 80 / Кт 86) на долю фонда по ставке; кошелёк фонда участка растёт на эту
+      долю; у итога до 16.11.2026 без ставки фонда ноги нет; при нехватке остатка
+      доля фонда урезается первой после возврата
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written

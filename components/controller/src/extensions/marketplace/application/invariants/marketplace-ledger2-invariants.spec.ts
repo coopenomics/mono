@@ -997,6 +997,16 @@ describe('I8 — итог месяца участка: части членско
     expect(res.details?.length).toBe(1)
   })
 
+  // Дележ по модели методолога 13.11.2026 (решение владельца 16.11.2026): часть
+  // экономии копится в фонде социального обеспечения участка.
+  it('доля фонда социального обеспечения входит в экономию: инициатору + фонду + пайщикам = собрано − членский взнос', () => {
+    const split = period({ initiator_amount: '200000.0000 RUB', social_amount: '113380.7594 RUB' })
+    expect(checkInvariantI8PeriodConsistency([split]).ok).toBe(true)
+    const lost = checkInvariantI8PeriodConsistency([period({ initiator_amount: '200000.0000 RUB' })])
+    expect(lost.ok).toBe(false)
+    expect(lost.details?.[0]?.message).toContain('фонду социального обеспечения')
+  })
+
   it('списано строк больше, чем в прогоне — нарушение; пустой перечень — порядок', () => {
     expect(checkInvariantI8PeriodConsistency([period({ rows_charged: 3 })]).ok).toBe(false)
     expect(checkInvariantI8PeriodConsistency([]).ok).toBe(true)

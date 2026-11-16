@@ -69,7 +69,8 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.fnd.indiv", human_name: "Неделимый фонд", kind: "COOPERATIVE", account: 86000 },
   { name: "w.fnd.resrv", human_name: "Резервный фонд", kind: "COOPERATIVE", account: 86000 },
   { name: "w.fnd.devel", human_name: "Фонд развития кооперации", kind: "COOPERATIVE", account: 86000 },
-  { name: "w.fnd.mutual", human_name: "Фонд взаимного обеспечения", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.fnd.mutual", human_name: "Фонд социально-экономического взаимодействия и социального обеспечения", kind: "COOPERATIVE", account: 86000 },
+  { name: "w.fnd.social", human_name: "Фонд социально-экономического взаимодействия и социального обеспечения — средства кооперативных участков", kind: "USER_SHARED", account: 86000 },
 ] as const
 
 export interface ProgramWalletMapping {
@@ -104,6 +105,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.mkt.repay", required_program_id: 0, program_label: null },
   { wallet_name: "w.brn.person", required_program_id: 0, program_label: null },
   { wallet_name: "w.brn.common", required_program_id: 0, program_label: null },
+  { wallet_name: "w.fnd.social", required_program_id: 0, program_label: null },
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
   { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
@@ -152,6 +154,7 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.mkt.topay", policy: "UNTOUCHED", transfer_op: null, note: "Обязательство кооператива перед поставщиком" },
   { wallet_name: "w.brn.person", policy: "UNTOUCHED", transfer_op: null, note: "Распределение кооперативного участка — назначает председатель участка" },
   { wallet_name: "w.brn.common", policy: "UNTOUCHED", transfer_op: null, note: "Общий кошелёк участка: L3-разрез по участку, а не по пайщику" },
+  { wallet_name: "w.fnd.social", policy: "UNTOUCHED", transfer_op: null, note: "Средства фонда социального обеспечения по участкам: L3-разрез по участку, а не по пайщику" },
   { wallet_name: "w.mkt.repay", policy: "UNTOUCHED", transfer_op: null, note: "Возмещение паевых взносов инициаторов участка: L3-разрез по участку, а не по пайщику" },
   { wallet_name: "w.reg.pend", policy: "UNTOUCHED", transfer_op: null, note: "Взнос кандидата до вступления — выходить ещё неоткуда" },
 ] as const

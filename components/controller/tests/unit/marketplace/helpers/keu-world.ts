@@ -124,6 +124,8 @@ export function createKeuWorld() {
     invest: new Map<string, bigint>(),
     /** Кошелёк возмещения паевых взносов участка `w.mkt.repay` (99D-27). */
     repay: new Map<string, bigint>(),
+    /** Кошелёк фонда социального обеспечения по участкам `w.fnd.social` (решение владельца 16.11.2026). */
+    social: new Map<string, bigint>(),
     funds: 0n,
   };
   /**
@@ -267,6 +269,8 @@ export function createKeuWorld() {
           target: toAsset(p.totals.target),
           target_prev: toAsset(p.facts.fundedPrev ?? 0n),
           target_funded: toAsset(p.totals.funded),
+          social_amount: toAsset(p.totals.social),
+          rate_social: Number(p.totals.rateSocial),
         }
       : {}),
   });
@@ -418,7 +422,7 @@ export function createKeuWorld() {
       const available = wallets.due.get(data.username) ?? 0n;
       if (available < total) throw refusal('MARKETPLACE_DUE_EXCEEDS', `учтено ${toAsset(total)}, доступно ${toAsset(available)}`);
 
-      const rates = period?.totals ?? { rateBranch: 0n, rateFunds: 0n, rateInitiator: 0n };
+      const rates = period?.totals ?? { rateBranch: 0n, rateFunds: 0n, rateInitiator: 0n, rateSocial: 0n };
       const parts = Model.chargeRow(rates, row.due, row.turnover, row.retained);
       add(wallets.due, data.username, -total);
       add(wallets.branch, data.braname, parts.branch);
@@ -434,6 +438,7 @@ export function createKeuWorld() {
       } else if (period) {
         add(wallets.invest, period.initiator, parts.initiator);
       }
+      add(wallets.social, data.braname, parts.social);
       add(wallets.share, data.username, parts.returned);
       dues.delete(key);
 

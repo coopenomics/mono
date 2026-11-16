@@ -425,7 +425,7 @@ operations:
     debit: null
     credit: null
     wallet_from: w.brn.aidreq      # Материальная помощь по заявлению
-    wallet_to: w.fnd.mutual        # Фонд взаимного обеспечения
+    wallet_to: w.fnd.mutual        # Фонд социально-экономического взаимодействия и социального обеспечения
     amount_ref: aids.amount − налог
     triggered_by: branch::aidconfirm
     description: >

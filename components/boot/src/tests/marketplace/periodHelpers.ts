@@ -70,8 +70,9 @@ export async function branchPeriods(bc: Blockchain, braname: string): Promise<an
 }
 
 /** Ставки строки итога для эталона расчёта списания. */
-export function ratesOf(row: any): { rateBranch: bigint, rateFunds: bigint, rateInitiator: bigint } {
-  return { rateBranch: BigInt(row.rate_branch), rateFunds: BigInt(row.rate_funds), rateInitiator: BigInt(row.rate_initiator) }
+export function ratesOf(row: any): { rateBranch: bigint, rateFunds: bigint, rateInitiator: bigint, rateSocial: bigint } {
+  // Ставка фонда социального обеспечения — с 16.11.2026; у прежних строк её нет.
+  return { rateBranch: BigInt(row.rate_branch), rateFunds: BigInt(row.rate_funds), rateInitiator: BigInt(row.rate_initiator), rateSocial: BigInt(row.rate_social ?? 0) }
 }
 
 /** Строки резерва социально-экономического обеспечения участка. */
@@ -276,9 +277,11 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     membership: units(row.membership),
     initiator: units(row.initiator_amount),
     returned: units(row.return_amount),
+    social: units(row.social_amount),
     rateBranch: BigInt(row.rate_branch),
     rateFunds: BigInt(row.rate_funds),
     rateInitiator: BigInt(row.rate_initiator),
+    rateSocial: BigInt(row.rate_social ?? 0),
     plannedTarget: units(row.planned_target),
     target: units(row.target),
     targetPrev: units(row.target_prev),
@@ -299,16 +302,18 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     membership: expected.membership,
     initiator: expected.initiator,
     returned: expected.returned,
+    social: expected.social,
     rateBranch: expected.rateBranch,
     rateFunds: expected.rateFunds,
     rateInitiator: expected.rateInitiator,
+    rateSocial: expected.rateSocial,
     plannedTarget: facts.plannedTarget,
     target: expected.target,
     targetPrev: facts.fundedPrev,
     funded: expected.funded,
   })
   // Собранное делится без остатка — по строке цепи, не по эталону.
-  expect(got.branch + got.funds + got.initiator + got.returned, `${label}: собранное разделено целиком`).toBe(facts.secured)
+  expect(got.branch + got.funds + got.initiator + got.social + got.returned, `${label}: собранное разделено целиком`).toBe(facts.secured)
   expect(row.initiator, `${label}: получатель доли инициатора записан`).toBeTruthy()
   return { period, facts, totals: expected, row }
 }

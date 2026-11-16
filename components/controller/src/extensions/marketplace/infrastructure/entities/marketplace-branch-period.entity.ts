@@ -69,6 +69,9 @@ export class MarketplaceBranchPeriodEntity {
   /** В — пайщикам обратно. */
   public return_amount!: string;
 
+  /** СФ — в фонд социально-экономического взаимодействия и социального обеспечения участка (с 16.11.2026; прежние итоги — ноль). */
+  public social_amount!: string;
+
   /** Д — дефицит участка. */
   public deficit!: string;
 
@@ -76,6 +79,7 @@ export class MarketplaceBranchPeriodEntity {
   public rate_branch!: string;
   public rate_funds!: string;
   public rate_initiator!: string;
+  public rate_social!: string;
 
   /** Получатель доли инициатора на момент прогона. */
   public initiator!: string;

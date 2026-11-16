@@ -16,7 +16,7 @@ const FUNDS = [
   { id: 2, coopname: COOP, kind: 'accum', name: 'Резервный фонд', description: '', percent: 150_000, wallet: 'w.fnd.resrv' },
   { id: 3, coopname: COOP, kind: 'accum', name: 'Фонд развития кооперации', description: '', percent: 50_000, wallet: 'w.fnd.devel' },
   { id: 4, coopname: COOP, kind: 'expend', name: 'Фонд обеспечения хозяйственной деятельности', description: '', percent: 0, wallet: 'w.sov.expns' },
-  { id: 5, coopname: COOP, kind: 'expend', name: 'Фонд взаимного обеспечения', description: '', percent: 0, wallet: 'w.fnd.mutual' },
+  { id: 5, coopname: COOP, kind: 'expend', name: 'Фонд социально-экономического взаимодействия и социального обеспечения', description: '', percent: 0, wallet: 'w.fnd.mutual' },
 ];
 
 let seq = 0;

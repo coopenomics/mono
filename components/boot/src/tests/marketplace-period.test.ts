@@ -47,6 +47,7 @@ import {
   fundBalances,
   investBranch,
   memberDue,
+  ratesOf,
   rub,
   units,
   userWallet,
@@ -250,10 +251,11 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     const shareBefore = await userWallet(bc, 'w.mkt.share', ekaterina.account)
     const commonBefore = await userWallet(bc, 'w.brn.common', BRANAME)
     const repayBefore = await userWallet(bc, 'w.mkt.repay', BRANAME)
+    const socialBefore = await userWallet(bc, 'w.fnd.social', BRANAME)
     const fundsBefore = await fundBalances(bc)
     const investBefore = await investBranch(bc, BRANAME)
 
-    const rates = { rateBranch: BigInt(periodRow.rate_branch), rateFunds: BigInt(periodRow.rate_funds), rateInitiator: BigInt(periodRow.rate_initiator) }
+    const rates = ratesOf(periodRow)
     const parts = chargeRow(rates, rowDue, rowTurnover, rowRetained)
     // Доля инициаторов — по фазам инвестиционного этапа (задача 99D-27).
     const route = crpsRoute(investBefore, parts.initiator)
@@ -266,6 +268,7 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     if (parts.funds > 0n) expected.push('o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel')
     if (route.repay > 0n) expected.push('o.mkt.repay')
     if (route.cover > 0n) expected.push('o.mkt.icover')
+    if (parts.social > 0n) expected.push('o.mkt.social')
     if (parts.returned > 0n) expected.push('o.mkt.retdue')
     const ops: LedgerRow[] = await waitForOps(chairmanToken, hash, expected)
     expect(units(sumOf(ops, 'o.mkt.charge').toFixed(4))).toBe(parts.charged)
@@ -276,6 +279,9 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     expect(units(sumOf(ops, 'o.mkt.icover').toFixed(4)), 'погашение 26 — доля денег в базе возврата').toBe(route.cover)
     expect(units(sumOf(ops, 'o.mkt.initr').toFixed(4)), 'доля инициатора больше не начисляется на его кошелёк').toBe(0n)
     expect(units(sumOf(ops, 'o.mkt.retdue').toFixed(4))).toBe(parts.returned)
+    // Вторые 38,2 % экономии — на кошелёк фонда социального обеспечения участка (решение владельца 16.11.2026).
+    expect(units(sumOf(ops, 'o.mkt.social').toFixed(4))).toBe(parts.social)
+    expect(await userWallet(bc, 'w.fnd.social', BRANAME), 'фонд социального обеспечения участка пополнен').toBe(socialBefore + parts.social)
 
     // Все ноги — в нитке строки счётчика, процесс списания по итогу периода; в нитке заказа списания нет.
     const byOp = await processTypeByOperation(chairmanToken, hash)
