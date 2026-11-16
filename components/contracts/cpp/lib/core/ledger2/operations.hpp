@@ -191,7 +191,7 @@ namespace operations {
     inline constexpr eosio::name EXPENSE_FROM_FUND   = "o.brn.fmfund"_n;  ///< Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов участка (TRANSFER w.sov.expns → w.brn.expns, без Dr/Cr — внутри 86). Вторая нога возврата после o.brn.expret.
     inline constexpr eosio::name AID_REQUEST         = "o.brn.aidreq"_n;  ///< Заявление на материальную помощь подано: сумма заявления переходит с персонального кошелька на кошелёк заявлений (TRANSFER w.brn.person → w.brn.aidreq, без Dr/Cr — внутри 86). Свободные средства уменьшаются сразу (решение владельца 08.11.2026).
     inline constexpr eosio::name AID_RETURN          = "o.brn.aidret"_n;  ///< Совет отказал в материальной помощи: сумма заявления возвращается на персональный кошелёк (TRANSFER w.brn.aidreq → w.brn.person, без Dr/Cr — внутри 86).
-    inline constexpr eosio::name AID_TO_FUND         = "o.brn.aidfnd"_n;  ///< Направление материальной помощи в фонд взаимного обеспечения (TRANSFER w.brn.aidreq → w.fnd.mutual, без Dr/Cr — внутри 86). Первая нога выплаты: сумма на руки выходит из кооператива только с кошелька фонда (задача 99D-25); разрез по получателю остаётся на w.brn.person.
+    inline constexpr eosio::name AID_TO_FUND         = "o.brn.aidfnd"_n;  ///< Направление материальной помощи в фонд социально-экономического взаимодействия и социального обеспечения (TRANSFER w.brn.aidreq → w.fnd.mutual, без Dr/Cr — внутри 86). Первая нога выплаты: сумма на руки выходит из кооператива только с кошелька фонда (задача 99D-25); разрез по получателю остаётся на w.brn.person.
     inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.aidreq → w.sov.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки выплачивается остаток. Деньги при этом с расчётного счёта не списываются — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
   }
 
@@ -1099,7 +1099,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::branch::AID_TO_FUND, processes::branch::AID, WalletOp::TRANSFER,
     ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::FUND_MUTUAL,
     0, 0,
-    "Направление материальной помощи в фонд взаимного обеспечения" },
+    "Направление материальной помощи в фонд социально-экономического взаимодействия и социального обеспечения" },
 
   // 13a-bis. p.brn.aid: Заявление подано — сумма заявления переходит с
   //      персонального кошелька на кошелёк заявлений (без Dr/Cr — оба 86).

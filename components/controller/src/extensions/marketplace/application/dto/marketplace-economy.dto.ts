@@ -100,6 +100,12 @@ export class MarketplaceBranchEconomyDTO {
       'Доступно для расходов: общий кошелёк участка и свободные средства инициаторов. Каждый платёж оплачивается целиком из одного источника.',
   })
   available_for_expenses!: string;
+
+  @Field({
+    description:
+      'Средства фонда социально-экономического взаимодействия и социального обеспечения по участку. Кошелёк пополняет итог месяца; расход — решением совета.',
+  })
+  social_fund_balance!: string;
 }
 
 @ObjectType('MarketplaceBranchWalletOperation', {
@@ -306,6 +312,7 @@ export function toMarketplaceBranchEconomyDTO(
     available_to_distribute: view.available_to_distribute,
     initiators_free: view.initiators_free,
     available_for_expenses: view.available_for_expenses,
+    social_fund_balance: view.social_fund_balance,
   };
 }
 

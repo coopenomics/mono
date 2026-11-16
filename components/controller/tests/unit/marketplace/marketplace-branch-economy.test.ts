@@ -190,6 +190,30 @@ describe('Доступно для расходов (99D-35)', () => {
   });
 });
 
+describe('Средства фонда социального обеспечения по участку (решение владельца 16.11.2026)', () => {
+  it('остаток кошелька w.fnd.social участка показан отдельно и в общий кошелёк не входит', async () => {
+    const { service } = buildService({
+      balances: [
+        common('300.0000'),
+        { wallet_name: 'w.fnd.social', username: BRANCH, available: '39660.7680 RUB' },
+        // Средства фонда другого участка в остаток этого участка не входят.
+        { wallet_name: 'w.fnd.social', username: 'pvz', available: '1136.0252 RUB' },
+      ],
+    });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.social_fund_balance).toBe('39660.7680 RUB');
+    expect(economy.common_balance).toBe('300.0000 RUB');
+    expect(economy.available_to_distribute).toBe('300.0000 RUB');
+    expect(economy.available_for_expenses).toBe('300.0000 RUB');
+  });
+
+  it('итогов с долей фонда ещё не было — ноль в валюте кооператива', async () => {
+    const { service } = buildService({ balances: [common('300.0000')] });
+    const economy = await service.getBranchEconomy(COOP, BRANCH);
+    expect(economy.social_fund_balance).toBe('0.0000 RUB');
+  });
+});
+
 describe('Сетка распределения: доли доверенных', () => {
   it('доля считается от суммы весов, а не от числа участников', async () => {
     const { service } = buildService({

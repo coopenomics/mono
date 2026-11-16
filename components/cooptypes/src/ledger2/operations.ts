@@ -648,7 +648,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 51,
     human_name: 'Доплата сверх аванса по расходу кооперативного участка' },
 
-  // Транзит материальной помощи через фонд взаимного обеспечения (задача 99D-25):
+  // Транзит материальной помощи через фонд социально-экономического взаимодействия и социального обеспечения (задача 99D-25):
   // разрез по получателю остаётся на w.brn.person, выплата идёт с кошелька фонда.
   // Материальная помощь движется по кошелькам, без блокировки (решение
   // владельца 08.11.2026): при подаче сумма переходит на кошелёк заявлений,
@@ -666,7 +666,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.brn.aidfnd',  process_type: 'p.brn.aid',     contract: 'branch',
     name: 'AID_TO_FUND',    wallet_op: 'TRANSFER', wallet_from: 'w.brn.aidreq', wallet_to: 'w.fnd.mutual',
     debit: null, credit: null,
-    human_name: 'Направление материальной помощи в фонд взаимного обеспечения' },
+    human_name: 'Направление материальной помощи в фонд социально-экономического взаимодействия и социального обеспечения' },
 
   { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
     name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.fnd.mutual', wallet_to: null,

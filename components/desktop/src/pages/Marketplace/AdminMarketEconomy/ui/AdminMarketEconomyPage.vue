@@ -119,7 +119,8 @@ const tiles = computed<SettingCard[]>(() => {
       value: percentShort(s?.initiator_share_percent),
       symbol: '%',
       sub: t('marketplace.marketEconomy.initiatorShareSubtitle'),
-      hint: t('marketplace.marketEconomy.periodSettingsHint'),
+      // Подсказка: как доля делит экономию (модель 16.11.2026) и когда применяется.
+      hint: `${t('marketplace.marketEconomy.initiatorTileHint')} ${t('marketplace.marketEconomy.periodSettingsHint')}`,
       icon: 'trending_up',
       label: t('marketplace.marketEconomy.cardShare'),
       editable: true,

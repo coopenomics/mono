@@ -48,6 +48,8 @@ div.funds-page
         .t-muted {{ $t('reports.fundsPage.availableLabel') }}
         .funds-page__drawer-sum {{ formatAsset2Digits(selected.available) }}
         .t-faint {{ $t('reports.fundsPage.walletLine', { wallet: selected.wallet, account: accountLabel(selected.account) }) }}
+        //- Часть остатка лежит на кошельке фонда по кооперативным участкам.
+        .t-faint(v-if='selected.branches_available') {{ $t('reports.fundsPage.branchesLine', { amount: formatAsset2Digits(selected.branches_available), wallet: selected.branches_wallet }) }}
       q-tabs(v-model='drawerTab' dense align='left' no-caps)
         q-tab(name='history' :label='$t("reports.fundsPage.tabs.history")')
         q-tab(name='about' :label='$t("reports.fundsPage.tabs.about")')
@@ -84,6 +86,9 @@ div.funds-page
           DataRow(v-if='selected.kind === ACCUM' align='spread' :label='$t("reports.fundsPage.percentLabel")' :value='percentLabel(selected.percent)' mono)
           DataRow(align='spread' :label='$t("reports.fundsPage.walletLabel")' :value='selected.wallet' mono copyable)
           DataRow(align='spread' :label='$t("reports.fundsPage.accountLabel")' :value='accountLabel(selected.account)' mono)
+          template(v-if='selected.branches_wallet')
+            DataRow(align='spread' :label='$t("reports.fundsPage.branchesWalletLabel")' :value='selected.branches_wallet' mono copyable)
+            DataRow(align='spread' :label='$t("reports.fundsPage.branchesAvailableLabel")' :value='formatAsset2Digits(selected.branches_available || "")' mono)
           DataRow(align='spread' :label='$t("reports.fundsPage.incomeLabel")' :value='formatAsset2Digits(selected.income)' mono)
           DataRow(align='spread' :label='$t("reports.fundsPage.outcomeLabel")' :value='formatAsset2Digits(selected.outcome)' mono)
           .funds-page__description
@@ -235,9 +240,16 @@ const columns: BaseTableColumn<IDeskFund>[] = [
 ]
 
 /** Мета-строка движения: дата и, если есть, кошелёк другой стороны. */
+/** Операция итога месяца участка Стола заказов: зачисление в фонд по участку. */
+const BRANCH_INCOME_OPERATION = 'o.mkt.social' // i18n-ignore
+
 function historyMeta(row: IDeskFundMovement): string {
   const counterparty = row.counterparty_name || row.counterparty_wallet;
-  return [formatDate(row.created_at), counterparty].filter(Boolean).join(' · ');
+  // Зачисление на кошелёк фонда по участкам несёт имя участка — оно стоит в строке.
+  const branch = row.operation_code === BRANCH_INCOME_OPERATION && row.username
+    ? t('reports.fundsPage.branchMeta', { branch: row.username })
+    : null;
+  return [formatDate(row.created_at), counterparty, branch].filter(Boolean).join(' · ');
 }
 
 

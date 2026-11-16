@@ -41,6 +41,24 @@ const TRANSIT_CODES: ReadonlySet<string> = new Set([
   'o.brn.aidfnd',
 ]);
 
+/**
+ * Кошелёк средств фонда по кооперативным участкам (решение владельца
+ * 16.11.2026): фонд социально-экономического взаимодействия и социального
+ * обеспечения держит часть средств на кошельке с разрезом по участку — её
+ * зачисляет итог месяца участка Стола заказов. Остаток, обороты и история
+ * фонда считают оба кошелька; движение по участку несёт имя участка в
+ * `username`.
+ */
+const BRANCHES_WALLET_OF: Readonly<Record<string, string>> = {
+  'w.fnd.mutual': 'w.fnd.social',
+};
+
+/** Кошельки фонда: его собственный и, если есть, кошелёк средств по участкам. */
+function walletsOfFund(wallet: string): string[] {
+  const branches = BRANCHES_WALLET_OF[wallet];
+  return branches ? [wallet, branches] : [wallet];
+}
+
 /** Страница истории при подсчёте оборотов за период и предел страниц. */
 const TURNOVER_PAGE = 500;
 const TURNOVER_MAX_PAGES = 40;
@@ -113,7 +131,9 @@ function formatMoney(units: bigint, symbol: string, precision: number): string {
  * его кошелёк учётной книги (кошелёк и есть субсчёт фонда); обороты и история
  * — операции учётной книги, у которых кошелёк фонда стоит источником или
  * получателем. Код операции говорит, с какой стороны стоит фонд, — так история
- * получает знак суммы без разбора движений по кошелькам.
+ * получает знак суммы без разбора движений по кошелькам. У фонда с кошельком
+ * средств по участкам (`BRANCHES_WALLET_OF`) остаток — оба кошелька вместе, а
+ * средства участков показаны отдельной суммой.
  */
 @Injectable()
 export class FundsService {
@@ -144,7 +164,7 @@ export class FundsService {
     options?: PaginationInputDTO
   ): Promise<PaginationResult<ReportsFundMovementDTO>> {
     const row = await this.fundRow(input.coopname, input.fund_id);
-    const operations = this.operationsOfWallet(String(row.wallet));
+    const operations = this.operationsOfWallets(walletsOfFund(String(row.wallet)));
     const page = options?.page ?? 1;
     const limit = options?.limit ?? 50;
     if (!operations.length) {
@@ -233,7 +253,10 @@ export class FundsService {
     symbol: string
   ): Promise<ReportsFundDTO> {
     const wallet = String(row.wallet);
-    const turnover = await this.turnover(input, wallet, symbol);
+    const branchesWallet = BRANCHES_WALLET_OF[wallet] ?? null;
+    const turnover = await this.turnover(input, walletsOfFund(wallet), symbol);
+    const own = availableOf.get(wallet) ?? this.zero(symbol);
+    const branches = branchesWallet ? availableOf.get(branchesWallet) ?? this.zero(symbol) : null;
     return {
       id: Number(row.id),
       kind: String(row.kind) === FundContract.Tables.Funds.KIND_ACCUMULATION ? ReportsFundKind.ACCUMULATION : ReportsFundKind.EXPENDITURE,
@@ -243,33 +266,43 @@ export class FundsService {
       wallet,
       wallet_name: Ledger2.getWalletHumanName(wallet) ?? wallet,
       account: Ledger2.getWalletAccount(wallet),
-      available: availableOf.get(wallet) ?? this.zero(symbol),
+      available: branches ? this.sum(own, branches, symbol) : own,
+      branches_wallet: branchesWallet,
+      branches_available: branches,
       income: turnover.income,
       outcome: turnover.outcome,
     };
   }
 
-  /** Операции реестра, у которых кошелёк стоит источником или получателем, без транзита. */
-  private operationsOfWallet(wallet: string): WalletOperation[] {
+  /**
+   * Операции реестра, у которых один из кошельков фонда стоит источником или
+   * получателем, без транзита. Перевод между кошельками одного фонда остаток
+   * фонда не меняет и в список не входит.
+   */
+  private operationsOfWallets(wallets: string[]): WalletOperation[] {
+    const own = new Set(wallets);
     const out: WalletOperation[] = [];
     for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
       if (TRANSIT_CODES.has(op.code)) continue;
-      if (op.wallet_to === wallet) {
+      const incoming = !!op.wallet_to && own.has(op.wallet_to);
+      const outgoing = !!op.wallet_from && own.has(op.wallet_from);
+      if (incoming && outgoing) continue;
+      if (incoming) {
         out.push({ code: op.code, direction: ReportsFundMovementDirection.IN, counterparty: op.wallet_from ?? null });
-      } else if (op.wallet_from === wallet) {
+      } else if (outgoing) {
         out.push({ code: op.code, direction: ReportsFundMovementDirection.OUT, counterparty: op.wallet_to ?? null });
       }
     }
     return out;
   }
 
-  /** Обороты кошелька за период: поступления и списания по операциям учётной книги. */
+  /** Обороты кошельков фонда за период: поступления и списания по операциям учётной книги. */
   private async turnover(
     input: ReportsFundsInputDTO,
-    wallet: string,
+    wallets: string[],
     symbol: string
   ): Promise<{ income: string; outcome: string }> {
-    const operations = this.operationsOfWallet(wallet);
+    const operations = this.operationsOfWallets(wallets);
     const acc: Turnover = { income: 0n, outcome: 0n, precision: 4, symbol, seen: false };
     if (operations.length) {
       const byCode = new Map(operations.map((o) => [o.code, o.direction]));
@@ -328,5 +361,14 @@ export class FundsService {
 
   private zero(symbol: string): string {
     return formatMoney(0n, symbol, 4);
+  }
+
+  /** Сумма двух остатков в единицах цепи; точность и символ — первого слагаемого. */
+  private sum(a: string, b: string, symbol: string): string {
+    const left = parseMoney(a);
+    const right = parseMoney(b);
+    if (!left) return b;
+    if (!right) return a;
+    return formatMoney(left.units + right.units, left.symbol || symbol, left.precision);
   }
 }

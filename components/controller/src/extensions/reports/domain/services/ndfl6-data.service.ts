@@ -50,7 +50,7 @@ const AID_OPERATION = 'o.brn.aid';
 const AID_TAX_OPERATION = 'o.brn.aidtax';
 const INVEST_AID_OPERATION = 'o.mkt.iaid';
 const INVEST_AID_TAX_OPERATION = 'o.mkt.iaidtx';
-/** Выплата на руки — с фонда взаимного обеспечения или из средств инициаторов. */
+/** Выплата на руки — с фонда социально-экономического взаимодействия и социального обеспечения или из средств инициаторов. */
 const AID_OPERATIONS = new Set([AID_OPERATION, INVEST_AID_OPERATION]);
 /** Удержанный налог — по тем же двум путям. */
 const AID_TAX_OPERATIONS = new Set([AID_TAX_OPERATION, INVEST_AID_TAX_OPERATION]);

@@ -7564,6 +7564,7 @@ export const ReturnTypes: Record<string,any> = {
 		common_balance:"String",
 		initiators_free:"String",
 		reserve_amount:"String",
+		social_fund_balance:"String",
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
 	},
@@ -10407,6 +10408,8 @@ export const ReturnTypes: Record<string,any> = {
 	ReportsFund:{
 		account:"Int",
 		available:"String",
+		branches_available:"String",
+		branches_wallet:"String",
 		description:"String",
 		id:"Int",
 		income:"String",
