@@ -281,19 +281,15 @@ export class FundsService {
    */
   private operationsOfWallets(wallets: string[]): WalletOperation[] {
     const own = new Set(wallets);
-    const out: WalletOperation[] = [];
-    for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
-      if (TRANSIT_CODES.has(op.code)) continue;
-      const incoming = !!op.wallet_to && own.has(op.wallet_to);
-      const outgoing = !!op.wallet_from && own.has(op.wallet_from);
-      if (incoming && outgoing) continue;
-      if (incoming) {
-        out.push({ code: op.code, direction: ReportsFundMovementDirection.IN, counterparty: op.wallet_from ?? null });
-      } else if (outgoing) {
-        out.push({ code: op.code, direction: ReportsFundMovementDirection.OUT, counterparty: op.wallet_to ?? null });
-      }
-    }
-    return out;
+    const isOwn = (wallet: string | null | undefined): boolean => !!wallet && own.has(wallet);
+    return Ledger2.LEDGER2_OPERATION_REGISTRY
+      // Ровно одна сторона операции — кошелёк фонда: обе стороны — внутренний перевод, ни одной — чужая операция.
+      .filter((op) => !TRANSIT_CODES.has(op.code) && isOwn(op.wallet_to) !== isOwn(op.wallet_from))
+      .map((op) =>
+        isOwn(op.wallet_to)
+          ? { code: op.code, direction: ReportsFundMovementDirection.IN, counterparty: op.wallet_from ?? null }
+          : { code: op.code, direction: ReportsFundMovementDirection.OUT, counterparty: op.wallet_to ?? null }
+      );
   }
 
   /** Обороты кошельков фонда за период: поступления и списания по операциям учётной книги. */
