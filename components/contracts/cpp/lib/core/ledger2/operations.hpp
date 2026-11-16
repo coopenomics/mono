@@ -128,6 +128,7 @@ namespace operations {
     inline constexpr eosio::name INVEST_POOL_FUND       = "o.mkt.ipool"_n;    ///< Выделение средств инициаторов под расход или материальную помощь участка (ISSUE w.mkt.ipool, без Dr/Cr — деньги на 51 с паевого взноса инициатора).
     inline constexpr eosio::name INVEST_POOL_UNFUND     = "o.mkt.iunpl"_n;  ///< Возврат невыделенного остатка средств инициаторов из пула (BURN w.mkt.ipool, без Dr/Cr) — отклонение записки или остаток после расхода.
     inline constexpr eosio::name INVEST_REPAY           = "o.mkt.repay"_n;    ///< Возмещение паевых взносов инициаторов из экономии месяца участка (TRANSFER w.mkt.fee → w.mkt.repay участка, Дт 80 / Кт 86): доля инициаторов в обеспечительной части становится членским взносом. Заменяет o.mkt.initr, пока паевые взносы участка не возвращены; нога chargeperiod.
+    inline constexpr eosio::name SOCIAL_FUND            = "o.mkt.social"_n;   ///< Вторые 38,2 % экономии месяца участка — в фонд социально-экономического взаимодействия и социального обеспечения по участку (TRANSFER w.mkt.fee → w.fnd.social участка, Дт 80 / Кт 86; username = braname): остаток после доли пайщиков, фондов накопления и доли инициатора становится членским взносом. Нога chargeperiod (решение владельца 16.11.2026).
     inline constexpr eosio::name INVEST_REPAY_SURPLUS   = "o.mkt.rpsurp"_n;   ///< Переплата возмещения на границе завершения возврата — участку (TRANSFER w.mkt.repay → w.brn.common, без Dr/Cr — оба на 86, username = braname).
     inline constexpr eosio::name INVEST_COST_COVER      = "o.mkt.icover"_n;   ///< Погашение расходов и помощи участка, оплаченных деньгами инициаторов, членскими взносами (только проводка Дт 86 / Кт 26, без кошельков). Доля денег в базе возврата из o.mkt.repay; имущество остаётся на 10 и не гасится. Решение владельца 09.11.2026, бухгалтер подтвердила 10.11.2026.
     inline constexpr eosio::name INVEST_COST_UNCOVER    = "o.mkt.iuncov"_n;   ///< Сторно погашения 26 на денежную долю переплаты возмещения, переведённой участку (только проводка Дт 26 / Кт 86, без кошельков).
@@ -678,6 +679,10 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_INVEST_REPAY,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Возмещение паевых взносов инициаторов из экономии месяца участка" },
+  { operations::marketplace::SOCIAL_FUND, processes::marketplace::DUE, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_SOCIAL_BRANCH,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Отчисление в фонд социально-экономического взаимодействия и социального обеспечения из экономии месяца участка" },
   { operations::marketplace::INVEST_REPAY_SURPLUS, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INVEST_REPAY, ledger2_wallets::BRANCH_COMMON,
     0, 0,

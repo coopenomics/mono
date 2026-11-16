@@ -31,15 +31,21 @@
  *                                            излишек = max(0, F_пр − ПО − СЗ − МП − T) —
  *                                            собранное прошлым итогом сверх нужного
  *                                            переходит дальше и не собирается заново
- *   p, Ф, М, Э, И, В, ставки — как раньше:
- *   Ф    = (C − У) × p / H,  М = У + Ф,  Э = C − У − Ф,  И = Э × φи / H,  В = Э − И
- *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T   (T — стоимость заказов; ноль — ставки ноль)
+ *   Дележ экономии S = C − У (модель методолога 13.11.2026, решение владельца 16.11.2026):
+ *   K    = S × φи / H,  В = S − K            пайщикам — первые 38,2 % экономии
+ *   Ф    = K × p / H,   Э = K − Ф            фонды накопления — с оставшейся части
+ *   И    = Э × φи / H,  СФ = Э − И           инициатору и фонду социального обеспечения участка
+ *   М    = У + Ф
+ *   r_ку = У × H / T, r_ф = Ф × H / T, r_и = И × H / T, r_с = СФ × H / T
+ *                                            (T — стоимость заказов; ноль — ставки ноль)
  * Месяц без выданных заказов (счётчика участка нет) тоже получает строку:
  * C = 0, расходы целиком — дефицит, цель переходит дальше несобранной.
  *
  * Старый узел (без planned_target) считается по прежней формуле: резерв
  * помощи — сумма строк резерва, минус невыплаченная часть прошлого резерва;
- * месяц без заказов отклоняется. Ветка живёт до выкладки нового узла.
+ * месяц без заказов отклоняется; экономия делится по-старому
+ * (Ф = S × p, И = (S − Ф) × φи, В — остаток), доли фонда социального
+ * обеспечения нет. Ветка живёт до выкладки нового узла.
  * Целочисленная арифметика в единицах актива, промежуточные значения в
  * uint128_t, деление вниз. Остатки округления по каждой строке пайщика
  * достаются пайщику (см. chargeperiod). Строка — основание списания для
@@ -160,12 +166,38 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
   const int64_t branch_amount = expenses.amount < secured.amount ? expenses.amount : secured.amount;
   const int64_t deficit_amount = expenses.amount - branch_amount;
   const int64_t after_expenses = secured.amount - branch_amount;
-  const int64_t funds_amount = static_cast<int64_t>(static_cast<uint128_t>(after_expenses) * funds_percent / H);
-  const int64_t membership_amount = branch_amount + funds_amount;
-  const int64_t economy_amount = after_expenses - funds_amount;
   const uint64_t initiator_percent = Marketplace::get_initiator_share_percent(coopname);
-  const int64_t initiator_amount = static_cast<int64_t>(static_cast<uint128_t>(economy_amount) * initiator_percent / H);
-  const int64_t return_amount = economy_amount - initiator_amount;
+  const auto share = [&](int64_t amount, uint64_t percent) -> int64_t {
+    return static_cast<int64_t>(static_cast<uint128_t>(amount) * percent / H);
+  };
+  // Дележ экономии участка S = C − У по модели методолога 13.11.2026 (решение
+  // владельца 16.11.2026), только для нового узла (by_target):
+  //   K  = S × φи / H         часть к дележу — членский взнос сверх расходов
+  //   В  = S − K              пайщикам обратно (первые 38,2 %)
+  //   Ф  = K × p / H          фонды накопления
+  //   Э  = K − Ф
+  //   И  = Э × φи / H         инициатору
+  //   СФ = Э − И              фонду социального обеспечения по участку (вторые 38,2 %)
+  // Старый узел — прежний дележ: Ф = S × p, Э = S − Ф, И = Э × φи, В = Э − И.
+  int64_t funds_amount = 0;
+  int64_t economy_amount = 0;
+  int64_t initiator_amount = 0;
+  int64_t return_amount = 0;
+  int64_t social_amount = 0;
+  if (by_target) {
+    const int64_t keep_amount = share(after_expenses, initiator_percent);
+    return_amount = after_expenses - keep_amount;
+    funds_amount = share(keep_amount, funds_percent);
+    economy_amount = keep_amount - funds_amount;
+    initiator_amount = share(economy_amount, initiator_percent);
+    social_amount = economy_amount - initiator_amount;
+  } else {
+    funds_amount = share(after_expenses, funds_percent);
+    economy_amount = after_expenses - funds_amount;
+    initiator_amount = share(economy_amount, initiator_percent);
+    return_amount = economy_amount - initiator_amount;
+  }
+  const int64_t membership_amount = branch_amount + funds_amount;
 
   const auto rate = [&](int64_t part) -> uint64_t {
     if (turnover.amount <= 0) return 0;
@@ -204,6 +236,8 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
       row.target = target;
       row.target_prev = funded_prev;
       row.target_funded = eosio::asset(funded_amount, _root_govern_symbol);
+      row.social_amount = eosio::asset(social_amount, _root_govern_symbol);
+      row.rate_social = rate(social_amount);
     }
   });
 

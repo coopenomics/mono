@@ -354,6 +354,7 @@ export class MarketplacePeriodService {
       branch_amount: dec(row.branch_amount),
       initiator_amount: dec(row.initiator_amount),
       return_amount: dec(row.return_amount),
+      social_amount: dec(row.social_amount),
       deficit: dec(row.deficit),
       planned_target: row.planned_target ? dec(row.planned_target) : null,
       target: row.target ? dec(row.target) : null,
@@ -362,6 +363,7 @@ export class MarketplacePeriodService {
       rate_branch: String(row.rate_branch),
       rate_funds: String(row.rate_funds),
       rate_initiator: String(row.rate_initiator),
+      rate_social: String(row.rate_social ?? 0),
       initiator: String(row.initiator),
       rows_total: rowsTotal,
       rows_charged: 0,
@@ -448,9 +450,9 @@ export class MarketplacePeriodService {
     return this.store.findOne({ coopname, braname, period });
   }
 
-  /** Коэффициент экономического участия за месяц в процентах с двумя знаками: участку + фонды + инициатору. */
-  ratePercentOf(row: Pick<MarketplaceBranchPeriodEntity, 'rate_branch' | 'rate_funds' | 'rate_initiator'>): string {
-    const total = BigInt(row.rate_branch || '0') + BigInt(row.rate_funds || '0') + BigInt(row.rate_initiator || '0');
+  /** Коэффициент экономического участия за месяц в процентах с двумя знаками: участку + фонды + инициатору + фонду социального обеспечения. */
+  ratePercentOf(row: Pick<MarketplaceBranchPeriodEntity, 'rate_branch' | 'rate_funds' | 'rate_initiator'> & Partial<Pick<MarketplaceBranchPeriodEntity, 'rate_social'>>): string {
+    const total = BigInt(row.rate_branch || '0') + BigInt(row.rate_funds || '0') + BigInt(row.rate_initiator || '0') + BigInt(row.rate_social || '0');
     // Доли HUNDR_PERCENTS → проценты с двумя знаками: 156 666 → 15,67 %.
     const hundredths = (total * 10_000n + HUNDR_PERCENTS / 2n) / HUNDR_PERCENTS;
     return `${hundredths / 100n}.${String(hundredths % 100n).padStart(2, '0')}`;

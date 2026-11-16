@@ -302,8 +302,9 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Списание обеспечительной части в членский взнос при выходе пайщика из кооператива' },
 
   // Списание по итогу периода участка (задачи 99D-21, 99D-33): o.mkt.charge на
-  // сумму участку + фонды + инициатору, затем ноги из пула — o.brn.common,
-  // o.fnd.*, o.mkt.repay; остаток пайщику — o.mkt.retdue. Нитка p.mkt.due.
+  // сумму участку + фонды + инициатору + фонду социального обеспечения, затем
+  // ноги из пула — o.brn.common, o.fnd.*, o.mkt.repay, o.mkt.social; остаток
+  // пайщику — o.mkt.retdue. Нитка p.mkt.due.
   { code: 'o.mkt.initr',   process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INITIATOR_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.invest',
     debit: null, credit: null,
@@ -341,6 +342,13 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'INVEST_REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.repay',
     debit: 80, credit: 86,
     human_name: 'Возмещение паевых взносов инициаторов из экономии месяца участка' },
+
+  // Вторые 38,2 % экономии месяца участка — в фонд социально-экономического
+  // взаимодействия и социального обеспечения по участку (решение владельца 16.11.2026).
+  { code: 'o.mkt.social',  process_type: 'p.mkt.due',     contract: 'marketplace',
+    name: 'SOCIAL_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.social',
+    debit: 80, credit: 86,
+    human_name: 'Отчисление в фонд социально-экономического взаимодействия и социального обеспечения из экономии месяца участка' },
 
   { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INVEST_REPAY_SURPLUS', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.repay', wallet_to: 'w.brn.common',

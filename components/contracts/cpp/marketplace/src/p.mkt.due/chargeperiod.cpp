@@ -74,6 +74,7 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
   int64_t to_branch = 0;
   int64_t to_funds = 0;
   int64_t to_initiator = 0;
+  int64_t to_social = 0;
   int64_t to_return = amount.amount;
 
   if (row.turnover.amount > 0) {
@@ -86,11 +87,14 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
     to_branch = part(rates.rate_branch);
     to_funds = part(rates.rate_funds);
     to_initiator = part(rates.rate_initiator);
-    to_return = amount.amount - to_branch - to_funds - to_initiator;
+    // Строка итога до 16.11.2026 доли фонда социального обеспечения не знает.
+    to_social = rates.rate_social.has_value() ? part(rates.rate_social.value()) : 0;
+    to_return = amount.amount - to_branch - to_funds - to_initiator - to_social;
 
     if (to_return < 0) {
       // Ставка заказов пайщика была ниже ставки прогона: уменьшаем части по
-      // порядку — возврат, инициатору, фонды, участку, пока сумма не сойдётся.
+      // порядку — возврат, фонду социального обеспечения, инициатору, фонды,
+      // участку, пока сумма не сойдётся.
       int64_t shortfall = -to_return;
       to_return = 0;
       const auto take = [&](int64_t& from) {
@@ -98,6 +102,7 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
         from -= cut;
         shortfall -= cut;
       };
+      take(to_social);
       take(to_initiator);
       take(to_funds);
       take(to_branch);
@@ -109,7 +114,7 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
   to_branch += row.retained.amount;
 
   const checksum256 hash = Marketplace::Dues::charge_hash(coopname, username, braname, period);
-  const int64_t charged = to_branch + to_funds + to_initiator;
+  const int64_t charged = to_branch + to_funds + to_initiator + to_social;
   if (charged > 0) {
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::CHARGE_DUE,
@@ -135,6 +140,15 @@ void marketplace::chargeperiod(eosio::name coopname, eosio::name username, eosio
     // участка (инвестиционный этап, задача 99D-27).
     Marketplace::route_initiator_share(_marketplace, coopname, braname,
                                        eosio::asset(to_initiator, _root_govern_symbol), hash);
+  }
+  if (to_social > 0) {
+    // Вторые 38,2 % экономии — на кошелёк фонда социально-экономического
+    // взаимодействия и социального обеспечения по участку (решение владельца 16.11.2026).
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::SOCIAL_FUND,
+                   processes::marketplace::DUE,
+                   eosio::asset(to_social, _root_govern_symbol), braname, hash,
+                   Marketplace::Memo::get_charge_period_social_memo());
   }
   if (to_return > 0) {
     Ledger2::apply(_marketplace, coopname,

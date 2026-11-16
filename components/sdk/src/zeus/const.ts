@@ -7613,6 +7613,7 @@ export const ReturnTypes: Record<string,any> = {
 		rows_charged:"Int",
 		rows_total:"Int",
 		secured:"String",
+		social_amount:"String",
 		starts_at:"DateTime",
 		target:"String",
 		target_funded:"String",

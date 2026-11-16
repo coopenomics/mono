@@ -1901,10 +1901,12 @@ export interface MarketplaceBranchPeriod {
   rate_branch: Generated<Int8>;
   rate_funds: Generated<Int8>;
   rate_initiator: Generated<Int8>;
+  rate_social: Generated<Int8>;
   return_amount: Generated<Numeric>;
   rows_charged: Generated<number>;
   rows_total: Generated<number>;
   secured: Generated<Numeric>;
+  social_amount: Generated<Numeric>;
   target: Numeric | null;
   target_funded: Numeric | null;
   target_prev: Numeric | null;

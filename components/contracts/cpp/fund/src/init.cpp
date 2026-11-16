@@ -21,14 +21,42 @@ inline void ensure_standard_funds(eosio::name coopname) {
     });
   }
 }
+
+/// Прежние значения стандартных фондов, которые меняет редакция 16.11.2026.
+inline constexpr std::string_view MUTUAL_NAME_BEFORE_16_11 = "Фонд взаимного обеспечения";
+inline constexpr uint64_t RESERVE_PERCENT_BEFORE_16_11 = 15 * ONE_PERCENT;
+
+/**
+ * Редакция стандартных фондов 16.11.2026 (решение владельца): фонд №5
+ * называется «Фонд социально-экономического взаимодействия и социального
+ * обеспечения», резервный фонд — 10 % вместо 15 %. Меняются только строки,
+ * которые совет не правил: название и процент сверяются с прежними значениями
+ * по умолчанию, поэтому повторный вызов ничего не меняет.
+ */
+inline void apply_standard_revision_16_11(eosio::name coopname) {
+  funds_index funds(_fund, coopname.value);
+  auto mutual = funds.find(MUTUAL_ID);
+  if (mutual != funds.end() && mutual->name == MUTUAL_NAME_BEFORE_16_11) {
+    funds.modify(mutual, RamPayer::of(funds, coopname), [&](auto &row) {
+      row.name = std::string(standard_fund(MUTUAL_ID)->name);
+    });
+  }
+  auto reserve = funds.find(RESERVE_ID);
+  if (reserve != funds.end() && reserve->percent == RESERVE_PERCENT_BEFORE_16_11) {
+    funds.modify(reserve, RamPayer::of(funds, coopname), [&](auto &row) {
+      row.percent = standard_fund(RESERVE_ID)->percent;
+    });
+  }
+}
 } // namespace Fund
 
 /**
  * @brief Инициализация фондов кооператива при его старте.
  *
  * Заводит пять стандартных фондов по Положению о фондах: неделимый (1 %),
- * резервный (15 %), развития кооперации (5 %), обеспечения хозяйственной
- * деятельности и взаимного обеспечения. У каждого — свой кошелёк ledger2 на
+ * резервный (10 %), развития кооперации (5 %), обеспечения хозяйственной
+ * деятельности и социально-экономического взаимодействия и социального
+ * обеспечения. У каждого — свой кошелёк ledger2 на
  * счёте 86; остатки живут только там. Повторный вызов ничего не меняет.
  *
  * Параметр `initial` сохранён ради сигнатуры: прежний учёт начальных паевых в

@@ -74,22 +74,28 @@ export interface IPeriodTotals {
   initiator: bigint
   /** В — пайщикам обратно. */
   returned: bigint
+  /** СФ — фонду социально-экономического взаимодействия и социального обеспечения участка; по прежней формуле — ноль. */
+  social: bigint
   rateBranch: bigint
   rateFunds: bigint
   rateInitiator: bigint
+  /** r_с — доля стоимости заказа в фонд социального обеспечения; строка до 16.11.2026 — ноль. */
+  rateSocial: bigint
 }
 
 /** Ставки строки итога, по которым делится списание заказа. */
-export type IPeriodRates = Pick<IPeriodTotals, 'rateBranch' | 'rateFunds' | 'rateInitiator'>
+export type IPeriodRates = Pick<IPeriodTotals, 'rateBranch' | 'rateFunds' | 'rateInitiator'> & Partial<Pick<IPeriodTotals, 'rateSocial'>>
 
 /** Части списания одного заказа. */
 export interface IChargeParts {
   branch: bigint
   funds: bigint
   initiator: bigint
+  /** Фонду социального обеспечения участка. */
+  social: bigint
   /** Возврат пайщику на свободный паевой. */
   returned: bigint
-  /** Списано в членский взнос: участку, в фонды и инициатору вместе. */
+  /** Списано в членский взнос: участку, в фонды, инициатору и фонду социального обеспечения вместе. */
   charged: bigint
 }
 
@@ -98,8 +104,11 @@ function min(a: bigint, b: bigint): bigint {
 }
 
 /**
- * Расчёт `closeperiod`: расходы участка первыми, из остатка проценты фондов,
- * остаток делят инициатор и пайщики. С задачи 99D-34 расходы — по цели резерва:
+ * Расчёт `closeperiod`: расходы участка первыми. Экономию S = C − У новый узел
+ * (по цели резерва) делит по модели методолога 13.11.2026 (решение владельца
+ * 16.11.2026): 38,2 % пайщикам, с остальной части — фонды накопления, остаток —
+ * инициатору (φи) и фонду социального обеспечения участка. По прежней формуле —
+ * фонды с S, остаток делят инициатор и пайщики. С задачи 99D-34 расходы — по цели резерва:
  * РК = траты из денег участка + T − F_пр, собранная часть цели
  * F = max(0, T − Д) + излишек, где излишек = max(0, F_пр − траты − T): собранное
  * прошлым итогом сверх нужного переходит дальше и не собирается второй раз.
@@ -119,11 +128,27 @@ export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
   const branch = min(expenses, facts.secured)
   const deficit = expenses - branch
   const afterExpenses = facts.secured - branch
-  const funds = afterExpenses * facts.fundsPercent / HUNDR_PERCENTS
+  const share = (amount: bigint, percent: bigint) => amount * percent / HUNDR_PERCENTS
+  let funds: bigint
+  let economy: bigint
+  let initiator: bigint
+  let returned: bigint
+  let social = ZERO
+  if (byTarget) {
+    const keep = share(afterExpenses, facts.initiatorPercent)
+    returned = afterExpenses - keep
+    funds = share(keep, facts.fundsPercent)
+    economy = keep - funds
+    initiator = share(economy, facts.initiatorPercent)
+    social = economy - initiator
+  }
+  else {
+    funds = share(afterExpenses, facts.fundsPercent)
+    economy = afterExpenses - funds
+    initiator = share(economy, facts.initiatorPercent)
+    returned = economy - initiator
+  }
   const membership = branch + funds
-  const economy = afterExpenses - funds
-  const initiator = economy * facts.initiatorPercent / HUNDR_PERCENTS
-  const returned = economy - initiator
 
   const rate = (part: bigint) => (facts.turnover > ZERO ? part * HUNDR_PERCENTS / facts.turnover : ZERO)
   const funded = (byTarget && target > deficit ? target - deficit : ZERO) + surplus
@@ -139,24 +164,27 @@ export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
     economy,
     initiator,
     returned,
+    social,
     rateBranch: rate(branch),
     rateFunds: rate(funds),
     rateInitiator: rate(initiator),
+    rateSocial: rate(social),
   }
 }
 
 /**
  * Расчёт `chargeperiod` по одному заказу: `amount` — остаток обеспечительной
  * части заказа, `base` — стоимость заказа. Остатки округления достаются пайщику.
- * Если ставка заказа была ниже ставки прогона, части уменьшаются по порядку:
- * возврат, инициатору, фонды, участку.
+ * Если ставка заказа была ниже ставки итога, части уменьшаются по порядку:
+ * возврат, фонду социального обеспечения, инициатору, фонды, участку.
  */
 export function chargeOrder(rates: IPeriodRates, amount: bigint, base: bigint): IChargeParts {
   const part = (rate: bigint) => base * rate / HUNDR_PERCENTS
   let branch = part(rates.rateBranch)
   let funds = part(rates.rateFunds)
   let initiator = part(rates.rateInitiator)
-  let returned = amount - branch - funds - initiator
+  let social = part(rates.rateSocial ?? ZERO)
+  let returned = amount - branch - funds - initiator - social
 
   if (returned < ZERO) {
     let shortfall = -returned
@@ -166,11 +194,12 @@ export function chargeOrder(rates: IPeriodRates, amount: bigint, base: bigint): 
       shortfall -= cut
       return from - cut
     }
+    social = take(social)
     initiator = take(initiator)
     funds = take(funds)
     branch = take(branch)
   }
-  return { branch, funds, initiator, returned, charged: branch + funds + initiator }
+  return { branch, funds, initiator, social, returned, charged: branch + funds + initiator + social }
 }
 
 /**
@@ -183,9 +212,9 @@ export function chargeOrder(rates: IPeriodRates, amount: bigint, base: bigint): 
 export function chargeRow(rates: IPeriodRates, due: bigint, turnover: bigint, retained: bigint): IChargeParts {
   const parts = turnover > ZERO
     ? chargeOrder(rates, due, turnover)
-    : { branch: ZERO, funds: ZERO, initiator: ZERO, returned: due, charged: ZERO }
+    : { branch: ZERO, funds: ZERO, initiator: ZERO, social: ZERO, returned: due, charged: ZERO }
   const branch = parts.branch + retained
-  return { ...parts, branch, charged: branch + parts.funds + parts.initiator }
+  return { ...parts, branch, charged: branch + parts.funds + parts.initiator + parts.social }
 }
 
 /**
@@ -219,9 +248,9 @@ export function splitFunds(amount: bigint, percents: bigint[]): bigint[] {
   })
 }
 
-/** Коэффициент экономического участия месяца: участку, в фонды и инициатору вместе — доля стоимости заказа. */
+/** Коэффициент экономического участия месяца: участку, в фонды, инициатору и фонду социального обеспечения вместе — доля стоимости заказа. */
 export function chargeRate(rates: IPeriodRates): bigint {
-  return rates.rateBranch + rates.rateFunds + rates.rateInitiator
+  return rates.rateBranch + rates.rateFunds + rates.rateInitiator + (rates.rateSocial ?? ZERO)
 }
 
 // ── Возврат паевых взносов инициаторам (CRPS), задача 99D-27 ──────────────────

@@ -88,6 +88,7 @@ describe('mkt.order.keu.model.01 — контрольные примеры до�
       branch: rub(1_666.66),
       funds: rub(448),
       initiator: rub(1_041.53),
+      social: 0n,
       returned: rub(643.81),
       charged: rub(3_156.19),
     })
@@ -99,6 +100,7 @@ describe('mkt.order.keu.model.01 — контрольные примеры до�
       branch: rub(1_666.66),
       funds: rub(448),
       initiator: rub(885.34),
+      social: 0n,
       returned: 0n,
       charged: rub(3_000),
     })
@@ -235,8 +237,8 @@ describe('mkt.order.keu.model.03 — крайние значения факто�
 
   it('остаток обеспечительной части меньше доли участка: списывается только остаток, порядок урезания — инициатор, фонды, участок', () => {
     const rates = { rateBranch: 166_666n, rateFunds: 44_800n, rateInitiator: 104_153n }
-    expect(chargeOrder(rates, rub(2_000), rub(10_000))).toEqual({ branch: rub(1_666.66), funds: rub(333.34), initiator: 0n, returned: 0n, charged: rub(2_000) })
-    expect(chargeOrder(rates, rub(1_000), rub(10_000))).toEqual({ branch: rub(1_000), funds: 0n, initiator: 0n, returned: 0n, charged: rub(1_000) })
+    expect(chargeOrder(rates, rub(2_000), rub(10_000))).toEqual({ branch: rub(1_666.66), funds: rub(333.34), initiator: 0n, social: 0n, returned: 0n, charged: rub(2_000) })
+    expect(chargeOrder(rates, rub(1_000), rub(10_000))).toEqual({ branch: rub(1_000), funds: 0n, initiator: 0n, social: 0n, returned: 0n, charged: rub(1_000) })
   })
 })
 
@@ -665,8 +667,8 @@ describe('mkt.order.keu.model.05 — деление строки счётчик�
   })
 
   it('строка без стоимости: удержание участку целиком, ставки не нужны, возврат — вся часть к списанию', () => {
-    expect(chargeRow(rates, 0n, 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, returned: 0n, charged: rub(500) })
-    expect(chargeRow(rates, rub(10), 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, returned: rub(10), charged: rub(500) })
+    expect(chargeRow(rates, 0n, 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, social: 0n, returned: 0n, charged: rub(500) })
+    expect(chargeRow(rates, rub(10), 0n, rub(500))).toEqual({ branch: rub(500), funds: 0n, initiator: 0n, social: 0n, returned: rub(10), charged: rub(500) })
   })
 
   it('основание хэша нитки списания — строка с кооперативом, пайщиком, участком и периодом, как в контракте', () => {
@@ -775,7 +777,7 @@ describe('mkt.order.keu.model.06 — расходы по цели резерва
     expect(t.funded).toBe(0n)
   })
 
-  it('сохранение суммы по цели резерва: участку + фонды + инициатору + пайщикам = собрано', () => {
+  it('сохранение суммы по цели резерва: участку + фонды + инициатору + фонду социального обеспечения + пайщикам = собрано', () => {
     const rand = prng(3406)
     for (let i = 0; i < 300; i++) {
       const t = byTarget(Math.round(rand() * 900_000), {
@@ -786,12 +788,12 @@ describe('mkt.order.keu.model.06 — расходы по цели резерва
         plannedTarget: rub(Math.round(rand() * 150_000)),
         fundedPrev: rub(Math.round(rand() * 400_000)),
       })
-      const secured = t.branch + t.funds + t.initiator + t.returned
+      const secured = t.branch + t.funds + t.initiator + t.social + t.returned
       expect(t.branch <= t.expenses).toBe(true)
       // Собранная часть выше цели только на излишек прошлого сбора — при нулевых расходах.
       if (t.funded > t.target)
         expect(t.expenses).toBe(0n)
-      expect(secured).toBe(t.membership + t.economy)
+      expect(secured).toBe(t.membership + t.economy + t.returned)
     }
   })
 
@@ -806,3 +808,69 @@ describe('mkt.order.keu.model.06 — расходы по цели резерва
     expect(reserveRight({ amount: rub(100_000), accruedPeriod: 10, outstanding: rub(5_000) }, 10 + 1200)).toBe(rub(5_000) + rub(100_000) * 1200n)
   })
 })
+
+// Модель Стола заказов методолога 13.11.2026 («Модель Стол заказов_131126.xlsx»,
+// листы «Расчет ЧВ» и DCF; решение владельца 16.11.2026): экономия S = C − У
+// делится так — 38,2 % пайщикам, с остальной части фонды накопления (16 %), из
+// остатка 61,8 % инициатору, 38,2 % фонду социально-экономического
+// взаимодействия и социального обеспечения участка.
+describe('mkt.order.keu.model.07 — дележ экономии по модели методолога 13.11.2026', () => {
+  const FUNDS_16 = percent(16)
+  /** Месяц таблицы: оборот X, ОРЕХ КУ Y; обеспечительная часть — 38,2 % оборота. */
+  const month = (x: number, y: number) =>
+    closePeriod(facts(x, {
+      secured: rub(x) * percent(38.2) / H,
+      planned: rub(y),
+      memos: 0n,
+      aidPaid: 0n,
+      reserve: 0n,
+      plannedTarget: 0n,
+      fundedPrev: 0n,
+      fundsPercent: FUNDS_16,
+    }))
+  /** Сравнение с ячейкой таблицы до копейки: в цепи деление вниз, в таблице — без округления. */
+  const near = (value: bigint, sheet: number) => expect(Math.abs(Number(value) / 10_000 - sheet)).toBeLessThan(0.02)
+
+  it('числа листа DCF: месяц 1, 5 и 12 — инвестор, фонд социального обеспечения, фонды, пайщикам', () => {
+    // Значения ячеек DCF C9/G9/N9 (инвестор), C8/G8/N8 (пайщики второго этапа — фонд
+    // социального обеспечения), C6/G6/N6 (отчисления на фонды) и 38,2 % экономии — первый этап.
+    const cases = [
+      { x: 267_000, y: 96_265.29, investor: 1_837.862744, social: 1_136.025191, funds: 566.4548448 },
+      { x: 2_160_000, y: 319_071.39, investor: 162_348.5718, social: 100_351.3826, funds: 50_038.08656 },
+      { x: 6_027_000, y: 774_217.29, investor: 490_238.1186, social: 303_027.4455, funds: 151_098.2027 },
+    ]
+    for (const c of cases) {
+      const t = month(c.x, c.y)
+      const s = c.x * 0.382 - c.y
+      near(t.initiator, c.investor)
+      near(t.social, c.social)
+      near(t.funds, c.funds)
+      near(t.returned, s * 0.382)
+      expect(t.branch + t.funds + t.initiator + t.social + t.returned).toBe(rub(c.x) * percent(38.2) / H)
+    }
+  })
+
+  it('доли ставками: списание заказа повторяет дележ месяца, остаток округления — пайщику', () => {
+    const t = month(6_027_000, 774_217.29)
+    const rates = { rateBranch: t.rateBranch, rateFunds: t.rateFunds, rateInitiator: t.rateInitiator, rateSocial: t.rateSocial }
+    const order = rub(3_000)
+    const parts = chargeOrder(rates, order * percent(38.2) / H, order)
+    expect(parts.charged + parts.returned).toBe(order * percent(38.2) / H)
+    expect(parts.social).toBe(order * t.rateSocial / H)
+    expect(chargeRate(rates)).toBe(t.rateBranch + t.rateFunds + t.rateInitiator + t.rateSocial)
+  })
+
+  it('строка итога до 16.11.2026 без ставки фонда: доля фонда ноль, прежний дележ', () => {
+    const parts = chargeOrder({ rateBranch: percent(10), rateFunds: percent(5), rateInitiator: percent(10) }, rub(3_800), rub(10_000))
+    expect(parts.social).toBe(0n)
+    expect(parts.charged + parts.returned).toBe(rub(3_800))
+  })
+
+  it('прежний узел без цели резерва: экономия делится по-старому, фонда социального обеспечения нет', () => {
+    const t = closePeriod(facts(3_000_000))
+    expect(t.social).toBe(0n)
+    expect(t.rateSocial).toBe(0n)
+    expect(t.initiator + t.returned).toBe(t.economy)
+  })
+})
+

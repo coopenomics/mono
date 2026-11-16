@@ -108,6 +108,10 @@ namespace Marketplace::Memo {
     return "Трансляция паевого взноса из договора участия в главный паевой кошелёк";
   }
 
+  inline std::string get_charge_period_social_memo() {
+    return "Отчисление в фонд социально-экономического взаимодействия и социального обеспечения по итогу месяца участка";
+  }
+
   inline std::string get_charge_period_return_memo() {
     return "Возврат части обеспечительной части паевого взноса по итогу месяца участка";
   }

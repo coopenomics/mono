@@ -227,10 +227,13 @@ export class MarketplaceBranchPeriodDTO {
   @Field({ description: 'Пайщикам обратно на свободный паевой.' })
   return_amount!: string;
 
+  @Field({ description: 'В фонд социально-экономического взаимодействия и социального обеспечения участка.' })
+  social_amount!: string;
+
   @Field({ description: 'Дефицит участка: расходы без покрытия.' })
   deficit!: string;
 
-  @Field({ description: 'Коэффициент экономического участия за месяц, проценты: участку, в фонды и инициатору вместе.' })
+  @Field({ description: 'Коэффициент экономического участия за месяц, проценты: участку, в фонды, инициатору и фонду социального обеспечения вместе.' })
   rate_percent!: string;
 
   @Field({ description: 'Получатель доли инициатора в этом месяце.' })
@@ -342,6 +345,7 @@ export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity,
     branch_amount: row.branch_amount,
     initiator_amount: row.initiator_amount,
     return_amount: row.return_amount,
+    social_amount: row.social_amount ?? '0',
     deficit: row.deficit,
     rate_percent: ratePercent,
     initiator: row.initiator,

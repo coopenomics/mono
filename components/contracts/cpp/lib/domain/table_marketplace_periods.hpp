@@ -65,6 +65,12 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] kuperiod {
   eosio::binary_extension<eosio::asset> target_prev;    ///< F_пр — собранная часть цели прошлой строки
   eosio::binary_extension<eosio::asset> target_funded;  ///< F — собранная часть цели этой строки
 
+  // Дележ экономии по модели методолога 13.11.2026 (решение владельца
+  // 16.11.2026). Пишутся только вместе с полями цели резерва — строкой нового
+  // узла; у строк до 16.11.2026 их нет, доля фонда считается нулём.
+  eosio::binary_extension<eosio::asset> social_amount;  ///< СФ — в фонд социально-экономического взаимодействия и социального обеспечения по участку
+  eosio::binary_extension<uint64_t>     rate_social;    ///< r_с — доля стоимости заказа в этот фонд
+
   uint64_t  primary_key() const { return id; }
   uint64_t  by_branch() const { return braname.value; }
   uint128_t by_branch_period() const { return combine_ids(braname.value, period); }
