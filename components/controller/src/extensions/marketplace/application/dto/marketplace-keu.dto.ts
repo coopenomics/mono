@@ -25,13 +25,21 @@ export class MarketplaceAccumulationFundDTO {
 
 @ObjectType('MarketplaceEconomySettings', {
   description:
-    'Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива.',
+    'Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива.',
 })
 export class MarketplaceEconomySettingsDTO {
   @Field(() => Float, { description: 'Ставка обеспечительной части паевого взноса, проценты от стоимости заказа.' })
   membership_fee_percent!: number;
 
-  @Field(() => Float, { description: 'Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам.' })
+  @Field(() => Float, {
+    description: 'Доля пайщиков в экономии месяца, проценты: первое деление экономии — эта доля возвращается пайщикам, остальное делится дальше.',
+  })
+  return_share_percent!: number;
+
+  @Field(() => Float, {
+    description:
+      'Доля инициатора участка, проценты: второе деление — доля остатка экономии после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку.',
+  })
   initiator_share_percent!: number;
 
   @Field({ description: 'Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен.' })
@@ -46,11 +54,20 @@ export class MarketplaceEconomySettingsDTO {
 
 @InputType('MarketplaceSetInitiatorShareInput')
 export class MarketplaceSetInitiatorShareInputDTO {
-  @Field(() => Float, { description: 'Доля инициатора участка в экономии месяца, проценты (от 0 до 100).' })
+  @Field(() => Float, { description: 'Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления, проценты (от 0 до 100).' })
   @IsNumber()
   @Min(0)
   @Max(100)
   initiator_share_percent!: number;
+}
+
+@InputType('MarketplaceSetReturnShareInput')
+export class MarketplaceSetReturnShareInputDTO {
+  @Field(() => Float, { description: 'Доля пайщиков в экономии месяца, проценты (от 0 до 100).' })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  return_share_percent!: number;
 }
 
 @InputType('MarketplaceSetAidLimitInput')

@@ -27,6 +27,7 @@ import {
   MarketplaceSetBranchInitiatorInputDTO,
   MarketplaceSetBranchReserveInputDTO,
   MarketplaceSetInitiatorShareInputDTO,
+  MarketplaceSetReturnShareInputDTO,
   toMarketplaceBranchPeriodDTO,
   toMarketplaceBranchReservesDTO,
   toMarketplaceEconomySettingsDTO,
@@ -59,7 +60,7 @@ export class MarketplaceKeuResolver {
   @Query(() => MarketplaceEconomySettingsDTO, {
     name: 'marketplaceGetEconomySettings',
     description:
-      'Настройки экономики Стола заказов: ставка обеспечительной части, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения, проценты фондов накопления.',
+      'Настройки экономики Стола заказов: ставка обеспечительной части, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения, проценты фондов накопления.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read')
@@ -69,13 +70,27 @@ export class MarketplaceKeuResolver {
 
   @Mutation(() => MarketplaceEconomySettingsDTO, {
     name: 'marketplaceSetInitiatorShare',
-    description: 'Установить долю инициатора участка в экономии месяца; остальное возвращается пайщикам. Доступно администратору.',
+    description:
+      'Установить долю инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. Доступно администратору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'set-fee')
   async marketplaceSetInitiatorShare(@Args('data') data: MarketplaceSetInitiatorShareInputDTO): Promise<MarketplaceEconomySettingsDTO> {
     const coopname = platformSettings().coopname;
     await this.reserves.setInitiatorShare(coopname, data.initiator_share_percent);
+    return toMarketplaceEconomySettingsDTO(await this.reserves.getSettings(coopname));
+  }
+
+  @Mutation(() => MarketplaceEconomySettingsDTO, {
+    name: 'marketplaceSetReturnShare',
+    description:
+      'Установить долю пайщиков в экономии месяца — первое деление экономии: эта доля возвращается пайщикам, остальное делится дальше. Настройка отдельна от доли инициатора. Доступно администратору.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Economy', 'set-fee')
+  async marketplaceSetReturnShare(@Args('data') data: MarketplaceSetReturnShareInputDTO): Promise<MarketplaceEconomySettingsDTO> {
+    const coopname = platformSettings().coopname;
+    await this.reserves.setReturnShare(coopname, data.return_share_percent);
     return toMarketplaceEconomySettingsDTO(await this.reserves.getSettings(coopname));
   }
 

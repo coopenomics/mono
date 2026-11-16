@@ -27,8 +27,9 @@ const ekaterina = ROLES.member()
 const ivanpetrov = ROLES.otherMember()
 const sidorov = ROLES.supplier()
 
-const SETTINGS = 'query{ marketplaceGetEconomySettings{ membership_fee_percent initiator_share_percent aid_month_limit funds_percent funds{ name percent wallet_name } } }'
+const SETTINGS = 'query{ marketplaceGetEconomySettings{ membership_fee_percent return_share_percent initiator_share_percent aid_month_limit funds_percent funds{ name percent wallet_name } } }'
 const SET_INITIATOR_SHARE = 'mutation($d:MarketplaceSetInitiatorShareInput!){ marketplaceSetInitiatorShare(data:$d){ initiator_share_percent } }'
+const SET_RETURN_SHARE = 'mutation($d:MarketplaceSetReturnShareInput!){ marketplaceSetReturnShare(data:$d){ return_share_percent initiator_share_percent } }'
 const SET_AID_LIMIT = 'mutation($d:MarketplaceSetAidLimitInput!){ marketplaceSetAidLimit(data:$d){ aid_month_limit } }'
 const RESERVES = 'query($b:String!){ marketplaceGetBranchReserves(braname:$b){ braname limit rows{ username amount submitted remaining } } }'
 const SET_RESERVE = 'mutation($d:MarketplaceSetBranchReserveInput!){ marketplaceSetBranchReserve(data:$d){ rows{ username amount remaining } } }'
@@ -94,17 +95,24 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
   it(caseName('mkt.order.keu.api.01', 'администратор задаёт долю инициатора и потолок резерва; настройки читаются с процентами фондов'), async () => {
     const share = await gql<any>(chairmanToken, SET_INITIATOR_SHARE, { d: { initiator_share_percent: 61.8 } })
     expect(share.marketplaceSetInitiatorShare.initiator_share_percent).toBeCloseTo(61.8, 4)
+    // Доля пайщиков — отдельная настройка: её запись долю инициатора не меняет.
+    const back = await gql<any>(chairmanToken, SET_RETURN_SHARE, { d: { return_share_percent: 38.2 } })
+    expect(back.marketplaceSetReturnShare.return_share_percent).toBeCloseTo(38.2, 4)
+    expect(back.marketplaceSetReturnShare.initiator_share_percent).toBeCloseTo(61.8, 4)
     const limit = await gql<any>(chairmanToken, SET_AID_LIMIT, { d: { aid_month_limit: RESERVE_CHAIR } })
     expect(amount(limit.marketplaceSetAidLimit.aid_month_limit)).toBeCloseTo(RESERVE_CHAIR, 4)
 
     settings = (await gql<any>(chairmanToken, SETTINGS)).marketplaceGetEconomySettings
     expect(settings.initiator_share_percent).toBeCloseTo(61.8, 4)
+    expect(settings.return_share_percent).toBeCloseTo(38.2, 4)
     expect(settings.funds_percent, 'проценты фондов складываются из строк').toBeCloseTo(
       settings.funds.reduce((s: number, f: any) => s + Number(f.percent), 0), 4,
     )
 
     const over = await refusal(chairmanToken, SET_INITIATOR_SHARE, { d: { initiator_share_percent: 101 } })
     expect(over, 'доля выше 100 % отклоняется до цепи').toBeTruthy()
+    const overReturn = await refusal(chairmanToken, SET_RETURN_SHARE, { d: { return_share_percent: 101 } })
+    expect(overReturn, 'доля пайщиков выше 100 % отклоняется до цепи').toBeTruthy()
   })
 
   it(caseName('mkt.order.keu.api.02', 'председатель участка задаёт резерв получателям; выше потолка и постороннему — отказ'), async () => {
@@ -157,18 +165,19 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
     const U = C < RK ? C : RK
     const p = percentUnits(settings.funds_percent)
     const phi = percentUnits(settings.initiator_share_percent)
-    // Дележ экономии по модели методолога 13.11.2026 (решение владельца 16.11.2026):
-    // 38,2 % пайщикам, фонды с остальной части, остаток — инициатору и фонду социального обеспечения участка.
+    const rho = percentUnits(settings.return_share_percent)
+    // Дележ экономии по модели методолога 13.11.2026 (решение владельца 16.11.2026), две настройки:
+    // доля пайщиков ρ — пайщикам, фонды с остальной части, остаток — инициатору (φ) и фонду социального обеспечения участка.
     const S = C - U
-    const K = S * phi / H
+    const K = S * (H - rho) / H
     const F = K * p / H
     const E = K - F
     const I = E * phi / H
     expect(units(periodRow.branch_amount), 'У = min(C, РК)').toBe(U)
     expect(units(periodRow.deficit), 'Д = РК − У').toBe(RK - U)
-    expect(units(periodRow.funds_amount), 'Ф = (S × φ) × p').toBe(F)
+    expect(units(periodRow.funds_amount), 'Ф = (S − S × ρ) × p').toBe(F)
     expect(units(periodRow.membership), 'М = У + Ф').toBe(U + F)
-    expect(units(periodRow.return_amount), 'В = S − S × φ').toBe(S - K)
+    expect(units(periodRow.return_amount), 'В = S − K, K = S × (1 − ρ)').toBe(S - K)
     expect(units(periodRow.initiator_amount), 'И = Э × φ').toBe(I)
     expect(units(periodRow.social_amount), 'СФ = Э − И').toBe(E - I)
     // Расходы по цели резерва (задача 99D-34): РК = траты месяца + T − F_пр, не меньше нуля;

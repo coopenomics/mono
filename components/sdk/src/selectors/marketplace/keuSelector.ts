@@ -15,6 +15,7 @@ const _validateAccumulationFund: MakeAllFieldsRequired<ValueTypes['MarketplaceAc
 
 export const rawMarketplaceEconomySettingsSelector = {
   membership_fee_percent: true,
+  return_share_percent: true,
   initiator_share_percent: true,
   aid_month_limit: true,
   funds_percent: true,

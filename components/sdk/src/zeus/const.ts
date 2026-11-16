@@ -1623,6 +1623,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetOfferWarrantyInput:{
 
 	},
+	MarketplaceSetReturnShareInput:{
+
+	},
 	MarketplaceSetReviewStatusInput:{
 		status:"MarketplaceReviewStatus"
 	},
@@ -2848,6 +2851,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSetOfferWarranty:{
 			input:"MarketplaceSetOfferWarrantyInput"
+		},
+		marketplaceSetReturnShare:{
+			data:"MarketplaceSetReturnShareInput"
 		},
 		marketplaceSetReviewStatus:{
 			data:"MarketplaceSetReviewStatusInput"
@@ -7808,7 +7814,8 @@ export const ReturnTypes: Record<string,any> = {
 		funds:"MarketplaceAccumulationFund",
 		funds_percent:"Float",
 		initiator_share_percent:"Float",
-		membership_fee_percent:"Float"
+		membership_fee_percent:"Float",
+		return_share_percent:"Float"
 	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
@@ -9096,6 +9103,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
 		marketplaceSetOfferWarranty:"MarketplaceOffer",
+		marketplaceSetReturnShare:"MarketplaceEconomySettings",
 		marketplaceSetReviewStatus:"MarketplaceReview",
 		marketplaceSetSupplierPayoutMethod:"MarketplaceSupplierPaymentSettings",
 		marketplaceSetTrusteeWeight:"Boolean",

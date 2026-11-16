@@ -120,6 +120,11 @@ export * as SetFee from './setFee'
 export * as SetShares from './setShares'
 
 /**
+ * Доля пайщиков в экономии месяца — первое деление экономии (задача 99D-35).
+ */
+export * as SetRetShare from './setRetShare'
+
+/**
  * Инициатор кооперативного участка Стола заказов (задача 99D-21).
  */
 export * as SetInitiator from './setInitiator'

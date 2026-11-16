@@ -11,7 +11,7 @@
  *     период конца гарантийного срока: стоимость и обеспечительная часть по факту;
  *   • до окончания периода `closeperiod` и `chargeperiod` отвечают
  *     MARKETPLACE_PERIOD_OPEN;
- *   • setshares / setinitiator — настройки доли инициатора и инициатора участка;
+ *   • setshares / setretshare / setinitiator — настройки доли инициатора, доли пайщиков и инициатора участка;
  *   • closeperiod после окончания периода — T и C из счётчика участка, от узла
  *     три факта о расходах → строка kuperiods, формулы которой сверяются с
  *     эталоном; счётчик участка стёрт; повтор — MARKETPLACE_PERIOD_EXISTS, период
@@ -93,6 +93,7 @@ let period = 0
 let periodRow: any = null
 let fundsPercent = 0n
 let initiatorPercent = 0n
+let returnPercent = 382_000n
 
 /** Строки пайщицы на участке по периодам: период → обеспечительная часть к списанию. */
 async function memberRows(): Promise<Map<number, bigint>> {
@@ -154,6 +155,7 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     fundsPercent = (await accumulationFunds(bc)).reduce((s, f) => s + BigInt(f.percent), 0n)
     const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
     initiatorPercent = BigInt(cfg[0]?.initiator_share_percent ?? 618_000)
+    returnPercent = BigInt(cfg[0]?.return_share_percent ?? 382_000)
 
     // Резерв обеспечения председателю — слагаемое расходов прогона.
     await push(BRANCH, 'setaidlimit', { coopname: COOP, limit: '1000.0000 RUB' })
@@ -196,6 +198,15 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     await expect(push(MARKET, 'setshares', { coopname: COOP, initiator_share_percent: 1_000_001 })).rejects.toThrow(/MARKETPLACE_INITIATOR_SHARE_INVALID/)
   })
 
+  it('setretshare: доля пайщиков — отдельная настройка, долю инициатора не меняет; выше 100 % — отказ', async () => {
+    await push(MARKET, 'setretshare', { coopname: COOP, return_share_percent: 382_000 })
+    const cfg: any[] = await bc.getTableRows(MARKET, COOP, 'config', 1)
+    expect(Number(cfg[0]?.return_share_percent)).toBe(382_000)
+    expect(Number(cfg[0]?.initiator_share_percent), 'доля инициатора осталась прежней').toBe(Number(initiatorPercent))
+    returnPercent = 382_000n
+    await expect(push(MARKET, 'setretshare', { coopname: COOP, return_share_percent: 1_000_001 })).rejects.toThrow(/MARKETPLACE_RETURN_SHARE_INVALID/)
+  })
+
   it('setinitiator: инициатор участка назначается отдельно от председателя; посторонний не пайщик — отказ', async () => {
     await push(MARKET, 'setinitiator', { coopname: COOP, braname: BRANAME, username: chairkrg.account })
     const rows: any[] = await bc.getTableRows(MARKET, COOP, 'initiators', 100)
@@ -206,7 +217,7 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
   it('closeperiod после окончания периода: T и C из счётчика участка, строка сходится по формулам документа; повтор — MARKETPLACE_PERIOD_EXISTS; период без заказов — MARKETPLACE_PERIOD_EMPTY; отказы аргументов', async () => {
     await waitPeriodEnd(bc, period)
     const planned = 200n * UNITS
-    const month = await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent }, 'итог периода', { planned }, period)
+    const month = await closeMonthAndCompare({ bc, push, braname: BRANAME, fundsPercent, initiatorPercent, returnPercent }, 'итог периода', { planned }, period)
     periodRow = month.row
     // Право получателя помощи на следующий период копится (задача 99D-34): не меньше суммы строки.
     expect(units(periodRow.aid_reserve) >= 300n * UNITS, 'право получателя на следующий период').toBe(true)

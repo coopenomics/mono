@@ -339,10 +339,16 @@ inline UserWalletAvailable get_user_wallet_balance(eosio::name coopname,
 /// `setfee` (в т.ч. явный 0 — обеспечительная часть осознанно отключена).
 constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 380000;
 
-/// Дефолтная доля инициатора участка в экономии месяца — 61,8 % (золотое
-/// сечение из расчётной таблицы «Соседей»; остальные 38,2 % возвращаются
-/// пайщикам). Действует, пока администратор не задал свою через `setshares`.
+/// Дефолтная доля инициатора участка в остатке экономии после возврата пайщикам
+/// и фондов накопления — 61,8 % (золотое сечение из расчётной таблицы
+/// «Соседей»; остальные 38,2 % — фонду социального обеспечения по участку).
+/// Действует, пока администратор не задал свою через `setshares`.
 constexpr uint64_t DEFAULT_INITIATOR_SHARE_PERCENT = 618000;
+
+/// Дефолтная доля пайщиков в экономии месяца — 38,2 % (модель методолога
+/// 13.11.2026: пайщики получают обратно 38,2 % экономии, 61,8 % делятся
+/// дальше). Действует, пока администратор не задал свою через `setretshare`.
+constexpr uint64_t DEFAULT_RETURN_SHARE_PERCENT = 382000;
 
 /// Единая ставка обеспечительной части паевого взноса кооператива
 /// (HUNDR_PERCENTS = 100%; имя поля историческое — задача 99D-18);
@@ -352,8 +358,9 @@ inline uint64_t get_membership_fee_percent(eosio::name coopname) {
   return cfg.exists() ? cfg.get().membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT;
 }
 
-/// Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100 %); поле —
-/// расширение структуры, у прежних строк значения нет — берётся дефолт.
+/// Доля инициатора участка в остатке экономии после возврата пайщикам и фондов
+/// накопления (HUNDR_PERCENTS = 100 %); поле — расширение структуры, у прежних
+/// строк значения нет — берётся дефолт.
 inline uint64_t get_initiator_share_percent(eosio::name coopname) {
   mkt_config_singleton cfg(_marketplace, coopname.value);
   if (!cfg.exists()) return DEFAULT_INITIATOR_SHARE_PERCENT;
@@ -361,6 +368,18 @@ inline uint64_t get_initiator_share_percent(eosio::name coopname) {
   return state.initiator_share_percent.has_value()
     ? state.initiator_share_percent.value()
     : DEFAULT_INITIATOR_SHARE_PERCENT;
+}
+
+/// Доля пайщиков в экономии месяца (HUNDR_PERCENTS = 100 %) — первое деление
+/// экономии; отдельная настройка от доли инициатора. У строк без значения —
+/// дефолт.
+inline uint64_t get_return_share_percent(eosio::name coopname) {
+  mkt_config_singleton cfg(_marketplace, coopname.value);
+  if (!cfg.exists()) return DEFAULT_RETURN_SHARE_PERCENT;
+  const auto state = cfg.get();
+  return state.return_share_percent.has_value()
+    ? state.return_share_percent.value()
+    : DEFAULT_RETURN_SHARE_PERCENT;
 }
 
 /**
