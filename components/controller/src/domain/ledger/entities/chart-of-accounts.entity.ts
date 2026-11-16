@@ -66,7 +66,7 @@ export class ChartOfAccountsEntity {
     RESERVE_FUND: 862, // Резервный фонд
     INDIVISIBLE_FUND: 863, // Неделимый фонд
     ECONOMIC_ACTIVITY_FUND: 864, // Фонд обеспечения хозяйственной деятельности
-    MUTUAL_SECURITY_FUND: 865, // Фонд взаимного обеспечения
+    MUTUAL_SECURITY_FUND: 865, // Фонд социально-экономического взаимодействия и социального обеспечения
     DEVELOPMENT_FUND: 866, // Фонд развития потребительской кооперации
     // OTHER_INCOME_EXPENSES: 91, // Прочие доходы и расходы
     // FUTURE_EXPENSES_RESERVE: 96, // Резерв предстоящих расходов

@@ -12,6 +12,8 @@ export const rawReportsFundSelector = {
   wallet_name: true,
   account: true,
   available: true,
+  branches_wallet: true,
+  branches_available: true,
   income: true,
   outcome: true,
 }

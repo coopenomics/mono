@@ -178,3 +178,48 @@ describe('fnd.wal.backend.03 — правка фонда председател�
     expect(registry.editFund).toHaveBeenCalledWith(expect.objectContaining({ type: 'expend', fund_id: 5, percent: 0 }));
   });
 });
+
+describe('fnd.wal.backend.04 — средства фонда по участкам: остаток, обороты и история вместе с кошельком w.fnd.social', () => {
+  it('остаток фонда №5 — оба кошелька, средства участков отдельной суммой; у остальных фондов такого кошелька нет', async () => {
+    const { service } = makeService(
+      [
+        op('o.mkt.social', '39660.7680 RUB', { username: 'krg' }),
+        op('o.mkt.social', '1136.0252 RUB', { username: 'pvz' }),
+      ],
+      [
+        { id: 'w.fnd.mutual', available: '100.0000 RUB' },
+        { id: 'w.fnd.social', available: '40796.7932 RUB' },
+        { id: 'w.fnd.indiv', available: '47.6190 RUB' },
+      ],
+    );
+    const view = await service.registryView({ coopname: COOP });
+    const [indiv, , , , mutual] = view.funds;
+    expect(mutual.wallet).toBe('w.fnd.mutual');
+    expect(mutual.branches_wallet).toBe('w.fnd.social');
+    expect(mutual.branches_available).toBe('40796.7932 RUB');
+    expect(mutual.available).toBe('40896.7932 RUB');
+    expect(mutual.income).toBe('40796.7932 RUB');
+    expect(mutual.outcome).toBe('0.0000 RUB');
+    expect(indiv.branches_wallet).toBeNull();
+    expect(indiv.branches_available).toBeNull();
+    expect(indiv.available).toBe('47.6190 RUB');
+  });
+
+  it('история фонда №5 показывает зачисление итога месяца с именем участка', async () => {
+    const { service, ledger } = makeService([op('o.mkt.social', '39660.7680 RUB', { username: 'krg' })]);
+    const page = await service.history({ coopname: COOP, fund_id: 5 }, { page: 1, limit: 50, sortOrder: 'DESC' });
+    expect(page.totalCount).toBe(1);
+    expect(page.items[0]).toMatchObject({
+      operation_code: 'o.mkt.social',
+      direction: 'in',
+      amount: '39660.7680 RUB',
+      counterparty_wallet: 'w.mkt.fee',
+      username: 'krg',
+      process_type: 'p.mkt.due',
+    });
+    const requested = (ledger.getHistory.mock.calls[0]![0] as { operationCodes: string[] }).operationCodes;
+    expect(requested).toContain('o.mkt.social');
+    // Выплата материальной помощи с кошелька фонда остаётся в его истории.
+    expect(requested).toContain('o.brn.aid');
+  });
+});

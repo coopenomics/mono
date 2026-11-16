@@ -155,8 +155,17 @@ export default async ({ page, shot, expect }) => {
   // Форма обрезает цену до цены приёмки: поднять её при выдаче нельзя, отказали
   // бы и сервер, и контракт. Набранное вдвое большее значение возвращается к
   // потолку, итог — к исходному.
-  const dearerTotal = await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
+  await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
+  // Потолок форма применяет после ввода, на реактивности: итог успевает
+  // сдвинуться от уценённого раньше, чем цена вернётся к потолку. Читать поле
+  // сразу значит прочесть набранное (съёмка 43891637144: ждали 200, прочли
+  // 400), поэтому ждём, пока поле покажет цену приёмки, и только тогда берём итог.
+  for (let i = 0; i < 40; i++) {
+    if (Number.parseFloat(await priceInput.inputValue()) === unitPrice) break;
+    await page.waitForTimeout(250);
+  }
   const cappedPrice = Number.parseFloat(await priceInput.inputValue());
+  const dearerTotal = await sumByLabel(dialog, 'Итого к оплате');
 
   await shot(
     page,

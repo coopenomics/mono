@@ -45,8 +45,20 @@ export class ReportsFundDTO {
   @Field(() => Int, { description: 'Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000)' })
   account!: number;
 
-  @Field(() => String, { description: 'Остаток кошелька фонда' })
+  @Field(() => String, { description: 'Остаток фонда: кошелёк фонда и его средства по участкам вместе' })
   available!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Кошелёк средств фонда по кооперативным участкам; у фонда без такого кошелька — пусто',
+  })
+  branches_wallet?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Средства фонда по кооперативным участкам — часть остатка; у фонда без такого кошелька — пусто',
+  })
+  branches_available?: string | null;
 
   @Field(() => String, { description: 'Поступления в фонд за период' })
   income!: string;

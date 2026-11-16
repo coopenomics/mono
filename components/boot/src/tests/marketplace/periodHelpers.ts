@@ -218,6 +218,8 @@ export interface PeriodContext {
   braname: string
   fundsPercent: bigint
   initiatorPercent: bigint
+  /** Доля пайщиков в экономии — вторая настройка; не задана — значение контракта по умолчанию. */
+  returnPercent?: bigint
 }
 
 /**
@@ -244,6 +246,7 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
     reservePrev: await reservePrevOf(ctx.bc, ctx.braname, period),
     fundsPercent: ctx.fundsPercent,
     initiatorPercent: ctx.initiatorPercent,
+    returnPercent: ctx.returnPercent,
     plannedTarget: input.plannedTarget ?? 0n,
     fundedPrev: await fundedPrevOf(ctx.bc, ctx.braname, period),
   }

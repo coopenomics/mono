@@ -75,6 +75,12 @@ const MARKETPLACE_SOURCE_CONTRACT = 'marketplace';
 const BRANCH_COMMON_WALLET = 'w.brn.common';
 /** Персональный кошелёк членских средств доверенного лица участка. */
 const BRANCH_PERSONAL_WALLET = 'w.brn.person';
+/**
+ * Кошелёк фонда социально-экономического взаимодействия и социального
+ * обеспечения по участку: владелец строки — имя участка. Пополняет его итог
+ * месяца (операция `o.mkt.social`, решение владельца 16.11.2026).
+ */
+const BRANCH_SOCIAL_FUND_WALLET = 'w.fnd.social';
 
 export interface MarketplaceTrusteeWeightView {
   username: string;
@@ -103,6 +109,12 @@ export interface MarketplaceBranchEconomyView {
    * источника — хватает ли на запись, стол сверяет по каждому источнику.
    */
   available_for_expenses: string;
+  /**
+   * Средства фонда социально-экономического взаимодействия и социального
+   * обеспечения по участку (`w.fnd.social`), asset-строка. Участок ими не
+   * распоряжается: расход — решением совета.
+   */
+  social_fund_balance: string;
 }
 
 /** Одно движение по общему кошельку КУ (`w.brn.common`) — только apply-записи ledger2 (несут operation_code + memo). */
@@ -341,10 +353,11 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, common, plans, initiatorsFree] = await Promise.all([
+    const [weights, totals, common, socialFund, plans, initiatorsFree] = await Promise.all([
       this.chainPort.getBranchWeights(coopname, braname),
       this.chainPort.getBranchWeightTotals(coopname, braname),
       this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
+      this.chainPort.getUserWallet(coopname, BRANCH_SOCIAL_FUND_WALLET, braname),
       this.expenseChassis.listPlans(coopname, braname),
       this.initiatorFreeFunds(coopname, braname),
     ]);
@@ -388,6 +401,7 @@ export class MarketplaceEconomyService {
       available_to_distribute: this.formatAsset(available),
       initiators_free: this.formatAsset(initiatorsFree),
       available_for_expenses: this.formatAsset(this.assetToNumber(commonBalance) + initiatorsFree),
+      social_fund_balance: socialFund?.available ?? this.zeroAsset(),
     };
   }
 

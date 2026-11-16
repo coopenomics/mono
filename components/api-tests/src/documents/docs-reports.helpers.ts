@@ -370,7 +370,7 @@ export async function payAid(gross: number, recipient: Who = ROLES.branchChairma
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `выплата матпомощи ${aidHash} у кассира` })
   await cashierPaid(payment.id)
 
-  // Выплата на руки и налог — с фонда взаимного обеспечения (o.brn.aid,
+  // Выплата на руки и налог — с фонда социально-экономического взаимодействия и социального обеспечения (o.brn.aid,
   // o.brn.aidtax) либо из средств инициаторов участка (o.mkt.iaid, o.mkt.iaidtx,
   // задача 99D-28): источник контракт выбрал при подаче заявления.
   const AID = new Set(['o.brn.aid', 'o.mkt.iaid'])

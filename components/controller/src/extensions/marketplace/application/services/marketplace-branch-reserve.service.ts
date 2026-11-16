@@ -14,6 +14,8 @@ import { t as i18nT } from '../../i18n';
 const HUNDR_PERCENTS = 1_000_000;
 /** Доля инициатора по умолчанию — зеркало DEFAULT_INITIATOR_SHARE_PERCENT контракта marketplace. */
 const DEFAULT_INITIATOR_SHARE_PERCENT = 618_000;
+/** Доля пайщиков в экономии по умолчанию — зеркало DEFAULT_RETURN_SHARE_PERCENT контракта marketplace. */
+const DEFAULT_RETURN_SHARE_PERCENT = 382_000;
 
 /** Строка резерва получателя с остатком на текущий месяц. */
 export interface MarketplaceBranchReserveView {
@@ -36,6 +38,9 @@ export interface MarketplaceBranchReservesView {
 /** Настройки экономики Стола заказов для стола администратора. */
 export interface MarketplaceEconomySettingsView {
   membership_fee_percent: number;
+  /** Доля пайщиков в экономии месяца — первое деление экономии, проценты. */
+  return_share_percent: number;
+  /** Доля инициатора в остатке экономии после возврата пайщикам и фондов — второе деление, проценты. */
   initiator_share_percent: number;
   /** Потолок резерва на получателя в месяц, asset-строка. */
   aid_month_limit: string;
@@ -150,9 +155,11 @@ export class MarketplaceBranchReserveService implements OnApplicationBootstrap {
       this.economyService.getMembershipFeePercent(coopname),
     ]);
     const initiator = config?.initiator_share_percent ?? DEFAULT_INITIATOR_SHARE_PERCENT;
+    const returned = config?.return_share_percent ?? DEFAULT_RETURN_SHARE_PERCENT;
     const fundsPercent = funds.reduce((sum, f) => sum + Number(f.percent), 0);
     return {
       membership_fee_percent: feePercent,
+      return_share_percent: this.toHumanPercent(returned),
       initiator_share_percent: this.toHumanPercent(initiator),
       aid_month_limit: branchConfig?.aid_month_limit ?? this.economyService.unitsToAsset(0n),
       funds_percent: this.toHumanPercent(fundsPercent),
@@ -172,6 +179,17 @@ export class MarketplaceBranchReserveService implements OnApplicationBootstrap {
       rethrowChainError(e);
     }
     return this.toHumanPercent(initiator_share_percent);
+  }
+
+  /** Доля пайщиков в экономии месяца — первое деление; от доли инициатора не зависит (решение владельца 16.11.2026). */
+  async setReturnShare(coopname: string, percentHuman: number): Promise<number> {
+    const return_share_percent = this.toContractPercent(percentHuman, i18nT('marketplace.economy.returnShareLabel'));
+    try {
+      await this.chainPort.setRetShare({ coopname, return_share_percent });
+    } catch (e) {
+      rethrowChainError(e);
+    }
+    return this.toHumanPercent(return_share_percent);
   }
 
   async setAidLimit(coopname: string, amountHuman: number): Promise<string> {

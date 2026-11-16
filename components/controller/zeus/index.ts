@@ -11414,6 +11414,8 @@ export type ValueTypes = {
 	initiators_free?:boolean | `@${string}`,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount?:boolean | `@${string}`,
+	/** Средства фонда социально-экономического взаимодействия и социального обеспечения по участку. Кошелёк пополняет итог месяца; расход — решением совета. */
+	social_fund_balance?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
 	total_weight?:boolean | `@${string}`,
 	/** Участники распределения и их веса. */
@@ -12208,7 +12210,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceEconomyConfig']?: Omit<ValueTypes["MarketplaceEconomyConfig"], "...on MarketplaceEconomyConfig">
 }>;
-	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
 ["MarketplaceEconomySettings"]: AliasType<{
 	/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit?:boolean | `@${string}`,
@@ -12216,10 +12218,12 @@ export type ValueTypes = {
 	funds?:ValueTypes["MarketplaceAccumulationFund"],
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent?:boolean | `@${string}`,
-	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
+	/** Доля инициатора участка, проценты: второе деление — доля остатка экономии после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. */
 	initiator_share_percent?:boolean | `@${string}`,
 	/** Ставка обеспечительной части паевого взноса, проценты от стоимости заказа. */
 	membership_fee_percent?:boolean | `@${string}`,
+	/** Доля пайщиков в экономии месяца, проценты: первое деление экономии — эта доля возвращается пайщикам, остальное делится дальше. */
+	return_share_percent?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceEconomySettings']?: Omit<ValueTypes["MarketplaceEconomySettings"], "...on MarketplaceEconomySettings">
 }>;
@@ -13853,7 +13857,7 @@ export type ValueTypes = {
 	delivery_braname: string | Variable<any, string>
 };
 	["MarketplaceSetInitiatorShareInput"]: {
-	/** Доля инициатора участка в экономии месяца, проценты (от 0 до 100). */
+	/** Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления, проценты (от 0 до 100). */
 	initiator_share_percent: number | Variable<any, string>
 };
 	["MarketplaceSetKUStatusInput"]: {
@@ -13872,6 +13876,10 @@ export type ValueTypes = {
 	offer_id: string | Variable<any, string>,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number | Variable<any, string>
+};
+	["MarketplaceSetReturnShareInput"]: {
+	/** Доля пайщиков в экономии месяца, проценты (от 0 до 100). */
+	return_share_percent: number | Variable<any, string>
 };
 	["MarketplaceSetReviewStatusInput"]: {
 	/** Идентификатор отзыва. */
@@ -15515,6 +15523,7 @@ marketplaceSetInitiatorShare?: [{	data: ValueTypes["MarketplaceSetInitiatorShare
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ValueTypes["MarketplaceSetMembershipFeeInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomyConfig"]],
 marketplaceSetOfferWarranty?: [{	input: ValueTypes["MarketplaceSetOfferWarrantyInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceSetReturnShare?: [{	data: ValueTypes["MarketplaceSetReturnShareInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomySettings"]],
 marketplaceSetReviewStatus?: [{	data: ValueTypes["MarketplaceSetReviewStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceReview"]],
 marketplaceSetSupplierPayoutMethod?: [{	input: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierPaymentSettings"]],
 marketplaceSetTrusteeWeight?: [{	data: ValueTypes["MarketplaceSetTrusteeWeightInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -17844,7 +17853,7 @@ marketplaceGetBranchWalletHistory?: [{	braname: string | Variable<any, string>,	
 marketplaceGetCategoryRules?: [{	categoryId: number | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 	/** Единая ставка членского взноса кооператива: процент, который добавляется к стоимости каждого заказа и после исполнения заказа распределяется кооперативному участку выдачи. */
 	marketplaceGetEconomyConfig?:ValueTypes["MarketplaceEconomyConfig"],
-	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
 	marketplaceGetEconomySettings?:ValueTypes["MarketplaceEconomySettings"],
 marketplaceGetOffer?: [{	id: string | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceGetOrder?: [{	input: ValueTypes["MarketplaceGetOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
@@ -18407,8 +18416,12 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 ["ReportsFund"]: AliasType<{
 	/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
 	account?:boolean | `@${string}`,
-	/** Остаток кошелька фонда */
+	/** Остаток фонда: кошелёк фонда и его средства по участкам вместе */
 	available?:boolean | `@${string}`,
+	/** Средства фонда по кооперативным участкам — часть остатка; у фонда без такого кошелька — пусто */
+	branches_available?:boolean | `@${string}`,
+	/** Кошелёк средств фонда по кооперативным участкам; у фонда без такого кошелька — пусто */
+	branches_wallet?:boolean | `@${string}`,
 	/** Описание фонда */
 	description?:boolean | `@${string}`,
 	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
@@ -30705,6 +30718,8 @@ export type ResolverInputTypes = {
 	initiators_free?:boolean | `@${string}`,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount?:boolean | `@${string}`,
+	/** Средства фонда социально-экономического взаимодействия и социального обеспечения по участку. Кошелёк пополняет итог месяца; расход — решением совета. */
+	social_fund_balance?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
 	total_weight?:boolean | `@${string}`,
 	/** Участники распределения и их веса. */
@@ -31470,7 +31485,7 @@ export type ResolverInputTypes = {
 	membership_fee_percent?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
 ["MarketplaceEconomySettings"]: AliasType<{
 	/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit?:boolean | `@${string}`,
@@ -31478,10 +31493,12 @@ export type ResolverInputTypes = {
 	funds?:ResolverInputTypes["MarketplaceAccumulationFund"],
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent?:boolean | `@${string}`,
-	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
+	/** Доля инициатора участка, проценты: второе деление — доля остатка экономии после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. */
 	initiator_share_percent?:boolean | `@${string}`,
 	/** Ставка обеспечительной части паевого взноса, проценты от стоимости заказа. */
 	membership_fee_percent?:boolean | `@${string}`,
+	/** Доля пайщиков в экономии месяца, проценты: первое деление экономии — эта доля возвращается пайщикам, остальное делится дальше. */
+	return_share_percent?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceExpressPickupCandidate"]: AliasType<{
@@ -33064,7 +33081,7 @@ export type ResolverInputTypes = {
 	delivery_braname: string
 };
 	["MarketplaceSetInitiatorShareInput"]: {
-	/** Доля инициатора участка в экономии месяца, проценты (от 0 до 100). */
+	/** Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления, проценты (от 0 до 100). */
 	initiator_share_percent: number
 };
 	["MarketplaceSetKUStatusInput"]: {
@@ -33083,6 +33100,10 @@ export type ResolverInputTypes = {
 	offer_id: string,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number
+};
+	["MarketplaceSetReturnShareInput"]: {
+	/** Доля пайщиков в экономии месяца, проценты (от 0 до 100). */
+	return_share_percent: number
 };
 	["MarketplaceSetReviewStatusInput"]: {
 	/** Идентификатор отзыва. */
@@ -34683,6 +34704,7 @@ marketplaceSetInitiatorShare?: [{	data: ResolverInputTypes["MarketplaceSetInitia
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ResolverInputTypes["MarketplaceSetMembershipFeeInput"]},ResolverInputTypes["MarketplaceEconomyConfig"]],
 marketplaceSetOfferWarranty?: [{	input: ResolverInputTypes["MarketplaceSetOfferWarrantyInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceSetReturnShare?: [{	data: ResolverInputTypes["MarketplaceSetReturnShareInput"]},ResolverInputTypes["MarketplaceEconomySettings"]],
 marketplaceSetReviewStatus?: [{	data: ResolverInputTypes["MarketplaceSetReviewStatusInput"]},ResolverInputTypes["MarketplaceReview"]],
 marketplaceSetSupplierPayoutMethod?: [{	input: ResolverInputTypes["MarketplaceSetSupplierPayoutMethodInput"]},ResolverInputTypes["MarketplaceSupplierPaymentSettings"]],
 marketplaceSetTrusteeWeight?: [{	data: ResolverInputTypes["MarketplaceSetTrusteeWeightInput"]},boolean | `@${string}`],
@@ -36919,7 +36941,7 @@ marketplaceGetBranchWalletHistory?: [{	braname: string,	options?: ResolverInputT
 marketplaceGetCategoryRules?: [{	categoryId: number},ResolverInputTypes["MarketplaceAvailableCategory"]],
 	/** Единая ставка членского взноса кооператива: процент, который добавляется к стоимости каждого заказа и после исполнения заказа распределяется кооперативному участку выдачи. */
 	marketplaceGetEconomyConfig?:ResolverInputTypes["MarketplaceEconomyConfig"],
-	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
 	marketplaceGetEconomySettings?:ResolverInputTypes["MarketplaceEconomySettings"],
 marketplaceGetOffer?: [{	id: string},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceGetOrder?: [{	input: ResolverInputTypes["MarketplaceGetOrderInput"]},ResolverInputTypes["MarketplaceOrder"]],
@@ -37463,8 +37485,12 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 ["ReportsFund"]: AliasType<{
 	/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
 	account?:boolean | `@${string}`,
-	/** Остаток кошелька фонда */
+	/** Остаток фонда: кошелёк фонда и его средства по участкам вместе */
 	available?:boolean | `@${string}`,
+	/** Средства фонда по кооперативным участкам — часть остатка; у фонда без такого кошелька — пусто */
+	branches_available?:boolean | `@${string}`,
+	/** Кошелёк средств фонда по кооперативным участкам; у фонда без такого кошелька — пусто */
+	branches_wallet?:boolean | `@${string}`,
 	/** Описание фонда */
 	description?:boolean | `@${string}`,
 	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
@@ -49347,6 +49373,8 @@ export type ModelTypes = {
 	initiators_free: string,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount: string,
+	/** Средства фонда социально-экономического взаимодействия и социального обеспечения по участку. Кошелёк пополняет итог месяца; расход — решением совета. */
+	social_fund_balance: string,
 	/** Сумма весов участников распределения. */
 	total_weight: number,
 	/** Участники распределения и их веса. */
@@ -50081,7 +50109,7 @@ export type ModelTypes = {
 		/** Ставка членского взноса, проценты (1.5 = 1,5%). 0 — взнос не начисляется. */
 	membership_fee_percent: number
 };
-	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
 ["MarketplaceEconomySettings"]: {
 		/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
 	aid_month_limit: string,
@@ -50089,10 +50117,12 @@ export type ModelTypes = {
 	funds: Array<ModelTypes["MarketplaceAccumulationFund"]>,
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent: number,
-	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
+	/** Доля инициатора участка, проценты: второе деление — доля остатка экономии после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. */
 	initiator_share_percent: number,
 	/** Ставка обеспечительной части паевого взноса, проценты от стоимости заказа. */
-	membership_fee_percent: number
+	membership_fee_percent: number,
+	/** Доля пайщиков в экономии месяца, проценты: первое деление экономии — эта доля возвращается пайщикам, остальное делится дальше. */
+	return_share_percent: number
 };
 	["MarketplaceExpressPickupCandidate"]: {
 		/** КУ-получатель. */
@@ -51596,7 +51626,7 @@ export type ModelTypes = {
 	delivery_braname: string
 };
 	["MarketplaceSetInitiatorShareInput"]: {
-	/** Доля инициатора участка в экономии месяца, проценты (от 0 до 100). */
+	/** Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления, проценты (от 0 до 100). */
 	initiator_share_percent: number
 };
 	["MarketplaceSetKUStatusInput"]: {
@@ -51615,6 +51645,10 @@ export type ModelTypes = {
 	offer_id: string,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number
+};
+	["MarketplaceSetReturnShareInput"]: {
+	/** Доля пайщиков в экономии месяца, проценты (от 0 до 100). */
+	return_share_percent: number
 };
 	["MarketplaceSetReviewStatusInput"]: {
 	/** Идентификатор отзыва. */
@@ -53489,7 +53523,7 @@ export type ModelTypes = {
 	marketplaceSetBranchReserve: ModelTypes["MarketplaceBranchReserves"],
 	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
 	marketplaceSetCartDeliveryPoint: ModelTypes["MarketplaceCart"],
-	/** Установить долю инициатора участка в экономии месяца; остальное возвращается пайщикам. Доступно администратору. */
+	/** Установить долю инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. Доступно администратору. */
 	marketplaceSetInitiatorShare: ModelTypes["MarketplaceEconomySettings"],
 	/** Активирует или деактивирует ПВЗ Стола заказов. */
 	marketplaceSetKUStatus: ModelTypes["MarketplaceKUDetails"],
@@ -53497,6 +53531,8 @@ export type ModelTypes = {
 	marketplaceSetMembershipFee: ModelTypes["MarketplaceEconomyConfig"],
 	/** Изменить гарантийный срок возврата предложения (admin) */
 	marketplaceSetOfferWarranty: ModelTypes["MarketplaceOffer"],
+	/** Установить долю пайщиков в экономии месяца — первое деление экономии: эта доля возвращается пайщикам, остальное делится дальше. Настройка отдельна от доли инициатора. Доступно администратору. */
+	marketplaceSetReturnShare: ModelTypes["MarketplaceEconomySettings"],
 	/** Администратор скрывает отзыв с причиной либо возвращает его в публикацию. */
 	marketplaceSetReviewStatus: ModelTypes["MarketplaceReview"],
 	/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки. */
@@ -55877,7 +55913,7 @@ export type ModelTypes = {
 	marketplaceGetCategoryRules: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Единая ставка членского взноса кооператива: процент, который добавляется к стоимости каждого заказа и после исполнения заказа распределяется кооперативному участку выдачи. */
 	marketplaceGetEconomyConfig: ModelTypes["MarketplaceEconomyConfig"],
-	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
 	marketplaceGetEconomySettings: ModelTypes["MarketplaceEconomySettings"],
 	/** Одно предложение по идентификатору — для страницы с полным описанием. */
 	marketplaceGetOffer?: ModelTypes["MarketplaceOffer"] | undefined | null,
@@ -56480,8 +56516,12 @@ export type ModelTypes = {
 ["ReportsFund"]: {
 		/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
 	account: number,
-	/** Остаток кошелька фонда */
+	/** Остаток фонда: кошелёк фонда и его средства по участкам вместе */
 	available: string,
+	/** Средства фонда по кооперативным участкам — часть остатка; у фонда без такого кошелька — пусто */
+	branches_available?: string | undefined | null,
+	/** Кошелёк средств фонда по кооперативным участкам; у фонда без такого кошелька — пусто */
+	branches_wallet?: string | undefined | null,
 	/** Описание фонда */
 	description: string,
 	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
@@ -68899,6 +68939,8 @@ export type GraphQLTypes = {
 	initiators_free: string,
 	/** Резерв плановых расходов: неоплаченные расходы участка со сроком до конца текущего месяца, включая просроченные. Эта часть общего кошелька недоступна распределению. */
 	reserve_amount: string,
+	/** Средства фонда социально-экономического взаимодействия и социального обеспечения по участку. Кошелёк пополняет итог месяца; расход — решением совета. */
+	social_fund_balance: string,
 	/** Сумма весов участников распределения. */
 	total_weight: number,
 	/** Участники распределения и их веса. */
@@ -69692,7 +69734,7 @@ export type GraphQLTypes = {
 	membership_fee_percent: number,
 	['...on MarketplaceEconomyConfig']: Omit<GraphQLTypes["MarketplaceEconomyConfig"], "...on MarketplaceEconomyConfig">
 };
-	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива. */
 ["MarketplaceEconomySettings"]: {
 	__typename: "MarketplaceEconomySettings",
 	/** Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен. */
@@ -69701,10 +69743,12 @@ export type GraphQLTypes = {
 	funds: Array<GraphQLTypes["MarketplaceAccumulationFund"]>,
 	/** Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка. */
 	funds_percent: number,
-	/** Доля инициатора участка в экономии месяца, проценты; остальное возвращается пайщикам. */
+	/** Доля инициатора участка, проценты: второе деление — доля остатка экономии после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. */
 	initiator_share_percent: number,
 	/** Ставка обеспечительной части паевого взноса, проценты от стоимости заказа. */
 	membership_fee_percent: number,
+	/** Доля пайщиков в экономии месяца, проценты: первое деление экономии — эта доля возвращается пайщикам, остальное делится дальше. */
+	return_share_percent: number,
 	['...on MarketplaceEconomySettings']: Omit<GraphQLTypes["MarketplaceEconomySettings"], "...on MarketplaceEconomySettings">
 };
 	["MarketplaceExpressPickupCandidate"]: {
@@ -71337,7 +71381,7 @@ export type GraphQLTypes = {
 	delivery_braname: string
 };
 	["MarketplaceSetInitiatorShareInput"]: {
-		/** Доля инициатора участка в экономии месяца, проценты (от 0 до 100). */
+		/** Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления, проценты (от 0 до 100). */
 	initiator_share_percent: number
 };
 	["MarketplaceSetKUStatusInput"]: {
@@ -71356,6 +71400,10 @@ export type GraphQLTypes = {
 		offer_id: string,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number
+};
+	["MarketplaceSetReturnShareInput"]: {
+		/** Доля пайщиков в экономии месяца, проценты (от 0 до 100). */
+	return_share_percent: number
 };
 	["MarketplaceSetReviewStatusInput"]: {
 		/** Идентификатор отзыва. */
@@ -73332,7 +73380,7 @@ export type GraphQLTypes = {
 	marketplaceSetBranchReserve: GraphQLTypes["MarketplaceBranchReserves"],
 	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
 	marketplaceSetCartDeliveryPoint: GraphQLTypes["MarketplaceCart"],
-	/** Установить долю инициатора участка в экономии месяца; остальное возвращается пайщикам. Доступно администратору. */
+	/** Установить долю инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку. Доступно администратору. */
 	marketplaceSetInitiatorShare: GraphQLTypes["MarketplaceEconomySettings"],
 	/** Активирует или деактивирует ПВЗ Стола заказов. */
 	marketplaceSetKUStatus: GraphQLTypes["MarketplaceKUDetails"],
@@ -73340,6 +73388,8 @@ export type GraphQLTypes = {
 	marketplaceSetMembershipFee: GraphQLTypes["MarketplaceEconomyConfig"],
 	/** Изменить гарантийный срок возврата предложения (admin) */
 	marketplaceSetOfferWarranty: GraphQLTypes["MarketplaceOffer"],
+	/** Установить долю пайщиков в экономии месяца — первое деление экономии: эта доля возвращается пайщикам, остальное делится дальше. Настройка отдельна от доли инициатора. Доступно администратору. */
+	marketplaceSetReturnShare: GraphQLTypes["MarketplaceEconomySettings"],
 	/** Администратор скрывает отзыв с причиной либо возвращает его в публикацию. */
 	marketplaceSetReviewStatus: GraphQLTypes["MarketplaceReview"],
 	/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки. */
@@ -75942,7 +75992,7 @@ export type GraphQLTypes = {
 	marketplaceGetCategoryRules: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Единая ставка членского взноса кооператива: процент, который добавляется к стоимости каждого заказа и после исполнения заказа распределяется кооперативному участку выдачи. */
 	marketplaceGetEconomyConfig: GraphQLTypes["MarketplaceEconomyConfig"],
-	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля инициатора участка в экономии месяца, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
+	/** Настройки экономики Стола заказов: ставка обеспечительной части, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения, проценты фондов накопления. */
 	marketplaceGetEconomySettings: GraphQLTypes["MarketplaceEconomySettings"],
 	/** Одно предложение по идентификатору — для страницы с полным описанием. */
 	marketplaceGetOffer?: GraphQLTypes["MarketplaceOffer"] | undefined | null,
@@ -76588,8 +76638,12 @@ export type GraphQLTypes = {
 	__typename: "ReportsFund",
 	/** Счёт плана счетов, субсчётом которого служит кошелёк (код ×1000) */
 	account: number,
-	/** Остаток кошелька фонда */
+	/** Остаток фонда: кошелёк фонда и его средства по участкам вместе */
 	available: string,
+	/** Средства фонда по кооперативным участкам — часть остатка; у фонда без такого кошелька — пусто */
+	branches_available?: string | undefined | null,
+	/** Кошелёк средств фонда по кооперативным участкам; у фонда без такого кошелька — пусто */
+	branches_wallet?: string | undefined | null,
 	/** Описание фонда */
 	description: string,
 	/** Номер фонда в реестре (1…5); 0 — справочная строка вне реестра */
@@ -80732,6 +80786,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceSetMembershipFeeInput"]: ValueTypes["MarketplaceSetMembershipFeeInput"];
 	["MarketplaceSetOfferWarrantyInput"]: ValueTypes["MarketplaceSetOfferWarrantyInput"];
+	["MarketplaceSetReturnShareInput"]: ValueTypes["MarketplaceSetReturnShareInput"];
 	["MarketplaceSetReviewStatusInput"]: ValueTypes["MarketplaceSetReviewStatusInput"];
 	["MarketplaceSetSupplierPayoutMethodInput"]: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"];
 	["MarketplaceSetTrusteeWeightInput"]: ValueTypes["MarketplaceSetTrusteeWeightInput"];

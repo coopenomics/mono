@@ -321,6 +321,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   migrateDue(data: MarketContract.Actions.MigrateDue.IMigrateDue): Promise<InnerTransactResult>;
   /** Доля инициатора участка в экономии месяца (marketplace::setshares). */
   setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult>;
+  /** Доля пайщиков в экономии месяца — первое деление экономии (`marketplace::setretshare`). */
+  setRetShare(data: MarketContract.Actions.SetRetShare.ISetRetShare): Promise<InnerTransactResult>;
   /** Инициатор участка; пустое имя снимает назначение (marketplace::setinitiator). */
   setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */

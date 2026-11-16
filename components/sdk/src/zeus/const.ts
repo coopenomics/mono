@@ -1623,6 +1623,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetOfferWarrantyInput:{
 
 	},
+	MarketplaceSetReturnShareInput:{
+
+	},
 	MarketplaceSetReviewStatusInput:{
 		status:"MarketplaceReviewStatus"
 	},
@@ -2848,6 +2851,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSetOfferWarranty:{
 			input:"MarketplaceSetOfferWarrantyInput"
+		},
+		marketplaceSetReturnShare:{
+			data:"MarketplaceSetReturnShareInput"
 		},
 		marketplaceSetReviewStatus:{
 			data:"MarketplaceSetReviewStatusInput"
@@ -7564,6 +7570,7 @@ export const ReturnTypes: Record<string,any> = {
 		common_balance:"String",
 		initiators_free:"String",
 		reserve_amount:"String",
+		social_fund_balance:"String",
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
 	},
@@ -7807,7 +7814,8 @@ export const ReturnTypes: Record<string,any> = {
 		funds:"MarketplaceAccumulationFund",
 		funds_percent:"Float",
 		initiator_share_percent:"Float",
-		membership_fee_percent:"Float"
+		membership_fee_percent:"Float",
+		return_share_percent:"Float"
 	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
@@ -9095,6 +9103,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
 		marketplaceSetOfferWarranty:"MarketplaceOffer",
+		marketplaceSetReturnShare:"MarketplaceEconomySettings",
 		marketplaceSetReviewStatus:"MarketplaceReview",
 		marketplaceSetSupplierPayoutMethod:"MarketplaceSupplierPaymentSettings",
 		marketplaceSetTrusteeWeight:"Boolean",
@@ -10407,6 +10416,8 @@ export const ReturnTypes: Record<string,any> = {
 	ReportsFund:{
 		account:"Int",
 		available:"String",
+		branches_available:"String",
+		branches_wallet:"String",
 		description:"String",
 		id:"Int",
 		income:"String",

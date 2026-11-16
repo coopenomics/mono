@@ -103,8 +103,16 @@ export interface ISetFee {
 
 export interface IMktConfig {
   membership_fee_percent: IUint64
-  /** Доля инициатора участка в экономии месяца (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
+  /** Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
   initiator_share_percent?: IUint64
+  /** Доля пайщиков в экономии месяца — первое деление (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
+  return_share_percent?: IUint64
+}
+
+export interface ISetRetShare {
+  coopname: IName
+  /** Доля пайщиков в экономии месяца, доли HUNDR_PERCENTS. */
+  return_share_percent: IUint64
 }
 
 export interface ISetShares {

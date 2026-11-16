@@ -45,6 +45,17 @@ export async function setInitiatorShare(data: ISetInitiatorShareInput): Promise<
   return result;
 }
 
+export type ISetReturnShareInput = Mutations.Marketplace.SetReturnShare.IInput['data'];
+
+/** Доля пайщиков в экономии месяца — первое деление экономии, отдельная настройка. */
+export async function setReturnShare(data: ISetReturnShareInput): Promise<MarketplaceEconomySettingsView> {
+  const { [Mutations.Marketplace.SetReturnShare.name]: result } = await client.Mutation(
+    Mutations.Marketplace.SetReturnShare.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
 export type ISetAidLimitInput = Mutations.Marketplace.SetAidLimit.IInput['data'];
 
 export async function setAidLimit(data: ISetAidLimitInput): Promise<MarketplaceEconomySettingsView> {

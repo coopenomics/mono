@@ -469,6 +469,22 @@ const walletCards = computed<SumCard[]>(() => {
 })
 
 /**
+ * Средства фонда социально-экономического взаимодействия и социального
+ * обеспечения по участку (кошелёк `w.fnd.social`, решение владельца
+ * 16.11.2026). Карточка стоит только на вкладке кошелька: участок этими
+ * средствами не распоряжается, поэтому у кнопки «Распределить» её нет.
+ */
+const socialFundCard = computed<SumCard>(() => ({
+  key: 'social-fund',
+  icon: 'diversity_3',
+  title: i18nT('marketplace.operatorBranchEconomyPage.socialFundTitle'),
+  subtitle: i18nT('marketplace.operatorBranchEconomyPage.socialFundSubtitle'),
+  hint: i18nT('marketplace.operatorBranchEconomyPage.socialFundHint'),
+  ...cardMoney(economy.value?.social_fund_balance),
+  label: '',
+}))
+
+/**
  * Текущий месяц карточками: расходы месяца, выданные заказы, их обеспечительная
  * часть, ожидаемый итог (недостача или сумма сверх расходов) и средства
  * инициаторов участка. Итог считается по тем же правилам, что прогон, но
@@ -1049,14 +1065,22 @@ const periodFlow = computed<StepperStep[]>(() => {
     return steps
   }
   // Порядок дележа экономии — модель методолога 13.11.2026 (решение владельца
-  // 16.11.2026): пайщикам, фонды накопления, инициаторам, фонд социального обеспечения.
-  steps.push({ key: 'returned', label: i18nT('marketplace.operatorBranchEconomyPage.flowReturned', { amount: fmt(p.return_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowReturnedSub') })
-  steps.push({ key: 'funds', label: i18nT('marketplace.operatorBranchEconomyPage.flowFunds', { amount: fmt(p.funds_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowFundsSub') })
+  // 16.11.2026): пайщикам, фонды накопления, инициаторам, фонд социального
+  // обеспечения. Итог по прежней формуле доли фонда не имеет: у него фонды
+  // накопления считались первыми, пайщики получали остаток — шаги стоят в том порядке.
+  const bySocial = assetAmount(p.social_amount) > 0
+  const returned: StepperStep = { key: 'returned', label: i18nT('marketplace.operatorBranchEconomyPage.flowReturned', { amount: fmt(p.return_amount) }),
+    description: bySocial ? i18nT('marketplace.operatorBranchEconomyPage.flowReturnedSub') : i18nT('marketplace.operatorBranchEconomyPage.flowReturnedRestSub') }
+  if (bySocial) steps.push(returned)
+  steps.push({ key: 'funds', label: i18nT('marketplace.operatorBranchEconomyPage.flowFunds', { amount: fmt(p.funds_amount) }),
+    description: bySocial ? i18nT('marketplace.operatorBranchEconomyPage.flowFundsSub') : i18nT('marketplace.operatorBranchEconomyPage.flowFundsRestSub') })
   const repaying = p.invest_phase === Zeus.MarketplacePeriodInvestPhase.REPAYING
   steps.push({ key: 'initiators', label: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaid', { amount: fmt(p.investor_repaid) }) : i18nT('marketplace.operatorBranchEconomyPage.flowInitiators', { amount: fmt(p.initiator_amount) }),
     description: repaying ? i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsRepaidSub') : i18nT('marketplace.operatorBranchEconomyPage.flowInitiatorsSub') })
-  if (assetAmount(p.social_amount) > 0)
+  if (bySocial)
     steps.push({ key: 'social', label: i18nT('marketplace.operatorBranchEconomyPage.flowSocial', { amount: fmt(p.social_amount) }), description: i18nT('marketplace.operatorBranchEconomyPage.flowSocialSub') })
+  else
+    steps.push(returned)
   return steps
 })
 const periodDrawerOpen = computed({
@@ -1248,6 +1272,19 @@ q-page.economy
           :balance='c.balance',
           :symbol='c.symbol',
           :balance-label='c.label',
+          :loading='loading && !economy'
+        )
+        //- Средства фонда социального обеспечения по участку: пополняет итог
+        //- месяца, расход — решением совета.
+        WalletCard(
+          program='wallet',
+          :icon='socialFundCard.icon',
+          :title='socialFundCard.title',
+          :subtitle='socialFundCard.subtitle',
+          :hint='socialFundCard.hint',
+          :balance='socialFundCard.balance',
+          :symbol='socialFundCard.symbol',
+          :balance-label='socialFundCard.label',
           :loading='loading && !economy'
         )
 

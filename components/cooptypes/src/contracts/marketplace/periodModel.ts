@@ -18,6 +18,12 @@ export const HUNDR_PERCENTS = BigInt(1_000_000)
 
 const ZERO = BigInt(0)
 
+/** Доля инициатора в остатке экономии по умолчанию — 61,8 % (`DEFAULT_INITIATOR_SHARE_PERCENT`). */
+export const DEFAULT_INITIATOR_SHARE_PERCENT = BigInt(618_000)
+
+/** Доля пайщиков в экономии месяца по умолчанию — 38,2 % (`DEFAULT_RETURN_SHARE_PERCENT`). */
+export const DEFAULT_RETURN_SHARE_PERCENT = BigInt(382_000)
+
 /** Факты прогона: пять чисел от ИСТОКА и четыре числа из таблиц цепи. */
 export interface IPeriodFacts {
   /** T — стоимость заказов прогона. */
@@ -46,8 +52,14 @@ export interface IPeriodFacts {
   plannedTarget?: bigint
   /** F_пр — собранная часть цели прошлой строки участка; строки нет — ноль. */
   fundedPrev?: bigint
-  /** φи — доля инициатора в экономии. */
+  /** φи — доля инициатора в остатке экономии после возврата пайщикам и фондов накопления. */
   initiatorPercent: bigint
+  /**
+   * φп — доля пайщиков в экономии месяца, первое деление (настройка
+   * `return_share_percent`, действие `setretshare`). Не задана — значение
+   * контракта по умолчанию `DEFAULT_RETURN_SHARE_PERCENT`.
+   */
+  returnPercent?: bigint
 }
 
 /** Строка итога месяца так, как её записывает контракт. */
@@ -106,8 +118,9 @@ function min(a: bigint, b: bigint): bigint {
 /**
  * Расчёт `closeperiod`: расходы участка первыми. Экономию S = C − У новый узел
  * (по цели резерва) делит по модели методолога 13.11.2026 (решение владельца
- * 16.11.2026): 38,2 % пайщикам, с остальной части — фонды накопления, остаток —
- * инициатору (φи) и фонду социального обеспечения участка. По прежней формуле —
+ * 16.11.2026) двумя отдельными настройками: доля пайщиков φп возвращается
+ * пайщикам, с остальной части — фонды накопления, остаток — инициатору (φи) и
+ * фонду социального обеспечения участка. По прежней формуле —
  * фонды с S, остаток делят инициатор и пайщики. С задачи 99D-34 расходы — по цели резерва:
  * РК = траты из денег участка + T − F_пр, собранная часть цели
  * F = max(0, T − Д) + излишек, где излишек = max(0, F_пр − траты − T): собранное
@@ -135,7 +148,7 @@ export function closePeriod(facts: IPeriodFacts): IPeriodTotals {
   let returned: bigint
   let social = ZERO
   if (byTarget) {
-    const keep = share(afterExpenses, facts.initiatorPercent)
+    const keep = share(afterExpenses, HUNDR_PERCENTS - (facts.returnPercent ?? DEFAULT_RETURN_SHARE_PERCENT))
     returned = afterExpenses - keep
     funds = share(keep, facts.fundsPercent)
     economy = keep - funds

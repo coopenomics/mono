@@ -552,7 +552,8 @@
       "distributionReserveViolationIntro": "Распределение нарушает резерв плановых расходов до конца текущего месяца: ",
       "distributionTitle": "Распределение членских взносов кооперативного участка",
       "targetMembershipFeeLabel": "Ставка обеспечительной части паевого взноса",
-      "initiatorShareLabel": "Доля инициатора участка в экономии месяца"
+      "initiatorShareLabel": "Доля инициатора участка в экономии месяца",
+      "returnShareLabel": "Доля пайщиков в экономии месяца"
     },
     "extensionModule": {
       "agreementTitle": "Целевая потребительская программа «Стол заказов»"

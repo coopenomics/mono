@@ -874,3 +874,56 @@ describe('mkt.order.keu.model.07 — дележ экономии по модел
   })
 })
 
+
+describe('mkt.order.keu.model.09 — два деления экономии считают две отдельные настройки', () => {
+  const FUNDS_16 = percent(16)
+  /** Экономия 200 000 ₽: собрано 700 000 ₽, расходы 500 000 ₽ (сценарий 4 PRD инвестиционного этапа). */
+  const split = (extra: { initiatorPercent?: bigint, returnPercent?: bigint } = {}) =>
+    closePeriod(facts(1_842_106, {
+      secured: rub(700_000),
+      planned: rub(500_000),
+      memos: 0n,
+      aidPaid: 0n,
+      reserve: 0n,
+      plannedTarget: 0n,
+      fundedPrev: 0n,
+      fundsPercent: FUNDS_16,
+      ...extra,
+    }))
+
+  it('значения по умолчанию: пайщикам 76 400, фонды 19 776, инициаторам 64 163,232, фонду 39 660,768', () => {
+    const t = split()
+    expect(t.returned).toBe(rub(76_400))
+    expect(t.funds).toBe(rub(19_776))
+    expect(t.initiator).toBe(rub(64_163.232))
+    expect(t.social).toBe(rub(39_660.768))
+    // Явные значения по умолчанию дают тот же итог, что строка настроек без второй настройки.
+    expect(split({ returnPercent: percent(38.2), initiatorPercent: percent(61.8) })).toEqual(t)
+  })
+
+  it('доля пайщиков меняет первое деление и не трогает пропорцию второго', () => {
+    const t = split({ returnPercent: percent(50) })
+    expect(t.returned).toBe(rub(100_000))
+    expect(t.funds).toBe(rub(16_000))
+    // Остаток 84 000 делится по доле инициатора 61,8 %.
+    expect(t.initiator).toBe(rub(51_912))
+    expect(t.social).toBe(rub(32_088))
+  })
+
+  it('доля инициатора меняет второе деление и не трогает возврат пайщикам и фонды', () => {
+    const base = split()
+    const t = split({ initiatorPercent: percent(50) })
+    expect(t.returned).toBe(base.returned)
+    expect(t.funds).toBe(base.funds)
+    expect(t.initiator).toBe(rub(51_912))
+    expect(t.social).toBe(rub(51_912))
+  })
+
+  it('края настроек: доля пайщиков 100 % — вся экономия пайщикам; 0 % — пайщикам только остатки округления', () => {
+    const all = split({ returnPercent: H })
+    expect([all.returned, all.funds, all.initiator, all.social]).toEqual([rub(200_000), 0n, 0n, 0n])
+    const none = split({ returnPercent: 0n })
+    expect(none.returned).toBe(0n)
+    expect(none.funds + none.initiator + none.social).toBe(rub(200_000))
+  })
+})

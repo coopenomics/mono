@@ -20,6 +20,7 @@ import {
   type MarketplaceEconomySettingsView,
   setAidLimit,
   setInitiatorShare,
+  setReturnShare,
   setMembershipFee,
 } from '../api'
 import { t } from 'src/shared/i18n';
@@ -44,7 +45,7 @@ import { t } from 'src/shared/i18n';
  * притворяется формой там, где меняют одну цифру.
  */
 
-type SettingKey = 'fee' | 'initiator' | 'aidLimit'
+type SettingKey = 'fee' | 'returnShare' | 'initiator' | 'aidLimit'
 
 const { info } = useSystemStore()
 
@@ -67,6 +68,7 @@ function assetSymbol(asset: string | undefined): string {
 /** Полное название настройки — заголовок и подпись поля диалога правки. */
 const SETTING_LABELS: Record<SettingKey, string> = {
   fee: t('marketplace.marketEconomy.feeLabel'),
+  returnShare: t('marketplace.marketEconomy.returnShareLabel'),
   initiator: t('marketplace.marketEconomy.initiatorShareLabel'),
   aidLimit: t('marketplace.marketEconomy.aidLimitLabel'),
 }
@@ -97,7 +99,45 @@ interface SettingCard {
   editable: boolean
 }
 
-/** Карточки по пути денег заказа: ставка → доля инициатора в экономии → потолок резерва → фонды. */
+/**
+ * Два деления экономии участка — две карточки с правкой: доля пайщиков
+ * (первое деление) и доля инициатора в остатке после фондов (второе деление).
+ * Подсказка каждой называет, что делит доля и когда она применяется.
+ */
+const shareTiles = computed<SettingCard[]>(() => {
+  const s = settings.value
+  const applied = t('marketplace.marketEconomy.periodSettingsHint')
+  return [
+    {
+      key: 'returnShare',
+      caption: t('marketplace.marketEconomy.returnTileCaption'),
+      value: percentShort(s?.return_share_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.returnShareSubtitle'),
+      hint: `${t('marketplace.marketEconomy.returnTileHint')} ${applied}`,
+      icon: 'undo',
+      label: t('marketplace.marketEconomy.cardShare'),
+      editable: true,
+    },
+    {
+      key: 'initiator',
+      caption: t('marketplace.marketEconomy.initiatorTileCaption'),
+      value: percentShort(s?.initiator_share_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.initiatorShareSubtitle'),
+      hint: `${t('marketplace.marketEconomy.initiatorTileHint')} ${applied}`,
+      icon: 'trending_up',
+      label: t('marketplace.marketEconomy.cardShare'),
+      editable: true,
+    },
+  ]
+})
+
+/**
+ * Карточки по пути денег заказа: ставка → доля пайщиков в экономии (первое
+ * деление) → доля инициатора в остатке (второе деление) → потолок резерва →
+ * фонды. Два деления — две настройки (решение владельца 16.11.2026).
+ */
 const tiles = computed<SettingCard[]>(() => {
   const s = settings.value
   const limitOn = assetAmount(s?.aid_month_limit) > 0
@@ -113,17 +153,7 @@ const tiles = computed<SettingCard[]>(() => {
       label: t('marketplace.marketEconomy.cardRate'),
       editable: true,
     },
-    {
-      key: 'initiator',
-      caption: t('marketplace.marketEconomy.initiatorTileCaption'),
-      value: percentShort(s?.initiator_share_percent),
-      symbol: '%',
-      sub: t('marketplace.marketEconomy.initiatorShareSubtitle'),
-      hint: t('marketplace.marketEconomy.periodSettingsHint'),
-      icon: 'trending_up',
-      label: t('marketplace.marketEconomy.cardShare'),
-      editable: true,
-    },
+    ...shareTiles.value,
     {
       key: 'aidLimit',
       caption: t('marketplace.marketEconomy.aidLimitTileCaption'),
@@ -158,6 +188,7 @@ const currentValue = computed<number>(() => {
   if (!s) return 0
   switch (editing.value) {
     case 'fee': return s.membership_fee_percent
+    case 'returnShare': return s.return_share_percent
     case 'initiator': return s.initiator_share_percent
     default: return assetAmount(s.aid_month_limit)
   }
@@ -201,6 +232,10 @@ async function onSave(): Promise<void> {
         SuccessAlert(t('marketplace.marketEconomy.setSuccess'))
         break
       }
+      case 'returnShare':
+        settings.value = await setReturnShare({ return_share_percent: value })
+        SuccessAlert(t('marketplace.marketEconomy.returnShareSetSuccess'))
+        break
       case 'initiator':
         settings.value = await setInitiatorShare({ initiator_share_percent: value })
         SuccessAlert(t('marketplace.marketEconomy.initiatorShareSetSuccess'))
@@ -265,7 +300,7 @@ q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
     | {{ $t('marketplace.marketEconomy.intro') }}
 
-  //- Модель кооператива карточками: три настройки администратора (кнопка
+  //- Модель кооператива карточками: четыре настройки администратора (кнопка
   //- «Изменить» в карточке, своим диалогом) и проценты фондов накопления
   //- только для чтения — ими распоряжается совет. Подробности — подсказкой у названия.
   .wallet-grid

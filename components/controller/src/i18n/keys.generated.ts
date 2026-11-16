@@ -2778,6 +2778,7 @@ export type MessageKey =
   | 'marketplace.economy.distributionReserveViolationIntro'
   | 'marketplace.economy.distributionTitle'
   | 'marketplace.economy.initiatorShareLabel'
+  | 'marketplace.economy.returnShareLabel'
   | 'marketplace.economy.targetMembershipFeeLabel'
   | 'marketplace.extensionModule.agreementTitle'
   | 'marketplace.inventoryTypes.boxOnly'

@@ -31,8 +31,11 @@
  *                                            излишек = max(0, F_пр − ПО − СЗ − МП − T) —
  *                                            собранное прошлым итогом сверх нужного
  *                                            переходит дальше и не собирается заново
- *   Дележ экономии S = C − У (модель методолога 13.11.2026, решение владельца 16.11.2026):
- *   K    = S × φи / H,  В = S − K            пайщикам — первые 38,2 % экономии
+ *   Дележ экономии S = C − У (модель методолога 13.11.2026, решение владельца 16.11.2026).
+ *   Два деления — две отдельные настройки: φп — доля пайщиков в экономии
+ *   (`setretshare`, по умолчанию 38,2 %), φи — доля инициатора в остатке после
+ *   фондов (`setshares`, по умолчанию 61,8 %):
+ *   K    = S × (H − φп) / H,  В = S − K      пайщикам — их доля экономии
  *   Ф    = K × p / H,   Э = K − Ф            фонды накопления — с оставшейся части
  *   И    = Э × φи / H,  СФ = Э − И           инициатору и фонду социального обеспечения участка
  *   М    = У + Ф
@@ -167,17 +170,21 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
   const int64_t deficit_amount = expenses.amount - branch_amount;
   const int64_t after_expenses = secured.amount - branch_amount;
   const uint64_t initiator_percent = Marketplace::get_initiator_share_percent(coopname);
+  // Доля пайщиков — своя настройка, от доли инициатора не зависит.
+  const uint64_t return_percent = Marketplace::get_return_share_percent(coopname);
+  eosio::check(return_percent <= HUNDR_PERCENTS && initiator_percent <= HUNDR_PERCENTS,
+               "MARKETPLACE_PERIOD_SHARES_INVALID: Доли дележа экономии не могут быть выше 100%");
   const auto share = [&](int64_t amount, uint64_t percent) -> int64_t {
     return static_cast<int64_t>(static_cast<uint128_t>(amount) * percent / H);
   };
   // Дележ экономии участка S = C − У по модели методолога 13.11.2026 (решение
   // владельца 16.11.2026), только для нового узла (by_target):
-  //   K  = S × φи / H         часть к дележу — членский взнос сверх расходов
-  //   В  = S − K              пайщикам обратно (первые 38,2 %)
+  //   K  = S × (H − φп) / H   часть к дележу — членский взнос сверх расходов
+  //   В  = S − K              пайщикам обратно (доля пайщиков φп)
   //   Ф  = K × p / H          фонды накопления
   //   Э  = K − Ф
   //   И  = Э × φи / H         инициатору
-  //   СФ = Э − И              фонду социального обеспечения по участку (вторые 38,2 %)
+  //   СФ = Э − И              фонду социального обеспечения по участку (остаток после доли инициатора)
   // Старый узел — прежний дележ: Ф = S × p, Э = S − Ф, И = Э × φи, В = Э − И.
   int64_t funds_amount = 0;
   int64_t economy_amount = 0;
@@ -185,7 +192,7 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
   int64_t return_amount = 0;
   int64_t social_amount = 0;
   if (by_target) {
-    const int64_t keep_amount = share(after_expenses, initiator_percent);
+    const int64_t keep_amount = share(after_expenses, HUNDR_PERCENTS - return_percent);
     return_amount = after_expenses - keep_amount;
     funds_amount = share(keep_amount, funds_percent);
     economy_amount = keep_amount - funds_amount;

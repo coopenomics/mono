@@ -37,7 +37,7 @@ function build(opts: {
   /** Подано за текущий период по зеркалу заявлений узла (колонка «Подано в текущем месяце»). */
   mirrorSubmitted?: Record<string, string>;
   initiators?: Array<{ braname: string; username: string }>;
-  config?: { membership_fee_percent: number; initiator_share_percent?: number } | null;
+  config?: { membership_fee_percent: number; initiator_share_percent?: number; return_share_percent?: number } | null;
   submitted?: Record<string, string>;
   aidPeriod?: number;
   /** Длина периода предела помощи в настройках участков, секунд (brnconfig.aid_period_seconds). */
@@ -67,6 +67,7 @@ function build(opts: {
       ].find((w) => w.wallet_name === walletName && w.username === username) ?? null
     ),
     setShares: jest.fn(async () => ({})),
+    setRetShare: jest.fn(async () => ({})),
     setAidLimit: jest.fn(async () => ({})),
     setAidPeriod: jest.fn(async () => ({})),
     setInitiator: jest.fn(async () => ({})),
@@ -97,10 +98,12 @@ function build(opts: {
 }
 
 describe('mkt.order.keu.10 — настройки экономики для администратора', () => {
-  it('ставка, доля инициатора, потолок и проценты фондов — в человеческих единицах', async () => {
-    const { service } = build({ config: { membership_fee_percent: 380_000, initiator_share_percent: 618_000 } });
+  it('ставка, доля пайщиков, доля инициатора, потолок и проценты фондов — в человеческих единицах', async () => {
+    const { service } = build({ config: { membership_fee_percent: 380_000, initiator_share_percent: 618_000, return_share_percent: 400_000 } });
     expect(await service.getSettings(COOP)).toEqual({
       membership_fee_percent: 38,
+      // Две отдельные настройки: доля пайщиков не выводится из доли инициатора.
+      return_share_percent: 40,
       initiator_share_percent: 61.8,
       aid_month_limit: '200000.0000 RUB',
       funds_percent: 21,
@@ -116,7 +119,23 @@ describe('mkt.order.keu.10 — настройки экономики для ад
     const { service } = build({ config: null, limit: null });
     const s = await service.getSettings(COOP);
     expect(s.initiator_share_percent).toBe(61.8);
+    expect(s.return_share_percent).toBe(38.2);
     expect(s.aid_month_limit).toBe('0.0000 RUB');
+  });
+
+  it('строка настроек до второй настройки: доля пайщиков — 38,2 % по умолчанию при любой доле инициатора', async () => {
+    const { service } = build({ config: { membership_fee_percent: 380_000, initiator_share_percent: 500_000 } });
+    const s = await service.getSettings(COOP);
+    expect(s.initiator_share_percent).toBe(50);
+    expect(s.return_share_percent).toBe(38.2);
+  });
+
+  it('setReturnShare пишет долю пайщиков своим действием и долю инициатора не трогает; вне 0–100 — отказ', async () => {
+    const { service, chainPort } = build();
+    expect(await service.setReturnShare(COOP, 40)).toBe(40);
+    expect(chainPort.setRetShare).toHaveBeenCalledWith({ coopname: COOP, return_share_percent: 400_000 });
+    expect(chainPort.setShares).not.toHaveBeenCalled();
+    await expect(service.setReturnShare(COOP, 101)).rejects.toMatchObject({ code: 'MARKETPLACE_ECONOMY_PERCENT_OUT_OF_RANGE' });
   });
 
   it('setInitiatorShare переводит проценты в шкалу контракта; вне 0–100 — отказ', async () => {
