@@ -533,6 +533,22 @@ cases:
     api: components/api-tests/src/marketplace/issuance.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
+  - id: mkt.iss.docs.01
+    level: contract
+    kind: side
+    scenario: >
+      Заказ поставщика доведён до закрытия выдачи; совет и заказчик открывают
+      реестр документов по хэшу заказа, поставщик — свои документы
+    expect: >
+      под хэшем заказа один пакет: главный документ — заявление о возврате
+      паевого взноса имуществом (1113), при нём протокол совета (1114), акт
+      приёмки в кооператив (1104) и акт выдачи (1115); акты входят в пакет
+      действием soviet::newact, отдельных пакетов «акт + протокол» нет; у
+      поставщика акт приёмки остаётся самостоятельным документом без протокола
+    test: components/api-tests/src/marketplace/issuance.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
+    status: written   # запуск — CI на полигоне ci/blackbox
+
   - id: mkt.iss.side.50
     level: contract
     kind: side

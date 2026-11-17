@@ -17,7 +17,7 @@
  * поэтому акт к подписи приходит в ответе на подпись заявления.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf, waitFor } from '../core'
 import type { Who } from '../core'
 import { KRG, SAGA_FIELDS, getOrder, historyOfProcess, pickOffer, sagaOf } from './flow'
 import {
@@ -56,6 +56,11 @@ const FIX_FACT = `mutation($d:MarketplaceFixIssuanceFactInput!){
 const ACT_PAYLOAD = `query($d:MarketplaceIssuanceOrderInput!){
   marketplaceIssuanceActPayload(data:$d){ full_title html hash meta binary }
 }`
+const DOCUMENTS = `query($d: GetDocumentsInput!){ getDocuments(data:$d){ totalCount items {
+  statement { documentAggregate { document { meta } } }
+  decision { documentAggregate { document { meta } } }
+  acts { documentAggregate { document { meta } } }
+} } }`
 const CLOSE_WITH_FACT = `mutation($d:MarketplaceSignIssuanceActInput!){
   marketplaceCloseIssuance(data:$d){ id order_id stage fact{ actual_quantity actual_unit_price fact_cost } }
 }`
@@ -299,6 +304,38 @@ describe('выдача одного заказа по этапам: заказа
     const loss = rows.filter(r => r.action === 'apply' && r.operationCode === 'o.mkt.loss')
     const total = loss.reduce((s, r) => s + amount(r.quantity), 0)
     expect(total, 'уценка — стоимость прибытия выданного минус сумма выдачи').toBeCloseTo(ISSUED * (arrival - issuePrice), 2)
+  })
+
+  it(caseName('mkt.iss.docs.01', 'документы заказа в реестре — один пакет: заявление, протокол совета, акт приёмки и акт выдачи'), async () => {
+    // Номер шаблона документа в агрегате пакета.
+    const registryOf = (part: any): number => Number(part?.documentAggregate?.document?.meta?.registry_id)
+    const packageOf = async (token: string, username: string, filter: Record<string, unknown>) =>
+      (await gql<any>(token, DOCUMENTS, { d: { username, filter, type: 'newsubmitted', page: 1, limit: 20 } })).getDocuments
+    // Реестр наполняется из действий цепи после разбора блока — позже ответа
+    // мутации; ждём пакет с протоколом и обоими актами.
+    const page = await waitFor(async () => {
+      const found = await packageOf(memberToken, member.account, { package: order.orderHash.toUpperCase() })
+      const first = found.items?.[0]
+      return first?.decision && (first.acts?.length ?? 0) >= 2 ? found : null
+    }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'пакет документов заказа в реестре' })
+    // До 17.11.2026 оба акта публиковались заявлениями под хэшем заказа: в
+    // реестре стояли три пакета, и протокол совета был прикреплён к каждому.
+    expect(page.totalCount, 'под хэшем заказа — один пакет, а не по пакету на документ').toBe(1)
+    const pkg = page.items[0]
+    expect(registryOf(pkg.statement), 'главный документ — заявление о возврате паевого взноса имуществом').toBe(1113)
+    expect(registryOf(pkg.decision), 'протокол решения совета').toBe(1114)
+    expect((pkg.acts as any[]).map(registryOf).sort((a, b) => a - b), 'акт приёмки в кооператив и акт выдачи').toEqual([1104, 1115])
+
+    // Экземпляр поставщика: подписанный акт приёмки остаётся среди его
+    // документов самостоятельным пакетом — без протокола совета и актов выдачи.
+    const supplierToken = await tokenOf(supplier)
+    const inOrder = await packageOf(supplierToken, supplier.account, { package: order.orderHash.toUpperCase() })
+    expect(inOrder.totalCount, 'пакет заказа принадлежит заказчику, поставщику он не открыт').toBe(0)
+    const own = await packageOf(supplierToken, supplier.account, {})
+    const act = (own.items as any[]).find(i => registryOf(i.statement) === 1104)
+    expect(act, 'акт приёмки есть среди документов поставщика').toBeTruthy()
+    expect(act.decision, 'у экземпляра поставщика протокола совета нет').toBeNull()
+    expect(act.acts, 'у экземпляра поставщика нет актов выдачи').toEqual([])
   })
 })
 

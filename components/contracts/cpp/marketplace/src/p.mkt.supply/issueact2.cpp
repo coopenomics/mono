@@ -17,7 +17,9 @@
  *     станет при списании по условиям ЦПП после гарантийного срока
  *     (chargedue) — в этой транзакции проводок по счёту 86 нет;
  *  4. `issueact1 → received`, гарантийное окно, `issue_act2` = акт,
- *     `Soviet::make_complete_document` для акта (пакет = order_hash).
+ *     акт входит в пакет документов заказа актом (`soviet::newact`, пакет =
+ *     order_hash): главный документ пакета — заявление о возврате паевого
+ *     взноса имуществом, рядом протокол совета и акт приёмки.
  *
  * Имущество передаётся заказчику только после того, как заказ показан как
  * полученный на экране оператора — так исключается «выдали, а цепь не приняла».
@@ -105,6 +107,9 @@ void marketplace::issueact2(eosio::name coopname,
     upd.warranty_until = warranty_until;
   });
 
-  Soviet::make_complete_document(_marketplace, coopname, o.orderer,
+  // Акт — в пакет заявления заказчика, а не отдельным заявлением: публикация
+  // заявлением под хэшем заказа давала в реестре второй пакет с тем же
+  // протоколом совета (testnet, 16.11.2026).
+  Action::send<newact_interface>(_soviet, "newact"_n, _marketplace, coopname, o.orderer,
                                  "issueact2"_n, order_hash, act);
 }
