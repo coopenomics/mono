@@ -7878,7 +7878,6 @@ export type MessageKey =
   | 'process.processDetailCard.postingNumberColumn'
   | 'process.processDetailCard.postingsEmpty'
   | 'process.processDetailCard.postingsTitle'
-  | 'process.processDetailCard.processIdLabel'
   | 'processDecisions.error.branchdecMetaMissing'
   | 'processDecisions.error.brnaidMetaInvalid'
   | 'processDecisions.error.brnaidMetaMissing'

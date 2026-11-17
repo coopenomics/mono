@@ -1,11 +1,7 @@
 <template lang="pug">
 .process-detail
-  .op-header.q-mb-md(:style='{ borderLeftColor: processAccentColor(processType) }')
-    .text-h6.text-weight-medium {{ processTypeLabel(processType) }}
-    .row.items-center.q-gutter-sm.q-mb-xs
-      .text-caption.text-grey-7 {{ $t('process.processDetailCard.processIdLabel') }}
-      EntityIdBadge(:rawId='processHash' copy-on-click)
-
+  //- Шапки у карточки нет: процесс называет место, где она стоит, — строка
+  //- реестра процессов либо шапка страницы сущности (заказа).
   //- Место под сводку процесса. Реестр процессов кладёт в слот содержание
   //- процесса; страница сущности (заказ) оставляет пустым — у неё своя шапка.
   slot(name='summary')
@@ -158,10 +154,8 @@ import {
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
 import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates'
 import {
-  processAccentColor,
   processChipBg,
   processChipText,
-  processTypeLabel,
   operationLabel,
   accountCodeFromId,
   formatProcessAmount,
@@ -337,9 +331,5 @@ useLiveReload(
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
-}
-.op-header {
-  border-left: 4px solid #9e9e9e;
-  padding: 4px 0 4px 12px;
 }
 </style>
