@@ -53,11 +53,18 @@ const props = defineProps<{
 
 const router = useRouter()
 
-/** Предел длины значения у правого края: длиннее — строка на всю ширину. */
+/**
+ * Пределы строки «подпись — значение» в половине карточки: длиннее значение
+ * либо подпись со значением вместе — строка на всю ширину, подпись сверху.
+ */
 const SPREAD_VALUE_LIMIT = 36
+const SPREAD_ROW_LIMIT = 64
 
 const facts = computed(() =>
-  props.content.facts.map((fact) => ({ ...fact, wide: fact.value.length > SPREAD_VALUE_LIMIT })),
+  props.content.facts.map((fact) => ({
+    ...fact,
+    wide: fact.value.length > SPREAD_VALUE_LIMIT || fact.label.length + fact.value.length > SPREAD_ROW_LIMIT,
+  })),
 )
 
 // Приложение задаёт путь без кооператива: «/market-admin/orders/<id>».

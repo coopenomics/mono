@@ -459,7 +459,7 @@
         "amount": "Сумма",
         "createdAt": "Создан",
         "lastEvent": "Последнее событие",
-        "participant": "Пайщик",
+        "participant": "Пайщик или участок",
         "processType": "Тип процесса"
       },
       "copyError": "Не удалось скопировать",

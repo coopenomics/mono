@@ -39,10 +39,11 @@
       },
       "summary": {
         "amountLabel": "Сумма процесса",
-        "subject": "Пайщик или участок",
         "memo": "Назначение",
         "startedAt": "Начат",
-        "lastEventAt": "Последнее событие"
+        "lastEventAt": "Последнее событие",
+        "participant": "Пайщик",
+        "branch": "Кооперативный участок"
       }
     }
   }
