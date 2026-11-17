@@ -39,6 +39,20 @@ cases:
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
     api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
+  - id: edu.access.side.30
+    level: backend
+    kind: side
+    scenario: >
+      Подписку закрыли (выход пайщика, отказ), пока задача выдачи или отзыва
+      доступа ждала ответа площадки.
+    expect: >
+      задача перечитывает подписку перед записью: статус закрытия и причина
+      возврата сохраняются, меняется только состояние доступа; прежде задача
+      сохраняла снимок до запроса и возвращала подписке статус «действует»
+      (Blackbox 44056883402, edu.access.happy.10)
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
+    status: passing
   - id: edu.access.side.01
     level: backend
     kind: side
