@@ -81,18 +81,20 @@ div.processes-page
           @click='processOverlay.open(props.row.processHash)'
         )
           q-td
+            EntityIdBadge(
+              :rawId='shortHash(props.row.processHash)'
+              @click='copyText(props.row.processHash)'
+            )
+              q-tooltip {{ $t('reports.processesPage.copyFullHashHintLabel') }}
+          q-td {{ formatDate(props.row.firstSeenAt) }}
+          q-td
             q-chip(
               dense
               square
               :color='processChipBg(props.row.processType)'
               :text-color='processChipText(props.row.processType)'
             ) {{ processTypeLabel(props.row.processType) }}
-          q-td
-            EntityIdBadge(
-              :rawId='shortHash(props.row.processHash)'
-              @click='copyText(props.row.processHash)'
-            )
-              q-tooltip {{ $t('reports.processesPage.copyFullHashHintLabel') }}
+          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
           q-td
             span {{ subjectName(props.row.username) }}
             q-chip.q-ml-xs(
@@ -105,8 +107,6 @@ div.processes-page
               :label='$t("reports.processesPage.kuLabel")'
             )
               q-tooltip {{ $t('reports.processesPage.kuTooltip') }}
-          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
-          q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
 
       template(#item='props')
@@ -263,11 +263,11 @@ const hasAnyFilter = computed(
 )
 
 const columns = [
-  { name: 'processType', align: 'left' as const, label: t('reports.processesPage.column.processType'), field: 'processType' },
   { name: 'processHash', align: 'left' as const, label: t('reports.processesPage.processIdLabel'), field: 'processHash' },
-  { name: 'username', align: 'left' as const, label: t('reports.processesPage.column.participant'), field: 'username' },
-  { name: 'amount', align: 'right' as const, label: t('reports.processesPage.column.amount'), field: 'amount' },
   { name: 'firstSeenAt', align: 'left' as const, label: t('reports.processesPage.column.createdAt'), field: 'firstSeenAt' },
+  { name: 'processType', align: 'left' as const, label: t('reports.processesPage.column.processType'), field: 'processType' },
+  { name: 'amount', align: 'right' as const, label: t('reports.processesPage.column.amount'), field: 'amount' },
+  { name: 'username', align: 'left' as const, label: t('reports.processesPage.column.participant'), field: 'username' },
   { name: 'lastSeenAt', align: 'left' as const, label: t('reports.processesPage.column.lastEvent'), field: 'lastSeenAt' },
 ]
 

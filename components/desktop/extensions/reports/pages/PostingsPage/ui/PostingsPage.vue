@@ -136,7 +136,6 @@
           :class='{ "cursor-pointer": !!props.row.parentApplyGlobalSequence }'
           @click='openOperation(props.row)'
         )
-          q-td {{ formatDate(props.row.createdAt) }}
           q-td
             EntityIdBadge(
               v-if='props.row.debitGlobalSequence'
@@ -153,6 +152,7 @@
             )
               q-tooltip {{ $t('reports.postingsPage.openProcessLabel') }}
             span.t-faint(v-else) —
+          q-td {{ formatDate(props.row.createdAt) }}
           q-td
             q-chip(
               v-if='props.row.operationCode'
@@ -455,9 +455,9 @@ async function resolveAccountName(id: number) {
 }
 
 const columns = [
-  { name: 'createdAt', align: 'left' as const, label: t('reports.postingsPage.column.date'), field: 'createdAt' },
   { name: 'postingId', align: 'left' as const, label: t('reports.postingsPage.column.postingId'), field: 'debitGlobalSequence' },
   { name: 'processHash', align: 'left' as const, label: t('reports.postingsPage.column.processId'), field: 'processHash' },
+  { name: 'createdAt', align: 'left' as const, label: t('reports.postingsPage.column.date'), field: 'createdAt' },
   { name: 'operationCode', align: 'left' as const, label: t('reports.postingsPage.column.operation'), field: 'operationCode' },
   { name: 'debit', align: 'center' as const, label: t('reports.postingsPage.column.debit'), field: 'debitAccountId' },
   { name: 'credit', align: 'center' as const, label: t('reports.postingsPage.column.credit'), field: 'creditAccountId' },

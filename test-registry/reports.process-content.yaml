@@ -30,6 +30,7 @@ sources:
     - components/desktop/extensions/reports/pages/AccountsPage/ui/AccountsPage.vue
     - components/desktop/extensions/reports/shared/ui/DeskProcessView/DeskProcessView.vue
     - components/desktop/extensions/reports/pages/ProcessPage/ui/ProcessPage.vue
+    - components/desktop/extensions/reports/pages/WalletsPage/ui/CoopWalletsPage.vue
     - components/desktop/src/widgets/Process/ProcessDetailCard/ProcessDetailCard.vue
     - components/desktop/extensions/reports/pages/OperationsPage/ui/OperationsPage.vue
     - components/desktop/extensions/reports/pages/PostingsPage/ui/PostingsPage.vue
@@ -106,6 +107,9 @@ cases:
       страница заказа карточку содержания не показывает — у неё своя шапка;
       строка реестра процессов открывает процесс в правой панели
       (?process=<хэш>), кнопка «На всю страницу» в шапке панели ведёт на
-      страницу процесса; у карточки учёта процесса своей шапки нет
+      страницу процесса; у карточки учёта процесса своей шапки нет;
+      движение по кошельку кооператива и строка истории счёта открывают
+      операцию в правой панели; колонки реестров в одном порядке — номер,
+      номер процесса, дата, название, суммы, пайщик
     status: missing
     decision_needed: false

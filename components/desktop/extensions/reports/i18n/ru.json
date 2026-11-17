@@ -30,8 +30,7 @@
         "active": "Активный",
         "passive": "Пассивный"
       },
-      "toAccountOperationsLabel": "К операциям счёта",
-      "toOperationLabel": "К операции"
+      "toAccountOperationsLabel": "К операциям счёта"
     },
     "buhotchEditor": {
       "addressLabel": "Адрес места нахождения",
@@ -121,7 +120,6 @@
       "emptyLabel": "Кошельки не найдены",
       "movementsEmptyLabel": "Движений нет",
       "movementsTitle": "Движения по кошельку",
-      "toOperationLabel": "К операции",
       "toOperationsLabel": "К операциям",
       "transferFromLabel": "Перевести с этого кошелька"
     },
@@ -450,8 +448,7 @@
       "openProcessLabel": "Открыть процесс в реестре процессов",
       "participantLabel": "Пайщик: {name}",
       "resetLabel": "Сбросить",
-      "searchLabel": "Поиск (№ проводки / операции / процесса)",
-      "toOperationLabel": "К операции"
+      "searchLabel": "Поиск (№ проводки / операции / процесса)"
     },
     "processesPage": {
       "chip": {

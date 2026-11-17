@@ -68,6 +68,8 @@
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
                 :no-data-label='$t("reports.accountsPage.postingsEmptyLabel")'
+                class='movement-rows'
+                @row-click='(_evt, row) => openOperation(row)'
               )
                 template(#body-cell-action='cp')
                   q-td(:props='cp')
@@ -94,16 +96,6 @@
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
                 template(#body-cell-createdAt='cp')
                   q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
-                template(#body-cell-open='cp')
-                  q-td.text-right(:props='cp')
-                    //- Операция проводки открывается в правой панели на месте.
-                    q-btn(
-                      v-if='cp.row.parentApplyGlobalSequence'
-                      flat dense round size='sm' color='primary'
-                      icon='arrow_forward'
-                      @click='openOperation(cp.row)'
-                    )
-                      q-tooltip {{ $t('reports.accountsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -223,12 +215,11 @@ const columns: any[] = [
 ]
 
 const childColumns: any[] = [
-  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
   { name: 'postingId', align: 'left', label: t('reports.accountsPage.column.postingId'), field: 'globalSequence' },
   { name: 'processHash', align: 'left', label: t('reports.accountsPage.column.processId'), field: 'processHash' },
-  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
   { name: 'createdAt', align: 'left', label: t('reports.accountsPage.column.date'), field: 'createdAt' },
-  { name: 'open', align: 'right', label: '', field: 'parentApplyGlobalSequence' },
+  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
+  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
 ]
 
 async function toggleExpand(id: number) {
@@ -285,6 +276,10 @@ useLiveReload(LEDGER_LIVE_TABLES, loadAccounts)
 </script>
 
 <style scoped lang="scss">
+/* Строка истории проводок открывает операцию в правой панели. */
+.movement-rows :deep(tbody tr) {
+  cursor: pointer;
+}
 .accounts-page {
   padding: var(--p-6, 24px);
   @media (max-width: 768px) {
