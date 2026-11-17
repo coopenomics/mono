@@ -24,16 +24,20 @@ BaseCard.process-content(variant='flat')
         @click='open(link.path)'
       ) {{ link.label }}
   .process-content__facts(v-if='content.facts.length')
+    //- Короткое значение стоит у правого края строки; длинное (назначение,
+    //- причина) занимает всю ширину карточки, подпись — над значением.
     DataRow(
-      v-for='fact in content.facts'
+      v-for='fact in facts'
       :key='fact.label'
+      :class='{ "process-content__fact--wide": fact.wide }'
       :label='fact.label'
       :value='fact.value'
-      align='spread'
+      :align='fact.wide ? "vertical" : "spread"'
     )
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base'
 import { DataRow } from 'src/shared/ui/domain'
@@ -48,6 +52,13 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+
+/** Предел длины значения у правого края: длиннее — строка на всю ширину. */
+const SPREAD_VALUE_LIMIT = 36
+
+const facts = computed(() =>
+  props.content.facts.map((fact) => ({ ...fact, wide: fact.value.length > SPREAD_VALUE_LIMIT })),
+)
 
 // Приложение задаёт путь без кооператива: «/market-admin/orders/<id>».
 function open(path: string): void {
@@ -104,6 +115,9 @@ function open(path: string): void {
 .process-content__actions {
   display: flex;
   gap: var(--p-2);
+}
+.process-content__fact--wide {
+  grid-column: 1 / -1;
 }
 .process-content__facts {
   display: grid;

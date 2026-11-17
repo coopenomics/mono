@@ -7872,8 +7872,6 @@ export type MessageKey =
   | 'process.processDetailCard.documentsEmpty'
   | 'process.processDetailCard.documentsTitle'
   | 'process.processDetailCard.opNumberColumn'
-  | 'process.processDetailCard.openInOperationsRegistry'
-  | 'process.processDetailCard.openInPostingsRegistry'
   | 'process.processDetailCard.operationColumn'
   | 'process.processDetailCard.operationsEmpty'
   | 'process.processDetailCard.operationsTitle'

@@ -119,15 +119,23 @@ div.processes-page
           q-td(colspan='100%')
             .q-pa-md
               //- Детализация процесса (документы + операции + проводки) —
-              //- общий виджет; № операции/проводки ведут в реестры бухгалтера.
+              //- общий виджет. Под шапкой — содержание процесса; операция и
+              //- проводка открываются в правой панели на месте.
               ProcessDetailCard(
                 :coopname='info.coopname'
                 :process-hash='props.row.processHash'
                 :process-type='props.row.processType'
-                operation-route-name='reports-operations'
-                posting-route-name='reports-postings'
                 :source='DESK_SOURCE'
+                @open-operation='openOperation'
+                @open-posting='openPosting'
               )
+                template(#summary)
+                  ProcessContent.q-mb-md(
+                    :coopname='info.coopname'
+                    :process-hash='props.row.processHash'
+                    :process-type='props.row.processType'
+                    :source='DESK_SOURCE'
+                  )
 
       template(#item='props')
         .col-12
@@ -145,6 +153,15 @@ div.processes-page
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
                 )
+
+  //- Операция в правой панели (общая панель стола бухгалтера). Процесс уже
+  //- открыт на странице — кнопка перехода к нему в панели скрыта.
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='openedOperation'
+    :show-process-link='false'
+    @close='openedOperation = null'
+  )
 </template>
 
 <script setup lang="ts">
@@ -162,6 +179,9 @@ import { copyToClipboard } from 'quasar'
 import type { IProcessSummary } from 'src/entities/Process'
 import { DESK_SOURCE, useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
+import { ProcessContent } from 'src/widgets/Process/ProcessContentCard'
+import type { ILedger2Operation, ILedger2Posting } from 'src/entities/Ledger2'
+import { OperationDetailsDrawer, type OperationRef } from '../../../shared/ui'
 import {
   formatProcessAmount,
   processChipBg,
@@ -173,6 +193,30 @@ import { Zeus } from '@coopenomics/sdk'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
+
+// Операция процесса в правой панели — без перехода в реестр операций.
+const openedOperation = ref<OperationRef | null>(null)
+
+function openOperation(operation: ILedger2Operation): void {
+  openedOperation.value = {
+    globalSequence: String(operation.globalSequence),
+    processHash: operation.processHash,
+    operationCode: operation.operationCode,
+    memo: operation.memo,
+    action: operation.action,
+  }
+}
+
+/** Проводка открывает свою операцию (номер операции учёта проводки). */
+function openPosting(posting: ILedger2Posting): void {
+  if (!posting.parentApplyGlobalSequence) return
+  openedOperation.value = {
+    globalSequence: String(posting.parentApplyGlobalSequence),
+    processHash: posting.processHash,
+    operationCode: posting.operationCode,
+    memo: posting.memo,
+  }
+}
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()

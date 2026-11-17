@@ -6,6 +6,10 @@
       .text-caption.text-grey-7 {{ $t('process.processDetailCard.processIdLabel') }}
       EntityIdBadge(:rawId='processHash' copy-on-click)
 
+  //- Место под сводку процесса. Реестр процессов кладёт в слот содержание
+  //- процесса; страница сущности (заказ) оставляет пустым — у неё своя шапка.
+  slot(name='summary')
+
   //- Загрузка: каркас на местах документов, операций и проводок. Спиннер
   //- крутился у левого края под шапкой — по нему не видно ни что грузится, ни
   //- сколько там будет содержимого (канон: скелетон, не спиннер).
@@ -21,11 +25,6 @@
         BaseCard(variant='flat', :title='$t("process.processDetailCard.postingsTitle")')
           TableSkeleton(:columns='PST_SKELETON_COLUMNS', :rows='3')
   template(v-else)
-    //- Содержание процесса словами предметной области (имущество, стороны,
-    //- суммы, состояние). Описывает его приложение процесса; тип без описания
-    //- карточки не получает.
-    ProcessContentCard.q-mb-md(v-if='content', :coopname='coopname', :content='content')
-
     //- Документы процесса (наименование / дата / подписанты). Открываются во
     //- всплывающем окне без переадресации — агрегат уже загружен в getProcess.
     q-card.q-mb-md(flat bordered)
@@ -58,6 +57,8 @@
               :rows='operations'
               :columns='opColumns'
               row-key='globalSequence'
+              :class='{ "process-detail__rows--clickable": !!onOpenOperation }'
+              @row-click='(_evt, row) => onOpenOperation?.(row)'
               hide-pagination
               :pagination='{ rowsPerPage: 0 }'
             )
@@ -65,13 +66,7 @@
                 q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
               template(#body-cell-op='cp')
                 q-td(:props='cp')
-                  EntityIdBadge(
-                    v-if='operationRouteName'
-                    :rawId='cp.row.globalSequence'
-                    @click='goToOperation(cp.row.globalSequence)'
-                  )
-                    q-tooltip {{ $t('process.processDetailCard.openInOperationsRegistry') }}
-                  EntityIdBadge(v-else :rawId='cp.row.globalSequence' copy-on-click)
+                  EntityIdBadge(:rawId='cp.row.globalSequence' :copy-on-click='!onOpenOperation')
               template(#body-cell-label='cp')
                 q-td(:props='cp')
                   BaseChip(
@@ -94,6 +89,8 @@
               :rows='postings'
               :columns='pstColumns'
               row-key='key'
+              :class='{ "process-detail__rows--clickable": !!onOpenPosting }'
+              @row-click='(_evt, row) => onOpenPosting?.(row)'
               hide-pagination
               :pagination='{ rowsPerPage: 0 }'
             )
@@ -102,15 +99,9 @@
               template(#body-cell-posting='cp')
                 q-td(:props='cp')
                   EntityIdBadge(
-                    v-if='postingRouteName && cp.row.debitGlobalSequence'
+                    v-if='cp.row.debitGlobalSequence'
                     :rawId='cp.row.debitGlobalSequence'
-                    @click='goToPosting(cp.row.debitGlobalSequence)'
-                  )
-                    q-tooltip {{ $t('process.processDetailCard.openInPostingsRegistry') }}
-                  EntityIdBadge(
-                    v-else-if='cp.row.debitGlobalSequence'
-                    :rawId='cp.row.debitGlobalSequence'
-                    copy-on-click
+                    :copy-on-click='!onOpenPosting'
                   )
                   span.text-grey-6(v-else) —
               //- Суть проводки: та же операция, что в реестре проводок. Без неё
@@ -147,7 +138,6 @@ import { onMounted, ref } from 'vue'
 import { Ledger2Contract, SovietContract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { uiLocale, t } from 'src/shared/i18n';
-import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
@@ -177,8 +167,6 @@ import {
   formatProcessAmount,
 } from 'src/shared/lib/ledger2'
 import AccountCodeBadge from './AccountCodeBadge.vue'
-import { ProcessContentCard } from '../ProcessContentCard'
-import type { IProcessContent } from 'src/entities/Process'
 
 const props = defineProps<{
   /** Кооператив, в чьём реестре ищем процесс. */
@@ -187,15 +175,18 @@ const props = defineProps<{
   processHash: string
   /** Тип процесса (p.mkt.supply и т.д.) — определяет цвет/подпись. */
   processType: string
-  /** Имя маршрута реестра операций. Задан → клик по № операции ведёт туда; не задан → копирование. */
-  operationRouteName?: string
-  /** Имя маршрута реестра проводок. Задан → клик по № проводки ведёт туда; не задан → копирование. */
-  postingRouteName?: string
+  /**
+   * Нажатие на строку операции. Реестр стола бухгалтера открывает по нему
+   * операцию в правой панели; без обработчика № операции копируется.
+   * Объявлен свойством, чтобы карточка знала о подписке (событие open-operation).
+   */
+  onOpenOperation?: (operation: ILedger2Operation) => void
+  /** Нажатие на строку проводки — так же, как у операции (событие open-posting). */
+  onOpenPosting?: (posting: ILedger2Posting) => void
   /** Откуда брать процесс, операции и проводки: общие операции ядра либо операции стола бухгалтера. */
   source?: RegistrySource
 }>()
 
-const router = useRouter()
 const processStore = useProcessStore()
 const ledger2Store = useLedger2Store()
 
@@ -203,7 +194,6 @@ const loading = ref(true)
 const documents = ref<IProcessDocument[]>([])
 const operations = ref<ILedger2Operation[]>([])
 const postings = ref<ILedger2Posting[]>([])
-const content = ref<IProcessContent | null>(null)
 
 const viewerOpen = ref(false)
 const viewerDoc = ref<IDocumentAggregate | null>(null)
@@ -282,14 +272,6 @@ function openDoc(d: IProcessDocument) {
   viewerOpen.value = true
 }
 
-function goToOperation(seq: string) {
-  if (!props.operationRouteName) return
-  router.push({ name: props.operationRouteName, query: { operation_id: seq } })
-}
-function goToPosting(id: string) {
-  if (!props.postingRouteName) return
-  router.push({ name: props.postingRouteName, query: { posting_id: id } })
-}
 
 async function copyText(text: string | null | undefined) {
   if (!text) return
@@ -306,7 +288,7 @@ void copyText
 async function load(): Promise<void> {
   try {
     // Документы + операции + проводки одного процесса грузим параллельно.
-    const [view, history, post, described] = await Promise.all([
+    const [view, history, post] = await Promise.all([
       processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }, props.source),
       ledger2Store.loadHistory({
         coopname: props.coopname,
@@ -321,12 +303,7 @@ async function load(): Promise<void> {
         limit: 100,
         sortOrder: 'ASC',
       }, props.source),
-      processStore.loadProcessContent(
-        { coopname: props.coopname, hash: props.processHash, process_type: props.processType },
-        props.source,
-      ),
     ])
-    content.value = described
     documents.value = view?.documents ?? []
     operations.value = history?.items ?? []
     postings.value = post?.items ?? []
@@ -354,6 +331,9 @@ useLiveReload(
 </script>
 
 <style scoped>
+.process-detail__rows--clickable :deep(tbody tr) {
+  cursor: pointer;
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;

@@ -96,11 +96,12 @@
                   q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
                 template(#body-cell-open='cp')
                   q-td.text-right(:props='cp')
+                    //- Операция проводки открывается в правой панели на месте.
                     q-btn(
                       v-if='cp.row.parentApplyGlobalSequence'
                       flat dense round size='sm' color='primary'
-                      icon='fa-solid fa-arrow-right'
-                      :to='{ name: "reports-operations", query: { operation_id: cp.row.parentApplyGlobalSequence } }'
+                      icon='arrow_forward'
+                      @click='openOperation(cp.row)'
                     )
                       q-tooltip {{ $t('reports.accountsPage.toOperationLabel') }}
 
@@ -131,6 +132,13 @@
               .col-4
                 .text-caption.t-faint {{ $t('reports.accountsPage.balanceLabel') }}
                 .text-body2.text-weight-bold {{ formatAsset2Digits(props.row.balance) }}
+
+  //- Операция проводки в правой панели (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='openedOperation'
+    @close='openedOperation = null'
+  )
 </template>
 
 <script setup lang="ts">
@@ -148,10 +156,22 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { getWalletAccount } from 'src/shared/lib/ledger2'
-import { AccountIdCell, WalletIdCell } from '../../../shared/ui'
+import { AccountIdCell, OperationDetailsDrawer, WalletIdCell, type OperationRef } from '../../../shared/ui'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
+
+// Операция проводки по счёту в правой панели — без перехода в реестр операций.
+const openedOperation = ref<OperationRef | null>(null)
+function openOperation(row: { parentApplyGlobalSequence?: string | null; processHash?: string | null; operationCode?: string | null; memo?: string | null }): void {
+  if (!row.parentApplyGlobalSequence) return
+  openedOperation.value = {
+    globalSequence: String(row.parentApplyGlobalSequence),
+    processHash: row.processHash,
+    operationCode: row.operationCode,
+    memo: row.memo,
+  }
+}
 const { isMobile } = useWindowSize()
 const registries = useDeskRegistries()
 

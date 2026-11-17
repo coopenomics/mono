@@ -129,11 +129,6 @@
           :props='props'
           @click='openDetails(props.row)'
         )
-          q-td(auto-width)
-            ExpandToggleButton(
-              :expanded='selectedSeq === String(props.row.globalSequence)'
-              @click.stop='openDetails(props.row)'
-            )
           q-td
             EntityIdBadge(
               :rawId='props.row.globalSequence'
@@ -161,7 +156,7 @@
 
       template(#item='props')
         .col-12
-          q-card.q-pa-md.q-mb-sm
+          q-card.q-pa-md.q-mb-sm.cursor-pointer(@click='openDetails(props.row)')
             .row.items-center.q-gutter-x-md
               .col
                 .text-caption.t-faint {{ formatDate(props.row.createdAt) }}
@@ -185,100 +180,13 @@
                   @click='goToProcess(props.row.processHash)'
                 )
 
-  //- Операция целиком — в правой панели: что за операция, движения по
-  //- кошелькам, проводки и содержание процесса (канон: строка реестра
-  //- открывает правую панель).
-  DetailsDrawer(
-    :model-value='!!selectedRow'
-    :title='selectedRow ? rowLabel(selectedRow) : ""'
-    :width='760'
-    @update:model-value='(open) => { if (!open) closeDetails() }'
+  //- Операция целиком — в правой панели: содержание процесса, движения по
+  //- кошелькам, проводки (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='selectedRow'
+    @close='closeDetails'
   )
-    template(v-if='selectedRow')
-      //- Шапка: код операции, процесс и назначение. Название — в заголовке панели.
-      .q-mb-md
-        .row.items-center.q-gutter-sm.q-mb-xs(v-if='selectedRow.operationCode')
-          .text-caption.t-muted {{ $t('reports.operationsPage.processTypeLabel') }}
-          EntityIdBadge(
-            :rawId='selectedRow.operationCode'
-            copy-on-click
-          )
-            q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
-        .row.items-center.q-gutter-sm.q-mb-xs(v-if='selectedRow.processHash')
-          .text-caption.t-muted {{ $t('reports.operationsPage.processIdLabel') }}
-          EntityIdBadge(
-            :rawId='selectedRow.processHash'
-            copy-on-click
-          )
-            q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
-        .row.items-center.q-gutter-sm(v-if='selectedRow.memo')
-          q-icon(name='sticky_note_2' color='grey-6' size='xs')
-          .text-caption.t-muted {{ selectedRow.memo }}
-
-      //- Содержание процесса словами предметной области: имущество, стороны,
-      //- суммы, состояние. Описывает его приложение процесса, иначе ядро — из
-      //- сводки процесса.
-      ProcessContentCard.q-mt-md(v-if='selectedContent', :coopname='info.coopname', :content='selectedContent')
-      .q-mt-md(v-if='selectedRow.processHash')
-        BaseButton(variant='secondary', size='sm', @click='goToProcess(selectedRow.processHash)') {{ $t('reports.operationsPage.openProcessLabel') }}
-
-      //- Движения по кошелькам и проводки — одна под другой на всю ширину панели.
-      template(v-if='childLoading.get(selectedRow.globalSequence)')
-        q-spinner(size='sm')
-      .row.q-col-gutter-md.q-mt-xs(v-else)
-        //- Таблица 1: Движения по кошелькам
-        .col-12
-          q-card(flat bordered)
-            q-card-section.q-pb-none
-              .text-subtitle2 {{ $t('reports.operationsPage.walletMovementsTitle') }}
-            q-card-section.q-pt-sm
-              q-table(
-                v-if='walletRows(selectedRow.globalSequence).length'
-                flat dense
-                :rows='walletRows(selectedRow.globalSequence)'
-                :columns='walletColumns'
-                row-key='globalSequence'
-                hide-pagination
-                :pagination='{ rowsPerPage: 0 }'
-              )
-                template(#body-cell-direction='cp')
-                  q-td(:props='cp')
-                    DirectionCell(:direction='cp.row.direction')
-                template(#body-cell-walletFrom='cp')
-                  q-td(:props='cp')
-                    WalletIdCell(:wallet-name='cp.row.walletFrom')
-                template(#body-cell-walletTo='cp')
-                  q-td(:props='cp')
-                    WalletIdCell(:wallet-name='cp.row.walletTo')
-                template(#body-cell-quantity='cp')
-                  q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-              .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
-
-        //- Таблица 2: Проводки по счетам (Дт → Кт парами)
-        .col-12
-          q-card(flat bordered)
-            q-card-section.q-pb-none
-              .text-subtitle2 {{ $t('reports.operationsPage.postingsTitle') }}
-            q-card-section.q-pt-sm
-              q-table(
-                v-if='accountRows(selectedRow.globalSequence).length'
-                flat dense
-                :rows='accountRows(selectedRow.globalSequence)'
-                :columns='accountColumns'
-                row-key='key'
-                hide-pagination
-                :pagination='{ rowsPerPage: 0 }'
-              )
-                template(#body-cell-debit='cp')
-                  q-td(:props='cp')
-                    AccountIdCell(:account-code='cp.row.debitCode')
-                template(#body-cell-credit='cp')
-                  q-td(:props='cp')
-                    AccountIdCell(:account-code='cp.row.creditCode')
-                template(#body-cell-quantity='cp')
-                  q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-              .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.postingsEmptyLabel') }}
-
 </template>
 
 <script setup lang="ts">
@@ -291,18 +199,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
 import type { ILedger2Operation, ILedger2HistoryFilterInput } from 'src/entities/Ledger2'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
-import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
+import { OperationDetailsDrawer } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
-import { BaseButton } from 'src/shared/ui/base'
-import { DetailsDrawer } from 'src/shared/ui/domain'
-import { ProcessContentCard } from 'src/widgets/Process/ProcessContentCard'
-import { useProcessStore, type IProcessContent } from 'src/entities/Process'
-import { RegistrySource } from 'src/shared/lib/registry-source'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
@@ -335,10 +237,6 @@ function rowChipText(row: ILedger2Operation): string {
   return row.operationCode ?? (row.action === 'walmove' ? 'o.adj.walmove' : row.action === 'revert' ? 'o.adj.rev' : '—')
 }
 
-/** Тип процесса операции — по нему узел подбирает описание содержания процесса. */
-function rowProcessType(row: ILedger2Operation): string | undefined {
-  return Ledger2.getOperationProcessType(row.operationCode)
-}
 
 // Цветовая схема по контракту-источнику operation_code — пастельный chip +
 // accent-полоска. operation_code имеет формат `o.<contract>.<verb>`, контракт
@@ -406,8 +304,6 @@ const deskNames = useDeskFioCache()
 const fioCache = deskNames.fioCache
 
 // Дочерние операции для развёрнутого apply
-const childOps = ref(new Map<string, ILedger2Operation[]>())
-const childLoading = ref(new Map<string, boolean>())
 
 function registerRowRef(seq: string, el: unknown): void {
   if (el && typeof (el as { $el?: HTMLElement }).$el !== 'undefined') {
@@ -573,7 +469,6 @@ async function resolveAccountName(id: number) {
 }
 
 const columns = [
-  { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
   { name: 'operationId', align: 'left' as const, label: t('reports.operationsPage.column.operationId'), field: 'globalSequence' },
   { name: 'processHash', align: 'left' as const, label: t('reports.operationsPage.column.processId'), field: 'processHash' },
   { name: 'createdAt', align: 'left' as const, label: t('reports.operationsPage.column.date'), field: 'createdAt' },
@@ -581,70 +476,6 @@ const columns = [
   { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
   { name: 'username', align: 'left' as const, label: t('reports.operationsPage.column.participant'), field: 'username' },
 ]
-
-const walletColumns = [
-  { name: 'direction', align: 'center' as const, label: '', field: 'direction' },
-  { name: 'walletFrom', align: 'left' as const, label: t('reports.operationsPage.column.walletFrom'), field: 'walletFrom' },
-  { name: 'walletTo', align: 'left' as const, label: t('reports.operationsPage.column.walletTo'), field: 'walletTo' },
-  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
-]
-
-const accountColumns = [
-  { name: 'debit', align: 'center' as const, label: t('reports.operationsPage.column.debit'), field: 'debit' },
-  { name: 'credit', align: 'center' as const, label: t('reports.operationsPage.column.credit'), field: 'credit' },
-  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
-]
-
-// Группированные sibling-операции по parent apply globalSequence
-interface WalletRow {
-  globalSequence: string
-  direction: 'in' | 'out' | 'move'
-  /** eosio::name кошелька (`w.<contract>.<waltype>`) или null. */
-  walletFrom: string | null
-  walletTo: string | null
-  quantity: string | null
-}
-interface AccountRow {
-  key: string
-  debitCode: number | null
-  creditCode: number | null
-  quantity: string | null
-}
-
-function walletRows(parentSeq: string): WalletRow[] {
-  const ops = childOps.value.get(parentSeq) ?? []
-  return ops
-    .filter((o) => o.action === 'walletop')
-    .map((o) => {
-      const from = o.walletFrom ?? null
-      const to = o.walletTo ?? null
-      let direction: WalletRow['direction'] = 'move'
-      if (from && !to) direction = 'out'
-      else if (!from && to) direction = 'in'
-      return {
-        globalSequence: String(o.globalSequence),
-        direction,
-        walletFrom: from,
-        walletTo: to,
-        quantity: o.quantity ?? null,
-      }
-    })
-}
-
-function accountRows(parentSeq: string): AccountRow[] {
-  const ops = childOps.value.get(parentSeq) ?? []
-  const debit = ops.find((o) => o.action === 'debit')
-  const credit = ops.find((o) => o.action === 'credit')
-  if (!debit && !credit) return []
-  return [
-    {
-      key: `${parentSeq}_pair`,
-      debitCode: debit?.accountId != null ? Math.round(debit.accountId / 1000) : null,
-      creditCode: credit?.accountId != null ? Math.round(credit.accountId / 1000) : null,
-      quantity: debit?.quantity ?? credit?.quantity ?? null,
-    },
-  ]
-}
 
 const hasAnyFilter = computed(
   () =>
@@ -681,60 +512,18 @@ async function resetFilters() {
   reload()
 }
 
-// Операция в правой панели: движения и проводки операции плюс содержание её
-// процесса (описывает приложение процесса, иначе ядро — из сводки процесса).
-const processStore = useProcessStore()
+// Операция в правой панели: строка реестра открывает панель на месте.
 const selectedSeq = ref<string | null>(null)
-const selectedContent = ref<IProcessContent | null>(null)
 const selectedRow = computed(() =>
   items.value.find((row) => String(row.globalSequence) === selectedSeq.value) ?? null,
 )
 
 function openDetails(row: ILedger2Operation): void {
-  const seq = String(row.globalSequence)
-  selectedSeq.value = seq
-  selectedContent.value = null
-  if (row.processHash && !childOps.value.has(seq)) loadChildOps(seq, row.processHash)
-  void loadContent(row)
+  selectedSeq.value = String(row.globalSequence)
 }
 
 function closeDetails(): void {
   selectedSeq.value = null
-  selectedContent.value = null
-}
-
-async function loadContent(row: ILedger2Operation): Promise<void> {
-  const processType = rowProcessType(row)
-  if (!row.processHash || !processType) return
-  try {
-    const content = await processStore.loadProcessContent(
-      { coopname: info.coopname, hash: row.processHash, process_type: processType },
-      RegistrySource.ACCOUNTANT,
-    )
-    // Пока ответ шёл, бухгалтер мог открыть другую операцию.
-    if (selectedSeq.value === String(row.globalSequence)) selectedContent.value = content
-  } catch (e) {
-    FailAlert(e)
-  }
-}
-
-async function loadChildOps(seq: string, processHash: string) {
-  childLoading.value.set(seq, true)
-  try {
-    const resp = await registries.loadHistory({
-      coopname: info.coopname,
-      processHash,
-      parentApplyGlobalSequence: seq,
-      actionNames: ['walletop', 'debit', 'credit'],
-      limit: 10,
-      sortOrder: 'ASC',
-    })
-    childOps.value.set(seq, resp?.items ?? [])
-  } catch (e) {
-    FailAlert(e)
-  } finally {
-    childLoading.value.set(seq, false)
-  }
 }
 
 function formatDate(d: string | Date): string {

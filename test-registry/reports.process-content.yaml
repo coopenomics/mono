@@ -7,8 +7,9 @@ title: Содержание процесса на столе бухгалтер�
 # описывает свои типы процессов в реестре processContent (extension-kit),
 # стол рисует ответ одной карточкой. Процесс без описания либо со стёртой
 # записью сущности получает общее содержание из сводки процесса (чей, сумма,
-# назначение, даты). Операция открывается в правой панели: содержание
-# процесса, движения по кошелькам, проводки; проводка открывает свою операцию.
+# назначение, даты). Операция открывается в правой панели на месте (реестры
+# операций, проводок, процессов, история счёта): содержание процесса, движения
+# по кошелькам, проводки; проводка открывает свою операцию (18.11.2026).
 
 sources:
   backend:
@@ -23,6 +24,10 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-process-content.service.ts
   ui:
     - components/desktop/src/widgets/Process/ProcessContentCard/ProcessContentCard.vue
+    - components/desktop/src/widgets/Process/ProcessContentCard/ProcessContent.vue
+    - components/desktop/extensions/reports/shared/ui/OperationDetailsDrawer/OperationDetailsDrawer.vue
+    - components/desktop/extensions/reports/pages/ProcessesPage/ui/ProcessesPage.vue
+    - components/desktop/extensions/reports/pages/AccountsPage/ui/AccountsPage.vue
     - components/desktop/src/widgets/Process/ProcessDetailCard/ProcessDetailCard.vue
     - components/desktop/extensions/reports/pages/OperationsPage/ui/OperationsPage.vue
     - components/desktop/extensions/reports/pages/PostingsPage/ui/PostingsPage.vue
@@ -88,9 +93,14 @@ cases:
   - id: reports.process-content.07
     level: ui
     kind: happy
-    scenario: Бухгалтер нажимает строку реестра операций либо проводок
+    scenario: >
+      Бухгалтер нажимает строку реестра операций, проводок, операцию или
+      проводку раскрытого процесса, стрелку проводки в истории счёта
     expect: >
-      правая панель операции — содержание процесса, движения по кошелькам,
-      проводки, кнопка «Открыть процесс»; проводка открывает свою операцию
+      правая панель операции открывается на месте, без перехода на другую
+      страницу: содержание процесса, движения по кошелькам, проводки; кнопка
+      «Открыть процесс» — везде, кроме реестра процессов; стрелок раскрытия
+      в реестре операций нет; длинные сведения карточки занимают всю ширину;
+      страница заказа карточку содержания не показывает — у неё своя шапка
     status: missing
     decision_needed: false
