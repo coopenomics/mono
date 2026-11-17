@@ -1775,6 +1775,21 @@ cases:
     external_reason: "эталон — чистая функция пакета типов"
     status: passing
 
+  - id: mkt.order.invest.docs.01
+    level: contract
+    kind: side
+    scenario: >
+      Паевой взнос имуществом в участок доведён до второй подписи акта; в
+      реестре документов открыт пакет по хэшу взноса
+    expect: >
+      под хэшем взноса один пакет: главный документ — заявление о паевом взносе
+      имуществом (1120), при нём протокол совета и акт приёма-передачи (1122);
+      акт входит в пакет действием soviet::newact, отдельного пакета «акт +
+      протокол» нет
+    test: components/api-tests/src/marketplace/invest.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: written   # запуск — CI на полигоне ci/blackbox
+
   - id: mkt.order.keu.model.09
     level: backend
     kind: side

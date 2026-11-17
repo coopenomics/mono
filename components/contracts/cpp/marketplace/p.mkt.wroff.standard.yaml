@@ -317,7 +317,7 @@ documents:
     title: Служебная записка о списании
     registry_id: 1111
     signed_by: [branch_chairman]
-    stored_in: "реестр документов (package = proposal_hash)"
+    stored_in: "реестр документов: акт пакета списания (soviet::newact, package = proposal_hash) — при Заявлении о списании и Протоколе совета"
     note: "Подписывается председателем кооперативного участка при подтверждении фактического списания со своего склада. Завершающий документ пути; одна записка на один участок. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/1111.MarketplaceWriteoffServiceMemo"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────

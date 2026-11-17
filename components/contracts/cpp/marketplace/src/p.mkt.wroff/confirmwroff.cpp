@@ -50,10 +50,12 @@ void marketplace::confirmwroff(eosio::name coopname,
   eosio::check(confirmed_count > 0,
                "Нет неисполненных позиций данного кооперативного участка в проекте списания");
 
-  // Служебная записка о списании (1111) — в реестр документов, пакет
-  // процесса списания (package = proposal_hash), рядом с Заявлением и
-  // Протоколом совета.
-  Soviet::make_complete_document(_marketplace, coopname, signer,
+  // Служебная записка о списании (1111) — в реестр документов, в пакет
+  // процесса списания (package = proposal_hash) актом (`newact`): главный
+  // документ пакета — Заявление о списании, при нём Протокол совета и
+  // записки участков. Публикация записки заявлением под тем же хэшем давала в
+  // реестре отдельный пакет «записка + протокол совета».
+  Action::send<newact_interface>(_soviet, "newact"_n, _marketplace, coopname, signer,
                                  "confirmwroff"_n, proposal_hash, memo);
 
   // Помечаем позиции КУ исполненными; если после этого исполнены все

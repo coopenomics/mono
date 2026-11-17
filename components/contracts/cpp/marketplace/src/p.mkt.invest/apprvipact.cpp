@@ -36,7 +36,11 @@ void marketplace::apprvipact(eosio::name coopname, eosio::name username,
                  processes::marketplace::INVEST, prop.amount, prop.username, property_hash,
                  Marketplace::Memo::get_invest_property_memo());
   Marketplace::add_investment(coopname, prop.braname, prop.username, MarketInvest::zero_asset(), prop.amount);
-  Soviet::make_complete_document(_marketplace, coopname, prop.username, "apprvipact"_n,
-                                 property_hash, approved_document);
+  // Акт — в пакет заявления о паевом взносе имуществом (package = хэш взноса)
+  // актом (`newact`): заявление вносящего совет опубликовал под этим хэшем при
+  // одобрении (approveiprop), протокол — там же. Публикация акта заявлением
+  // давала в реестре второй пакет «акт + протокол совета».
+  Action::send<newact_interface>(_soviet, "newact"_n, _marketplace, coopname, prop.username,
+                                 "apprvipact"_n, property_hash, approved_document);
   MarketInvestProperty::erase(coopname, prop.id);
 }
