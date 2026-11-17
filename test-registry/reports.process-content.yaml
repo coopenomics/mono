@@ -1,0 +1,96 @@
+feature: reports.process-content
+title: Содержание процесса на столе бухгалтера
+
+# Слово владельца 17.11.2026: в реестре процессов и операций стола бухгалтера
+# по процессу видно, о чём он: имущество, стоимость, поставщик, заказчик,
+# участок, состояние. Устройство как у стола совета: каждое приложение
+# описывает свои типы процессов в реестре processContent (extension-kit),
+# стол рисует ответ одной карточкой. Процесс без описания либо со стёртой
+# записью сущности получает общее содержание из сводки процесса (чей, сумма,
+# назначение, даты). Операция открывается в правой панели: содержание
+# процесса, движения по кошелькам, проводки; проводка открывает свою операцию.
+
+sources:
+  backend:
+    - components/extension-kit/src/registries/process-content.ts
+    - components/controller/src/application/process-registry/resolvers/process-registry.resolver.ts
+    - components/controller/src/application/process-registry/services/process-summary-content.service.ts
+    - components/controller/src/application/gateway/services/payment-process-content.service.ts
+    - components/controller/src/extensions/reports/application/resolvers/registries.resolver.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-process-content.service.ts
+    - components/controller/src/extensions/expenses/application/services/expense-process-content.service.ts
+    - components/controller/src/extensions/capital/application/services/capital-process-content.service.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-process-content.service.ts
+  ui:
+    - components/desktop/src/widgets/Process/ProcessContentCard/ProcessContentCard.vue
+    - components/desktop/src/widgets/Process/ProcessDetailCard/ProcessDetailCard.vue
+    - components/desktop/extensions/reports/pages/OperationsPage/ui/OperationsPage.vue
+    - components/desktop/extensions/reports/pages/PostingsPage/ui/PostingsPage.vue
+
+cases:
+  - id: reports.process-content.01
+    level: backend
+    kind: happy
+    scenario: Бухгалтер раскрывает процесс поставки в реестре процессов
+    expect: >
+      содержание называет имущество, количество, стоимость, поставщика и
+      заказчика по ФИО, участок названием с учётным именем в скобках, цену за
+      единицу отпуска и ссылку на страницу заказа
+    test: components/controller/tests/unit/process-registry/process-content.test.ts
+    api: components/api-tests/src/reports/process-content.test.ts
+    status: passing
+
+  - id: reports.process-content.02
+    level: backend
+    kind: side
+    scenario: Процесс без описания приложения (списание по итогу периода, членские взносы участка)
+    expect: общее содержание из сводки процесса — название процесса, пайщик или участок, сумма, назначение, даты
+    test: components/controller/tests/unit/process-registry/process-content.test.ts
+    api: components/api-tests/src/reports/process-content.test.ts
+    status: passing
+
+  - id: reports.process-content.03
+    level: backend
+    kind: side
+    scenario: Запись сущности процесса стёрта по завершении (заявление о взносе имуществом после акта)
+    expect: вместо пустой карточки — общее содержание из сводки процесса
+    test: components/controller/tests/unit/process-registry/process-content.test.ts
+    api: components/api-tests/src/reports/process-content.test.ts
+    status: passing
+
+  - id: reports.process-content.04
+    level: backend
+    kind: side
+    scenario: Поставщик содержания Стола заказов получает чужой тип процесса либо заказа нет на узле
+    expect: поставщик отдаёт пусто, реестр переходит к общему содержанию
+    test: components/controller/tests/unit/process-registry/process-content.test.ts
+    api: components/api-tests/src/reports/process-content.test.ts
+    status: passing
+
+  - id: reports.process-content.05
+    level: backend
+    kind: side
+    scenario: Пустые сведения (нет причины, нет даты) и суммы в разных записях (актив цепи, число строкой)
+    expect: пустые строки в карточку не попадают; суммы оформлены одинаково — «100,00 RUB», актив «10000.0000 RUB»; даты по Москве
+    test: components/controller/tests/unit/process-registry/process-content.test.ts
+    api: components/api-tests/src/reports/process-content.test.ts
+    status: passing
+
+  - id: reports.process-content.06
+    level: backend
+    kind: break
+    scenario: Пайщик без права Registry:read запрашивает содержание процесса на столе бухгалтера
+    expect: узел отказывает правом reportsProcessContent; core-запрос processContent закрыт правом Process:read:all
+    test: components/api-tests/src/reports/process-content.test.ts
+    api: components/api-tests/src/reports/process-content.test.ts
+    status: passing
+
+  - id: reports.process-content.07
+    level: ui
+    kind: happy
+    scenario: Бухгалтер нажимает строку реестра операций либо проводок
+    expect: >
+      правая панель операции — содержание процесса, движения по кошелькам,
+      проводки, кнопка «Открыть процесс»; проводка открывает свою операцию
+    status: missing
+    decision_needed: false

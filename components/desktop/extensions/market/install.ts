@@ -61,7 +61,6 @@ import {
   OnsiteSignatureGateOverlay,
   registerOnsiteGateLive,
 } from 'src/widgets/Marketplace/OnsiteSignatureGate'
-import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
 import { t } from './i18n';
 
 /**
@@ -107,7 +106,6 @@ import { t } from './i18n';
  * отдельного гейта во фронте не требуется — всё из backend grants.
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
-  registerMarketplaceProcessInfoHandlers()
 
   // Стол ПВЗ, «Инициаторы участка»: сколько заявлений на имущество ждут этого
   // пайщика — одобрить (председатель участка), подписать акт (вносящий), подписать

@@ -4083,6 +4083,9 @@ export const AllTypesProps: Record<string,any> = {
 		process:{
 
 		},
+		processContent:{
+
+		},
 		processes:{
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
@@ -4110,6 +4113,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		reportsProcess:{
+
+		},
+		reportsProcessContent:{
 
 		},
 		reportsProcesses:{
@@ -9681,6 +9687,24 @@ export const ReturnTypes: Record<string,any> = {
 		name:"String",
 		transaction_id:"String"
 	},
+	ProcessContent:{
+		amount:"String",
+		amount_label:"String",
+		facts:"ProcessContentFact",
+		image_url:"String",
+		links:"ProcessContentLink",
+		status:"String",
+		subtitle:"String",
+		title:"String"
+	},
+	ProcessContentFact:{
+		label:"String",
+		value:"String"
+	},
+	ProcessContentLink:{
+		label:"String",
+		path:"String"
+	},
 	ProcessDelta:{
 		block_num:"Float",
 		code:"String",
@@ -10245,6 +10269,7 @@ export const ReturnTypes: Record<string,any> = {
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
+		processContent:"ProcessContent",
 		processes:"ProcessSummaryPaginationResult",
 		reportsFundHistory:"ReportsFundHistoryPaginationResult",
 		reportsFunds:"ReportsFundsRegistry",
@@ -10255,6 +10280,7 @@ export const ReturnTypes: Record<string,any> = {
 		reportsParticipantWallets:"ReportsParticipantWallet",
 		reportsParticipants:"ReportsParticipant",
 		reportsProcess:"ProcessView",
+		reportsProcessContent:"ProcessContent",
 		reportsProcesses:"ProcessSummaryPaginationResult",
 		reportsSubjects:"ReportsSubject",
 		searchDocuments:"SearchResult",

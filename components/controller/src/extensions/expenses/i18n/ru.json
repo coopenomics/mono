@@ -89,6 +89,25 @@
     "uploadExpenseFile": {
       "checksumFormatHint": "checksum_sha256 должен быть 64-символьным lowercase hex.",
       "mimeTypeHint": "mime_type должен быть одним из allowed."
+    },
+    "processContent": {
+      "untitled": "Расход без описания",
+      "items": "Позиций: {count}",
+      "planned": "Сумма расхода",
+      "author": "Подал",
+      "source": "Источник",
+      "itemValue": "{recipient} · {amount}",
+      "actual": "Израсходовано",
+      "createdAt": "Записка подана",
+      "status": {
+        "CREATED": "На решении совета",
+        "AUTHORIZED": "Совет утвердил",
+        "PARTIALLY_PAID": "Оплачивается",
+        "REPORT_SUBMITTED": "Отчёт подан",
+        "CLOSED": "Закрыт",
+        "DECLINED": "Совет отказал",
+        "UNDEFINED": "Состояние не определено"
+      }
     }
   }
 }

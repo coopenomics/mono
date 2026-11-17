@@ -2166,45 +2166,6 @@
       "transferDestinationLabel": "Куда переведено",
       "volumeLabel": "Объём"
     },
-    "processReturnInfo": {
-      "contentUnavailable": "Содержание заявления ещё не доступно.",
-      "kuLabel": "Кооперативный участок (КУ)",
-      "loadingText": "Загрузка содержания заявления…",
-      "openAtPvzButton": "Открыть заявление на столе ПВЗ",
-      "ordererLabel": "Заказчик",
-      "processTypeLabel": "Тип процесса",
-      "processTypeValue": "Гарантийный возврат имущества",
-      "reasonLabel": "Причина обращения",
-      "sourceOrderLabel": "Исходный заказ",
-      "statusLabel": "Состояние заявления"
-    },
-    "processSupplyInfo": {
-      "contentUnavailable": "Содержание заказа ещё не доступно.",
-      "kuLabel": "Кооперативный участок (КУ)",
-      "loadingText": "Загрузка содержания заказа…",
-      "openAtPvzButton": "Открыть заказ на столе ПВЗ",
-      "ordererLabel": "Заказчик",
-      "processTypeLabel": "Тип процесса",
-      "processTypeValue": "Поставка имущества кооперативу",
-      "statusLabel": "Состояние заказа",
-      "supplierLabel": "Поставщик",
-      "unitsLabel": "Единиц в заказе"
-    },
-    "processWriteoffInfo": {
-      "contentUnavailable": "Содержание проекта ещё не доступно.",
-      "councilDecisionLabel": "Решение совета",
-      "cycleStartedLabel": "Расчётный цикл начат",
-      "loadingText": "Загрузка проекта решения…",
-      "notRegistered": "не зарегистрировано",
-      "openAtWriteoffDeskButton": "Открыть проект на столе списания скоропорта",
-      "processTypeLabel": "Тип процесса",
-      "processTypeValue": "Списание скоропорта",
-      "sourceAutomatic": "Автоматический (ежемесячный)",
-      "sourceLabel": "Источник проекта",
-      "sourceManual": "Ручной (по инициативе председателя)",
-      "statusLabel": "Состояние решения",
-      "totalAmountLabel": "Итоговая сумма"
-    },
     "pvzWriteoffsSection": {
       "column": {
         "amount": "Сумма",

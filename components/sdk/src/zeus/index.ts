@@ -16800,6 +16800,42 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 		__typename?: boolean | `@${string}`,
 	['...on ProcessAction']?: Omit<ValueTypes["ProcessAction"], "...on ProcessAction">
 }>;
+	["ProcessContent"]: AliasType<{
+	/** Главная сумма процесса, актив «10000.0000 RUB» */
+	amount?:boolean | `@${string}`,
+	/** Подпись главной суммы: «Стоимость имущества» */
+	amount_label?:boolean | `@${string}`,
+	/** Сведения по порядку чтения */
+	facts?:ValueTypes["ProcessContentFact"],
+	/** Снимок предмета процесса (обложка имущества) */
+	image_url?:boolean | `@${string}`,
+	/** Переходы на страницы сущности */
+	links?:ValueTypes["ProcessContentLink"],
+	/** Состояние сущности процесса словами */
+	status?:boolean | `@${string}`,
+	/** Строка под названием: количество, номер, период */
+	subtitle?:boolean | `@${string}`,
+	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessContent']?: Omit<ValueTypes["ProcessContent"], "...on ProcessContent">
+}>;
+	["ProcessContentFact"]: AliasType<{
+	/** Подпись: «Поставщик», «Участок» */
+	label?:boolean | `@${string}`,
+	/** Значение словами: ФИО, название, дата */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessContentFact']?: Omit<ValueTypes["ProcessContentFact"], "...on ProcessContentFact">
+}>;
+	["ProcessContentLink"]: AliasType<{
+	/** Надпись кнопки */
+	label?:boolean | `@${string}`,
+	/** Путь страницы стола внутри кооператива, начиная с «/» */
+	path?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessContentLink']?: Omit<ValueTypes["ProcessContentLink"], "...on ProcessContentLink">
+}>;
 	["ProcessDelta"]: AliasType<{
 	block_num?:boolean | `@${string}`,
 	code?:boolean | `@${string}`,
@@ -17977,6 +18013,7 @@ participantIdentityForVerification?: [{	data: ValueTypes["ParticipantIdentityFor
 paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
+processContent?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>,	process_type: string | Variable<any, string>},ValueTypes["ProcessContent"]],
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
 reportsFundHistory?: [{	input: ValueTypes["ReportsFundHistoryInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportsFundHistoryPaginationResult"]],
 reportsFunds?: [{	input: ValueTypes["ReportsFundsInput"] | Variable<any, string>},ValueTypes["ReportsFundsRegistry"]],
@@ -17988,6 +18025,7 @@ reportsParticipantWallets?: [{	coopname: string | Variable<any, string>},ValueTy
 	/** Стол бухгалтера: принятые пайщики с именами для реестров */
 	reportsParticipants?:ValueTypes["ReportsParticipant"],
 reportsProcess?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
+reportsProcessContent?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>,	process_type: string | Variable<any, string>},ValueTypes["ProcessContent"]],
 reportsProcesses?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
 reportsSubjects?: [{	usernames: Array<string> | Variable<any, string>},ValueTypes["ReportsSubject"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
@@ -35917,6 +35955,39 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	transaction_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ProcessContent"]: AliasType<{
+	/** Главная сумма процесса, актив «10000.0000 RUB» */
+	amount?:boolean | `@${string}`,
+	/** Подпись главной суммы: «Стоимость имущества» */
+	amount_label?:boolean | `@${string}`,
+	/** Сведения по порядку чтения */
+	facts?:ResolverInputTypes["ProcessContentFact"],
+	/** Снимок предмета процесса (обложка имущества) */
+	image_url?:boolean | `@${string}`,
+	/** Переходы на страницы сущности */
+	links?:ResolverInputTypes["ProcessContentLink"],
+	/** Состояние сущности процесса словами */
+	status?:boolean | `@${string}`,
+	/** Строка под названием: количество, номер, период */
+	subtitle?:boolean | `@${string}`,
+	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessContentFact"]: AliasType<{
+	/** Подпись: «Поставщик», «Участок» */
+	label?:boolean | `@${string}`,
+	/** Значение словами: ФИО, название, дата */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessContentLink"]: AliasType<{
+	/** Надпись кнопки */
+	label?:boolean | `@${string}`,
+	/** Путь страницы стола внутри кооператива, начиная с «/» */
+	path?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ProcessDelta"]: AliasType<{
 	block_num?:boolean | `@${string}`,
 	code?:boolean | `@${string}`,
@@ -37067,6 +37138,7 @@ participantIdentityForVerification?: [{	data: ResolverInputTypes["ParticipantIde
 paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
+processContent?: [{	coopname: string,	hash: string,	process_type: string},ResolverInputTypes["ProcessContent"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
 reportsFundHistory?: [{	input: ResolverInputTypes["ReportsFundHistoryInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ReportsFundHistoryPaginationResult"]],
 reportsFunds?: [{	input: ResolverInputTypes["ReportsFundsInput"]},ResolverInputTypes["ReportsFundsRegistry"]],
@@ -37078,6 +37150,7 @@ reportsParticipantWallets?: [{	coopname: string},ResolverInputTypes["ReportsPart
 	/** Стол бухгалтера: принятые пайщики с именами для реестров */
 	reportsParticipants?:ResolverInputTypes["ReportsParticipant"],
 reportsProcess?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
+reportsProcessContent?: [{	coopname: string,	hash: string,	process_type: string},ResolverInputTypes["ProcessContent"]],
 reportsProcesses?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
 reportsSubjects?: [{	usernames: Array<string>},ResolverInputTypes["ReportsSubject"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
@@ -54746,6 +54819,36 @@ export type ModelTypes = {
 	name: string,
 	transaction_id: string
 };
+	["ProcessContent"]: {
+		/** Главная сумма процесса, актив «10000.0000 RUB» */
+	amount?: string | undefined | null,
+	/** Подпись главной суммы: «Стоимость имущества» */
+	amount_label?: string | undefined | null,
+	/** Сведения по порядку чтения */
+	facts: Array<ModelTypes["ProcessContentFact"]>,
+	/** Снимок предмета процесса (обложка имущества) */
+	image_url?: string | undefined | null,
+	/** Переходы на страницы сущности */
+	links: Array<ModelTypes["ProcessContentLink"]>,
+	/** Состояние сущности процесса словами */
+	status?: string | undefined | null,
+	/** Строка под названием: количество, номер, период */
+	subtitle?: string | undefined | null,
+	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	title: string
+};
+	["ProcessContentFact"]: {
+		/** Подпись: «Поставщик», «Участок» */
+	label: string,
+	/** Значение словами: ФИО, название, дата */
+	value: string
+};
+	["ProcessContentLink"]: {
+		/** Надпись кнопки */
+	label: string,
+	/** Путь страницы стола внутри кооператива, начиная с «/» */
+	path: string
+};
 	["ProcessDelta"]: {
 		block_num: number,
 	code: string,
@@ -56107,6 +56210,8 @@ export type ModelTypes = {
 	paymentProofs: Array<ModelTypes["PaymentFile"]>,
 	/** Получить полную картину процесса ledger2 по process_hash */
 	process: ModelTypes["ProcessView"],
+	/** Содержание процесса словами предметной области: имущество, стороны, суммы, состояние. Пусто, если приложение процесса содержание не описывает */
+	processContent?: ModelTypes["ProcessContent"] | undefined | null,
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: ModelTypes["ProcessSummaryPaginationResult"],
 	/** Стол бухгалтера: движения по фонду за период, по страницам */
@@ -56127,6 +56232,8 @@ export type ModelTypes = {
 	reportsParticipants: Array<ModelTypes["ReportsParticipant"]>,
 	/** Стол бухгалтера: процесс целиком по его идентификатору */
 	reportsProcess: ModelTypes["ProcessView"],
+	/** Стол бухгалтера: содержание процесса — имущество, стороны, суммы, состояние */
+	reportsProcessContent?: ModelTypes["ProcessContent"] | undefined | null,
 	/** Стол бухгалтера: реестр процессов */
 	reportsProcesses: ModelTypes["ProcessSummaryPaginationResult"],
 	/** Стол бухгалтера: имена и вид субъектов операций по учётным именам */
@@ -74763,6 +74870,42 @@ export type GraphQLTypes = {
 	transaction_id: string,
 	['...on ProcessAction']: Omit<GraphQLTypes["ProcessAction"], "...on ProcessAction">
 };
+	["ProcessContent"]: {
+	__typename: "ProcessContent",
+	/** Главная сумма процесса, актив «10000.0000 RUB» */
+	amount?: string | undefined | null,
+	/** Подпись главной суммы: «Стоимость имущества» */
+	amount_label?: string | undefined | null,
+	/** Сведения по порядку чтения */
+	facts: Array<GraphQLTypes["ProcessContentFact"]>,
+	/** Снимок предмета процесса (обложка имущества) */
+	image_url?: string | undefined | null,
+	/** Переходы на страницы сущности */
+	links: Array<GraphQLTypes["ProcessContentLink"]>,
+	/** Состояние сущности процесса словами */
+	status?: string | undefined | null,
+	/** Строка под названием: количество, номер, период */
+	subtitle?: string | undefined | null,
+	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	title: string,
+	['...on ProcessContent']: Omit<GraphQLTypes["ProcessContent"], "...on ProcessContent">
+};
+	["ProcessContentFact"]: {
+	__typename: "ProcessContentFact",
+	/** Подпись: «Поставщик», «Участок» */
+	label: string,
+	/** Значение словами: ФИО, название, дата */
+	value: string,
+	['...on ProcessContentFact']: Omit<GraphQLTypes["ProcessContentFact"], "...on ProcessContentFact">
+};
+	["ProcessContentLink"]: {
+	__typename: "ProcessContentLink",
+	/** Надпись кнопки */
+	label: string,
+	/** Путь страницы стола внутри кооператива, начиная с «/» */
+	path: string,
+	['...on ProcessContentLink']: Omit<GraphQLTypes["ProcessContentLink"], "...on ProcessContentLink">
+};
 	["ProcessDelta"]: {
 	__typename: "ProcessDelta",
 	block_num: number,
@@ -76188,6 +76331,8 @@ export type GraphQLTypes = {
 	paymentProofs: Array<GraphQLTypes["PaymentFile"]>,
 	/** Получить полную картину процесса ledger2 по process_hash */
 	process: GraphQLTypes["ProcessView"],
+	/** Содержание процесса словами предметной области: имущество, стороны, суммы, состояние. Пусто, если приложение процесса содержание не описывает */
+	processContent?: GraphQLTypes["ProcessContent"] | undefined | null,
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: GraphQLTypes["ProcessSummaryPaginationResult"],
 	/** Стол бухгалтера: движения по фонду за период, по страницам */
@@ -76208,6 +76353,8 @@ export type GraphQLTypes = {
 	reportsParticipants: Array<GraphQLTypes["ReportsParticipant"]>,
 	/** Стол бухгалтера: процесс целиком по его идентификатору */
 	reportsProcess: GraphQLTypes["ProcessView"],
+	/** Стол бухгалтера: содержание процесса — имущество, стороны, суммы, состояние */
+	reportsProcessContent?: GraphQLTypes["ProcessContent"] | undefined | null,
 	/** Стол бухгалтера: реестр процессов */
 	reportsProcesses: GraphQLTypes["ProcessSummaryPaginationResult"],
 	/** Стол бухгалтера: имена и вид субъектов операций по учётным именам */

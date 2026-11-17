@@ -21,6 +21,11 @@
         BaseCard(variant='flat', :title='$t("process.processDetailCard.postingsTitle")')
           TableSkeleton(:columns='PST_SKELETON_COLUMNS', :rows='3')
   template(v-else)
+    //- Содержание процесса словами предметной области (имущество, стороны,
+    //- суммы, состояние). Описывает его приложение процесса; тип без описания
+    //- карточки не получает.
+    ProcessContentCard.q-mb-md(v-if='content', :coopname='coopname', :content='content')
+
     //- Документы процесса (наименование / дата / подписанты). Открываются во
     //- всплывающем окне без переадресации — агрегат уже загружен в getProcess.
     q-card.q-mb-md(flat bordered)
@@ -172,6 +177,8 @@ import {
   formatProcessAmount,
 } from 'src/shared/lib/ledger2'
 import AccountCodeBadge from './AccountCodeBadge.vue'
+import { ProcessContentCard } from '../ProcessContentCard'
+import type { IProcessContent } from 'src/entities/Process'
 
 const props = defineProps<{
   /** Кооператив, в чьём реестре ищем процесс. */
@@ -196,6 +203,7 @@ const loading = ref(true)
 const documents = ref<IProcessDocument[]>([])
 const operations = ref<ILedger2Operation[]>([])
 const postings = ref<ILedger2Posting[]>([])
+const content = ref<IProcessContent | null>(null)
 
 const viewerOpen = ref(false)
 const viewerDoc = ref<IDocumentAggregate | null>(null)
@@ -298,7 +306,7 @@ void copyText
 async function load(): Promise<void> {
   try {
     // Документы + операции + проводки одного процесса грузим параллельно.
-    const [view, history, post] = await Promise.all([
+    const [view, history, post, described] = await Promise.all([
       processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }, props.source),
       ledger2Store.loadHistory({
         coopname: props.coopname,
@@ -313,7 +321,12 @@ async function load(): Promise<void> {
         limit: 100,
         sortOrder: 'ASC',
       }, props.source),
+      processStore.loadProcessContent(
+        { coopname: props.coopname, hash: props.processHash, process_type: props.processType },
+        props.source,
+      ),
     ])
+    content.value = described
     documents.value = view?.documents ?? []
     operations.value = history?.items ?? []
     postings.value = post?.items ?? []

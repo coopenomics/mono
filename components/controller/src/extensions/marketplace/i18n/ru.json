@@ -824,6 +824,115 @@
     },
     "writeoffSync": {
       "reasonFallback": "причина не указана"
+    },
+    "processContent": {
+      "supply": {
+        "amountLabel": "Стоимость имущества"
+      },
+      "branchValue": "«{name}» ({braname})",
+      "untitledProduct": "Имущество без названия",
+      "supplier": "Поставщик",
+      "orderer": "Заказчик",
+      "branch": "Участок",
+      "pricePerUnit": "Цена",
+      "priceValue": "{price} за {unit}",
+      "blockedAt": "Заказ размещён",
+      "acceptedAt": "Поставщик принял заказ",
+      "receivedAt": "Имущество выдано",
+      "warrantyUntil": "Гарантийный срок до",
+      "openOrder": "Открыть заказ",
+      "orderStatus": {
+        "ACTIVE": "Ждёт поставщика",
+        "ACCEPTED_PENDING_SUPPLIER": "Принят, ждёт подписи поставщика",
+        "ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL": "Принят, ждёт подписи поставщика",
+        "ACCEPTED": "Принят поставщиком",
+        "SUPPLY_PREPARED": "Поставка подготовлена",
+        "ACCEPTED_TO_COOP": "Принят на склад",
+        "READY_TO_RECEIVE": "Готов к выдаче",
+        "ISSUE_PENDING": "Выдача на рассмотрении",
+        "ISSUE_AUTHORIZED": "Выдача согласована",
+        "ISSUE_ACT1": "Акт выдачи подписан",
+        "RECEIVED": "Выдан пайщику",
+        "RETURNED": "Возвращён",
+        "CANCELLED_BY_ORDERER": "Отменён заказчиком",
+        "CANCELLED_BY_SUPPLIER": "Отменён поставщиком"
+      },
+      "return": {
+        "amountLabel": "Стоимость возвращаемого имущества",
+        "reason": "Причина",
+        "defect": "Недостаток"
+      },
+      "writeoff": {
+        "amountLabel": "Стоимость списываемого имущества",
+        "title": "Утилизация: {items}",
+        "titleEmpty": "Утилизация скоропорта",
+        "positions": "Позиций: {count}",
+        "itemValue": "{quantity} · {amount}",
+        "submittedAt": "Вынесено на совет",
+        "authorizedAt": "Совет утвердил",
+        "executedAt": "Утилизировано",
+        "rejectReason": "Причина отказа"
+      },
+      "claim": {
+        "amountLabel": "Сумма претензии",
+        "inspection": "Результат осмотра",
+        "issuedAt": "Претензия предъявлена",
+        "decidedAt": "Претензия рассмотрена"
+      },
+      "invest": {
+        "amountLabel": "Оценка имущества",
+        "initiator": "Инициатор",
+        "createdAt": "Заявление подано"
+      },
+      "returnStatus": {
+        "PENDING_CHAIRMAN_REVIEW": "На рассмотрении председателя участка",
+        "APPROVED_FOR_VISIT": "Ждёт осмотра на участке",
+        "REJECTED_REMOTELY": "Отклонён без осмотра",
+        "REJECTED_AT_VISIT": "Отклонён при осмотре",
+        "PENDING_COUNCIL": "На решении совета",
+        "ACCEPTED_BY_COUNCIL": "Совет принял возврат",
+        "DECLINED_BY_COUNCIL": "Совет отказал",
+        "HANDED_BACK": "Имущество возвращено"
+      },
+      "defect": {
+        "BROKEN": "Повреждение",
+        "EXPIRED": "Истёк срок годности",
+        "NOT_AS_DESCRIBED": "Не соответствует описанию",
+        "WRONG_ITEM": "Не тот товар",
+        "OTHER": "Другое"
+      },
+      "writeoffStatus": {
+        "DRAFT": "Черновик",
+        "ON_AGENDA": "На решении совета",
+        "AUTHORIZED": "Совет утвердил",
+        "PENDING_CONFIRMATION": "Ждёт подтверждения",
+        "EXECUTING": "Утилизируется",
+        "EXECUTED": "Утилизировано",
+        "REJECTED": "Отклонено"
+      },
+      "claimStatus": {
+        "PENDING": "Предъявлена поставщику",
+        "ADMITTED": "Признана поставщиком"
+      },
+      "investStatus": {
+        "created": "Заявление подано",
+        "approved": "Одобрено председателем участка",
+        "authorized": "Совет принял решение",
+        "act1": "Акт подписан инициатором"
+      },
+      "aid": {
+        "title": "Материальная помощь: {name}",
+        "amountLabel": "Сумма помощи с налогом",
+        "recipient": "Получатель",
+        "createdAt": "Заявление подано",
+        "paidAt": "Выплачено"
+      },
+      "aidStatus": {
+        "proposed": "На решении совета",
+        "approved": "Совет одобрил, ждёт кассира",
+        "paid": "Выплачено",
+        "declined": "Отказано"
+      }
     }
   }
 }

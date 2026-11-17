@@ -128,7 +128,14 @@
       @request='onRequest'
     )
       template(#body='props')
-        q-tr(:key='`pst_${props.row.key}`' :props='props')
+        //- Нажатие на проводку открывает её операцию в правой панели реестра
+        //- операций: движения, проводки и содержание процесса.
+        q-tr(
+          :key='`pst_${props.row.key}`'
+          :props='props'
+          :class='{ "cursor-pointer": !!props.row.parentApplyGlobalSequence }'
+          @click='openOperation(props.row.parentApplyGlobalSequence)'
+        )
           q-td {{ formatDate(props.row.createdAt) }}
           q-td
             EntityIdBadge(
@@ -279,6 +286,11 @@ function shortHash(hash: string | null | undefined): string {
 
 // № процесса ведёт в реестр процессов (единая адресация: процесс агрегирует
 // документы + операции + проводки по этому хэшу).
+function openOperation(seq: string | number | null | undefined): void {
+  if (!seq) return
+  void router.push({ name: 'reports-operations', query: { operation_id: String(seq) } }) // i18n-ignore
+}
+
 function goToProcess(hash: string | null | undefined) {
   if (!hash) return
   router.push({

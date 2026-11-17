@@ -48,6 +48,8 @@ export * as ReportsLedgerPostings from './reportsLedgerPostings'
 
 /** Процесс целиком — реестр стола бухгалтера */
 export * as ReportsProcess from './reportsProcess'
+/** Стол бухгалтера: содержание процесса — имущество, стороны, суммы, состояние */
+export * as ReportsProcessContent from './reportsProcessContent'
 
 /** Реестр процессов стола бухгалтера */
 export * as ReportsProcesses from './reportsProcesses'

@@ -1345,6 +1345,34 @@
     },
     "programProperty": {
       "chainDescription": "{name}. {description}. Количество: {quantity} {unit}"
+    },
+    "processContent": {
+      "participant": "Пайщик",
+      "createdAt": "Заявление подано",
+      "repaidAt": "Займ погашен",
+      "memo": "Назначение",
+      "debt": {
+        "title": "Займ пайщику",
+        "amountLabel": "Сумма займа"
+      },
+      "property": {
+        "title": "Имущественный паевой взнос",
+        "amountLabel": "Оценка имущества"
+      },
+      "rid": {
+        "title": "Результат интеллектуальной деятельности",
+        "amountLabel": "Оценка результата"
+      },
+      "withdraw": {
+        "title": "Возврат паевого взноса из ЦПП «Благорост»",
+        "amountLabel": "Сумма возврата"
+      },
+      "contributor": {
+        "title": "Участник ЦПП «Благорост»",
+        "amountLabel": "Сумма",
+        "asInvestor": "Внесено инвестором",
+        "asCreator": "Внесено создателем"
+      }
     }
   },
   "errors": {

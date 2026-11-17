@@ -123,15 +123,16 @@
       @request='onRequest'
     )
       template(#body='props')
-        q-tr(
+        q-tr.cursor-pointer(
           :key='`op_${props.row.globalSequence}`'
           :ref='(el) => registerRowRef(props.row.globalSequence, el)'
           :props='props'
+          @click='openDetails(props.row)'
         )
           q-td(auto-width)
             ExpandToggleButton(
-              :expanded='expanded.get(props.row.globalSequence)'
-              @click='toggleExpand(props.row.globalSequence, props.row.processHash)'
+              :expanded='selectedSeq === String(props.row.globalSequence)'
+              @click.stop='openDetails(props.row)'
             )
           q-td
             EntityIdBadge(
@@ -158,109 +159,6 @@
           q-td.text-right.font-monospace.text-weight-bold {{ formatAmount(props.row.quantity) }}
           q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
 
-        q-tr.q-virtual-scroll--with-prev(
-          no-hover
-          v-if='expanded.get(props.row.globalSequence)'
-          :key='`exp_${props.row.globalSequence}`'
-          :props='props'
-        )
-          q-td(colspan='100%')
-            .q-pa-md
-              //- Шапка: цветная полоска + название + action_code + ID + memo
-              .op-header.q-mb-md(
-                :style='{ borderLeftColor: processAccentColor(rowChipText(props.row)) }'
-              )
-                .text-h6.text-weight-medium {{ rowLabel(props.row) }}
-                .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.operationCode')
-                  .text-caption.t-muted {{ $t('reports.operationsPage.processTypeLabel') }}
-                  EntityIdBadge(
-                    :rawId='props.row.operationCode'
-                    copy-on-click
-                  )
-                    q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
-                .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.processHash')
-                  .text-caption.t-muted {{ $t('reports.operationsPage.processIdLabel') }}
-                  EntityIdBadge(
-                    :rawId='props.row.processHash'
-                    copy-on-click
-                  )
-                    q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
-                .row.items-center.q-gutter-sm(v-if='props.row.memo')
-                  q-icon(name='fa-solid fa-note-sticky' color='grey-6' size='xs')
-                  .text-caption.t-muted {{ props.row.memo }}
-
-              //- Тело: две таблицы рядом на md+, друг под другом на маленьких
-              template(v-if='childLoading.get(props.row.globalSequence)')
-                q-spinner(size='sm')
-              .row.q-col-gutter-md(v-else)
-                //- Таблица 1: Движения по кошелькам
-                .col-12.col-md-6
-                  q-card(flat bordered)
-                    q-card-section.q-pb-none
-                      .text-subtitle2 {{ $t('reports.operationsPage.walletMovementsTitle') }}
-                    q-card-section.q-pt-sm
-                      q-table(
-                        v-if='walletRows(props.row.globalSequence).length'
-                        flat dense
-                        :rows='walletRows(props.row.globalSequence)'
-                        :columns='walletColumns'
-                        row-key='globalSequence'
-                        hide-pagination
-                        :pagination='{ rowsPerPage: 0 }'
-                      )
-                        template(#body-cell-direction='cp')
-                          q-td(:props='cp')
-                            DirectionCell(:direction='cp.row.direction')
-                        template(#body-cell-walletFrom='cp')
-                          q-td(:props='cp')
-                            WalletIdCell(:wallet-name='cp.row.walletFrom')
-                        template(#body-cell-walletTo='cp')
-                          q-td(:props='cp')
-                            WalletIdCell(:wallet-name='cp.row.walletTo')
-                        template(#body-cell-quantity='cp')
-                          q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
-
-                //- Таблица 2: Проводки по счетам (Дт → Кт парами)
-                .col-12.col-md-6
-                  q-card(flat bordered)
-                    q-card-section.q-pb-none
-                      .text-subtitle2 {{ $t('reports.operationsPage.postingsTitle') }}
-                    q-card-section.q-pt-sm
-                      q-table(
-                        v-if='accountRows(props.row.globalSequence).length'
-                        flat dense
-                        :rows='accountRows(props.row.globalSequence)'
-                        :columns='accountColumns'
-                        row-key='key'
-                        hide-pagination
-                        :pagination='{ rowsPerPage: 0 }'
-                      )
-                        template(#body-cell-debit='cp')
-                          q-td(:props='cp')
-                            AccountIdCell(:account-code='cp.row.debitCode')
-                        template(#body-cell-credit='cp')
-                          q-td(:props='cp')
-                            AccountIdCell(:account-code='cp.row.creditCode')
-                        template(#body-cell-quantity='cp')
-                          q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.postingsEmptyLabel') }}
-
-              //- Слот расширения: содержание процесса в бизнес-терминах.
-              //- Рисуется только если соответствующее расширение зарегистрировало
-              //- свой info-widget через processInfoFactory.registerHandler.
-              .q-mt-md(v-if='props.row.processHash && hasProcessInfo(props.row)')
-                q-card(flat bordered)
-                  q-card-section.q-pb-none
-                    .text-subtitle2 {{ $t('reports.operationsPage.processContentTitle') }}
-                  q-card-section.q-pt-sm
-                    component(
-                      :is='processInfoComponent(props.row)'
-                      :process-hash='props.row.processHash'
-                      :process-type='rowProcessType(props.row) || ""'
-                      :coopname='info.coopname'
-                    )
-
       template(#item='props')
         .col-12
           q-card.q-pa-md.q-mb-sm
@@ -286,6 +184,101 @@
                   :rawId='shortHash(props.row.processHash)'
                   @click='goToProcess(props.row.processHash)'
                 )
+
+  //- Операция целиком — в правой панели: что за операция, движения по
+  //- кошелькам, проводки и содержание процесса (канон: строка реестра
+  //- открывает правую панель).
+  DetailsDrawer(
+    :model-value='!!selectedRow'
+    :title='selectedRow ? rowLabel(selectedRow) : ""'
+    :width='760'
+    @update:model-value='(open) => { if (!open) closeDetails() }'
+  )
+    template(v-if='selectedRow')
+      //- Шапка: код операции, процесс и назначение. Название — в заголовке панели.
+      .q-mb-md
+        .row.items-center.q-gutter-sm.q-mb-xs(v-if='selectedRow.operationCode')
+          .text-caption.t-muted {{ $t('reports.operationsPage.processTypeLabel') }}
+          EntityIdBadge(
+            :rawId='selectedRow.operationCode'
+            copy-on-click
+          )
+            q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
+        .row.items-center.q-gutter-sm.q-mb-xs(v-if='selectedRow.processHash')
+          .text-caption.t-muted {{ $t('reports.operationsPage.processIdLabel') }}
+          EntityIdBadge(
+            :rawId='selectedRow.processHash'
+            copy-on-click
+          )
+            q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
+        .row.items-center.q-gutter-sm(v-if='selectedRow.memo')
+          q-icon(name='sticky_note_2' color='grey-6' size='xs')
+          .text-caption.t-muted {{ selectedRow.memo }}
+
+      //- Содержание процесса словами предметной области: имущество, стороны,
+      //- суммы, состояние. Описывает его приложение процесса, иначе ядро — из
+      //- сводки процесса.
+      ProcessContentCard.q-mt-md(v-if='selectedContent', :coopname='info.coopname', :content='selectedContent')
+      .q-mt-md(v-if='selectedRow.processHash')
+        BaseButton(variant='secondary', size='sm', @click='goToProcess(selectedRow.processHash)') {{ $t('reports.operationsPage.openProcessLabel') }}
+
+      //- Движения по кошелькам и проводки — одна под другой на всю ширину панели.
+      template(v-if='childLoading.get(selectedRow.globalSequence)')
+        q-spinner(size='sm')
+      .row.q-col-gutter-md.q-mt-xs(v-else)
+        //- Таблица 1: Движения по кошелькам
+        .col-12
+          q-card(flat bordered)
+            q-card-section.q-pb-none
+              .text-subtitle2 {{ $t('reports.operationsPage.walletMovementsTitle') }}
+            q-card-section.q-pt-sm
+              q-table(
+                v-if='walletRows(selectedRow.globalSequence).length'
+                flat dense
+                :rows='walletRows(selectedRow.globalSequence)'
+                :columns='walletColumns'
+                row-key='globalSequence'
+                hide-pagination
+                :pagination='{ rowsPerPage: 0 }'
+              )
+                template(#body-cell-direction='cp')
+                  q-td(:props='cp')
+                    DirectionCell(:direction='cp.row.direction')
+                template(#body-cell-walletFrom='cp')
+                  q-td(:props='cp')
+                    WalletIdCell(:wallet-name='cp.row.walletFrom')
+                template(#body-cell-walletTo='cp')
+                  q-td(:props='cp')
+                    WalletIdCell(:wallet-name='cp.row.walletTo')
+                template(#body-cell-quantity='cp')
+                  q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
+              .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
+
+        //- Таблица 2: Проводки по счетам (Дт → Кт парами)
+        .col-12
+          q-card(flat bordered)
+            q-card-section.q-pb-none
+              .text-subtitle2 {{ $t('reports.operationsPage.postingsTitle') }}
+            q-card-section.q-pt-sm
+              q-table(
+                v-if='accountRows(selectedRow.globalSequence).length'
+                flat dense
+                :rows='accountRows(selectedRow.globalSequence)'
+                :columns='accountColumns'
+                row-key='key'
+                hide-pagination
+                :pagination='{ rowsPerPage: 0 }'
+              )
+                template(#body-cell-debit='cp')
+                  q-td(:props='cp')
+                    AccountIdCell(:account-code='cp.row.debitCode')
+                template(#body-cell-credit='cp')
+                  q-td(:props='cp')
+                    AccountIdCell(:account-code='cp.row.creditCode')
+                template(#body-cell-quantity='cp')
+                  q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
+              .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.postingsEmptyLabel') }}
+
 </template>
 
 <script setup lang="ts">
@@ -305,7 +298,11 @@ import type { ILedger2Operation, ILedger2HistoryFilterInput } from 'src/entities
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
-import { processInfoFactory } from 'src/shared/lib/process-info-factory'
+import { BaseButton } from 'src/shared/ui/base'
+import { DetailsDrawer } from 'src/shared/ui/domain'
+import { ProcessContentCard } from 'src/widgets/Process/ProcessContentCard'
+import { useProcessStore, type IProcessContent } from 'src/entities/Process'
+import { RegistrySource } from 'src/shared/lib/registry-source'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
@@ -338,23 +335,9 @@ function rowChipText(row: ILedger2Operation): string {
   return row.operationCode ?? (row.action === 'walmove' ? 'o.adj.walmove' : row.action === 'revert' ? 'o.adj.rev' : '—')
 }
 
-/**
- * Слот «Содержание процесса» рисуют прикладные расширения (marketplace,
- * capital, …) через `processInfoFactory.registerHandler(process_type, …)`.
- * Сама страница остаётся неизменной — она лишь даёт расширению место,
- * чтобы показать заказчика, поставщика, состав заказа и deep-link на свой
- * собственный стол. Без зарегистрированного компонента блок не появляется.
- */
+/** Тип процесса операции — по нему узел подбирает описание содержания процесса. */
 function rowProcessType(row: ILedger2Operation): string | undefined {
   return Ledger2.getOperationProcessType(row.operationCode)
-}
-function hasProcessInfo(row: ILedger2Operation): boolean {
-  const pt = rowProcessType(row)
-  return !!pt && processInfoFactory.hasHandler(pt)
-}
-function processInfoComponent(row: ILedger2Operation) {
-  const pt = rowProcessType(row)
-  return pt ? processInfoFactory.getInfoComponent(pt) : undefined
 }
 
 // Цветовая схема по контракту-источнику operation_code — пастельный chip +
@@ -384,9 +367,6 @@ function processColorEntry(code: string | null | undefined): ProcessColorEntry {
   const parts = code.split('.')
   const contract = parts.length >= 3 ? parts[1] : parts[0]
   return PROCESS_COLORS[contract ?? ''] ?? PROCESS_COLOR_DEFAULT
-}
-function processAccentColor(code: string | null | undefined): string {
-  return processColorEntry(code).accent
 }
 function processChipBg(code: string | null | undefined): string {
   return processColorEntry(code).chipBg
@@ -418,7 +398,6 @@ function formatAmount(qty: string | null | undefined): string {
 
 const loading = ref(false)
 const items = ref<ILedger2Operation[]>([])
-const expanded = ref(new Map<string, boolean>())
 const rowRefs = new Map<string, HTMLElement | null>()
 
 // FIO-кэш: username → ФИО
@@ -702,11 +681,40 @@ async function resetFilters() {
   reload()
 }
 
-function toggleExpand(seq: string, processHash: string | null | undefined) {
-  const wasOpen = expanded.value.get(seq)
-  expanded.value.set(seq, !wasOpen)
-  if (!wasOpen && processHash && !childOps.value.has(seq)) {
-    loadChildOps(seq, processHash)
+// Операция в правой панели: движения и проводки операции плюс содержание её
+// процесса (описывает приложение процесса, иначе ядро — из сводки процесса).
+const processStore = useProcessStore()
+const selectedSeq = ref<string | null>(null)
+const selectedContent = ref<IProcessContent | null>(null)
+const selectedRow = computed(() =>
+  items.value.find((row) => String(row.globalSequence) === selectedSeq.value) ?? null,
+)
+
+function openDetails(row: ILedger2Operation): void {
+  const seq = String(row.globalSequence)
+  selectedSeq.value = seq
+  selectedContent.value = null
+  if (row.processHash && !childOps.value.has(seq)) loadChildOps(seq, row.processHash)
+  void loadContent(row)
+}
+
+function closeDetails(): void {
+  selectedSeq.value = null
+  selectedContent.value = null
+}
+
+async function loadContent(row: ILedger2Operation): Promise<void> {
+  const processType = rowProcessType(row)
+  if (!row.processHash || !processType) return
+  try {
+    const content = await processStore.loadProcessContent(
+      { coopname: info.coopname, hash: row.processHash, process_type: processType },
+      RegistrySource.ACCOUNTANT,
+    )
+    // Пока ответ шёл, бухгалтер мог открыть другую операцию.
+    if (selectedSeq.value === String(row.globalSequence)) selectedContent.value = content
+  } catch (e) {
+    FailAlert(e)
   }
 }
 
@@ -830,10 +838,7 @@ onMounted(async () => {
     if (filters.applyGlobalSequence) {
       const seq = filters.applyGlobalSequence
       const row = items.value.find((r) => String(r.globalSequence) === seq)
-      expanded.value.set(seq, true)
-      if (row?.processHash) {
-        loadChildOps(seq, row.processHash)
-      }
+      if (row) openDetails(row)
       nextTick(() => {
         rowRefs.get(seq)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
@@ -858,9 +863,5 @@ useLiveReload(LEDGER_LIVE_TABLES, load)
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
-}
-.op-header {
-  border-left: 4px solid var(--p-line-2);
-  padding: 4px 0 4px 12px;
 }
 </style>

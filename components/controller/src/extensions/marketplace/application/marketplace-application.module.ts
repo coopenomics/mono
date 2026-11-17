@@ -121,6 +121,7 @@ import {
   MARKETPLACE_APL_RECEPTION_SERVICE,
 } from './services/marketplace-apl-reception.service';
 import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
+import { MarketplaceProcessContentService } from './services/marketplace-process-content.service';
 import {
   MarketplacePayoutSyncService,
   MARKETPLACE_PAYOUT_SYNC_SERVICE,
@@ -416,6 +417,8 @@ import {
     // gateway, marketplace только подписывается на blockchain-action delta.
     { provide: MARKETPLACE_PAYOUT_SYNC_SERVICE, useExisting: MarketplacePayoutSyncService },
     MarketplacePayoutSyncService,
+    // Содержание процессов Стола заказов для стола бухгалтера (реестр processContent).
+    MarketplaceProcessContentService,
     // requirement b6 (2026-08-03) — слушатель callback'ов от gateway
     // (aidconfirm/aiddecline) для зеркалирования статуса выплаты
     // материальной помощи доверенному КУ, тем же паттерном, что и выплата
