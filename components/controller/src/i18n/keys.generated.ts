@@ -2856,6 +2856,7 @@ export type MessageKey =
   | 'marketplace.notification.inspectionInviteTitle'
   | 'marketplace.notification.noActionNeededAvailableNote'
   | 'marketplace.notification.noActionNeededAvailableNoteAlt'
+  | 'marketplace.notification.paymentItemFallback'
   | 'marketplace.notification.propertyAwaitingPickupBody'
   | 'marketplace.notification.propertyReturnedTitle'
   | 'marketplace.notification.reasonNote'

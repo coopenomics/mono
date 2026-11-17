@@ -274,6 +274,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         paymentReference: event.payment_reference,
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
+        itemName: event.item_name || t('marketplace.notification.paymentItemFallback'),
+        quantity: event.quantity ?? '',
+        actDate: event.act_date ?? '',
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };

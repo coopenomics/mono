@@ -166,6 +166,12 @@ export interface MarketplaceSupplierPaymentConfirmedEvent {
   supplier_account: string;
   amount: string;
   payment_reference: string;
+  /** Название принятого имущества по заказу выплаты. */
+  item_name?: string;
+  /** Принятое количество с единицей продажи («1000 упак. 1 л»). */
+  quantity?: string;
+  /** Дата закрывающей подписи акта приёмки («17.11.2026»). */
+  act_date?: string;
 }
 
 export interface MarketplaceSupplierPaymentDeclinedEvent {

@@ -15,7 +15,28 @@ import {
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
+import {
+  MARKETPLACE_APL_RECEPTION_REPOSITORY,
+  type MarketplaceAplReceptionDomainRepository,
+} from '../../domain/repositories/marketplace-apl-reception.repository';
+import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
+import { presentSaleUnit } from '../shared/packaging.util';
 import { t } from '../../i18n';
+
+/** Что поставщику говорит выплата: имущество, количество и дата акта приёмки. */
+interface PayoutSubject {
+  item_name: string;
+  quantity: string;
+  act_date: string;
+}
 
 /**
  * Story 5.6 / 5.7 + E11 техдолг 598-16 (Locked Decision L12):
@@ -45,7 +66,13 @@ export class MarketplacePayoutSyncService {
     @Inject(PAYMENT_DESK_PORT)
     private readonly coreGateway: IPaymentDeskPort,
     private readonly eventBus: EventEmitter2,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
+    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository
   ) {
     this.logger.setContext(MarketplacePayoutSyncService.name);
   }
@@ -98,6 +125,7 @@ export class MarketplacePayoutSyncService {
         supplier_account: updated.payee_account,
         amount: `${updated.amount} ${updated.symbol}`,
         payment_reference: action.transaction_id,
+        ...(await this.payoutSubject(updated)),
       };
       this.eventBus.emit(MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT, event);
     } catch (err: any) {
@@ -158,6 +186,35 @@ export class MarketplacePayoutSyncService {
         `paydecline listener упал: ${err.message}`,
         err.stack
       );
+    }
+  }
+
+  /**
+   * Содержание выплаты для поставщика: название имущества и принятое
+   * количество по заказу (выплата заводится на каждый заказ партии) и дата
+   * закрывающей подписи акта приёмки. Идентификаторы акта и транзакции
+   * поставщику ни о чём не говорят (слово владельца 17.11.2026). Сбой чтения
+   * не блокирует уведомление: оно отправляется с суммой.
+   */
+  private async payoutSubject(request: MarketplaceOutgoingPaymentRequestDomainEntity): Promise<Partial<PayoutSubject>> {
+    try {
+      const [order, reception] = await Promise.all([
+        this.orderRepo.findById(request.order_id),
+        this.receptionRepo.findById(request.apl_reception_id),
+      ]);
+      if (!order) return {};
+      const offer = await this.offerRepo.findById(order.offer_id);
+      const fact = reception?.fact_quantity_per_order.find((f) => f.order_id === order.id);
+      const pres = presentSaleUnit(Number(fact?.fact_quantity ?? order.quantity), order.unit_of_measure, order.package_size);
+      const signedAt = reception?.chairman_signed_at ?? reception?.created_at ?? null;
+      return {
+        item_name: offer?.product_name ?? '',
+        quantity: `${pres.units} ${pres.unitLabel}`.trim(),
+        act_date: signedAt ? signedAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' }) : '',
+      };
+    } catch (err: any) {
+      this.logger.warn(`payconfirm: состав выплаты ${request.id} не прочитан (${err.message}) — уведомление отправляется с суммой.`);
+      return {};
     }
   }
 }

@@ -1861,7 +1861,7 @@
       "selfPickupLabel": "Самовывоз",
       "shipmentNotFoundError": "Партия по этой ТТН не найдена среди ожидающих приёмки на вашем КУ ",
       "shipmentNotFoundNote": "(возможно, уже принята или направлена на другой участок).",
-      "signAsOperatorButton": "Подписать оператором",
+      "signAsOperatorButton": "Оприходовать",
       "supplierPropertyLabel": "Имущество поставщика",
       "supplierReceptionTitle": "Приёмка имущества поставщика",
       "supplierSignedAtText": "Поставщик подписал {date}",
@@ -2228,7 +2228,7 @@
       "status": {
         "acceptedToCoop": "Принят кооперативом",
         "cancelled": "Отменён",
-        "pendingOperatorSign": "Ждёт подписи оператора",
+        "pendingOperatorSign": "Ждёт оприходования",
         "pendingSupplierSign": "Ждёт подписи поставщика"
       }
     },

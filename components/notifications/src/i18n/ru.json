@@ -666,11 +666,11 @@
   "marketplaceSupplierPaymentConfirmed": {
     "description": "Уведомление поставщику о подтверждённой кассиром выплате — банковский перевод выполнен, обязательство по акту приёмки закрыто.",
     "email": {
-      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир подтвердил выплату по акту приёмки <strong>{{payload.apl_reception_id}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Номер платёжного поручения: {{payload.paymentReference}}.<br><br>История выплат: {{payload.deepLinkUrl}}",
-      "subject": "Выплата по акту приёмки {{payload.apl_reception_id}} подтверждена"
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кооператив перечислил вам <strong>{{payload.amount}}</strong> за {{payload.itemName}}{% if payload.quantity %}, {{payload.quantity}}{% endif %}{% if payload.actDate %}, по акту приёмки от {{payload.actDate}}{% endif %}.<br><br>История выплат: {{payload.deepLinkUrl}}",
+      "subject": "Оплата поставки: {{payload.amount}}"
     },
     "inApp": {
-      "body": "Кассир подтвердил выплату {{payload.amount}} по акту приёмки {{payload.apl_reception_id}}. Платёжное поручение: {{payload.paymentReference}}.",
+      "body": "Кооператив перечислил {{payload.amount}} за {{payload.itemName}}{% if payload.quantity %}, {{payload.quantity}}{% endif %}{% if payload.actDate %}, по акту приёмки от {{payload.actDate}}{% endif %}.",
       "subject": "Выплата подтверждена"
     },
     "name": "Выплата поставщику подтверждена кассиром",

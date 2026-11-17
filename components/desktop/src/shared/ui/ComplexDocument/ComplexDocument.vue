@@ -73,8 +73,10 @@ const toRow = (aggregate: IDocumentAggregate, fallbackTitle: string): DocumentRo
   }
 }
 
-// Порядок прежний: заявление, решение, затем связанные документы — и последние
-// только при наличии заявления, как было.
+// Порядок пакета: заявление, решение, акты пакета, затем связанные документы —
+// акты и связанные только при наличии заявления. Акты (soviet::newact) пакет
+// несёт отдельным списком: реестр считает их связанными документами, и без них
+// страница заявления показывала меньше, чем строка реестра (стенд 4, 17.11.2026).
 const items = computed<IPackageItem[]>(() => {
   if (props.document) return [{ key: 'single', aggregate: props.document, row: toRow(props.document, i18nT('ui.complexDocument.documentLabel')) }]
   const pack = props.documents
@@ -85,6 +87,10 @@ const items = computed<IPackageItem[]>(() => {
   if (statement) list.push({ key: 'statement', aggregate: statement, row: toRow(statement, t('ui.complexDocument.statementLabel')) })
   if (decision) list.push({ key: 'decision', aggregate: decision, row: toRow(decision, t('ui.complexDocument.decisionLabel')) })
   if (pack.statement) {
+    ;(pack.acts ?? []).forEach((act, index) => {
+      const aggregate = act?.documentAggregate
+      if (aggregate) list.push({ key: `act-${index}`, aggregate, row: toRow(aggregate, t('ui.complexDocument.actLabel')) })
+    })
     pack.links.forEach((linked, index) => {
       list.push({ key: `link-${index}`, aggregate: linked, row: toRow(linked, t('ui.complexDocument.documentLabel')) })
     })

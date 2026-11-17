@@ -89,6 +89,7 @@
       "workspacesSection": "Столы"
     },
     "complexDocument": {
+      "actLabel": "Акт",
       "decisionLabel": "Решение",
       "documentLabel": "Документ",
       "statementLabel": "Заявление"

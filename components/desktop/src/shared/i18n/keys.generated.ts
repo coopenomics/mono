@@ -9197,6 +9197,7 @@ export type MessageKey =
   | 'ui.commandPalette.searching'
   | 'ui.commandPalette.selectHint'
   | 'ui.commandPalette.workspacesSection'
+  | 'ui.complexDocument.actLabel'
   | 'ui.complexDocument.decisionLabel'
   | 'ui.complexDocument.documentLabel'
   | 'ui.complexDocument.statementLabel'
