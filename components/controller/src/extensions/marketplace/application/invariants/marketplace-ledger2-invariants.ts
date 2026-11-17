@@ -336,11 +336,16 @@ const ACCOUNT_86_SIDES: Record<'debit' | 'credit', AccountSideRule> = {
   // Решение владельца 09.11.2026: членские взносы гасят расходы участка из
   // денежных паевых взносов инициаторов на 26.
   debit: { codes: ['o.mkt.icover'], missing: i18nT('marketplace.ledgerInvariants.account86DebitMissing') },
-  // Задача 99D-22: при списании по итогу месяца в кредит 86 ложится и
-  // отчисление в фонды накопления (o.fnd.accrue) — вторая нога chargeperiod.
-  // Задача 99D-27: доля инициаторов возмещает их паевые взносы (o.mkt.repay,
-  // Дт 80 / Кт 86) — та же нога chargeperiod, пока паевые взносы участка не возвращены.
-  credit: { codes: ['o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel', 'o.mkt.repay', 'o.mkt.iuncov'], missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing') },
+  // С 17.11.2026 (решение владельца) проводка Дт 80 / Кт 86 одна — на самом
+  // списании: o.mkt.charge (по итогу месяца) и o.mkt.exfee (при выходе
+  // пайщика); пул w.mkt.fee — субсчёт 86, доли участку, фондам, инициаторам и
+  // фонду социального обеспечения идут по кошелькам без проводок. Прежде
+  // кредит 86 ложился на каждую долю (o.brn.common, o.fnd.*, o.mkt.repay,
+  // o.mkt.social) — эти записи остаются в истории и законны.
+  credit: {
+    codes: ['o.mkt.charge', 'o.mkt.exfee', 'o.mkt.iuncov', 'o.brn.common', 'o.fnd.indiv', 'o.fnd.resrv', 'o.fnd.devel', 'o.mkt.repay', 'o.mkt.social'],
+    missing: i18nT('marketplace.ledgerInvariants.account86CreditMissing'),
+  },
 }
 
 export function checkInvariantI2Account86Usage(rows: readonly MarketplaceLedger2OperationRow[]): InvariantResult {

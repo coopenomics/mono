@@ -372,6 +372,9 @@ operations:
   - ledger_code: o.mkt.exfee
     human_name: Списание обеспечительной части в членский взнос при выходе пайщика из кооператива
     wallet_op: TRANSFER
+    # Единственная проводка: паевое становится членским (решение владельца 17.11.2026)
+    debit: 80                      # Паевой фонд
+    credit: 86                     # Целевые поступления
     wallet_from: w.mkt.due
     wallet_to: w.mkt.fee
     amount_ref: userwallet(w.mkt.due).available

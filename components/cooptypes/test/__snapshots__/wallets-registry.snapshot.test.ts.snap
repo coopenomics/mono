@@ -350,7 +350,7 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.mkt.payout",
   },
   {
-    "account": 80000,
+    "account": 86000,
     "human_name": "Транзитный пул списанной обеспечительной части «Стола заказов»",
     "kind": "COOPERATIVE",
     "name": "w.mkt.fee",

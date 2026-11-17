@@ -361,14 +361,16 @@ operations:
   - ledger_code: o.mkt.charge
     human_name: Списание обеспечительной части в членский взнос по условиям программы
     wallet_op: TRANSFER
-    # L1 — без проводки: транзит; проводку Дт 80 / Кт 86 делает зачисление участку
-    debit: null
-    credit: null
+    # L1 — единственная проводка списания (решение владельца 17.11.2026): паевое
+    # становится членским; доли участку, фондам, инициаторам и фонду социального
+    # обеспечения дальше идут по кошелькам внутри 86 без проводок
+    debit: 80                      # Паевой фонд
+    credit: 86                     # Целевые поступления
     wallet_from: w.mkt.due         # Обеспечительная часть к списанию
-    wallet_to: w.mkt.fee           # Пул обеспечительной части (транзит к кошельку участка)
+    wallet_to: w.mkt.fee           # Транзитный пул списанной обеспечительной части (счёт 86)
     user_wallet: w.mkt.due
     user_ref: kudue.username
-    available_delta: -(участку + фонды + инициаторам)
+    available_delta: -(участку + фонды + инициаторам + фонду социального обеспечения)
     blocked_delta: null
     amount_ref: стоимость заказов строки × ставки итога + удержания
     triggered_by: marketplace::chargeperiod
@@ -382,8 +384,8 @@ operations:
   - ledger_code: o.brn.common
     human_name: Зачисление членского взноса в общий кошелёк кооперативного участка
     wallet_op: TRANSFER
-    debit: 80                      # Паевой фонд
-    credit: 86                     # Целевое финансирование
+    debit: null
+    credit: null
     wallet_from: w.mkt.fee         # Пул обеспечительной части «Стола заказов»
     wallet_to: w.brn.common        # Общий кошелёк кооперативного участка
     user_wallet: w.brn.common
@@ -403,8 +405,8 @@ operations:
   - ledger_code: o.mkt.repay
     human_name: Возмещение паевых взносов инициаторов из экономии периода участка
     wallet_op: TRANSFER
-    debit: 80                      # Паевой фонд — обеспечительная часть становится членским взносом
-    credit: 86                     # Целевые поступления
+    debit: null
+    credit: null
     wallet_from: w.mkt.fee         # Пул обеспечительной части (транзит)
     wallet_to: w.mkt.repay         # Возмещение паевых взносов инициаторов участка
     user_wallet: w.mkt.repay
@@ -424,8 +426,8 @@ operations:
   - ledger_code: o.mkt.social
     human_name: Отчисление в фонд социально-экономического взаимодействия и социального обеспечения из экономии месяца участка
     wallet_op: TRANSFER
-    debit: 80                      # Паевой фонд — обеспечительная часть становится членским взносом
-    credit: 86                     # Целевые поступления
+    debit: null
+    credit: null
     wallet_from: w.mkt.fee         # Пул обеспечительной части (транзит)
     wallet_to: w.fnd.social        # Средства фонда социального обеспечения по участкам
     user_wallet: w.fnd.social
@@ -518,10 +520,10 @@ operations:
     human_name: Списание обеспечительной части в членский взнос при выходе пайщика из кооператива
     wallet_op: TRANSFER
     # L1 — без проводки: оба кошелька на счёте 80; проводку делает зачисление участку
-    debit: null
-    credit: null
+    debit: 80
+    credit: 86
     wallet_from: w.mkt.due         # Обеспечительная часть к списанию
-    wallet_to: w.mkt.fee           # Пул обеспечительной части (транзит к кошельку участка)
+    wallet_to: w.mkt.fee           # Транзитный пул списанной обеспечительной части (счёт 86)
     user_wallet: w.mkt.due
     user_ref: username
     available_delta: -остаток кошелька

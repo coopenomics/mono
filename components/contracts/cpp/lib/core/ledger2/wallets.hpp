@@ -199,7 +199,7 @@ inline constexpr std::array<Ledger2WalletMeta, 49> LEDGER2_WALLET_REGISTRY = {{
   { ledger2_wallets::MIN_SHARE_USED,    "Использованные минимальные паевые взносы",                 WalletKind::COOPERATIVE, ledger2_accounts::SHARE_FUND },
   { ledger2_wallets::LOAN_ISSUED,       "Выданные пайщикам беспроцентные займы",                    WalletKind::COOPERATIVE, ledger2_accounts::FINANCIAL_INVESTMENTS },
   { ledger2_wallets::SUPPLIER_PAYMENTS, "Выплаты поставщикам",                                      WalletKind::COOPERATIVE, ledger2_accounts::OTHER_SETTLEMENTS },
-  { ledger2_wallets::MARKETPLACE_FEE_POOL, "Транзитный пул списанной обеспечительной части «Стола заказов»", WalletKind::COOPERATIVE, ledger2_accounts::SHARE_FUND },
+  { ledger2_wallets::MARKETPLACE_FEE_POOL, "Транзитный пул списанной обеспечительной части «Стола заказов»", WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::BRANCH_DISTRIBUTION_POOL, "Транзитный пул ручного распределения кооперативного участка", WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::BRANCH_AID_REQUEST,    "Материальная помощь по заявлению",                          WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
   { ledger2_wallets::BRANCH_EXPENSE_POOL,   "Пул расходов кооперативного участка",                       WalletKind::COOPERATIVE, ledger2_accounts::TARGET_RECEIPTS },
