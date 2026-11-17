@@ -32,6 +32,13 @@ export class DocumentPackageAggregateDTO implements DocumentPackageAggregateDoma
   })
   links!: DocumentAggregateDTO[];
 
+  @Field(() => String, {
+    description:
+      'Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом.',
+    nullable: true,
+  })
+  registry_hash?: string | null;
+
   constructor(data?: DocumentPackageAggregateDomainInterface) {
     if (data) {
       // Маппинг Statement
@@ -45,6 +52,7 @@ export class DocumentPackageAggregateDTO implements DocumentPackageAggregateDoma
 
       // Маппинг Links
       this.links = data.links.map((link) => new DocumentAggregateDTO(link));
+      this.registry_hash = data.registry_hash ?? null;
     } else {
       this.statement = null;
       this.decision = null;

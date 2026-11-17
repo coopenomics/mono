@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Cooperative, SovietContract } from 'cooptypes';
 import { DocumentPackageAggregator } from '~/domain/document/aggregators/document-package.aggregator';
+import { packageParticipants } from '~/domain/document/services/document-package-visibility';
 import {
   SIGNED_DOCUMENT_REPOSITORY,
   type SignedDocumentPackageRow,
@@ -214,18 +215,20 @@ export class SignedDocumentIngestionService {
     const rawDoc = statement?.documentAggregate?.rawDocument;
     const meta = (rawDoc?.meta ?? {}) as Record<string, any>;
 
+    const owner = meta.username || data.username || '';
     await this.repository.upsert({
       coopname,
       packageHash,
       doc_hash: docHash,
       hash,
-      username: meta.username || data.username || '',
+      username: owner,
       status,
       action: data.action || '',
       registry_id: typeof meta.registry_id === 'number' ? meta.registry_id : 0,
       full_title: rawDoc?.full_title || '',
       content_text: this.stripHtml(rawDoc?.html || ''),
       signers_text: this.collectSignersText(aggregate),
+      participants: packageParticipants(aggregate, owner),
       block_num: this.resolveBlockNum(sourceAction?.block_num, meta.block_num),
       document_created_at: this.parseDocumentDate(meta.created_at, meta.timezone),
       document_aggregate: aggregate,

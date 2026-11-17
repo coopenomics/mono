@@ -145,6 +145,9 @@ function getMeta(row: IDocumentPackageAggregate): Record<string, any> | undefine
   return (
     (row.statement?.documentAggregate?.document?.meta as any) ||
     (row.decision?.documentAggregate?.document?.meta as any) ||
+    // Пакет, выданный без заявления (поставщику — только его акт): данные строки — из акта.
+    (row.acts?.[0]?.documentAggregate?.document?.meta as any) ||
+    (row.links?.[0]?.document?.meta as any) ||
     undefined
   );
 }
@@ -155,6 +158,7 @@ function getDocumentTitle(row: IDocumentPackageAggregate): string {
     getMeta(row)?.title ||
     row.statement?.documentAggregate?.rawDocument?.full_title ||
     row.decision?.documentAggregate?.rawDocument?.full_title ||
+    row.acts?.[0]?.documentAggregate?.rawDocument?.full_title ||
     t('cooperative.documentsTable.untitledDocument')
   );
 }

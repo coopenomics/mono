@@ -23,6 +23,8 @@ export interface SignedDocumentUpsertInput {
   full_title: string;
   /** html заявления без тегов — для ILIKE-поиска */
   content_text: string;
+  /** Владелец заявления и все субъекты и подписанты документов пакета — по ним реестр отбирает пакеты пайщика. */
+  participants: string[];
   /** ФИО/наименования всех подписантов пакета + их username — для поиска по подписанту */
   signers_text: string;
   /** bigint из блокчейна приходит строкой */
@@ -78,6 +80,10 @@ export interface SignedDocumentListParams {
 
 export interface SignedDocumentListResult {
   items: DocumentPackageAggregateDomainInterface[];
+  /** Владелец заявления каждого пакета — в том же порядке, что `items`. */
+  owners: string[];
+  /** Ключ записи реестра (хэш подписанного заявления) каждого пакета — в том же порядке. */
+  hashes: string[];
   total: number;
 }
 
@@ -94,6 +100,7 @@ export interface SignedDocumentAggregateUpdate {
   full_title: string;
   content_text: string;
   signers_text: string;
+  participants: string[];
 }
 
 /** Состояние записи для guard'ов ingestion (не понижать статус / не откатывать версию подписи). */

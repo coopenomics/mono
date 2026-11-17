@@ -2735,6 +2735,7 @@ export interface SignedDocuments {
   hash: string;
   id: Generated<string>;
   package: string;
+  participants: Generated<string[]>;
   registry_id: Generated<number>;
   signers_text: Generated<string>;
   source_action_data: Json | null;

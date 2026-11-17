@@ -7,6 +7,14 @@ title: Документы процесса по его хэшу
 # документ по хэшу документа и показывала «Документ появится в реестре…», хотя
 # заявление 1119 в реестре было (владелец 08.11.2026). Реестр получил фильтр
 # по пакету; охват пайщика ставит сервис поверх фильтра.
+#
+# 17.11.2026 (решение владельца): пакет процесса один — заявление, решение
+# совета, акты и связанные документы под одним хэшем; в цепи заявление в
+# пакете одно, остальное — newact/newlink. Пайщику выдаются только
+# полагающиеся ему документы пакета (субъект или подписант; заявление
+# владельца — с решением совета по нему), совет видит пакет целиком. Реестр
+# отбирает пакеты пайщика по владельцу заявления и по колонке участников
+# (participants, миграция CoreSignedDocumentParticipants), состав режет узел.
 
 sources:
   backend:
@@ -14,8 +22,11 @@ sources:
     - components/controller/src/application/document/services/document.service.ts
     - components/controller/src/domain/document/repository/signed-document.repository.ts
     - components/controller/src/infrastructure/database/kysely/repositories/signed-document.kysely-repository.ts
+    - components/controller/src/domain/document/services/document-package-visibility.ts
+    - components/controller/src/application/signed-documents/services/signed-document-ingestion.service.ts
   ui:
     - components/desktop/src/entities/Document/model/store.ts
+    - components/desktop/src/shared/ui/ComplexDocument/ComplexDocument.vue
 
 cases:
   - id: documents.package-filter.01
@@ -47,3 +58,33 @@ cases:
     # Снаружи — пайщик открывает документы записи истории паевых взносов по хэшу процесса.
     api: components/api-tests/src/marketplace/invest.test.ts
     status: passing
+
+  - id: documents.package-visibility.01
+    level: backend
+    kind: side
+    scenario: >
+      Пакет заказа Стола заказов: заявление заказчика, протокол совета, акт
+      приёмки (поставщик и оператор), акт выдачи (заказчик и оператор).
+      Пакет запрашивают совет, заказчик, поставщик, оператор и посторонний.
+    expect: >
+      совет получает пакет целиком; заказчик — заявление, протокол и акт
+      выдачи; поставщик — только акт приёмки, без заявления и протокола;
+      оператор — оба подписанных им акта; посторонний пакет не получает;
+      участники пакета — владелец заявления, субъекты и подписанты всех
+      документов
+    test: components/controller/tests/unit/document/document-package-visibility.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
+    status: written   # запуск — CI на полигонах ci/tests и ci/blackbox
+
+  - id: documents.package-visibility.02
+    level: ui
+    kind: side
+    scenario: >
+      Поставщик открывает реестр документов и пакет заказа, в котором ему
+      выдан только его акт приёмки.
+    expect: >
+      строка реестра называется по акту и открывает пакет по ключу реестра
+      (registry_hash); страница пакета показывает акт и без заявления
+    test: ~
+    status: missing   # сценарий docs-harness для реестра поставщика не заведён
+

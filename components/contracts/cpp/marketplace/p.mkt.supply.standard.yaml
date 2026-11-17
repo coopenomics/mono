@@ -1217,8 +1217,8 @@ documents:
     signed_by: [offerer, chairman]
     stored_in: >-
       orders.acceptance_act_signchair; в реестре документов — акт пакета заказа
-      (soviet::newact, package = order_hash) и экземпляр поставщика
-      самостоятельным пакетом (package = hash акта)
+      (soviet::newact, package = order_hash); поставщику пакет выдаётся только
+      с этим актом
     note: "Тот же документ 1104, что подписал поставщик: председатель накладывает вторую подпись на исходник из стора документов без регенерации (канон DocumentAggregate); контракт проверяет обе подписи. Итоговый акт публикуется в реестр документов пакетом процесса заказа (package = order_hash)."
 
   - action: marketplace::issuestmt

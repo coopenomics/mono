@@ -47,6 +47,7 @@ export class SignedDocumentKyselyRepository implements SignedDocumentRepository 
       full_title: input.full_title,
       content_text: input.content_text,
       signers_text: input.signers_text,
+      participants: input.participants,
       block_num: input.block_num,
       document_created_at: input.document_created_at,
       document_aggregate: json(input.document_aggregate),
@@ -69,6 +70,7 @@ export class SignedDocumentKyselyRepository implements SignedDocumentRepository 
         full_title: fields.full_title,
         content_text: fields.content_text,
         signers_text: fields.signers_text,
+        participants: fields.participants,
         updated_at: sql`now()`,
       })
       .where('coopname', '=', coopname)
@@ -186,7 +188,15 @@ export class SignedDocumentKyselyRepository implements SignedDocumentRepository 
 
     if (params.status) query = query.where('status', '=', params.status);
     if (params.actions && params.actions.length > 0) query = query.where('action', 'in', params.actions);
-    if (params.username) query = query.where('username', '=', params.username);
+    if (params.username) {
+      // Пакеты пайщика: он владелец заявления либо субъект или подписант
+      // документа пакета (участник). Состав чужого пакета режет выдача —
+      // `packageVisibleTo` в интеракторе реестра.
+      const username = params.username;
+      query = query.where((eb) =>
+        eb.or([eb('username', '=', username), sql<boolean>`${sql.ref('participants')} @> ARRAY[${username}]::text[]`])
+      );
+    }
     if (params.hash) {
       // Фронт шлёт хэш в верхнем регистре, в реестре он хранится как пришёл из агрегата — сверка без учёта регистра.
       query = query.where(sql<boolean>`upper(hash) = upper(${params.hash})`);
@@ -199,7 +209,7 @@ export class SignedDocumentKyselyRepository implements SignedDocumentRepository 
     if (params.beforeBlock != null) query = query.where('block_num', '<=', String(params.beforeBlock));
 
     const rows = await query
-      .select('document_aggregate')
+      .select(['document_aggregate', 'username', 'hash'])
       .orderBy('document_created_at', (order) => order.desc().nullsLast())
       .orderBy('created_at', 'desc')
       .offset((params.page - 1) * params.limit)
@@ -211,6 +221,8 @@ export class SignedDocumentKyselyRepository implements SignedDocumentRepository 
       items: rows.map(
         (row) => (row.document_aggregate as unknown as DocumentPackageAggregateDomainInterface | null) ?? EMPTY_AGGREGATE
       ),
+      owners: rows.map((row) => row.username),
+      hashes: rows.map((row) => row.hash),
       total: Number(total.count),
     };
   }

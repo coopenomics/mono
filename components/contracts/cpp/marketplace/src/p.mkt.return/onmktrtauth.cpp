@@ -17,8 +17,9 @@
  *    w.mkt.share, без проводки (задача 99D-18). Возврат возможен только в
  *    гарантийный срок, а списание в членский взнос — только после него,
  *    поэтому сумма всегда на w.mkt.due: обратных проводок Дт 86 / Кт 80 нет;
- *  - `newresolved` для рекламации пайщика (1106) в пакет процесса возврата
- *    (package = хэш рекламации);
+ *  - реестр документов: итог и протокол по пакету возврата публикует совет;
+ *    рекламация вошла в пакет связанным документом при одобрении оператором
+ *    (accretrn);
  *    заявление оператора и протокол публикует контракт soviet пакетом
  *    повестки; запись заявки стирается.
  *  - по заказу с внешним поставщиком (offerer != coopname) заводится
@@ -61,10 +62,6 @@ void marketplace::onmktrtauth(eosio::name coopname,
                    r.fee_refund, r.orderer, r.hash,
                    Marketplace::Memo::get_return_due_to_share_memo(r.id, r.original_order_id));
   }
-
-  Action::send<newresolved_interface>(_soviet, "newresolved"_n, _marketplace,
-                                      coopname, r.orderer, "onmktrtauth"_n,
-                                      r.hash, r.statement);
 
   // Претензия поставщику: имущество оплачено поставщику, а вернулось на склад.
   // Заказ из остатка кооператива (offerer == coopname) поставщика не имеет.
