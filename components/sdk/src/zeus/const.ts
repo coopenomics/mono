@@ -6356,6 +6356,7 @@ export const ReturnTypes: Record<string,any> = {
 		acts:"ActDetailAggregate",
 		decision:"DecisionDetailAggregate",
 		links:"DocumentAggregate",
+		registry_hash:"String",
 		statement:"StatementDetailAggregate"
 	},
 	DocumentReproducibilityAudit:{

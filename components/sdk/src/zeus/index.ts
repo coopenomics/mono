@@ -7163,6 +7163,8 @@ export type ValueTypes = {
 	decision?:ValueTypes["DecisionDetailAggregate"],
 	/** Массив связанных документов с агрегатами, извлечённых из мета-данных */
 	links?:ValueTypes["DocumentAggregate"],
+	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
+	registry_hash?:boolean | `@${string}`,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?:ValueTypes["StatementDetailAggregate"],
 		__typename?: boolean | `@${string}`,
@@ -26588,6 +26590,8 @@ export type ResolverInputTypes = {
 	decision?:ResolverInputTypes["DecisionDetailAggregate"],
 	/** Массив связанных документов с агрегатами, извлечённых из мета-данных */
 	links?:ResolverInputTypes["DocumentAggregate"],
+	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
+	registry_hash?:boolean | `@${string}`,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?:ResolverInputTypes["StatementDetailAggregate"],
 		__typename?: boolean | `@${string}`
@@ -45419,6 +45423,8 @@ export type ModelTypes = {
 	decision?: ModelTypes["DecisionDetailAggregate"] | undefined | null,
 	/** Массив связанных документов с агрегатами, извлечённых из мета-данных */
 	links: Array<ModelTypes["DocumentAggregate"]>,
+	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
+	registry_hash?: string | undefined | null,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?: ModelTypes["StatementDetailAggregate"] | undefined | null
 };
@@ -64688,6 +64694,8 @@ export type GraphQLTypes = {
 	decision?: GraphQLTypes["DecisionDetailAggregate"] | undefined | null,
 	/** Массив связанных документов с агрегатами, извлечённых из мета-данных */
 	links: Array<GraphQLTypes["DocumentAggregate"]>,
+	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
+	registry_hash?: string | undefined | null,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?: GraphQLTypes["StatementDetailAggregate"] | undefined | null,
 	['...on DocumentPackageAggregate']: Omit<GraphQLTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
