@@ -281,7 +281,8 @@
         "settingsTitle": "Реквизиты",
         "walletsCoopTitle": "Кооператив",
         "walletsParticipantsTitle": "Пайщики",
-        "walletsTitle": "Реестр кошельков"
+        "walletsTitle": "Реестр кошельков",
+        "processTitle": "Процесс"
       },
       "title": "Стол бухгалтера"
     },
@@ -477,7 +478,8 @@
       "subjectType": {
         "branch": "Участок",
         "participant": "Пайщик"
-      }
+      },
+      "openFullPageButton": "На всю страницу"
     },
     "reportEditorDialog": {
       "actionsLabel": "Действия",
@@ -751,6 +753,9 @@
         "chairman": "1 — руководитель",
         "representative": "2 — уполномоченный представитель"
       }
+    },
+    "processPage": {
+      "backToRegistry": "К реестру процессов"
     }
   }
 }

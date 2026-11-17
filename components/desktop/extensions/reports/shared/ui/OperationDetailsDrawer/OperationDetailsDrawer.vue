@@ -200,7 +200,7 @@ function openProcess(): void {
   const hash = props.operation?.processHash
   if (!hash) return
   emit('close')
-  void router.push({ name: 'reports-processes', params: { coopname: props.coopname }, query: { process_hash: hash } }) // i18n-ignore
+  void router.push({ name: 'reports-processes', params: { coopname: props.coopname }, query: { process: hash } }) // i18n-ignore
 }
 </script>
 

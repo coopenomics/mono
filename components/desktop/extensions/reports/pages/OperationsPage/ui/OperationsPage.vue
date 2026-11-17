@@ -285,7 +285,7 @@ function goToProcess(hash: string | null | undefined) {
   router.push({
     name: 'reports-processes',
     params: { coopname: info.coopname },
-    query: { process_hash: hash },
+    query: { process: hash },
   })
 }
 

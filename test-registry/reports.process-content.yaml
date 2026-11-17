@@ -28,6 +28,8 @@ sources:
     - components/desktop/extensions/reports/shared/ui/OperationDetailsDrawer/OperationDetailsDrawer.vue
     - components/desktop/extensions/reports/pages/ProcessesPage/ui/ProcessesPage.vue
     - components/desktop/extensions/reports/pages/AccountsPage/ui/AccountsPage.vue
+    - components/desktop/extensions/reports/shared/ui/DeskProcessView/DeskProcessView.vue
+    - components/desktop/extensions/reports/pages/ProcessPage/ui/ProcessPage.vue
     - components/desktop/src/widgets/Process/ProcessDetailCard/ProcessDetailCard.vue
     - components/desktop/extensions/reports/pages/OperationsPage/ui/OperationsPage.vue
     - components/desktop/extensions/reports/pages/PostingsPage/ui/PostingsPage.vue
@@ -101,6 +103,9 @@ cases:
       страницу: содержание процесса, движения по кошелькам, проводки; кнопка
       «Открыть процесс» — везде, кроме реестра процессов; стрелок раскрытия
       в реестре операций нет; длинные сведения карточки занимают всю ширину;
-      страница заказа карточку содержания не показывает — у неё своя шапка
+      страница заказа карточку содержания не показывает — у неё своя шапка;
+      строка реестра процессов открывает процесс в правой панели
+      (?process=<хэш>), кнопка «На всю страницу» в шапке панели ведёт на
+      страницу процесса; у карточки учёта процесса своей шапки нет
     status: missing
     decision_needed: false

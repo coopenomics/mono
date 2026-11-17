@@ -6,6 +6,7 @@ import {
   OperationsPage,
   PostingsPage,
   ProcessesPage,
+  ProcessPage,
   WalletsPage,
   CoopWalletsPage,
   ParticipantWalletsPage,
@@ -50,6 +51,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            // Процесс на всю страницу — кнопка «На всю страницу» правой панели
+            // реестра процессов. Скрыт из меню, подсвечивает реестр процессов.
+            path: 'processes/:processHash',
+            name: 'reports-process',
+            component: markRaw(ProcessPage),
+            meta: {
+              title: t('reports.install.route.processTitle'),
+              icon: 'fa-solid fa-diagram-project',
+              requires: 'Registry:read',
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: true,
+              menuKey: 'reports-processes',
             },
             children: [],
           },
