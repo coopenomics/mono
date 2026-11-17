@@ -129,6 +129,7 @@
       "accountLabel": "Счёт",
       "availableLabel": "Остаток фонда",
       "branchMeta": "участок {branch}",
+      "branchNamedMeta": "участок «{name}» ({branch})",
       "branchesAvailableLabel": "Средства участков",
       "branchesLine": "в том числе средства участков {amount} · кошелёк {wallet}",
       "branchesWalletLabel": "Кошелёк средств участков",

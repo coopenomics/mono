@@ -8393,6 +8393,7 @@ export type MessageKey =
   | 'reports.fundsPage.accountLabel'
   | 'reports.fundsPage.availableLabel'
   | 'reports.fundsPage.branchMeta'
+  | 'reports.fundsPage.branchNamedMeta'
   | 'reports.fundsPage.branchesAvailableLabel'
   | 'reports.fundsPage.branchesLine'
   | 'reports.fundsPage.branchesWalletLabel'

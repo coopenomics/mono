@@ -142,6 +142,7 @@ import {
   editDeskFund,
   loadDeskFundHistory,
   loadDeskFunds,
+  useDeskFioCache,
   type IDeskFund,
   type IDeskFundMovement,
 } from 'app/extensions/reports/shared/lib/registries'
@@ -243,11 +244,22 @@ const columns: BaseTableColumn<IDeskFund>[] = [
 /** Операция итога месяца участка Стола заказов: зачисление в фонд по участку. */
 const BRANCH_INCOME_OPERATION = 'o.mkt.social' // i18n-ignore
 
+// Названия участков по учётному имени: строка движения несёт только учётное имя.
+const { fioCache: branchNames, enrichFio: enrichBranchNames } = useDeskFioCache()
+
+/** Участок словами: «участок «Название» (учётное имя)»; без названия — учётное имя. */
+function branchLabel(username: string): string {
+  const name = branchNames.value.get(username)
+  return name && name !== username
+    ? t('reports.fundsPage.branchNamedMeta', { name, branch: username })
+    : t('reports.fundsPage.branchMeta', { branch: username })
+}
+
 function historyMeta(row: IDeskFundMovement): string {
   const counterparty = row.counterparty_name || row.counterparty_wallet;
-  // Зачисление на кошелёк фонда по участкам несёт имя участка — оно стоит в строке.
+  // Зачисление на кошелёк фонда по участкам несёт участок — он стоит в строке.
   const branch = row.operation_code === BRANCH_INCOME_OPERATION && row.username
-    ? t('reports.fundsPage.branchMeta', { branch: row.username })
+    ? branchLabel(row.username)
     : null;
   return [formatDate(row.created_at), counterparty, branch].filter(Boolean).join(' · ');
 }
@@ -291,6 +303,7 @@ async function loadHistory(page: number): Promise<void> {
   try {
     const result = await loadDeskFundHistory({ ...periodInput(), fund_id: selected.value.id }, page, HISTORY_PAGE)
     movements.value = page === 1 ? result.items : [...movements.value, ...result.items]
+    void enrichBranchNames(result.items.filter((row) => row.operation_code === BRANCH_INCOME_OPERATION).map((row) => row.username))
     historyPage.value = result.currentPage
     historyTotalPages.value = result.totalPages
   } catch (e) {
