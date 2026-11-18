@@ -157,7 +157,8 @@
     },
     "listOfDocumentsPage": {
       "documentsTab": "Документы",
-      "templatesTab": "Шаблоны документов"
+      "templatesTab": "Шаблоны документов",
+      "powersOfAttorneyTab": "Доверенности"
     },
     "listOfDocumentsWidget": {
       "allIncomingOption": "Все входящие",
@@ -294,6 +295,32 @@
       "revokeAriaLabel": "Снять роль",
       "revokeSuccess": "Роль снята",
       "rolesButtonLabel": "Роли"
+    },
+    "powersOfAttorney": {
+      "emptyTitle": "Доверенностей нет",
+      "emptyBody": "Реестр добавляет доверенность председателя участка, когда он подписывает её после решения совета об учреждении участка.",
+      "pagerLabel": "Доверенности",
+      "drawerTitle": "Доверенность № {number}",
+      "basisValue": "Протокол № {number} от {date}",
+      "column": {
+        "number": "Номер",
+        "type": "Тип",
+        "holder": "Доверенное лицо",
+        "branch": "Участок",
+        "basis": "Основание",
+        "term": "Срок",
+        "status": "Состояние"
+      },
+      "type": {
+        "trustee": "Председателю участка",
+        "trusted": "Доверенному лицу участка"
+      },
+      "status": {
+        "active": "Действует",
+        "pending": "На подписи",
+        "expired": "Срок истёк",
+        "declined": "Отклонена"
+      }
     }
   }
 }

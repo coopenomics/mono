@@ -1,8 +1,16 @@
 <template lang="pug">
 .q-pa-md
   TableSkeleton(v-if='loading', :columns='skeletonColumns', :rows='3')
-  //- страница моего участка — тот же виджет, что и у страницы участка из списка
-  KuBranchDetailsWidget(v-else-if='myBraname', :braname='myBraname')
+  template(v-else-if='myBraname')
+    //- Доверенность и договор председателя участка — после решения совета об учреждении
+    KuTrusteeDocumentsCard.q-mb-md(
+      v-if='myBranch && isTrustee',
+      ref='trusteeCard',
+      :braname='myBraname',
+      :branch-name='myBranchName'
+    )
+    //- страница моего участка — тот же виджет, что и у страницы участка из списка
+    KuBranchDetailsWidget(:braname='myBraname')
   EmptyState(
     v-else,
     :title='$t("ku.kuMyBranchPage.emptyTitle")',
@@ -25,6 +33,7 @@ import { FailAlert } from 'src/shared/api';
 import { EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { KuBranchDetailsWidget } from 'src/widgets/Ku/BranchDetails';
+import { KuTrusteeDocumentsCard } from 'src/features/Ku/TrusteeDocuments';
 import { t } from 'src/shared/i18n';
 
 const skeletonColumns: TableSkeletonColumn[] = [
@@ -49,11 +58,22 @@ const myBraname = computed(() => {
   return findChairedBranch(branchStore.publicBranches, session.username)?.braname ?? '';
 });
 
+const myBranch = computed(() =>
+  branchStore.publicBranches.find((item: { braname?: string }) => item.braname === myBraname.value) as
+    | { short_name?: string; full_name?: string; trustee_certificate?: { username?: string } }
+    | undefined,
+);
+const myBranchName = computed(() => myBranch.value?.short_name || myBranch.value?.full_name || myBraname.value);
+const isTrustee = computed(() => myBranch.value?.trustee_certificate?.username === session.username);
+const trusteeCard = ref<InstanceType<typeof KuTrusteeDocumentsCard> | null>(null);
+
 // Свой участок живёт по ленте изменений: участки — здесь, прикрепление к
 // участку — через учётную запись, которую держит сессия (userContextLive).
-useLiveReload(KU_LIVE_TABLES, () =>
-  branchStore.loadPublicBranches({ coopname: system.info.coopname }).catch((e) => console.warn('[ku] фоновое перечитывание не удалось', e)),
-);
+useLiveReload(KU_LIVE_TABLES, () => {
+  // встречная подпись председателя совета меняет состояние документов председателя участка
+  trusteeCard.value?.reload();
+  return branchStore.loadPublicBranches({ coopname: system.info.coopname }).catch((e) => console.warn('[ku] фоновое перечитывание не удалось', e));
+});
 
 onMounted(async () => {
   loading.value = true;

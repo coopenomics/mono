@@ -31,6 +31,8 @@
 #include "src/confirmdec.cpp"
 #include "src/declinedec.cpp"
 #include "src/canceldec.cpp"
+#include "src/signauth.cpp"
+#include "src/signliab.cpp"
 #include "src/apprliab.cpp"
 #include "src/declliab.cpp"
 #include "src/apprauth.cpp"

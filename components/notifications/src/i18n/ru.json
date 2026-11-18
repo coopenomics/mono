@@ -1246,5 +1246,21 @@
       "body": "{{payload.branchName}}: доступно {{payload.amount}}",
       "subject": "Возмещение паевого взноса"
     }
+  },
+  "branchAuthorityExpiring": {
+    "description": "Напоминание председателю кооперативного участка: срок доверенности подходит к концу, необходимо подписать новую",
+    "email": {
+      "body": "Уважаемый {{payload.trusteeName}}!<br><br>Доверенность № {{payload.poaNumber}} председателя кооперативного участка «{{payload.branchName}}» действует по {{payload.validUntil}} — осталось {{payload.daysLeft}} дн.<br><br>Подпишите новую доверенность на странице участка: {{payload.branchUrl}}<br><br>После окончания срока работа с пунктом выдачи закрывается до встречной подписи новой доверенности председателем совета.",
+      "subject": "Доверенность председателя участка «{{payload.branchName}}» истекает через {{payload.daysLeft}} дн."
+    },
+    "inApp": {
+      "body": "Доверенность № {{payload.poaNumber}} по участку «{{payload.branchName}}» действует по {{payload.validUntil}}. Подпишите новую на странице участка.",
+      "subject": "Доверенность истекает"
+    },
+    "name": "Доверенность председателя кооперативного участка истекает",
+    "push": {
+      "body": "Доверенность по участку «{{payload.branchName}}» действует по {{payload.validUntil}} — осталось {{payload.daysLeft}} дн.",
+      "subject": "Доверенность истекает"
+    }
   }
 }

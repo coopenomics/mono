@@ -349,6 +349,12 @@ describe('собрание об учреждении участка', () => {
   const GEN_PETITION = `mutation($d:BranchEstablishmentPetitionGenerateDocumentInput!){ kuGenerateEstablishmentPetition(data:$d){ ${DOC} } }`
   const GEN_LIABILITY = `mutation($d:BranchTrusteeLiabilityAgreementGenerateDocumentInput!){ kuGenerateTrusteeLiabilityAgreement(data:$d){ ${DOC} } }`
   const GEN_AUTHORITY = `mutation($d:BranchTrusteePowerOfAttorneyGenerateDocumentInput!){ kuGenerateTrusteePowerOfAttorney(data:$d){ ${DOC} } }`
+  const SIGN_AUTHORITY = `mutation($d:SignKuTrusteeAuthorityInput!){ kuSignTrusteeAuthority(data:$d)${TX} }`
+  const SIGN_LIABILITY = `mutation($d:SignKuTrusteeLiabilityInput!){ kuSignTrusteeLiability(data:$d)${TX} }`
+  const TRUSTEE_DOCS = `query($d:KuTrusteeDocumentsInput!){ kuTrusteeDocuments(data:$d){
+    has_protocol can_sign_authority liability_status authority{ number status protocol_number valid_until } } }`
+  const POWERS = `query($f:KuPowerOfAttorneyFilterInput!){ kuPowersOfAttorney(filter:$f){ totalCount items{ number holder braname status } } }`
+  const CONFIRM_APPROVE = 'mutation($d:ConfirmApproveInput!){ chairmanConfirmApprove(data:$d){ approval_hash } }'
   const EXEC = `mutation($d:ExecKuDecisionInput!){ kuExecDecision(data:$d)${TX} }`
   const GEN_COUNCIL_DECISION = `mutation($d:BranchEstablishmentDecisionGenerateDocumentInput!){ kuGenerateEstablishmentDecision(data:$d){ ${DOC} } }`
   const NEW_BRANCH = 'query($d:GetBranchesInput!){ getBranches(data:$d){ braname short_name full_name fact_address trustee{ username } } }'
@@ -370,20 +376,20 @@ describe('собрание об учреждении участка', () => {
   let questions: any[] = []
   /** Протокол совета об учреждении, которым председатель утвердил решение. */
   let councilDecision: any = null
+  /** Номер решения совета — номер протокола в доверенности председателя участка. */
+  let councilDecisionId = 0
 
   const voting = (token: string) => votingOf(token, hash)
 
-  /** Пакет председателя участка в совет: заявление, договор матответственности, доверенность. */
+  /**
+   * Заявление председателя участка в совет — единственный документ заявления.
+   * Доверенность и договор он подписывает после решения совета (решение
+   * владельца 18.11.2026): доверенность ссылается на протокол совета.
+   */
   async function execPackage(who: Who, token: string) {
     const base = { coopname: COOP, username: who.account, hash, branch_name: branchName }
     const petition = (await gql<any>(token, GEN_PETITION, { d: { ...base, address, chairman: founder.account } })).kuGenerateEstablishmentPetition
-    const liability = (await gql<any>(token, GEN_LIABILITY, { d: base })).kuGenerateTrusteeLiabilityAgreement
-    const authority = (await gql<any>(token, GEN_AUTHORITY, { d: { ...base, branch_address: address } })).kuGenerateTrusteePowerOfAttorney
-    return {
-      petition: await signDocument(who.wif, petition, who.account, 1),
-      liability: await signDocument(who.wif, liability, who.account, 1),
-      authority: await signDocument(who.wif, authority, who.account, 1),
-    }
+    return { petition: await signDocument(who.wif, petition, who.account, 1) }
   }
 
   beforeAll(async () => {
@@ -462,6 +468,7 @@ describe('собрание об учреждении участка', () => {
     const item = await awaitDecision(hash, 'вопрос совета об учреждении участка')
     expect(String(item.type)).toBe('branchdec')
     expect(String(item.username)).toBe(founder.account)
+    councilDecisionId = Number(item.id)
     await voteOnDecision(Number(item.id), 'for')
     // Председатель совета утверждает решение своим протоколом об учреждении участка.
     const chairmanToken = await tokenOf(CHAIRMAN)
@@ -499,6 +506,54 @@ describe('собрание об учреждении участка', () => {
       { timeoutMs: 60_000, intervalMs: 1_500, label: 'решение совета на странице собрания' })
     expect([councilDecision.hash, councilDecision.doc_hash].map(h => String(h).toLowerCase())).toContain(String(shown.hash).toLowerCase())
   })
+
+  it(caseName('ku.trustee.side.01', 'доверенность участка подписывает только его председатель'), async () => {
+    expectCode(await gqlError(joinerToken, GEN_AUTHORITY, { d: { coopname: COOP, username: joiner.account, hash: randomHash(), braname } }), 'KU_ACTION_BRANCH_CHAIRMAN_ONLY')
+    expectCode(await gqlError(joinerToken, TRUSTEE_DOCS, { d: { coopname: COOP, braname, username: joiner.account } }), 'KU_ACTION_BRANCH_CHAIRMAN_ONLY')
+    expectAuthDenied(await gqlError(null, TRUSTEE_DOCS, { d: { coopname: COOP, braname, username: founder.account } }))
+  })
+
+  it(caseName('ku.trustee.happy.01', 'после решения совета председатель участка подписывает доверенность — номер и протокол вписаны, председатель совета подписывает встречно, доверенность действует'), async () => {
+    const before = (await gql<any>(founderToken, TRUSTEE_DOCS, { d: { coopname: COOP, braname, username: founder.account } })).kuTrusteeDocuments
+    expect(before).toMatchObject({ has_protocol: true, can_sign_authority: true, authority: null, liability_status: 'NONE' })
+
+    const generated = (await gql<any>(founderToken, GEN_AUTHORITY, { d: { coopname: COOP, username: founder.account, hash: randomHash(), braname } })).kuGenerateTrusteePowerOfAttorney
+    const meta = typeof generated.meta === 'string' ? JSON.parse(generated.meta) : generated.meta
+    expect(String(meta.protocol_number), 'номер протокола — номер решения совета').toBe(String(councilDecisionId))
+    expect(Number(meta.poa_number)).toBeGreaterThan(0)
+    expect(meta.valid_until).toMatch(/^\d{2}\.\d{2}\.\d{4}$/)
+    expect(generated.html, 'в доверенности нет прочерков').not.toContain('______')
+
+    const authority = await signDocument(founder.wif, generated, founder.account, 1)
+    await gql(founderToken, SIGN_AUTHORITY, { d: { coopname: COOP, braname, username: founder.account, authority } })
+    const pending = (await gql<any>(founderToken, TRUSTEE_DOCS, { d: { coopname: COOP, braname, username: founder.account } })).kuTrusteeDocuments
+    expect(pending.authority).toMatchObject({ status: 'PENDING', number: Number(meta.poa_number), protocol_number: String(councilDecisionId) })
+    expect(pending.can_sign_authority, 'пока доверенность на подписи, новую не подписать').toBe(false)
+
+    const chairmanToken = await tokenOf(CHAIRMAN)
+    const countersigned = await signDocument(CHAIRMAN.wif, generated, CHAIRMAN.account, 2, [authority])
+    await gql(chairmanToken, CONFIRM_APPROVE, { d: { coopname: COOP, approval_hash: String(authority.hash).toLowerCase(), approved_document: countersigned } })
+
+    const active = await waitFor(async () => {
+      const docs = (await gql<any>(founderToken, TRUSTEE_DOCS, { d: { coopname: COOP, braname, username: founder.account } })).kuTrusteeDocuments
+      return docs.authority?.status === 'ACTIVE' ? docs : null
+    }, { timeoutMs: 60_000, intervalMs: 1_500, label: 'доверенность действует после встречной подписи' })
+    expect(active.can_sign_authority, 'год вперёд закрыт — новую подписывать рано').toBe(false)
+
+    const registry = (await gql<any>(chairmanToken, POWERS, { f: { coopname: COOP, braname } })).kuPowersOfAttorney
+    expect(registry.items.map((i: any) => [i.number, i.holder, i.status])).toContainEqual([Number(meta.poa_number), founder.account, 'ACTIVE'])
+  }, 300_000)
+
+  it(caseName('ku.trustee.happy.02', 'председатель участка подписывает договор о полной материальной ответственности — договор на подписи председателя совета'), async () => {
+    const generated = (await gql<any>(founderToken, GEN_LIABILITY, { d: { coopname: COOP, username: founder.account, hash: randomHash(), branch_name: branchName } })).kuGenerateTrusteeLiabilityAgreement
+    const liability = await signDocument(founder.wif, generated, founder.account, 1)
+    await gql(founderToken, SIGN_LIABILITY, { d: { coopname: COOP, braname, username: founder.account, liability } })
+    const docs = await waitFor(async () => {
+      const d = (await gql<any>(founderToken, TRUSTEE_DOCS, { d: { coopname: COOP, braname, username: founder.account } })).kuTrusteeDocuments
+      return d.liability_status === 'PENDING' ? d : null
+    }, { timeoutMs: 60_000, intervalMs: 1_500, label: 'договор на подписи председателя совета' })
+    expect(docs.liability_status).toBe('PENDING')
+  }, 120_000)
 })
 
 describe('заявки доверенных лиц участка', () => {

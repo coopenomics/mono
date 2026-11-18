@@ -5,6 +5,8 @@ import type {
   CreateKuDecisionInputDomainInterface,
   DeclineKuTrustedInputDomainInterface,
   ExecKuDecisionInputDomainInterface,
+  SignKuTrusteeAuthorityInputDomainInterface,
+  SignKuTrusteeLiabilityInputDomainInterface,
   JoinKuDecisionInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
   StartKuDecisionInputDomainInterface,
@@ -36,6 +38,10 @@ export interface KuBlockchainPort {
 
   /** Направление заявления председателя в совет (учреждение участка) */
   execDecision(data: ExecKuDecisionInputDomainInterface): Promise<InnerTransactResult>;
+  /** Доверенность председателя участка — на встречную подпись председателю совета. */
+  signTrusteeAuthority(data: SignKuTrusteeAuthorityInputDomainInterface): Promise<InnerTransactResult>;
+  /** Договор о полной материальной ответственности председателя участка — на встречную подпись. */
+  signTrusteeLiability(data: SignKuTrusteeLiabilityInputDomainInterface): Promise<InnerTransactResult>;
 
   /** Отмена собрания инициатором */
   cancelDecision(data: CancelKuDecisionInputDomainInterface): Promise<InnerTransactResult>;

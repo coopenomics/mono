@@ -115,3 +115,49 @@ export type kuTrustRequestsPaginationModel = ModelTypes['PaginatedKuTrustRequest
 export const kuTrustRequestsPaginationSelector = Selector('PaginatedKuTrustRequestsPaginationResult')(
   rawKuTrustRequestsPaginationSelector,
 )
+
+// Доверенность кооператива (председателю участка, доверенному лицу)
+export const rawKuPowerOfAttorneySelector = {
+  number: true,
+  type: true,
+  holder: true,
+  holder_name: true,
+  braname: true,
+  protocol_number: true,
+  protocol_date: true,
+  issued_at: true,
+  valid_until: true,
+  status: true,
+  renewal_due: true,
+  signed_at: true,
+  resolved_at: true,
+  document: rawDocumentAggregateSelector,
+}
+
+const _validatePowerOfAttorney: MakeAllFieldsRequired<ValueTypes['KuPowerOfAttorney']> = rawKuPowerOfAttorneySelector
+
+export type kuPowerOfAttorneyModel = ModelTypes['KuPowerOfAttorney']
+export const kuPowerOfAttorneySelector = Selector('KuPowerOfAttorney')(rawKuPowerOfAttorneySelector)
+
+const rawKuPowersOfAttorneyPaginationSelector = { ...paginationSelector, items: rawKuPowerOfAttorneySelector }
+const _validatePowersOfAttorneyPagination: MakeAllFieldsRequired<ValueTypes['PaginatedKuPowersOfAttorneyPaginationResult']>
+  = rawKuPowersOfAttorneyPaginationSelector
+export type kuPowersOfAttorneyPaginationModel = ModelTypes['PaginatedKuPowersOfAttorneyPaginationResult']
+export const kuPowersOfAttorneyPaginationSelector = Selector('PaginatedKuPowersOfAttorneyPaginationResult')(
+  rawKuPowersOfAttorneyPaginationSelector,
+)
+
+// Доверенность и договор председателя кооперативного участка
+export const rawKuTrusteeDocumentsSelector = {
+  braname: true,
+  authority: rawKuPowerOfAttorneySelector,
+  active_authority: rawKuPowerOfAttorneySelector,
+  can_sign_authority: true,
+  liability_status: true,
+  has_protocol: true,
+}
+
+const _validateTrusteeDocuments: MakeAllFieldsRequired<ValueTypes['KuTrusteeDocuments']> = rawKuTrusteeDocumentsSelector
+
+export type kuTrusteeDocumentsModel = ModelTypes['KuTrusteeDocuments']
+export const kuTrusteeDocumentsSelector = Selector('KuTrusteeDocuments')(rawKuTrusteeDocumentsSelector)

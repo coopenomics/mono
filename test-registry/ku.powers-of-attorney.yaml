@@ -1,0 +1,120 @@
+feature: ku.powers-of-attorney
+title: Доверенности кооператива — доверенность и договор председателя участка, учёт, продление, полномочия в пункте выдачи
+
+# Решение владельца 18.11.2026. Заявление в совет об учреждении участка — один
+# документ. После решения совета председатель участка на странице «Мой участок»
+# подписывает доверенность (номер, протокол совета и срок вписывает узел, строки
+# о банковском счёте нет) и бессрочный договор о полной материальной
+# ответственности; оба документа председатель совета подписывает встречно через
+# одобрения. Цепь хранит только подписи: учёт доверенностей (номер, срок,
+# состояние) ведёт узел по событиям signauth/apprauth/declauth и
+# reqtrusted/apprtrusted/decltrusted. Срок — год; за тридцать дней узел
+# напоминает о продлении. Истёкшая доверенность закрывает пайщику работу с
+# пунктом выдачи на узле; контракт по сроку не блокирует. Реестр доверенностей —
+# вкладка «Доверенности» реестра документов совета.
+
+sources:
+  contract:
+    - components/contracts/cpp/branch/src/signauth.cpp
+    - components/contracts/cpp/branch/src/signliab.cpp
+    - components/contracts/cpp/branch/src/exec.cpp
+    - components/contracts/cpp/branch/src/confirmdec.cpp
+    - components/contracts/cpp/branch/src/declauth.cpp
+    - components/contracts/cpp/branch/src/declliab.cpp
+    - components/contracts/cpp/branch/p.brn.trustee.standard.yaml
+  backend:
+    - components/controller/src/extensions/ku/application/services/ku-powers-of-attorney.service.ts
+    - components/controller/src/extensions/ku/domain/powers-of-attorney/power-of-attorney.ts
+    - components/controller/src/extensions/ku/infrastructure/repositories/ku-power-of-attorney.kysely-repository.ts
+    - components/controller/src/extensions/ku/migrations/database/1795000000000-powers-of-attorney.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-ku-chairman.service.ts
+    - components/innercoop/src/cross-plugin-ports/powers-of-attorney.port.ts
+  ui:
+    - components/desktop/src/features/Ku/TrusteeDocuments/**
+    - components/desktop/src/pages/Cooperative/PowersOfAttorney/**
+    - components/desktop/src/pages/Ku/MyBranch/ui/KuMyBranchPage.vue
+
+cases:
+  - id: ku.trustee.happy.01
+    level: backend
+    kind: happy
+    scenario: После решения совета председатель участка подписывает доверенность, председатель совета подписывает встречно
+    expect: номер доверенности и номер протокола (номер решения совета) вписаны, прочерков нет; доверенность на подписи, затем действует; реестр совета показывает её
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.trustee.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель участка подписывает договор о полной материальной ответственности
+    expect: договор на подписи председателя совета
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.trustee.side.01
+    level: backend
+    kind: break
+    scenario: Пайщик, который не председатель участка, генерирует доверенность участка или смотрит документы председателя; гость без входа
+    expect: отказ KU_ACTION_BRANCH_CHAIRMAN_ONLY; гостю — отказ входа
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.trustee.side.02
+    level: backend
+    kind: side
+    scenario: Срок доверенности, последний день, истечение и напоминание о продлении
+    expect: срок — год со дня выдачи; в последний день действует, на следующий — истекла; напоминание — за тридцать дней и позже, только для действующей
+    test: components/controller/tests/unit/ku/ku-powers-of-attorney.test.ts
+    external: unreachable
+    external_reason: "граница срока и окно напоминания зависят от текущей даты; сдвинуть дату узла снаружи нельзя"
+    status: written
+
+  - id: ku.trustee.side.03
+    level: backend
+    kind: break
+    scenario: Доверенность председателя участка без решения совета об учреждении; доверенность доверенному лицу без действующей доверенности председателя
+    expect: отказ KU_ESTABLISHMENT_PROTOCOL_NOT_FOUND; отказ KU_TRUSTEE_AUTHORITY_NOT_ACTIVE
+    test: components/controller/tests/unit/ku/ku-powers-of-attorney.test.ts
+    external: unreachable
+    external_reason: "на стенде нет участка без решения совета, у которого председатель — пайщик теста; случай проверяется на правилах узла"
+    status: written
+
+  - id: ku.trustee.side.04
+    level: backend
+    kind: side
+    scenario: Учёт по событиям цепи — подпись, встречная подпись, отказ, событие чужого кооператива
+    expect: на подписи с реквизитами из документа; действует; отклонена; чужое событие учёт не меняет
+    test: components/controller/tests/unit/ku/ku-powers-of-attorney.test.ts
+    external: unreachable
+    external_reason: "события чужого кооператива и отказ председателя совета снаружи не воспроизводятся без второй цепи"
+    status: written
+
+  - id: ku.trustee.side.05
+    level: backend
+    kind: side
+    scenario: У председателя или доверенного лица участка истекла доверенность
+    expect: Стол заказов не считает его работником участка (пункт выдачи закрыт); формальный председатель участка прежний; без учёта доверенностей и при его сбое — полномочия по составу участка
+    test: components/controller/tests/unit/ku/ku-powers-of-attorney.test.ts
+    external: unreachable
+    external_reason: "истечение доверенности требует сдвига даты; снаружи срок в год не проходит"
+    status: written
+
+  - id: ku.trustee.side.06
+    level: backend
+    kind: side
+    scenario: До конца срока доверенности тридцать дней, новая не подписана
+    expect: председатель участка получает одно напоминание о продлении со ссылкой на страницу участка
+    test: ~
+    status: missing
+    note: Ежедневная задача узла по расписанию; проверка требует сдвига дат учёта на стенде.
+
+  - id: ku.trustee.ui.01
+    level: ui
+    kind: happy
+    scenario: Председатель участка открывает «Мой участок» после решения совета и подписывает доверенность и договор; совет открывает вкладку «Доверенности»
+    expect: карточка «Документы председателя участка» с состоянием и кнопками подписи; предпросмотр документа перед подписью; строка реестра открывает доверенность в правой панели
+    status: missing
+    decision_needed: false

@@ -857,8 +857,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ExecKuDecisionInput:{
-		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput",
-		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
 		petition:"BranchEstablishmentPetitionSignedDocumentInput"
 	},
 	ExpenseAdvanceState: "enum" as const,
@@ -1185,12 +1183,21 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	KuDecisionStatus: "enum" as const,
 	KuDecisionType: "enum" as const,
+	KuPowerOfAttorneyFilterInput:{
+		type:"KuPowerOfAttorneyType"
+	},
+	KuPowerOfAttorneyStatus: "enum" as const,
+	KuPowerOfAttorneyType: "enum" as const,
 	KuProtocolQuestionInput:{
 
 	},
 	KuTrustRequestFilterInput:{
 
 	},
+	KuTrusteeDocumentsInput:{
+
+	},
+	KuTrusteeLiabilityStatus: "enum" as const,
 	KuVoteItemInput:{
 
 	},
@@ -2601,6 +2608,12 @@ export const AllTypesProps: Record<string,any> = {
 		kuRequestTrusted:{
 			data:"RequestKuTrustedInput"
 		},
+		kuSignTrusteeAuthority:{
+			data:"SignKuTrusteeAuthorityInput"
+		},
+		kuSignTrusteeLiability:{
+			data:"SignKuTrusteeLiabilityInput"
+		},
 		kuStartDecision:{
 			data:"StartKuDecisionInput"
 		},
@@ -3815,9 +3828,16 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"KuDecisionFilterInput",
 			options:"PaginationInput"
 		},
+		kuPowersOfAttorney:{
+			filter:"KuPowerOfAttorneyFilterInput",
+			options:"PaginationInput"
+		},
 		kuTrustRequests:{
 			filter:"KuTrustRequestFilterInput",
 			options:"PaginationInput"
+		},
+		kuTrusteeDocuments:{
+			data:"KuTrusteeDocumentsInput"
 		},
 		listExpensePlans:{
 			data:"ListExpensePlansInput"
@@ -4413,6 +4433,12 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SignBySecretaryOnAnnualGeneralMeetInput:{
 		secretary_decision:"AnnualGeneralMeetingDecisionSignedDocumentInput"
+	},
+	SignKuTrusteeAuthorityInput:{
+		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput"
+	},
+	SignKuTrusteeLiabilityInput:{
+		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput"
 	},
 	SignProgramPropertyActInput:{
 		act:"SignedDigitalDocumentInput"
@@ -7383,6 +7409,22 @@ export const ReturnTypes: Record<string,any> = {
 		display_name:"String",
 		username:"String"
 	},
+	KuPowerOfAttorney:{
+		braname:"String",
+		document:"DocumentAggregate",
+		holder:"String",
+		holder_name:"String",
+		issued_at:"String",
+		number:"Int",
+		protocol_date:"String",
+		protocol_number:"String",
+		renewal_due:"Boolean",
+		resolved_at:"DateTime",
+		signed_at:"DateTime",
+		status:"KuPowerOfAttorneyStatus",
+		type:"KuPowerOfAttorneyType",
+		valid_until:"String"
+	},
 	KuTrustRequest:{
 		application:"JSON",
 		authority:"JSON",
@@ -7396,6 +7438,14 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Int",
 		present:"Boolean",
 		username:"String"
+	},
+	KuTrusteeDocuments:{
+		active_authority:"KuPowerOfAttorney",
+		authority:"KuPowerOfAttorney",
+		braname:"String",
+		can_sign_authority:"Boolean",
+		has_protocol:"Boolean",
+		liability_status:"KuTrusteeLiabilityStatus"
 	},
 	Ledger2Account:{
 		accountType:"Int",
@@ -9030,6 +9080,8 @@ export const ReturnTypes: Record<string,any> = {
 		kuGenerateTrusteePowerOfAttorney:"GeneratedDocument",
 		kuJoinDecision:"Transaction",
 		kuRequestTrusted:"Transaction",
+		kuSignTrusteeAuthority:"Transaction",
+		kuSignTrusteeLiability:"Transaction",
 		kuStartDecision:"Transaction",
 		kuVoteOnDecision:"Transaction",
 		login:"RegisteredAccount",
@@ -9527,6 +9579,12 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedKuDecisionsPaginationResult:{
 		currentPage:"Int",
 		items:"KuDecision",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedKuPowersOfAttorneyPaginationResult:{
+		currentPage:"Int",
+		items:"KuPowerOfAttorney",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -10163,7 +10221,9 @@ export const ReturnTypes: Record<string,any> = {
 		isEmailRegistered:"Boolean",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
+		kuPowersOfAttorney:"PaginatedKuPowersOfAttorneyPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
+		kuTrusteeDocuments:"KuTrusteeDocuments",
 		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
 		lookupEntrepreneur:"EntrepreneurLookupResult",

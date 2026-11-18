@@ -329,8 +329,6 @@ const execPreviewDocs = computed(() => {
   });
   return [
     wrap(d.petition, t('ku.kuMeetingDetailsPage.docPetitionTitle')),
-    wrap(d.liability, t('ku.kuMeetingDetailsPage.docLiabilityTitle')),
-    wrap(d.authority, t('ku.kuMeetingDetailsPage.docAuthorityTitle')),
   ];
 });
 

@@ -14,7 +14,9 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   ACCOUNT_PORT,
   BRANCH_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
+  CHAIRMAN_APPROVALS_PORT,
   DOCUMENT_PORT,
   INDIVIDUAL_PORT,
   LOGGER_PORT,
@@ -39,5 +41,10 @@ export const kuPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Договор председателя участка: состояние встречной подписи председателя
+    // совета. Без расширения председателя договор считается неподписанным.
+    CHAIRMAN_APPROVALS_PORT,
+    // Лента изменений: учёт доверенностей обновляет «Мой участок» и реестр.
+    CHAIN_CHANGES_PORT,
   ],
 };

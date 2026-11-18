@@ -564,15 +564,42 @@ class BaseBranchTrusteePowerOfAttorneyMetaDocumentInputDTO implements ExcludeCom
   @IsNotEmpty()
   hash!: string;
 
-  @Field(() => String, { description: 'Наименование кооперативного участка' })
+  // Реквизиты доверенности вписывает узел по решению совета об учреждении участка
+  // (решение владельца 18.11.2026): значения из запроса генерации не берутся.
+  @Field(() => String, { nullable: true, description: 'Кооперативный участок — узел находит по нему решение совета' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
   branch_name!: string;
 
-  @Field(() => String, { description: 'Адрес привязки кооперативного участка' })
+  @Field(() => String, { nullable: true, description: 'Адрес привязки кооперативного участка (вписывает узел)' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   branch_address!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  poa_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер протокола совета об учреждении участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата протокола совета (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_date!: string;
+
+  @Field(() => String, { nullable: true, description: 'Последний день срока доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  valid_until!: string;
 }
 
 @InputType('BranchTrusteePowerOfAttorneyGenerateDocumentInput')
@@ -622,6 +649,43 @@ class BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO implements ExcludeCom
   @IsString()
   @IsNotEmpty()
   trustee!: string;
+
+  // Реквизиты вписывает узел: протокол совета об учреждении участка и
+  // действующая доверенность председателя участка (решение владельца 18.11.2026).
+  @Field(() => String, { nullable: true, description: 'Кооперативный участок — узел находит по нему протокол и доверенность председателя' })
+  @IsOptional()
+  @IsString()
+  braname!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  poa_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер протокола совета об учреждении участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата протокола совета (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_date!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер доверенности председателя участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  trustee_poa_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата доверенности председателя участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  trustee_poa_date!: string;
+
+  @Field(() => String, { nullable: true, description: 'Последний день срока доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  valid_until!: string;
 }
 
 @InputType('BranchTrustedPowerOfAttorneyGenerateDocumentInput')

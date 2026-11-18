@@ -13,6 +13,7 @@
 import {
   ACCOUNT_PORT,
   CHAIN_CHANGES_PORT,
+  POWERS_OF_ATTORNEY_PORT,
   AGREEMENT_CATALOG_PORT,
   BRANCH_PORT,
   CHAIN_PORT,
@@ -85,5 +86,8 @@ export const marketplacePorts = {
     SOVIET_ROBOT_PORT,
     // Лента изменений: экраны стола обновляются по общей ленте (C28-83).
     CHAIN_CHANGES_PORT,
+    // Доверенности: истёкшая закрывает работу с пунктом выдачи. Без расширения
+    // участков проверки нет.
+    POWERS_OF_ATTORNEY_PORT,
   ],
 };

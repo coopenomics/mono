@@ -71,8 +71,22 @@ export interface ExecKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
   petition: ISignedDocument;
-  liability: ISignedDocument;
+}
+
+/** Доверенность председателя участка — после решения совета об учреждении участка. */
+export interface SignKuTrusteeAuthorityInputDomainInterface {
+  coopname: string;
+  braname: string;
+  username: string;
   authority: ISignedDocument;
+}
+
+/** Договор о полной материальной ответственности председателя участка — после решения совета. */
+export interface SignKuTrusteeLiabilityInputDomainInterface {
+  coopname: string;
+  braname: string;
+  username: string;
+  liability: ISignedDocument;
 }
 
 export interface CancelKuDecisionInputDomainInterface {

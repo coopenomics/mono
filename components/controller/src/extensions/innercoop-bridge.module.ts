@@ -5,6 +5,7 @@ import {
   CHAIN_RESOURCES_PORT,
   PROVIDER_TARIFF_PORT,
   CHAIRMAN_APPROVALS_PORT,
+  POWERS_OF_ATTORNEY_PORT,
   CHAIN_DELTA_WAIT_PORT,
   CHAIN_CHANGES_PORT,
   CHATCOOP_CALENDAR_PORT,
@@ -145,6 +146,8 @@ import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { ChairmanExtensionModule } from './chairman/chairman-extension.module';
+import { KuExtensionModule } from './ku/ku-extension.module';
+import { KuPowersOfAttorneyService } from './ku/application/services/ku-powers-of-attorney.service';
 import { ChairmanInnercoopApprovalsAdapter } from './chairman/infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { ChainDeltaWaiterService } from '~/infrastructure/blockchain/chain-delta-waiter.service';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
@@ -182,6 +185,8 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     ChatCoopExtensionModule,
     // Одобрения председателя другим столам — через порт одобрений.
     ChairmanExtensionModule,
+    // Доверенности кооператива — учёт ведёт расширение участков.
+    KuExtensionModule,
     ExpensesExtensionModule,
     SovietRobotExtensionModule,
     Ledger2Module,
@@ -279,6 +284,12 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       // показывает его у себя; одобрение одно — подпись закрывает его везде.
       provide: CHAIRMAN_APPROVALS_PORT,
       useExisting: ChairmanInnercoopApprovalsAdapter,
+    },
+    {
+      // Доверенности кооператива: истёкшая доверенность закрывает пайщику
+      // работу по ней (Стол заказов — работу с пунктом выдачи).
+      provide: POWERS_OF_ATTORNEY_PORT,
+      useExisting: KuPowersOfAttorneyService,
     },
     {
       provide: PROJECT_CAPITAL_CLEARANCE_PORT,
@@ -557,6 +568,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     CHAIRMAN_APPROVALS_PORT,
+    POWERS_OF_ATTORNEY_PORT,
     CHAIN_DELTA_WAIT_PORT,
     CHAIN_CHANGES_PORT,
     CHATCOOP_CALENDAR_PORT,
