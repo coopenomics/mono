@@ -86,6 +86,8 @@ function openOperation(operation: ILedger2Operation): void {
     processHash: operation.processHash,
     operationCode: operation.operationCode,
     memo: operation.memo,
+    quantity: operation.quantity,
+    createdAt: operation.createdAt,
     action: operation.action,
   }
 }
@@ -98,6 +100,8 @@ function openPosting(posting: ILedger2Posting): void {
     processHash: posting.processHash,
     operationCode: posting.operationCode,
     memo: posting.memo,
+    quantity: posting.quantity,
+    createdAt: posting.createdAt,
   }
 }
 </script>

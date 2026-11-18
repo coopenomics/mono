@@ -23,11 +23,11 @@
   template(v-else)
     //- Документы процесса (наименование / дата / подписанты). Открываются во
     //- всплывающем окне без переадресации — агрегат уже загружен в getProcess.
-    q-card.q-mb-md(flat bordered)
-      q-card-section.q-pb-none
-        .text-subtitle2 {{ $t('process.processDetailCard.documentsTitle') }}
-      q-card-section.q-pt-sm
-        .text-body2.text-grey-7(v-if='!documents.length') {{ $t('process.processDetailCard.documentsEmpty') }}
+    section.process-detail__section
+      div
+        h4.process-detail__title {{ $t('process.processDetailCard.documentsTitle') }}
+      div
+        .process-detail__empty(v-if='!documents.length') {{ $t('process.processDetailCard.documentsEmpty') }}
         .column.q-gutter-xs(v-else)
           DocumentRow(
             v-for='d in documents'
@@ -42,11 +42,11 @@
     .row.q-col-gutter-md
       //- Операции процесса (apply + корректировки)
       .col-12
-        q-card(flat bordered)
-          q-card-section.q-pb-none
-            .text-subtitle2 {{ $t('process.processDetailCard.operationsTitle') }}
-          q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!operations.length') {{ $t('process.processDetailCard.operationsEmpty') }}
+        section.process-detail__section
+          div
+            h4.process-detail__title {{ $t('process.processDetailCard.operationsTitle') }}
+          div
+            .process-detail__empty(v-if='!operations.length') {{ $t('process.processDetailCard.operationsEmpty') }}
             q-table(
               v-else
               flat dense
@@ -74,11 +74,11 @@
 
       //- Проводки процесса (Дт → Кт парами)
       .col-12
-        q-card(flat bordered)
-          q-card-section.q-pb-none
-            .text-subtitle2 {{ $t('process.processDetailCard.postingsTitle') }}
-          q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!postings.length') {{ $t('process.processDetailCard.postingsEmpty') }}
+        section.process-detail__section
+          div
+            h4.process-detail__title {{ $t('process.processDetailCard.postingsTitle') }}
+          div
+            .process-detail__empty(v-if='!postings.length') {{ $t('process.processDetailCard.postingsEmpty') }}
             q-table(
               v-else
               flat dense
@@ -325,6 +325,21 @@ useLiveReload(
 </script>
 
 <style scoped>
+.process-detail__section {
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.process-detail__title {
+  margin: 0 0 var(--p-3);
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.process-detail__empty {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
+}
 .process-detail__rows--clickable :deep(tbody tr) {
   cursor: pointer;
 }

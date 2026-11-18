@@ -9692,6 +9692,7 @@ export const ReturnTypes: Record<string,any> = {
 		amount_label:"String",
 		facts:"ProcessContentFact",
 		image_url:"String",
+		lines:"ProcessContentLine",
 		links:"ProcessContentLink",
 		status:"String",
 		subtitle:"String",
@@ -9700,6 +9701,11 @@ export const ReturnTypes: Record<string,any> = {
 	ProcessContentFact:{
 		label:"String",
 		value:"String"
+	},
+	ProcessContentLine:{
+		amount:"String",
+		label:"String",
+		subject:"String"
 	},
 	ProcessContentLink:{
 		label:"String",

@@ -11,6 +11,7 @@ const rawProcessContentSelector = {
   status: true,
   facts: { label: true, value: true },
   links: { label: true, path: true },
+  lines: { label: true, subject: true, amount: true },
 }
 
 const _validate: MakeAllFieldsRequired<ValueTypes['ProcessContent']> = rawProcessContentSelector

@@ -66,7 +66,7 @@ export class CapitalProcessContentService implements OnModuleInit, ProcessConten
   private async debt(hash: string): Promise<ProcessContentDTO | null> {
     const debt = await this.debts.findBySyncKey('debt_hash', hash);
     if (!debt) return null;
-    return this.card(t('capital.processContent.debt.title'), debt.username, debt.amount, 'debt', [
+    return this.card(null, debt.username, debt.amount, 'debt', [
       ...contentFact(t('capital.processContent.repaidAt'), contentDay(debt.repaid_at)),
       ...contentFact(t('capital.processContent.memo'), debt.memo),
     ]);
@@ -84,7 +84,7 @@ export class CapitalProcessContentService implements OnModuleInit, ProcessConten
   private async rid(hash: string): Promise<ProcessContentDTO | null> {
     const result = await this.results.findBySyncKey('result_hash', hash);
     if (!result) return null;
-    return this.card(t('capital.processContent.rid.title'), result.username, result.total_amount, 'rid', [
+    return this.card(null, result.username, result.total_amount, 'rid', [
       ...contentFact(t('capital.processContent.createdAt'), contentDay(result.created_at)),
     ]);
   }
@@ -92,7 +92,7 @@ export class CapitalProcessContentService implements OnModuleInit, ProcessConten
   private async withdraw(hash: string): Promise<ProcessContentDTO | null> {
     const withdraw = await this.withdraws.findBySyncKey('withdraw_hash', hash);
     if (!withdraw) return null;
-    return this.card(t('capital.processContent.withdraw.title'), withdraw.username, withdraw.amount, 'withdraw', [
+    return this.card(null, withdraw.username, withdraw.amount, 'withdraw', [
       ...contentFact(t('capital.processContent.createdAt'), contentDay(withdraw.created_at)),
     ]);
   }
@@ -100,7 +100,7 @@ export class CapitalProcessContentService implements OnModuleInit, ProcessConten
   private async contributor(hash: string): Promise<ProcessContentDTO | null> {
     const contributor = await this.contributors.findBySyncKey('contributor_hash', hash);
     if (!contributor) return null;
-    return this.card(t('capital.processContent.contributor.title'), contributor.username, null, 'contributor', [
+    return this.card(null, contributor.username, null, 'contributor', [
       ...contentFact(t('capital.processContent.contributor.asInvestor'), contributor.contributed_as_investor),
       ...contentFact(t('capital.processContent.contributor.asCreator'), contributor.contributed_as_creator),
     ]);
@@ -108,7 +108,8 @@ export class CapitalProcessContentService implements OnModuleInit, ProcessConten
 
   /** Общая карточка: предмет, пайщик, главная сумма и сведения процесса. */
   private async card(
-    title: string,
+    /** Предмет процесса; без своего названия карточку называет пайщик. */
+    title: string | null,
     username: string | undefined,
     amount: string | null | undefined,
     kind: string,
@@ -117,13 +118,13 @@ export class CapitalProcessContentService implements OnModuleInit, ProcessConten
     const { rootGovernSymbol: symbol, rootGovernPrecision: precision } = platformSettings().blockchain;
     const participant = username ? await this.nameOf(username) : '';
     return {
-      title,
-      subtitle: participant || null,
+      title: title ?? participant,
+      subtitle: title ? participant || null : null,
       image_url: null,
       amount: contentAsset(amount, symbol, precision),
       amount_label: t(`capital.processContent.${kind}.amountLabel`),
       status: null,
-      facts: [...contentFact(t('capital.processContent.participant'), participant), ...facts],
+      facts: title ? [...contentFact(t('capital.processContent.participant'), participant), ...facts] : facts,
       links: [],
     };
   }

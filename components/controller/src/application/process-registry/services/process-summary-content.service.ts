@@ -2,10 +2,9 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import {
   contentDay,
   contentFact,
-  contentMoney,
   processContentRegistry,
   type ProcessContentDTO,
-  type ProcessContentFactDTO,
+  type ProcessContentLineDTO,
   type ProcessContentProvider,
 } from '@coopenomics/extension-kit';
 import { ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
@@ -56,7 +55,7 @@ export class ProcessSummaryContentService implements OnModuleInit, ProcessConten
     processContentRegistry.registerFallback(this);
   }
 
-  async content(processHash: string, coopname: string, processType: string): Promise<ProcessContentDTO | null> {
+  async content(processHash: string, coopname: string): Promise<ProcessContentDTO | null> {
     const hash = processHash.toLowerCase();
     const page = await this.processes.listProcesses({ coopname, processHash: hash }, { page: 1, limit: 1, sortOrder: 'DESC' });
     const summary = page.items[0];
@@ -66,12 +65,11 @@ export class ProcessSummaryContentService implements OnModuleInit, ProcessConten
     const subjects = await this.subjects(applies.map((a) => a.username).concat(summary.username ?? null));
     const names = (role: SubjectRole): string =>
       [...new Set([...subjects.values()].filter((s) => s.role === role).map((s) => s.name))].join(', ');
-    const meta = Ledger2.LEDGER2_PROCESS_REGISTRY.find((p) => p.type === (summary.processType || processType));
-    const lead = summary.username ? subjects.get(summary.username)?.name ?? summary.username : '';
 
     return {
-      title: meta?.human_name ?? summary.processType,
-      subtitle: lead || null,
+      // Процесс называет заголовок места (панель, страница) — карточка его не повторяет.
+      title: '',
+      subtitle: null,
       image_url: null,
       amount: summary.amount ?? null,
       amount_label: summary.amount ? t('processRegistry.content.summary.amountLabel') : null,
@@ -80,11 +78,11 @@ export class ProcessSummaryContentService implements OnModuleInit, ProcessConten
         ...contentFact(t('processRegistry.content.summary.participant'), names('participant')),
         ...contentFact(t('processRegistry.content.summary.branch'), names('branch')),
         ...contentFact(t('processRegistry.content.summary.memo'), summary.memo),
-        ...this.operationFacts(applies, subjects),
         ...contentFact(t('processRegistry.content.summary.startedAt'), contentDay(summary.firstSeenAt)),
         ...contentFact(t('processRegistry.content.summary.lastEventAt'), contentDay(summary.lastSeenAt)),
       ],
       links: [],
+      lines: this.lines(applies, subjects),
     };
   }
 
@@ -100,16 +98,14 @@ export class ProcessSummaryContentService implements OnModuleInit, ProcessConten
       .filter((row) => !!row.operationCode);
   }
 
-  /** Строка на операцию: «Отчисление в фонд…» — «РОМАШКА · 753,55 RUB». */
-  private operationFacts(applies: ApplyRow[], subjects: Map<string, Subject>): ProcessContentFactDTO[] {
+  /** Состав процесса: строка на операцию — название, чья операция, сумма. */
+  private lines(applies: ApplyRow[], subjects: Map<string, Subject>): ProcessContentLineDTO[] {
     if (applies.length < 2) return [];
-    return applies.slice(0, OPERATIONS_LIMIT).map((row) => {
-      const who = row.username ? subjects.get(row.username)?.name ?? row.username : '';
-      return {
-        label: Ledger2.getOperationHumanName(row.operationCode) ?? row.operationCode,
-        value: [who, contentMoney(row.quantity)].filter(Boolean).join(' · '),
-      };
-    });
+    return applies.slice(0, OPERATIONS_LIMIT).map((row) => ({
+      label: Ledger2.getOperationHumanName(row.operationCode) ?? row.operationCode,
+      subject: row.username ? subjects.get(row.username)?.name ?? row.username : null,
+      amount: row.quantity,
+    }));
   }
 
   /** Имя и вид каждого участника: участок называется участком, а не пайщиком. */

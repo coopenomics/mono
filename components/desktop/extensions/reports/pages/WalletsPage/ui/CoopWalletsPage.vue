@@ -153,12 +153,14 @@ const { info } = useSystemStore()
 
 // Операция движения по кошельку в правой панели — без перехода в реестр операций.
 const openedOperation = ref<OperationRef | null>(null)
-function openOperation(row: { parentApplyGlobalSequence?: string | null; globalSequence: string; processHash?: string | null; operationCode?: string | null; memo?: string | null }): void {
+function openOperation(row: { parentApplyGlobalSequence?: string | null; globalSequence: string; processHash?: string | null; operationCode?: string | null; memo?: string | null; quantity?: string | null; createdAt?: string | Date | null }): void {
   openedOperation.value = {
     globalSequence: String(row.parentApplyGlobalSequence ?? row.globalSequence),
     processHash: row.processHash,
     operationCode: row.operationCode,
     memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
   }
 }
 const { isMobile } = useWindowSize()

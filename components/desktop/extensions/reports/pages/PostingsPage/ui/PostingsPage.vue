@@ -286,6 +286,8 @@ function openOperation(row: ILedger2Posting): void {
     processHash: row.processHash,
     operationCode: row.operationCode,
     memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
   }
 }
 

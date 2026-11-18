@@ -49,14 +49,14 @@ export class PaymentProcessContentService implements OnModuleInit, ProcessConten
     if (!payment) return null;
     const participant = await this.nameOf(payment.username);
     return {
-      title: label('type', payment.type) ?? t('processRegistry.content.payment.untitled'),
-      subtitle: participant,
+      // Процесс называет заголовок места; карточку называет пайщик, тип платежа — под ним.
+      title: participant,
+      subtitle: label('type', payment.type) ?? t('processRegistry.content.payment.untitled'),
       image_url: null,
       amount: contentAsset(payment.quantity, payment.symbol, 4),
       amount_label: label('direction', payment.direction),
       status: label('status', payment.status),
       facts: [
-        ...contentFact(t('processRegistry.content.payment.participant'), participant),
         ...contentFact(t('processRegistry.content.payment.memo'), payment.memo),
         ...contentFact(t('processRegistry.content.payment.createdAt'), contentDay(payment.created_at)),
         ...contentFact(t('processRegistry.content.payment.completedAt'), contentDay(payment.completed_at)),

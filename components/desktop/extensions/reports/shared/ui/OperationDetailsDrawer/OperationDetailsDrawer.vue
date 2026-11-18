@@ -1,43 +1,26 @@
 <template lang="pug">
 //- Операция целиком в правой панели — одна на все реестры стола бухгалтера
-//- (операции, проводки, процессы, счета): содержание процесса операции,
-//- движения по кошелькам и проводки по счетам. Строка реестра открывает
-//- панель на месте, без перехода на другую страницу.
+//- (операции, проводки, процессы, счета, кошельки). Порядок чтения: сама
+//- операция (сумма, дата, номер, код, назначение), её движения по кошелькам
+//- и проводка, ниже — процесс, в котором она прошла. Разделы — заголовком и
+//- линией, без карточек в карточке: приложение учётное и строгое.
 DetailsDrawer(
   :model-value='!!operation'
   :title='title'
-  :width='760'
+  :width='880'
   @update:model-value='(open) => { if (!open) emit("close") }'
 )
   template(v-if='operation')
-    //- Шапка: код операции, процесс и назначение. Название — в заголовке панели.
-    .op-details__meta
-      .op-details__row(v-if='operation.operationCode')
-        .t-muted {{ $t('reports.operationsPage.processTypeLabel') }}
-        EntityIdBadge(:rawId='operation.operationCode' copy-on-click)
-      .op-details__row(v-if='operation.processHash')
-        .t-muted {{ $t('reports.operationsPage.processIdLabel') }}
-        EntityIdBadge(:rawId='operation.processHash' copy-on-click)
-      .op-details__row(v-if='operation.memo')
-        q-icon(name='sticky_note_2' size='xs')
-        .t-muted {{ operation.memo }}
+    .op-details__amount(v-if='operation.quantity')
+      .op-details__eyebrow {{ $t('reports.operationDetails.amountLabel') }}
+      .op-details__amount-value {{ formatAmount(operation.quantity) }}
+    ProcessFacts.q-mt-md(:facts='facts')
 
-    //- Содержание процесса: имущество, стороны, суммы, состояние.
-    ProcessContent.q-mt-md(
-      v-if='operation.processHash && processType'
-      :coopname='coopname'
-      :process-hash='operation.processHash'
-      :process-type='processType'
-      :source='RegistrySource.ACCOUNTANT'
-    )
-    .q-mt-md(v-if='operation.processHash && showProcessLink')
-      BaseButton(variant='secondary', size='sm', @click='openProcess') {{ $t('reports.operationsPage.openProcessLabel') }}
-
-    //- Движения по кошелькам и проводки — одна под другой на всю ширину панели.
     template(v-if='loading')
-      TableSkeleton.q-mt-md(:columns='SKELETON_COLUMNS', :rows='2')
+      TableSkeleton.op-details__section(:columns='SKELETON_COLUMNS', :rows='2')
     template(v-else)
-      BaseCard.q-mt-md(variant='flat', :title='$t("reports.operationsPage.walletMovementsTitle")')
+      section.op-details__section
+        h4.op-details__title {{ $t('reports.operationsPage.walletMovementsTitle') }}
         BaseTable(
           v-if='walletRows.length'
           :columns='walletColumns'
@@ -51,9 +34,10 @@ DetailsDrawer(
           template(#cell-walletTo='{ row }')
             WalletIdCell(:wallet-name='row.walletTo')
           template(#cell-quantity='{ row }') {{ formatAmount(row.quantity) }}
-        .t-faint(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
+        .op-details__empty(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
 
-      BaseCard.q-mt-md(variant='flat', :title='$t("reports.operationsPage.postingsTitle")')
+      section.op-details__section
+        h4.op-details__title {{ $t('reports.operationDetails.postingTitle') }}
         BaseTable(
           v-if='accountRows.length'
           :columns='accountColumns'
@@ -65,7 +49,19 @@ DetailsDrawer(
           template(#cell-credit='{ row }')
             AccountIdCell(:account-code='row.creditCode')
           template(#cell-quantity='{ row }') {{ formatAmount(row.quantity) }}
-        .t-faint(v-else) {{ $t('reports.operationsPage.postingsEmptyLabel') }}
+        .op-details__empty(v-else) {{ $t('reports.operationDetails.noPosting') }}
+
+    //- Процесс операции: название, переход к процессу и его содержание.
+    section.op-details__section(v-if='operation.processHash && processType')
+      .op-details__title-row
+        h4.op-details__title {{ $t('reports.operationDetails.processTitle', { name: processTypeLabel(processType) }) }}
+        BaseButton(v-if='showProcessLink', variant='secondary', size='sm', @click='openProcess') {{ $t('reports.operationsPage.openProcessLabel') }}
+      ProcessContent(
+        :coopname='coopname'
+        :process-hash='operation.processHash'
+        :process-type='processType'
+        :source='RegistrySource.ACCOUNTANT'
+      )
 </template>
 
 <script setup lang="ts">
@@ -73,13 +69,14 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Ledger2 } from 'cooptypes'
 import { FailAlert } from 'src/shared/api'
-import { EntityIdBadge } from 'src/shared/ui'
-import { BaseButton, BaseCard, BaseTable, TableSkeleton } from 'src/shared/ui/base'
+import { BaseButton, BaseTable, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseTableColumn, TableSkeletonColumn } from 'src/shared/ui/base'
 import { DetailsDrawer } from 'src/shared/ui/domain'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { RegistrySource } from 'src/shared/lib/registry-source'
-import { ProcessContent } from 'src/widgets/Process/ProcessContentCard'
+import { ProcessContent, ProcessFacts, type ProcessFact } from 'src/widgets/Process/ProcessContentCard'
+import { processTypeLabel } from 'src/shared/lib/ledger2'
+import { uiLocale } from 'src/shared/i18n'
 import type { ILedger2Operation } from 'src/entities/Ledger2'
 import { useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { DirectionCell } from '../DirectionCell'
@@ -136,6 +133,24 @@ const title = computed(() => {
   if (op.action === 'revert') return Ledger2.getOperationHumanName('o.adj.rev') ?? t('reports.operationsPage.operationType.rollback')
   return '—'
 })
+
+/** Операция: дата, номер, код и назначение — сеткой «подпись над значением». */
+const facts = computed<ProcessFact[]>(() => {
+  const op = props.operation
+  if (!op) return []
+  return [
+    { label: t('reports.operationDetails.date'), value: op.createdAt ? formatDate(op.createdAt) : '' },
+    { label: t('reports.operationDetails.number'), value: op.globalSequence, mono: true },
+    { label: t('reports.operationDetails.code'), value: op.operationCode ?? op.action ?? '', mono: true },
+    { label: t('reports.operationDetails.memo'), value: op.memo ?? '', wide: true },
+  ]
+})
+
+function formatDate(value: string | Date): string {
+  return new Date(value).toLocaleString(uiLocale(), {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
 
 /** Движения по кошелькам операции: приход, расход либо перевод. */
 const walletRows = computed(() =>
@@ -205,15 +220,40 @@ function openProcess(): void {
 </script>
 
 <style scoped>
-.op-details__meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
+.op-details__eyebrow {
+  font-size: var(--p-fs-eyebrow);
+  color: var(--p-ink-3);
+  margin-bottom: var(--p-1);
 }
-.op-details__row {
+.op-details__amount-value {
+  font-size: var(--p-fs-h2);
+  font-weight: 700;
+  font-family: var(--p-mono);
+  color: var(--p-ink);
+}
+.op-details__section {
+  margin-top: var(--p-6);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.op-details__title-row {
   display: flex;
   align-items: center;
-  gap: var(--p-2);
+  justify-content: space-between;
+  gap: var(--p-3);
+  margin-bottom: var(--p-3);
+}
+.op-details__title {
+  margin: 0 0 var(--p-3);
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.op-details__title-row .op-details__title {
+  margin-bottom: 0;
+}
+.op-details__empty {
   font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
 }
 </style>

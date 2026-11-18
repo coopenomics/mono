@@ -155,13 +155,15 @@ const { info } = useSystemStore()
 
 // Операция проводки по счёту в правой панели — без перехода в реестр операций.
 const openedOperation = ref<OperationRef | null>(null)
-function openOperation(row: { parentApplyGlobalSequence?: string | null; processHash?: string | null; operationCode?: string | null; memo?: string | null }): void {
+function openOperation(row: { parentApplyGlobalSequence?: string | null; processHash?: string | null; operationCode?: string | null; memo?: string | null; quantity?: string | null; createdAt?: string | Date | null }): void {
   if (!row.parentApplyGlobalSequence) return
   openedOperation.value = {
     globalSequence: String(row.parentApplyGlobalSequence),
     processHash: row.processHash,
     operationCode: row.operationCode,
     memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
   }
 }
 const { isMobile } = useWindowSize()

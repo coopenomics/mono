@@ -32,9 +32,24 @@ export class ProcessContentLinkDTO {
   path!: string;
 }
 
+/** Строка состава процесса: операция, чья она и сумма. */
+@ObjectType('ProcessContentLine')
+export class ProcessContentLineDTO {
+  @Field(() => String, { description: 'Операция словами: «Отчисление в резервный фонд…»' })
+  label!: string;
+
+  @Field(() => String, { nullable: true, description: 'Пайщик, участок или кооператив операции' })
+  subject?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Сумма операции, актив «234.8400 RUB»' })
+  amount?: string | null;
+}
+
 @ObjectType('ProcessContent')
 export class ProcessContentDTO {
-  @Field(() => String, { description: 'Главное: что это — название имущества, предмет расхода, имя пайщика' })
+  @Field(() => String, {
+    description: 'Главное: что это — название имущества, предмет расхода. Пусто — процесс называет заголовок места',
+  })
   title!: string;
 
   @Field(() => String, { nullable: true, description: 'Строка под названием: количество, номер, период' })
@@ -57,6 +72,9 @@ export class ProcessContentDTO {
 
   @Field(() => [ProcessContentLinkDTO], { description: 'Переходы на страницы сущности' })
   links!: ProcessContentLinkDTO[];
+
+  @Field(() => [ProcessContentLineDTO], { nullable: true, description: 'Состав процесса — операции по порядку' })
+  lines?: ProcessContentLineDTO[] | null;
 }
 
 /** Поставщик содержания одного или нескольких типов процессов. */

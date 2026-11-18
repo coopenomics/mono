@@ -235,14 +235,13 @@ export class MarketplaceProcessContentService implements OnModuleInit, ProcessCo
     if (!aid) return null;
     const recipient = await this.nameOf(aid.username);
     return {
-      title: t('marketplace.processContent.aid.title', { name: recipient }),
+      title: recipient,
       subtitle: null,
       image_url: null,
       amount: this.asset(aid.amount),
       amount_label: t('marketplace.processContent.aid.amountLabel'),
       status: statusLabel('aidStatus', aid.status),
       facts: [
-        ...contentFact(t('marketplace.processContent.aid.recipient'), recipient),
         ...contentFact(t('marketplace.processContent.branch'), await this.branchLabel(aid.braname)),
         ...contentFact(t('marketplace.processContent.aid.createdAt'), contentDay(aid.created_at)),
         ...contentFact(t('marketplace.processContent.aid.paidAt'), contentDay(aid.paid_at)),

@@ -16809,13 +16809,15 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	facts?:ValueTypes["ProcessContentFact"],
 	/** Снимок предмета процесса (обложка имущества) */
 	image_url?:boolean | `@${string}`,
+	/** Состав процесса — операции по порядку */
+	lines?:ValueTypes["ProcessContentLine"],
 	/** Переходы на страницы сущности */
 	links?:ValueTypes["ProcessContentLink"],
 	/** Состояние сущности процесса словами */
 	status?:boolean | `@${string}`,
 	/** Строка под названием: количество, номер, период */
 	subtitle?:boolean | `@${string}`,
-	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	/** Главное: что это — название имущества, предмет расхода. Пусто — процесс называет заголовок места */
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProcessContent']?: Omit<ValueTypes["ProcessContent"], "...on ProcessContent">
@@ -16827,6 +16829,16 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ProcessContentFact']?: Omit<ValueTypes["ProcessContentFact"], "...on ProcessContentFact">
+}>;
+	["ProcessContentLine"]: AliasType<{
+	/** Сумма операции, актив «234.8400 RUB» */
+	amount?:boolean | `@${string}`,
+	/** Операция словами: «Отчисление в резервный фонд…» */
+	label?:boolean | `@${string}`,
+	/** Пайщик, участок или кооператив операции */
+	subject?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ProcessContentLine']?: Omit<ValueTypes["ProcessContentLine"], "...on ProcessContentLine">
 }>;
 	["ProcessContentLink"]: AliasType<{
 	/** Надпись кнопки */
@@ -35964,13 +35976,15 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	facts?:ResolverInputTypes["ProcessContentFact"],
 	/** Снимок предмета процесса (обложка имущества) */
 	image_url?:boolean | `@${string}`,
+	/** Состав процесса — операции по порядку */
+	lines?:ResolverInputTypes["ProcessContentLine"],
 	/** Переходы на страницы сущности */
 	links?:ResolverInputTypes["ProcessContentLink"],
 	/** Состояние сущности процесса словами */
 	status?:boolean | `@${string}`,
 	/** Строка под названием: количество, номер, период */
 	subtitle?:boolean | `@${string}`,
-	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	/** Главное: что это — название имущества, предмет расхода. Пусто — процесс называет заголовок места */
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -35979,6 +35993,15 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	label?:boolean | `@${string}`,
 	/** Значение словами: ФИО, название, дата */
 	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["ProcessContentLine"]: AliasType<{
+	/** Сумма операции, актив «234.8400 RUB» */
+	amount?:boolean | `@${string}`,
+	/** Операция словами: «Отчисление в резервный фонд…» */
+	label?:boolean | `@${string}`,
+	/** Пайщик, участок или кооператив операции */
+	subject?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ProcessContentLink"]: AliasType<{
@@ -54828,13 +54851,15 @@ export type ModelTypes = {
 	facts: Array<ModelTypes["ProcessContentFact"]>,
 	/** Снимок предмета процесса (обложка имущества) */
 	image_url?: string | undefined | null,
+	/** Состав процесса — операции по порядку */
+	lines?: Array<ModelTypes["ProcessContentLine"]> | undefined | null,
 	/** Переходы на страницы сущности */
 	links: Array<ModelTypes["ProcessContentLink"]>,
 	/** Состояние сущности процесса словами */
 	status?: string | undefined | null,
 	/** Строка под названием: количество, номер, период */
 	subtitle?: string | undefined | null,
-	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	/** Главное: что это — название имущества, предмет расхода. Пусто — процесс называет заголовок места */
 	title: string
 };
 	["ProcessContentFact"]: {
@@ -54842,6 +54867,14 @@ export type ModelTypes = {
 	label: string,
 	/** Значение словами: ФИО, название, дата */
 	value: string
+};
+	["ProcessContentLine"]: {
+		/** Сумма операции, актив «234.8400 RUB» */
+	amount?: string | undefined | null,
+	/** Операция словами: «Отчисление в резервный фонд…» */
+	label: string,
+	/** Пайщик, участок или кооператив операции */
+	subject?: string | undefined | null
 };
 	["ProcessContentLink"]: {
 		/** Надпись кнопки */
@@ -74880,13 +74913,15 @@ export type GraphQLTypes = {
 	facts: Array<GraphQLTypes["ProcessContentFact"]>,
 	/** Снимок предмета процесса (обложка имущества) */
 	image_url?: string | undefined | null,
+	/** Состав процесса — операции по порядку */
+	lines?: Array<GraphQLTypes["ProcessContentLine"]> | undefined | null,
 	/** Переходы на страницы сущности */
 	links: Array<GraphQLTypes["ProcessContentLink"]>,
 	/** Состояние сущности процесса словами */
 	status?: string | undefined | null,
 	/** Строка под названием: количество, номер, период */
 	subtitle?: string | undefined | null,
-	/** Главное: что это — название имущества, предмет расхода, имя пайщика */
+	/** Главное: что это — название имущества, предмет расхода. Пусто — процесс называет заголовок места */
 	title: string,
 	['...on ProcessContent']: Omit<GraphQLTypes["ProcessContent"], "...on ProcessContent">
 };
@@ -74897,6 +74932,16 @@ export type GraphQLTypes = {
 	/** Значение словами: ФИО, название, дата */
 	value: string,
 	['...on ProcessContentFact']: Omit<GraphQLTypes["ProcessContentFact"], "...on ProcessContentFact">
+};
+	["ProcessContentLine"]: {
+	__typename: "ProcessContentLine",
+	/** Сумма операции, актив «234.8400 RUB» */
+	amount?: string | undefined | null,
+	/** Операция словами: «Отчисление в резервный фонд…» */
+	label: string,
+	/** Пайщик, участок или кооператив операции */
+	subject?: string | undefined | null,
+	['...on ProcessContentLine']: Omit<GraphQLTypes["ProcessContentLine"], "...on ProcessContentLine">
 };
 	["ProcessContentLink"]: {
 	__typename: "ProcessContentLink",

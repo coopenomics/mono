@@ -753,6 +753,16 @@
     },
     "processPage": {
       "backToRegistry": "К реестру процессов"
+    },
+    "operationDetails": {
+      "amountLabel": "Сумма операции",
+      "postingTitle": "Проводка",
+      "noPosting": "Без проводки: движение по кошелькам внутри одного счёта",
+      "processTitle": "Процесс: {name}",
+      "date": "Дата",
+      "number": "№ операции",
+      "code": "Код операции",
+      "memo": "Назначение"
     }
   }
 }

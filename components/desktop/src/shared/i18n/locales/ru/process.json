@@ -21,6 +21,14 @@
       "postingNumberColumn": "№ проводки",
       "postingsEmpty": "Проводок нет",
       "postingsTitle": "Проводки"
+    },
+    "processContentCard": {
+      "linesTitle": "Состав процесса",
+      "column": {
+        "operation": "Операция",
+        "subject": "Пайщик или участок",
+        "amount": "Сумма"
+      }
     }
   }
 }
