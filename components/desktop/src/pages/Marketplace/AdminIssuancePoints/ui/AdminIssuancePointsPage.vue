@@ -14,7 +14,7 @@ import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetail
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
-import { IdentityCell, PageHint } from 'src/shared/ui/domain'
+import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
@@ -108,23 +108,38 @@ function addressOf(row: IssuancePointRow): string {
   )
 }
 
-// Карта ПВЗ: открываем точку по координатам геокодера (OSM, без API-ключа).
-const mapOpen = ref(false)
-const mapRow = ref<IssuancePointRow | null>(null)
-const mapTitle = computed(() =>
-  mapRow.value
-    ? t('marketplace.issuancePoints.mapDialogTitle', { branchName: mapRow.value.branch.short_name || mapRow.value.branch.full_name || mapRow.value.branch.braname })
-    : t('marketplace.issuancePoints.mapButton'),
+// ─── Правая панель участка ───
+// Карточка в списке краткая: что за участок и в каком он состоянии. Всё
+// остальное — карта, контакты, режим работы, инициатор и действия
+// председателя — открывается справа по нажатию на карточку.
+const selectedBraname = ref<string | null>(null)
+const selected = computed<IssuancePointRow | null>(
+  () => rows.value.find((r) => r.branch.braname === selectedBraname.value) ?? null,
 )
+const drawerOpen = computed(() => selected.value !== null)
+
+function openRow(row: IssuancePointRow): void {
+  selectedBraname.value = row.branch.braname
+}
+
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
+
+/** Режим работы строками «Пн 09:00–18:00, перерыв 13:00–14:00»; без режима — пусто. */
+function scheduleLines(row: IssuancePointRow): string[] {
+  const hours = row.details?.workingHours
+  if (!hours) return []
+  return DAYS.flatMap((day) => {
+    const d = hours[day]
+    if (!d?.open || !d?.close) return []
+    const breaks = (d.breaks ?? []).map((b) => `${b.start}–${b.end}`).join(', ')
+    const dayLabel = t(`marketplaceDetailKU.marketplaceDetailKUDialog.day.${day}`)
+    return [`${dayLabel} ${d.open}–${d.close}${breaks ? ` · ${t('marketplace.issuancePoints.breakLabel')} ${breaks}` : ''}`]
+  })
+}
 
 function hasCoords(row: IssuancePointRow): boolean {
   const d = row.details
   return !!d && d.geocodeStatus === GeocodeStatus.OK && d.lat != null && d.lng != null
-}
-
-function openMap(row: IssuancePointRow): void {
-  mapRow.value = row
-  mapOpen.value = true
 }
 
 function isGeocodingRow(row: IssuancePointRow): boolean {
@@ -320,82 +335,25 @@ q-page.admin-pvz
   //- и горизонтальной прокрутки, на узком экране зоны встают друг под другом.
   TableSkeleton(v-if='firstLoad', :columns='skeletonColumns', :rows='3')
   .admin-pvz__list(v-else-if='rows.length')
-    .admin-pvz__card(v-for='row in rows', :key='row.branch.braname')
+    .admin-pvz__card(
+      v-for='row in rows',
+      :key='row.branch.braname',
+      role='button',
+      tabindex='0',
+      @click='openRow(row)',
+      @keydown.enter='openRow(row)'
+    )
       .admin-pvz__identity
         IdentityCell(:account-name='row.branch.braname', :full-name='branchName(row)')
         .admin-pvz__meta
           q-icon(name='place', size='16px')
           span {{ [row.branch.city, addressOf(row)].filter((v) => v && v !== '—').join(' · ') || '—' }}
-        //- Получатель доли инициатора: председатель участка, если не назначен другой.
-        .admin-pvz__meta
-          q-icon(name='person', size='16px')
-          span {{ $t('marketplace.issuancePoints.column.initiator') }}: {{ initiatorLabel(row) }}
-          BaseBadge(v-if='initiatorAssigned(row)', variant='info') {{ $t('marketplace.issuancePoints.initiatorAssignedBadge') }}
       .admin-pvz__state
         BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
         BaseBadge.admin-pvz__geo-badge(v-if='row.details', :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant')
           q-spinner.admin-pvz__geo-spinner(v-if='isGeocodePending(row)', color='inherit', size='14px')
           span {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
-          q-tooltip(
-            v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
-          ) {{ row.details.geocodeErrorMessage }}
-      .admin-pvz__actions(v-if='isChairman')
-        BaseButton(
-          v-if='!row.details',
-          variant='primary',
-          size='sm',
-          @click='openAdd(row.branch)'
-        )
-          template(#icon-left)
-            q-icon(name='add_location_alt', size='16px')
-          | {{ $t('marketplace.issuancePoints.makeIssuancePointButton') }}
-        template(v-else)
-          BaseButton(variant='secondary', size='sm', @click='openEdit(row)')
-            template(#icon-left)
-              q-icon(name='edit', size='16px')
-            | {{ $t('marketplace.issuancePoints.editAriaLabel') }}
-          BaseButton(
-            v-if='row.details.geocodeStatus !== GeocodeStatus.OK',
-            variant='secondary',
-            size='sm',
-            :loading='isGeocodingRow(row)',
-            :disabled='isGeocodingRow(row)',
-            @click='retryGeocode(row)'
-          )
-            template(#icon-left)
-              q-icon(name='my_location', size='16px')
-            | {{ $t('marketplace.issuancePoints.geocodeAriaLabel') }}
-          BaseButton(
-            v-if='row.details.status === KuDetailsStatus.ACTIVE',
-            variant='secondary',
-            size='sm',
-            @click='setStatus(row, KuDetailsStatus.INACTIVE)'
-          )
-            template(#icon-left)
-              q-icon(name='block', size='16px')
-            | {{ $t('marketplace.issuancePoints.deactivateAriaLabel') }}
-          BaseButton(
-            v-else,
-            variant='primary',
-            size='sm',
-            @click='setStatus(row, KuDetailsStatus.ACTIVE)'
-          )
-            template(#icon-left)
-              q-icon(name='check_circle', size='16px')
-            | {{ $t('marketplace.issuancePoints.activateAriaLabel') }}
-        BaseButton(v-if='hasCoords(row)', variant='secondary', size='sm', @click='openMap(row)')
-          template(#icon-left)
-            q-icon(name='map', size='16px')
-          | {{ $t('marketplace.issuancePoints.mapButton') }}
-        BaseButton(variant='secondary', size='sm', @click='openInitiator(row)')
-          template(#icon-left)
-            q-icon(name='person_pin', size='16px')
-          | {{ $t('marketplace.issuancePoints.initiatorDialogTitle') }}
-      .admin-pvz__actions(v-else-if='hasCoords(row)')
-        BaseButton(variant='secondary', size='sm', @click='openMap(row)')
-          template(#icon-left)
-            q-icon(name='map', size='16px')
-          | {{ $t('marketplace.issuancePoints.mapButton') }}
+      q-icon.admin-pvz__chevron(name='chevron_right', size='22px')
 
   EmptyState(
     v-else,
@@ -404,6 +362,96 @@ q-page.admin-pvz
   )
     template(#icon)
       q-icon(name='pin_drop', size='48px')
+
+  //- Участок целиком: карта, контакты, режим работы, инициатор; действия
+  //- председателя — внизу панели.
+  DetailsDrawer(
+    :model-value='drawerOpen',
+    :width='560',
+    :title='selected ? branchName(selected) : ""',
+    @update:model-value='(v) => !v && (selectedBraname = null)'
+  )
+    template(v-if='selected')
+      .admin-pvz__drawer-head
+        BaseBadge(:variant='statusOf(selected).variant') {{ statusOf(selected).label }}
+        BaseBadge.admin-pvz__geo-badge(
+          v-if='selected.details',
+          :variant='GEOCODE_LABEL[selected.details.geocodeStatus].variant'
+        )
+          q-spinner.admin-pvz__geo-spinner(v-if='isGeocodePending(selected)', color='inherit', size='14px')
+          span {{ GEOCODE_LABEL[selected.details.geocodeStatus].label }}
+      .admin-pvz__drawer-error(
+        v-if='selected.details?.geocodeStatus === GeocodeStatus.FAILED && selected.details.geocodeErrorMessage'
+      ) {{ selected.details.geocodeErrorMessage }}
+      .admin-pvz__map(v-if='hasCoords(selected)')
+        MapView(:long='Number(selected.details!.lng)', :lat='Number(selected.details!.lat)')
+      DataRow(:label='$t("marketplace.issuancePoints.column.city")', :value='selected.branch.city || "—"', align='spread')
+      DataRow(:label='$t("marketplace.issuancePoints.column.address")', :value='addressOf(selected)', align='vertical')
+      DataRow(
+        v-if='selected.details?.contactPhone',
+        :label='$t("marketplace.issuancePoints.phoneLabel")',
+        :value='selected.details.contactPhone',
+        align='spread'
+      )
+      DataRow(
+        v-if='selected.details?.contactEmail',
+        :label='$t("marketplace.issuancePoints.emailLabel")',
+        :value='selected.details.contactEmail',
+        align='spread'
+      )
+      DataRow(v-if='scheduleLines(selected).length', :label='$t("marketplace.issuancePoints.hoursLabel")', align='vertical')
+        template(#value-override)
+          .admin-pvz__schedule
+            div(v-for='line in scheduleLines(selected)', :key='line') {{ line }}
+      DataRow(
+        v-if='selected.details?.description',
+        :label='$t("marketplace.issuancePoints.descriptionLabel")',
+        :value='selected.details.description',
+        align='vertical'
+      )
+      //- Получатель доли инициатора: председатель участка, если не назначен другой.
+      DataRow(:label='$t("marketplace.issuancePoints.column.initiator")', align='spread')
+        template(#value-override)
+          .admin-pvz__initiator
+            span {{ initiatorLabel(selected) }}
+            BaseBadge(v-if='initiatorAssigned(selected)', variant='info') {{ $t('marketplace.issuancePoints.initiatorAssignedBadge') }}
+    template(v-if='selected && isChairman', #footer)
+      .admin-pvz__drawer-actions
+        BaseButton(v-if='!selected.details', variant='primary', @click='openAdd(selected.branch)')
+          template(#icon-left)
+            q-icon(name='add_location_alt', size='16px')
+          | {{ $t('marketplace.issuancePoints.makeIssuancePointButton') }}
+        template(v-else)
+          BaseButton(variant='secondary', @click='openEdit(selected)')
+            template(#icon-left)
+              q-icon(name='edit', size='16px')
+            | {{ $t('marketplace.issuancePoints.editAriaLabel') }}
+          BaseButton(
+            v-if='selected.details.geocodeStatus !== GeocodeStatus.OK',
+            variant='secondary',
+            :loading='isGeocodingRow(selected)',
+            :disabled='isGeocodingRow(selected)',
+            @click='retryGeocode(selected)'
+          )
+            template(#icon-left)
+              q-icon(name='my_location', size='16px')
+            | {{ $t('marketplace.issuancePoints.geocodeAriaLabel') }}
+          BaseButton(
+            v-if='selected.details.status === KuDetailsStatus.ACTIVE',
+            variant='secondary',
+            @click='setStatus(selected, KuDetailsStatus.INACTIVE)'
+          )
+            template(#icon-left)
+              q-icon(name='block', size='16px')
+            | {{ $t('marketplace.issuancePoints.deactivateAriaLabel') }}
+          BaseButton(v-else, variant='primary', @click='setStatus(selected, KuDetailsStatus.ACTIVE)')
+            template(#icon-left)
+              q-icon(name='check_circle', size='16px')
+            | {{ $t('marketplace.issuancePoints.activateAriaLabel') }}
+        BaseButton(variant='secondary', @click='openInitiator(selected)')
+          template(#icon-left)
+            q-icon(name='person_pin', size='16px')
+          | {{ $t('marketplace.issuancePoints.initiatorDialogTitle') }}
 
   MarketplaceDetailKUDialog(
     v-if='dialogBranch',
@@ -428,12 +476,6 @@ q-page.admin-pvz
       BaseButton(variant='ghost', :disabled='initiatorSaving', @click='initiatorDialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', :loading='initiatorSaving', @click='onSaveInitiator') {{ $t('common.action.save') }}
 
-  BaseDialog(v-model='mapOpen', :title='mapTitle', size='lg')
-    .admin-pvz__map(
-      v-if='mapRow && mapRow.details && mapRow.details.lat != null && mapRow.details.lng != null'
-    )
-      .admin-pvz__map-addr {{ mapRow.details.addressFull }}
-      MapView(:long='Number(mapRow.details.lng)', :lat='Number(mapRow.details.lat)')
 </template>
 
 <style scoped lang="scss">
@@ -470,6 +512,58 @@ q-page.admin-pvz
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-lg);
     background: var(--p-surface);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--p-surface-2);
+      outline: none;
+    }
+  }
+
+  &__chevron {
+    color: var(--p-ink-3);
+  }
+
+  &__drawer-head {
+    display: flex;
+    gap: var(--p-2);
+    flex-wrap: wrap;
+    margin-bottom: var(--p-3);
+  }
+
+  &__drawer-error {
+    color: var(--p-neg);
+    font-size: var(--p-fs-body-sm);
+    margin-bottom: var(--p-3);
+  }
+
+  &__map {
+    height: 240px;
+    margin-bottom: var(--p-4);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md);
+    overflow: hidden;
+  }
+
+  &__schedule {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__initiator {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  &__drawer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2);
   }
 
   &__identity {
@@ -495,13 +589,6 @@ q-page.admin-pvz
     gap: var(--p-2);
   }
 
-  &__actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: var(--p-2);
-    max-width: 420px;
-  }
 
   &__dash {
     color: var(--p-ink-3);
@@ -517,11 +604,6 @@ q-page.admin-pvz
     flex-shrink: 0;
   }
 
-  &__map-addr {
-    color: var(--p-ink-2);
-    margin-bottom: var(--p-3, 12px);
-  }
-
   &__dialog-body {
     display: flex;
     flex-direction: column;
@@ -535,7 +617,7 @@ q-page.admin-pvz
     padding: var(--p-4, 16px);
   }
 
-  /* Узкий экран: зоны друг под другом, действия — во всю ширину карточки. */
+  /* Узкий экран: зоны друг под другом. */
   .admin-pvz__card {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--p-3);
@@ -546,9 +628,8 @@ q-page.admin-pvz
     align-items: center;
   }
 
-  .admin-pvz__actions {
-    justify-content: flex-start;
-    max-width: none;
+  .admin-pvz__chevron {
+    display: none;
   }
 }
 </style>
