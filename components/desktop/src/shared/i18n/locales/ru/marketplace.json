@@ -677,9 +677,9 @@
       "openMapAriaLabel": "Открыть карту",
       "status": {
         "active": "Активен",
-        "geocodeError": "Ошибка геокода",
-        "geocoded": "Координаты есть",
-        "geocoding": "Определяются…",
+        "geocodeError": "Координаты",
+        "geocoded": "Координаты",
+        "geocoding": "Координаты",
         "inactive": "Деактивирован",
         "notConnected": "Не подключён"
       },
