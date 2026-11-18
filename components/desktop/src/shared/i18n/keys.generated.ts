@@ -2614,6 +2614,7 @@ export type MessageKey =
   | 'cooperative.listOfDocumentsWidget.onlyApprovedOption'
   | 'cooperative.listOfDocumentsWidget.signedFromLabel'
   | 'cooperative.listOfDocumentsWidget.signedToLabel'
+  | 'cooperative.listOfDocumentsWidget.typeAll'
   | 'cooperative.listOfDocumentsWidget.typeLabel'
   | 'cooperative.listOfDocumentsWidget.viewAriaLabel'
   | 'cooperative.listOfDocumentsWidget.viewFlat'

@@ -167,7 +167,8 @@
       "viewFlat": "Документы",
       "signedFromLabel": "Подписан с",
       "signedToLabel": "Подписан по",
-      "typeLabel": "Тип документа"
+      "typeLabel": "Тип документа",
+      "typeAll": "Все типы"
     },
     "listOfParticipantsPage": {
       "filterAll": "Все",

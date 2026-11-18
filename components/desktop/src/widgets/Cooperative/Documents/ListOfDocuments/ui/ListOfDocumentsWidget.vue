@@ -5,7 +5,7 @@
 //- Панель журнала (стол совета): вид выдачи — пакеты процессов либо каждый
 //- документ отдельно, период по дате подписи и тип документа.
 .documents-journal(v-if='journal && !expand')
-  BaseSegmented(
+  BaseSegmented.documents-journal__view(
     :model-value='documentStore.listOptions.view'
     :options='viewOptions'
     :aria-label='$t("cooperative.listOfDocumentsWidget.viewAriaLabel")'
@@ -25,8 +25,13 @@
     clearable
     @update:model-value='(value) => applyOptions({ signed_to: value ? endOfDay(String(value)) : null })'
   )
+  //- Подпись над значением, как у дат; окно выбора постоянной ширины — при
+  //- поиске по типам оно не меняет размер.
   BaseSelect.documents-journal__type(
     :label='$t("cooperative.listOfDocumentsWidget.typeLabel")'
+    :placeholder='$t("cooperative.listOfDocumentsWidget.typeAll")'
+    stack-label
+    :popup-content-style='{ width: "min(560px, 90vw)" }'
     :options='typeOptions'
     :model-value='documentStore.listOptions.registry_ids[0] ?? null'
     searchable
@@ -203,12 +208,24 @@ useLiveReload([{ code: 'core', table: 'signed_documents' }], () =>
 </script>
 
 <style scoped>
+/* Элементы — по верхнему краю: под полями место для подсказки, по нижнему
+   краю переключатель съезжал ниже полей. */
 .documents-journal {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--p-3);
-  margin-bottom: var(--p-4);
+  margin-bottom: var(--p-2);
+}
+/* Переключатель вида — высотой поля (плотное поле с рамкой — 40px). */
+.documents-journal__view {
+  height: 40px;
+}
+.documents-journal__view :deep(button) {
+  min-height: 0;
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .documents-journal__date {
   width: 180px;
