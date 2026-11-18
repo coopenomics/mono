@@ -7,14 +7,12 @@ import {
   ACCOUNT_PORT,
   BRANCH_PORT,
   CHAIN_CHANGES_PORT,
-  CHAIRMAN_APPROVALS_PORT,
   DOCUMENT_PORT,
   LOGGER_PORT,
   NOTIFICATION_PORT,
   type IAccountPort,
   type IBranchPort,
   type IChainChangesPort,
-  type IChairmanApprovalsPort,
   type IDocumentPort,
   type ISignedDocument,
   type ILoggerPort,
@@ -119,12 +117,15 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
     @Inject(NOTIFICATION_PORT) private readonly notificationPort: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Optional() @Inject(CHAIRMAN_APPROVALS_PORT) private readonly approvals?: IChairmanApprovalsPort,
     @Optional() @Inject(CHAIN_CHANGES_PORT) chainChanges?: IChainChangesPort
   ) {
     this.logger.setContext(KuPowersOfAttorneyService.name);
-    // Страница «Мой участок» и реестр доверенностей обновляются по записи в учёт.
-    chainChanges?.declareLocalTables([{ code: 'trustee', table: 'ku_powers_of_attorney' }]);
+    // Страница «Мой участок» и реестр доверенностей обновляются по записи в учёт —
+    // сигналом ленты изменений, без перезагрузки страницы.
+    chainChanges?.declareLocalTables([
+      { code: 'trustee', table: 'ku_powers_of_attorney' },
+      { code: 'trustee', table: 'ku_trustee_liabilities' },
+    ]);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -209,17 +210,13 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
 
   /**
    * Состояние договора о материальной ответственности председателя участка —
-   * по последнему одобрению председателя совета. Без расширения председателя
-   * состояние неизвестно и считается «не подписан».
+   * по учёту узла (события signliab/apprliab/declliab). Подписанный обеими
+   * сторонами договор бессрочный: он действует, пока новый ждёт подписи.
    */
-  async trusteeLiabilityStatus(coopname: string, username: string): Promise<TrusteeLiabilityStatus> {
-    if (!this.approvals) return 'none';
-    const found = await this.approvals.list({ coopname, actions: ['apprliab'], usernames: [username] });
-    if (!found.length) return 'none';
-    const latest = [...found].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-    // Одобренный договор бессрочный: прежнее одобрение действует, пока новое на подписи.
-    if (found.some((a) => a.status === 'approved')) return 'approved';
-    return latest.status;
+  async trusteeLiabilityStatus(coopname: string, braname: string, username: string): Promise<TrusteeLiabilityStatus> {
+    const statuses = await this.repository.liabilityStatuses(coopname, braname, username);
+    if (statuses.includes('approved')) return 'approved';
+    return (statuses[0] as TrusteeLiabilityStatus | undefined) ?? 'none';
   }
 
   /** Реестр доверенностей для вкладки «Доверенности» реестра документов. */
@@ -254,7 +251,7 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
       authority: latest ? await this.toDTO(latest) : null,
       active_authority: active && active !== latest ? await this.toDTO(active) : null,
       can_sign_authority: canSign,
-      liability_status: (await this.trusteeLiabilityStatus(coopname, username)) as KuTrusteeLiabilityStatus,
+      liability_status: (await this.trusteeLiabilityStatus(coopname, braname, username)) as KuTrusteeLiabilityStatus,
       has_protocol: hasProtocol,
     };
   }
@@ -334,6 +331,41 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
   async onTrustedAuthorityDeclined(record: InnerChainActionRecord): Promise<void> {
     const data = record.data as { coopname: string; hash: string };
     await this.resolve(record, () => this.repository.resolveBySource(data.hash, 'declined', null, this.at(record)));
+  }
+
+  @OnEvent(`action::${BRANCH}::signliab`)
+  async onTrusteeLiabilitySigned(record: InnerChainActionRecord): Promise<void> {
+    const data = record.data as { coopname: string; braname: string; username: string; liability: ChainDocument };
+    await this.resolve(record, async () => {
+      if (!data.liability?.hash) return 0;
+      await this.repository.insertLiability({
+        coopname: data.coopname,
+        braname: data.braname,
+        holder: data.username,
+        document_hash: data.liability.hash,
+        document: data.liability,
+        signed_at: this.at(record),
+      });
+      return 1;
+    });
+  }
+
+  @OnEvent(`action::${BRANCH}::apprliab`)
+  async onTrusteeLiabilityApproved(record: InnerChainActionRecord): Promise<void> {
+    const data = record.data as { coopname: string; approval_hash: string; approved_document?: object };
+    await this.resolve(record, async () => {
+      await this.repository.resolveLiability(data.approval_hash, 'approved', data.approved_document ?? null, this.at(record));
+      return 1;
+    });
+  }
+
+  @OnEvent(`action::${BRANCH}::declliab`)
+  async onTrusteeLiabilityDeclined(record: InnerChainActionRecord): Promise<void> {
+    const data = record.data as { coopname: string; approval_hash: string };
+    await this.resolve(record, async () => {
+      await this.repository.resolveLiability(data.approval_hash, 'declined', null, this.at(record));
+      return 1;
+    });
   }
 
   /** Время блока действия; без него — время разбора. */

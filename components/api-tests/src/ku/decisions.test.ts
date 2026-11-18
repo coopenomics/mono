@@ -6,8 +6,9 @@
  * заполняет разбор дельт цепи; мутация отвечает после разбора своего блока,
  * поэтому чтение сразу после неё видит новое состояние.
  *
- * Участники — свежие пайщики: собрание заводится и отменяется, заявка в
- * доверенные отклоняется и одобряется на участке odn (председатель chairodn).
+ * Участники — свежие пайщики: собрание заводится и отменяется; участок
+ * учреждается собранием и советом, его председатель подписывает доверенность и
+ * договор; заявка в доверенные отклоняется и одобряется на этом участке.
  * Доверенное лицо, принятое тестом, — свежий пайщик и больше нигде не
  * участвует; участок krg фикстур Стола заказов не трогается.
  */
@@ -40,8 +41,15 @@ const REQUESTS = `query($f:KuTrustRequestFilterInput,$o:PaginationInput){ kuTrus
   authority_document{ hash rawDocument{ ${DOC} } document{ ${SIGNED} } } } } }`
 const BRANCH = 'query($d:GetBranchesInput!){ getBranches(data:$d){ braname trustee{ username } trusted_certificates{ username } } }'
 
-/** Участок, где тест принимает доверенное лицо, и его председатель. */
-const BRANCH_ODN = 'odn'
+/**
+ * Участок, где тест принимает доверенных лиц, и его председатель. Участок
+ * учреждает сам тест (собрание → совет): доверенность доверенному лицу
+ * ссылается на протокол совета и на действующую доверенность председателя
+ * участка — у фикстурного участка без протокола реквизитов нет. До учреждения
+ * — фикстурный участок odn.
+ */
+let BRANCH_ODN = 'odn'
+const GEN_TRUSTED_AUTHORITY = `mutation($d:BranchTrustedPowerOfAttorneyGenerateDocumentInput!){ kuGenerateTrustedPowerOfAttorney(data:$d){ ${DOC} } }`
 
 const agenda = [
   { title: 'Выбрать место выдачи', decision: 'Выдавать заказы по субботам', context: 'Предложение инициатора' },
@@ -77,11 +85,16 @@ async function trustedOf(token: string, braname: string): Promise<string[]> {
   return (list[0].trusted_certificates ?? []).map((t: any) => t.username)
 }
 
-/** Пакет заявки доверенного: договор матответственности (327) и доверенность (330). */
+/**
+ * Пакет заявки доверенного: договор матответственности (327) и доверенность
+ * (330). Доверенность собирает узел — номер, протокол совета и доверенность
+ * председателя участка он вписывает сам.
+ */
 async function signedTrustPackage(who: Who, token: string, hash: string): Promise<{ application: any, authority: any }> {
   const base = { coopname: COOP, username: who.account, hash, branch_name: `Участок ${BRANCH_ODN}`, trustee: branchChair.account }
   const app = (await gql<any>(token, GEN_ANY, { i: { data: { ...base, registry_id: 327 } } })).generateDocument
-  const auth = (await gql<any>(token, GEN_ANY, { i: { data: { ...base, registry_id: 330 } } })).generateDocument
+  const auth = (await gql<any>(token, GEN_TRUSTED_AUTHORITY, { d: { ...base, braname: BRANCH_ODN } })).kuGenerateTrustedPowerOfAttorney
+  expect(auth.html, 'в доверенности доверенному лицу нет прочерков').not.toContain('______')
   return {
     application: await signDocument(who.wif, app, who.account, 1),
     authority: await signDocument(who.wif, auth, who.account, 1),
@@ -542,6 +555,11 @@ describe('собрание об учреждении участка', () => {
 
     const registry = (await gql<any>(chairmanToken, POWERS, { f: { coopname: COOP, braname } })).kuPowersOfAttorney
     expect(registry.items.map((i: any) => [i.number, i.holder, i.status])).toContainEqual([Number(meta.poa_number), founder.account, 'ACTIVE'])
+
+    // Заявки доверенных лиц тест принимает на этом участке: у его председателя действующая доверенность.
+    BRANCH_ODN = braname
+    branchChair = founder
+    branchChairToken = founderToken
   }, 300_000)
 
   it(caseName('ku.trustee.happy.02', 'председатель участка подписывает договор о полной материальной ответственности — договор на подписи председателя совета'), async () => {

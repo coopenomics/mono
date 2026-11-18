@@ -27,6 +27,7 @@ sources:
     - components/controller/src/extensions/ku/domain/powers-of-attorney/power-of-attorney.ts
     - components/controller/src/extensions/ku/infrastructure/repositories/ku-power-of-attorney.kysely-repository.ts
     - components/controller/src/extensions/ku/migrations/database/1795000000000-powers-of-attorney.ts
+    - components/controller/src/extensions/ku/migrations/database/1795000000001-trustee-liabilities.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-ku-chairman.service.ts
     - components/innercoop/src/cross-plugin-ports/powers-of-attorney.port.ts
   ui:
@@ -100,6 +101,16 @@ cases:
     test: components/controller/tests/unit/ku/ku-powers-of-attorney.test.ts
     external: unreachable
     external_reason: "истечение доверенности требует сдвига даты; снаружи срок в год не проходит"
+    status: written
+
+  - id: ku.trustee.side.07
+    level: backend
+    kind: side
+    scenario: Договор председателя участка — подпись, встречная подпись председателя совета, отказ; новый договор на подписи при подписанном прежнем
+    expect: учёт узла по событиям цепи меняет состояние, «Мой участок» обновляется сигналом ленты; подписанный договор действует, пока новый ждёт подписи
+    test: components/controller/tests/unit/ku/ku-powers-of-attorney.test.ts
+    external: unreachable
+    external_reason: "отказ председателя совета и повторный договор снаружи проходят только через стол председателя; состояние учёта проверяется на событиях"
     status: written
 
   - id: ku.trustee.side.06

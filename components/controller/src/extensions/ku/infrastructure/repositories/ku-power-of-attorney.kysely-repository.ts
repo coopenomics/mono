@@ -5,6 +5,7 @@ import type { InnerPowerOfAttorneyType } from '@coopenomics/innercoop';
 import type { PowerOfAttorneyRow } from '../../domain/powers-of-attorney/power-of-attorney';
 
 const TABLE = 'ku_powers_of_attorney';
+const LIABILITIES = 'ku_trustee_liabilities';
 
 /** Новая доверенность по событию подписи доверенным лицом. */
 export interface NewPowerOfAttorney {
@@ -154,6 +155,40 @@ export class KuPowerOfAttorneyKyselyRepository {
 
   async markRenewalNotified(id: number, at: Date): Promise<void> {
     await this.db.updateTable(TABLE).set({ renewal_notified_at: at }).where('id', '=', id).execute();
+  }
+
+  // ── Договор о полной материальной ответственности председателя участка ──
+
+  /** Договор по событию подписи председателем участка; повтор события ничего не меняет. */
+  async insertLiability(row: { coopname: string; braname: string; holder: string; document_hash: string; document: object; signed_at: Date }): Promise<void> {
+    await this.db
+      .insertInto(LIABILITIES)
+      .values({ ...row, document: JSON.stringify(row.document), status: 'pending' })
+      .onConflict((oc) => oc.column('document_hash').doNothing())
+      .execute();
+  }
+
+  /** Встречная подпись председателя совета или отказ по хэшу договора. */
+  async resolveLiability(documentHash: string, status: 'approved' | 'declined', countersigned: object | null, at: Date): Promise<void> {
+    await this.db
+      .updateTable(LIABILITIES)
+      .set({ status, resolved_at: at, countersigned: countersigned ? JSON.stringify(countersigned) : null })
+      .where(sql<boolean>`upper(document_hash) = upper(${documentHash})`)
+      .where('status', '=', 'pending')
+      .execute();
+  }
+
+  /** Состояния договоров председателя по участку — новые первыми. */
+  async liabilityStatuses(coopname: string, braname: string, holder: string): Promise<string[]> {
+    const rows = await this.db
+      .selectFrom(LIABILITIES)
+      .select('status')
+      .where('coopname', '=', coopname)
+      .where('braname', '=', braname)
+      .where('holder', '=', holder)
+      .orderBy('id', 'desc')
+      .execute();
+    return rows.map((r) => String(r.status));
   }
 
   /** Решение совета об учреждении участка: название, адрес и документ протокола. */

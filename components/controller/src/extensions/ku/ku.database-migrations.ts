@@ -1,5 +1,6 @@
 import { KuBaseline1790197276757 } from './migrations/database/1790197276757-baseline';
 import { KuPowersOfAttorney1795000000000 } from './migrations/database/1795000000000-powers-of-attorney';
+import { KuTrusteeLiabilities1795000000001 } from './migrations/database/1795000000001-trustee-liabilities';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -7,4 +8,4 @@ import { KuPowersOfAttorney1795000000000 } from './migrations/database/179500000
  * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
  * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
  */
-export const kuDatabaseMigrations = [KuBaseline1790197276757, KuPowersOfAttorney1795000000000];
+export const kuDatabaseMigrations = [KuBaseline1790197276757, KuPowersOfAttorney1795000000000, KuTrusteeLiabilities1795000000001];

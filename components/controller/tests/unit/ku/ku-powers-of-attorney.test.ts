@@ -54,7 +54,7 @@ describe('доверенность: срок и состояние', () => {
   });
 });
 
-function makeService(opts: { establishment?: unknown; trustee?: string; holderRows?: unknown[] } = {}) {
+function makeService(opts: { establishment?: unknown; trustee?: string; holderRows?: unknown[]; liabilityStatuses?: string[] } = {}) {
   const repository = {
     nextNumber: jest.fn(async () => 7),
     insertPending: jest.fn(async () => undefined),
@@ -63,10 +63,13 @@ function makeService(opts: { establishment?: unknown; trustee?: string; holderRo
     findEstablishment: jest.fn(async () => opts.establishment ?? null),
     findForHolder: jest.fn(async () => opts.holderRows ?? []),
     latestActive: jest.fn(async () => []),
+    insertLiability: jest.fn(async () => undefined),
+    resolveLiability: jest.fn(async () => undefined),
+    liabilityStatuses: jest.fn(async () => opts.liabilityStatuses ?? []),
   } as any;
   const branchPort = { getBranch: jest.fn(async () => ({ braname: 'romashka', trustee: opts.trustee ?? 'ivanov', trusted: [] })) } as any;
   const logger = { setContext: jest.fn(), log: jest.fn(), error: jest.fn(), warn: jest.fn() } as any;
-  const service = new KuPowersOfAttorneyService(repository, branchPort, {} as any, {} as any, logger, {} as any);
+  const service = new KuPowersOfAttorneyService(repository, branchPort, {} as any, {} as any, logger, {} as any, undefined);
   return { service, repository };
 }
 
@@ -143,6 +146,28 @@ describe('доверенность: учёт по событиям цепи', ()
     const { service, repository } = makeService();
     await service.onTrusteeAuthoritySigned({ ...record('signauth', {}), data: { coopname: 'other', braname: 'x', username: 'y', authority } });
     expect(repository.insertPending).not.toHaveBeenCalled();
+  });
+});
+
+describe('договор о полной материальной ответственности: учёт по событиям цепи', () => {
+  const liability = { hash: 'B'.repeat(64), meta: '{}' };
+  const record = (name: string, data: object) =>
+    ({ name, block_time: '2026-11-18T10:00:00.000Z', data: { coopname: 'voskhod', ...data } }) as any;
+
+  it('подпись председателя участка — договор на подписи; встречная подпись — подписан; отказ — отклонён', async () => {
+    const { service, repository } = makeService();
+    await service.onTrusteeLiabilitySigned(record('signliab', { braname: 'romashka', username: 'ivanov', liability }));
+    expect(repository.insertLiability).toHaveBeenCalledWith(expect.objectContaining({ holder: 'ivanov', document_hash: liability.hash }));
+    await service.onTrusteeLiabilityApproved(record('apprliab', { approval_hash: liability.hash, approved_document: {} }));
+    expect(repository.resolveLiability).toHaveBeenCalledWith(liability.hash, 'approved', {}, expect.any(Date));
+    await service.onTrusteeLiabilityDeclined(record('declliab', { approval_hash: liability.hash }));
+    expect(repository.resolveLiability).toHaveBeenCalledWith(liability.hash, 'declined', null, expect.any(Date));
+  });
+
+  it('подписанный договор бессрочный: действует, пока новый ждёт подписи', async () => {
+    expect(await makeService({ liabilityStatuses: ['pending', 'approved'] }).service.trusteeLiabilityStatus('voskhod', 'romashka', 'ivanov')).toBe('approved');
+    expect(await makeService({ liabilityStatuses: ['declined'] }).service.trusteeLiabilityStatus('voskhod', 'romashka', 'ivanov')).toBe('declined');
+    expect(await makeService().service.trusteeLiabilityStatus('voskhod', 'romashka', 'ivanov')).toBe('none');
   });
 });
 
