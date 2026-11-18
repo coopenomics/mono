@@ -20,6 +20,13 @@ struct [[eosio::table, eosio::contract(BRANCH)]] branchstat {
 
 typedef eosio::multi_index<"branchstat"_n, branchstat> branchstat_index;
 
+/** Число кооперативных участков кооператива; нет строки — ноль. */
+inline uint64_t get_branch_count(eosio::name coopname) {
+  branchstat_index stat(_branch, _branch.value);
+  auto st = stat.find(coopname.value);
+  return st == stat.end() ? 0 : st->count;
+}
+
 uint64_t add_branch_count(eosio::name coopname) {
   branchstat_index stat(_branch, _branch.value);
   auto st = stat.find(coopname.value);

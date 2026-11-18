@@ -112,6 +112,32 @@ describe('счётчик активных пайщиков', () => {
   }, 120_000)
 })
 
+/** Флаг мажоритарной системы управления кооператива. */
+async function branched(): Promise<boolean> {
+  const rows = await blockchain.getTableRows('registrator', 'registrator', 'coops', 1, COOP, COOP)
+  return Boolean(Number(rows[0].is_branched))
+}
+
+/** Число кооперативных участков по счётчику контракта участков. */
+async function branchCount(): Promise<number> {
+  const rows = await blockchain.getTableRows('branch', 'branch', 'branchstat', 1, COOP, COOP)
+  return rows.length ? Number(rows[0].count) : 0
+}
+
+// Слово владельца 18.11.2026: мажоритарная система включается, когда
+// участков не меньше трёх И активных пайщиков не меньше ста. Регистратор
+// пересчитывает флаг при каждом изменении счётчика пайщиков. Стенд собран
+// тестовой сборкой: порог пайщиков в ней 0, флаг следует числу участков.
+describe('мажоритарная система управления', () => {
+  it('изменение счётчика пайщиков приводит флаг к условиям тестовой сборки', async () => {
+    await push('soviet', 'block', SOVIET, { coopname: COOP, admin: CHAIRMAN, username: PARTICIPANT, message: 'проверка флага' })
+    expect(await branched()).toBe((await branchCount()) >= 3)
+
+    await push('soviet', 'unblock', SOVIET, { coopname: COOP, admin: CHAIRMAN, username: PARTICIPANT })
+    expect(await branched()).toBe((await branchCount()) >= 3)
+  })
+})
+
 describe('минимальные взносы ранних пайщиков', () => {
   it('ledger2::migrate без кошелька w.sov.mnused минимальные взносы не трогает', async () => {
     const wallets = await blockchain.getTableRows('ledger2', COOP, 'wallets', 1000)

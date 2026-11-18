@@ -50,7 +50,7 @@
 
     uint64_t branch_count = add_branch_count(coopname);
     
-    if (!coop.is_branched && branch_count >= 3) { //регистрируем переход на кооперативные участки
+    if (!coop.is_branched && branch_count >= MIN_BRANCHES_COUNT) { //регистрируем переход на кооперативные участки
       action(
         permission_level{ _branch, "active"_n},
         _registrator,

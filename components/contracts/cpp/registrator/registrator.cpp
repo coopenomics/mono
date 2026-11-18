@@ -1,5 +1,6 @@
 #include "registrator.hpp"
 
+#include "src/coop/sync_branched.hpp"
 #include "src/system/init.cpp"
 #include "src/system/migrate.cpp"
 #include "src/system/cleanup.cpp"

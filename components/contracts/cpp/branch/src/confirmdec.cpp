@@ -56,7 +56,7 @@
 
   uint64_t branch_count = add_branch_count(coopname);
 
-  if (!coop.is_branched && branch_count >= 3) {  // переход на режим кооперативных участков
+  if (!coop.is_branched && branch_count >= MIN_BRANCHES_COUNT) {  // переход на режим кооперативных участков
     action(
       permission_level{_branch, "active"_n},
       _registrator,

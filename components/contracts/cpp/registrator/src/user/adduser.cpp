@@ -95,6 +95,7 @@
         coop.active_participants_count = 1;
       }
     });
+    sync_branched(cooperatives, coop_itr);
   }
   
   eosio::name braname = ""_n;

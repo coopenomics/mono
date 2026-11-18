@@ -285,10 +285,14 @@ static constexpr uint64_t _eduteacher_program_id = 6;
     static constexpr uint64_t _producers_percent = 900000; // 90%
     static constexpr uint64_t _fund_percent = 100000; // 10%
 
+    static constexpr uint64_t MIN_BRANCHES_COUNT = 3; /*!< число кооперативных участков, с которого кооператив переходит на мажоритарную систему управления */
+
 #ifdef IS_TESTNET
+    static constexpr uint64_t MIN_BRANCHED_PARTICIPANTS_COUNT = 0; /*!< тестовая сборка: мажоритарная система включается по числу участков, без порога пайщиков */
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 1; /*!< минимальное количество членов совета (тест) */
     static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = false; /*!< один пайщик может возглавлять несколько кооперативных участков (тест) */
 #else
+    static constexpr uint64_t MIN_BRANCHED_PARTICIPANTS_COUNT = 100; /*!< мажоритарная система включается не раньше, чем в кооперативе 100 активных пайщиков */
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 3; /*!< минимальное количество членов совета (прод) */
     static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = true; /*!< председатель возглавляет ровно один кооперативный участок (прод) */
 #endif
