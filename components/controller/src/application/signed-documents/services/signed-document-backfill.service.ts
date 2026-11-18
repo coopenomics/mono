@@ -5,6 +5,7 @@ import {
   type SignedDocumentRepository,
 } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';
+import { SignedDocumentRole } from '~/domain/document/enums/signed-document-role.enum';
 import { SignedDocumentIngestionService } from './signed-document-ingestion.service';
 import config from '~/config/config';
 import type { IAction } from '~/types/common';
@@ -19,6 +20,8 @@ export interface BackfillStats {
 interface BackfillPass {
   type: string;
   status: SignedDocumentStatus;
+  /** Документ процесса (решение, акт, связь) — своя строка журнала с этой ролью. */
+  role?: SignedDocumentRole;
 }
 
 // Порядок важен: сперва базовые записи (submitted/resolved), затем смена статусов поверх.
@@ -27,6 +30,16 @@ const PASSES: BackfillPass[] = [
   { type: 'newresolved', status: SignedDocumentStatus.Resolved },
   // newdeclined пока не приходит как registry-action (см. C28-21); пройдёт пустым — это безопасно.
   { type: 'newdeclined', status: SignedDocumentStatus.Declined },
+];
+
+/**
+ * Журнал документов: решения, акты и связанные документы — по строке на документ.
+ * Проход идёт после заявлений, чтобы строка заявления того же документа имела приоритет.
+ */
+const PART_PASSES: BackfillPass[] = [
+  { type: 'newdecision', status: SignedDocumentStatus.Resolved, role: SignedDocumentRole.Decision },
+  { type: 'newact', status: SignedDocumentStatus.Resolved, role: SignedDocumentRole.Act },
+  { type: 'newlink', status: SignedDocumentStatus.Resolved, role: SignedDocumentRole.Link },
 ];
 
 const PAGE_LIMIT = 100;
@@ -66,6 +79,12 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
     if (!forced) {
       const existing = await this.repository.count(config.coopname);
       if (existing > 0) {
+        // Узел ведёт журнал документов после реестра заявлений: строки документов процесса
+        // дописываются один раз, пакеты прежних строк не меняются.
+        if ((await this.repository.countParts(config.coopname)) === 0) {
+          await this.runPasses(PART_PASSES, 'журнала документов процесса');
+          return;
+        }
         this.logger.log(`Реестр подписанных документов не пуст (${existing}) — авто-backfill пропущен.`);
         return;
       }
@@ -73,11 +92,22 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
     await this.run();
   }
 
+  /** Проход по набору типов действий с итогом в журнале узла. */
+  private async runPasses(passes: BackfillPass[], label: string): Promise<BackfillStats> {
+    const stats: BackfillStats = { scanned: 0, created: 0, updated: 0, skipped: 0 };
+    this.logger.log(`Старт прохода ${label}...`);
+    for (const pass of passes) await this.runPass(pass, stats);
+    this.logger.log(
+      `Проход ${label} завершён. scanned=${stats.scanned} created=${stats.created} updated=${stats.updated} skipped=${stats.skipped}`
+    );
+    return stats;
+  }
+
   async run(): Promise<BackfillStats> {
     const stats: BackfillStats = { scanned: 0, created: 0, updated: 0, skipped: 0 };
     this.logger.log('Старт backfill реестра подписанных документов...');
 
-    for (const pass of PASSES) {
+    for (const pass of [...PASSES, ...PART_PASSES]) {
       await this.runPass(pass, stats);
     }
 
@@ -113,7 +143,9 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
       for (const action of results) {
         stats.scanned++;
         try {
-          const result = await this.ingestion.ingestAction(action, pass.status);
+          const result = pass.role
+            ? await this.ingestion.ingestPart(action, pass.role)
+            : await this.ingestion.ingestAction(action, pass.status);
           stats[result === 'created' ? 'created' : result === 'updated' ? 'updated' : 'skipped']++;
         } catch (error: any) {
           // Одна битая запись (напр. не-парсибельная дата у legacy-документа) не должна ронять

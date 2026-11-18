@@ -161,7 +161,13 @@
     },
     "listOfDocumentsWidget": {
       "allIncomingOption": "Все входящие",
-      "onlyApprovedOption": "Только утверждённые"
+      "onlyApprovedOption": "Только утверждённые",
+      "viewAriaLabel": "Вид реестра",
+      "viewPackage": "Пакеты",
+      "viewFlat": "Документы",
+      "signedFromLabel": "Подписан с",
+      "signedToLabel": "Подписан по",
+      "typeLabel": "Тип документа"
     },
     "listOfParticipantsPage": {
       "filterAll": "Все",

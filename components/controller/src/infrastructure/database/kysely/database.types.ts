@@ -2734,9 +2734,12 @@ export interface SignedDocuments {
   full_title: Generated<string>;
   hash: string;
   id: Generated<string>;
+  links: Generated<string[]>;
   package: string;
   participants: Generated<string[]>;
   registry_id: Generated<number>;
+  role: Generated<string>;
+  signed_at: Timestamp | null;
   signers_text: Generated<string>;
   source_action_data: Json | null;
   status: Generated<string>;

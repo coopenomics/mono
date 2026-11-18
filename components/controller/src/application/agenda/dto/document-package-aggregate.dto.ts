@@ -39,6 +39,21 @@ export class DocumentPackageAggregateDTO implements DocumentPackageAggregateDoma
   })
   registry_hash?: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название документа строки реестра по его типу — текущая редакция названия шаблона',
+  })
+  title?: string | null;
+
+  @Field(() => Date, { nullable: true, description: 'Дата подписи документа — время блока, в котором документ попал в цепь' })
+  signed_at?: Date | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Роль документа в процессе: statement, decision, act, link, agreement',
+  })
+  role?: string | null;
+
   constructor(data?: DocumentPackageAggregateDomainInterface) {
     if (data) {
       // Маппинг Statement
@@ -53,6 +68,9 @@ export class DocumentPackageAggregateDTO implements DocumentPackageAggregateDoma
       // Маппинг Links
       this.links = data.links.map((link) => new DocumentAggregateDTO(link));
       this.registry_hash = data.registry_hash ?? null;
+      this.title = data.title ?? null;
+      this.signed_at = data.signed_at ?? null;
+      this.role = data.role ?? null;
     } else {
       this.statement = null;
       this.decision = null;

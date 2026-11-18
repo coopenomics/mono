@@ -2,6 +2,38 @@
 //- Реестр по умолчанию — канон карточки/плоские строки с переходом на страницу
 //- документа. Режим таблицы с инлайн-раскрытием (expand=true) оставлен для
 //- Union-страницы, где документы чужого кооператива смотрят на месте.
+//- Панель журнала (стол совета): вид выдачи — пакеты процессов либо каждый
+//- документ отдельно, период по дате подписи и тип документа.
+.documents-journal(v-if='journal && !expand')
+  BaseSegmented(
+    :model-value='documentStore.listOptions.view'
+    :options='viewOptions'
+    :aria-label='$t("cooperative.listOfDocumentsWidget.viewAriaLabel")'
+    @update:model-value='(view) => applyOptions({ view })'
+  )
+  BaseInput.documents-journal__date(
+    type='date'
+    :label='$t("cooperative.listOfDocumentsWidget.signedFromLabel")'
+    :model-value='documentStore.listOptions.signed_from'
+    clearable
+    @update:model-value='(value) => applyOptions({ signed_from: value ? String(value) : null })'
+  )
+  BaseInput.documents-journal__date(
+    type='date'
+    :label='$t("cooperative.listOfDocumentsWidget.signedToLabel")'
+    :model-value='documentStore.listOptions.signed_to'
+    clearable
+    @update:model-value='(value) => applyOptions({ signed_to: value ? endOfDay(String(value)) : null })'
+  )
+  BaseSelect.documents-journal__type(
+    :label='$t("cooperative.listOfDocumentsWidget.typeLabel")'
+    :options='typeOptions'
+    :model-value='documentStore.listOptions.registry_ids[0] ?? null'
+    searchable
+    clearable
+    @update:model-value='(value) => applyOptions({ registry_ids: value == null ? [] : [Number(value)] })'
+  )
+
 DocumentCardsList(
   v-if='!expand',
   :documents='documentStore.documents',
@@ -32,7 +64,11 @@ DocumentsTable(
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { Registry } from '@coopenomics/docs-templates';
+import { BaseInput, BaseSegmented, BaseSelect } from 'src/shared/ui/base';
+import type { IDocumentListOptions } from 'src/entities/Document/model/store';
+import { t } from 'src/shared/i18n';
 import { DocumentModel } from 'src/entities/Document';
 import { DocumentsTable, DocumentCardsList } from '../ui';
 import { FailAlert } from 'src/shared/api';
@@ -66,6 +102,12 @@ const props = defineProps({
     required: false,
     default: 'newsubmitted',
   },
+  // Панель журнала: вид выдачи, период подписи, тип документа (стол совета).
+  journal: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['toggle-expand']);
@@ -89,6 +131,32 @@ async function onTypeChange(newType: DocumentType) {
     } catch (e) {
       FailAlert(e);
     }
+  }
+}
+
+const viewOptions = computed(() => [
+  { value: 'PACKAGE', label: t('cooperative.listOfDocumentsWidget.viewPackage') },
+  { value: 'FLAT', label: t('cooperative.listOfDocumentsWidget.viewFlat') },
+]);
+
+// Типы документов — реестр шаблонов фабрики, по алфавиту.
+const typeOptions = computed(() =>
+  Object.values(Registry as Record<string, { registry_id?: number; title?: string }>)
+    .filter((entry) => typeof entry?.registry_id === 'number' && !!entry.title)
+    .map((entry) => ({ value: entry.registry_id as number, label: entry.title as string }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'ru')),
+);
+
+/** Конец выбранного дня: период «по» включает весь день. */
+function endOfDay(date: string): string {
+  return `${date}T23:59:59`;
+}
+
+async function applyOptions(options: Partial<IDocumentListOptions>): Promise<void> {
+  try {
+    await documentStore.setListOptions(options, props.username, props.filter);
+  } catch (e) {
+    FailAlert(e);
   }
 }
 
@@ -116,7 +184,11 @@ function toggleExpand(document: any) {
 
 // Загрузка документов при монтировании
 onMounted(() => {
-  // Начальная загрузка документов
+  // Начальная загрузка документов. Без панели журнала (реестр пайщика) — пакетный
+  // вид без фильтров: вид, выбранный на столе совета, в реестр пайщика не переносится.
+  if (!props.journal) {
+    documentStore.listOptions = { view: 'PACKAGE', signed_from: null, signed_to: null, registry_ids: [] };
+  }
   documentStore.resetDocuments();
   documentStore
     .changeDocumentType(typeForToggle.value, props.username, props.filter)
@@ -129,3 +201,20 @@ useLiveReload([{ code: 'core', table: 'signed_documents' }], () =>
   documentStore.reloadLoaded(props.username, props.filter),
 );
 </script>
+
+<style scoped>
+.documents-journal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--p-3);
+  margin-bottom: var(--p-4);
+}
+.documents-journal__date {
+  width: 180px;
+}
+.documents-journal__type {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+</style>

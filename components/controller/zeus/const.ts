@@ -661,6 +661,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	DocumentTemplateEdition: "enum" as const,
+	DocumentsView: "enum" as const,
 	EditBranchInput:{
 
 	},
@@ -1025,7 +1026,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	GetDocumentsInput:{
 		actions:"DocumentAction",
-		filter:"JSON"
+		filter:"JSON",
+		signed_from:"DateTime",
+		signed_to:"DateTime",
+		view:"DocumentsView"
 	},
 	GetExpenseInput:{
 
@@ -6363,7 +6367,10 @@ export const ReturnTypes: Record<string,any> = {
 		decision:"DecisionDetailAggregate",
 		links:"DocumentAggregate",
 		registry_hash:"String",
-		statement:"StatementDetailAggregate"
+		role:"String",
+		signed_at:"DateTime",
+		statement:"StatementDetailAggregate",
+		title:"String"
 	},
 	DocumentReproducibilityAudit:{
 		checked:"Int",

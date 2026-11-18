@@ -5,10 +5,10 @@ import { DocumentPackageAggregator } from '~/domain/document/aggregators/documen
 import { packageParticipants } from '~/domain/document/services/document-package-visibility';
 import {
   SIGNED_DOCUMENT_REPOSITORY,
-  type SignedDocumentPackageRow,
   type SignedDocumentRepository,
 } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';
+import { SignedDocumentRole } from '~/domain/document/enums/signed-document-role.enum';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import config from '~/config/config';
 import type { IAction } from '~/types/common';
@@ -30,6 +30,12 @@ export type IngestResult = 'created' | 'updated' | 'skipped';
  * - newsubmitted/newresolved/newdeclined — несут заявление: пересобираем агрегат + ставим статус;
  * - newdecision/newact/newlink — досборка: пересобираем агрегат по сохранённому действию-носителю,
  *   статус не меняем.
+ *
+ * Журнал документов (решение владельца 18.11.2026): строка на каждый подписанный документ.
+ * Решение, акт и связанный документ получают свою строку с ролью (плоский вид, поиск, период),
+ * а пакетный вид по-прежнему строится по строкам заявлений. Соглашение, которое заявление
+ * перечисляет в meta.links (вступление), реестр записывает в пакет заявления с ролью
+ * «соглашение», а не отдельным пакетом — при любом порядке событий заявления и соглашения.
  */
 @Injectable()
 export class SignedDocumentIngestionService {
@@ -80,16 +86,68 @@ export class SignedDocumentIngestionService {
   @OnEvent(`action::${SOVIET}::${Registry.NewDecision.actionName}`)
   async onNewDecision(action: IAction): Promise<void> {
     await this.safeReassemble(action, Registry.NewDecision.actionName);
+    await this.safePart(action, SignedDocumentRole.Decision, Registry.NewDecision.actionName);
   }
 
   @OnEvent(`action::${SOVIET}::${Registry.NewAct.actionName}`)
   async onNewAct(action: IAction): Promise<void> {
     await this.safeReassemble(action, Registry.NewAct.actionName);
+    await this.safePart(action, SignedDocumentRole.Act, Registry.NewAct.actionName);
   }
 
   @OnEvent(`action::${SOVIET}::${Registry.NewLink.actionName}`)
   async onNewLink(action: IAction): Promise<void> {
     await this.safeReassemble(action, Registry.NewLink.actionName);
+    await this.safePart(action, SignedDocumentRole.Link, Registry.NewLink.actionName);
+  }
+
+  /**
+   * Строка журнала для документа процесса — решения, акта, связанного документа.
+   * Идемпотентно по doc_hash; строку заявления не перетирает (тот же документ бывает
+   * заявлением одного процесса и связью другого — главным остаётся заявление).
+   * Используется и листенерами шины, и разовым проходом журнала.
+   */
+  async ingestPart(action: IAction, role: SignedDocumentRole): Promise<IngestResult> {
+    const data = (action?.data ?? {}) as Record<string, any>;
+    const docHash: string | undefined = data.document?.doc_hash;
+    const packageHash: string = data.package || '';
+    if (!docHash || !packageHash) return 'skipped';
+    const coopname: string = data.coopname || config.coopname;
+    const incomingBlock = this.toBlockNum(action?.block_num);
+
+    return this.enqueueByDoc(`${coopname}:${docHash}`, async () => {
+      const existing = await this.repository.getState(coopname, docHash);
+      if (existing) {
+        if (existing.role === SignedDocumentRole.Statement || existing.role === SignedDocumentRole.Agreement) return 'skipped';
+        if (incomingBlock === null || existing.blockNum === null || incomingBlock <= existing.blockNum) return 'skipped';
+      }
+      const full = await this.buildAggregateSafe(action);
+      // В строке документа процесса — только сам документ; пакет целиком хранит строка заявления.
+      const aggregate: DocumentPackageAggregateDomainInterface | null = full?.statement
+        ? { statement: full.statement, decision: null, acts: [], links: [] }
+        : null;
+      await this.upsertRow({
+        action,
+        aggregate,
+        status: SignedDocumentStatus.Resolved,
+        coopname,
+        docHash,
+        hash: data.document?.hash || '',
+        packageHash,
+        role,
+        links: [],
+      });
+      return existing ? 'updated' : 'created';
+    });
+  }
+
+  private async safePart(action: IAction, role: SignedDocumentRole, label: string): Promise<void> {
+    try {
+      const result = await this.ingestPart(action, role);
+      if (result !== 'skipped') this.logger.log(`[${label}] строка журнала ${result}: package=${this.shortPackage(action)}`);
+    } catch (error: any) {
+      this.logger.warn(`Ошибка записи документа процесса ${label}: ${error?.message}`);
+    }
   }
 
   /**
@@ -172,7 +230,10 @@ export class SignedDocumentIngestionService {
       // decision/act/link относятся к процессу (package), а не к конкретному заявлению.
       // Пересобираем агрегаты ВСЕХ заявлений пакета (их может быть несколько с разными
       // подписантами), сохраняя статус каждого.
-      const rows = await this.repository.findByPackage(coopname, packageHash);
+      // Пакет собирают строки заявлений; документы процесса и соглашения своих пакетов не держат.
+      const rows = (await this.repository.findByPackage(coopname, packageHash)).filter(
+        (row) => row.role === SignedDocumentRole.Statement
+      );
       if (rows.length === 0) return; // заявлений по пакету ещё нет — нечего дособирать
 
       let rebuilt = 0;
@@ -210,30 +271,80 @@ export class SignedDocumentIngestionService {
     packageHash: string
   ): Promise<void> {
     const aggregate = await this.buildAggregateSafe(sourceAction);
-    const data = (sourceAction?.data ?? {}) as Record<string, any>;
-    const statement = aggregate?.statement;
-    const rawDoc = statement?.documentAggregate?.rawDocument;
-    const meta = (rawDoc?.meta ?? {}) as Record<string, any>;
+    const meta = (aggregate?.statement?.documentAggregate?.rawDocument?.meta ?? {}) as Record<string, any>;
+    const links: string[] = Array.isArray(meta.links) ? meta.links.map((link: unknown) => String(link)) : [];
 
-    const owner = meta.username || data.username || '';
-    await this.repository.upsert({
-      coopname,
-      packageHash,
-      doc_hash: docHash,
-      hash,
-      username: owner,
+    // Соглашение, которое заявление перечисляет в связях, живёт в пакете заявления.
+    const linkingPackage = await this.repository.findLinkingPackage(coopname, docHash);
+    const isAgreement = !!linkingPackage && linkingPackage !== packageHash;
+
+    await this.upsertRow({
+      action: sourceAction,
+      aggregate,
       status,
+      coopname,
+      docHash,
+      hash,
+      packageHash: isAgreement ? linkingPackage : packageHash,
+      role: isAgreement ? SignedDocumentRole.Agreement : SignedDocumentRole.Statement,
+      links,
+    });
+
+    // Узел записал соглашения раньше заявления — переводим их в пакет заявления.
+    if (!isAgreement && links.length > 0) {
+      const moved = await this.repository.attachLinkedAgreements(coopname, packageHash, links);
+      if (moved > 0) this.logger.log(`Соглашения заявления переведены в его пакет: ${moved}, package=${packageHash.substring(0, 8)}`);
+    }
+  }
+
+  /** Строка журнала по готовому агрегату: поля поиска, участники, даты. */
+  private async upsertRow(input: {
+    action: IAction;
+    aggregate: DocumentPackageAggregateDomainInterface | null;
+    status: SignedDocumentStatus;
+    coopname: string;
+    docHash: string;
+    hash: string;
+    packageHash: string;
+    role: SignedDocumentRole;
+    links: string[];
+  }): Promise<void> {
+    const { action, aggregate } = input;
+    const data = (action?.data ?? {}) as Record<string, any>;
+    const rawDoc = aggregate?.statement?.documentAggregate?.rawDocument;
+    const meta = (rawDoc?.meta ?? {}) as Record<string, any>;
+    const owner = meta.username || data.username || '';
+    const documentCreatedAt = this.parseDocumentDate(meta.created_at, meta.timezone);
+
+    await this.repository.upsert({
+      coopname: input.coopname,
+      packageHash: input.packageHash,
+      doc_hash: input.docHash,
+      hash: input.hash,
+      username: owner,
+      status: input.status,
       action: data.action || '',
       registry_id: typeof meta.registry_id === 'number' ? meta.registry_id : 0,
       full_title: rawDoc?.full_title || '',
       content_text: this.stripHtml(rawDoc?.html || ''),
       signers_text: this.collectSignersText(aggregate),
       participants: packageParticipants(aggregate, owner),
-      block_num: this.resolveBlockNum(sourceAction?.block_num, meta.block_num),
-      document_created_at: this.parseDocumentDate(meta.created_at, meta.timezone),
+      block_num: this.resolveBlockNum(action?.block_num, meta.block_num),
+      document_created_at: documentCreatedAt,
       document_aggregate: aggregate,
-      source_action_data: sourceAction as unknown as Record<string, unknown>,
+      source_action_data: action as unknown as Record<string, unknown>,
+      role: input.role,
+      signed_at: this.blockTime(action) ?? documentCreatedAt,
+      links: input.links,
     });
+  }
+
+  /** Время блока действия — дата подписи документа в цепи. */
+  private blockTime(action: IAction): Date | null {
+    const raw = (action as { block_time?: string | Date } | null)?.block_time;
+    if (!raw) return null;
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   private async buildAggregateSafe(action: IAction): Promise<DocumentPackageAggregateDomainInterface | null> {

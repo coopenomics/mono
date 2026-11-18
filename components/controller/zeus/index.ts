@@ -7165,8 +7165,14 @@ export type ValueTypes = {
 	links?:ValueTypes["DocumentAggregate"],
 	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
 	registry_hash?:boolean | `@${string}`,
+	/** Роль документа в процессе: statement, decision, act, link, agreement */
+	role?:boolean | `@${string}`,
+	/** Дата подписи документа — время блока, в котором документ попал в цепь */
+	signed_at?:boolean | `@${string}`,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?:ValueTypes["StatementDetailAggregate"],
+	/** Название документа строки реестра по его типу — текущая редакция названия шаблона */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on DocumentPackageAggregate']?: Omit<ValueTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 }>;
@@ -7282,6 +7288,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on DocumentsAggregatePaginationResult']?: Omit<ValueTypes["DocumentsAggregatePaginationResult"], "...on DocumentsAggregatePaginationResult">
 }>;
+	/** Вид выдачи реестра документов: пакеты процессов либо каждый документ отдельно */
+["DocumentsView"]:DocumentsView;
 	["EditBranchInput"]: {
 	/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string | Variable<any, string>,
@@ -10121,8 +10129,18 @@ export type ValueTypes = {
 	filter: ValueTypes["JSON"] | Variable<any, string>,
 	limit?: number | undefined | null | Variable<any, string>,
 	page?: number | undefined | null | Variable<any, string>,
+	/** Типы документов — номера шаблонов */
+	registry_ids?: Array<number> | undefined | null | Variable<any, string>,
+	/** Поиск по названию, тексту и подписантам */
+	search?: string | undefined | null | Variable<any, string>,
+	/** Начало периода по дате подписи документа */
+	signed_from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Конец периода по дате подписи документа */
+	signed_to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
 	type?: string | undefined | null | Variable<any, string>,
-	username: string | Variable<any, string>
+	username: string | Variable<any, string>,
+	/** Вид выдачи: пакеты процессов (по умолчанию) либо каждый документ отдельно */
+	view?: ValueTypes["DocumentsView"] | undefined | null | Variable<any, string>
 };
 	["GetExpenseInput"]: {
 	/** Внутренний ID базы данных */
@@ -26642,8 +26660,14 @@ export type ResolverInputTypes = {
 	links?:ResolverInputTypes["DocumentAggregate"],
 	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
 	registry_hash?:boolean | `@${string}`,
+	/** Роль документа в процессе: statement, decision, act, link, agreement */
+	role?:boolean | `@${string}`,
+	/** Дата подписи документа — время блока, в котором документ попал в цепь */
+	signed_at?:boolean | `@${string}`,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?:ResolverInputTypes["StatementDetailAggregate"],
+	/** Название документа строки реестра по его типу — текущая редакция названия шаблона */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["DocumentReproducibilityAudit"]: AliasType<{
@@ -26752,6 +26776,8 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Вид выдачи реестра документов: пакеты процессов либо каждый документ отдельно */
+["DocumentsView"]:DocumentsView;
 	["EditBranchInput"]: {
 	/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string,
@@ -29510,8 +29536,18 @@ export type ResolverInputTypes = {
 	filter: ResolverInputTypes["JSON"],
 	limit?: number | undefined | null,
 	page?: number | undefined | null,
+	/** Типы документов — номера шаблонов */
+	registry_ids?: Array<number> | undefined | null,
+	/** Поиск по названию, тексту и подписантам */
+	search?: string | undefined | null,
+	/** Начало периода по дате подписи документа */
+	signed_from?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Конец периода по дате подписи документа */
+	signed_to?: ResolverInputTypes["DateTime"] | undefined | null,
 	type?: string | undefined | null,
-	username: string
+	username: string,
+	/** Вид выдачи: пакеты процессов (по умолчанию) либо каждый документ отдельно */
+	view?: ResolverInputTypes["DocumentsView"] | undefined | null
 };
 	["GetExpenseInput"]: {
 	/** Внутренний ID базы данных */
@@ -45521,8 +45557,14 @@ export type ModelTypes = {
 	links: Array<ModelTypes["DocumentAggregate"]>,
 	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
 	registry_hash?: string | undefined | null,
+	/** Роль документа в процессе: statement, decision, act, link, agreement */
+	role?: string | undefined | null,
+	/** Дата подписи документа — время блока, в котором документ попал в цепь */
+	signed_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Объект цифрового документа заявления с агрегатом */
-	statement?: ModelTypes["StatementDetailAggregate"] | undefined | null
+	statement?: ModelTypes["StatementDetailAggregate"] | undefined | null,
+	/** Название документа строки реестра по его типу — текущая редакция названия шаблона */
+	title?: string | undefined | null
 };
 	["DocumentReproducibilityAudit"]: {
 		/** Проверено в этом вызове */
@@ -45623,6 +45665,7 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["DocumentsView"]:DocumentsView;
 	["EditBranchInput"]: {
 	/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string,
@@ -48262,8 +48305,18 @@ export type ModelTypes = {
 	filter: ModelTypes["JSON"],
 	limit?: number | undefined | null,
 	page?: number | undefined | null,
+	/** Типы документов — номера шаблонов */
+	registry_ids?: Array<number> | undefined | null,
+	/** Поиск по названию, тексту и подписантам */
+	search?: string | undefined | null,
+	/** Начало периода по дате подписи документа */
+	signed_from?: ModelTypes["DateTime"] | undefined | null,
+	/** Конец периода по дате подписи документа */
+	signed_to?: ModelTypes["DateTime"] | undefined | null,
 	type?: string | undefined | null,
-	username: string
+	username: string,
+	/** Вид выдачи: пакеты процессов (по умолчанию) либо каждый документ отдельно */
+	view?: ModelTypes["DocumentsView"] | undefined | null
 };
 	["GetExpenseInput"]: {
 	/** Внутренний ID базы данных */
@@ -64836,8 +64889,14 @@ export type GraphQLTypes = {
 	links: Array<GraphQLTypes["DocumentAggregate"]>,
 	/** Ключ записи реестра документов — хэш подписанного заявления пакета. По нему открывается пакет, выданный пайщику без заявления: поставщику пакет заказа выдаётся только с его актом. */
 	registry_hash?: string | undefined | null,
+	/** Роль документа в процессе: statement, decision, act, link, agreement */
+	role?: string | undefined | null,
+	/** Дата подписи документа — время блока, в котором документ попал в цепь */
+	signed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Объект цифрового документа заявления с агрегатом */
 	statement?: GraphQLTypes["StatementDetailAggregate"] | undefined | null,
+	/** Название документа строки реестра по его типу — текущая редакция названия шаблона */
+	title?: string | undefined | null,
 	['...on DocumentPackageAggregate']: Omit<GraphQLTypes["DocumentPackageAggregate"], "...on DocumentPackageAggregate">
 };
 	["DocumentReproducibilityAudit"]: {
@@ -64952,6 +65011,8 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on DocumentsAggregatePaginationResult']: Omit<GraphQLTypes["DocumentsAggregatePaginationResult"], "...on DocumentsAggregatePaginationResult">
 };
+	/** Вид выдачи реестра документов: пакеты процессов либо каждый документ отдельно */
+["DocumentsView"]: DocumentsView;
 	["EditBranchInput"]: {
 		/** Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..) */
 	based_on: string,
@@ -67791,8 +67852,18 @@ export type GraphQLTypes = {
 	filter: GraphQLTypes["JSON"],
 	limit?: number | undefined | null,
 	page?: number | undefined | null,
+	/** Типы документов — номера шаблонов */
+	registry_ids?: Array<number> | undefined | null,
+	/** Поиск по названию, тексту и подписантам */
+	search?: string | undefined | null,
+	/** Начало периода по дате подписи документа */
+	signed_from?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Конец периода по дате подписи документа */
+	signed_to?: GraphQLTypes["DateTime"] | undefined | null,
 	type?: string | undefined | null,
-	username: string
+	username: string,
+	/** Вид выдачи: пакеты процессов (по умолчанию) либо каждый документ отдельно */
+	view?: GraphQLTypes["DocumentsView"] | undefined | null
 };
 	["GetExpenseInput"]: {
 		/** Внутренний ID базы данных */
@@ -79319,6 +79390,11 @@ export enum DocumentTemplateEdition {
 	Approved = "Approved",
 	Current = "Current"
 }
+/** Вид выдачи реестра документов: пакеты процессов либо каждый документ отдельно */
+export enum DocumentsView {
+	FLAT = "FLAT",
+	PACKAGE = "PACKAGE"
+}
 /** Носитель доступа к курсу (площадка или очный формат) */
 export enum EduAccessCarrier {
 	GETCOURSE = "GETCOURSE",
@@ -80625,6 +80701,7 @@ type ZEUS_VARIABLES = {
 	["DocumentKind"]: ValueTypes["DocumentKind"];
 	["DocumentReproducibilityAuditInput"]: ValueTypes["DocumentReproducibilityAuditInput"];
 	["DocumentTemplateEdition"]: ValueTypes["DocumentTemplateEdition"];
+	["DocumentsView"]: ValueTypes["DocumentsView"];
 	["EditBranchInput"]: ValueTypes["EditBranchInput"];
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];

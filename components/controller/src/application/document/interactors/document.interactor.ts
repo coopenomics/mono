@@ -1,4 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { DocumentsView } from '~/domain/document/enums/documents-view.enum';
+import { SignedDocumentRole } from '~/domain/document/enums/signed-document-role.enum';
+import { documentTitle } from '~/domain/document/services/document-title';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
@@ -35,6 +38,11 @@ export class DocumentInteractor {
     data: GetDocumentsInputDomainInterface
   ): Promise<PaginationResultDomainInterface<DocumentPackageAggregateDomainInterface>> {
     const { type, page = 1, limit = 100, query = {}, after_block, before_block, actions } = data;
+    // Плоский вид — каждый документ журнала; пакетный — строки заявлений.
+    const roles =
+      data.view === DocumentsView.FLAT
+        ? Object.values(SignedDocumentRole)
+        : [SignedDocumentRole.Statement];
 
     // Read-path из PG-реестра подписанных документов (C28-21): отдаём ГОТОВЫЙ агрегат,
     // собранный на этапе ingestion/backfill — без обращений к explorer/Mongo и без сборки на лету.
@@ -48,6 +56,11 @@ export class DocumentInteractor {
       package: this.extractPackageFilter(query),
       afterBlock: after_block,
       beforeBlock: before_block,
+      roles,
+      signedFrom: data.signed_from,
+      signedTo: data.signed_to,
+      registryIds: data.registry_ids,
+      query: data.search,
       page,
       limit,
     });
@@ -57,7 +70,16 @@ export class DocumentInteractor {
     const visible = username
       ? result.items.map((item, index) => packageVisibleTo(item, result.owners[index] ?? '', username))
       : result.items;
-    const items = visible.map((item, index) => ({ ...item, registry_hash: result.hashes?.[index] ?? null }));
+    const items = visible.map((item, index) => {
+      const row = result.rows[index];
+      return {
+        ...item,
+        registry_hash: result.hashes?.[index] ?? null,
+        title: documentTitle(row?.registry_id, row?.full_title),
+        signed_at: row?.signed_at ?? null,
+        role: row?.role ?? null,
+      };
+    });
 
     return {
       items,

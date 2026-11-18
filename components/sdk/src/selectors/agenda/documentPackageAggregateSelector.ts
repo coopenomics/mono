@@ -36,6 +36,9 @@ export const rawDocumentPackageAggregateSelector = {
   links: rawDocumentAggregateSelector,
   statement: rawStatementDetailAggregateSelector,
   registry_hash: true,
+  title: true,
+  signed_at: true,
+  role: true,
 }
 
 const _validate: MakeAllFieldsRequired<ValueTypes['DocumentPackageAggregate']> = rawDocumentPackageAggregateSelector

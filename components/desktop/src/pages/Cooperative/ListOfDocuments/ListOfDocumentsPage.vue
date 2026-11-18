@@ -14,7 +14,8 @@ q-page.documents-page(v-else)
     :username='coopname',
     :filter='{}',
     :showFilter='false',
-    :initialDocumentType='typeForToggle'
+    :initialDocumentType='typeForToggle',
+    journal
   )
 </template>
 
