@@ -1,61 +1,63 @@
 <template lang="pug">
-//- Зоны строки: опознание (документ, номер и срок) → состояние (бейдж) → действие.
-BaseCard(:title='$t("ku.trusteeDocuments.title")')
-  .t-sm.t-muted.q-px-md.q-pt-sm(v-if='documents && !documents.has_protocol')
-    | {{ $t('ku.trusteeDocuments.noProtocol') }}
-  .trustee-docs(v-if='documents')
-    //- Доверенность председателя участка
-    .trustee-docs__row(:class='{ "trustee-docs__row--clickable": !!authority?.document }', @click='openSigned(authority)')
-      q-icon.trustee-docs__icon(name='badge', size='22px')
-      .trustee-docs__identity
-        .trustee-docs__title {{ $t('ku.trusteeDocuments.authorityTitle') }}
-        .trustee-docs__meta(v-if='authority')
-          | {{ $t('ku.trusteeDocuments.authorityMeta', { number: authority.number, until: ruDate(authority.valid_until) }) }}
-        .trustee-docs__meta(v-else) {{ $t('ku.trusteeDocuments.authorityMissing') }}
-        .trustee-docs__note(v-if='activeAuthority')
-          q-icon(name='history', size='14px')
-          span {{ $t('ku.trusteeDocuments.activeMeanwhile', { number: activeAuthority.number, until: ruDate(activeAuthority.valid_until) }) }}
-        .trustee-docs__note(v-else-if='authority?.renewal_due && authority.status === "active"')
-          q-icon(name='schedule', size='14px')
-          span {{ $t('ku.trusteeDocuments.renewalDue') }}
-      BaseBadge(:variant='authorityBadge.variant') {{ authorityBadge.label }}
-      .trustee-docs__action
-        BaseButton(
-          v-if='documents.can_sign_authority',
-          variant='secondary',
-          size='sm',
-          :loading='flow.isSubmitting.value && preparing === "authority"',
-          @click.stop='prepare("authority")'
-        ) {{ authority ? $t('ku.trusteeDocuments.signNewAuthority') : $t('ku.trusteeDocuments.signAuthority') }}
+//- Один корневой узел: Vue применяет класс отступа со страницы к карточке.
+div
+  //- Зоны строки: опознание (документ, номер и срок) → состояние (бейдж) → действие.
+  BaseCard(:title='$t("ku.trusteeDocuments.title")')
+    .t-sm.t-muted.q-px-md.q-pt-sm(v-if='documents && !documents.has_protocol')
+      | {{ $t('ku.trusteeDocuments.noProtocol') }}
+    .trustee-docs(v-if='documents')
+      //- Доверенность председателя участка
+      .trustee-docs__row(:class='{ "trustee-docs__row--clickable": !!authority?.document }', @click='openSigned(authority)')
+        q-icon.trustee-docs__icon(name='badge', size='22px')
+        .trustee-docs__identity
+          .trustee-docs__title {{ $t('ku.trusteeDocuments.authorityTitle') }}
+          .trustee-docs__meta(v-if='authority')
+            | {{ $t('ku.trusteeDocuments.authorityMeta', { number: authority.number, until: ruDate(authority.valid_until) }) }}
+          .trustee-docs__meta(v-else) {{ $t('ku.trusteeDocuments.authorityMissing') }}
+          .trustee-docs__note(v-if='activeAuthority')
+            q-icon(name='history', size='14px')
+            span {{ $t('ku.trusteeDocuments.activeMeanwhile', { number: activeAuthority.number, until: ruDate(activeAuthority.valid_until) }) }}
+          .trustee-docs__note(v-else-if='authority?.renewal_due && authorityStatus === "active"')
+            q-icon(name='schedule', size='14px')
+            span {{ $t('ku.trusteeDocuments.renewalDue') }}
+        BaseBadge(:variant='authorityBadge.variant') {{ authorityBadge.label }}
+        .trustee-docs__action
+          BaseButton(
+            v-if='documents.can_sign_authority',
+            variant='secondary',
+            size='sm',
+            :loading='flow.isSubmitting.value && preparing === "authority"',
+            @click.stop='prepare("authority")'
+          ) {{ authority ? $t('ku.trusteeDocuments.signNewAuthority') : $t('ku.trusteeDocuments.signAuthority') }}
 
-    //- Договор о полной материальной ответственности
-    .trustee-docs__row
-      q-icon.trustee-docs__icon(name='gavel', size='22px')
-      .trustee-docs__identity
-        .trustee-docs__title {{ $t('ku.trusteeDocuments.liabilityTitle') }}
-        .trustee-docs__meta {{ $t('ku.trusteeDocuments.liabilityMeta') }}
-      BaseBadge(:variant='liabilityBadge.variant') {{ liabilityBadge.label }}
-      .trustee-docs__action
-        BaseButton(
-          v-if='canSignLiability',
-          variant='secondary',
-          size='sm',
-          :loading='flow.isSubmitting.value && preparing === "liability"',
-          @click='prepare("liability")'
-        ) {{ $t('ku.trusteeDocuments.signLiability') }}
-  TableSkeleton(v-else, :columns='skeletonColumns', :rows='2')
+      //- Договор о полной материальной ответственности
+      .trustee-docs__row
+        q-icon.trustee-docs__icon(name='gavel', size='22px')
+        .trustee-docs__identity
+          .trustee-docs__title {{ $t('ku.trusteeDocuments.liabilityTitle') }}
+          .trustee-docs__meta {{ $t('ku.trusteeDocuments.liabilityMeta') }}
+        BaseBadge(:variant='liabilityBadge.variant') {{ liabilityBadge.label }}
+        .trustee-docs__action
+          BaseButton(
+            v-if='canSignLiability',
+            variant='secondary',
+            size='sm',
+            :loading='flow.isSubmitting.value && preparing === "liability"',
+            @click='prepare("liability")'
+          ) {{ $t('ku.trusteeDocuments.signLiability') }}
+    TableSkeleton(v-else, :columns='skeletonColumns', :rows='2')
 
-//- Предпросмотр документа с подставленными данными перед подписью
-BaseDialog(v-model='previewOpen', :title='previewTitle', size='lg')
-  .t-sm.t-muted.q-mb-md {{ $t('ku.trusteeDocuments.previewNotice') }}
-  BaseDocument(v-if='previewAggregate', :document-aggregate='previewAggregate')
-  template(#footer)
-    BaseButton(variant='ghost', @click='previewOpen = false') {{ $t('common.action.cancel') }}
-    BaseButton(variant='primary', :loading='flow.isSubmitting.value', @click='sign') {{ $t('ku.trusteeDocuments.sign') }}
+  //- Предпросмотр документа с подставленными данными перед подписью
+  BaseDialog(v-model='previewOpen', :title='previewTitle', size='lg')
+    .t-sm.t-muted.q-mb-md {{ $t('ku.trusteeDocuments.previewNotice') }}
+    BaseDocument(v-if='previewAggregate', :document-aggregate='previewAggregate')
+    template(#footer)
+      BaseButton(variant='ghost', @click='previewOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', :loading='flow.isSubmitting.value', @click='sign') {{ $t('ku.trusteeDocuments.sign') }}
 
-//- Подписанная доверенность
-BaseDialog(v-model='signedOpen', :title='$t("ku.trusteeDocuments.authorityTitle")', size='lg')
-  BaseDocument(v-if='signedAggregate', :document-aggregate='signedAggregate')
+  //- Подписанная доверенность
+  BaseDialog(v-model='signedOpen', :title='$t("ku.trusteeDocuments.authorityTitle")', size='lg')
+    BaseDocument(v-if='signedAggregate', :document-aggregate='signedAggregate')
 </template>
 
 <script setup lang="ts">
@@ -77,6 +79,10 @@ const documents = flow.documents;
 const skeletonColumns: TableSkeletonColumn[] = [{ label: '' }, { label: '' }, { label: '' }];
 
 const authority = computed(() => documents.value?.authority ?? null);
+
+// GraphQL отдаёт значения перечислений именами (ACTIVE, NONE) — сравниваем в нижнем регистре.
+const authorityStatus = computed(() => String(authority.value?.status ?? '').toLowerCase());
+const liabilityStatus = computed(() => String(documents.value?.liability_status ?? 'none').toLowerCase());
 const activeAuthority = computed(() => documents.value?.active_authority ?? null);
 
 /** ГГГГ-ММ-ДД → ДД.ММ.ГГГГ — общий формат дат стола. */
@@ -93,7 +99,7 @@ const AUTHORITY_BADGES: Record<string, { label: string; variant: BaseBadgeVarian
 };
 
 const authorityBadge = computed(
-  () => AUTHORITY_BADGES[authority.value?.status ?? ''] ?? { label: t('ku.trusteeDocuments.status.none'), variant: 'neutral' as BaseBadgeVariant },
+  () => AUTHORITY_BADGES[authorityStatus.value] ?? { label: t('ku.trusteeDocuments.status.none'), variant: 'neutral' as BaseBadgeVariant },
 );
 
 const LIABILITY_BADGES: Record<string, { label: string; variant: BaseBadgeVariant }> = {
@@ -103,8 +109,8 @@ const LIABILITY_BADGES: Record<string, { label: string; variant: BaseBadgeVarian
   none: { label: t('ku.trusteeDocuments.liabilityStatus.none'), variant: 'neutral' },
 };
 
-const liabilityBadge = computed(() => LIABILITY_BADGES[documents.value?.liability_status ?? 'none']);
-const canSignLiability = computed(() => ['none', 'declined'].includes(documents.value?.liability_status ?? ''));
+const liabilityBadge = computed(() => LIABILITY_BADGES[liabilityStatus.value] ?? LIABILITY_BADGES.none);
+const canSignLiability = computed(() => ['none', 'declined'].includes(liabilityStatus.value));
 
 // ── Подпись ────────────────────────────────────────────────────────────────
 type Kind = 'authority' | 'liability';

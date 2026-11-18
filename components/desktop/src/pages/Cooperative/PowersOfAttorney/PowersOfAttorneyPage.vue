@@ -26,7 +26,7 @@ q-page.poa-page
     template(#cell-term='{ row }')
       | {{ ruDate(row.issued_at) }} — {{ ruDate(row.valid_until) }}
     template(#cell-status='{ row }')
-      BaseBadge(:variant='STATUS_VIEW[row.status].variant') {{ STATUS_VIEW[row.status].label }}
+      BaseBadge(:variant='statusView(row.status).variant') {{ statusView(row.status).label }}
 
   EmptyState(v-else, :title='$t("cooperative.powersOfAttorney.emptyTitle")', :body='$t("cooperative.powersOfAttorney.emptyBody")')
     template(#icon)
@@ -49,7 +49,7 @@ q-page.poa-page
   )
     template(v-if='selected')
       .poa-page__drawer-head
-        BaseBadge(:variant='STATUS_VIEW[selected.status].variant') {{ STATUS_VIEW[selected.status].label }}
+        BaseBadge(:variant='statusView(selected.status).variant') {{ statusView(selected.status).label }}
       DataRow(:label='$t("cooperative.powersOfAttorney.column.type")', :value='typeLabel(selected.type)', align='spread')
       DataRow(:label='$t("cooperative.powersOfAttorney.column.holder")', :value='selected.holder_name', align='spread')
       DataRow(:label='$t("cooperative.powersOfAttorney.column.branch")', :value='selected.braname', align='spread')
@@ -101,8 +101,13 @@ const columns = computed<BaseTableColumn<IPowerOfAttorney>[]>(() => [
   { key: 'status', label: t('cooperative.powersOfAttorney.column.status'), width: '220px', nowrap: true },
 ]);
 
+// GraphQL отдаёт значения перечислений именами (ACTIVE, BRANCH_TRUSTED) — сравниваем в нижнем регистре.
+function statusView(status: string): { label: string; variant: BaseBadgeVariant } {
+  return STATUS_VIEW[String(status).toLowerCase()] ?? STATUS_VIEW.pending;
+}
+
 function typeLabel(type: string): string {
-  return type === 'branch_trusted' ? t('cooperative.powersOfAttorney.type.trusted') : t('cooperative.powersOfAttorney.type.trustee');
+  return String(type).toLowerCase() === 'branch_trusted' ? t('cooperative.powersOfAttorney.type.trusted') : t('cooperative.powersOfAttorney.type.trustee');
 }
 
 /** ГГГГ-ММ-ДД → ДД.ММ.ГГГГ — общий формат дат стола. */
