@@ -384,7 +384,7 @@ q-page.admin-pvz
         v-if='selected.details?.geocodeStatus === GeocodeStatus.FAILED && selected.details.geocodeErrorMessage'
       ) {{ selected.details.geocodeErrorMessage }}
       .admin-pvz__map(v-if='hasCoords(selected)')
-        MapView(:long='Number(selected.details!.lng)', :lat='Number(selected.details!.lat)')
+        MapView(:long='Number(selected.details?.lng)', :lat='Number(selected.details?.lat)')
       DataRow(:label='$t("marketplace.issuancePoints.column.city")', :value='selected.branch.city || "—"', align='spread')
       DataRow(:label='$t("marketplace.issuancePoints.column.address")', :value='addressOf(selected)', align='vertical')
       DataRow(
