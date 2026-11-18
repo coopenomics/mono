@@ -13,6 +13,7 @@
 import { DomainError } from '@coopenomics/extension-kit';
 import {
   daysLeft,
+  documentDateIso,
   isoFromRuDate,
   powerOfAttorneyStatus,
   renewalDue,
@@ -52,6 +53,13 @@ describe('доверенность: срок и состояние', () => {
     expect(isoFromRuDate('18.11.2026 13:33')).toBe('2026-11-18');
     expect(isoFromRuDate('мусор')).toBeNull();
   });
+
+  it('дата протокола из меты документа — и в ISO, и «ДД.ММ.ГГГГ», по часовому поясу документа', () => {
+    expect(documentDateIso('2026-11-18T15:02:00.907Z', 'Europe/Moscow')).toBe('2026-11-18');
+    expect(documentDateIso('2026-11-18T22:30:00.000Z', 'Europe/Moscow')).toBe('2026-11-19');
+    expect(documentDateIso('18.11.2026 13:33')).toBe('2026-11-18');
+    expect(documentDateIso('мусор')).toBeNull();
+  });
 });
 
 function makeService(opts: { establishment?: unknown; trustee?: string; holderRows?: unknown[]; liabilityStatuses?: string[] } = {}) {
@@ -77,7 +85,8 @@ const ESTABLISHMENT = {
   braname: 'romashka',
   branch_name: 'РОМАШКА',
   address: 'г. Красногорск',
-  authorization: { meta: JSON.stringify({ decision_id: 12, created_at: '18.11.2026 13:33' }) },
+  // Документы фабрики v2 пишут дату в ISO — так выглядит протокол совета на стенде.
+  authorization: { meta: JSON.stringify({ decision_id: 12, created_at: '2026-11-18T10:33:00.000Z', timezone: 'Europe/Moscow' }) },
 };
 
 describe('доверенность председателя участка: реквизиты узла', () => {

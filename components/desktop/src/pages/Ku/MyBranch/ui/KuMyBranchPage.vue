@@ -2,15 +2,16 @@
 .q-pa-md
   TableSkeleton(v-if='loading', :columns='skeletonColumns', :rows='3')
   template(v-else-if='myBraname')
-    //- Доверенность и договор председателя участка — после решения совета об учреждении
-    KuTrusteeDocumentsCard.q-mb-md(
+    //- страница моего участка — тот же виджет, что и у страницы участка из списка
+    KuBranchDetailsWidget(:braname='myBraname')
+    //- Доверенность и договор председателя участка — после решения совета об учреждении.
+    //- Видит только сам председатель участка; узел отдаёт их ему и совету.
+    KuTrusteeDocumentsCard.q-mt-md(
       v-if='myBranch && isTrustee',
       ref='trusteeCard',
       :braname='myBraname',
       :branch-name='myBranchName'
     )
-    //- страница моего участка — тот же виджет, что и у страницы участка из списка
-    KuBranchDetailsWidget(:braname='myBraname')
   EmptyState(
     v-else,
     :title='$t("ku.kuMyBranchPage.emptyTitle")',

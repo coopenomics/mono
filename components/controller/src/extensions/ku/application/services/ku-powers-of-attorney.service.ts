@@ -32,6 +32,7 @@ import {
 import {
   POWER_OF_ATTORNEY_TYPES,
   daysLeft,
+  documentDateIso,
   isoFromRuDate,
   powerOfAttorneyStatus,
   renewalDue,
@@ -140,7 +141,7 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
     const establishment = await this.repository.findEstablishment(coopname, braname);
     const meta = metaOf(establishment?.authorization as ChainDocument | undefined);
     const number = meta.decision_id != null ? String(meta.decision_id) : '';
-    const dateIso = isoFromRuDate(meta.created_at);
+    const dateIso = documentDateIso(meta.created_at, typeof meta.timezone === 'string' ? meta.timezone : undefined);
     if (!establishment || !number || !dateIso) {
       throw DomainError.badRequest('KU_ESTABLISHMENT_PROTOCOL_NOT_FOUND');
     }

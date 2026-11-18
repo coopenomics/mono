@@ -24,7 +24,7 @@ div
         .trustee-docs__action
           BaseButton(
             v-if='documents.can_sign_authority',
-            variant='secondary',
+            variant='primary',
             size='sm',
             :loading='flow.isSubmitting.value && preparing === "authority"',
             @click.stop='prepare("authority")'
@@ -40,7 +40,7 @@ div
         .trustee-docs__action
           BaseButton(
             v-if='canSignLiability',
-            variant='secondary',
+            variant='primary',
             size='sm',
             :loading='flow.isSubmitting.value && preparing === "liability"',
             @click='prepare("liability")'

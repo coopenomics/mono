@@ -76,6 +76,19 @@ export function isoFromRuDate(value: unknown): string | null {
   return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
 }
 
+/**
+ * Дата документа → YYYY-MM-DD. Мета документа хранит `created_at` либо в ISO
+ * (документы фабрики v2: «2026-11-18T15:02:00.907Z»), либо «ДД.ММ.ГГГГ ЧЧ:ММ».
+ * ISO переводится в календарную дату по часовому поясу документа.
+ */
+export function documentDateIso(value: unknown, timeZone = 'Europe/Moscow'): string | null {
+  const ru = isoFromRuDate(value);
+  if (ru) return ru;
+  const parsed = new Date(String(value ?? ''));
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(parsed);
+}
+
 /** Состояние на дату: встречно подписанная доверенность после конца срока — истёкшая. */
 export function powerOfAttorneyStatus(
   row: Pick<PowerOfAttorneyRow, 'status' | 'valid_until'>,
