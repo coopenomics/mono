@@ -117,6 +117,12 @@ export class KuTrusteeDocumentsDTO {
   @Field(() => KuTrusteeLiabilityStatus, { description: 'Договор о полной материальной ответственности' })
   liability_status!: KuTrusteeLiabilityStatus;
 
+  @Field(() => DocumentAggregateDTO, {
+    nullable: true,
+    description: 'Документ договора о полной материальной ответственности с подписями',
+  })
+  liability?: DocumentAggregateDTO | null;
+
   @Field(() => Boolean, { description: 'Решение совета об учреждении участка найдено — доверенность можно выдать' })
   has_protocol!: boolean;
 }

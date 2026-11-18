@@ -253,13 +253,19 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
       active_authority: active && active !== latest ? await this.toDTO(active) : null,
       can_sign_authority: canSign,
       liability_status: (await this.trusteeLiabilityStatus(coopname, braname, username)) as KuTrusteeLiabilityStatus,
+      liability: await this.aggregateOf(await this.repository.liabilityDocument(coopname, braname, username)),
       has_protocol: hasProtocol,
     };
   }
 
+  /** Подписанный документ → агрегат с текстом для показа; без документа — null. */
+  private async aggregateOf(signed: Record<string, unknown> | null): Promise<DocumentAggregateDTO | null> {
+    if (!signed) return null;
+    const aggregate = await this.documentPort.buildAggregate(signed as unknown as ISignedDocument).catch(() => null);
+    return aggregate ? new DocumentAggregateDTO(aggregate) : null;
+  }
+
   private async toDTO(row: PowerOfAttorneyRow): Promise<KuPowerOfAttorneyDTO> {
-    const signed = (row.countersigned ?? row.document) as unknown as ISignedDocument;
-    const aggregate = await this.documentPort.buildAggregate(signed).catch(() => null);
     return {
       number: row.number,
       type: row.type as KuPowerOfAttorneyType,
@@ -274,7 +280,7 @@ export class KuPowersOfAttorneyService implements IPowersOfAttorneyPort {
       renewal_due: renewalDue(row),
       signed_at: row.signed_at,
       resolved_at: row.resolved_at,
-      document: aggregate ? new DocumentAggregateDTO(aggregate) : null,
+      document: await this.aggregateOf(row.countersigned ?? row.document),
     };
   }
 

@@ -191,6 +191,24 @@ export class KuPowerOfAttorneyKyselyRepository {
     return rows.map((r) => String(r.status));
   }
 
+  /**
+   * Договор для показа: подписанный обеими сторонами, а без него — последний
+   * (на подписи или отклонённый). Документ — со встречной подписью, если она есть.
+   */
+  async liabilityDocument(coopname: string, braname: string, holder: string): Promise<Record<string, unknown> | null> {
+    const row = await this.db
+      .selectFrom(LIABILITIES)
+      .select(['document', 'countersigned'])
+      .where('coopname', '=', coopname)
+      .where('braname', '=', braname)
+      .where('holder', '=', holder)
+      .orderBy(sql`case when status = 'approved' then 0 else 1 end`)
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+    if (!row) return null;
+    return parseJson(row.countersigned) ?? parseJson(row.document);
+  }
+
   /** Решение совета об учреждении участка: название, адрес и документ протокола. */
   async findEstablishment(coopname: string, braname: string): Promise<BranchEstablishment | null> {
     const row = await this.db

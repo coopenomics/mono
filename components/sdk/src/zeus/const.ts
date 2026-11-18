@@ -7445,6 +7445,7 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		can_sign_authority:"Boolean",
 		has_protocol:"Boolean",
+		liability:"DocumentAggregate",
 		liability_status:"KuTrusteeLiabilityStatus"
 	},
 	Ledger2Account:{

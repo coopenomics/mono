@@ -7,7 +7,10 @@ div
       | {{ $t('ku.trusteeDocuments.noProtocol') }}
     .trustee-docs(v-if='documents')
       //- Доверенность председателя участка
-      .trustee-docs__row(:class='{ "trustee-docs__row--clickable": !!authority?.document }', @click='openSigned(authority)')
+      .trustee-docs__row(
+        :class='{ "trustee-docs__row--clickable": !!authority?.document }',
+        @click='openSigned(authority?.document, $t("ku.trusteeDocuments.authorityTitle"))'
+      )
         q-icon.trustee-docs__icon(name='badge', size='22px')
         .trustee-docs__identity
           .trustee-docs__title {{ $t('ku.trusteeDocuments.authorityTitle') }}
@@ -31,7 +34,10 @@ div
           ) {{ authority ? $t('ku.trusteeDocuments.signNewAuthority') : $t('ku.trusteeDocuments.signAuthority') }}
 
       //- Договор о полной материальной ответственности
-      .trustee-docs__row
+      .trustee-docs__row(
+        :class='{ "trustee-docs__row--clickable": !!documents.liability }',
+        @click='openSigned(documents.liability, $t("ku.trusteeDocuments.liabilityTitle"))'
+      )
         q-icon.trustee-docs__icon(name='gavel', size='22px')
         .trustee-docs__identity
           .trustee-docs__title {{ $t('ku.trusteeDocuments.liabilityTitle') }}
@@ -43,7 +49,7 @@ div
             variant='primary',
             size='sm',
             :loading='flow.isSubmitting.value && preparing === "liability"',
-            @click='prepare("liability")'
+            @click.stop='prepare("liability")'
           ) {{ $t('ku.trusteeDocuments.signLiability') }}
     TableSkeleton(v-else, :columns='skeletonColumns', :rows='2')
 
@@ -55,8 +61,8 @@ div
       BaseButton(variant='ghost', @click='previewOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', :loading='flow.isSubmitting.value', @click='sign') {{ $t('ku.trusteeDocuments.sign') }}
 
-  //- Подписанная доверенность
-  BaseDialog(v-model='signedOpen', :title='$t("ku.trusteeDocuments.authorityTitle")', size='lg')
+  //- Подписанный документ: доверенность или договор — открываются одинаково
+  BaseDialog(v-model='signedOpen', :title='signedTitle', size='lg')
     BaseDocument(v-if='signedAggregate', :document-aggregate='signedAggregate')
 </template>
 
@@ -69,7 +75,7 @@ import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import type { IGeneratedDocument } from 'src/shared/lib/document';
 import { t } from 'src/shared/i18n';
-import { useKuTrusteeDocuments, type IKuPowerOfAttorney } from '../model';
+import { useKuTrusteeDocuments } from '../model';
 
 const props = defineProps<{ braname: string; branchName: string }>();
 
@@ -153,13 +159,15 @@ async function sign() {
   }
 }
 
-// ── Просмотр подписанной доверенности ─────────────────────────────────────
+// ── Просмотр подписанного документа: доверенность и договор — одинаково ──
 const signedOpen = ref(false);
 const signedAggregate = ref<IDocumentAggregate | null>(null);
+const signedTitle = ref('');
 
-function openSigned(item: IKuPowerOfAttorney | null) {
-  if (!item?.document) return;
-  signedAggregate.value = item.document as unknown as IDocumentAggregate;
+function openSigned(document: unknown, title: string) {
+  if (!document) return;
+  signedAggregate.value = document as IDocumentAggregate;
+  signedTitle.value = title;
   signedOpen.value = true;
 }
 

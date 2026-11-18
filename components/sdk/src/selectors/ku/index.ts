@@ -154,6 +154,7 @@ export const rawKuTrusteeDocumentsSelector = {
   active_authority: rawKuPowerOfAttorneySelector,
   can_sign_authority: true,
   liability_status: true,
+  liability: rawDocumentAggregateSelector,
   has_protocol: true,
 }
 

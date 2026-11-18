@@ -10910,6 +10910,8 @@ export type ValueTypes = {
 	can_sign_authority?:boolean | `@${string}`,
 	/** Решение совета об учреждении участка найдено — доверенность можно выдать */
 	has_protocol?:boolean | `@${string}`,
+	/** Документ договора о полной материальной ответственности с подписями */
+	liability?:ValueTypes["DocumentAggregate"],
 	/** Договор о полной материальной ответственности */
 	liability_status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -30460,6 +30462,8 @@ export type ResolverInputTypes = {
 	can_sign_authority?:boolean | `@${string}`,
 	/** Решение совета об учреждении участка найдено — доверенность можно выдать */
 	has_protocol?:boolean | `@${string}`,
+	/** Документ договора о полной материальной ответственности с подписями */
+	liability?:ResolverInputTypes["DocumentAggregate"],
 	/** Договор о полной материальной ответственности */
 	liability_status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -49359,6 +49363,8 @@ export type ModelTypes = {
 	can_sign_authority: boolean,
 	/** Решение совета об учреждении участка найдено — доверенность можно выдать */
 	has_protocol: boolean,
+	/** Документ договора о полной материальной ответственности с подписями */
+	liability?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Договор о полной материальной ответственности */
 	liability_status: ModelTypes["KuTrusteeLiabilityStatus"]
 };
@@ -69100,6 +69106,8 @@ export type GraphQLTypes = {
 	can_sign_authority: boolean,
 	/** Решение совета об учреждении участка найдено — доверенность можно выдать */
 	has_protocol: boolean,
+	/** Документ договора о полной материальной ответственности с подписями */
+	liability?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Договор о полной материальной ответственности */
 	liability_status: GraphQLTypes["KuTrusteeLiabilityStatus"],
 	['...on KuTrusteeDocuments']: Omit<GraphQLTypes["KuTrusteeDocuments"], "...on KuTrusteeDocuments">
