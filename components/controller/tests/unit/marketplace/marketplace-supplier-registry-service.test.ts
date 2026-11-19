@@ -120,13 +120,18 @@ describe('MarketplaceSupplierRegistryService: приостановка и акк
     return { service, repo };
   }
 
-  it('действующего поставщика приостанавливают — допуска нет; возобновляют — допуск возвращается', async () => {
+  it('действующего поставщика приостанавливают — стол остаётся для взятых заказов, новые отклоняются; возобновляют — снова одобрен', async () => {
     const active = withRow(MarketplaceSupplierStatus.APPROVED);
     expect((await active.service.suspend('voskhod', 'alice', 'chairman')).status).toBe(MarketplaceSupplierStatus.SUSPENDED);
     expect(active.repo.patch).toHaveBeenCalledWith('voskhod', 'alice', expect.objectContaining({ status: MarketplaceSupplierStatus.SUSPENDED }));
 
     const paused = withRow(MarketplaceSupplierStatus.SUSPENDED);
-    await expect(paused.service.isOfferer('voskhod', 'alice')).resolves.toBe(false);
+    // Стол поставщика открыт: взятые заказы он доводит до конца.
+    await expect(paused.service.isOfferer('voskhod', 'alice')).resolves.toBe(true);
+    // Новые предложения и заказы на него — отказ с кодом вызывающего.
+    await expect(paused.service.assertNotSuspended('voskhod', 'alice', 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED' });
+    await expect(active.service.assertNotSuspended('voskhod', 'alice', 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED')).resolves.toBeUndefined();
     expect((await paused.service.resume('voskhod', 'alice', 'chairman')).status).toBe(MarketplaceSupplierStatus.APPROVED);
   });
 

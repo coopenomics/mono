@@ -1,4 +1,5 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Optional } from '@nestjs/common';
+import { MARKETPLACE_SUPPLIER_REGISTRY_SERVICE, type MarketplaceSupplierRegistryService } from './marketplace-supplier-registry.service';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -135,11 +136,21 @@ export class MarketplaceOfferService {
     private readonly imagesService: MarketplaceOfferImagesService,
     private readonly eventBus: EventEmitter2,
     @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
-    private readonly supplierSettings: MarketplaceSupplierSettingsService
+    private readonly supplierSettings: MarketplaceSupplierSettingsService,
+    // Приостановленный поставщик новых предложений не публикует.
+    @Optional()
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService | null = null
   ) {}
 
-  async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
+  /** Проверки до публикации: поля предложения и действующий договор поставщика. */
+  private async assertCanCreate(input: OfferCreateRequest): Promise<void> {
     this.validateCreateInput(input);
+    await this.supplierRegistry?.assertNotSuspended(input.coopname, input.supplier_account, 'MARKETPLACE_SUPPLIER_REGISTRY_SUSPENDED');
+  }
+
+  async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
+    await this.assertCanCreate(input);
     // Гейт публикации: без реквизитов для выплат предложение не публикуется —
     // выплата по будущему акту приёмки не должна рождаться «в никуда».
     // Публикация остатка кооперативом идёт мимо этого сервиса (offerRepo
@@ -376,6 +387,7 @@ export class MarketplaceOfferService {
     if (offer.supplier_account !== supplier_account) {
       throw DomainError.forbidden('MARKETPLACE_OFFER_EDIT_FORBIDDEN_NOT_OWNER');
     }
+    await this.supplierRegistry?.assertNotSuspended(offer.coopname, supplier_account, 'MARKETPLACE_SUPPLIER_REGISTRY_SUSPENDED');
     if (offer.status !== MarketplaceOfferStatuses.WITHDRAWN) {
       throw DomainError.forbidden('MARKETPLACE_OFFER_REPUBLISH_WRONG_STATUS');
     }

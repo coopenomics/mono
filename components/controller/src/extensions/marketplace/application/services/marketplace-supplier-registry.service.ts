@@ -31,7 +31,7 @@ interface IIsOffererCacheEntry {
  * Реестр поставщиков «Стола заказов» — источник `context.isOfferer` для
  * `mapCoreRolesToMarketplaceRoles` и состояние онбординга поставщика.
  *
- * Допуск к публикации поставок: запись со `status=APPROVED` ЛИБО сам
+ * Допуск к столу поставщика: запись со `status=APPROVED` или `SUSPENDED` ЛИБО сам
  * кооператив (`member === coopname`, перепоставка остатков FR5 — отдельной
  * записи не требует). Концепция whitelist (открытая витрина / по списку)
  * упразднена: больше нет режима «offerer для всех».
@@ -88,7 +88,12 @@ export class MarketplaceSupplierRegistryService {
     if (cached && cached.expires_at > now) return cached.result;
 
     const entry = await this.repo.findByMember(coopname, member_account);
-    const result = entry !== null && entry.status === MarketplaceSupplierStatus.APPROVED;
+    // Приостановленный поставщик сохраняет стол: взятые заказы он доводит до
+    // конца (решение владельца 19.11.2026). Новые предложения и новые заказы
+    // на него закрывает assertNotSuspended.
+    const result =
+      entry !== null &&
+      (entry.status === MarketplaceSupplierStatus.APPROVED || entry.status === MarketplaceSupplierStatus.SUSPENDED);
 
     this.isOffererCache.set(cacheKey, {
       result,
@@ -260,11 +265,21 @@ export class MarketplaceSupplierRegistryService {
   }
 
   /**
+   * Действие договора поставщика приостановлено: новые предложения и новые
+   * заказы на него узел отклоняет с кодом `code`. Взятые заказы идут своим путём.
+   */
+  async assertNotSuspended(coopname: string, supplier_account: string, code: string): Promise<void> {
+    const entry = await this.repo.findByMember(coopname, supplier_account);
+    if (entry?.status === MarketplaceSupplierStatus.SUSPENDED) throw DomainError.conflict(code);
+  }
+
+  /**
    * Приостановка действия договора поставщика председателем (решение
-   * владельца 19.11.2026). Допуск к работе поставщика снимается сразу:
-   * `isOfferer` отвечает «нет», стол поставщика и публикация предложений
-   * закрыты. Запись и реквизиты договора сохраняются. Приостановить можно
-   * только действующего поставщика.
+   * владельца 19.11.2026). Каталог сразу перестаёт показывать предложения
+   * поставщика, новые предложения и новые заказы на него узел отклоняет.
+   * Стол поставщика остаётся открыт: взятые заказы он доводит до конца.
+   * Запись и реквизиты договора сохраняются. Приостановить можно только
+   * действующего поставщика.
    */
   async suspend(coopname: string, member_account: string, reviewed_by: string): Promise<MarketplaceSupplierDomainEntity> {
     const existing = await this.repo.findByMember(coopname, member_account);

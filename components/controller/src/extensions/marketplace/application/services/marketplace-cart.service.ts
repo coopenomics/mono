@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { MARKETPLACE_SUPPLIER_REGISTRY_SERVICE, type MarketplaceSupplierRegistryService } from './marketplace-supplier-registry.service';
 import {
   MARKETPLACE_CART_REPOSITORY,
   type MarketplaceCartDomainRepository,
@@ -49,7 +50,11 @@ export class MarketplaceCartService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     private readonly imagesService: MarketplaceOfferImagesService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
-    private readonly assetConfig: MarketplaceAssetConfig
+    private readonly assetConfig: MarketplaceAssetConfig,
+    // Предложение приостановленного поставщика в корзину не кладётся.
+    @Optional()
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService | null = null
   ) {}
 
   async getCart(scope: CartScope): Promise<MarketplaceCartDTO> {
@@ -127,6 +132,7 @@ export class MarketplaceCartService {
     if (offer.coopname !== coopname) {
       throw DomainError.forbidden('MARKETPLACE_OFFER_FOREIGN_COOP');
     }
+    await this.supplierRegistry?.assertNotSuspended(coopname, offer.supplier_account, 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED');
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw DomainError.badRequest('MARKETPLACE_CART_OFFER_NOT_ACTIVE', { status: offer.status });
     }
