@@ -19,7 +19,7 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
         q-icon(:name="result.fully_completed ? 'check' : 'priority_high'", size="26px")
       .order-confirm__head-text
         .order-confirm__title {{ result.fully_completed ? $t('marketplace.orderConfirmationPage.successTitle') : $t('marketplace.orderConfirmationPage.partialTitle') }}
-        .order-confirm__meta(v-if="orders.length") {{ $t('marketplace.orderConfirmationPage.summary', { count: orders.length, amount: formatOrderPrice(total), point: pickupName }) }}
+        .order-confirm__meta(v-if="orders.length") {{ $t('marketplace.orderConfirmationPage.summary', { count: orders.length, point: pickupName }) }}
       .order-confirm__head-actions
         BaseButton(variant="secondary", @click="goToCatalog") {{ $t('marketplace.orderConfirmationPage.catalogLink') }}
         BaseButton(variant="primary", @click="goToOrders") {{ $t('marketplace.orderConfirmationPage.myOrdersLink') }}
@@ -35,7 +35,9 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
         BaseButton(variant="secondary", size="sm", :loading="cartStore.checkingOut", @click="onRetry") {{ $t('marketplace.orderConfirmationPage.retryRemainder') }}
 
     .order-confirm__grid(v-if="orders.length")
-      //- Состав заказа: обложка, имущество, количество, сумма; строка открывает заказ.
+      //- Состав заказа: обложка, имущество, количество и стоимость имущества;
+      //- строка открывает заказ. Под строками — из чего складывается сумма,
+      //- как в корзине: стоимость имущества, обеспечительная часть, итого.
       BaseCard.order-confirm__items(:title="$t('marketplace.orderConfirmationPage.itemsTitle')")
         .order-confirm__item(
           v-for="o in items",
@@ -51,10 +53,19 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
           .order-confirm__item-body
             .order-confirm__item-name {{ o.title }}
             .order-confirm__item-meta {{ o.qtyLabel }}
-          .order-confirm__item-sum {{ formatOrderPrice(o.totalCost) }}
+          .order-confirm__item-sum {{ formatOrderPrice(o.cost) }}
+        .order-confirm__lines
+          .order-confirm__line
+            span {{ $t('marketplace.cart.costLabel') }}
+            span.order-confirm__line-sum {{ formatOrderPrice(costTotal) }}
+          .order-confirm__line(v-if="feeTotal > 0")
+            span
+              | {{ $t('marketplace.cart.feeLabel') }}
+              .order-confirm__line-note(v-if="feePercent > 0") {{ $t('marketplace.cart.feeNote', { percent: feePercent }) }}
+            span.order-confirm__line-sum {{ formatOrderPrice(feeTotal) }}
         .order-confirm__total
           span {{ $t('marketplace.orderConfirmationPage.totalLabel') }}
-          span.order-confirm__total-sum {{ formatOrderPrice(total) }}
+          span.order-confirm__total-sum {{ formatOrderPrice(costTotal + feeTotal) }}
 
       .order-confirm__side
         BaseCard(:title="$t('marketplace.orderConfirmationPage.pickupTitle')")
@@ -74,7 +85,7 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
@@ -83,7 +94,7 @@ import { VerticalStepper } from 'src/shared/ui/domain';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { toOrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { formatWorkingHours, useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { formatOrderPrice } from 'src/shared/lib/marketplace';
+import { formatOrderPrice, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { t } from 'src/shared/i18n';
 
 /**
@@ -103,10 +114,27 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 const result = computed(() => cartStore.lastCheckout);
 
 const orders = computed(() => result.value?.created_orders ?? []);
-// Строки состава — та же модель, что у карточки заказа: название, обложка,
-// количество в единицах отпуска и сумма для заказчика.
-const items = computed(() => orders.value.map((o) => toOrderCardModel(o)));
-const total = computed(() => items.value.reduce((sum, o) => sum + o.totalCost, 0));
+// Строки состава: название, обложка и количество — из модели карточки заказа;
+// стоимость имущества и обеспечительная часть — суммы заказа, как их записал
+// узел (замечание владельца 19.11.2026: части показываются раздельно, как в
+// корзине). Стол суммы не пересчитывает, только складывает по заказам.
+const items = computed(() =>
+  orders.value.map((o) => {
+    const card = toOrderCardModel(o);
+    return {
+      id: card.id,
+      title: card.title,
+      imageUrl: card.imageUrl,
+      qtyLabel: card.qtyLabel,
+      cost: Number(o.total_cost),
+      fee: Number(o.membership_fee ?? 0),
+    };
+  }),
+);
+const costTotal = computed(() => items.value.reduce((sum, o) => sum + o.cost, 0));
+const feeTotal = computed(() => items.value.reduce((sum, o) => sum + o.fee, 0));
+// Процент обеспечительной части — для подписи, тем же запросом, что корзина.
+const feePercent = ref(0);
 
 // Пункт выдачи — участок оформленных заказов: все позиции корзины едут на один.
 const pickupBraname = computed(() => orders.value[0]?.delivery_braname ?? cartStore.currentBraname ?? '');
@@ -163,6 +191,9 @@ onMounted(() => {
     goToOrders();
     return;
   }
+  void getMembershipFeePercent()
+    .then((v) => (feePercent.value = v))
+    .catch(() => undefined);
   // Адрес, режим работы и координаты пункта выдачи — из деталей участков.
   if (!kuStore.details.length && coopname.value) {
     void kuStore.load({ coopname: coopname.value, onlyActive: true }).catch(() => undefined);
@@ -323,13 +354,41 @@ onMounted(() => {
     white-space: nowrap;
   }
 
+  // Из чего складывается сумма — как в сводке корзины.
+  &__lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px) 0;
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__line {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--p-3, 12px);
+    color: var(--p-ink-2);
+  }
+
+  &__line-note {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-3);
+  }
+
+  &__line-sum {
+    color: var(--p-ink);
+    white-space: nowrap;
+  }
+
   &__total {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
-    color: var(--p-ink-2);
+    color: var(--p-ink);
+    font-weight: 600;
   }
 
   &__total-sum {

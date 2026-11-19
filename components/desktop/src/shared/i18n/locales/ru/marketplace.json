@@ -1996,7 +1996,7 @@
       "stepPickup": "Получение по QR-коду",
       "stepPlaced": "Заказ оформлен",
       "successTitle": "Заказ оформлен",
-      "summary": "Позиций: {count} · {amount} · пункт выдачи {point}",
+      "summary": "Позиций: {count} · пункт выдачи {point}",
       "totalLabel": "Итого"
     },
     "orderDetail": {
