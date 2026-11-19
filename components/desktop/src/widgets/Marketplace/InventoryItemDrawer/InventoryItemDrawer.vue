@@ -76,11 +76,21 @@ DetailsDrawer(
         template(#icon-left)
           q-icon(name='storefront', size='16px')
         | {{ $t('marketplace.inventoryItemDrawer.openOffer') }}
+
+//- Заказ открывается правой панелью поверх карточки (`?order=`), предложение —
+//- панелью стола (`?offer=`): закрытие панели возвращает к карточке имущества,
+//- склад под ними остаётся на месте (замечание владельца 19.11.2026).
+OrderRegistryOverlay(
+  :coopname='coopname',
+  :full-page-route-name='orderRouteName',
+  show-offer-link,
+  @offer-click='(id) => emit("open-offer", id)'
+)
 </template>
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { BaseBadge, BaseButton } from 'src/shared/ui/base'
 import { AccountBadge, ActivityTimeline, DataRow, DetailsDrawer } from 'src/shared/ui/domain'
@@ -89,6 +99,7 @@ import { useLiveReload } from 'src/shared/lib/realtime'
 import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { fetchOffer } from 'src/entities/MarketplaceOffer'
+import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
 import {
   inventoryDate,
   inventoryDateTime,
@@ -108,7 +119,7 @@ const props = defineProps<{
   items: MarketplaceInventoryItemView[]
   /** Подпись места хранения позиции. */
   placeLabel: (row: MarketplaceInventoryItemView) => string
-  /** Маршрут карточки заказа на этом столе. */
+  /** Маршрут полной страницы заказа на этом столе — кнопка в панели заказа. */
   orderRouteName: string
 }>()
 
@@ -116,7 +127,6 @@ const emit = defineEmits<{ (e: 'open-offer', offerId: string): void }>()
 
 const overlay = useQueryOverlay('item')
 const route = useRoute()
-const router = useRouter()
 
 const item = computed(() => {
   const id = overlay.value.value
@@ -231,12 +241,11 @@ const historyEvents = computed<ActivityEvent[]>(() =>
   }),
 )
 
+const orderOverlay = useQueryOverlay('order')
+const coopname = computed(() => String(route.params.coopname ?? ''))
+
 function openOrder(): void {
-  if (!item.value?.order_id) return
-  void router.push({
-    name: props.orderRouteName,
-    params: { coopname: String(route.params.coopname ?? ''), orderId: String(item.value.order_id) },
-  })
+  if (item.value?.order_id) orderOverlay.open(String(item.value.order_id))
 }
 
 function openOffer(): void {
