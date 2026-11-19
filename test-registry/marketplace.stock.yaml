@@ -77,9 +77,12 @@ sources:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-convert.service.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1795097639101-inventory-movement.ts
   ui:
     - components/desktop/src/widgets/Marketplace/CoopStockSection/**
     - components/desktop/src/pages/Marketplace/OperatorOwnWarehouse/**
+    - components/desktop/src/widgets/Marketplace/WarehouseArchive/**
+    - components/desktop/src/widgets/Marketplace/InventoryItemDrawer/**
 
 cases:
   - id: mkt.stock.happy.01
@@ -299,6 +302,50 @@ cases:
       заказчик, когда и кем принято, основание, срок годности, гарантийный срок
       возврата, штрих-код; предложение и заказ — кнопками внизу; у оператора —
       выпуск штрих-кода в панели
+    status: missing   # сценарий docs-harness не заведён
+
+  - id: mkt.stock.journal.01
+    level: backend
+    kind: side
+    scenario: Оператор открывает карточку позиции — запрос журнала движения
+    expect: >
+      шаги журнала в порядке времени; исполнитель и участок — именами; место —
+      кодами бокса и ячейки; у выдачи выдавший и получатель — из акта выдачи по
+      заказу, акт читается один раз на заказ; пустой журнал — без чтения актов
+    test: components/controller/tests/unit/marketplace/marketplace-inventory-movements.test.ts
+    api: components/api-tests/src/marketplace/inventory-journal.test.ts
+    status: passing
+
+  - id: mkt.stock.journal.02
+    level: backend
+    kind: side
+    scenario: Позицию принимают, размещают, маркируют, выдают готовым SQL
+    expect: >
+      триггер базы пишет шаг на каждое изменение (приёмка, место, штрих-код,
+      резерв, количество, остаток кооператива, перенос участка, выдача,
+      списание); исполнитель одноразовый — выдача готовым SQL не приписывается
+      оператору прошлого размещения
+    status: missing   # проверено на стенде 4 вручную с откатом транзакции; теста базы нет
+
+  - id: mkt.stock.archive.01
+    level: backend
+    kind: side
+    scenario: Оператор или администратор открывает вкладку «Архив»
+    expect: >
+      выданное и списанное, свежее сверху, постранично (не больше 100 строк);
+      только участки от гарда; без участков — пустая страница без чтения базы
+    test: components/controller/tests/unit/marketplace/marketplace-inventory-movements.test.ts
+    api: components/api-tests/src/marketplace/inventory-journal.test.ts
+    status: passing
+
+  - id: mkt.stock.ui.history
+    level: ui
+    kind: side
+    scenario: В карточке «Имущество на складе» раздел «История»; вкладка «Архив» на складе ПВЗ и стола администратора
+    expect: >
+      лента шагов с исполнителем и временем обновляется по ленте изменений;
+      архив — та же таблица с датой выбытия и кнопкой «Показать ещё», строка
+      открывает ту же карточку с историей
     status: missing   # сценарий docs-harness не заведён
 
 

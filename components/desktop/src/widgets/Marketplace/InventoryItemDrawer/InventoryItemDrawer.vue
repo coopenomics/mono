@@ -58,6 +58,12 @@ DetailsDrawer(
       align='spread'
     )
 
+    //- Журнал движения: приёмка, размещение, маркировка, выдача, списание —
+    //- кто, когда и где. Пишет база узла при каждом изменении позиции.
+    .inv-item__section {{ $t('marketplace.inventoryItemDrawer.historyTitle') }}
+    ActivityTimeline(v-if='historyEvents.length', :events='historyEvents')
+    .inv-item__muted(v-else-if='!historyLoading') {{ $t('marketplace.inventoryItemDrawer.historyEmpty') }}
+
   template(v-if='item', #footer)
     .inv-item__actions
       //- Действия стола: выпуск штрих-кода у оператора ПВЗ.
@@ -77,7 +83,10 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { BaseBadge, BaseButton } from 'src/shared/ui/base'
-import { AccountBadge, DataRow, DetailsDrawer } from 'src/shared/ui/domain'
+import { AccountBadge, ActivityTimeline, DataRow, DetailsDrawer } from 'src/shared/ui/domain'
+import type { ActivityEvent, ActivityEventType } from 'src/shared/ui/domain'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { fetchOffer } from 'src/entities/MarketplaceOffer'
 import {
@@ -88,7 +97,9 @@ import {
   inventoryStatusLabel,
   inventoryStatusVariant,
   isInventoryExpired,
+  fetchInventoryMovements,
   type MarketplaceInventoryItemView,
+  type MarketplaceInventoryMovementView,
 } from 'src/entities/MarketplaceInventory'
 import { t } from 'src/shared/i18n'
 
@@ -144,6 +155,80 @@ const warrantyText = computed(() =>
   warrantyDays.value === null
     ? '—'
     : t('marketplace.inventoryItemDrawer.warrantyValue', { days: warrantyDays.value }),
+)
+
+// ── Журнал движения позиции ────────────────────────────────────────────────
+const movements = ref<MarketplaceInventoryMovementView[]>([])
+const historyLoading = ref(false)
+
+async function loadHistory(): Promise<void> {
+  const id = item.value?.id
+  if (!id) {
+    movements.value = []
+    return
+  }
+  historyLoading.value = true
+  try {
+    movements.value = await fetchInventoryMovements(String(id))
+  } catch {
+    movements.value = []
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+watch(() => item.value?.id ?? null, () => void loadHistory(), { immediate: true })
+// Шаг журнала пишется вместе с изменением позиции — лента склада будит карточку.
+useLiveReload(marketLiveTables('warehouse'), () => (isOpen.value ? loadHistory() : undefined))
+
+const MOVEMENT_VIEW: Record<string, { icon: string; type: ActivityEventType }> = {
+  RECEIVED: { icon: 'move_to_inbox', type: 'create' },
+  RETURNED: { icon: 'assignment_return', type: 'create' },
+  PLACED: { icon: 'shelves', type: 'update' },
+  LABELED: { icon: 'qr_code', type: 'update' },
+  UNLABELED: { icon: 'qr_code_2', type: 'update' },
+  RESERVED: { icon: 'bookmark_add', type: 'update' },
+  RELEASED: { icon: 'bookmark_remove', type: 'update' },
+  RESIZED: { icon: 'straighten', type: 'update' },
+  TO_STOCK: { icon: 'inventory', type: 'transfer' },
+  TRANSFERRED: { icon: 'local_shipping', type: 'transfer' },
+  ISSUED: { icon: 'how_to_reg', type: 'sign' },
+  WRITTEN_OFF: { icon: 'delete_sweep', type: 'reject' },
+}
+
+type MovementView = MarketplaceInventoryMovementView
+const orNone = (value: string | null): string | undefined => value ?? undefined
+
+/** Пояснение шага: только новое — участок, место, штрих-код, количество, получатель. */
+const MOVEMENT_DESCRIPTION: Record<string, (m: MovementView) => string | undefined> = {
+  RECEIVED: (m) => orNone(m.branch_name),
+  RETURNED: (m) => orNone(m.branch_name),
+  TRANSFERRED: (m) => orNone(m.branch_name),
+  PLACED: (m) => m.place_label ?? t('marketplace.inventoryItemDrawer.movementUnplaced'),
+  LABELED: (m) => orNone(m.barcode_value),
+  RESIZED: (m) =>
+    item.value && m.quantity !== null
+      ? inventoryQuantityLabel({ ...item.value, quantity_per_label: m.quantity })
+      : undefined,
+  ISSUED: (m) =>
+    m.recipient_account
+      ? t('marketplace.inventoryItemDrawer.movementRecipient', { name: m.recipient_name || m.recipient_account })
+      : undefined,
+}
+
+const historyEvents = computed<ActivityEvent[]>(() =>
+  movements.value.map((m) => {
+    const view = MOVEMENT_VIEW[m.kind] ?? { icon: 'history', type: 'system' as ActivityEventType }
+    return {
+      id: m.id,
+      type: view.type,
+      icon: view.icon,
+      title: t(`marketplace.inventoryItemDrawer.movement.${m.kind}`),
+      description: MOVEMENT_DESCRIPTION[m.kind]?.(m),
+      actor: m.actor_name || m.actor_account || undefined,
+      date: inventoryDateTime(m.at),
+    }
+  }),
 )
 
 function openOrder(): void {

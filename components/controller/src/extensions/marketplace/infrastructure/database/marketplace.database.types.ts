@@ -31,6 +31,22 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface MarketplaceInventoryMovementTable {
+  id: Generated<Int8>;
+  coopname: string;
+  inventory_id: string;
+  kind: string;
+  status: string | null;
+  braname: string | null;
+  container_id: string | null;
+  cell_id: string | null;
+  quantity: number | null;
+  barcode_value: string | null;
+  order_id: string | null;
+  actor_account: string | null;
+  at: Generated<Timestamp>;
+}
+
 export interface AvailableCategories {
   added_by: string;
   category_id: number;
@@ -222,6 +238,7 @@ export interface MarketplaceInventory {
   id: Generated<string>;
   labeled_at: Timestamp | null;
   labeled_by_operator_account: string | null;
+  last_actor_account: string | null;
   order_id: string;
   orderer_account_snapshot: string;
   origin: Generated<string>;
@@ -661,6 +678,7 @@ export interface DB {
   marketplace_container_type: MarketplaceContainerType;
   marketplace_handoff_code: MarketplaceHandoffCode;
   marketplace_inventory: MarketplaceInventory;
+  marketplace_inventory_movement: MarketplaceInventoryMovementTable;
   marketplace_issuance_saga: MarketplaceIssuanceSaga;
   marketplace_ku_details: MarketplaceKuDetails;
   marketplace_moderation_log: MarketplaceModerationLog;

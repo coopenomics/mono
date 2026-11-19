@@ -12425,6 +12425,18 @@ export type ValueTypes = {
 };
 	/** Вид кода передачи: код заказчика на получение или код поставщика на приёмку. */
 ["MarketplaceHandoffCodeKind"]:MarketplaceHandoffCodeKind;
+	["MarketplaceInventoryArchivePaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceInventoryItem"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInventoryArchivePaginationResult']?: Omit<ValueTypes["MarketplaceInventoryArchivePaginationResult"], "...on MarketplaceInventoryArchivePaginationResult">
+}>;
 	["MarketplaceInventoryItem"]: AliasType<{
 	/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?:boolean | `@${string}`,
@@ -12491,6 +12503,34 @@ export type ValueTypes = {
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceInventoryItem']?: Omit<ValueTypes["MarketplaceInventoryItem"], "...on MarketplaceInventoryItem">
+}>;
+	["MarketplaceInventoryMovement"]: AliasType<{
+	/** Кто сделал: аккаунт. */
+	actor_account?:boolean | `@${string}`,
+	/** Кто сделал: ФИО. */
+	actor_name?:boolean | `@${string}`,
+	/** Когда. */
+	at?:boolean | `@${string}`,
+	/** Штрих-код позиции на этом шаге. */
+	barcode_value?:boolean | `@${string}`,
+	/** Пункт выдачи, где была позиция. */
+	branch_name?:boolean | `@${string}`,
+	/** Идентификатор шага. */
+	id?:boolean | `@${string}`,
+	/** Что произошло: RECEIVED — принято, PLACED — размещено, LABELED — промаркировано, UNLABELED — штрих-код снят, RESERVED — зарезервировано под заказ, RELEASED — резерв снят, RESIZED — количество изменено, TO_STOCK — перенесено в остаток кооператива, TRANSFERRED — перемещено на другой участок, ISSUED — выдано, RETURNED — возвращено, WRITTEN_OFF — списано. */
+	kind?:boolean | `@${string}`,
+	/** Заказ, к которому относился шаг. */
+	order_id?:boolean | `@${string}`,
+	/** Место хранения: бокс и ячейка. */
+	place_label?:boolean | `@${string}`,
+	/** Количество в позиции. */
+	quantity?:boolean | `@${string}`,
+	/** Кому выдано: аккаунт (для выдачи). */
+	recipient_account?:boolean | `@${string}`,
+	/** Кому выдано: ФИО (для выдачи). */
+	recipient_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceInventoryMovement']?: Omit<ValueTypes["MarketplaceInventoryMovement"], "...on MarketplaceInventoryMovement">
 }>;
 	["MarketplaceInventoryMutationResult"]: AliasType<{
 	/** Затронутые позиции склада после операции. */
@@ -12863,6 +12903,10 @@ export type ValueTypes = {
 	is_active?: boolean | undefined | null | Variable<any, string>,
 	/** Только боксы без адреса. */
 	unplaced_only?: boolean | undefined | null | Variable<any, string>
+};
+	["MarketplaceListInventoryArchiveInput"]: {
+	/** Пункт выдачи; без него — все доступные. */
+	braname?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceListInventoryInput"]: {
 	/** Фильтр по КУ. */
@@ -18052,6 +18096,7 @@ marketplaceGetShipment?: [{	data: ValueTypes["MarketplaceGetShipmentInput"] | Va
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ValueTypes["MarketplaceSupplierPaymentSettings"],
 marketplaceHandoffCode?: [{	data: ValueTypes["MarketplaceHandoffCodeInput"] | Variable<any, string>},ValueTypes["MarketplaceHandoffCode"]],
+marketplaceInventoryMovements?: [{	inventory_id: string | Variable<any, string>},ValueTypes["MarketplaceInventoryMovement"]],
 marketplaceInvestAgreementSignablePayload?: [{	/** Кооперативный участок договора. */
 	braname: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceInvestClaimSignablePayload?: [{	braname: string | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -18086,6 +18131,7 @@ marketplaceListContainers?: [{	data?: ValueTypes["MarketplaceListContainersInput
 	marketplaceListCoopCategories?:ValueTypes["MarketplaceCategory"],
 marketplaceListExpressPickupsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceExpressPickupCandidate"]],
 marketplaceListInventory?: [{	data?: ValueTypes["MarketplaceListInventoryInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
+marketplaceListInventoryArchive?: [{	data?: ValueTypes["MarketplaceListInventoryArchiveInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryArchivePaginationResult"]],
 marketplaceListIssuanceSagas?: [{	data?: ValueTypes["MarketplaceListIssuanceSagasInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceIssuanceSaga"]],
 marketplaceListIssuancesByBraname?: [{	data: ValueTypes["MarketplaceListIssuancesByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 marketplaceListKUDetails?: [{	data: ValueTypes["ListMarketplaceKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
@@ -31907,6 +31953,17 @@ export type ResolverInputTypes = {
 };
 	/** Вид кода передачи: код заказчика на получение или код поставщика на приёмку. */
 ["MarketplaceHandoffCodeKind"]:MarketplaceHandoffCodeKind;
+	["MarketplaceInventoryArchivePaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceInventoryItem"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceInventoryItem"]: AliasType<{
 	/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?:boolean | `@${string}`,
@@ -31971,6 +32028,33 @@ export type ResolverInputTypes = {
 	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceInventoryMovement"]: AliasType<{
+	/** Кто сделал: аккаунт. */
+	actor_account?:boolean | `@${string}`,
+	/** Кто сделал: ФИО. */
+	actor_name?:boolean | `@${string}`,
+	/** Когда. */
+	at?:boolean | `@${string}`,
+	/** Штрих-код позиции на этом шаге. */
+	barcode_value?:boolean | `@${string}`,
+	/** Пункт выдачи, где была позиция. */
+	branch_name?:boolean | `@${string}`,
+	/** Идентификатор шага. */
+	id?:boolean | `@${string}`,
+	/** Что произошло: RECEIVED — принято, PLACED — размещено, LABELED — промаркировано, UNLABELED — штрих-код снят, RESERVED — зарезервировано под заказ, RELEASED — резерв снят, RESIZED — количество изменено, TO_STOCK — перенесено в остаток кооператива, TRANSFERRED — перемещено на другой участок, ISSUED — выдано, RETURNED — возвращено, WRITTEN_OFF — списано. */
+	kind?:boolean | `@${string}`,
+	/** Заказ, к которому относился шаг. */
+	order_id?:boolean | `@${string}`,
+	/** Место хранения: бокс и ячейка. */
+	place_label?:boolean | `@${string}`,
+	/** Количество в позиции. */
+	quantity?:boolean | `@${string}`,
+	/** Кому выдано: аккаунт (для выдачи). */
+	recipient_account?:boolean | `@${string}`,
+	/** Кому выдано: ФИО (для выдачи). */
+	recipient_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceInventoryMutationResult"]: AliasType<{
@@ -32330,6 +32414,10 @@ export type ResolverInputTypes = {
 	is_active?: boolean | undefined | null,
 	/** Только боксы без адреса. */
 	unplaced_only?: boolean | undefined | null
+};
+	["MarketplaceListInventoryArchiveInput"]: {
+	/** Пункт выдачи; без него — все доступные. */
+	braname?: string | undefined | null
 };
 	["MarketplaceListInventoryInput"]: {
 	/** Фильтр по КУ. */
@@ -37345,6 +37433,7 @@ marketplaceGetShipment?: [{	data: ResolverInputTypes["MarketplaceGetShipmentInpu
 	/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений. */
 	marketplaceGetSupplierPaymentSettings?:ResolverInputTypes["MarketplaceSupplierPaymentSettings"],
 marketplaceHandoffCode?: [{	data: ResolverInputTypes["MarketplaceHandoffCodeInput"]},ResolverInputTypes["MarketplaceHandoffCode"]],
+marketplaceInventoryMovements?: [{	inventory_id: string},ResolverInputTypes["MarketplaceInventoryMovement"]],
 marketplaceInvestAgreementSignablePayload?: [{	/** Кооперативный участок договора. */
 	braname: string},ResolverInputTypes["GeneratedDocument"]],
 marketplaceInvestClaimSignablePayload?: [{	braname: string},ResolverInputTypes["GeneratedDocument"]],
@@ -37379,6 +37468,7 @@ marketplaceListContainers?: [{	data?: ResolverInputTypes["MarketplaceListContain
 	marketplaceListCoopCategories?:ResolverInputTypes["MarketplaceCategory"],
 marketplaceListExpressPickupsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceExpressPickupCandidate"]],
 marketplaceListInventory?: [{	data?: ResolverInputTypes["MarketplaceListInventoryInput"] | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
+marketplaceListInventoryArchive?: [{	data?: ResolverInputTypes["MarketplaceListInventoryArchiveInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceInventoryArchivePaginationResult"]],
 marketplaceListIssuanceSagas?: [{	data?: ResolverInputTypes["MarketplaceListIssuanceSagasInput"] | undefined | null},ResolverInputTypes["MarketplaceIssuanceSaga"]],
 marketplaceListIssuancesByBraname?: [{	data: ResolverInputTypes["MarketplaceListIssuancesByBranameInput"]},ResolverInputTypes["MarketplaceOrder"]],
 marketplaceListKUDetails?: [{	data: ResolverInputTypes["ListMarketplaceKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
@@ -50726,6 +50816,16 @@ export type ModelTypes = {
 	kind: ModelTypes["MarketplaceHandoffCodeKind"]
 };
 	["MarketplaceHandoffCodeKind"]:MarketplaceHandoffCodeKind;
+	["MarketplaceInventoryArchivePaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceInventoryItem"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["MarketplaceInventoryItem"]: {
 		/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
 	arrival_price?: string | undefined | null,
@@ -50790,6 +50890,32 @@ export type ModelTypes = {
 	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: ModelTypes["DateTime"]
+};
+	["MarketplaceInventoryMovement"]: {
+		/** Кто сделал: аккаунт. */
+	actor_account?: string | undefined | null,
+	/** Кто сделал: ФИО. */
+	actor_name?: string | undefined | null,
+	/** Когда. */
+	at: ModelTypes["DateTime"],
+	/** Штрих-код позиции на этом шаге. */
+	barcode_value?: string | undefined | null,
+	/** Пункт выдачи, где была позиция. */
+	branch_name?: string | undefined | null,
+	/** Идентификатор шага. */
+	id: string,
+	/** Что произошло: RECEIVED — принято, PLACED — размещено, LABELED — промаркировано, UNLABELED — штрих-код снят, RESERVED — зарезервировано под заказ, RELEASED — резерв снят, RESIZED — количество изменено, TO_STOCK — перенесено в остаток кооператива, TRANSFERRED — перемещено на другой участок, ISSUED — выдано, RETURNED — возвращено, WRITTEN_OFF — списано. */
+	kind: string,
+	/** Заказ, к которому относился шаг. */
+	order_id?: string | undefined | null,
+	/** Место хранения: бокс и ячейка. */
+	place_label?: string | undefined | null,
+	/** Количество в позиции. */
+	quantity?: number | undefined | null,
+	/** Кому выдано: аккаунт (для выдачи). */
+	recipient_account?: string | undefined | null,
+	/** Кому выдано: ФИО (для выдачи). */
+	recipient_name?: string | undefined | null
 };
 	["MarketplaceInventoryMutationResult"]: {
 		/** Затронутые позиции склада после операции. */
@@ -51123,6 +51249,10 @@ export type ModelTypes = {
 	is_active?: boolean | undefined | null,
 	/** Только боксы без адреса. */
 	unplaced_only?: boolean | undefined | null
+};
+	["MarketplaceListInventoryArchiveInput"]: {
+	/** Пункт выдачи; без него — все доступные. */
+	braname?: string | undefined | null
 };
 	["MarketplaceListInventoryInput"]: {
 	/** Фильтр по КУ. */
@@ -56522,6 +56652,8 @@ export type ModelTypes = {
 	marketplaceGetSupplierPaymentSettings: ModelTypes["MarketplaceSupplierPaymentSettings"],
 	/** Код передачи пайщика для показа оператору участка: на получение заказов или на приёмку поставки. */
 	marketplaceHandoffCode: ModelTypes["MarketplaceHandoffCode"],
+	/** Журнал движения позиции склада: приёмка, размещение, маркировка, выдача, возврат, списание — кто, когда, где. */
+	marketplaceInventoryMovements: Array<ModelTypes["MarketplaceInventoryMovement"]>,
 	/** Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком. */
 	marketplaceInvestAgreementSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
@@ -56578,6 +56710,8 @@ export type ModelTypes = {
 	marketplaceListExpressPickupsByBraname: Array<ModelTypes["MarketplaceExpressPickupCandidate"]>,
 	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<ModelTypes["MarketplaceInventoryItem"]>,
+	/** Архив склада: выданное и списанное имущество, свежее сверху, постранично. */
+	marketplaceListInventoryArchive: ModelTypes["MarketplaceInventoryArchivePaginationResult"],
 	/** Незавершённые выдачи: свои у заказчика, по участку у стойки оператора. */
 	marketplaceListIssuanceSagas: Array<ModelTypes["MarketplaceIssuanceSaga"]>,
 	/** Лента выдачи участка: заказы от приёма кооперативом до закрытия выдачи. */
@@ -70566,6 +70700,18 @@ export type GraphQLTypes = {
 };
 	/** Вид кода передачи: код заказчика на получение или код поставщика на приёмку. */
 ["MarketplaceHandoffCodeKind"]: MarketplaceHandoffCodeKind;
+	["MarketplaceInventoryArchivePaginationResult"]: {
+	__typename: "MarketplaceInventoryArchivePaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceInventoryArchivePaginationResult']: Omit<GraphQLTypes["MarketplaceInventoryArchivePaginationResult"], "...on MarketplaceInventoryArchivePaginationResult">
+};
 	["MarketplaceInventoryItem"]: {
 	__typename: "MarketplaceInventoryItem",
 	/** Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка. */
@@ -70632,6 +70778,34 @@ export type GraphQLTypes = {
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceInventoryItem']: Omit<GraphQLTypes["MarketplaceInventoryItem"], "...on MarketplaceInventoryItem">
+};
+	["MarketplaceInventoryMovement"]: {
+	__typename: "MarketplaceInventoryMovement",
+	/** Кто сделал: аккаунт. */
+	actor_account?: string | undefined | null,
+	/** Кто сделал: ФИО. */
+	actor_name?: string | undefined | null,
+	/** Когда. */
+	at: GraphQLTypes["DateTime"],
+	/** Штрих-код позиции на этом шаге. */
+	barcode_value?: string | undefined | null,
+	/** Пункт выдачи, где была позиция. */
+	branch_name?: string | undefined | null,
+	/** Идентификатор шага. */
+	id: string,
+	/** Что произошло: RECEIVED — принято, PLACED — размещено, LABELED — промаркировано, UNLABELED — штрих-код снят, RESERVED — зарезервировано под заказ, RELEASED — резерв снят, RESIZED — количество изменено, TO_STOCK — перенесено в остаток кооператива, TRANSFERRED — перемещено на другой участок, ISSUED — выдано, RETURNED — возвращено, WRITTEN_OFF — списано. */
+	kind: string,
+	/** Заказ, к которому относился шаг. */
+	order_id?: string | undefined | null,
+	/** Место хранения: бокс и ячейка. */
+	place_label?: string | undefined | null,
+	/** Количество в позиции. */
+	quantity?: number | undefined | null,
+	/** Кому выдано: аккаунт (для выдачи). */
+	recipient_account?: string | undefined | null,
+	/** Кому выдано: ФИО (для выдачи). */
+	recipient_name?: string | undefined | null,
+	['...on MarketplaceInventoryMovement']: Omit<GraphQLTypes["MarketplaceInventoryMovement"], "...on MarketplaceInventoryMovement">
 };
 	["MarketplaceInventoryMutationResult"]: {
 	__typename: "MarketplaceInventoryMutationResult",
@@ -71004,6 +71178,10 @@ export type GraphQLTypes = {
 	is_active?: boolean | undefined | null,
 	/** Только боксы без адреса. */
 	unplaced_only?: boolean | undefined | null
+};
+	["MarketplaceListInventoryArchiveInput"]: {
+		/** Пункт выдачи; без него — все доступные. */
+	braname?: string | undefined | null
 };
 	["MarketplaceListInventoryInput"]: {
 		/** Фильтр по КУ. */
@@ -76818,6 +76996,8 @@ export type GraphQLTypes = {
 	marketplaceGetSupplierPaymentSettings: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
 	/** Код передачи пайщика для показа оператору участка: на получение заказов или на приёмку поставки. */
 	marketplaceHandoffCode: GraphQLTypes["MarketplaceHandoffCode"],
+	/** Журнал движения позиции склада: приёмка, размещение, маркировка, выдача, возврат, списание — кто, когда, где. */
+	marketplaceInventoryMovements: Array<GraphQLTypes["MarketplaceInventoryMovement"]>,
 	/** Сформировать договор об участии в хозяйственной деятельности участка для подписи пайщиком. */
 	marketplaceInvestAgreementSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о трансляции доступного паевого взноса с кошелька договора участия на главный паевой кошелёк. */
@@ -76874,6 +77054,8 @@ export type GraphQLTypes = {
 	marketplaceListExpressPickupsByBraname: Array<GraphQLTypes["MarketplaceExpressPickupCandidate"]>,
 	/** Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов. */
 	marketplaceListInventory: Array<GraphQLTypes["MarketplaceInventoryItem"]>,
+	/** Архив склада: выданное и списанное имущество, свежее сверху, постранично. */
+	marketplaceListInventoryArchive: GraphQLTypes["MarketplaceInventoryArchivePaginationResult"],
 	/** Незавершённые выдачи: свои у заказчика, по участку у стойки оператора. */
 	marketplaceListIssuanceSagas: Array<GraphQLTypes["MarketplaceIssuanceSaga"]>,
 	/** Лента выдачи участка: заказы от приёма кооперативом до закрытия выдачи. */
@@ -81588,6 +81770,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListCatalogInput"]: ValueTypes["MarketplaceListCatalogInput"];
 	["MarketplaceListConsolidatedRequestsInput"]: ValueTypes["MarketplaceListConsolidatedRequestsInput"];
 	["MarketplaceListContainersInput"]: ValueTypes["MarketplaceListContainersInput"];
+	["MarketplaceListInventoryArchiveInput"]: ValueTypes["MarketplaceListInventoryArchiveInput"];
 	["MarketplaceListInventoryInput"]: ValueTypes["MarketplaceListInventoryInput"];
 	["MarketplaceListIssuanceSagasInput"]: ValueTypes["MarketplaceListIssuanceSagasInput"];
 	["MarketplaceListIssuancesByBranameInput"]: ValueTypes["MarketplaceListIssuancesByBranameInput"];

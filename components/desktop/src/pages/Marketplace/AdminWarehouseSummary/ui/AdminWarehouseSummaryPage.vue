@@ -12,6 +12,9 @@
  * период, а не состояние полок.
  */
 import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { PageTabs, type PageTab } from 'src/shared/ui/layout'
+import { WarehouseArchive } from 'src/widgets/Marketplace/WarehouseArchive'
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { debounce } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
@@ -39,6 +42,19 @@ import { t as i18nT } from 'src/shared/i18n';
 const { info } = useSystemStore()
 const offerOverlay = useQueryOverlay('offer')
 const itemOverlay = useQueryOverlay('item')
+
+// Вкладки «На складе» и «Архив» (решение владельца 19.11.2026); вкладка живёт
+// в адресе (`?tab=archive`), ссылку можно послать коллеге.
+const route = useRoute()
+const router = useRouter()
+const activeTab = computed(() => (route.query.tab === 'archive' ? 'archive' : 'stock'))
+const tabs = computed<PageTab[]>(() => [
+  { key: 'stock', label: i18nT('marketplace.adminWarehouseSummary.tabStock') },
+  { key: 'archive', label: i18nT('marketplace.adminWarehouseSummary.tabArchive') },
+])
+function onSelectTab(tab: PageTab): void {
+  void router.replace({ query: { ...route.query, tab: tab.key === 'archive' ? 'archive' : undefined, item: undefined } })
+}
 
 const items = ref<MarketplaceInventoryItemView[]>([])
 const categoryNames = ref<Record<number, string>>({})
@@ -257,44 +273,54 @@ q-page.warehouse-summary(role='region', :aria-label='$t("marketplace.warehouseSu
   PageHint(storage-key='mp:admin-warehouse-summary:banner-dismissed')
     | {{ $t('marketplace.adminWarehouseSummary.intro') }}
 
-  .warehouse-summary__stats
-    .warehouse-summary__stat(v-for='s in stats', :key='s.key')
-      .warehouse-summary__stat-label {{ s.label }}
-      .warehouse-summary__stat-value(
-        :class='s.alarm && s.value > 0 ? "warehouse-summary__stat-value--alarm" : ""'
-      ) {{ s.value }}
+  PageTabs(:tabs='tabs', :active-key='activeTab', @select='onSelectTab')
 
-  BaseInput.warehouse-summary__search.field-flush(
-    v-model='search',
-    type='search',
-    :placeholder='$t("marketplace.warehouseInventoryTable.searchPlaceholder")',
-    clearable
-  )
-
-  WarehouseInventoryTable(
-    v-if='firstLoad || tableRows.length',
-    :rows='tableRows',
-    :loading='loading',
+  WarehouseArchive(
+    v-if='activeTab === "archive"',
     show-branch,
-    :place-label='placeLabel',
-    @row-click='openItem'
-  )
-  EmptyState(
-    v-else,
-    :title='$t("marketplace.operatorOwnWarehouse.emptyTitle")',
-    :body='$t("marketplace.operatorOwnWarehouse.emptyBody")'
-  )
-    template(#icon)
-      q-icon(name='inventory_2', size='48px')
-
-  InventoryItemDrawer(
-    :items='items',
-    :place-label='placeLabel',
-    order-route-name='marketplace-admin-order-detail',
-    @open-offer='(id) => offerOverlay.open(id)'
+    show-offer-full-page,
+    order-route-name='marketplace-admin-order-detail'
   )
 
-  OfferRegistryOverlay(:coopname='info.coopname', from='warehouse')
+  template(v-else)
+    .warehouse-summary__stats
+      .warehouse-summary__stat(v-for='s in stats', :key='s.key')
+        .warehouse-summary__stat-label {{ s.label }}
+        .warehouse-summary__stat-value(
+          :class='s.alarm && s.value > 0 ? "warehouse-summary__stat-value--alarm" : ""'
+        ) {{ s.value }}
+
+    BaseInput.warehouse-summary__search.field-flush(
+      v-model='search',
+      type='search',
+      :placeholder='$t("marketplace.warehouseInventoryTable.searchPlaceholder")',
+      clearable
+    )
+
+    WarehouseInventoryTable(
+      v-if='firstLoad || tableRows.length',
+      :rows='tableRows',
+      :loading='loading',
+      show-branch,
+      :place-label='placeLabel',
+      @row-click='openItem'
+    )
+    EmptyState(
+      v-else,
+      :title='$t("marketplace.operatorOwnWarehouse.emptyTitle")',
+      :body='$t("marketplace.operatorOwnWarehouse.emptyBody")'
+    )
+      template(#icon)
+        q-icon(name='inventory_2', size='48px')
+
+    InventoryItemDrawer(
+      :items='items',
+      :place-label='placeLabel',
+      order-route-name='marketplace-admin-order-detail',
+      @open-offer='(id) => offerOverlay.open(id)'
+    )
+
+    OfferRegistryOverlay(:coopname='info.coopname', from='warehouse')
 </template>
 
 <style scoped lang="scss">

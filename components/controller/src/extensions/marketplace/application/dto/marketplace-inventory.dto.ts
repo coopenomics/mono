@@ -1,5 +1,6 @@
 import { Field, Float, Int, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
+import { createPaginationResult } from '@coopenomics/extension-kit';
 import {
   IsArray,
   IsEnum,
@@ -409,3 +410,63 @@ export function toMarketplaceInventoryItemDTO(
   dto.updated_at = e.updated_at;
   return dto;
 }
+
+/**
+ * Шаг журнала движения позиции склада (решение владельца 19.11.2026): что
+ * произошло, когда, кто сделал, где лежала позиция; для выдачи — кому выдано.
+ */
+@ObjectType('MarketplaceInventoryMovement')
+export class MarketplaceInventoryMovementDTO {
+  @Field(() => String, { description: 'Идентификатор шага.' })
+  id!: string;
+
+  @Field(() => String, {
+    description:
+      'Что произошло: RECEIVED — принято, PLACED — размещено, LABELED — промаркировано, UNLABELED — штрих-код снят, RESERVED — зарезервировано под заказ, RELEASED — резерв снят, RESIZED — количество изменено, TO_STOCK — перенесено в остаток кооператива, TRANSFERRED — перемещено на другой участок, ISSUED — выдано, RETURNED — возвращено, WRITTEN_OFF — списано.',
+  })
+  kind!: string;
+
+  @Field(() => Date, { description: 'Когда.' })
+  at!: Date;
+
+  @Field(() => String, { nullable: true, description: 'Кто сделал: аккаунт.' })
+  actor_account!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Кто сделал: ФИО.' })
+  actor_name!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Пункт выдачи, где была позиция.' })
+  branch_name!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Место хранения: бокс и ячейка.' })
+  place_label!: string | null;
+
+  @Field(() => Float, { nullable: true, description: 'Количество в позиции.' })
+  quantity!: number | null;
+
+  @Field(() => String, { nullable: true, description: 'Штрих-код позиции на этом шаге.' })
+  barcode_value!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Заказ, к которому относился шаг.' })
+  order_id!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Кому выдано: аккаунт (для выдачи).' })
+  recipient_account!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Кому выдано: ФИО (для выдачи).' })
+  recipient_name!: string | null;
+}
+
+@InputType('MarketplaceListInventoryArchiveInput')
+export class MarketplaceListInventoryArchiveInputDTO {
+  @Field(() => String, { nullable: true, description: 'Пункт выдачи; без него — все доступные.' })
+  @IsOptional()
+  @IsString()
+  braname?: string;
+}
+
+@ObjectType('MarketplaceInventoryArchivePaginationResult')
+export class MarketplaceInventoryArchivePaginationResultDTO extends createPaginationResult(
+  MarketplaceInventoryItemDTO,
+  'MarketplaceInventoryArchive'
+) {}

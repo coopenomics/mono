@@ -1473,6 +1473,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListContainersInput:{
 
 	},
+	MarketplaceListInventoryArchiveInput:{
+
+	},
 	MarketplaceListInventoryInput:{
 		statuses:"MarketplaceInventoryStatus"
 	},
@@ -3902,6 +3905,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceHandoffCode:{
 			data:"MarketplaceHandoffCodeInput"
 		},
+		marketplaceInventoryMovements:{
+
+		},
 		marketplaceInvestAgreementSignablePayload:{
 
 		},
@@ -3973,6 +3979,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
+		},
+		marketplaceListInventoryArchive:{
+			data:"MarketplaceListInventoryArchiveInput",
+			options:"PaginationInput"
 		},
 		marketplaceListIssuanceSagas:{
 			data:"MarketplaceListIssuanceSagasInput"
@@ -7884,6 +7894,12 @@ export const ReturnTypes: Record<string,any> = {
 		expires_at:"DateTime",
 		kind:"MarketplaceHandoffCodeKind"
 	},
+	MarketplaceInventoryArchivePaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceInventoryItem",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	MarketplaceInventoryItem:{
 		arrival_price:"String",
 		barcode_format:"MarketplaceBarcodeFormat",
@@ -7919,6 +7935,20 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceInventoryStatus",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime"
+	},
+	MarketplaceInventoryMovement:{
+		actor_account:"String",
+		actor_name:"String",
+		at:"DateTime",
+		barcode_value:"String",
+		branch_name:"String",
+		id:"String",
+		kind:"String",
+		order_id:"String",
+		place_label:"String",
+		quantity:"Float",
+		recipient_account:"String",
+		recipient_name:"String"
 	},
 	MarketplaceInventoryMutationResult:{
 		inventory:"MarketplaceInventoryItem"
@@ -10248,6 +10278,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
 		marketplaceHandoffCode:"MarketplaceHandoffCode",
+		marketplaceInventoryMovements:"MarketplaceInventoryMovement",
 		marketplaceInvestAgreementSignablePayload:"GeneratedDocument",
 		marketplaceInvestClaimSignablePayload:"GeneratedDocument",
 		marketplaceInvestPropertyActSignablePayload:"GeneratedDocument",
@@ -10276,6 +10307,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListCoopCategories:"MarketplaceCategory",
 		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
+		marketplaceListInventoryArchive:"MarketplaceInventoryArchivePaginationResult",
 		marketplaceListIssuanceSagas:"MarketplaceIssuanceSaga",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",

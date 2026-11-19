@@ -9,6 +9,23 @@ import type {
 } from '../entities/marketplace-inventory.types';
 import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
 
+/** Шаг журнала движения позиции склада. */
+export interface MarketplaceInventoryMovement {
+  id: string;
+  inventory_id: string;
+  /** RECEIVED, PLACED, LABELED, UNLABELED, RESERVED, RELEASED, RESIZED, TO_STOCK, TRANSFERRED, ISSUED, RETURNED, WRITTEN_OFF. */
+  kind: string;
+  status: string | null;
+  braname: string | null;
+  container_id: string | null;
+  cell_id: string | null;
+  quantity: number | null;
+  barcode_value: string | null;
+  order_id: string | null;
+  actor_account: string | null;
+  at: Date;
+}
+
 export const MARKETPLACE_INVENTORY_REPOSITORY = Symbol('MARKETPLACE_INVENTORY_REPOSITORY');
 
 export interface MarketplaceInventoryCreateInput {
@@ -179,9 +196,11 @@ export interface MarketplaceInventoryDomainRepository {
   markIssuedByOrder(coopname: string, order_id: string): Promise<number>;
 
   /** Положить позицию в бокс либо в ячейку, или снять с места (обе ссылки пустые). */
+  /** `actor` — оператор, переложивший позицию: попадает в журнал движения. */
   assignPlacement(
     id: string,
-    placement: MarketplaceInventoryPlacement
+    placement: MarketplaceInventoryPlacement,
+    actor?: string | null
   ): Promise<MarketplaceInventoryDomainEntity>;
 
   /**
@@ -203,7 +222,22 @@ export interface MarketplaceInventoryDomainRepository {
   ): Promise<MarketplaceInventoryDomainEntity>;
 
   /** Снять штрих-код и вернуть позицию в RECEIVED (для переклейки). */
-  clearLabel(id: string): Promise<MarketplaceInventoryDomainEntity>;
+  clearLabel(id: string, actor?: string | null): Promise<MarketplaceInventoryDomainEntity>;
+
+  /**
+   * Журнал движения позиции (решение владельца 19.11.2026): записи ведёт
+   * триггер базы, хранилище только читает — по индексу позиции.
+   */
+  listMovements(coopname: string, inventory_id: string): Promise<MarketplaceInventoryMovement[]>;
+
+  /**
+   * Архив склада: выданные и списанные позиции, свежие сверху, постранично —
+   * архив растёт без предела и целиком не читается.
+   */
+  listArchive(
+    filter: { coopname: string; braname?: string | string[] },
+    page: { limit: number; offset: number }
+  ): Promise<{ items: MarketplaceInventoryDomainEntity[]; totalCount: number }>;
 
   /** Изменить количество и место позиции (используется при раскладке-split). */
   resize(

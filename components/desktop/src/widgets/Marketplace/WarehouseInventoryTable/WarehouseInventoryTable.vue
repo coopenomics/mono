@@ -11,7 +11,7 @@ BaseTable(
   sticky-header,
   :loading='loading',
   :min-width='showBranch ? "1180px" : "1040px"',
-  sort-by='received',
+  :sort-by='archive ? "left" : "received"',
   descending,
   clickable-rows,
   @row-click='onRowClick'
@@ -49,8 +49,12 @@ BaseTable(
   template(#cell-received='{ row }')
     | {{ inventoryDateTime(row.received_at) }}
 
+  template(#cell-left='{ row }')
+    | {{ inventoryDateTime(row.updated_at) }}
+
   template(#footer)
-    span {{ $t('marketplace.operatorOwnWarehouse.positionsCountFooter', { count: rows.length }) }}
+    span(v-if='totalCount !== null') {{ $t('marketplace.warehouseInventoryTable.shownOf', { shown: rows.length, total: totalCount }) }}
+    span(v-else) {{ $t('marketplace.operatorOwnWarehouse.positionsCountFooter', { count: rows.length }) }}
 </template>
 
 <script lang="ts" setup>
@@ -77,10 +81,14 @@ const props = withDefaults(
     loading?: boolean
     /** Колонка пункта выдачи — склад всего кооператива (стол администратора). */
     showBranch?: boolean
-    /** Подпись места хранения позиции. */
-    placeLabel: (row: MarketplaceInventoryItemView) => string
+    /** Подпись места хранения позиции (склад; в архиве места нет). */
+    placeLabel?: (row: MarketplaceInventoryItemView) => string
+    /** Архив: вместо места и срока годности — дата выбытия (выдача, списание). */
+    archive?: boolean
+    /** Всего позиций, когда таблица показывает часть (архив читается страницами). */
+    totalCount?: number | null
   }>(),
-  { loading: false, showBranch: false },
+  { loading: false, showBranch: false, placeLabel: () => '—', archive: false, totalCount: null },
 )
 
 const emit = defineEmits<{ (e: 'row-click', row: MarketplaceInventoryItemView): void }>()
@@ -96,9 +104,13 @@ const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => 
   { key: 'product', label: t('marketplace.operatorOwnWarehouse.column.product'), width: '240px', sortable: true, field: 'product_name_snapshot' },
   { key: 'orderer', label: t('marketplace.operatorOwnWarehouse.column.orderer'), width: '200px', sortable: true, field: (row) => inventoryOrdererName(row) },
   { key: 'qty', label: t('marketplace.operatorOwnWarehouse.column.qty'), width: '130px', numeric: true, nowrap: true },
-  { key: 'place', label: t('marketplace.operatorOwnWarehouse.column.place'), width: '200px', field: (row) => props.placeLabel(row) },
+  ...(props.archive
+    ? []
+    : [{ key: 'place', label: t('marketplace.operatorOwnWarehouse.column.place'), width: '200px', field: (row: MarketplaceInventoryItemView) => props.placeLabel(row) }]),
   { key: 'status', label: t('marketplace.operatorOwnWarehouse.column.status'), width: '130px', nowrap: true, sortable: true, field: 'status' },
-  { key: 'expiry', label: t('marketplace.operatorOwnWarehouse.column.expiry'), width: '120px', nowrap: true, sortable: true, field: (row) => inventoryTime(row.expiry_date) },
+  ...(props.archive
+    ? [{ key: 'left', label: t('marketplace.warehouseInventoryTable.left'), width: '150px', nowrap: true, sortable: true, field: (row: MarketplaceInventoryItemView) => inventoryTime(row.updated_at) }]
+    : [{ key: 'expiry', label: t('marketplace.operatorOwnWarehouse.column.expiry'), width: '120px', nowrap: true, sortable: true, field: (row: MarketplaceInventoryItemView) => inventoryTime(row.expiry_date) }]),
   { key: 'received', label: t('marketplace.operatorOwnWarehouse.column.received'), width: '150px', nowrap: true, sortable: true, field: (row) => inventoryTime(row.received_at) },
 ])
 </script>

@@ -43,6 +43,8 @@ export * as ListShipmentsByBraname from './listShipmentsByBraname'
 export * as GetShipment from './getShipment'
 /** Эпик 5: лента маркированных единиц имущества */
 export * as ListInventory from './listInventory'
+export * as ListInventoryArchive from './listInventoryArchive'
+export * as InventoryMovements from './inventoryMovements'
 /** Эпик 5: акты приёмки текущего КУ для operator-стола */
 export * as ListAplReceptionsByBraname from './listAplReceptionsByBraname'
 /** Эпик 14 (14.2): поставщики с принятыми заказами, ожидающими самовывоза на КУ */
