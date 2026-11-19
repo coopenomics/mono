@@ -8,6 +8,7 @@ export * as Tables from './tables'
  * показа; источник истины — контракт.
  */
 export * as PeriodModel from './periodModel'
+export * as WorkingHours from './workingHours'
 
 /**
  * @private

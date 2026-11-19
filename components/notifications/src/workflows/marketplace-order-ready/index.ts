@@ -13,6 +13,8 @@ export const marketplaceOrderReadyPayloadSchema = z.object({
   deepLinkUrl: z.string().optional(),
   /** Напоминание о паспорте для неверифицированного получателя; пусто, если верифицирован. */
   passportReminder: z.string().optional(),
+  /** Режим работы пункта выдачи: « Режим работы участка: Пн–Пт 09:00–18:00; Сб–Вс выходной.»; пусто, если режим не задан. */
+  workingHoursNote: z.string().optional(),
 });
 
 export type IPayload = z.infer<typeof marketplaceOrderReadyPayloadSchema>;

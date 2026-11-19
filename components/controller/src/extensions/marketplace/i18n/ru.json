@@ -659,7 +659,8 @@
       "returnRejectedRemoteTitle": "Возврат отклонён удалённо председателем",
       "returnedAmountNote": " — {returnedAmount} ₽ восстановлены",
       "reviewInviteProductFallback": "ваш заказ",
-      "signActPromptBody": "Подпишите акт приёма-передачи в приложении — имущество ждёт вас на участке {kuName}."
+      "signActPromptBody": "Подпишите акт приёма-передачи в приложении — имущество ждёт вас на участке {kuName}.",
+      "workingHoursNote": " Режим работы участка: {hours}."
     },
     "offer": {
       "rejectedStatusLabel": "отклонено",
@@ -930,6 +931,19 @@
         "approved": "Совет одобрил, ждёт кассира",
         "paid": "Выплачено",
         "declined": "Отказано"
+      }
+    },
+    "workingHours": {
+      "break": "перерыв",
+      "dayOff": "выходной",
+      "day": {
+        "mon": "Пн",
+        "tue": "Вт",
+        "wed": "Ср",
+        "thu": "Чт",
+        "fri": "Пт",
+        "sat": "Сб",
+        "sun": "Вс"
       }
     }
   }

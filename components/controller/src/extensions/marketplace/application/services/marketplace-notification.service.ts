@@ -1,6 +1,7 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
+import { MarketContract } from 'cooptypes';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
@@ -56,6 +57,7 @@ import {
   type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
 import { t } from '../../i18n';
+import { KU_DETAILS_DOMAIN_REPOSITORY, type KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
 
 /**
  * Story 5.4 / 5.6 / 5.7 — push-уведомления marketplace flow.
@@ -82,7 +84,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort
+    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort,
+    @Inject(KU_DETAILS_DOMAIN_REPOSITORY) private readonly kuDetails: KuDetailsDomainRepository
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
   }
@@ -101,6 +104,28 @@ export class MarketplaceNotificationService implements OnModuleInit {
       return (await this.accountPort.getDisplayName(braname)) || braname;
     } catch {
       return braname;
+    }
+  }
+
+  /**
+   * Режим работы пункта выдачи для уведомления о готовности заказа (решение
+   * владельца 19.11.2026): пайщик узнаёт, когда участок выдаёт заказы, не
+   * открывая стол. Время — местное время участка, как его ввёл председатель;
+   * пояс не пересчитывается. Дни с одинаковым режимом объединены: «Пн–Пт
+   * 09:00–18:00; Сб–Вс выходной». Режим не задан или деталей нет — пустая
+   * строка: уведомление важнее подробностей.
+   */
+  private async workingHoursNote(coopname: string, braname: string): Promise<string> {
+    try {
+      const details = await this.kuDetails.findByCoreBraname(coopname, braname);
+      const hours = MarketContract.WorkingHours.formatWorkingHours(details?.workingHours, {
+        day: (day) => t(`marketplace.workingHours.day.${day}`),
+        breakWord: t('marketplace.workingHours.break'),
+        dayOff: t('marketplace.workingHours.dayOff'),
+      }).join('; ');
+      return hours ? t('marketplace.notification.workingHoursNote', { hours }) : '';
+    } catch {
+      return '';
     }
   }
 
@@ -322,6 +347,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
         passportReminder,
+        workingHoursNote: await this.workingHoursNote(event.coopname, event.braname),
       };
       await this.notificationSenderService.notifyUser(
         event.orderer_account,
