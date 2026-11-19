@@ -5499,7 +5499,6 @@ export type MessageKey =
   | 'marketplace.multiChannelStatus.timeLabel'
   | 'marketplace.multiChannelStatus.title'
   | 'marketplace.myOrdersPage.ariaLabel'
-  | 'marketplace.myOrdersPage.bannerHint'
   | 'marketplace.myOrdersPage.emptyBody'
   | 'marketplace.myOrdersPage.emptyTitle'
   | 'marketplace.myOrdersPage.filterActive'

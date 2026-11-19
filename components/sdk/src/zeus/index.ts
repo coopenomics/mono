@@ -12898,6 +12898,8 @@ export type ValueTypes = {
 };
 	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
 ["MarketplaceListOrdersInput"]: {
+	/** Фильтр по пункту выдачи заказа (кооперативному участку). */
+	delivery_braname?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по идентификатору предложения. */
 	offer_id?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по аккаунту заказчика. */
@@ -32361,6 +32363,8 @@ export type ResolverInputTypes = {
 };
 	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
 ["MarketplaceListOrdersInput"]: {
+	/** Фильтр по пункту выдачи заказа (кооперативному участку). */
+	delivery_braname?: string | undefined | null,
 	/** Фильтр по идентификатору предложения. */
 	offer_id?: string | undefined | null,
 	/** Фильтр по аккаунту заказчика. */
@@ -51150,6 +51154,8 @@ export type ModelTypes = {
 };
 	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
 ["MarketplaceListOrdersInput"]: {
+	/** Фильтр по пункту выдачи заказа (кооперативному участку). */
+	delivery_braname?: string | undefined | null,
 	/** Фильтр по идентификатору предложения. */
 	offer_id?: string | undefined | null,
 	/** Фильтр по аккаунту заказчика. */
@@ -71025,7 +71031,9 @@ export type GraphQLTypes = {
 };
 	/** Параметры фильтрации списка заказов (постранично/сортировка задаются отдельным аргументом options). */
 ["MarketplaceListOrdersInput"]: {
-		/** Фильтр по идентификатору предложения. */
+		/** Фильтр по пункту выдачи заказа (кооперативному участку). */
+	delivery_braname?: string | undefined | null,
+	/** Фильтр по идентификатору предложения. */
 	offer_id?: string | undefined | null,
 	/** Фильтр по аккаунту заказчика. */
 	orderer_account?: string | undefined | null,
