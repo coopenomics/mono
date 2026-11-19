@@ -571,8 +571,10 @@ export class MarketplaceNotificationService implements OnModuleInit {
 
   /**
    * Совет решил по выдаче имущества не у стойки (решение шло вручную):
-   * пайщик уже ушёл — push «подпишите акт в приложении, заберёте при
-   * следующем визите» либо «совет отказал, паевой взнос остался на месте».
+   * «совет согласовал возврат» либо «совет отказал, паевой взнос остался на
+   * месте». При согласии следующего шага в тексте нет (решение владельца
+   * 19.11.2026): акт подписывается при визите пайщика на участок,
+   * призыв «подпишите акт в приложении» только путал.
    */
   @OnEvent(MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT)
   async handleIssuanceDecidedOffline(event: MarketplaceIssuanceDecidedOfflineEvent): Promise<void> {
@@ -587,9 +589,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         outcomeText: event.authorized
           ? t('marketplace.notification.councilApprovedReturnBody')
           : t('marketplace.notification.councilRejectedIssuanceBody'),
-        nextStepText: event.authorized
-          ? t('marketplace.notification.signActPromptBody', { kuName })
-          : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
+        nextStepText: event.authorized ? '' : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
       await this.notificationSenderService.notifyUser(
