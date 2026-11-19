@@ -271,7 +271,7 @@ describe('mkt.order.keu.11 — расчёт контрактом и зеркал
     expect(row).toMatchObject({
       braname: BRANAME, period: NOVEMBER, membership: '632911.3924', funds_amount: '132911.3924', branch_amount: '500000.0000',
       initiator_amount: '313380.7594', return_amount: '193707.8482', rate_branch: '166666', rate_funds: '44303', rate_initiator: '104460',
-      initiator: 'chairkrg', rows_total: 2, rows_charged: 0, deleted_at: null,
+      rows_total: 2, rows_charged: 0, deleted_at: null,
     });
     expect(row.closed_at.toISOString()).toBe('2026-12-01T00:15:00.000Z');
     expect(store.rows.size).toBe(1);

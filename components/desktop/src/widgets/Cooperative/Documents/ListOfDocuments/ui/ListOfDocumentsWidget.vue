@@ -9,7 +9,7 @@
     :model-value='documentStore.listOptions.view'
     :options='viewOptions'
     :aria-label='$t("cooperative.listOfDocumentsWidget.viewAriaLabel")'
-    @update:model-value='(view) => applyOptions({ view })'
+    @update:model-value='setView'
   )
   BaseInput.documents-journal__date(
     type='date'
@@ -155,6 +155,11 @@ const typeOptions = computed(() =>
 /** Конец выбранного дня: период «по» включает весь день. */
 function endOfDay(date: string): string {
   return `${date}T23:59:59`;
+}
+
+/** Переключатель вида отдаёт значение выбранного варианта — один из видов журнала. */
+function setView(view: string | number): void {
+  void applyOptions({ view: view as IDocumentListOptions['view'] });
 }
 
 async function applyOptions(options: Partial<IDocumentListOptions>): Promise<void> {

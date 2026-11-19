@@ -231,7 +231,7 @@ const MOVEMENT_VIEW: Record<string, { icon: string; type: ActivityEventType }> =
 }
 
 type MovementView = MarketplaceInventoryMovementView
-const orNone = (value: string | null): string | undefined => value ?? undefined
+const orNone = (value: string | null | undefined): string | undefined => value ?? undefined
 
 /** Пояснение шага: только новое — участок, место, штрих-код, количество, получатель. */
 const MOVEMENT_DESCRIPTION: Record<string, (m: MovementView) => string | undefined> = {
@@ -241,7 +241,7 @@ const MOVEMENT_DESCRIPTION: Record<string, (m: MovementView) => string | undefin
   PLACED: (m) => m.place_label ?? t('marketplace.inventoryItemDrawer.movementUnplaced'),
   LABELED: (m) => orNone(m.barcode_value),
   RESIZED: (m) =>
-    item.value && m.quantity !== null
+    item.value && typeof m.quantity === 'number'
       ? inventoryQuantityLabel({ ...item.value, quantity_per_label: m.quantity })
       : undefined,
   ISSUED: (m) =>

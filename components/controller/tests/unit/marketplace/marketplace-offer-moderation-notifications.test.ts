@@ -54,7 +54,16 @@ function makeService(admins: Array<{ username: string }> = [{ username: ADMIN }]
     getVerificationTypes: jest.fn(async () => []),
   } as never;
 
-  const service = new MarketplaceNotificationService(sender, accountPort, kuChairmanService, verificationPort, logger, { confirmers: jest.fn(async () => []) } as any);
+  const service = new MarketplaceNotificationService(
+    sender,
+    accountPort,
+    kuChairmanService,
+    verificationPort,
+    logger,
+    { confirmers: jest.fn(async () => []) } as any,
+    // Режим работы пункта выдачи читается для уведомления о готовности заказа.
+    { findByCoreBraname: jest.fn(async () => null) } as any
+  );
   return { service, notifyUser, logger: logger as unknown as { warn: jest.Mock } };
 }
 

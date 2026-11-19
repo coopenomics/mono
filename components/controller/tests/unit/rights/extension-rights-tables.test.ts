@@ -73,6 +73,8 @@ const SUITES: Suite[] = [
       reportsFunds: COUNCIL,
       reportsFundHistory: COUNCIL,
       reportsProcess: COUNCIL,
+      // Содержание процесса — тот же реестр процессов, то же право чтения.
+      reportsProcessContent: COUNCIL,
       reportsProcesses: COUNCIL,
       reportsParticipants: COUNCIL,
       reportsParticipantWallets: COUNCIL,
@@ -147,13 +149,14 @@ describe.each(SUITES)('$title: операции под общим гардом',
     const allowed = ops[operation] ?? rest;
     for (const who of ALL) {
       const caller = CALLERS[who];
-      // Документы на своё имя: имя в запросе совпадает с вошедшим.
-      const attempt = pass(requirement, caller, { data: { username: caller.username } });
+      // Документы на своё имя: имя в запросе совпадает с вошедшим. Реестр
+      // доверенностей называет владельца в отборе (`filter.holder`).
+      const attempt = pass(requirement, caller, { data: { username: caller.username }, filter: { holder: caller.username } });
       if (allowed.includes(who)) await expect(attempt).resolves.toBe(true);
       else await expect(attempt).rejects.toMatchObject(NO_RIGHT);
     }
     // Кандидат прав пайщика не имеет.
-    await expect(pass(requirement, candidate, { data: { username: candidate.username } })).rejects.toMatchObject(NO_RIGHT);
+    await expect(pass(requirement, candidate, { data: { username: candidate.username }, filter: { holder: candidate.username } })).rejects.toMatchObject(NO_RIGHT);
   });
 });
 

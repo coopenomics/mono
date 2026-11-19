@@ -146,8 +146,8 @@ const facts = computed<ProcessFact[]>(() => {
   ]
 })
 
-function formatDate(value: string | Date): string {
-  return new Date(value).toLocaleString(uiLocale(), {
+function formatDate(value: unknown): string {
+  return new Date(value as string | Date).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

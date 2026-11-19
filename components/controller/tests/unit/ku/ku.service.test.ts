@@ -105,6 +105,12 @@ function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
   const repos = makeRepos(opts.decision === undefined ? makeDecision() : opts.decision, opts.trustRequest ?? null);
   const documentPort = makeDocumentPort();
   const accountPort = makeAccountPort();
+  // Реестр доверенностей участка: проверка председателя участка и реквизиты доверенности.
+  const powersOfAttorney = {
+    assertTrustee: jest.fn(async () => undefined),
+    trusteeAuthorityRequisites: jest.fn(async () => ({})),
+    trustedAuthorityRequisites: jest.fn(async () => ({})),
+  } as any;
   const service = new KuService(
     kuPort,
     branchPort,
@@ -112,9 +118,10 @@ function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
     repos.questionRepository,
     repos.trustRequestRepository,
     accountPort,
-    documentPort
+    documentPort,
+    powersOfAttorney
   );
-  return { service, kuPort, branchPort, repos, documentPort, accountPort };
+  return { service, kuPort, branchPort, repos, documentPort, accountPort, powersOfAttorney };
 }
 
 describe('KuService — проверки прав', () => {
@@ -319,22 +326,37 @@ describe('KuService — генерация документов', () => {
     expect(data.registry_id).toBe(R.BranchTrusteeLiabilityAgreement.registry_id);
   });
 
-  it(`generateBranchTrusteePowerOfAttorney проставляет registry_id ${R.BranchTrusteePowerOfAttorney.registry_id}`, async () => {
-    const { service, documentPort } = makeService();
+  it(`generateBranchTrusteePowerOfAttorney проставляет registry_id ${R.BranchTrusteePowerOfAttorney.registry_id} и реквизиты доверенности из реестра узла`, async () => {
+    const { service, documentPort, powersOfAttorney } = makeService();
+    powersOfAttorney.trusteeAuthorityRequisites.mockResolvedValue({ braname: 'krg', number: 'Д-1', valid_until: '2027-11-18' });
 
-    await service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
+    // Номер и срок доверенности вписывает узел: значения из запроса не берутся.
+    await service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice', braname: 'krg', number: 'чужой' } as any);
 
+    expect(powersOfAttorney.trusteeAuthorityRequisites).toHaveBeenCalledWith(COOP, 'krg', 'alice');
     const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(R.BranchTrusteePowerOfAttorney.registry_id);
+    expect(data).toMatchObject({ number: 'Д-1', valid_until: '2027-11-18' });
   });
 
-  it(`generateBranchTrustedPowerOfAttorney проставляет registry_id ${R.BranchTrustedPowerOfAttorney.registry_id}`, async () => {
-    const { service, documentPort } = makeService();
+  it(`generateBranchTrustedPowerOfAttorney проставляет registry_id ${R.BranchTrustedPowerOfAttorney.registry_id} и основание из реестра узла`, async () => {
+    const { service, documentPort, powersOfAttorney } = makeService();
+    powersOfAttorney.trustedAuthorityRequisites.mockResolvedValue({ braname: 'krg', trustee_authority_number: 'Д-1' });
 
-    await service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
+    await service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice', braname: 'krg' } as any);
 
+    expect(powersOfAttorney.trustedAuthorityRequisites).toHaveBeenCalledWith(COOP, 'krg');
     const { data } = documentPort.generate.mock.calls[0][0];
     expect(data.registry_id).toBe(R.BranchTrustedPowerOfAttorney.registry_id);
+    expect(data).toMatchObject({ trustee_authority_number: 'Д-1' });
+  });
+
+  it('доверенность без участка: служба отказывает с кодом и документ не создаёт', async () => {
+    const { service, documentPort } = makeService();
+
+    await expect(service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice' } as any)).rejects.toMatchObject({ code: 'KU_BRANCH_REQUIRED' });
+    await expect(service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice' } as any)).rejects.toMatchObject({ code: 'KU_BRANCH_REQUIRED' });
+    expect(documentPort.generate).not.toHaveBeenCalled();
   });
 });
 
