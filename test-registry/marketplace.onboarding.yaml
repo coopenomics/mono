@@ -434,6 +434,32 @@ cases:
     test: ~
     status: missing
 
+  # 19.11.2026 (598-63, решение владельца): председатель приостанавливает и
+  # возобновляет действие договора поставщика в его карточке реестра; аккаунт
+  # кооперативного участка поставщиком не добавляется.
+  - id: mkt.onb.side.supplier.suspend
+    level: backend
+    kind: side
+    scenario: Председатель приостанавливает действие договора действующего поставщика, затем возобновляет
+    expect: >
+      приостановленный поставщик теряет допуск (isOfferer — нет); возобновление
+      возвращает «одобрен»; приостановить можно только действующего, возобновить —
+      только приостановленного; новая заявка и смена модели приостановку не обходят
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-registry-service.test.ts
+    external: unreachable
+    external_reason: "приостановка проверяется модульно; поставщик стенда нужен другим сценариям в рабочем состоянии"
+    status: written   # проверка — CI на полигоне ci/tests
+
+  - id: mkt.onb.break.supplier.branch
+    level: backend
+    kind: break
+    scenario: Администратор добавляет поставщиком аккаунт кооперативного участка
+    expect: отказ MARKETPLACE_SUPPLIER_REGISTRY_BRANCH_ACCOUNT, запись в реестре не создаётся; поиск на столе участки не показывает
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-registry-service.test.ts
+    external: unreachable
+    external_reason: "отказ проверяется модульно; на стенде участки уже скрыты из поиска стола"
+    status: written   # проверка — CI на полигоне ci/tests
+
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.

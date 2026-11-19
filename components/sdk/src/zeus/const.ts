@@ -2836,6 +2836,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceRequestSupplier:{
 			input:"MarketplaceRequestSupplierInput"
 		},
+		marketplaceResumeSupplier:{
+			input:"MarketplaceSupplierMemberInput"
+		},
 		marketplaceRetireStorageCells:{
 			data:"MarketplaceRetireStorageCellsInput"
 		},
@@ -2901,6 +2904,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSubmitWriteoffDraft:{
 			data:"MarketplaceSubmitWriteoffDraftInput"
+		},
+		marketplaceSuspendSupplier:{
+			input:"MarketplaceSupplierMemberInput"
 		},
 		marketplaceSwitchSupplierModel:{
 			input:"MarketplaceSwitchSupplierModelInput"
@@ -9144,6 +9150,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
 		marketplaceRepublishOffer:"MarketplaceOffer",
 		marketplaceRequestSupplier:"MarketplaceSupplier",
+		marketplaceResumeSupplier:"MarketplaceSupplier",
 		marketplaceRetireStorageCells:"MarketplaceStorageCell",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
 		marketplaceSetAidLimit:"MarketplaceEconomySettings",
@@ -9166,6 +9173,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
 		marketplaceSplitInventory:"MarketplaceInventoryMutationResult",
 		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceSuspendSupplier:"MarketplaceSupplier",
 		marketplaceSwitchSupplierModel:"MarketplaceSupplier",
 		marketplaceUnpublishStock:"MarketplaceUnpublishStockResult",
 		marketplaceUpdateCartItem:"MarketplaceCart",

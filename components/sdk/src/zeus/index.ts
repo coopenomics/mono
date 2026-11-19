@@ -14593,7 +14593,7 @@ export type ValueTypes = {
 	/** Тип изображения: image/jpeg, image/png либо image/webp. */
 	mime_type: string | Variable<any, string>
 };
-	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён, действие договора приостановлено */
 ["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
 	/** Дата нового договора (ГГГГ-ММ-ДД) */
@@ -15638,6 +15638,7 @@ marketplaceRenameStorageSection?: [{	data: ValueTypes["MarketplaceRenameStorageS
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ValueTypes["MarketplaceRepublishOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRequestSupplier?: [{	input: ValueTypes["MarketplaceRequestSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
+marketplaceResumeSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceRetireStorageCells?: [{	data: ValueTypes["MarketplaceRetireStorageCellsInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetAidLimit?: [{	data: ValueTypes["MarketplaceSetAidLimitInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomySettings"]],
@@ -15660,6 +15661,7 @@ marketplaceSignIssuanceStatement?: [{	data: ValueTypes["MarketplaceSignIssuanceS
 marketplaceSignOnboardingOffer?: [{	input: ValueTypes["MarketplaceSignOnboardingOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOnboardingState"]],
 marketplaceSplitInventory?: [{	data: ValueTypes["MarketplaceSplitInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ValueTypes["MarketplaceSubmitWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceSuspendSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceSwitchSupplierModel?: [{	input: ValueTypes["MarketplaceSwitchSupplierModelInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceUnpublishStock?: [{	data: ValueTypes["MarketplaceUnpublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceUnpublishStockResult"]],
 marketplaceUpdateCartItem?: [{	input: ValueTypes["MarketplaceUpdateCartItemInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
@@ -34007,7 +34009,7 @@ export type ResolverInputTypes = {
 	/** Тип изображения: image/jpeg, image/png либо image/webp. */
 	mime_type: string
 };
-	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён, действие договора приостановлено */
 ["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
 	/** Дата нового договора (ГГГГ-ММ-ДД) */
@@ -35027,6 +35029,7 @@ marketplaceRenameStorageSection?: [{	data: ResolverInputTypes["MarketplaceRename
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ResolverInputTypes["MarketplaceRepublishOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRequestSupplier?: [{	input: ResolverInputTypes["MarketplaceRequestSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
+marketplaceResumeSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceRetireStorageCells?: [{	data: ResolverInputTypes["MarketplaceRetireStorageCellsInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetAidLimit?: [{	data: ResolverInputTypes["MarketplaceSetAidLimitInput"]},ResolverInputTypes["MarketplaceEconomySettings"]],
@@ -35049,6 +35052,7 @@ marketplaceSignIssuanceStatement?: [{	data: ResolverInputTypes["MarketplaceSignI
 marketplaceSignOnboardingOffer?: [{	input: ResolverInputTypes["MarketplaceSignOnboardingOfferInput"]},ResolverInputTypes["MarketplaceOnboardingState"]],
 marketplaceSplitInventory?: [{	data: ResolverInputTypes["MarketplaceSplitInventoryInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceSubmitWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceSuspendSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceSwitchSupplierModel?: [{	input: ResolverInputTypes["MarketplaceSwitchSupplierModelInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceUnpublishStock?: [{	data: ResolverInputTypes["MarketplaceUnpublishStockInput"]},ResolverInputTypes["MarketplaceUnpublishStockResult"]],
 marketplaceUpdateCartItem?: [{	input: ResolverInputTypes["MarketplaceUpdateCartItemInput"]},ResolverInputTypes["MarketplaceCart"]],
@@ -54044,6 +54048,8 @@ export type ModelTypes = {
 	marketplaceRepublishOffer: ModelTypes["MarketplaceOffer"],
 	/** Подать заявку на допуск поставщика по членской модели (путь 1) */
 	marketplaceRequestSupplier: ModelTypes["MarketplaceSupplier"],
+	/** Возобновить действие договора поставщика (председатель): допуск к работе поставщика возвращается */
+	marketplaceResumeSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Председатель кооперативного участка выводит из оборота секцию или ярус склада целиком. Выводится только пустая координата. */
 	marketplaceRetireStorageCells: Array<ModelTypes["MarketplaceStorageCell"]>,
 	/** Повторно запускает геокодинг адреса ПВЗ. */
@@ -54088,6 +54094,8 @@ export type ModelTypes = {
 	marketplaceSplitInventory: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление о списании скоропорта. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Приостановить действие договора поставщика (председатель): допуск к работе поставщика снимается, запись сохраняется */
+	marketplaceSuspendSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Сменить модель работы поставщика (требует переподписания договора) */
 	marketplaceSwitchSupplierModel: ModelTypes["MarketplaceSupplier"],
 	/** Оператор снимает свободные позиции остатка с витрины каталога. */
@@ -72726,7 +72734,7 @@ export type GraphQLTypes = {
 	/** Тип изображения: image/jpeg, image/png либо image/webp. */
 	mime_type: string
 };
-	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён, действие договора приостановлено */
 ["MarketplaceSupplierStatus"]: MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
 		/** Дата нового договора (ГГГГ-ММ-ДД) */
@@ -74104,6 +74112,8 @@ export type GraphQLTypes = {
 	marketplaceRepublishOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Подать заявку на допуск поставщика по членской модели (путь 1) */
 	marketplaceRequestSupplier: GraphQLTypes["MarketplaceSupplier"],
+	/** Возобновить действие договора поставщика (председатель): допуск к работе поставщика возвращается */
+	marketplaceResumeSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Председатель кооперативного участка выводит из оборота секцию или ярус склада целиком. Выводится только пустая координата. */
 	marketplaceRetireStorageCells: Array<GraphQLTypes["MarketplaceStorageCell"]>,
 	/** Повторно запускает геокодинг адреса ПВЗ. */
@@ -74148,6 +74158,8 @@ export type GraphQLTypes = {
 	marketplaceSplitInventory: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление о списании скоропорта. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Приостановить действие договора поставщика (председатель): допуск к работе поставщика снимается, запись сохраняется */
+	marketplaceSuspendSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Сменить модель работы поставщика (требует переподписания договора) */
 	marketplaceSwitchSupplierModel: GraphQLTypes["MarketplaceSupplier"],
 	/** Оператор снимает свободные позиции остатка с витрины каталога. */
@@ -80610,11 +80622,12 @@ export enum MarketplaceSupplierModel {
 	MEMBERSHIP = "MEMBERSHIP",
 	SHARE = "SHARE"
 }
-/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён, действие договора приостановлено */
 export enum MarketplaceSupplierStatus {
 	APPROVED = "APPROVED",
 	PENDING = "PENDING",
-	REJECTED = "REJECTED"
+	REJECTED = "REJECTED",
+	SUSPENDED = "SUSPENDED"
 }
 /** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Количество и цена ведутся прямо в ней. */
 export enum MarketplaceUnitOfMeasure {

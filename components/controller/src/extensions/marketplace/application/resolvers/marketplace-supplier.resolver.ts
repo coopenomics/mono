@@ -144,6 +144,36 @@ export class MarketplaceSupplierResolver {
   }
 
   @Mutation(() => MarketplaceSupplierDTO, {
+    name: 'marketplaceSuspendSupplier',
+    description: 'Приостановить действие договора поставщика (председатель): допуск к работе поставщика снимается, запись сохраняется',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Supplier', 'manage')
+  async marketplaceSuspendSupplier(
+    @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceSupplierMemberInputDTO
+  ): Promise<MarketplaceSupplierDTO> {
+    this.assertChairman(currentMember);
+    const entry = await this.service.suspend(platformSettings().coopname, input.member_account, currentMember.username);
+    return MarketplaceSupplierDTO.fromDomain(entry);
+  }
+
+  @Mutation(() => MarketplaceSupplierDTO, {
+    name: 'marketplaceResumeSupplier',
+    description: 'Возобновить действие договора поставщика (председатель): допуск к работе поставщика возвращается',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Supplier', 'manage')
+  async marketplaceResumeSupplier(
+    @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceSupplierMemberInputDTO
+  ): Promise<MarketplaceSupplierDTO> {
+    this.assertChairman(currentMember);
+    const entry = await this.service.resume(platformSettings().coopname, input.member_account, currentMember.username);
+    return MarketplaceSupplierDTO.fromDomain(entry);
+  }
+
+  @Mutation(() => MarketplaceSupplierDTO, {
     name: 'marketplaceRejectSupplier',
     description: 'Отклонить заявку поставщика (председатель)',
   })

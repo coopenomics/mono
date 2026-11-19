@@ -156,6 +156,8 @@ export * as AddSupplier from './addSupplier'
 export * as ApproveSupplier from './approveSupplier'
 /** Отклонение заявки поставщика (председатель) */
 export * as RejectSupplier from './rejectSupplier'
+export * as SuspendSupplier from './suspendSupplier'
+export * as ResumeSupplier from './resumeSupplier'
 /** Смена модели работы поставщика (переподписание договора) */
 export * as SwitchSupplierModel from './switchSupplierModel'
 /** Поставщик правит свой профиль */

@@ -2535,6 +2535,8 @@
       "modelLabel": "Модель",
       "openProfileButton": "Открыть профиль",
       "rejectButton": "Отклонить",
+      "resumeButton": "Возобновить действие договора",
+      "suspendButton": "Приостановить действие договора",
       "title": "Поставщик"
     },
     "supplierMyProfilePage": {
@@ -2616,14 +2618,19 @@
       "introText2": "администратор может добавить поставщика напрямую.",
       "pageAriaLabel": "Реестр поставщиков",
       "rejectButton": "Отклонить",
-      "rejectSuccessMessage": "Заявка отклонена"
+      "rejectSuccessMessage": "Заявка отклонена",
+      "resumeSuccessMessage": "Действие договора поставщика возобновлено",
+      "suspendConfirmMessage": "Поставщик потеряет доступ к столу поставщика и не сможет публиковать предложения, пока председатель не возобновит действие договора.",
+      "suspendConfirmTitle": "Приостановить действие договора поставщика?",
+      "suspendSuccessMessage": "Действие договора поставщика приостановлено"
     },
     "supplierStatus": {
       "approved": "Одобрен",
       "membership": "Членская",
       "pending": "На рассмотрении",
       "rejected": "Отклонён",
-      "share": "Паевая"
+      "share": "Паевая",
+      "suspended": "Приостановлен"
     },
     "supplyParty": {
       "orderCount": "{n} заказ | {n} заказа | {n} заказов"

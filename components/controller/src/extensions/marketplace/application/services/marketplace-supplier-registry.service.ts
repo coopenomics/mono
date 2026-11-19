@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   MARKETPLACE_SUPPLIER_REPOSITORY,
@@ -16,6 +16,7 @@ import {
   MarketplaceSupplierStatus,
 } from '../../domain/entities/marketplace-supplier.types';
 import { DomainError } from '@coopenomics/extension-kit';
+import { MARKETPLACE_KU_CHAIRMAN_SERVICE, MarketplaceKuChairmanService } from './marketplace-ku-chairman.service';
 
 export const MARKETPLACE_SUPPLIER_REGISTRY_SERVICE = Symbol(
   'MARKETPLACE_SUPPLIER_REGISTRY_SERVICE'
@@ -46,8 +47,22 @@ export class MarketplaceSupplierRegistryService {
   constructor(
     @Inject(MARKETPLACE_SUPPLIER_REPOSITORY)
     private readonly repo: MarketplaceSupplierDomainRepository,
-    private readonly eventBus: EventEmitter2
+    private readonly eventBus: EventEmitter2,
+    // Аккаунты кооперативных участков поставщиками не бывают; без сервиса
+    // участков (модульные тесты) проверка пропускается.
+    @Optional()
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuService: MarketplaceKuChairmanService | null = null
   ) {}
+
+  /** Аккаунт кооперативного участка не может быть поставщиком (замечание владельца 19.11.2026). */
+  private async assertNotBranch(coopname: string, member_account: string): Promise<void> {
+    if (!this.kuService) return;
+    const branches = await this.kuService.listAllBranames(coopname);
+    if (branches.includes(member_account)) {
+      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_REGISTRY_BRANCH_ACCOUNT');
+    }
+  }
 
   async list(coopname: string): Promise<MarketplaceSupplierDomainEntity[]> {
     return this.repo.list(coopname);
@@ -100,6 +115,11 @@ export class MarketplaceSupplierRegistryService {
       }
       if (existing.status === MarketplaceSupplierStatus.PENDING) {
         return existing;
+      }
+      // Приостановленный договор возобновляет только председатель: новая
+      // заявка обошла бы приостановку.
+      if (existing.status === MarketplaceSupplierStatus.SUSPENDED) {
+        throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_SUSPENDED');
       }
       // REJECTED → переоткрываем заявку с новыми реквизитами договора.
       const reopened = await this.repo.patch(coopname, member_account, {
@@ -161,6 +181,7 @@ export class MarketplaceSupplierRegistryService {
     contract_date: string | null,
     added_by: string
   ): Promise<MarketplaceSupplierDomainEntity> {
+    await this.assertNotBranch(coopname, member_account);
     const existing = await this.repo.findByMember(coopname, member_account);
     let result: MarketplaceSupplierDomainEntity;
     if (existing) {
@@ -239,6 +260,44 @@ export class MarketplaceSupplierRegistryService {
   }
 
   /**
+   * Приостановка действия договора поставщика председателем (решение
+   * владельца 19.11.2026). Допуск к работе поставщика снимается сразу:
+   * `isOfferer` отвечает «нет», стол поставщика и публикация предложений
+   * закрыты. Запись и реквизиты договора сохраняются. Приостановить можно
+   * только действующего поставщика.
+   */
+  async suspend(coopname: string, member_account: string, reviewed_by: string): Promise<MarketplaceSupplierDomainEntity> {
+    const existing = await this.repo.findByMember(coopname, member_account);
+    if (!existing) throw DomainError.notFound('MARKETPLACE_SUPPLIER_NOT_FOUND_IN_REGISTRY', { memberAccount: member_account });
+    if (existing.status !== MarketplaceSupplierStatus.APPROVED) {
+      throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_NOT_ACTIVE');
+    }
+    const result = await this.repo.patch(coopname, member_account, {
+      status: MarketplaceSupplierStatus.SUSPENDED,
+      reviewed_by,
+      reviewed_at: new Date(),
+    });
+    this.invalidateCache(coopname);
+    return result;
+  }
+
+  /** Возобновление действия договора: допуск возвращается. Только из приостановки. */
+  async resume(coopname: string, member_account: string, reviewed_by: string): Promise<MarketplaceSupplierDomainEntity> {
+    const existing = await this.repo.findByMember(coopname, member_account);
+    if (!existing) throw DomainError.notFound('MARKETPLACE_SUPPLIER_NOT_FOUND_IN_REGISTRY', { memberAccount: member_account });
+    if (existing.status !== MarketplaceSupplierStatus.SUSPENDED) {
+      throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_NOT_SUSPENDED');
+    }
+    const result = await this.repo.patch(coopname, member_account, {
+      status: MarketplaceSupplierStatus.APPROVED,
+      reviewed_by,
+      reviewed_at: new Date(),
+    });
+    this.invalidateCache(coopname);
+    return result;
+  }
+
+  /**
    * Смена модели работы поставщика — требует переподписания договора.
    * Членская: новый бумажный договор (номер + дата) → запись возвращается в
    * `PENDING` на повторное одобрение. Паевая модель пока не реализована.
@@ -252,6 +311,10 @@ export class MarketplaceSupplierRegistryService {
   ): Promise<MarketplaceSupplierDomainEntity> {
     if (model === MarketplaceSupplierModel.SHARE) {
       throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_SHARE_MODEL_UNAVAILABLE');
+    }
+    const current = await this.repo.findByMember(coopname, member_account);
+    if (current?.status === MarketplaceSupplierStatus.SUSPENDED) {
+      throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_SUSPENDED');
     }
     const result = await this.repo.patch(coopname, member_account, {
       model,
