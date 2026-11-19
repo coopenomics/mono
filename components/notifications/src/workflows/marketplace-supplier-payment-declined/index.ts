@@ -9,7 +9,8 @@ export const marketplaceSupplierPaymentDeclinedPayloadSchema = z.object({
   supplierName: z.string(),
   amount: z.string(),
   reason: z.string(),
-  apl_reception_id: z.string(),
+  /** Основание выплаты — заказы пакета, в дательном падеже после «по»: «6 заказам». */
+  ordersLabel: z.string(),
   payment_request_id: z.string(),
   coopname: z.string(),
   deepLinkUrl: z.string().optional(),

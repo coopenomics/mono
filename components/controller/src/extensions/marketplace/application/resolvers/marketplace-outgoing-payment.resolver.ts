@@ -48,7 +48,7 @@ export class MarketplaceOutgoingPaymentResolver {
 
   @Query(() => [MarketplaceOutgoingPaymentRequestDTO], {
     name: 'marketplaceListOutgoingPaymentsAsSupplier',
-    description: 'История выплат поставщику в столе поставщика — статусы по каждому заказу.',
+    description: 'История выплат поставщику в столе поставщика: одна выплата на заказы поставщика за день.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Payment', 'read:to-self', SELF)
@@ -87,7 +87,7 @@ export class MarketplaceOutgoingPaymentResolver {
     name: 'marketplaceGetOutgoingPayment',
     nullable: true,
     description:
-      'Разворот одной выплаты: сама выплата, оплаченный заказ и запись в реестре кассира. ' +
+      'Разворот одной выплаты: сама выплата, оплаченные заказы и запись в реестре кассира. ' +
       'Null — выплаты с таким идентификатором в кооперативе нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
@@ -103,8 +103,8 @@ export class MarketplaceOutgoingPaymentResolver {
 
     const detail = new MarketplaceOutgoingPaymentDetailDTO();
     detail.payment = toMarketplaceOutgoingPaymentRequestDTO(entity);
-    detail.order = await this.loadOrderSummary(entity.order_id);
-    detail.core_payment = await this.loadCorePayment(coopname, entity.order_hash);
+    detail.orders = await this.loadOrderSummaries(entity.lines.map((l) => l.order_id));
+    detail.core_payment = await this.loadCorePayment(coopname, entity.payment_hash);
     return detail;
   }
 
@@ -114,46 +114,48 @@ export class MarketplaceOutgoingPaymentResolver {
    * ленты заказов, — чтобы разворот выплаты и реестр заказов не расходились
    * в том, как называется одна и та же поставка.
    */
-  private async loadOrderSummary(
-    orderId: string
-  ): Promise<MarketplaceOutgoingPaymentOrderSummaryDTO | null> {
-    if (!orderId) return null;
-    const order = await this.orderRepo.findById(orderId);
-    if (!order) return null;
-    const display = await this.displayService.enrichOne(order, {
-      withGroupProgress: false,
-      withParticipantNames: true,
-    });
-
-    const summary = new MarketplaceOutgoingPaymentOrderSummaryDTO();
-    summary.id = order.id;
-    summary.product_name = display.product_name ?? null;
-    summary.quantity = order.quantity;
-    summary.unit_of_measure = order.unit_of_measure ?? null;
-    summary.price_per_unit = order.price_per_unit;
-    summary.total_cost = order.total_cost;
-    summary.accepted_cost = order.accepted_cost ?? null;
-    summary.status = order.status as MarketplaceOrderStatusEnum;
-    summary.orderer_name = display.orderer_name ?? null;
-    summary.delivery_point_name = display.delivery_point_name ?? null;
-    return summary;
+  private async loadOrderSummaries(
+    orderIds: string[]
+  ): Promise<MarketplaceOutgoingPaymentOrderSummaryDTO[]> {
+    if (!orderIds.length) return [];
+    const orders = await this.orderRepo.findByIds(orderIds);
+    const summaries: MarketplaceOutgoingPaymentOrderSummaryDTO[] = [];
+    for (const order of orders) {
+      const display = await this.displayService.enrichOne(order, {
+        withGroupProgress: false,
+        withParticipantNames: true,
+      });
+      const summary = new MarketplaceOutgoingPaymentOrderSummaryDTO();
+      summary.id = order.id;
+      summary.product_name = display.product_name ?? null;
+      summary.quantity = order.quantity;
+      summary.unit_of_measure = order.unit_of_measure ?? null;
+      summary.price_per_unit = order.price_per_unit;
+      summary.total_cost = order.total_cost;
+      summary.accepted_cost = order.accepted_cost ?? null;
+      summary.status = order.status as MarketplaceOrderStatusEnum;
+      summary.orderer_name = display.orderer_name ?? null;
+      summary.delivery_point_name = display.delivery_point_name ?? null;
+      summaries.push(summary);
+    }
+    return summaries;
   }
 
   /**
    * Подтверждение оплаты со стороны кооператива — запись общего реестра, с
-   * которой работает кассир. Ищем по `hash`: marketplace заводит платёж с
-   * `payment_hash = order_hash` (см. createCorePayment), других ключей у
+   * которой работает кассир. Ищем по `hash`: обход выплат заводит платёж с
+   * `payment_hash` = хэш выплаты (см. createCorePayment), других ключей у
    * кассирского порта нет. Отказ порта не должен ронять разворот выплаты —
    * marketplace-статус самодостаточен, поэтому возвращаем null.
    */
   private async loadCorePayment(
     coopname: string,
-    orderHash: string
+    paymentHash: string
   ): Promise<MarketplaceOutgoingPaymentCoreRecordDTO | null> {
-    if (!orderHash) return null;
+    if (!paymentHash) return null;
     try {
       const page = await this.coreGateway.getPayments(
-        { coopname, hash: orderHash },
+        { coopname, hash: paymentHash },
         { page: 1, limit: 1, sortOrder: 'DESC' }
       );
       const payment = page.items?.[0];

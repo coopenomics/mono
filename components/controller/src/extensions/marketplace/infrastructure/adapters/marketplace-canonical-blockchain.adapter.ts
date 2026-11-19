@@ -242,26 +242,68 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
+  async addPayouts(coopname: string, payout_hash: string, order_hashes: string[]): Promise<InnerTransactResult> {
+    return this.transactMany(
+      coopname,
+      order_hashes.map((order_hash) => ({
+        name: MarketContract.Actions.AddPayout.actionName,
+        data: { coopname, payout_hash, order_hash } satisfies MarketContract.Actions.AddPayout.IAddpayout,
+      }))
+    );
+  }
+
+  async sendPayout(coopname: string, payout_hash: string): Promise<InnerTransactResult> {
+    return this.transactMany(coopname, [
+      {
+        name: MarketContract.Actions.SendPayout.actionName,
+        data: { coopname, payout_hash } satisfies MarketContract.Actions.SendPayout.ISendpayout,
+      },
+    ]);
+  }
+
+  async closePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult> {
+    return this.transactMany(
+      coopname,
+      order_hashes.map((order_hash) => ({
+        name: MarketContract.Actions.ClosePayout.actionName,
+        data: { coopname, order_hash } satisfies MarketContract.Actions.ClosePayout.IClosepayout,
+      }))
+    );
+  }
+
+  async releasePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult> {
+    return this.transactMany(
+      coopname,
+      order_hashes.map((order_hash) => ({
+        name: MarketContract.Actions.ReleasePay.actionName,
+        data: { coopname, order_hash } satisfies MarketContract.Actions.ReleasePay.IReleasepay,
+      }))
+    );
+  }
+
+  /**
+   * Несколько действий контракта одной транзакцией от имени кооператива:
+   * действия пакета выплаты атомарны — либо все заказы, либо ни одного.
+   */
+  private async transactMany(
+    coopname: string,
+    actions: { name: string; data: Record<string, unknown> }[]
+  ): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(coopname);
     if (!wif) {
       throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_PAYOUT', {}, httpStatus.BAD_GATEWAY);
     }
-
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.PayOut.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
+    this.blockchainService.initialize(coopname, wif);
+    return await this.blockchainService.transact(
+      actions.map((a) => ({
+        account: MarketContract.contractName.production,
+        name: a.name,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data: a.data,
+      }))
+    );
   }
+
 
 
 

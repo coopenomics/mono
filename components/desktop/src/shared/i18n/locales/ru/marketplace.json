@@ -1008,7 +1008,8 @@
       "statusDeclined": "Отклонена",
       "statusPaid": "Оплачена",
       "statusPending": "Ожидает оплаты",
-      "withheldLabel": "Удержано в счёт гарантийного долга: {amount}"
+      "withheldLabel": "Удержано в счёт гарантийного долга: {amount}",
+      "ordersCountLabel": "Заказов в выплате: {count}"
     },
     "offererShipPartyPage": {
       "ariaLabel": "Код для приёмки партии"
@@ -2138,35 +2139,29 @@
         "pending": "Ожидает оплаты",
         "pendingMany": "Ожидают оплаты",
         "rejected": "Отклонено",
-        "rejectedMany": "Отклонены"
+        "rejectedMany": "Отклонены",
+        "forming": "Формируется"
       }
     },
     "payoutDetail": {
-      "acceptedAmountLabel": "Принято на сумму",
       "cashierCommentLabel": "Комментарий кассира",
       "chainTransactionLabel": "Транзакция в цепи",
       "cooperativePaymentLabel": "Платёж кооператива",
       "createdLabel": "Создана",
-      "customerLabel": "Заказчик",
-      "deliveryBranchLabel": "Участок доставки",
       "heldForDebtLabel": "Удержано в счёт долга",
       "loadFailedError": "Не удалось загрузить выплату",
       "notFoundHint": "Выплата не найдена.",
-      "orderCostLabel": "Стоимость заказа",
-      "orderSectionTitle": "Заказ",
-      "orderStateLabel": "Состояние заказа",
       "overlayTitle": "Выплата",
       "paidLabel": "Оплачена",
       "paymentConfirmationTitle": "Подтверждение оплаты",
       "paymentNotRegisteredHint": "Платёж в реестре кассира ещё не заведён.",
       "paymentNumberLabel": "Платёж №",
       "processedLabel": "Проведён",
-      "productLabel": "Товар",
       "purposeLabel": "Назначение",
       "rejectReasonLabel": "Причина отказа",
       "supplierLabel": "Поставщик",
       "transferDestinationLabel": "Куда переведено",
-      "volumeLabel": "Объём"
+      "ordersSectionTitle": "Заказы в выплате ({count})"
     },
     "pvzWriteoffsSection": {
       "column": {

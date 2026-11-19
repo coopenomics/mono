@@ -8245,7 +8245,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOutgoingPaymentDetail:{
 		core_payment:"MarketplaceOutgoingPaymentCoreRecord",
-		order:"MarketplaceOutgoingPaymentOrderSummary",
+		orders:"MarketplaceOutgoingPaymentOrderSummary",
 		payment:"MarketplaceOutgoingPaymentRequest"
 	},
 	MarketplaceOutgoingPaymentOrderSummary:{
@@ -8262,17 +8262,17 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
-		apl_reception_id:"String",
 		completed_at:"DateTime",
 		coopname:"String",
 		core_payment_id:"String",
 		created_at:"DateTime",
 		decline_reason:"String",
 		id:"String",
-		order_hash:"String",
-		order_id:"String",
+		order_ids:"String",
+		orders_count:"Int",
 		payee_account:"String",
 		payee_name:"String",
+		payment_hash:"String",
 		payout_destination:"String",
 		payout_tx_hash:"String",
 		purpose:"String",

@@ -30,8 +30,8 @@ using namespace Marketplace;
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
  *  - **p.mkt.supply**: createorder, stockorder, cancelorder, expireorder,
- *    acceptorder, declineorder, signsupp, signchair, payout, payconfirm,
- *    paydecline, readyissue, issuestmt, onmktisauth, onmktisdecl, issueact1,
+ *    acceptorder, declineorder, signsupp, signchair, addpayout, sendpayout,
+ *    payconfirm, paydecline, closepayout, releasepay, readyissue, issuestmt, onmktisauth, onmktisdecl, issueact1,
  *    issueact2, cancelissue, closeorder, markdown, setfee.
  *  - **p.mkt.return**: submretrn, aprretrem, rejretrem, accretrn, onmktrtauth,
  *    onmktrtdecl, handback, rejretrn.
@@ -233,45 +233,63 @@ public:
                                     document2 act);
 
   /**
-   * @brief Инициация исходящей выплаты поставщику через контракт gateway по
-   * одному Order'у (E11 техдолг 598-16, Locked Decision L12). Per-Order:
-   * inline-вызов `gateway::createoutpay` с callback'ами на `payconfirm` /
-   * `paydecline`. Ledger2-операция o.mkt.payout (Дт 76 / Кт 51) применяется
-   * НЕ здесь, а в callback'е `payconfirm` после действия кассира. Признанный
-   * гарантийный долг поставщика удерживается здесь же: o.mkt.deduct (BURN
-   * w.mkt.debt) на остаток долга в пределах принятой стоимости, перевод
-   * регистрируется на разницу (задача 99D-15). Статус Order'а не меняется;
-   * защита от двойного запроса — через `order.payout_status`
-   * (NONE/DECLINED → PENDING).
+   * @brief Заказ включается в пакет выплаты поставщику (решение владельца
+   * 19.11.2026). Узел в конце дня собирает принятые и ещё не оплаченные
+   * заказы поставщика в один пакет: по одному действию на заказ. Контракт
+   * прибавляет к пакету принятую стоимость за вычетом удержанного
+   * гарантийного долга (o.mkt.deduct + o.mkt.offset). Первое действие с новым
+   * хэшем заводит пакет. Заказ: payout_status none/declined → pending.
    * @ingroup public_marketplace_actions
    */
-  [[eosio::action]] void payout(eosio::name coopname,
-                                 checksum256 order_hash);
+  [[eosio::action]] void addpayout(eosio::name coopname,
+                                    checksum256 payout_hash,
+                                    checksum256 order_hash);
 
   /**
-   * @brief Callback от gateway::outcomplete — кассир подтвердил
-   * банковский перевод поставщику (E11 техдолг 598-16, Locked Decision L12).
-   * Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на принятую стоимость
-   * `accepted_cost` за вычетом удержания, проведённого при инициации
-   * (`payout_withheld`); заказ в статусе `refused` стирается; иначе
-   * `payout_status` переходит PENDING → COMPLETED. Авторизация: `_gateway`. `outcome_hash`
-   * совпадает с `order.hash` (так задано при `payout`).
+   * @brief Пакет выплаты отправляется кассиру: inline `gateway::createoutpay`
+   * на сумму пакета, `outcome_hash` — хэш пакета. Пакет open → sent, сумма
+   * больше не меняется.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void sendpayout(eosio::name coopname,
+                                     checksum256 payout_hash);
+
+  /**
+   * @brief Обратный вызов gateway::outcomplete — кассир подтвердил перевод
+   * пакета. Пакет sent → paid; проводки ставит `closepayout` по каждому
+   * заказу. Авторизация: `_gateway`. `outcome_hash` — хэш пакета.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void payconfirm(eosio::name coopname,
                                      checksum256 outcome_hash);
 
   /**
-   * @brief Callback от gateway::outdecline — кассир отметил, что
-   * банковский перевод не состоялся (E11 техдолг 598-16, Locked Decision L12).
-   * Ledger2-операция НЕ применяется; обязательство Кт 76 остаётся открытым.
-   * `payout_status` PENDING → DECLINED; `payout_decline_reason` сохраняется.
-   * Авторизация: `_gateway`.
+   * @brief Обратный вызов gateway::outdecline — кассир отметил, что перевод
+   * пакета не состоялся. Пакет sent → declined, причина сохраняется; заказы
+   * возвращает `releasepay`. Авторизация: `_gateway`.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void paydecline(eosio::name coopname,
                                      checksum256 outcome_hash,
                                      std::string reason);
+
+  /**
+   * @brief Заказ оплаченного пакета закрывается: o.mkt.payout (Дт 76 / Кт 51)
+   * на принятую стоимость за вычетом удержания; заказ pending → completed
+   * (после отказа пайщика — стирается). Последний заказ стирает пакет.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void closepayout(eosio::name coopname,
+                                      checksum256 order_hash);
+
+  /**
+   * @brief Заказ отклонённого пакета возвращается в ожидание выплаты:
+   * pending → declined, причина отказа переносится в заказ. Последний заказ
+   * стирает пакет.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void releasepay(eosio::name coopname,
+                                     checksum256 order_hash);
 
   // ── p.mkt.claim ── гарантийная претензия поставщику (задача 99D-13) ───────
 

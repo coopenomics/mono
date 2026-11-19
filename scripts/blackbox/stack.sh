@@ -337,7 +337,9 @@ cmd_keu() {
     # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
     # Экономика участка (economy) ждёт списания обеспечительной части по
     # итогу периода (99D-33): в настоящем времени его не дождаться.
-    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts \
+    # Выплату поставщику пакетом (payouts) заводит обход в начале следующих
+    # суток стенда — в настоящем времени только после полуночи.
+    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts src/marketplace/payouts.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
   ) || failed=1

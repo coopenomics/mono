@@ -290,9 +290,43 @@ export interface ISignChair {
   act: IDocument2
 }
 
-export interface IPayout {
+export interface IAddpayout {
+  coopname: IName
+  payout_hash: IChecksum256
+  order_hash: IChecksum256
+}
+
+export interface ISendpayout {
+  coopname: IName
+  payout_hash: IChecksum256
+}
+
+export interface IClosepayout {
   coopname: IName
   order_hash: IChecksum256
+}
+
+export interface IReleasepay {
+  coopname: IName
+  order_hash: IChecksum256
+}
+
+/** Пакет выплаты поставщику: один исходящий платёж кассиру на заказы поставщика за день. */
+export interface IPayout {
+  id: IUint64
+  /** Хэш пакета — outcome_hash исходящего платежа в gateway. */
+  hash: IChecksum256
+  offerer: IName
+  /** open | sent | paid | declined */
+  status: IName
+  /** Сумма перевода: Σ(принятая стоимость − удержание) по заказам пакета. */
+  amount: IAsset
+  /** Удержано в счёт признанного гарантийного долга по заказам пакета. */
+  withheld: IAsset
+  /** Заказов в пакете, ещё не закрытых. */
+  orders: IUint32
+  created_at: ITimePointSec
+  decline_reason: string
 }
 
 export interface IPayConfirm {
@@ -545,6 +579,8 @@ export interface IOrder {
    * у заказов, принятых до появления поля, значения нет — контракт читает `fact_cost`.
    */
   accepted_cost?: IAsset
+  /** Пакет выплаты поставщику, в который включён заказ; пустой хэш — вне пакета. */
+  payout_hash?: IChecksum256
   issue_act1: IDocument2
   issue_act2: IDocument2
   payout_status: IName

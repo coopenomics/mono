@@ -563,6 +563,37 @@ private readonly repo: TableStore<MarketplaceOrderEntity>,
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async listAwaitingSupplierPayout(coopname: string, cutoff: Date): Promise<MarketplaceOrderDomainEntity[]> {
+    // Отказ пайщика после приёмки зеркало держит как CANCELLED_BY_ORDERER с
+    // принятой стоимостью — контракт платит поставщику и по нему.
+    const payable = [
+      MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
+      MarketplaceOrderStatuses.READY_TO_RECEIVE,
+      MarketplaceOrderStatuses.RECEIVED,
+      MarketplaceOrderStatuses.CANCELLED_BY_ORDERER,
+    ];
+    const found = await this.repo
+      .select()
+      .where('coopname', '=', coopname)
+      .where('on_chain_present', '=', true)
+      .where('supplier_account', '<>', coopname)
+      .where('status', 'in', payable)
+      .where('accepted_cost', 'is not', null)
+      .where((eb) =>
+        eb.or([
+          eb.and([
+            eb.or([eb('payout_status', 'is', null), eb('payout_status', '=', MarketplaceOrderPayoutStatuses.NONE)]),
+            eb.or([eb('accepted_at', '<', cutoff), eb.and([eb('accepted_at', 'is', null), eb('updated_at', '<', cutoff)])]),
+          ]),
+          eb.and([eb('payout_status', '=', MarketplaceOrderPayoutStatuses.DECLINED), eb('updated_at', '<', cutoff)]),
+        ])
+      )
+      .orderBy('supplier_account', 'asc')
+      .orderBy('accepted_at', 'asc')
+      .execute();
+    return this.repo.records(found).map((r) => this.mapper.toDomain(r));
+  }
+
   async applyMarkdownDue(id: string, markdown_due: string | null): Promise<MarketplaceOrderDomainEntity> {
     await this.repo.update({ id }, { markdown_due } as Record<string, unknown>);
     return this.mapper.toDomain(await this.repo.findOneOrFail({ id }));

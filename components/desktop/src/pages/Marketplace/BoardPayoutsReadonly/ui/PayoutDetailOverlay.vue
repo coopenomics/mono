@@ -34,29 +34,17 @@ DetailsDrawer(
       :value='detail.payment.decline_reason'
     )
 
-    //- Что оплачивали. Без заказа выплата — просто сумма, поэтому предмет
-    //- поставки идёт сразу под реквизитами платежа, а не в конце.
-    template(v-if='detail.order')
-      .payout-detail__section {{ $t('marketplace.payoutDetail.orderSectionTitle') }}
-      DataRow(:label='$t("marketplace.payoutDetail.productLabel")', :value='detail.order.product_name ?? "—"')
-      DataRow(:label='$t("marketplace.payoutDetail.volumeLabel")', :value='volumeLabel')
-      DataRow(:label='$t("marketplace.payoutDetail.orderCostLabel")', :value='formatAsset2Digits(String(detail.order.total_cost))')
-      DataRow(
-        v-if='detail.order.accepted_cost && detail.order.accepted_cost !== detail.order.total_cost',
-        :label='$t("marketplace.payoutDetail.acceptedAmountLabel")',
-        :value='formatAsset2Digits(String(detail.order.accepted_cost))'
-      )
-      DataRow(:label='$t("marketplace.payoutDetail.orderStateLabel")', :value='orderStatusDisplay(detail.order.status).label')
-      DataRow(
-        v-if='detail.order.delivery_point_name',
-        :label='$t("marketplace.payoutDetail.deliveryBranchLabel")',
-        :value='detail.order.delivery_point_name'
-      )
-      DataRow(
-        v-if='detail.order.orderer_name',
-        :label='$t("marketplace.payoutDetail.customerLabel")',
-        :value='detail.order.orderer_name'
-      )
+    //- Что оплачивали: заказы поставщика, объединённые в эту выплату (одна
+    //- выплата на заказы поставщика за день, решение владельца 19.11.2026).
+    template(v-if='detail.orders.length')
+      .payout-detail__section {{ $t('marketplace.payoutDetail.ordersSectionTitle', { count: detail.orders.length }) }}
+      .payout-detail__order(v-for='o in detail.orders', :key='o.id')
+        .payout-detail__order-body
+          .payout-detail__order-name {{ o.product_name ?? '—' }}
+          .payout-detail__order-meta {{ orderMeta(o) }}
+        .payout-detail__order-side
+          .payout-detail__order-sum.t-mono {{ formatAsset2Digits(String(o.accepted_cost ?? o.total_cost)) }}
+          BaseBadge(:variant='orderStatusDisplay(o.status).variant') {{ orderStatusDisplay(o.status).label }}
 
     //- Подтверждение оплаты: запись кассирского реестра и проводка в цепи.
     .payout-detail__section {{ $t('marketplace.payoutDetail.paymentConfirmationTitle') }}
@@ -120,8 +108,17 @@ const detail = ref<MarketplaceOutgoingPaymentDetailView | null>(null);
 const loading = ref(false);
 
 const amountLabel = ref('');
-const volumeLabel = ref('');
 const hasWithheld = ref(false);
+
+/**
+ * Подпись заказа в выплате: объём (единица — русской подписью из общего
+ * справочника, сырое «liter» читается как чужой текст), участок, заказчик.
+ */
+function orderMeta(o: { quantity: number; unit_of_measure?: string | null; delivery_point_name?: string | null; orderer_name?: string | null }): string {
+  return [marketplaceQuantityLabel(o.quantity, o.unit_of_measure ?? null), o.delivery_point_name, o.orderer_name]
+    .filter(Boolean)
+    .join(' · ');
+}
 
 function formatDate(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -135,11 +132,6 @@ async function load(id: string): Promise<void> {
     detail.value = await getOutgoingPayment(id);
     const d = detail.value;
     amountLabel.value = d ? `${formatAsset2Digits(String(d.payment.amount))} ${d.payment.symbol}` : '';
-    // Единица — русской подписью из общего справочника marketplace: сырое
-    // значение enum'а («liter») в карточке читается как чужой текст.
-    volumeLabel.value = d?.order
-      ? marketplaceQuantityLabel(d.order.quantity, d.order.unit_of_measure)
-      : '';
     hasWithheld.value = !!d && Number.parseFloat(String(d.payment.withheld_amount)) > 0;
   } catch (e) {
     detail.value = null;
@@ -185,6 +177,38 @@ useLiveReload([...marketLiveTables('payment'), { code: 'core', table: 'payments'
   &__amount {
     font-size: var(--p-fs-h1);
     font-weight: 600;
+  }
+
+  // Заказ выплаты: имущество и подпись слева, принятая сумма и состояние справа.
+  &__order {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--p-3);
+    padding: var(--p-2) 0;
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__order-name {
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__order-meta {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-2);
+  }
+
+  &__order-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-1);
+  }
+
+  &__order-sum {
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   &__section {

@@ -949,6 +949,12 @@
         "sat": "Сб",
         "sun": "Вс"
       }
+    },
+    "payoutBatch": {
+      "ordersDativeOne": "{count} заказу",
+      "ordersDativeMany": "{count} заказам",
+      "itemsMore": "{items} и ещё {count}",
+      "itemsOfOrders": "имущество по {orders}: {items}"
     }
   }
 }

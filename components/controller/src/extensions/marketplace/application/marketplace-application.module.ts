@@ -123,9 +123,9 @@ import {
 import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
 import { MarketplaceProcessContentService } from './services/marketplace-process-content.service';
 import {
-  MarketplacePayoutSyncService,
-  MARKETPLACE_PAYOUT_SYNC_SERVICE,
-} from './services/marketplace-payout-sync.service';
+  MarketplaceSupplierPayoutService,
+  MARKETPLACE_SUPPLIER_PAYOUT_SERVICE,
+} from './services/marketplace-supplier-payout.service';
 import {
   MarketplaceAidPayoutSyncService,
   MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
@@ -415,8 +415,8 @@ import {
     // (payconfirm/paydecline) для зеркалирования статуса выплаты поставщику.
     // Сам кассир работает в общем столе кооператива через расширение
     // gateway, marketplace только подписывается на blockchain-action delta.
-    { provide: MARKETPLACE_PAYOUT_SYNC_SERVICE, useExisting: MarketplacePayoutSyncService },
-    MarketplacePayoutSyncService,
+    { provide: MARKETPLACE_SUPPLIER_PAYOUT_SERVICE, useExisting: MarketplaceSupplierPayoutService },
+    MarketplaceSupplierPayoutService,
     // Содержание процессов Стола заказов для стола бухгалтера (реестр processContent).
     MarketplaceProcessContentService,
     // requirement b6 (2026-08-03) — слушатель callback'ов от gateway
@@ -605,8 +605,8 @@ import {
     MARKETPLACE_APL_RECEPTION_SERVICE,
     MarketplaceAplReceptionService,
     // Story 5.6 / 5.7 + 598-16
-    MARKETPLACE_PAYOUT_SYNC_SERVICE,
-    MarketplacePayoutSyncService,
+    MARKETPLACE_SUPPLIER_PAYOUT_SERVICE,
+    MarketplaceSupplierPayoutService,
     // requirement b6 (2026-08-03) — выплата материальной помощи
     MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
     MarketplaceAidPayoutSyncService,

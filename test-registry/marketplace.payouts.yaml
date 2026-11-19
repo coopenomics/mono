@@ -1,5 +1,15 @@
 feature: marketplace.payouts
-title: Выплаты поставщикам — лента совета и разворот одной выплаты
+title: Выплаты поставщикам — пакет за сутки, лента совета и разворот выплаты
+
+# 19.11.2026 (решение владельца): заказы поставщика за сутки объединяются в
+# один пакет выплаты — один платёж кассиру вместо платежа на каждый заказ.
+# Пакет заводит обход узла в начале следующих суток (в работе — по поясу
+# кооператива, на стенде — сутки STAND_DAY_SECONDS); сумму пакета и удержание
+# гарантийного долга считает контракт (addpayout), после отправки (sendpayout)
+# сумма не меняется. Подтверждение кассира закрывает заказы пакета по одному
+# (closepayout), отказ — возвращает их в ожидание (releasepay), и они
+# попадают в пакет следующих суток. Внешний набор идёт в фазе полигона со
+# сжатым временем.
 
 # Слайс от заведённой выплаты до её разворота на столе совета: лента выплат по
 # всему кооперативу (Payment:read:all), поиск по человеческому имени получателя
@@ -39,23 +49,35 @@ sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-outgoing-payment.resolver.ts
     - components/controller/src/extensions/marketplace/application/dto/marketplace-outgoing-payment.dto.ts
-    - components/controller/src/extensions/marketplace/application/services/marketplace-payout-sync*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-supplier-payout.service.ts
+    - components/controller/src/extensions/marketplace/application/shared/payout-batch.util.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-outgoing-payment-request-repository.adapter.ts
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/addpayout.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/sendpayout.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/payconfirm.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/paydecline.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/closepayout.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.supply/releasepay.cpp
+    - components/contracts/cpp/lib/domain/table_marketplace_payouts.hpp
   ui:
     - components/desktop/src/pages/Marketplace/BoardPayoutsReadonly/**
+    - components/desktop/src/pages/Marketplace/OffererPaymentHistory/**
 
 cases:
   - id: mkt.payouts.happy.01
     level: backend
     kind: happy
     scenario: >
-      Совет открывает выплату, у которой есть и заказ, и платёж в реестре кассира.
+      Два заказа одного поставщика приняты кооперативом; наступили следующие
+      сутки, совет открывает выплату.
     expect: >
-      разворот собирает три источника: реквизиты выплаты, предмет поставки с
-      состоянием заказа и статус кассирского платежа; платёж ищется по
-      order_hash — marketplace заводит его именно с этим payment_hash
-    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+      одна выплата и один платёж кассиру на оба заказа, сумма — принятые
+      стоимости (с удержанием долга); разворот показывает оба заказа и
+      кассирский платёж, найденный по хэшу выплаты
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
     api: components/api-tests/src/marketplace/payouts.test.ts
-    status: passing
+    status: written   # внешний набор идёт в фазе со сжатым временем — гоняет CI
 
   - id: mkt.payouts.side.01
     level: backend
@@ -84,13 +106,13 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Заказ, за который платили, не нашёлся.
+      Заказы выплаты не нашлись.
     expect: >
-      разворот отдаётся без предмета поставки (order = null) — выплата и её
-      реквизиты совету видны в любом случае
+      разворот отдаётся с пустым списком заказов, число заказов выплаты
+      видно — выплата и её реквизиты совету видны в любом случае
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
     external: unreachable
-    external_reason: "заказ выплаты в базе узла не удаляется; состояние «заказ не нашёлся» через API не создать"
+    external_reason: "заказы выплаты в базе узла не удаляются; состояние «заказы не нашлись» через API не создать"
     status: passing
 
   - id: mkt.payouts.break.01
@@ -114,7 +136,7 @@ cases:
     expect: core_payment = null, разворот отдаётся
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
     external: unreachable
-    external_reason: "выплата без платежа кассиру — промежуточное состояние внутри одной операции, снаружи не наблюдается"
+    external_reason: "выплата без платежа кассиру — промежуточное состояние внутри одного обхода, снаружи не наблюдается"
     status: passing
 
   - id: mkt.payouts.side.05
@@ -132,19 +154,114 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Кассир подтвердил выплату поставщику по акту приёмки; поставщик получает
-      уведомление (слово владельца 17.11.2026: без идентификаторов акта и
-      транзакции).
+      Кассир подтвердил выплату поставщику; поставщик получает уведомление
+      (слово владельца 17.11.2026: без идентификаторов акта и транзакции).
     expect: >
-      событие выплаты несёт название имущества, принятое по акту количество с
-      единицей продажи и дату закрывающей подписи акта; текст уведомления
-      называет сумму, имущество, количество и дату акта; если состав не
-      прочитан, уведомление отправляется с суммой
-    test: components/controller/tests/unit/marketplace/marketplace-payout-confirmed-subject.test.ts
+      событие выплаты несёт число заказов и имущество выплаты («имущество по 2
+      заказам: …», до трёх наименований и «и ещё N»); текст уведомления
+      называет сумму и основание «по N заказам»; если состав не прочитан,
+      уведомление отправляется с суммой
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
     status: passing
     external: unreachable
     external_reason: содержание уведомления передаётся в сервис рассылок, через API стенда текст письма не читается; статусы выплаты проверяет внешний набор payouts
 
+  - id: mkt.payouts.happy.02
+    level: backend
+    kind: happy
+    scenario: Кассир подтвердил перевод по выплате.
+    expect: >
+      выплата оплачена, платёж реестра кассира проведён, заказы выплаты
+      закрываются (Дт 76 / Кт 51 на заказ), поставщику уведомление; в
+      следующих сутках новой выплаты с этими заказами нет
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    api: components/api-tests/src/marketplace/payouts.test.ts
+    status: written   # внешний набор идёт в фазе со сжатым временем — гоняет CI
+
+  - id: mkt.payouts.side.07
+    level: backend
+    kind: side
+    scenario: Кассир отказал в переводе по выплате.
+    expect: >
+      выплата отклонена с причиной, платёж реестра отменён, заказы
+      возвращаются в ожидание и попадают в новую выплату следующих суток с
+      другим хэшем
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    api: components/api-tests/src/marketplace/payouts.test.ts
+    status: written   # внешний набор идёт в фазе со сжатым временем — гоняет CI
+
+  - id: mkt.payouts.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Обход: заказы двух поставщиков; у одного поставщика сотня заказов; у
+      другого уже открыт пакет; заказы приняты сегодня.
+    expect: >
+      по пакету на поставщика; сотня заказов — частями в один пакет; при
+      открытом пакете новый не заводится; заказы, принятые после начала
+      суток, ждут следующего обхода; назначение — по договору поставщика
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    external: unreachable
+    external_reason: "состав обхода зависит от всех заказов стенда; внешний набор проверяет пакет своего поставщика (happy.01)"
+    status: passing
+
+  - id: mkt.payouts.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Гарантийный долг поставщика покрыл стоимость одного заказа пакета либо
+      всех заказов.
+    expect: >
+      покрытый заказ в пакет не входит и закрыт сразу; если покрыты все —
+      пакета в цепи нет, запись удаляется, платежа кассиру нет
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    external: unreachable
+    external_reason: "случай требует признанной претензии поставщику на стенде (реестр mkt.ret.side.52)"
+    status: passing
+
+  - id: mkt.payouts.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Сбой части включения заказов, отправки, платежа реестра или закрытия
+      заказов; два обхода одновременно.
+    expect: >
+      пакет отправляется с включёнными заказами, остальные ждут следующего
+      обхода; следующий обход довозит недостающий шаг; второй одновременный
+      обход ничего не делает; сбой одного пакета не останавливает остальные
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    external: unreachable
+    external_reason: "сбой цепи посреди обхода через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.payouts.side.10
+    level: backend
+    kind: side
+    scenario: Дельта таблицы пакетов из цепи.
+    expect: >
+      сумма, удержание и состояние пакета берутся из цепи (sent → ждёт
+      кассира); удаление строки и неизвестное состояние проекцию не меняют
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    external: unreachable
+    external_reason: "дельту цепи узел получает сам; внешний набор видит её результат (happy.01)"
+    status: passing
+
+  - id: mkt.payouts.side.11
+    level: contract
+    kind: side
+    scenario: >
+      Контракт: заказ включают в пакет другого поставщика или в отправленный
+      пакет; отправляют пустой пакет; закрывают заказ неоплаченного пакета;
+      возвращают заказ неотклонённого пакета.
+    expect: >
+      отказы с кодами MARKETPLACE_PAYOUT_OFFERER_MISMATCH,
+      MARKETPLACE_PAYOUT_NOT_OPEN, MARKETPLACE_PAYOUT_EMPTY,
+      MARKETPLACE_PAYOUT_NOT_PAID, MARKETPLACE_PAYOUT_NOT_DECLINED
+    status: missing   # контрактных тестов действий пакета нет; узел посылает действия только в разрешённых состояниях
+
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 19.11.2026: выплата — пакетом за сутки (решение владельца); прежняя выплата по
+# одному заказу заменена без перехода — нигде не эксплуатировалась.
