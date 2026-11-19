@@ -10,7 +10,7 @@
     "pull": "node bin/pull-run.mjs",
     "diff": "node bin/diff-shots.mjs"
   },
-  "license": "ISC",
+  "license": "SEE LICENSE IN ../../LICENSE",
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "playwright": "^1.59.1",

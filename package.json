@@ -1,5 +1,6 @@
 {
   "name": "monocoop",
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "onlyBuiltDependencies": [

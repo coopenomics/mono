@@ -3,11 +3,14 @@
   "version": "2026.11.12",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
-  "bin": "bin/createNodejsApp.js",
   "main": "src/index.ts",
-  "repository": "https://github.com/hagopj13/node-express-boilerplate.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coopenomics/mono.git",
+    "directory": "components/controller"
+  },
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "types": "src/types/index.ts",
   "engines": {
     "node": ">=12.0.0"
@@ -45,9 +48,6 @@
     "migrate:schema": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate-schema",
     "schema:report": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --schema-report",
     "prettier:fix": "prettier --write **/*.js",
-    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up",
-    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
-    "docker:test": "docker-compose -f docker-compose.yml -f docker-compose.test.yml up",
     "types": "ts-node scripts/types.ts",
     "init": "ts-node scripts/init.ts",
     "init:cooperative": "ts-node -r tsconfig-paths/register src/scripts/init-cooperative.ts",
@@ -57,24 +57,6 @@
     "generate-schema": "ts-node -r ./scripts/register-schema-gen-env.cjs -r tsconfig-paths/register scripts/generate-schema.ts",
     "build": "tsc -p tsconfig.build.json && node scripts/copy-build-assets.cjs"
   },
-  "keywords": [
-    "node",
-    "node.js",
-    "boilerplate",
-    "generator",
-    "express",
-    "rest",
-    "api",
-    "es6",
-    "es7",
-    "es8",
-    "es9",
-    "jest",
-    "travis",
-    "docker",
-    "eslint",
-    "prettier"
-  ],
   "dependencies": {
     "@a2seven/yoo-checkout": "^1.1.4",
     "@apollo/subgraph": "~2.14.4",

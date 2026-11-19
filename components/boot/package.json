@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.33.0",
   "description": "CLI-утилита инициализации блокчейна и кооператива",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
-  "license": "",
+  "license": "MIT",
   "keywords": [],
   "main": "./dist/index.cjs",
   "files": [

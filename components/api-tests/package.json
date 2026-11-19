@@ -5,7 +5,7 @@
   "private": true,
   "description": "Внешний слой тестов: платформа через её API на поднятом стенде (C28-80, C28-81)",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
-  "license": "",
+  "license": "SEE LICENSE IN ../../LICENSE",
   "scripts": {
     "test:api": "vitest run",
     "typecheck": "tsc --noEmit"

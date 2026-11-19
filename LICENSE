@@ -1,0 +1,52 @@
+ЛИЦЕНЗИИ РЕПОЗИТОРИЯ «ЦИФРОВОЙ КООПЕРАТИВ»
+
+© 2024–2026 Потребительский кооператив «ВОСХОД» (ОГРН 1247700283346, ИНН 9728130611).
+Исключительное право на программное обеспечение репозитория принадлежит
+Потребительскому кооперативу «ВОСХОД», если в каталоге не указан иной правообладатель.
+
+Части репозитория распространяются на следующих условиях:
+
+1. Программы для ЭВМ «Стол заказов», «Благорост» и «Образование» — закрытая
+   лицензия, все права защищены. Использование допускается только по
+   лицензионному договору с Потребительским кооперативом «ВОСХОД». Перечень
+   каталогов и условия: LICENSES/VOSKHOD-PROPRIETARY.md.
+
+2. Смарт-контракты, каталог components/contracts, — лицензия Creative Commons
+   «Attribution-NonCommercial-ShareAlike 4.0 International» (CC BY-NC-SA 4.0),
+   только некоммерческое использование. Условия: components/contracts/LICENSE.
+
+3. Остальные части репозитория — лицензия MIT, текст которой приведён ниже.
+
+4. Код сторонних правообладателей распространяется на условиях лицензий,
+   указанных в его каталогах и в его пакетах.
+
+Лицензия для каталога определяется ближайшим к нему файлом LICENSE.
+
+-------------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2024-2026 Consumer Cooperative "VOSKHOD" (Потребительский кооператив «ВОСХОД»)
+
+The MIT License below does not apply to the directories listed in
+LICENSES/VOSKHOD-PROPRIETARY.md ("Стол заказов", "Благорост", "Образование"),
+which are proprietary, all rights reserved, and to components/contracts,
+which is licensed under CC BY-NC-SA 4.0.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
