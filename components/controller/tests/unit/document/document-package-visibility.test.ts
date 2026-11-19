@@ -63,7 +63,16 @@ describe('documents.package-visibility — пакет один, документ
 
 describe('documents.package-visibility — выдача реестра', () => {
   function world() {
-    const repository = { findAggregates: jest.fn(async () => ({ items: [ORDER_PACKAGE], owners: ['ekaterina'], total: 1 })) };
+    // Реестр отдаёт пакеты вместе со строками журнала: по строке — название, дата подписи и роль документа.
+    const repository = {
+      findAggregates: jest.fn(async () => ({
+        items: [ORDER_PACKAGE],
+        owners: ['ekaterina'],
+        hashes: ['hash-1'],
+        rows: [{ registry_id: 1104, full_title: 'Заявление', signed_at: null, role: 'statement' }],
+        total: 1,
+      })),
+    };
     const interactor = new DocumentInteractor({} as any, {} as any, {} as any, repository as any);
     return { service: new DocumentService(interactor), repository };
   }

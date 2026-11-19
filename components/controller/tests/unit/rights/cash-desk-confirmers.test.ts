@@ -92,7 +92,16 @@ describe('выплата поставщику Стола заказов', () => 
     const accountPort = { getDisplayName: jest.fn(async (u: string) => `ФИО ${u}`) };
     const log = { setContext: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn(), info: jest.fn(), debug: jest.fn() };
     const desk = { confirmers: jest.fn(async () => confirmers) };
-    const svc = new MarketplaceNotificationService({ notifyUser } as any, accountPort as any, {} as any, {} as any, log as any, desk as any);
+    const svc = new MarketplaceNotificationService(
+      { notifyUser } as any,
+      accountPort as any,
+      {} as any,
+      {} as any,
+      log as any,
+      desk as any,
+      // Режим работы пункта выдачи читается для уведомления о готовности заказа.
+      { findByCoreBraname: jest.fn(async () => null) } as any
+    );
     return { svc, notifyUser, log };
   }
   const event = { coopname: 'voskhod', supplier_account: 'supplier1', amount: '500.0000 RUB', apl_reception_id: 7, payment_request_id: 'p1' } as any;

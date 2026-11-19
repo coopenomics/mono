@@ -105,9 +105,10 @@ const orders = computed(() => result.value?.created_orders ?? []);
 // корзине). Стол суммы не пересчитывает, только складывает по заказам.
 const items = computed(() =>
   orders.value.map((o) => {
-    const card = toOrderCardModel(o);
+    // Дата заказа в ответе сервера — скаляр DateTime (строка ISO).
+    const card = toOrderCardModel({ ...o, created_at: o.created_at as string });
     return {
-      id: card.id,
+      id: String(card.id),
       title: card.title,
       imageUrl: card.imageUrl,
       qtyLabel: card.qtyLabel,

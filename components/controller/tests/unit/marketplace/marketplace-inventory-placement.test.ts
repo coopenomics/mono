@@ -97,7 +97,7 @@ describe('MarketplaceInventoryLabelService.assignPlacement', () => {
     expect(inventoryRepo.assignPlacement).toHaveBeenCalledWith('inv-1', {
       container_id: 'box-1',
       cell_id: null,
-    });
+    }, 'chairman');
   });
 
   it('кладёт негабарит в ячейку напрямую', async () => {
@@ -108,7 +108,7 @@ describe('MarketplaceInventoryLabelService.assignPlacement', () => {
     expect(inventoryRepo.assignPlacement).toHaveBeenCalledWith('inv-1', {
       container_id: null,
       cell_id: 'cell-1',
-    });
+    }, 'chairman');
   });
 
   it('снимает позицию с места, когда оба адреса пусты', async () => {
@@ -121,7 +121,7 @@ describe('MarketplaceInventoryLabelService.assignPlacement', () => {
     expect(inventoryRepo.assignPlacement).toHaveBeenCalledWith('inv-1', {
       container_id: null,
       cell_id: null,
-    });
+    }, 'chairman');
   });
 
   it('отвергает попытку задать сразу и бокс, и ячейку', async () => {

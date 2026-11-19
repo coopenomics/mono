@@ -58,7 +58,16 @@ const makeResolver = (rows: unknown[], display: Map<string, unknown>) => {
     resolveAccountNames: jest.fn().mockResolvedValue(new Map()),
     enrichByOrderIds: jest.fn().mockResolvedValue(display),
   } as any;
-  return new MarketplaceInventoryResolver({} as any, inventoryRepo, orderDisplay);
+  return new MarketplaceInventoryResolver(
+    {} as any,
+    inventoryRepo,
+    orderDisplay,
+    // Заказ, сагу выдачи, бокс и ячейку читает журнал движений имущества — список их не читает.
+    {} as any,
+    {} as any,
+    {} as any,
+    {} as any
+  );
 };
 
 /** Охват от гарда для председателя: весь кооператив, отбора по участкам нет. */

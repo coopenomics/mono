@@ -12,6 +12,7 @@ const FROZEN_IDS = [
   'akt-priyomki-ekspeditorom-ozhidaet-podpisi-postavschika',
   'dobro-pozhalovat',
   'dostup-k-kursu-otkryt',
+  'doverennost-predsedatelya-uchastka-istekaet',
   'garantiynaya-pretenziya-postavschiku',
   'garantiyniy-vozvrat-zavershyon',
   'golosovanie-sobraniya-uchastka-nachalos',

@@ -10,8 +10,8 @@ export interface OperationRef {
   memo?: string | null
   /** Сумма операции, актив «2348.3900 RUB». */
   quantity?: string | null
-  /** Когда операция прошла. */
-  createdAt?: string | Date | null
+  /** Когда операция прошла; дата из ответа сервера (скаляр DateTime) либо объект даты. */
+  createdAt?: unknown
   /** Имя действия корректировки (walmove, revert) — у них кода операции нет. */
   action?: string | null
 }

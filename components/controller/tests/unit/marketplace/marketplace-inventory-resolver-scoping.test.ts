@@ -25,7 +25,16 @@ const makeResolver = () => {
     resolveAccountNames: jest.fn().mockResolvedValue(new Map()),
     enrichByOrderIds: jest.fn().mockResolvedValue(new Map()),
   } as any;
-  const resolver = new MarketplaceInventoryResolver({} as any, inventoryRepo, orderDisplay);
+  const resolver = new MarketplaceInventoryResolver(
+    {} as any,
+    inventoryRepo,
+    orderDisplay,
+    // Заказ, сагу выдачи, бокс и ячейку читает журнал движений имущества — список их не читает.
+    {} as any,
+    {} as any,
+    {} as any,
+    {} as any
+  );
   return { resolver, inventoryRepo };
 };
 
