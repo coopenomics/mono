@@ -86,7 +86,7 @@ let boundsSignature = ''
 
 function placemarksKey(items: IMarketplaceKUDetails[]): string {
   return items
-    .map((p) => [p.coreBraname, p.lat, p.lng, p.status, p.name, p.addressFull, JSON.stringify(p.workingHours ?? {})].join('|'))
+    .map((p) => [p.coreBraname, p.lat, p.lng, p.status, p.name, p.addressFull].join('|'))
     .join(';')
 }
 
@@ -107,17 +107,6 @@ function displayName(pvz: IMarketplaceKUDetails): string {
 /** Экранирование текста для подсказки метки: её содержимое — HTML. */
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
-}
-
-/**
- * Подсказка метки: адрес и режим работы. Название стоит на самой метке —
- * в подсказке оно повторялось бы дважды.
- */
-function balloonHtml(pvz: IMarketplaceKUDetails): string {
-  const lines: string[] = []
-  if (pvz.addressFull) lines.push(escapeHtml(pvz.addressFull))
-  for (const line of formatWorkingHours(pvz.workingHours)) lines.push(escapeHtml(line))
-  return lines.join('<br>')
 }
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
@@ -146,8 +135,6 @@ function onSelectFromList(pvz: IMarketplaceKUDetails) {
     // «текущий + 2» копилось, и повторное нажатие на тот же участок уносило
     // карту дальше (замечание владельца 19.11.2026).
     mapInstance.setCenter([pvz.lat!, pvz.lng!], SELECTED_ZOOM, { duration: 300 })
-    const pm = placemarks.get(pvz.coreBraname)
-    pm?.balloon.open()
   }
 }
 
@@ -204,12 +191,11 @@ function syncPlacemarks(ymaps: any) {
   for (const pvz of visibleItems.value) {
     const pm = new ymaps.Placemark(
       [pvz.lat!, pvz.lng!],
-      {
-        balloonContent: balloonHtml(pvz),
-        // Название на самой метке: участок виден на карте без наведения.
-        iconContent: escapeHtml(displayName(pvz)),
-      },
-      { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz) }
+      // Название на самой метке — единственная плашка участка на карте.
+      // Всплывающей подсказки нет: она ложилась поверх соседних меток, а
+      // адрес и режим работы стоят в списке рядом (замечание владельца 19.11.2026).
+      { iconContent: escapeHtml(displayName(pvz)) },
+      { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz), hasBalloon: false, hasHint: false }
     )
     pm.events.add('click', () => emit('select', pvz))
     mapInstance.geoObjects.add(pm)
