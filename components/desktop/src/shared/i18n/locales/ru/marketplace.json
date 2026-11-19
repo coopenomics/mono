@@ -1979,17 +1979,27 @@
     },
     "orderConfirmationPage": {
       "catalogLink": "В каталог",
-      "createdCount": "Создано заказов на пункт выдачи: {count}",
       "emptyBody": "Откройте «Мои заказы», чтобы увидеть оформленные заказы.",
       "emptyTitle": "Нет данных об оформлении",
       "failedCount": "Не оформлено позиций: {count}",
       "myOrdersLink": "К моим заказам",
+      "nextTitle": "Что дальше",
+      "ordersTitle": "Оформленные заказы",
       "pageAriaLabel": "Подтверждение заказа",
       "partialTitle": "Заказ оформлен частично",
+      "pickupTitle": "Пункт выдачи",
       "remainderFailedMessage": "Часть позиций снова не прошла — остаток в корзине.",
       "remainderPlacedMessage": "Остаток заказа оформлен",
       "retryRemainder": "Повторить оформление остатка",
-      "successTitle": "Заказ оформлен"
+      "stepAccept": "Поставщик принимает заказ",
+      "stepAcceptHint": "До принятия поставщиком заказ можно отменить в «Моих заказах».",
+      "stepDelivery": "Поставка на пункт выдачи",
+      "stepDeliveryHint": "Когда заказ поступит на участок, вы получите уведомление с режимом работы пункта выдачи.",
+      "stepPickup": "Получение",
+      "stepPickupHint": "Покажите оператору QR-код со страницы «Показать QR».",
+      "stepPlaced": "Заказ оформлен",
+      "successTitle": "Заказ оформлен",
+      "summary": "{count} поз. на {amount} {symbol} · {point}"
     },
     "orderDetail": {
       "backToOrdersLink": "К реестру заказов"
