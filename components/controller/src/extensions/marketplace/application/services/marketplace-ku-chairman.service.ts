@@ -1,6 +1,8 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
-import type { BranchContract } from 'cooptypes';
+import { BranchContract } from 'cooptypes';
+import { OnEvent } from '@nestjs/event-emitter';
+import type { InnerChainDelta } from '@coopenomics/innercoop';
 import {
   BRANCH_PORT,
   POWERS_OF_ATTORNEY_PORT,
@@ -134,6 +136,31 @@ export class MarketplaceKuChairmanService {
 
   invalidate(coopname: string): void {
     this.branchesCache.delete(coopname);
+  }
+
+  /**
+   * Состав участка изменился в цепи (назначен председатель, добавлено или
+   * снято доверенное лицо) — кэш сбрасывается сразу. Стол ПВЗ перечитывает
+   * «мои участки» по тому же сигналу ленты и получает свежий ответ, а не
+   * состав минутной давности (замечание владельца 19.11.2026).
+   */
+  @OnEvent(`delta::${BranchContract.contractName.production}::${BranchContract.Tables.Branches.tableName}`)
+  onBranchesDelta(delta: InnerChainDelta): void {
+    this.invalidate(delta.scope);
+  }
+
+  /**
+   * Доверенность председателя или доверенного лица подписана встречно,
+   * отклонена или заменена — меняется, кто работает с пунктом выдачи.
+   */
+  @OnEvent(`action::${BranchContract.contractName.production}::apprauth`)
+  @OnEvent(`action::${BranchContract.contractName.production}::declauth`)
+  @OnEvent(`action::${BranchContract.contractName.production}::apprtrusted`)
+  @OnEvent(`action::${BranchContract.contractName.production}::decltrusted`)
+  onAuthorityAction(record: { data?: { coopname?: string } }): void {
+    const coopname = record?.data?.coopname;
+    if (coopname) this.invalidate(String(coopname));
+    else this.branchesCache.clear();
   }
 
   private async getBranches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]> {

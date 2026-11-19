@@ -1,4 +1,6 @@
 import { useSessionStore } from 'src/entities/Session'
+import { BranchContract } from 'cooptypes'
+import { liveTable, registerLiveReload } from 'src/shared/lib/realtime'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useBranchStore } from 'src/entities/Branch/model'
@@ -139,7 +141,22 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
    * доверенность. Без этого стол ПВЗ показывал «Вы не оператор» до
    * перезагрузки страницы (замечание владельца 19.11.2026). Запрос лёгкий.
    */
+  // Состав участков и доверенности живут по ленте изменений: назначили
+  // председателем, добавили доверенное лицо, встречно подписали доверенность —
+  // стол ПВЗ перечитывает «мои участки» сам, на всех открытых вкладках
+  // (замечание владельца 19.11.2026). Подписка одна на приложение: хранилище
+  // живёт, пока открыт стол.
+  let liveCoopname: string | null = null
+  registerLiveReload(
+    [
+      liveTable(BranchContract, BranchContract.Tables.Branches),
+      { code: 'trustee', table: 'ku_powers_of_attorney' },
+    ],
+    () => (loaded.value && liveCoopname ? load(liveCoopname) : undefined),
+  )
+
   async function ensureLoaded(coopname: string): Promise<void> {
+    liveCoopname = coopname
     if (loading.value) return
     const me = useSessionStore().username
     const stale = !loaded.value || loadedFor.value !== me || !isOperator.value
