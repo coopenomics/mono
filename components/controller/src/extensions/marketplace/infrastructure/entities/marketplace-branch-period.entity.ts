@@ -81,9 +81,6 @@ export class MarketplaceBranchPeriodEntity {
   public rate_initiator!: string;
   public rate_social!: string;
 
-  /** Получатель доли инициатора на момент прогона. */
-  public initiator!: string;
-
   /** Фаза участка по паевым взносам инициаторов на момент расчёта итога (`MarketplacePeriodInvestPhase`). */
   public invest_phase!: MarketplacePeriodInvestPhase;
 

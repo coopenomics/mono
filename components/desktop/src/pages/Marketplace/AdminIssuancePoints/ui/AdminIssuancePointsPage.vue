@@ -12,7 +12,7 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 // иначе тип стирается при компиляции → ReferenceError в шаблоне.
 import { GeocodeStatus, KuDetailsStatus, formatWorkingHours } from 'src/entities/MarketplaceKUDetails'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
-import { BaseBadge, BaseButton, BaseDialog, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain'
 import { useFirstLoad } from 'src/shared/lib/composables'
@@ -22,7 +22,6 @@ import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { Map as MapView } from 'src/shared/ui/Map'
 import { MarketplaceDetailKUDialog } from 'src/features/MarketplaceDetailKU'
 import { t } from 'src/shared/i18n';
-import { getBranchInitiator, setBranchInitiator, type MarketplaceBranchInitiatorView } from '../api'
 
 /**
  * Эпик 2: admin-стол «Пункты выдачи заказов».
@@ -150,88 +149,6 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: t('marketplace.issuancePoints.column.actions') },
 ]
 
-// ─── Инициатор участка ───
-
-/** Инициаторы по участкам; строки без ответа узла — председатель участка. */
-const initiators = ref<Record<string, MarketplaceBranchInitiatorView>>({})
-const initiatorDialogOpen = ref(false)
-const initiatorRow = ref<IssuancePointRow | null>(null)
-const initiatorDraft = ref<string | null>(null)
-const initiatorSaving = ref(false)
-
-/** Пустой выбор — доля достаётся председателю участка. */
-const CHAIRMAN_OPTION = ''
-
-function memberName(p: { first_name?: string | null; last_name?: string | null; middle_name?: string | null; username: string } | null | undefined): string {
-  if (!p) return ''
-  const full = [p.last_name, p.first_name, p.middle_name].filter(Boolean).join(' ').trim()
-  return full || p.username
-}
-
-function initiatorLabel(row: IssuancePointRow): string {
-  const info = initiators.value[row.branch.braname]
-  if (!info?.username) return '—'
-  const members = [row.branch.trustee, ...(row.branch.trusted ?? [])]
-  const person = members.find((m) => m?.username === info.username)
-  return person ? memberName(person) : info.username
-}
-
-function initiatorAssigned(row: IssuancePointRow): boolean {
-  return Boolean(initiators.value[row.branch.braname]?.assigned)
-}
-
-const initiatorOptions = computed(() => {
-  const b = initiatorRow.value?.branch
-  if (!b) return []
-  const members = [b.trustee, ...(b.trusted ?? [])].filter((m): m is NonNullable<typeof m> => Boolean(m))
-  return [
-    { value: CHAIRMAN_OPTION, label: t('marketplace.issuancePoints.initiatorChairmanOption') },
-    ...members
-      .filter((m) => m.username !== b.trustee?.username)
-      .map((m) => ({ value: m.username, label: memberName(m) })),
-  ]
-})
-
-async function loadInitiators(): Promise<void> {
-  const result: Record<string, MarketplaceBranchInitiatorView> = {}
-  await Promise.all(
-    branchStore.branches.map(async (b) => {
-      try {
-        result[b.braname] = await getBranchInitiator(b.braname)
-      } catch {
-        // Участок без ответа остаётся без подписи инициатора — доля у председателя.
-      }
-    }),
-  )
-  initiators.value = result
-}
-
-function openInitiator(row: IssuancePointRow): void {
-  initiatorRow.value = row
-  const info = initiators.value[row.branch.braname]
-  initiatorDraft.value = info?.assigned && info.username ? info.username : CHAIRMAN_OPTION
-  initiatorDialogOpen.value = true
-}
-
-async function onSaveInitiator(): Promise<void> {
-  const row = initiatorRow.value
-  if (!row) return
-  initiatorSaving.value = true
-  try {
-    const saved = await setBranchInitiator({
-      braname: row.branch.braname,
-      username: initiatorDraft.value ? initiatorDraft.value : null,
-    })
-    initiators.value = { ...initiators.value, [row.branch.braname]: saved }
-    SuccessAlert(t('marketplace.issuancePoints.initiatorSavedSuccess'))
-    initiatorDialogOpen.value = false
-  } catch (e) {
-    FailAlert(e, t('marketplace.issuancePoints.initiatorSaveFailedError'))
-  } finally {
-    initiatorSaving.value = false
-  }
-}
-
 async function load(): Promise<void> {
   loading.value = true
   try {
@@ -239,7 +156,6 @@ async function load(): Promise<void> {
       branchStore.loadBranches({ coopname: coopname.value }),
       kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ])
-    await loadInitiators()
   } catch (e) {
     FailAlert(e, t('marketplace.issuancePoints.loadFailedError'))
   } finally {
@@ -399,12 +315,6 @@ q-page.admin-pvz
         :value='selected.details.description',
         align='vertical'
       )
-      //- Получатель доли инициатора: председатель участка, если не назначен другой.
-      DataRow(:label='$t("marketplace.issuancePoints.column.initiator")', align='spread')
-        template(#value-override)
-          .admin-pvz__initiator
-            span {{ initiatorLabel(selected) }}
-            BaseBadge(v-if='initiatorAssigned(selected)', variant='info') {{ $t('marketplace.issuancePoints.initiatorAssignedBadge') }}
     template(v-if='selected && isChairman', #footer)
       .admin-pvz__drawer-actions
         BaseButton(v-if='!selected.details', variant='primary', @click='openAdd(selected.branch)')
@@ -438,10 +348,6 @@ q-page.admin-pvz
             template(#icon-left)
               q-icon(name='check_circle', size='16px')
             | {{ $t('marketplace.issuancePoints.activateAriaLabel') }}
-        BaseButton(variant='secondary', @click='openInitiator(selected)')
-          template(#icon-left)
-            q-icon(name='person_pin', size='16px')
-          | {{ $t('marketplace.issuancePoints.initiatorDialogTitle') }}
 
   MarketplaceDetailKUDialog(
     v-if='dialogBranch',
@@ -452,20 +358,6 @@ q-page.admin-pvz
     :branch='dialogBranch',
     @saved='onSaved'
   )
-
-  //- Назначение инициатора участка: получатель доли экономии месяца.
-  BaseDialog(v-model='initiatorDialogOpen', :title='$t("marketplace.issuancePoints.initiatorDialogTitle")', size='sm')
-    .admin-pvz__dialog-body
-      p {{ $t('marketplace.issuancePoints.initiatorDialogHint') }}
-      BaseSelect(
-        v-model='initiatorDraft',
-        :label='$t("marketplace.issuancePoints.column.initiator")',
-        :options='initiatorOptions'
-      )
-    template(#footer)
-      BaseButton(variant='ghost', :disabled='initiatorSaving', @click='initiatorDialogOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(variant='primary', :loading='initiatorSaving', @click='onSaveInitiator') {{ $t('common.action.save') }}
-
 </template>
 
 <style scoped lang="scss">
@@ -542,14 +434,6 @@ q-page.admin-pvz
     gap: 2px;
   }
 
-  &__initiator {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2);
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
   &__drawer-actions {
     display: flex;
     flex-wrap: wrap;
@@ -592,13 +476,6 @@ q-page.admin-pvz
 
   &__geo-spinner {
     flex-shrink: 0;
-  }
-
-  &__dialog-body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
-    color: var(--p-ink-2);
   }
 }
 

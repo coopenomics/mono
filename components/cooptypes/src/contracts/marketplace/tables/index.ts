@@ -34,7 +34,6 @@ export * as Counters from './counters'
 /**
  * Инициаторы кооперативных участков Стола заказов (задача 99D-21).
  */
-export * as Initiators from './initiators'
 
 /**
  * Отсечки персонального распределения членского взноса по КУ (requirement b6).

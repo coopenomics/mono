@@ -11565,19 +11565,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchEconomy']?: Omit<ValueTypes["MarketplaceBranchEconomy"], "...on MarketplaceBranchEconomy">
 }>;
-	/** Инициатор кооперативного участка — получатель доли экономии месяца. */
-["MarketplaceBranchInitiator"]: AliasType<{
-	/** Назначен отдельно от председателя участка. */
-	assigned?:boolean | `@${string}`,
-	/** Кооперативный участок. */
-	braname?:boolean | `@${string}`,
-	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
-	invest_balance?:boolean | `@${string}`,
-	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
-	username?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceBranchInitiator']?: Omit<ValueTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
-}>;
 	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: AliasType<{
 	/** Кооперативный участок. */
@@ -11631,8 +11618,6 @@ export type ValueTypes = {
 	expenses?:boolean | `@${string}`,
 	/** В фонды накопления кооператива. */
 	funds_amount?:boolean | `@${string}`,
-	/** Получатель доли инициатора в этом месяце. */
-	initiator?:boolean | `@${string}`,
 	/** Инициатору участка. */
 	initiator_amount?:boolean | `@${string}`,
 	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
@@ -13979,12 +13964,6 @@ export type ValueTypes = {
 	/** Потолок резерва социально-экономического обеспечения на получателя в месяц. Ноль выключает резерв. */
 	aid_month_limit: number | Variable<any, string>
 };
-	["MarketplaceSetBranchInitiatorInput"]: {
-	/** Кооперативный участок. */
-	braname: string | Variable<any, string>,
-	/** Пайщик-инициатор участка. Пусто — получателем доли снова становится председатель участка. */
-	username?: string | undefined | null | Variable<any, string>
-};
 	["MarketplaceSetBranchReserveInput"]: {
 	/** Резерв в месяц, не выше потолка кооператива. */
 	amount: number | Variable<any, string>,
@@ -15660,7 +15639,6 @@ marketplaceRequestSupplier?: [{	input: ValueTypes["MarketplaceRequestSupplierInp
 marketplaceRetireStorageCells?: [{	data: ValueTypes["MarketplaceRetireStorageCellsInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetAidLimit?: [{	data: ValueTypes["MarketplaceSetAidLimitInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomySettings"]],
-marketplaceSetBranchInitiator?: [{	data: ValueTypes["MarketplaceSetBranchInitiatorInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchInitiator"]],
 marketplaceSetBranchReserve?: [{	data: ValueTypes["MarketplaceSetBranchReserveInput"] | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
 marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDeliveryPointInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceSetInitiatorShare?: [{	data: ValueTypes["MarketplaceSetInitiatorShareInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomySettings"]],
@@ -18050,7 +18028,6 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 	marketplaceGetAvailableCategoryTree?:ValueTypes["MarketplaceCategoryTreeNode"],
 marketplaceGetBranchCurrentPeriod?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchEconomy"]],
-marketplaceGetBranchInitiator?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchInitiator"]],
 marketplaceGetBranchMovementParts?: [{	braname: string | Variable<any, string>,	process_hash: string | Variable<any, string>},ValueTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
@@ -31096,18 +31073,6 @@ export type ResolverInputTypes = {
 	weights?:ResolverInputTypes["MarketplaceTrusteeWeight"],
 		__typename?: boolean | `@${string}`
 }>;
-	/** Инициатор кооперативного участка — получатель доли экономии месяца. */
-["MarketplaceBranchInitiator"]: AliasType<{
-	/** Назначен отдельно от председателя участка. */
-	assigned?:boolean | `@${string}`,
-	/** Кооперативный участок. */
-	braname?:boolean | `@${string}`,
-	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
-	invest_balance?:boolean | `@${string}`,
-	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
-	username?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: AliasType<{
 	/** Кооперативный участок. */
@@ -31160,8 +31125,6 @@ export type ResolverInputTypes = {
 	expenses?:boolean | `@${string}`,
 	/** В фонды накопления кооператива. */
 	funds_amount?:boolean | `@${string}`,
-	/** Получатель доли инициатора в этом месяце. */
-	initiator?:boolean | `@${string}`,
 	/** Инициатору участка. */
 	initiator_amount?:boolean | `@${string}`,
 	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
@@ -33431,12 +33394,6 @@ export type ResolverInputTypes = {
 	/** Потолок резерва социально-экономического обеспечения на получателя в месяц. Ноль выключает резерв. */
 	aid_month_limit: number
 };
-	["MarketplaceSetBranchInitiatorInput"]: {
-	/** Кооперативный участок. */
-	braname: string,
-	/** Пайщик-инициатор участка. Пусто — получателем доли снова становится председатель участка. */
-	username?: string | undefined | null
-};
 	["MarketplaceSetBranchReserveInput"]: {
 	/** Резерв в месяц, не выше потолка кооператива. */
 	amount: number,
@@ -35069,7 +35026,6 @@ marketplaceRequestSupplier?: [{	input: ResolverInputTypes["MarketplaceRequestSup
 marketplaceRetireStorageCells?: [{	data: ResolverInputTypes["MarketplaceRetireStorageCellsInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetAidLimit?: [{	data: ResolverInputTypes["MarketplaceSetAidLimitInput"]},ResolverInputTypes["MarketplaceEconomySettings"]],
-marketplaceSetBranchInitiator?: [{	data: ResolverInputTypes["MarketplaceSetBranchInitiatorInput"]},ResolverInputTypes["MarketplaceBranchInitiator"]],
 marketplaceSetBranchReserve?: [{	data: ResolverInputTypes["MarketplaceSetBranchReserveInput"]},ResolverInputTypes["MarketplaceBranchReserves"]],
 marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCartDeliveryPointInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceSetInitiatorShare?: [{	data: ResolverInputTypes["MarketplaceSetInitiatorShareInput"]},ResolverInputTypes["MarketplaceEconomySettings"]],
@@ -37361,7 +37317,6 @@ marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Зада
 	marketplaceGetAvailableCategoryTree?:ResolverInputTypes["MarketplaceCategoryTreeNode"],
 marketplaceGetBranchCurrentPeriod?: [{	braname: string},ResolverInputTypes["MarketplaceBranchCurrentPeriod"]],
 marketplaceGetBranchEconomy?: [{	braname: string},ResolverInputTypes["MarketplaceBranchEconomy"]],
-marketplaceGetBranchInitiator?: [{	braname: string},ResolverInputTypes["MarketplaceBranchInitiator"]],
 marketplaceGetBranchMovementParts?: [{	braname: string,	process_hash: string},ResolverInputTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string},ResolverInputTypes["MarketplaceBranchReserves"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
@@ -49967,17 +49922,6 @@ export type ModelTypes = {
 	/** Участники распределения и их веса. */
 	weights: Array<ModelTypes["MarketplaceTrusteeWeight"]>
 };
-	/** Инициатор кооперативного участка — получатель доли экономии месяца. */
-["MarketplaceBranchInitiator"]: {
-		/** Назначен отдельно от председателя участка. */
-	assigned: boolean,
-	/** Кооперативный участок. */
-	braname: string,
-	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
-	invest_balance: string,
-	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
-	username?: string | undefined | null
-};
 	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: {
 		/** Кооперативный участок. */
@@ -50029,8 +49973,6 @@ export type ModelTypes = {
 	expenses: string,
 	/** В фонды накопления кооператива. */
 	funds_amount: string,
-	/** Получатель доли инициатора в этом месяце. */
-	initiator: string,
 	/** Инициатору участка. */
 	initiator_amount: string,
 	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
@@ -52193,12 +52135,6 @@ export type ModelTypes = {
 	/** Потолок резерва социально-экономического обеспечения на получателя в месяц. Ноль выключает резерв. */
 	aid_month_limit: number
 };
-	["MarketplaceSetBranchInitiatorInput"]: {
-	/** Кооперативный участок. */
-	braname: string,
-	/** Пайщик-инициатор участка. Пусто — получателем доли снова становится председатель участка. */
-	username?: string | undefined | null
-};
 	["MarketplaceSetBranchReserveInput"]: {
 	/** Резерв в месяц, не выше потолка кооператива. */
 	amount: number,
@@ -54108,8 +54044,6 @@ export type ModelTypes = {
 	marketplaceRetryKUGeocode: ModelTypes["MarketplaceKUDetails"],
 	/** Установить потолок резерва социально-экономического обеспечения на одного получателя в месяц — один для всех участков. Ноль выключает резерв. Доступно администратору. */
 	marketplaceSetAidLimit: ModelTypes["MarketplaceEconomySettings"],
-	/** Назначить инициатора кооперативного участка отдельно от председателя; пустое имя снимает назначение. Доступно администратору. */
-	marketplaceSetBranchInitiator: ModelTypes["MarketplaceBranchInitiator"],
 	/** Записать резерв социально-экономического обеспечения получателю участка на месяц. Доступно председателю участка; сумма не выше потолка кооператива. */
 	marketplaceSetBranchReserve: ModelTypes["MarketplaceBranchReserves"],
 	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
@@ -56544,8 +56478,6 @@ export type ModelTypes = {
 	marketplaceGetBranchCurrentPeriod: ModelTypes["MarketplaceBranchCurrentPeriod"],
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и их резерв до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: ModelTypes["MarketplaceBranchEconomy"],
-	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
-	marketplaceGetBranchInitiator: ModelTypes["MarketplaceBranchInitiator"],
 	/** Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается. */
 	marketplaceGetBranchMovementParts: Array<ModelTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
@@ -69760,19 +69692,6 @@ export type GraphQLTypes = {
 	weights: Array<GraphQLTypes["MarketplaceTrusteeWeight"]>,
 	['...on MarketplaceBranchEconomy']: Omit<GraphQLTypes["MarketplaceBranchEconomy"], "...on MarketplaceBranchEconomy">
 };
-	/** Инициатор кооперативного участка — получатель доли экономии месяца. */
-["MarketplaceBranchInitiator"]: {
-	__typename: "MarketplaceBranchInitiator",
-	/** Назначен отдельно от председателя участка. */
-	assigned: boolean,
-	/** Кооперативный участок. */
-	braname: string,
-	/** Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев. */
-	invest_balance: string,
-	/** Пайщик-инициатор; пусто — у участка нет председателя и назначения. */
-	username?: string | undefined | null,
-	['...on MarketplaceBranchInitiator']: Omit<GraphQLTypes["MarketplaceBranchInitiator"], "...on MarketplaceBranchInitiator">
-};
 	/** Паевые взносы инициаторов кооперативного участка и ход их возмещения. */
 ["MarketplaceBranchInvestment"]: {
 	__typename: "MarketplaceBranchInvestment",
@@ -69827,8 +69746,6 @@ export type GraphQLTypes = {
 	expenses: string,
 	/** В фонды накопления кооператива. */
 	funds_amount: string,
-	/** Получатель доли инициатора в этом месяце. */
-	initiator: string,
 	/** Инициатору участка. */
 	initiator_amount: string,
 	/** Фаза участка по паевым взносам инициаторов на момент расчёта итога. */
@@ -72174,12 +72091,6 @@ export type GraphQLTypes = {
 		/** Потолок резерва социально-экономического обеспечения на получателя в месяц. Ноль выключает резерв. */
 	aid_month_limit: number
 };
-	["MarketplaceSetBranchInitiatorInput"]: {
-		/** Кооперативный участок. */
-	braname: string,
-	/** Пайщик-инициатор участка. Пусто — получателем доли снова становится председатель участка. */
-	username?: string | undefined | null
-};
 	["MarketplaceSetBranchReserveInput"]: {
 		/** Резерв в месяц, не выше потолка кооператива. */
 	amount: number,
@@ -74191,8 +74102,6 @@ export type GraphQLTypes = {
 	marketplaceRetryKUGeocode: GraphQLTypes["MarketplaceKUDetails"],
 	/** Установить потолок резерва социально-экономического обеспечения на одного получателя в месяц — один для всех участков. Ноль выключает резерв. Доступно администратору. */
 	marketplaceSetAidLimit: GraphQLTypes["MarketplaceEconomySettings"],
-	/** Назначить инициатора кооперативного участка отдельно от председателя; пустое имя снимает назначение. Доступно администратору. */
-	marketplaceSetBranchInitiator: GraphQLTypes["MarketplaceBranchInitiator"],
 	/** Записать резерв социально-экономического обеспечения получателю участка на месяц. Доступно председателю участка; сумма не выше потолка кооператива. */
 	marketplaceSetBranchReserve: GraphQLTypes["MarketplaceBranchReserves"],
 	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
@@ -76859,8 +76768,6 @@ export type GraphQLTypes = {
 	marketplaceGetBranchCurrentPeriod: GraphQLTypes["MarketplaceBranchCurrentPeriod"],
 	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и их резерв до конца текущего месяца, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: GraphQLTypes["MarketplaceBranchEconomy"],
-	/** Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка. */
-	marketplaceGetBranchInitiator: GraphQLTypes["MarketplaceBranchInitiator"],
 	/** Движения участка в одном процессе для панели движения по общему кошельку: у распределения — кто из доверенных сколько получил, у заказа — членский взнос участку. Процесс чужого участка не раскрывается. */
 	marketplaceGetBranchMovementParts: Array<GraphQLTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
@@ -81716,7 +81623,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceScanTarget"]: ValueTypes["MarketplaceScanTarget"];
 	["MarketplaceSecurePartState"]: ValueTypes["MarketplaceSecurePartState"];
 	["MarketplaceSetAidLimitInput"]: ValueTypes["MarketplaceSetAidLimitInput"];
-	["MarketplaceSetBranchInitiatorInput"]: ValueTypes["MarketplaceSetBranchInitiatorInput"];
 	["MarketplaceSetBranchReserveInput"]: ValueTypes["MarketplaceSetBranchReserveInput"];
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetInitiatorShareInput"]: ValueTypes["MarketplaceSetInitiatorShareInput"];

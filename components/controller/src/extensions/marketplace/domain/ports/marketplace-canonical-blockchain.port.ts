@@ -323,8 +323,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult>;
   /** Доля пайщиков в экономии месяца — первое деление экономии (`marketplace::setretshare`). */
   setRetShare(data: MarketContract.Actions.SetRetShare.ISetRetShare): Promise<InnerTransactResult>;
-  /** Инициатор участка; пустое имя снимает назначение (marketplace::setinitiator). */
-  setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */
   setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult>;
   /** Длина периода предела материальной помощи, секунд; ноль — календарный месяц UTC (стенд ставит длину своего месяца). */
@@ -408,8 +406,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   listMemberDues(coopname: string, username: string): Promise<MarketContract.Tables.Dues.IKuDue[]>;
   /** В цепи есть хоть одна строка счётчика пайщика — счётчики уже ведутся (переходный перенос не нужен). */
   hasAnyDues(coopname: string): Promise<boolean>;
-  /** Назначенный инициатор участка (marketplace::initiators) — по ключу участка; null — не назначен. */
-  getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null>;
   /** Резерв социально-экономического обеспечения участка по получателям (branch::reserves) — по индексу участка. */
   listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
   /** Строки резерва всех участков кооператива (branch::reserves): по строке на получателя, таблица не растёт с историей. */

@@ -215,17 +215,6 @@ export async function deleteBranchReserve(data: IDeleteBranchReserveInput): Prom
   return result;
 }
 
-export type MarketplaceBranchInitiatorView =
-  Queries.Marketplace.GetBranchInitiator.IOutput['marketplaceGetBranchInitiator'];
-
-export async function getBranchInitiator(braname: string): Promise<MarketplaceBranchInitiatorView> {
-  const { [Queries.Marketplace.GetBranchInitiator.name]: result } = await client.Query(
-    Queries.Marketplace.GetBranchInitiator.query,
-    { variables: { braname } },
-  );
-  return result;
-}
-
 export type MarketplaceBranchPeriodsView =
   Queries.Marketplace.ListBranchPeriods.IOutput['marketplaceListBranchPeriods'];
 export type MarketplaceBranchPeriodRow = MarketplaceBranchPeriodsView['items'][number];

@@ -78,34 +78,6 @@ export class MarketplaceSetAidLimitInputDTO {
   aid_month_limit!: number;
 }
 
-@InputType('MarketplaceSetBranchInitiatorInput')
-export class MarketplaceSetBranchInitiatorInputDTO {
-  @Field({ description: 'Кооперативный участок.' })
-  @IsString()
-  @IsNotEmpty()
-  braname!: string;
-
-  @Field(() => String, { nullable: true, description: 'Пайщик-инициатор участка. Пусто — получателем доли снова становится председатель участка.' })
-  @IsOptional()
-  @IsString()
-  username?: string | null;
-}
-
-@ObjectType('MarketplaceBranchInitiator', { description: 'Инициатор кооперативного участка — получатель доли экономии месяца.' })
-export class MarketplaceBranchInitiatorDTO {
-  @Field({ description: 'Кооперативный участок.' })
-  braname!: string;
-
-  @Field(() => String, { nullable: true, description: 'Пайщик-инициатор; пусто — у участка нет председателя и назначения.' })
-  username!: string | null;
-
-  @Field(() => Boolean, { description: 'Назначен отдельно от председателя участка.' })
-  assigned!: boolean;
-
-  @Field({ description: 'Остаток паевого кошелька инициатора участка — доля инициатора в экономии по итогам месяцев.' })
-  invest_balance!: string;
-}
-
 // ── Резерв социально-экономического обеспечения пайщиков ─────────────────
 
 @ObjectType('MarketplaceBranchReserve', { description: 'Резерв социально-экономического обеспечения одного получателя участка на месяц.' })
@@ -253,9 +225,6 @@ export class MarketplaceBranchPeriodDTO {
   @Field({ description: 'Коэффициент экономического участия за месяц, проценты: участку, в фонды, инициатору и фонду социального обеспечения вместе.' })
   rate_percent!: string;
 
-  @Field({ description: 'Получатель доли инициатора в этом месяце.' })
-  initiator!: string;
-
   @Field(() => MarketplacePeriodInvestPhase, { description: 'Фаза участка по паевым взносам инициаторов на момент расчёта итога.' })
   invest_phase!: MarketplacePeriodInvestPhase;
 
@@ -365,7 +334,6 @@ export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity,
     social_amount: row.social_amount ?? '0',
     deficit: row.deficit,
     rate_percent: ratePercent,
-    initiator: row.initiator,
     invest_phase: row.invest_phase,
     investor_repaid: row.investor_repaid,
     rows_total: row.rows_total,

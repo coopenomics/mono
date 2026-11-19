@@ -382,20 +382,6 @@ inline uint64_t get_return_share_percent(eosio::name coopname) {
     : DEFAULT_RETURN_SHARE_PERCENT;
 }
 
-/**
- * @brief Получатель доли инициатора участка (задача 99D-21, решение владельца
- * 03.11.2026). Единственная точка выбора: строка `initiators` участка, а без
- * неё — председатель участка. Инициатор и председатель не связаны намертво:
- * председатель сменился — инициатор продолжает получать свою долю. На
- * инвестиционном этапе здесь встанет правило «паевой взнос возвращён — получатель
- * кошелёк обеспечения пайщиков участка» и несколько инициаторов с долями.
- */
-inline eosio::name initiator_of(eosio::name coopname, eosio::name braname, eosio::name trustee) {
-  mkt_initiators_index initiators(_marketplace, coopname.value);
-  auto it = initiators.find(braname.value);
-  return it != initiators.end() ? it->username : trustee;
-}
-
 /// Строка прогона участка за период либо отказ: без неё списание по ставкам
 /// невозможно (задача 99D-21).
 inline const kuperiod& get_period_or_fail(kuperiods_index& periods, eosio::name braname, uint32_t period) {

@@ -330,14 +330,6 @@ public:
   [[eosio::action]] void setretshare(eosio::name coopname,
                                       uint64_t return_share_percent);
   /**
-   * @brief Инициатор кооперативного участка — получатель доли экономии; без
-   * строки им считается председатель участка. Пустое имя стирает строку.
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void setinitiator(eosio::name coopname,
-                                       eosio::name braname,
-                                       eosio::name username);
-  /**
    * @brief Расчёт итога периода участка: стоимость заказов и собранная
    * обеспечительная часть — из счётчика участка в цепи; узел передаёт только
    * факты о расходах, которых в цепи нет: оплачено по плану, служебные

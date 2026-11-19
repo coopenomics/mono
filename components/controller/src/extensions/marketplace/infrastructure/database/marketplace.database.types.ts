@@ -102,7 +102,6 @@ export interface MarketplaceBranchPeriod {
   deleted_at: Timestamp | null;
   expenses: Generated<Numeric>;
   funds_amount: Generated<Numeric>;
-  initiator: Generated<string>;
   initiator_amount: Generated<Numeric>;
   invest_phase: Generated<string>;
   investor_repaid: Generated<Numeric>;

@@ -24,15 +24,6 @@ export const rawMarketplaceEconomySettingsSelector = {
 const _validateEconomySettings: MakeAllFieldsRequired<ValueTypes['MarketplaceEconomySettings']> = rawMarketplaceEconomySettingsSelector
 export const marketplaceEconomySettingsSelector = Selector('MarketplaceEconomySettings')(rawMarketplaceEconomySettingsSelector)
 
-export const rawMarketplaceBranchInitiatorSelector = {
-  braname: true,
-  username: true,
-  assigned: true,
-  invest_balance: true,
-}
-const _validateBranchInitiator: MakeAllFieldsRequired<ValueTypes['MarketplaceBranchInitiator']> = rawMarketplaceBranchInitiatorSelector
-export const marketplaceBranchInitiatorSelector = Selector('MarketplaceBranchInitiator')(rawMarketplaceBranchInitiatorSelector)
-
 export const rawMarketplaceBranchReserveSelector = {
   username: true,
   amount: true,
@@ -74,7 +65,6 @@ export const rawMarketplaceBranchPeriodSelector = {
   social_amount: true,
   deficit: true,
   rate_percent: true,
-  initiator: true,
   invest_phase: true,
   investor_repaid: true,
   rows_total: true,

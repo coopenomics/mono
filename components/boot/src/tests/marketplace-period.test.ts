@@ -11,7 +11,7 @@
  *     период конца гарантийного срока: стоимость и обеспечительная часть по факту;
  *   • до окончания периода `closeperiod` и `chargeperiod` отвечают
  *     MARKETPLACE_PERIOD_OPEN;
- *   • setshares / setretshare / setinitiator — настройки доли инициатора, доли пайщиков и инициатора участка;
+ *   • setshares / setretshare — настройки доли инициаторов и доли пайщиков;
  *   • closeperiod после окончания периода — T и C из счётчика участка, от узла
  *     три факта о расходах → строка kuperiods, формулы которой сверяются с
  *     эталоном; счётчик участка стёрт; повтор — MARKETPLACE_PERIOD_EXISTS, период
@@ -163,7 +163,6 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
   }, 600_000)
 
   afterAll(async () => {
-    await push(MARKET, 'setinitiator', { coopname: COOP, braname: BRANAME, username: '' }).catch(() => {})
     await push(BRANCH, 'delreserve', { coopname: COOP, braname: BRANAME, username: chairkrg.account }).catch(() => {})
     await push(BRANCH, 'setaidlimit', { coopname: COOP, limit: '0.0000 RUB' }).catch(() => {})
   })
@@ -205,13 +204,6 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     expect(Number(cfg[0]?.initiator_share_percent), 'доля инициатора осталась прежней').toBe(Number(initiatorPercent))
     returnPercent = 382_000n
     await expect(push(MARKET, 'setretshare', { coopname: COOP, return_share_percent: 1_000_001 })).rejects.toThrow(/MARKETPLACE_RETURN_SHARE_INVALID/)
-  })
-
-  it('setinitiator: инициатор участка назначается отдельно от председателя; посторонний не пайщик — отказ', async () => {
-    await push(MARKET, 'setinitiator', { coopname: COOP, braname: BRANAME, username: chairkrg.account })
-    const rows: any[] = await bc.getTableRows(MARKET, COOP, 'initiators', 100)
-    expect(rows.find(r => r.braname === BRANAME)?.username).toBe(chairkrg.account)
-    await expect(push(MARKET, 'setinitiator', { coopname: COOP, braname: BRANAME, username: 'nobodyhere12' })).rejects.toThrow()
   })
 
   it('closeperiod после окончания периода: T и C из счётчика участка, строка сходится по формулам документа; повтор — MARKETPLACE_PERIOD_EXISTS; период без заказов — MARKETPLACE_PERIOD_EMPTY; отказы аргументов', async () => {

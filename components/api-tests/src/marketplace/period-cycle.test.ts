@@ -36,9 +36,8 @@ const SET_RESERVE = 'mutation($d:MarketplaceSetBranchReserveInput!){ marketplace
 const DEL_RESERVE = 'mutation($d:MarketplaceDeleteBranchReserveInput!){ marketplaceDeleteBranchReserve(data:$d){ rows{ username } } }'
 const PERIODS = `query($b:String!,$o:PaginationInput){ marketplaceListBranchPeriods(braname:$b, options:$o){ items{
   period turnover secured planned memos aid_paid aid_reserve aid_unpaid planned_target target target_prev target_funded expenses membership funds_amount branch_amount
-  initiator_amount return_amount social_amount deficit rate_percent initiator rows_total rows_charged archived } } }`
+  initiator_amount return_amount social_amount deficit rate_percent rows_total rows_charged archived } } }`
 const CURRENT = 'query($b:String!){ marketplaceGetBranchCurrentPeriod(braname:$b){ period planned memos aid_paid aid_reserve planned_target target_prev expenses ripening_orders ripening_turnover ripening_secured } }'
-const INITIATOR = 'query($b:String!){ marketplaceGetBranchInitiator(braname:$b){ username assigned invest_balance } }'
 const SECURE_PART = 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ secure_part{ state amount due_amount charged_amount returned_amount rate_percent settled_at } } }'
 
 const H = 1_000_000n
@@ -211,11 +210,6 @@ describe.skipIf(!COMPRESSED)('коэффициент экономическог�
       expect(units(part.charged_amount) + units(part.returned_amount), 'списано + возвращено = обеспечительная часть').toBe(units(part.amount))
       expect(part.rate_percent, 'ставка месяца в карточке').toBe(periodRow.rate_percent)
     }
-    const initiator = (await gql<any>(krgToken, INITIATOR, { b: KRG })).marketplaceGetBranchInitiator
-    expect(initiator.username, 'без назначения долю получает председатель участка').toBe(chairkrg.account)
-    // С 99D-27 доля инициаторов возмещает паевые взносы участка (кошелёк возмещения)
-    // либо направляется участку; кошелёк договора участия пополняют только паевые взносы.
-    expect(amount(initiator.invest_balance)).toBeGreaterThanOrEqual(0)
   }, 240_000)
 
   it(caseName('mkt.order.keu.api.06', 'строки прогонов в цепи — не больше двух на участок; на узле история остаётся'), async () => {

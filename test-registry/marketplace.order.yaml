@@ -118,7 +118,6 @@ sources:
     - components/contracts/cpp/lib/core/marketplace/dues.hpp
     - components/contracts/cpp/lib/domain/table_marketplace_dues.hpp
     - components/contracts/cpp/marketplace/src/p.mkt.supply/setshares.cpp
-    - components/contracts/cpp/marketplace/src/p.mkt.supply/setinitiator.cpp
     - components/contracts/cpp/branch/src/setreserve.cpp
     - components/contracts/cpp/branch/src/delreserve.cpp
     - components/contracts/cpp/branch/src/setaidlimit.cpp
@@ -1112,7 +1111,7 @@ cases:
   # участия». Контракты: fund (w.fnd.accum, fund::accrue), branch (резерв
   # обеспечения по получателям, потолок, предел материальной помощи),
   # marketplace (процесс p.mkt.due: счётчики kudues/kucounters, closeperiod,
-  # chargeperiod, exitdue, delperiod, migratedue, setshares, setinitiator).
+  # chargeperiod, exitdue, delperiod, migratedue, setshares, setretshare).
   #
   # Правка 09.11.2026 (99D-33): суммы для итога и списания контракт берёт из
   # своих счётчиков, узел передаёт только участок, пайщика, период и факты о
@@ -1190,12 +1189,10 @@ cases:
     level: contract
     kind: side
     scenario: >
-      Настройки модели: доля инициатора в экономии и инициатор участка отдельно
-      от председателя.
+      Настройки модели: доля инициаторов и доля пайщиков в экономии.
     expect: >
       setshares пишет долю, выше 100 % — MARKETPLACE_INITIATOR_SHARE_INVALID;
-      setinitiator назначает пайщика, не пайщика отклоняет, пустое имя снимает
-      назначение; строка итога месяца хранит получателя доли
+      setretshare пишет долю пайщиков и долю инициаторов не трогает
     test: components/boot/src/tests/marketplace-period.test.ts
     status: written
 

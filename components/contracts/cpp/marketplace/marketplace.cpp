@@ -13,7 +13,6 @@
 #include "src/p.mkt.supply/setfee.cpp"
 #include "src/p.mkt.supply/setshares.cpp"
 #include "src/p.mkt.supply/setretshare.cpp"
-#include "src/p.mkt.supply/setinitiator.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"
 #include "src/p.mkt.supply/expireorder.cpp"
 #include "src/p.mkt.supply/closeorder.cpp"

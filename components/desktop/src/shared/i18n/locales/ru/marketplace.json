@@ -649,8 +649,7 @@
         "branch": "Участок",
         "city": "Город",
         "geocode": "Геокод",
-        "status": "Статус",
-        "initiator": "Инициатор участка"
+        "status": "Статус"
       },
       "connectedSummary": "Подключено пунктов выдачи: {connected} из {total}",
       "deactivateAriaLabel": "Деактивировать",
@@ -663,13 +662,6 @@
       "geocodeRetryFailedError": "Не удалось перезапустить геокодинг",
       "geocodedSuccess": "Координаты определены",
       "geocodingStartedInfo": "Геокодинг запущен — статус обновится автоматически",
-      "initiatorAssignedBadge": "Назначен",
-      "initiatorChairmanOption": "Председатель участка",
-      "initiatorDialogHint": "Инициатор получает долю экономии участка по итогу месяца на свой паевой кошелёк. По умолчанию это председатель участка. Назначение действует на следующие итоги месяцев.",
-      "initiatorDialogTitle": "Инициатор участка",
-      "initiatorEditAriaLabel": "Назначить инициатора участка",
-      "initiatorSaveFailedError": "Не удалось записать инициатора участка",
-      "initiatorSavedSuccess": "Инициатор участка записан",
       "loadFailedError": "Не удалось загрузить участки и пункты выдачи",
       "makeIssuancePointButton": "Сделать ПВЗ",
       "mapButton": "Карта",

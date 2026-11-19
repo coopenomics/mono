@@ -172,7 +172,6 @@ export * as SetInitiatorShare from './setInitiatorShare'
 /** Доля пайщиков в экономии месяца — первое деление экономии, отдельная настройка */
 export * as SetReturnShare from './setReturnShare'
 export * as SetAidLimit from './setAidLimit'
-export * as SetBranchInitiator from './setBranchInitiator'
 export * as SetBranchReserve from './setBranchReserve'
 export * as DeleteBranchReserve from './deleteBranchReserve'
 

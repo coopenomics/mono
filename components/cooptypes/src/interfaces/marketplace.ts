@@ -120,18 +120,6 @@ export interface ISetShares {
   initiator_share_percent: IUint64
 }
 
-export interface ISetInitiator {
-  coopname: IName
-  braname: IName
-  /** Пайщик-инициатор участка; пустое имя стирает строку. */
-  username: IName
-}
-
-export interface IMktInitiator {
-  braname: IName
-  username: IName
-}
-
 export interface IClosePeriod {
   coopname: IName
   braname: IName
@@ -242,7 +230,6 @@ export interface IKuPeriod {
   rate_branch: IUint64
   rate_funds: IUint64
   rate_initiator: IUint64
-  initiator: IName
   closed_at: ITimePointSec
   /** ЦП — цель плановых расходов на следующий месяц (задача 99D-34; у строк старого узла нет). */
   planned_target?: IAsset

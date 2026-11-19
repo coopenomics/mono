@@ -317,7 +317,6 @@ export async function closeMonthAndCompare(ctx: PeriodContext, label: string, in
   })
   // Собранное делится без остатка — по строке цепи, не по эталону.
   expect(got.branch + got.funds + got.initiator + got.social + got.returned, `${label}: собранное разделено целиком`).toBe(facts.secured)
-  expect(row.initiator, `${label}: получатель доли инициатора записан`).toBeTruthy()
   return { period, facts, totals: expected, row }
 }
 

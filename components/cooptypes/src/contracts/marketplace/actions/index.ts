@@ -127,7 +127,6 @@ export * as SetRetShare from './setRetShare'
 /**
  * Инициатор кооперативного участка Стола заказов (задача 99D-21).
  */
-export * as SetInitiator from './setInitiator'
 
 // ── Списание обеспечительной части по итогу периода (процесс p.mkt.due; задачи 99D-21, 99D-33) ──
 /**

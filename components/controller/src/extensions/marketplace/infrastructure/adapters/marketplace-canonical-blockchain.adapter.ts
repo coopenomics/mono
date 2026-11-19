@@ -494,10 +494,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SetRetShare.actionName, data, 'setretshare');
   }
 
-  async setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult> {
-    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SetInitiator.actionName, data, 'setinitiator');
-  }
-
   async setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult> {
     return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetAidLimit.actionName, data, 'setaidlimit');
   }
@@ -662,18 +658,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, { maxRows: 1 }
     );
     return rows.length > 0;
-  }
-
-  async getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null> {
-    // Первичный ключ строки инициатора — имя участка.
-    return this.blockchainService.getSingleRow<MarketContract.Tables.Initiators.IMktInitiator>(
-      MarketContract.contractName.production,
-      coopname,
-      MarketContract.Tables.Initiators.tableName,
-      braname,
-      'primary',
-      'name'
-    );
   }
 
   async listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {

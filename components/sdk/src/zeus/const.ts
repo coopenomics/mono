@@ -1613,9 +1613,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetAidLimitInput:{
 
 	},
-	MarketplaceSetBranchInitiatorInput:{
-
-	},
 	MarketplaceSetBranchReserveInput:{
 
 	},
@@ -2848,9 +2845,6 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceSetAidLimit:{
 			data:"MarketplaceSetAidLimitInput"
 		},
-		marketplaceSetBranchInitiator:{
-			data:"MarketplaceSetBranchInitiatorInput"
-		},
 		marketplaceSetBranchReserve:{
 			data:"MarketplaceSetBranchReserveInput"
 		},
@@ -3870,9 +3864,6 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		marketplaceGetBranchEconomy:{
-
-		},
-		marketplaceGetBranchInitiator:{
 
 		},
 		marketplaceGetBranchMovementParts:{
@@ -7639,12 +7630,6 @@ export const ReturnTypes: Record<string,any> = {
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
 	},
-	MarketplaceBranchInitiator:{
-		assigned:"Boolean",
-		braname:"String",
-		invest_balance:"String",
-		username:"String"
-	},
 	MarketplaceBranchInvestment:{
 		braname:"String",
 		investors:"MarketplaceInvestor",
@@ -7671,7 +7656,6 @@ export const ReturnTypes: Record<string,any> = {
 		ends_at:"DateTime",
 		expenses:"String",
 		funds_amount:"String",
-		initiator:"String",
 		initiator_amount:"String",
 		invest_phase:"MarketplacePeriodInvestPhase",
 		investor_repaid:"String",
@@ -9163,7 +9147,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRetireStorageCells:"MarketplaceStorageCell",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
 		marketplaceSetAidLimit:"MarketplaceEconomySettings",
-		marketplaceSetBranchInitiator:"MarketplaceBranchInitiator",
 		marketplaceSetBranchReserve:"MarketplaceBranchReserves",
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetInitiatorShare:"MarketplaceEconomySettings",
@@ -10242,7 +10225,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
 		marketplaceGetBranchCurrentPeriod:"MarketplaceBranchCurrentPeriod",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
-		marketplaceGetBranchInitiator:"MarketplaceBranchInitiator",
 		marketplaceGetBranchMovementParts:"MarketplaceBranchWalletOperation",
 		marketplaceGetBranchReserves:"MarketplaceBranchReserves",
 		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
