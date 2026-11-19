@@ -20,22 +20,24 @@
  * `accepted_cost`.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { GatewayContract, MarketContract } from 'cooptypes'
+import { MarketContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { acceptToCoop, issueOrder, pickOffer, placeOrder } from './marketplace/orderFlow'
 import {
   ACC,
-  CHAIN_URL,
   CHAIRMAN,
   COOP,
   type LedgerRow,
   amount,
+  chainOrder,
+  confirmSupplierPayout,
   ensureShareFunds,
   fromState,
   gqlAs,
   historyOfProcess,
   loginAs,
+  sendSupplierPayout,
   signAs,
   sumOf,
   waitForOps,
@@ -58,33 +60,6 @@ let chairkrgToken = ''
 
 let offerId = ''
 let unitPrice = 0
-
-/** Строка заказа в таблице `marketplace::orders` по хэшу; стёртая запись — null. */
-async function chainOrder(orderHash: string): Promise<any | null> {
-  const want = orderHash.toLowerCase()
-  let lowerBound = ''
-  for (;;) {
-    const res = await fetch(`${CHAIN_URL}/v1/chain/get_table_rows`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        json: true,
-        code: MarketContract.contractName.production,
-        scope: COOP,
-        table: 'orders',
-        limit: 500,
-        lower_bound: lowerBound,
-      }),
-    })
-    const d: any = await res.json()
-    const row = (d.rows ?? []).find((r: any) => String(r.hash).toLowerCase() === want)
-    if (row)
-      return row
-    if (!d.more || !d.next_key)
-      return null
-    lowerBound = String(d.next_key)
-  }
-}
 
 /** Дождаться состояния заказа на цепи: дельты и обратные вызовы идут через пару блоков. */
 async function waitForChainOrder(
@@ -172,7 +147,10 @@ describe('стол заказов — отказ после приёмки и ц
   it('mkt.supply.side.33: отказ после приёмки при ожидающей выплате — заказ ждёт кассира, выплата идёт на принятую стоимость и закрывает заказ', async () => {
     const { orderId, orderHash, acceptedCost } = await acceptedOrder()
 
-    // Выплату поставщику бэкенд инициирует сам сразу после закрывающей подписи приёмки.
+    // Выплату поставщику заводит обход узла пакетом в начале следующих суток
+    // (решение владельца 19.11.2026); тест проходит тот же путь действиями
+    // кооператива: заказ включается в пакет, пакет отправляется кассиру.
+    const payoutHash = await sendSupplierPayout(actAsCoop, orderHash)
     const pending = await waitForChainOrder(orderHash, r => r?.payout_status === 'pending', 'выплата ждёт кассира')
     expect(amount(pending.accepted_cost), 'принятая стоимость фиксируется на приёмке').toBeCloseTo(acceptedCost, 2)
     const withheld = amount(pending.payout_withheld)
@@ -199,11 +177,8 @@ describe('стол заказов — отказ после приёмки и ц
       'повторный отказ цепь обязана отклонить',
     ).rejects.toThrow(/Отказ по заказу уже зафиксирован/)
 
-    // Кассир подтверждает банковский перевод поставщику.
-    await actAsCoop(GatewayContract.contractName.production, GatewayContract.Actions.CompleteOutcome.actionName, {
-      coopname: COOP,
-      outcome_hash: orderHash,
-    })
+    // Кассир подтверждает банковский перевод пакета, заказ пакета закрывается.
+    await confirmSupplierPayout(actAsCoop, payoutHash, orderHash)
 
     ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.payout'])
     expect(

@@ -119,12 +119,14 @@ export class MarketplaceOutgoingPaymentResolver {
   ): Promise<MarketplaceOutgoingPaymentOrderSummaryDTO[]> {
     if (!orderIds.length) return [];
     const orders = await this.orderRepo.findByIds(orderIds);
+    // Реквизиты всех заказов выплаты — одним проходом: в выплате десятки заказов.
+    const displays = await this.displayService.enrich(orders, {
+      withGroupProgress: false,
+      withParticipantNames: true,
+    });
     const summaries: MarketplaceOutgoingPaymentOrderSummaryDTO[] = [];
     for (const order of orders) {
-      const display = await this.displayService.enrichOne(order, {
-        withGroupProgress: false,
-        withParticipantNames: true,
-      });
+      const display = displays.get(order.id) ?? {};
       const summary = new MarketplaceOutgoingPaymentOrderSummaryDTO();
       summary.id = order.id;
       summary.product_name = display.product_name ?? null;

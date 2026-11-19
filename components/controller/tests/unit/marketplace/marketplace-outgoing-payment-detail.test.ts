@@ -73,11 +73,15 @@ const makeResolver = (opts: {
       : jest.fn().mockResolvedValue(opts.corePage ?? { items: [], totalCount: 0, totalPages: 0, currentPage: 1 }),
   } as any;
   const displayService = {
-    enrichOne: jest.fn().mockResolvedValue({
-      product_name: 'Молоко',
-      orderer_name: 'Петров Пётр Петрович',
-      delivery_point_name: 'Курганский',
-    }),
+    // Реквизиты всех заказов выплаты читаются одним проходом.
+    enrich: jest.fn(async (orders: any[]) =>
+      new Map(
+        orders.map((o) => [
+          o.id,
+          { product_name: 'Молоко', orderer_name: 'Петров Пётр Петрович', delivery_point_name: 'Курганский' },
+        ])
+      )
+    ),
   } as any;
   const resolver = new MarketplaceOutgoingPaymentResolver(
     paymentRepo,

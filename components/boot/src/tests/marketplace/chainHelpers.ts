@@ -14,6 +14,7 @@
  * отличить нитку поставки от нитки экономики участка (ledger2.process-naming
  * l2.pnam.side.01/02).
  */
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -343,3 +344,106 @@ export async function ensureShareFunds(username: string, minimumRub: number, mem
   }
   return availableShare(username)
 }
+
+// ── Заказ в цепи и выплата поставщику пакетом ─────────────────────────────
+
+/** Строка заказа в таблице `marketplace::orders` по хэшу (индекс `byhash`, одна строка); стёртая запись — null. */
+export async function chainOrder(orderHash: string): Promise<any | null> {
+  const key = orderHash.toLowerCase()
+  const res = await fetch(`${CHAIN_URL}/v1/chain/get_table_rows`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      json: true,
+      code: 'marketplace',
+      scope: COOP,
+      table: 'orders',
+      index_position: 2,
+      key_type: 'sha256',
+      lower_bound: key,
+      upper_bound: key,
+      limit: 1,
+    }),
+  })
+  const d: any = await res.json()
+  return (d.rows ?? []).find((r: any) => String(r.hash).toLowerCase() === key) ?? null
+}
+
+/** Действие от имени кооператива напрямую в цепь — его даёт тест со своим клиентом подписи. */
+export type CoopAct = (account: string, name: string, data: Record<string, unknown>) => Promise<unknown>
+
+/** Отказ контракта с этим кодом — допустимый исход шага: шаг уже сделал обход узла. */
+async function unlessRefused(codes: string[], step: () => Promise<unknown>): Promise<void> {
+  try {
+    await step()
+  }
+  catch (e: any) {
+    const message = String(e?.json?.error?.details?.[0]?.message ?? e?.message ?? e)
+    if (!codes.some(code => message.includes(code)))
+      throw e
+  }
+}
+
+/**
+ * Заказ включается в пакет выплаты поставщику, пакет отправляется кассиру
+ * (решение владельца 19.11.2026). В работе пакет заводит обход узла в начале
+ * следующих суток — в настоящем времени стенда его не дождаться, поэтому
+ * контрактный тест проходит тот же путь действиями кооператива: `addpayout`,
+ * `sendpayout`. Обход узла мог включить заказ раньше (стенд со сжатым временем,
+ * набор тестов идёт через полночь) — тогда берётся пакет узла. Возвращает хэш пакета —
+ * `outcome_hash` исходящего платежа в gateway.
+ */
+export async function sendSupplierPayout(act: CoopAct, orderHash: string): Promise<string> {
+  const payoutHash = crypto.randomBytes(32).toString('hex')
+  await unlessRefused(['MARKETPLACE_PAYOUT_ALREADY_STARTED'], async () => {
+    await act('marketplace', 'addpayout', { coopname: COOP, payout_hash: payoutHash, order_hash: orderHash })
+    await act('marketplace', 'sendpayout', { coopname: COOP, payout_hash: payoutHash })
+  })
+  const deadline = Date.now() + 120_000
+  for (;;) {
+    const row = await chainOrder(orderHash)
+    const hash = String(row?.payout_hash ?? '').toLowerCase()
+    if (row?.payout_status === 'pending' && hash && !/^0+$/.test(hash)) {
+      // Пакет узла мог быть ещё не отправлен кассиру — отправку довозит сам узел.
+      if (hash === payoutHash || await supplierPayoutSent(hash))
+        return hash
+    }
+    if (Date.now() > deadline)
+      throw new Error(`заказ ${orderHash} не включён в отправленный пакет выплаты: ${JSON.stringify(row)}`)
+    // timing: backoff — пакет узла отправляется кассиру следующей транзакцией обхода
+    await new Promise(r => setTimeout(r, 1_500))
+  }
+}
+
+/** Пакет выплаты отправлен кассиру: строка `payouts` в состоянии sent. */
+async function supplierPayoutSent(payoutHash: string): Promise<boolean> {
+  const res = await fetch(`${CHAIN_URL}/v1/chain/get_table_rows`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      json: true,
+      code: 'marketplace',
+      scope: COOP,
+      table: 'payouts',
+      index_position: 2,
+      key_type: 'sha256',
+      lower_bound: payoutHash,
+      upper_bound: payoutHash,
+      limit: 1,
+    }),
+  })
+  const d: any = await res.json()
+  return (d.rows ?? []).some((r: any) => String(r.hash).toLowerCase() === payoutHash && r.status === 'sent')
+}
+
+/**
+ * Кассир подтверждает перевод пакета (`gateway::outcomplete`), заказ
+ * закрывается (`closepayout`, Дт 76 / Кт 51 на заказ). Заказ пакета узла узел
+ * закрывает сам — отказ «заказ не ждёт выплаты» тогда допустим.
+ */
+export async function confirmSupplierPayout(act: CoopAct, payoutHash: string, orderHash: string): Promise<void> {
+  await act('gateway', 'outcomplete', { coopname: COOP, outcome_hash: payoutHash })
+  await unlessRefused(['MARKETPLACE_PAYOUT_NOT_PENDING', 'Заказ не найден'], () =>
+    act('marketplace', 'closepayout', { coopname: COOP, order_hash: orderHash }))
+}
+

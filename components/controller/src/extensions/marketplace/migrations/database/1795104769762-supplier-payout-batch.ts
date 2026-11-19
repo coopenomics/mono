@@ -17,14 +17,19 @@ const UP: readonly string[] = [
   'ALTER TABLE "marketplace_outgoing_payment_request" DROP COLUMN IF EXISTS "apl_reception_id"',
   'ALTER TABLE "marketplace_outgoing_payment_request" ADD COLUMN IF NOT EXISTS "lines" jsonb NOT NULL DEFAULT \'[]\'',
   'ALTER TABLE "marketplace_outgoing_payment_request" ADD COLUMN IF NOT EXISTS "settled_at" TIMESTAMP WITH TIME ZONE',
-  'CREATE UNIQUE INDEX IF NOT EXISTS "ux_mkt_outgoing_payment_hash" ON "marketplace_outgoing_payment_request" ("coopname", "payment_hash")',
+  // Уникальность хэша пакета держит прежний индекс по (coopname, order_hash):
+  // переименование колонки он пережил, второй такой же индекс не нужен.
   // Обход выплат читает только пакеты с незакрытыми заказами — по индексу, не всю историю.
   'CREATE INDEX IF NOT EXISTS "ix_mkt_outgoing_payment_unsettled" ON "marketplace_outgoing_payment_request" ("coopname", "status") WHERE "settled_at" IS NULL',
+  // Обход выплат отбирает заказы к выплате среди живых заказов цепи: закрытые
+  // заказы из цепи стёрты (on_chain_present = false) и в индекс не входят,
+  // поэтому чтение не растёт вместе с историей заказов.
+  'CREATE INDEX IF NOT EXISTS "ix_mkt_order_on_chain_supplier" ON "marketplace_order" ("coopname", "supplier_account") WHERE "on_chain_present"',
 ];
 
 const DOWN: readonly string[] = [
+  'DROP INDEX IF EXISTS "ix_mkt_order_on_chain_supplier"',
   'DROP INDEX IF EXISTS "ix_mkt_outgoing_payment_unsettled"',
-  'DROP INDEX IF EXISTS "ux_mkt_outgoing_payment_hash"',
   'ALTER TABLE "marketplace_outgoing_payment_request" DROP COLUMN IF EXISTS "settled_at"',
   'DELETE FROM "marketplace_outgoing_payment_request"',
   'ALTER TABLE "marketplace_outgoing_payment_request" DROP COLUMN IF EXISTS "lines"',

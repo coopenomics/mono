@@ -17,6 +17,7 @@ jest.mock('@coopenomics/extension-kit', () => {
 });
 
 import { PaymentStatus } from '@coopenomics/innercoop';
+import { DomainError } from '@coopenomics/extension-kit';
 import { MarketplaceSupplierPayoutService } from '~/extensions/marketplace/application/services/marketplace-supplier-payout.service';
 import {
   PAYOUT_ACTIONS_PER_TRANSACTION,
@@ -121,6 +122,8 @@ function build() {
     }),
     closePayouts: jest.fn(async () => ({})),
     releasePayouts: jest.fn(async () => ({})),
+    // Строка пакета в цепи; по умолчанию пакета в цепи нет.
+    getPayout: jest.fn(async () => null as any),
   };
   const coreGateway: any = {
     createSystemOutgoingPayment: jest.fn(async () => ({ id: 'core-1' })),
@@ -147,13 +150,24 @@ function build() {
   return { service, store, paymentRepo, orderRepo, offerRepo, chainPort, coreGateway, supplierRegistry, eventBus, logger };
 }
 
-/** После включения в цепи дельта ставит пакету сумму, а заказам — pending. */
+/** Отказ контракта — как его отдаёт цепь: `assertion failure with message: КОД: текст`. */
+const refusal = (code: string) => new Error(`assertion failure with message: ${code}: отказ контракта`);
+
+/** Строка пакета в цепи. */
+const chainRow = (status: string, orders: number) => ({ status, orders, amount: '0.0000 RUB', withheld: '0.0000 RUB' });
+
+/**
+ * После включения в цепи дельта ставит пакету сумму, а заказам — pending;
+ * строка пакета в цепи открыта и считает включённые заказы. Ни один заказ не
+ * включён — строки пакета в цепи нет.
+ */
 function chainIncludes(ctx: ReturnType<typeof build>, amount: string, pendingIds: string[], allIds: string[], supplier = 'supp1') {
   ctx.chainPort.addPayouts.mockImplementation(async (_c: string, hash: string) => {
     const p = ctx.store.get(hash);
     if (p) p.amount = amount;
     return {};
   });
+  ctx.chainPort.getPayout.mockImplementation(async () => (pendingIds.length ? chainRow('open', pendingIds.length) : null));
   ctx.orderRepo.findByOrderHashes.mockImplementation(async () =>
     allIds.map((id) => order(id, supplier, pendingIds.includes(id) ? 'pending' : 'completed'))
   );
@@ -220,11 +234,13 @@ describe('новые пакеты', () => {
 
   it('у поставщика уже открыт пакет → новый не заводится', async () => {
     const ctx = build();
-    ctx.paymentRepo.listAll.mockResolvedValue([projectionOf({ payee_account: 'supp1' })]);
+    // Открытые пакеты обход берёт из незакрытых (выборка по индексу), историю выплат не читает.
+    ctx.paymentRepo.listUnsettled.mockResolvedValue([projectionOf({ payee_account: 'supp1' })]);
     ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1')]);
     const res = await ctx.service.run(COOP, NOW);
     expect(res.created).toBe(0);
     expect(ctx.paymentRepo.create).not.toHaveBeenCalled();
+    expect(ctx.paymentRepo.listAll).not.toHaveBeenCalled();
   });
 
   it('сотня заказов — частями по одной транзакции, все в один пакет', async () => {
@@ -302,6 +318,100 @@ describe('новые пакеты', () => {
     expect(ctx.logger.warn).toHaveBeenCalled();
   });
 
+  it('контракт отклонил часть из-за одного заказа — заказы отправляются по одному, пакет получает остальные', async () => {
+    const ctx = build();
+    ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1'), order('o2', 'supp1'), order('o3', 'supp1')]);
+    chainIncludes(ctx, '700.0000', ['o1', 'o3'], ['o1', 'o2', 'o3']);
+    // Транзакция атомарна: отказ по o2 отклоняет всю часть; по одному цепь принимает o1 и o3.
+    ctx.chainPort.addPayouts.mockImplementation(async (_c: string, hash: string, hashes: string[]) => {
+      if (hashes.includes('h-o2')) throw refusal('MARKETPLACE_PAYOUT_ALREADY_STARTED');
+      const p = ctx.store.get(hash);
+      if (p) p.amount = '700.0000';
+      return {};
+    });
+
+    await ctx.service.run(COOP, NOW);
+
+    const calls = (ctx.chainPort.addPayouts.mock.calls as unknown as [string, string, string[]][]).map(([, , hashes]) => hashes);
+    expect(calls).toEqual([['h-o1', 'h-o2', 'h-o3'], ['h-o1'], ['h-o2'], ['h-o3']]);
+    const hash = ctx.paymentRepo.create.mock.calls[0][0].payment_hash;
+    expect(ctx.paymentRepo.applyLines).toHaveBeenCalledWith(COOP, hash, [
+      { order_id: 'o1', order_hash: 'h-o1' },
+      { order_id: 'o3', order_hash: 'h-o3' },
+    ]);
+    expect(ctx.chainPort.sendPayout).toHaveBeenCalledWith(COOP, hash);
+  });
+
+  it('цепь не приняла ни одного заказа — запись удаляется сразу, пакет в цепи не ищется', async () => {
+    const ctx = build();
+    ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1'), order('o2', 'supp1')]);
+    ctx.chainPort.addPayouts.mockRejectedValue(refusal('MARKETPLACE_PAYOUT_NOT_ACCEPTED'));
+
+    const res = await ctx.service.run(COOP, NOW);
+
+    expect(res.created).toBe(0);
+    expect(ctx.paymentRepo.deleteByPaymentHash).toHaveBeenCalledTimes(1);
+    expect(ctx.chainPort.getPayout).not.toHaveBeenCalled();
+    expect(ctx.chainPort.sendPayout).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['сырой сбой сети', () => new Error('connect ECONNREFUSED')],
+    ['отказ узла «цепь недоступна»', () => DomainError.serviceUnavailable('BLOCKCHAIN_UNAVAILABLE', { reason: 'fetch failed' })],
+    ['превышение времени ответа цепи', () => DomainError.internal('BLOCKCHAIN_RPC_TIMEOUT', { ms: 5000 })],
+  ])('сбой связи с цепью (%s) — исход транзакции неизвестен: по одному не отправляется, запись не удаляется', async (_name, failure) => {
+    const ctx = build();
+    ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1'), order('o2', 'supp1')]);
+    ctx.chainPort.addPayouts.mockRejectedValue(failure());
+    // Зеркало заказов прежнее, строки пакета узел цепи не отдаёт.
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'none'), order('o2', 'supp1', 'none')]);
+
+    await ctx.service.run(COOP, NOW);
+
+    expect(ctx.chainPort.addPayouts).toHaveBeenCalledTimes(1);
+    expect(ctx.chainPort.sendPayout).not.toHaveBeenCalled();
+    // Транзакция могла пройти: запись остаётся, по строке пакета в цепи решит довоз.
+    expect(ctx.paymentRepo.deleteByPaymentHash).not.toHaveBeenCalled();
+  });
+
+  it('отказ контракта, переведённый узлом в отказ с кодом, — тоже отказ: заказы отправляются по одному', async () => {
+    const ctx = build();
+    ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1'), order('o2', 'supp1')]);
+    ctx.chainPort.addPayouts.mockRejectedValue(DomainError.badRequest('MARKETPLACE_PAYOUT_NOT_ACCEPTED', { message: 'отказ контракта' }));
+
+    await ctx.service.run(COOP, NOW);
+
+    expect(ctx.chainPort.addPayouts).toHaveBeenCalledTimes(3);
+    expect(ctx.paymentRepo.deleteByPaymentHash).toHaveBeenCalledTimes(1);
+  });
+
+  it('узел ещё не разобрал блок включения: в цепи заказов больше, чем видит узел — пакет не отправляется и не удаляется', async () => {
+    const ctx = build();
+    ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1'), order('o2', 'supp1')]);
+    chainIncludes(ctx, '0', ['o1', 'o2'], ['o1', 'o2']);
+    // Зеркало заказов отстало: оба заказа ещё не ждут выплаты.
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'none'), order('o2', 'supp1', 'none')]);
+
+    await ctx.service.run(COOP, NOW);
+
+    expect(ctx.chainPort.sendPayout).not.toHaveBeenCalled();
+    expect(ctx.paymentRepo.applyLines).not.toHaveBeenCalled();
+    expect(ctx.paymentRepo.deleteByPaymentHash).not.toHaveBeenCalled();
+    expect(ctx.coreGateway.createSystemOutgoingPayment).not.toHaveBeenCalled();
+  });
+
+  it('узел цепи ещё не отдаёт строку пакета, зеркало заказов не обновлено — запись остаётся до довоза', async () => {
+    const ctx = build();
+    ctx.orderRepo.listAwaitingSupplierPayout.mockResolvedValue([order('o1', 'supp1')]);
+    ctx.chainPort.getPayout.mockResolvedValue(null);
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'none')]);
+
+    await ctx.service.run(COOP, NOW);
+
+    expect(ctx.paymentRepo.deleteByPaymentHash).not.toHaveBeenCalled();
+    expect(ctx.chainPort.sendPayout).not.toHaveBeenCalled();
+  });
+
   it('обход идёт один: второй вызов во время первого ничего не делает', async () => {
     const ctx = build();
     let release!: () => void;
@@ -332,8 +442,47 @@ describe('довоз начатых пакетов', () => {
     ctx.store.set(p.payment_hash, p);
     ctx.paymentRepo.listUnsettled.mockResolvedValue([p]);
     ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'pending'), order('o2', 'supp1', 'pending')]);
+    ctx.chainPort.getPayout.mockResolvedValue(chainRow('open', 2));
     await ctx.service.resume(COOP);
+    expect(ctx.chainPort.getPayout).toHaveBeenCalledWith(COOP, 'batch-1');
     expect(ctx.chainPort.sendPayout).toHaveBeenCalledWith(COOP, 'batch-1');
+  });
+
+  it('открытый пакет, которого в цепи нет → довоз удаляет запись', async () => {
+    const ctx = build();
+    const p = projectionOf({ status: 'OPEN' });
+    ctx.store.set(p.payment_hash, p);
+    ctx.paymentRepo.listUnsettled.mockResolvedValue([p]);
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'none'), order('o2', 'supp1', 'none')]);
+    ctx.chainPort.getPayout.mockResolvedValue(null);
+    await ctx.service.resume(COOP);
+    expect(ctx.paymentRepo.deleteByPaymentHash).toHaveBeenCalledWith(COOP, 'batch-1');
+    expect(ctx.chainPort.sendPayout).not.toHaveBeenCalled();
+  });
+
+  it('открытая запись, пакет в цепи уже отправлен кассиру → повторной отправки нет', async () => {
+    const ctx = build();
+    const p = projectionOf({ status: 'OPEN' });
+    ctx.store.set(p.payment_hash, p);
+    ctx.paymentRepo.listUnsettled.mockResolvedValue([p]);
+    ctx.chainPort.getPayout.mockResolvedValue(chainRow('sent', 2));
+    await ctx.service.resume(COOP);
+    expect(ctx.chainPort.sendPayout).not.toHaveBeenCalled();
+    expect(ctx.paymentRepo.deleteByPaymentHash).not.toHaveBeenCalled();
+  });
+
+  it('оплаченный пакет: контракт отклонил закрытие одного заказа — остальные закрываются по одному', async () => {
+    const ctx = build();
+    const p = projectionOf({ status: 'COMPLETED' });
+    ctx.paymentRepo.listUnsettled.mockResolvedValue([p]);
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'pending'), order('o2', 'supp1', 'pending')]);
+    ctx.chainPort.closePayouts.mockImplementation(async (_c: string, hashes: string[]) => {
+      if (hashes.includes('h-o1')) throw refusal('MARKETPLACE_PAYOUT_NOT_PENDING');
+      return {};
+    });
+    await ctx.service.resume(COOP);
+    const calls = (ctx.chainPort.closePayouts.mock.calls as unknown as [string, string[]][]).map(([, hashes]) => hashes);
+    expect(calls).toEqual([['h-o1', 'h-o2'], ['h-o1'], ['h-o2']]);
   });
 
   it('оплаченный пакет с незакрытыми заказами → закрываются только ждущие', async () => {
@@ -430,6 +579,48 @@ describe('цепь: дельта пакета и решение кассира',
     expect(ctx.chainPort.releasePayouts).toHaveBeenCalledWith(COOP, ['h-o1']);
     const declined = ctx.eventBus.emit.mock.calls.find(([name]) => name === MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT);
     expect(declined?.[1]).toMatchObject({ orders_count: 2, reason: 'причина не указана' });
+  });
+
+  it('дельта «оплачен» обработана раньше действия кассира: время и транзакция подтверждения записываются, уведомление одно', async () => {
+    const ctx = build();
+    // Состояние COMPLETED уже поставила дельта таблицы payouts того же блока.
+    const p = projectionOf({ status: 'COMPLETED', amount: '300.0000', completed_at: null });
+    ctx.store.set(p.payment_hash, p);
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'pending')]);
+
+    await ctx.service.onPayConfirm({ data: { coopname: COOP, outcome_hash: 'batch-1' }, transaction_id: 'tx-1' } as any);
+
+    expect(ctx.paymentRepo.applyCompletion).toHaveBeenCalledWith(COOP, 'batch-1', expect.objectContaining({ payout_tx_hash: 'tx-1' }));
+    expect(ctx.chainPort.closePayouts).toHaveBeenCalledWith(COOP, ['h-o1']);
+    expect(ctx.eventBus.emit.mock.calls.filter(([name]) => name === MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT)).toHaveLength(1);
+  });
+
+  it('повтор события подтверждения: заказы довозятся, поставщик второй раз не уведомляется', async () => {
+    const ctx = build();
+    const p = projectionOf({ status: 'COMPLETED', amount: '300.0000', completed_at: NOW });
+    ctx.store.set(p.payment_hash, p);
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'pending')]);
+
+    await ctx.service.onPayConfirm({ data: { coopname: COOP, outcome_hash: 'batch-1' }, transaction_id: 'tx-1' } as any);
+
+    expect(ctx.chainPort.closePayouts).toHaveBeenCalledWith(COOP, ['h-o1']);
+    expect(ctx.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it('дельта «отклонён» обработана раньше действия кассира: причина записывается, уведомление одно; повтор — без уведомления', async () => {
+    const ctx = build();
+    const p = projectionOf({ status: 'DECLINED', amount: '300.0000', decline_reason: null });
+    ctx.store.set(p.payment_hash, p);
+    ctx.orderRepo.findByOrderHashes.mockResolvedValue([order('o1', 'supp1', 'pending')]);
+    const event = { data: { coopname: COOP, outcome_hash: 'batch-1', reason: 'Неверные реквизиты' } } as any;
+
+    await ctx.service.onPayDecline(event);
+    expect(ctx.paymentRepo.applyDecline).toHaveBeenCalledWith(COOP, 'batch-1', 'Неверные реквизиты');
+    expect(p.decline_reason).toBe('Неверные реквизиты');
+
+    await ctx.service.onPayDecline(event);
+    expect(ctx.eventBus.emit.mock.calls.filter(([name]) => name === MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT)).toHaveLength(1);
+    expect(ctx.chainPort.releasePayouts).toHaveBeenCalledTimes(2);
   });
 
   it('подтверждение по неизвестному пакету — без действий в цепи и уведомлений', async () => {

@@ -12,14 +12,14 @@ import {
   type InnerPaymentMethod,
   type IPaymentDeskPort,
 } from '@coopenomics/innercoop';
-import { isStandWorkerTurn, platformSettings } from '@coopenomics/extension-kit';
+import { chainRefusalOf, isStandWorkerTurn, platformSettings } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
   type MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import {
-  MarketplaceOutgoingPaymentRequestStatuses,
+  MarketplacePayoutChainStatuses,
   PAYOUT_STATUS_BY_CHAIN,
 } from '../../domain/entities/marketplace-outgoing-payment-request.types';
 import {
@@ -91,6 +91,10 @@ const ITEM_NAMES_IN_NOTICE = 3;
  * отказа) до начала текущих суток. В работе сутки — по поясу кооператива, на
  * стенде — длиной `STAND_DAY_SECONDS`. Каждый шаг идемпотентен: сбой любого
  * шага довозит следующий обход по состоянию пакета.
+ *
+ * Что отправлять и что удалять, решает строка пакета в цепи, а не зеркало
+ * узла: разбор блоков может отставать от транзакции, и решение по отставшему
+ * зеркалу оставило бы в цепи пакет, о котором узел не знает.
  */
 @Injectable()
 export class MarketplaceSupplierPayoutService {
@@ -151,8 +155,9 @@ export class MarketplaceSupplierPayoutService {
     const awaiting = await this.orderRepo.listAwaitingSupplierPayout(coopname, cutoff);
     if (!awaiting.length) return 0;
 
-    const open = await this.paymentRepo.listAll(coopname, { statuses: [MarketplaceOutgoingPaymentRequestStatuses.OPEN] });
-    const busyPayees = new Set(open.map((p) => p.payee_account));
+    // Открытые пакеты — среди незакрытых: их выборка идёт по индексу, история выплат не читается.
+    const unsettled = await this.paymentRepo.listUnsettled(coopname);
+    const busyPayees = new Set(unsettled.filter((p) => p.is_open).map((p) => p.payee_account));
 
     const byPayee = new Map<string, MarketplaceOrderDomainEntity[]>();
     for (const order of awaiting) {
@@ -186,18 +191,67 @@ export class MarketplaceSupplierPayoutService {
       payout_destination: payoutMethod ? formatPayoutDestination(payoutMethod) : null,
     });
 
-    // Сбой транзакции не роняет пакет: включённые заказы остаются в открытом
-    // пакете, остальные попадут в пакет следующего обхода.
-    for (const part of chunk(orders.map((o) => o.order_hash), PAYOUT_ACTIONS_PER_TRANSACTION)) {
+    // Сбой не роняет пакет: включённые заказы остаются в открытом пакете,
+    // остальные попадут в пакет следующего обхода.
+    const sent = await this.sendInParts(
+      orders.map((o) => o.order_hash),
+      (hashes) => this.chainPort.addPayouts(coopname, projection.payment_hash, hashes),
+      // i18n-ignore: подпись шага в журнале узла — текст для оператора, не для пайщика
+      `включение в пакет ${projection.payment_hash} поставщика ${payee}`
+    );
+    if (sent.accepted === 0 && !sent.uncertain) {
+      // Контракт отклонил каждую транзакцию — пакета в цепи нет наверняка.
+      // После сбоя связи исход транзакции неизвестен: запись остаётся, решит цепь.
+      await this.paymentRepo.deleteByPaymentHash(coopname, projection.payment_hash);
+      this.logger.warn(`[PAYOUT] пакет ${projection.payment_hash} поставщика ${payee}: цепь не включила ни одного заказа — запись удалена.`);
+      return false;
+    }
+    await this.finishOpen(projection.coopname, projection.payment_hash, payoutMethod, { fresh: true });
+    return true;
+  }
+
+  /**
+   * Действия по заказам пакета — частями по транзакции. Транзакция атомарна:
+   * отказ контракта по одному заказу отклоняет всю часть, и один заказ держал
+   * бы выплату по остальным заказам поставщика. Поэтому после отказа контракта
+   * заказы части отправляются по одному. Сбой связи с цепью обход прекращает —
+   * довезёт следующий; исход такой транзакции неизвестен (`uncertain`): цепь
+   * могла её принять. `accepted` — число заказов, действие по которым цепь приняла.
+   */
+  private async sendInParts(
+    order_hashes: string[],
+    send: (order_hashes: string[]) => Promise<unknown>,
+    label: string
+  ): Promise<{ accepted: number; uncertain: boolean }> {
+    let accepted = 0;
+    const attempt = async (part: string[]): Promise<'accepted' | 'refused' | 'uncertain'> => {
       try {
-        await this.chainPort.addPayouts(coopname, projection.payment_hash, part);
+        await send(part);
+        accepted += part.length;
+        return 'accepted';
       } catch (err: any) {
-        this.logger.warn(`[PAYOUT] включение заказов поставщика ${payee} в пакет ${projection.payment_hash} упало: ${err.message}`);
-        break;
+        if (!isChainRefusal(err)) {
+          this.logger.warn(`[PAYOUT] ${label}: цепь недоступна (${err.message}); довезёт следующий обход.`);
+          return 'uncertain';
+        }
+        this.logger.warn(
+          part.length === 1
+            ? `[PAYOUT] ${label}: заказ ${part[0]} отклонён контрактом: ${err.message}`
+            : `[PAYOUT] ${label}: часть из ${part.length} заказов отклонена контрактом (${err.message}); заказы отправляются по одному.`
+        );
+        return 'refused';
+      }
+    };
+
+    for (const part of chunk(order_hashes, PAYOUT_ACTIONS_PER_TRANSACTION)) {
+      const outcome = await attempt(part);
+      if (outcome === 'uncertain') return { accepted, uncertain: true };
+      if (outcome === 'accepted' || part.length === 1) continue;
+      for (const order_hash of part) {
+        if ((await attempt([order_hash])) === 'uncertain') return { accepted, uncertain: true };
       }
     }
-    await this.finishOpen(projection.coopname, projection.payment_hash, payoutMethod);
-    return true;
+    return { accepted, uncertain: false };
   }
 
   /**
@@ -210,7 +264,7 @@ export class MarketplaceSupplierPayoutService {
     for (const projection of unsettled) {
       try {
         if (projection.is_open) {
-          await this.finishOpen(coopname, projection.payment_hash, null);
+          await this.finishOpen(coopname, projection.payment_hash, null, { fresh: false });
         } else if (projection.is_pending) {
           if (!projection.core_payment_id) await this.createCorePayment(projection, null);
         } else if (projection.is_completed) {
@@ -225,25 +279,46 @@ export class MarketplaceSupplierPayoutService {
   }
 
   /**
-   * Открытый пакет после включения заказов: в списке пакета остаются заказы,
-   * которые контракт включил (выплата ждёт — pending). Заказ, стоимость
-   * которого целиком покрыл гарантийный долг, контракт закрыл сразу — он в
-   * пакет не входит; если таких все, пакета в цепи нет и запись удаляется.
+   * Открытый пакет после включения заказов. Решает строка пакета в цепи:
+   *
+   *  - строки нет — контракт не включил ни одного заказа (стоимость заказа
+   *    целиком покрыл гарантийный долг, и контракт закрыл выплату сразу).
+   *    Сразу после транзакции узел цепи может ещё не отдать новую строку, и
+   *    удаление по такому ответу оставило бы пакет в цепи без записи на узле.
+   *    Поэтому запись удаляется сразу, только когда зеркало заказов
+   *    подтверждает закрытие выплат, иначе её удаляет довоз следующего обхода;
+   *  - пакет уже отправлен — состояние запишет дельта таблицы `payouts`, платёж кассиру заведёт довоз;
+   *  - пакет открыт — в списке остаются заказы, которые контракт включил
+   *    (выплата ждёт — pending). Их число сверяется со счётчиком пакета в
+   *    цепи: расхождение значит, что узел ещё не разобрал блок включения, и
+   *    отправку кассиру делает следующий обход.
    */
   private async finishOpen(
     coopname: string,
     payment_hash: string,
-    payoutMethod: InnerPaymentMethod | null
+    payoutMethod: InnerPaymentMethod | null,
+    opts: { fresh: boolean }
   ): Promise<void> {
     const projection = await this.paymentRepo.findByPaymentHash(coopname, payment_hash);
     if (!projection || !projection.is_open) return;
 
+    const onChain = await this.chainPort.getPayout(coopname, payment_hash);
+    if (!onChain) {
+      // Сразу после транзакции запись удаляется, только если зеркало заказов
+      // уже отражает её блок: выплата по каждому заказу закрыта либо заказ стёрт.
+      if (opts.fresh && !(await this.allSettledWithoutTransfer(projection))) return;
+      await this.paymentRepo.deleteByPaymentHash(coopname, payment_hash);
+      this.logger.log(`[PAYOUT] пакет ${payment_hash}: в цепи пакета нет, заказов к переводу нет — запись удалена.`);
+      return;
+    }
+    if (String(onChain.status) !== MarketplacePayoutChainStatuses.OPEN) return;
+
     const orders = await this.orderRepo.findByOrderHashes(coopname, projection.lines.map((l) => l.order_hash));
     const included = orders.filter((o) => o.payout_status === MarketplaceOrderPayoutStatuses.PENDING);
-    const amount = Number.parseFloat(projection.amount);
-    if (!included.length || !(amount > 0)) {
-      await this.paymentRepo.deleteByPaymentHash(coopname, payment_hash);
-      this.logger.log(`[PAYOUT] пакет ${payment_hash}: заказов к переводу нет — запись удалена.`);
+    if (included.length !== Number(onChain.orders)) {
+      this.logger.warn(
+        `[PAYOUT] пакет ${payment_hash}: в цепи ${onChain.orders} заказов, узел видит ${included.length} — блок включения ещё не разобран; отправит следующий обход.`
+      );
       return;
     }
     await this.paymentRepo.applyLines(
@@ -255,6 +330,19 @@ export class MarketplaceSupplierPayoutService {
     await this.chainPort.sendPayout(coopname, payment_hash);
     const sent = await this.paymentRepo.findByPaymentHash(coopname, payment_hash);
     if (sent?.is_pending) await this.createCorePayment(sent, payoutMethod);
+  }
+
+  /**
+   * Контракт закрыл выплату по всем заказам списка без перевода: гарантийный
+   * долг покрыл стоимость заказа (выплата completed), заказ после отказа
+   * пайщика стёрт.
+   */
+  private async allSettledWithoutTransfer(projection: MarketplaceOutgoingPaymentRequestDomainEntity): Promise<boolean> {
+    const orders = await this.orderRepo.findByOrderHashes(projection.coopname, projection.lines.map((l) => l.order_hash));
+    return (
+      orders.length > 0 &&
+      orders.every((o) => !o.on_chain_present || o.payout_status === MarketplaceOrderPayoutStatuses.COMPLETED)
+    );
   }
 
   /**
@@ -329,16 +417,23 @@ export class MarketplaceSupplierPayoutService {
     const data = action.data as MarketContract.Actions.PayConfirm.IPayConfirm;
     if (!data?.coopname || !data?.outcome_hash) return;
     const hash = data.outcome_hash.toLowerCase();
-    const projection = await this.paymentRepo.applyCompletion(data.coopname, hash, {
-      completed_at: new Date(),
-      payout_tx_hash: action.transaction_id,
-    });
-    if (!projection) {
+    const before = await this.paymentRepo.findByPaymentHash(data.coopname, hash);
+    if (!before) {
       this.logger.warn(`[PAYOUT] подтверждение кассира: пакет ${hash} не найден.`);
       return;
     }
+    // Первое подтверждение — по отметке времени, а не по состоянию: состояние
+    // «оплачен» дельта таблицы `payouts` того же блока могла поставить раньше.
+    // Повтор события цепи поставщика второй раз не уведомляет.
+    const first = !before.completed_at;
+    const projection =
+      (await this.paymentRepo.applyCompletion(data.coopname, hash, {
+        completed_at: new Date(),
+        payout_tx_hash: action.transaction_id,
+      })) ?? before;
     await this.setCorePaymentStatus(projection, PaymentStatus.COMPLETED);
     await this.closeOrders(projection);
+    if (!first) return;
 
     const event: MarketplaceSupplierPaymentConfirmedEvent = {
       coopname: projection.coopname,
@@ -359,13 +454,18 @@ export class MarketplaceSupplierPayoutService {
     if (!data?.coopname || !data?.outcome_hash) return;
     const hash = data.outcome_hash.toLowerCase();
     const reason = data.reason || t('marketplace.payoutSync.reasonNotSpecified');
-    const projection = await this.paymentRepo.applyDecline(data.coopname, hash, reason);
-    if (!projection) {
+    const before = await this.paymentRepo.findByPaymentHash(data.coopname, hash);
+    if (!before) {
       this.logger.warn(`[PAYOUT] отказ кассира: пакет ${hash} не найден.`);
       return;
     }
+    // Первый отказ — по записанной причине, а не по состоянию: состояние
+    // «отклонён» дельта таблицы `payouts` того же блока могла поставить раньше.
+    const first = !before.decline_reason;
+    const projection = (await this.paymentRepo.applyDecline(data.coopname, hash, reason)) ?? before;
     await this.setCorePaymentStatus(projection, PaymentStatus.CANCELLED);
     await this.releaseOrders(projection);
+    if (!first) return;
 
     const event: MarketplaceSupplierPaymentDeclinedEvent = {
       coopname: projection.coopname,
@@ -405,14 +505,12 @@ export class MarketplaceSupplierPayoutService {
         await this.paymentRepo.markSettled(projection.coopname, projection.payment_hash, new Date());
         return;
       }
-      for (const part of chunk(waiting.map((o) => o.order_hash), PAYOUT_ACTIONS_PER_TRANSACTION)) {
-        try {
-          await send(part);
-        } catch (err: any) {
-          this.logger.warn(`[PAYOUT] закрытие заказов пакета ${projection.payment_hash} упало: ${err.message}; довезёт обход.`);
-          return;
-        }
-      }
+      await this.sendInParts(
+        waiting.map((o) => o.order_hash),
+        send,
+        // i18n-ignore: подпись шага в журнале узла — текст для оператора, не для пайщика
+        `заказы пакета ${projection.payment_hash}`
+      );
     } finally {
       this.busy.delete(projection.payment_hash);
     }
@@ -473,6 +571,15 @@ export class MarketplaceSupplierPayoutService {
       return undefined;
     }
   }
+}
+
+/**
+ * Цепь отклонила транзакцию целиком — отказ контракта либо неверный аргумент
+ * действия (статус 400): в цепи ничего не изменилось. Сбой связи и превышение
+ * времени ответа таким отказом не считаются — цепь могла транзакцию принять.
+ */
+function isChainRefusal(err: unknown): boolean {
+  return chainRefusalOf(err)?.getStatus() === 400;
 }
 
 /** «1500.0000 RUB» → «1500.0000»; пусто — «0». */

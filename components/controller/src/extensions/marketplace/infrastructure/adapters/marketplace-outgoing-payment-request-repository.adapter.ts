@@ -120,8 +120,10 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
     payment_hash: string,
     patch: { completed_at: Date; payout_tx_hash?: string | null }
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    // Признак первого подтверждения — отметка времени: состояние COMPLETED
+    // дельта таблицы `payouts` могла поставить раньше действия кассира.
     return this.patch(coopname, payment_hash, (row) =>
-      row.status === MarketplaceOutgoingPaymentRequestStatuses.COMPLETED
+      row.completed_at
         ? null
         : {
             status: MarketplaceOutgoingPaymentRequestStatuses.COMPLETED,
@@ -136,8 +138,10 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
     payment_hash: string,
     reason: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    // Признак первого отказа — записанная причина: состояние DECLINED дельта
+    // таблицы `payouts` могла поставить раньше действия кассира.
     return this.patch(coopname, payment_hash, (row) =>
-      row.status === MarketplaceOutgoingPaymentRequestStatuses.DECLINED
+      row.decline_reason
         ? null
         : { status: MarketplaceOutgoingPaymentRequestStatuses.DECLINED, decline_reason: reason }
     );

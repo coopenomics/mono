@@ -40,12 +40,11 @@
  * Требует стенда после `reboot:extra` с сид-фазами docs-harness.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder, pickOffer } from './marketplace/orderFlow'
 import { branchCounter, coopPusher, currentPeriod, memberDues, units } from './marketplace/periodHelpers'
-import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, docMeta, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror } from './marketplace/chainHelpers'
+import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, confirmSupplierPayout, docMeta, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, sendSupplierPayout, signAs, sumOf, waitForOps, waitForOrderMirror } from './marketplace/chainHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
 const push = coopPusher(bc)
@@ -417,19 +416,18 @@ describe('стол заказов — денежные места поставк
   }, 180_000)
 
   it('mkt.supply.happy.33: подтверждение выплаты после выдачи 3 из 4 проводит Дт 76 / Кт 51 на принятую стоимость, а не на сумму выдачи', async () => {
-    // Выплату поставщику бэкенд инициировал сразу после закрывающей подписи
-    // приёмки: в шлюзе лежит исходящий платёж с хэшем заказа на принятую
-    // сумму. Кассир подтверждает его уже после выдачи — заявление о выдаче к
-    // этому моменту перезаписало факт заказа (3 из 4), но долг поставщику
-    // сложился на приёмке и от выдачи не зависит.
-    await bc.api.transact({
-      actions: [{
-        account: GatewayContract.contractName.production,
-        name: GatewayContract.Actions.CompleteOutcome.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
-        data: { coopname: COOP, outcome_hash: orderHash },
-      }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    // Выплату поставщику заводит обход узла пакетом в начале следующих суток
+    // (решение владельца 19.11.2026); тест проходит тот же путь действиями
+    // кооператива: заказ включается в пакет, пакет отправляется кассиру, кассир
+    // подтверждает перевод, заказ закрывается. Выплата идёт уже после выдачи —
+    // заявление о выдаче к этому моменту перезаписало факт заказа (3 из 4), но
+    // долг поставщику сложился на приёмке и от выдачи не зависит.
+    const actAsCoop = (account: string, name: string, data: Record<string, unknown>) =>
+      bc.api.transact({
+        actions: [{ account, name, authorization: [{ actor: COOP, permission: 'active' }], data }],
+      }, { blocksBehind: 3, expireSeconds: 30 })
+    const payoutHash = await sendSupplierPayout(actAsCoop, orderHash)
+    await confirmSupplierPayout(actAsCoop, payoutHash, orderHash)
 
     ops = await waitForOps(chairmanToken, orderHash, ['o.mkt.payout'])
 

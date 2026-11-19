@@ -202,6 +202,13 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   releasePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult>;
 
+  /**
+   * Строка пакета выплаты в цепи по хэшу (индекс `byhash`, одна строка);
+   * пакета в цепи нет — `null`. Обход выплат сверяет по ней, что узел разобрал
+   * блок включения заказов, прежде чем отправить пакет кассиру.
+   */
+  getPayout(coopname: string, payout_hash: string): Promise<MarketContract.Tables.Payouts.IPayout | null>;
+
 
 
   /**

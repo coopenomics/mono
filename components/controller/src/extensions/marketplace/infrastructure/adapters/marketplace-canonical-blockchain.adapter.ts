@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Name, UInt128 } from '@wharfkit/session';
+import { Checksum256, Name, UInt128 } from '@wharfkit/session';
 import { BranchContract, FundContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
 import {
@@ -278,6 +278,19 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
         name: MarketContract.Actions.ReleasePay.actionName,
         data: { coopname, order_hash } satisfies MarketContract.Actions.ReleasePay.IReleasepay,
       }))
+    );
+  }
+
+  async getPayout(coopname: string, payout_hash: string): Promise<MarketContract.Tables.Payouts.IPayout | null> {
+    // Индексы `payouts`: byhash — второй (lib/domain/table_marketplace_payouts.hpp).
+    // Ключ индекса-хэша узел цепи принимает только типизированной контрольной суммой.
+    return this.blockchainService.getSingleRow<MarketContract.Tables.Payouts.IPayout>(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.Payouts.tableName,
+      Checksum256.from(payout_hash.toLowerCase()),
+      'secondary',
+      'sha256'
     );
   }
 

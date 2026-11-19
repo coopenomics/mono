@@ -20,9 +20,9 @@ void gateway::createoutpay(eosio::name coopname, eosio::name username, checksum2
   
   auto cooperative = get_cooperative_or_fail(coopname);
   
-  eosio::check(callback_contract != ""_n, "Коллбэк контракт должен быть установлен");
-  eosio::check(confirm_callback != ""_n, "Действие для коллбэка-успеха должено быть установлено");
-  eosio::check(decline_callback != ""_n, "Действие для коллбэка-отлонения должно быть установлено");
+  eosio::check(callback_contract != ""_n, "GATEWAY_CALLBACK_CONTRACT_EMPTY: Контракт обратного вызова не задан");
+  eosio::check(confirm_callback != ""_n, "GATEWAY_CONFIRM_CALLBACK_EMPTY: Действие обратного вызова при подтверждении не задано");
+  eosio::check(decline_callback != ""_n, "GATEWAY_DECLINE_CALLBACK_EMPTY: Действие обратного вызова при отказе не задано");
   
   // Валидируем callback действия если они от wallet контракта
   if (callback_contract == _wallet) {
@@ -32,7 +32,7 @@ void gateway::createoutpay(eosio::name coopname, eosio::name username, checksum2
   
   auto outcome = Gateway::get_outcome(coopname, outcome_hash);
   
-  eosio::check(!outcome.has_value(), "Объект возврата уже существует с указанным хэшем");
+  eosio::check(!outcome.has_value(), "GATEWAY_OUTCOME_ALREADY_EXISTS: Исходящий платёж с указанным хэшем уже зарегистрирован");
   Gateway::outcomes_index outcomes(_gateway, coopname.value);
 
   uint64_t id = get_global_id(_gateway, "outcomes"_n);

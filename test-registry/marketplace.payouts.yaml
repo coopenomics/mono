@@ -11,6 +11,12 @@ title: Выплаты поставщикам — пакет за сутки, л�
 # попадают в пакет следующих суток. Внешний набор идёт в фазе полигона со
 # сжатым временем.
 
+# Правка 19.11.2026 (ревью PR #286): что отправлять и что удалять, обход решает
+# по строке пакета в цепи, а не по зеркалу узла (break.03); отказ контракта по
+# одному заказу не держит остальные (break.04); подтверждение и отказ кассира не
+# зависят от порядка дельты и действия одного блока (side.14); отказы
+# исходящего платежа gateway получили коды (side.12, side.13).
+
 # Слайс от заведённой выплаты до её разворота на столе совета: лента выплат по
 # всему кооперативу (Payment:read:all), поиск по человеческому имени получателя
 # и карточка, отвечающая на вопрос «за что заплатили» — предмет поставки,
@@ -60,6 +66,9 @@ sources:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/closepayout.cpp
     - components/contracts/cpp/marketplace/src/p.mkt.supply/releasepay.cpp
     - components/contracts/cpp/lib/domain/table_marketplace_payouts.hpp
+    - components/contracts/cpp/gateway/src/outpay/createoutpay.cpp
+    - components/contracts/cpp/gateway/src/outpay/outcomplete.cpp
+    - components/contracts/cpp/gateway/src/outpay/outdecline.cpp
   ui:
     - components/desktop/src/pages/Marketplace/BoardPayoutsReadonly/**
     - components/desktop/src/pages/Marketplace/OffererPaymentHistory/**
@@ -250,14 +259,89 @@ cases:
     level: contract
     kind: side
     scenario: >
-      Контракт: заказ включают в пакет другого поставщика или в отправленный
-      пакет; отправляют пустой пакет; закрывают заказ неоплаченного пакета;
-      возвращают заказ неотклонённого пакета.
+      Контракт, пакет ждёт кассира: заказ пакета закрывают до подтверждения
+      кассира, возвращают без отказа кассира, включают повторно в свой либо в
+      другой пакет; пакет отправляют повторно; отправляют пакет, которого нет.
+    expect: >
+      отказы с кодами MARKETPLACE_PAYOUT_NOT_PAID,
+      MARKETPLACE_PAYOUT_NOT_DECLINED, MARKETPLACE_PAYOUT_ALREADY_STARTED,
+      MARKETPLACE_PAYOUT_NOT_OPEN, MARKETPLACE_PAYOUT_NOT_FOUND; строка пакета
+      в цепи после отказов прежняя — состояние, число заказов и сумма
+    test: components/api-tests/src/marketplace/payouts.test.ts
+    status: written   # внешний набор идёт в фазе со сжатым временем — гоняет CI
+
+  - id: mkt.payouts.side.12
+    level: contract
+    kind: side
+    scenario: >
+      Решение кассира (подтверждение либо отказ) по исходящему платежу,
+      которого в gateway нет.
+    expect: отказ с кодом GATEWAY_OUTCOME_NOT_FOUND
+    test: components/api-tests/src/marketplace/payouts.test.ts
+    status: written   # внешний набор идёт в фазе со сжатым временем — гоняет CI
+
+  - id: mkt.payouts.side.13
+    level: contract
+    kind: side
+    scenario: >
+      Контракт: заказ включают в открытый пакет другого поставщика; отправляют
+      пакет без суммы; решение кассира по уже обработанному платежу gateway;
+      регистрация второго платежа gateway с тем же хэшем.
     expect: >
       отказы с кодами MARKETPLACE_PAYOUT_OFFERER_MISMATCH,
-      MARKETPLACE_PAYOUT_NOT_OPEN, MARKETPLACE_PAYOUT_EMPTY,
-      MARKETPLACE_PAYOUT_NOT_PAID, MARKETPLACE_PAYOUT_NOT_DECLINED
-    status: missing   # контрактных тестов действий пакета нет; узел посылает действия только в разрешённых состояниях
+      MARKETPLACE_PAYOUT_EMPTY, GATEWAY_OUTCOME_NOT_PENDING,
+      GATEWAY_OUTCOME_ALREADY_EXISTS
+    # Открытый пакет живёт доли секунды между включением и отправкой, пакет без
+    # суммы контракт не заводит, строка платежа gateway стирается при решении
+    # кассира — через стенд эти состояния не получить; нужен контрактный тест.
+    status: missing
+
+  - id: mkt.payouts.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Разбор блоков узлом отстал от транзакции включения: зеркало заказов ещё
+      не видит включённых заказов либо узел цепи ещё не отдаёт строку пакета.
+    expect: >
+      обход сверяет число включённых заказов со счётчиком пакета в цепи; при
+      расхождении пакет не отправляется и запись не удаляется — отправит
+      следующий обход; запись без пакета в цепи удаляется сразу, только когда
+      зеркало подтверждает закрытие выплат без перевода, иначе её удаляет довоз
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    external: unreachable
+    external_reason: "отставание разбора блоков через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.payouts.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Контракт отклонил транзакцию с частью заказов из-за одного заказа
+      (включение, закрытие либо возврат); цепь недоступна.
+    expect: >
+      заказы отклонённой части отправляются по одному, отказ по одному заказу
+      не держит остальные; при сбое связи заказы по одному не отправляются;
+      если цепь не приняла ни одного заказа, запись пакета удаляется
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-payout.test.ts
+    external: unreachable
+    external_reason: "отказ контракта по одному заказу пакета через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.payouts.side.14
+    level: backend
+    kind: side
+    scenario: >
+      Дельта таблицы пакетов обработана раньше действия кассира того же блока;
+      событие подтверждения либо отказа повторено.
+    expect: >
+      время и транзакция подтверждения и причина отказа записываются при любом
+      порядке; первое подтверждение и первый отказ узнаются по записанным
+      данным, повтор запись не меняет; заказы довозятся, поставщик второй раз
+      не уведомляется
+    test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-repository.test.ts
+    external: unreachable
+    external_reason: "порядок событий одного блока и повтор события узел получает от разбора цепи; снаружи виден итог (side.07, happy.02)"
+    status: passing
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
