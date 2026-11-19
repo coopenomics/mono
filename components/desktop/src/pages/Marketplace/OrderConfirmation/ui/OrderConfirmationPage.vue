@@ -10,21 +10,15 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
     template(#actions)
       BaseButton(variant="primary", @click="goToOrders") {{ $t('marketplace.orderConfirmationPage.myOrdersLink') }}
 
-  //- Как страница подтверждения заказа в крупных магазинах: итог и действия
-  //- вверху; слева — что заказано; справа — куда приходить (карта, адрес,
-  //- режим работы) и путь заказа (замечание владельца 19.11.2026).
+  //- Действия — в шапку приложения (канон Teleport, как «Показать QR» в
+  //- «Моих заказах»). Итог — в шапке карточки состава, не на голом экране;
+  //- справа — путь заказа (замечания владельца 19.11.2026).
   template(v-else)
-    header.order-confirm__head
-      .order-confirm__head-icon(:class="{ 'order-confirm__head-icon--partial': !result.fully_completed }")
-        q-icon(:name="result.fully_completed ? 'check' : 'priority_high'", size="26px")
-      .order-confirm__head-text
-        .order-confirm__title {{ result.fully_completed ? $t('marketplace.orderConfirmationPage.successTitle') : $t('marketplace.orderConfirmationPage.partialTitle') }}
-        .order-confirm__meta(v-if="orders.length") {{ $t('marketplace.orderConfirmationPage.summary', { count: orders.length, point: pickupName }) }}
-      .order-confirm__head-actions
-        BaseButton(variant="secondary", @click="goToCatalog") {{ $t('marketplace.orderConfirmationPage.catalogLink') }}
-        BaseButton(variant="primary", @click="goToOrders") {{ $t('marketplace.orderConfirmationPage.myOrdersLink') }}
+    Teleport(to="#header-actions-host", defer)
+      BaseButton(variant="secondary", size="sm", @click="goToCatalog") {{ $t('marketplace.orderConfirmationPage.catalogLink') }}
+      BaseButton(variant="primary", size="sm", @click="goToOrders") {{ $t('marketplace.orderConfirmationPage.myOrdersLink') }}
 
-    //- Не оформленные позиции — сразу под итогом: их оформляют повторно.
+    //- Не оформленные позиции — сверху: их оформляют повторно.
     BaseCard(v-if="result.failed_lines.length", :title="$t('marketplace.orderConfirmationPage.failedCount', { count: result.failed_lines.length })")
       .order-confirm__failed-row(v-for="f in result.failed_lines", :key="f.offer_id")
         q-icon(name="warning", color="warning", size="18px")
@@ -35,10 +29,17 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
         BaseButton(variant="secondary", size="sm", :loading="cartStore.checkingOut", @click="onRetry") {{ $t('marketplace.orderConfirmationPage.retryRemainder') }}
 
     .order-confirm__grid(v-if="orders.length")
-      //- Состав заказа: обложка, имущество, количество и стоимость имущества;
-      //- строка открывает заказ. Под строками — из чего складывается сумма,
-      //- как в корзине: стоимость имущества, обеспечительная часть, итого.
-      BaseCard.order-confirm__items(:title="$t('marketplace.orderConfirmationPage.itemsTitle')")
+      //- Итог, состав и суммы: обложка, имущество, количество и стоимость
+      //- имущества; строка открывает заказ. Под строками — из чего
+      //- складывается сумма, как в корзине.
+      BaseCard
+        template(#head)
+          .order-confirm__head
+            .order-confirm__head-icon(:class="{ 'order-confirm__head-icon--partial': !result.fully_completed }")
+              q-icon(:name="result.fully_completed ? 'check' : 'priority_high'", size="22px")
+            div
+              .order-confirm__title {{ result.fully_completed ? $t('marketplace.orderConfirmationPage.successTitle') : $t('marketplace.orderConfirmationPage.partialTitle') }}
+              .order-confirm__meta {{ $t('marketplace.orderConfirmationPage.summary', { count: orders.length, point: pickupName }) }}
         .order-confirm__item(
           v-for="o in items",
           :key="o.id",
@@ -61,40 +62,25 @@ q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace
           .order-confirm__line(v-if="feeTotal > 0")
             span
               | {{ $t('marketplace.cart.feeLabel') }}
-              .order-confirm__line-note(v-if="feePercent > 0") {{ $t('marketplace.cart.feeNote', { percent: feePercent }) }}
+              .order-confirm__line-note {{ $t('marketplace.cart.feeNote') }}
             span.order-confirm__line-sum {{ formatOrderPrice(feeTotal) }}
         .order-confirm__total
           span {{ $t('marketplace.orderConfirmationPage.totalLabel') }}
           span.order-confirm__total-sum {{ formatOrderPrice(costTotal + feeTotal) }}
 
-      .order-confirm__side
-        BaseCard(:title="$t('marketplace.orderConfirmationPage.pickupTitle')")
-          .order-confirm__map(v-if="pickupCoords")
-            MapView(:lat="pickupCoords.lat", :long="pickupCoords.lng", :caption="pickupName")
-          .order-confirm__pickup
-            .order-confirm__pickup-name {{ pickupName }}
-            .order-confirm__pickup-meta(v-if="pickupAddress")
-              q-icon(name="location_on", size="16px")
-              span {{ pickupAddress }}
-            .order-confirm__pickup-meta(v-if="pickupHours.length")
-              q-icon(name="schedule", size="16px")
-              span
-                span(v-for="line in pickupHours", :key="line") {{ line }}
-        BaseCard(:title="$t('marketplace.orderConfirmationPage.nextTitle')")
-          VerticalStepper(:steps="nextSteps", active-key="accept", :completed="['placed']")
+      BaseCard(:title="$t('marketplace.orderConfirmationPage.nextTitle')")
+        VerticalStepper(:steps="nextSteps", active-key="accept", :completed="['placed']")
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { BaseCard, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { VerticalStepper } from 'src/shared/ui/domain';
-import { Map as MapView } from 'src/shared/ui/Map';
 import { toOrderCardModel } from 'src/widgets/Marketplace/OrderCard';
-import { formatWorkingHours, useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { formatOrderPrice, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import { formatOrderPrice } from 'src/shared/lib/marketplace';
 import { t } from 'src/shared/i18n';
 
 /**
@@ -108,7 +94,6 @@ import { t } from 'src/shared/i18n';
 const route = useRoute();
 const router = useRouter();
 const cartStore = useMarketplaceCartStore();
-const kuStore = useMarketplaceKUDetailsStore();
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const result = computed(() => cartStore.lastCheckout);
@@ -133,21 +118,12 @@ const items = computed(() =>
 );
 const costTotal = computed(() => items.value.reduce((sum, o) => sum + o.cost, 0));
 const feeTotal = computed(() => items.value.reduce((sum, o) => sum + o.fee, 0));
-// Процент обеспечительной части — для подписи, тем же запросом, что корзина.
-const feePercent = ref(0);
 
-// Пункт выдачи — участок оформленных заказов: все позиции корзины едут на один.
-const pickupBraname = computed(() => orders.value[0]?.delivery_braname ?? cartStore.currentBraname ?? '');
-const pickupDetails = computed(() => kuStore.details.find((d) => d.coreBraname === pickupBraname.value) ?? null);
+// Пункт выдачи — участок оформленных заказов: все позиции корзины едут на
+// один; название содержит сам заказ (поля показа узла).
 const pickupName = computed(
-  () => pickupDetails.value?.name || orders.value[0]?.delivery_point_name || t('marketplace.kuHeaderBar.branchWordLabel'),
+  () => orders.value[0]?.delivery_point_name || t('marketplace.kuHeaderBar.branchWordLabel'),
 );
-const pickupAddress = computed(() => pickupDetails.value?.addressFull || orders.value[0]?.delivery_point_address || '');
-const pickupHours = computed(() => formatWorkingHours(pickupDetails.value?.workingHours));
-const pickupCoords = computed(() => {
-  const d = pickupDetails.value;
-  return d && d.lat !== null && d.lng !== null ? { lat: Number(d.lat), lng: Number(d.lng) } : null;
-});
 
 /** Путь заказа до получения: первый шаг пройден, второй — текущий. */
 const nextSteps = computed(() => [
@@ -191,13 +167,6 @@ onMounted(() => {
     goToOrders();
     return;
   }
-  void getMembershipFeePercent()
-    .then((v) => (feePercent.value = v))
-    .catch(() => undefined);
-  // Адрес, режим работы и координаты пункта выдачи — из деталей участков.
-  if (!kuStore.details.length && coopname.value) {
-    void kuStore.load({ coopname: coopname.value, onlyActive: true }).catch(() => undefined);
-  }
 });
 </script>
 
@@ -213,30 +182,17 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // ── Итог и действия ──
-  // Широкий экран: значок · итог · действия в одну строку. Телефон: значок и
-  // итог в первой строке, действия — второй строкой на всю ширину; иначе
-  // кнопки сжимали итог до столбика по слову (замечание владельца 19.11.2026).
+  // ── Итог в шапке карточки состава ──
   &__head {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: 'icon text actions';
+    display: flex;
     align-items: center;
-    gap: var(--p-4, 16px);
-
-    @media (max-width: 600px) {
-      grid-template-columns: auto minmax(0, 1fr);
-      grid-template-areas:
-        'icon text'
-        'actions actions';
-      gap: var(--p-3, 12px);
-    }
+    gap: var(--p-3, 12px);
+    min-width: 0;
   }
 
   &__head-icon {
-    grid-area: icon;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
     display: grid;
     place-items: center;
@@ -250,34 +206,18 @@ onMounted(() => {
     }
   }
 
-  &__head-text {
-    grid-area: text;
-    min-width: 0;
-  }
-
   &__title {
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
+    font-size: var(--p-fs-h3);
+    font-weight: 600;
     color: var(--p-ink);
   }
 
   &__meta {
+    font-size: var(--p-fs-body-sm);
     color: var(--p-ink-2);
   }
 
-  &__head-actions {
-    grid-area: actions;
-    display: flex;
-    gap: var(--p-2, 8px);
-
-    @media (max-width: 600px) {
-      > * {
-        flex: 1;
-      }
-    }
-  }
-
-  // ── Состав слева, пункт выдачи и путь справа ──
+  // ── Состав слева, путь заказа справа ──
   &__grid {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
@@ -287,12 +227,6 @@ onMounted(() => {
     @media (max-width: 960px) {
       grid-template-columns: minmax(0, 1fr);
     }
-  }
-
-  &__side {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-4, 16px);
   }
 
   &__item {
@@ -395,45 +329,6 @@ onMounted(() => {
     font-size: var(--p-fs-h2);
     font-weight: 700;
     color: var(--p-ink);
-  }
-
-  // Карта пункта выдачи — ниже стандартной: рядом стоит состав заказа.
-  &__map {
-    margin-bottom: var(--p-3, 12px);
-
-    :deep(.ya-map) {
-      height: 200px;
-    }
-  }
-
-  &__pickup {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-  }
-
-  &__pickup-name {
-    font-size: var(--p-fs-h3);
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__pickup-meta {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-2, 8px);
-    font-size: var(--p-fs-body-sm);
-    color: var(--p-ink-2);
-
-    > span {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .q-icon {
-      color: var(--p-ink-3);
-      margin-top: 2px;
-    }
   }
 
   &__failed-row {
