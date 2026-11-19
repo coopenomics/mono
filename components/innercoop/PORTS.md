@@ -17,7 +17,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
+| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, edubridge, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
 | `ACCOUNTING_REGISTRY_PORT` | `IAccountingRegistryPort` (6)<br><sub>core-ports/accounting-registry.port.ts</sub> | `AccountingRegistryInnercoopAdapter` | reports | Реестры бухгалтерии и процессов для приложения, которое показывает их на своём столе. |
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
@@ -76,7 +76,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `CHAIRMAN_APPROVALS_PORT` | `IChairmanApprovalsPort` (1)<br><sub>cross-plugin-ports/chairman-approvals.port.ts</sub> | `ChairmanInnercoopApprovalsAdapter` | edubridge*, ku* | Одобрения председателя — документы, которые ждут его второй подписи (договор УХД преподавателя, приложение к нему, коммит РИД и т. |
+| `CHAIRMAN_APPROVALS_PORT` | `IChairmanApprovalsPort` (1)<br><sub>cross-plugin-ports/chairman-approvals.port.ts</sub> | `ChairmanInnercoopApprovalsAdapter` | edubridge* | Одобрения председателя — документы, которые ждут его второй подписи (договор УХД преподавателя, приложение к нему, коммит РИД и т. |
 | `CHATCOOP_CALENDAR_PORT` | `IChatCoopCalendarPort` (1)<br><sub>cross-plugin-ports/chatcoop-calendar.port.ts</sub> | `ChatcoopInnercoopChatCoopCalendarAdapter` | — | Read-модель события календаря ChatCoop для межмодульного контракта (Capital и др.). |
 | `COOP_CALENDAR_EVENT_NOTIFICATION_PORT` | `ICoopCalendarEventNotificationPort` (2)<br><sub>cross-plugin-ports/coop-calendar-event-notification.port.ts</sub> | — | chatcoop | Оповещения пайщиков о событиях кооперативного календаря (Novu / стол связи). |
 | `EXPENSE_CHASSIS_PORT` | `IExpenseChassisPort` (12)<br><sub>cross-plugin-ports/expense-chassis.port.ts</sub> | `ExpensesInnercoopExpenseChassisAdapter` | capital, edubridge, marketplace | Шасси расходов (контракт `expense`): read-side для приложений-потребителей (capital, marketplace, EMP). |

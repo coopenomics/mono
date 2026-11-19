@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  ACCOUNT_PORT,
   CHAIN_CHANGES_PORT,
   CHAIRMAN_APPROVALS_PORT,
   CHAIN_PORT,
@@ -46,6 +47,8 @@ import {
 
 export const edubridgePorts = {
   required: [
+    // Имя пайщика в содержании процесса на столе бухгалтера (доступ к курсу, работа преподавателя).
+    ACCOUNT_PORT,
     // Администратора образования назначает председатель на общей странице управления доступом.
     ROLE_ASSIGNMENTS_PORT,
     CHAIN_PORT,

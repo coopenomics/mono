@@ -82,6 +82,7 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
         // Узел ведёт журнал документов после реестра заявлений: строки документов процесса
         // дописываются один раз, пакеты прежних строк не меняются.
         if ((await this.repository.countParts(config.coopname)) === 0) {
+          // i18n-ignore: подпись прохода в журнале узла — текст для оператора, не для пайщика
           await this.runPasses(PART_PASSES, 'журнала документов процесса');
           return;
         }
