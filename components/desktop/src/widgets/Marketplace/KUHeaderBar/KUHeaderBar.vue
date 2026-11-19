@@ -40,7 +40,7 @@
       BaseButton(variant="ghost", :disabled="saving", @click="dialogOpen = false") {{ $t('common.action.cancel') }}
       BaseButton(
         variant="primary",
-        :disabled="!picked || picked === cartStore.currentBraname",
+        :disabled="!picked",
         :loading="saving",
         @click="apply"
       ) {{ $t('marketplace.kuHeaderBar.applyButton') }}
@@ -63,8 +63,8 @@ import { t } from 'src/shared/i18n';
  * Показывает выбранный пункт выдачи с адресом и режимом работы; нажатие на
  * плашку открывает окно с участками (список + карта). Смена пишется в корзину
  * (setCartDeliveryPoint) и эмитит `changed`, чтобы родитель перезагрузил
- * витрину под новый КУ. При единственном участке окно показывает его, а
- * «Применить» остаётся неактивной: менять не на что.
+ * витрину под новый КУ. «Применить» доступна всегда: тот же участок просто
+ * закрывает окно.
  */
 const props = defineProps<{ coopname: string }>()
 
@@ -102,6 +102,12 @@ function openDialog(): void {
 
 async function apply(): Promise<void> {
   if (!picked.value) return
+  // Тот же участок — окно просто закрывается: «Применить» всегда доступна
+  // (замечание владельца 19.11.2026), менять в корзине нечего.
+  if (picked.value === cartStore.currentBraname) {
+    dialogOpen.value = false
+    return
+  }
   saving.value = true
   try {
     await cartStore.changeDeliveryPoint(picked.value)
