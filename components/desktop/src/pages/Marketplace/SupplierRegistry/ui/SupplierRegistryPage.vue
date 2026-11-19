@@ -253,16 +253,19 @@ q-page.mp-role-admin.supplier-registry(role="region", :aria-label="$t('marketpla
     template(#icon)
       q-icon(name="storefront", size="48px")
 
-  BaseDialog(v-model="addOpen", :title="$t('marketplace.supplierRegistryPage.addDialogTitle')", size="sm")
+  BaseDialog(v-model="addOpen", :title="$t('marketplace.supplierRegistryPage.addDialogTitle')", size="md")
     template(#default)
       .supplier-registry__form
         //- Поставщик ищется среди пайщиков по ФИО, названию организации или
         //- аккаунту; в подсказке под именем стоит аккаунт — однофамильцев не
-        //- перепутать (замечание владельца 19.11.2026).
+        //- перепутать (замечание владельца 19.11.2026). Высота и нижний отступ —
+        //- как у полей договора: dense и место под подсказку (bottom-slots).
         UserSearchSelector(
           v-model="addMember",
           :label="$t('marketplace.supplierRegistryPage.accountLabel')",
-          outlined
+          outlined,
+          dense,
+          bottom-slots
         )
         BaseInput(
           v-model="addNumber",
