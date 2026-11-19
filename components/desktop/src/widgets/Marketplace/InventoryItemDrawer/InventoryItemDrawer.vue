@@ -37,7 +37,10 @@ DetailsDrawer(
     DataRow(:label='$t("marketplace.inventoryItemDrawer.receivedAtLabel")', :value='inventoryDateTime(item.received_at)', align='spread')
     DataRow(:label='$t("marketplace.inventoryItemDrawer.receivedByLabel")', align='spread')
       template(#value-override)
-        AccountBadge(:account-name='item.received_by_operator_account', size='sm')
+        //- ФИО — как у заказчика и в «Истории»: один аккаунт читался хуже имени.
+        .inv-item__stack.inv-item__stack--end
+          span(v-if='receivedByName') {{ receivedByName }}
+          AccountBadge(:account-name='item.received_by_operator_account', size='sm')
     DataRow(:label='$t("marketplace.inventoryItemDrawer.originLabel")', :value='originLabel', align='spread')
 
     .inv-item__section {{ $t('marketplace.inventoryItemDrawer.termsTitle') }}
@@ -249,6 +252,17 @@ const MOVEMENT_DESCRIPTION: Record<string, (m: MovementView) => string | undefin
       ? t('marketplace.inventoryItemDrawer.movementRecipient', { name: m.recipient_name || m.recipient_account })
       : undefined,
 }
+
+/**
+ * Имя принявшего — из шага «Принято на склад» журнала позиции: журнал уже
+ * называет исполнителей по имени, отдельный запрос профиля лишний.
+ */
+const receivedByName = computed<string | undefined>(() => {
+  const account = item.value?.received_by_operator_account
+  if (!account) return undefined
+  const step = movements.value.find((m) => m.kind === 'RECEIVED' && m.actor_account === account)
+  return step?.actor_name || undefined
+})
 
 const historyEvents = computed<ActivityEvent[]>(() =>
   movements.value.map((m) => {

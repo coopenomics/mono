@@ -62,7 +62,7 @@ export default async ({ page, shot, expect, env, context }) => {
 
   // «Добавить поставщика»: поставщик выбирается поиском среди пайщиков по ФИО,
   // организации или аккаунту, аккаунт стоит под именем. Окно не отправляется.
-  await page.locator('#header-actions-host button').first().click();
+  await page.locator('.q-btn:has-text("Добавить поставщика")').first().click();
   const addDialog = page.locator('.q-dialog__inner:visible').filter({ hasText: 'Добавить поставщика' }).first();
   await addDialog.waitFor({ state: 'visible', timeout: 20000 });
   await addDialog.locator('input').first().click();
