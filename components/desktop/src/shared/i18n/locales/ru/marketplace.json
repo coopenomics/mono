@@ -2160,7 +2160,7 @@
       "purposeLabel": "Назначение",
       "rejectReasonLabel": "Причина отказа",
       "supplierLabel": "Поставщик",
-      "transferDestinationLabel": "Куда переведено",
+      "transferDestinationLabel": "Реквизиты для выплаты",
       "ordersSectionTitle": "Заказы в выплате ({count})"
     },
     "pvzWriteoffsSection": {
