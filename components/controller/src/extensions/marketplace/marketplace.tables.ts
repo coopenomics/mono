@@ -13,6 +13,7 @@ export default [
   'marketplace_container_type',
   'marketplace_handoff_code',
   'marketplace_inventory',
+  'marketplace_inventory_movement',
   'marketplace_issuance_saga',
   'marketplace_ku_details',
   'marketplace_moderation_log',
