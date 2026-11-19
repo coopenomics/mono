@@ -15,6 +15,7 @@ import {
 } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
 import { useHeaderActions } from 'src/shared/hooks';
 import AddSupplierButton from './AddSupplierButton.vue';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
@@ -107,12 +108,12 @@ const columns = computed<BaseTableColumn<MarketplaceSupplierView>[]>(() => [
 ]);
 
 const addOpen = ref(false);
-const addMember = ref('');
+const addMember = ref<string | undefined>(undefined);
 const addNumber = ref('');
 const addDate = ref('');
 const adding = ref(false);
 const canAdd = computed(
-  () => addMember.value.trim().length > 0 && addNumber.value.trim().length > 0 && addDate.value.length > 0,
+  () => Boolean(addMember.value) && addNumber.value.trim().length > 0 && addDate.value.length > 0,
 );
 
 async function load(): Promise<void> {
@@ -158,14 +159,14 @@ async function onAdd(): Promise<void> {
   adding.value = true;
   try {
     await addSupplier({
-      member_account: addMember.value.trim(),
+      member_account: String(addMember.value),
       model: Zeus.MarketplaceSupplierModel.MEMBERSHIP,
       contract_number: addNumber.value.trim(),
       contract_date: addDate.value,
     });
     SuccessAlert(t('marketplace.supplierRegistryPage.addSuccessMessage'));
     addOpen.value = false;
-    addMember.value = '';
+    addMember.value = undefined;
     addNumber.value = '';
     addDate.value = '';
     await load();
@@ -255,12 +256,13 @@ q-page.mp-role-admin.supplier-registry(role="region", :aria-label="$t('marketpla
   BaseDialog(v-model="addOpen", :title="$t('marketplace.supplierRegistryPage.addDialogTitle')", size="sm")
     template(#default)
       .supplier-registry__form
-        BaseInput(
+        //- Поставщик ищется среди пайщиков по ФИО, названию организации или
+        //- аккаунту; в подсказке под именем стоит аккаунт — однофамильцев не
+        //- перепутать (замечание владельца 19.11.2026).
+        UserSearchSelector(
           v-model="addMember",
           :label="$t('marketplace.supplierRegistryPage.accountLabel')",
-          :placeholder="$t('marketplace.supplierRegistryPage.accountPlaceholder')",
-          mono,
-          :disabled="adding"
+          outlined
         )
         BaseInput(
           v-model="addNumber",

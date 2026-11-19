@@ -2594,8 +2594,7 @@
       "showMoreAction": "Показать ещё"
     },
     "supplierRegistryPage": {
-      "accountLabel": "Аккаунт поставщика",
-      "accountPlaceholder": "например, ivanov",
+      "accountLabel": "Поставщик — ФИО, организация или аккаунт",
       "addDialogTitle": "Добавить поставщика",
       "addSuccessMessage": "Поставщик добавлен и допущен",
       "approveButton": "Одобрить",

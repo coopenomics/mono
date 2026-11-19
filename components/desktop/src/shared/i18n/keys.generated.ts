@@ -7050,7 +7050,6 @@ export type MessageKey =
   | 'marketplace.supplierProfilePage.selectPvzHint'
   | 'marketplace.supplierProfilePage.showMoreAction'
   | 'marketplace.supplierRegistryPage.accountLabel'
-  | 'marketplace.supplierRegistryPage.accountPlaceholder'
   | 'marketplace.supplierRegistryPage.addDialogTitle'
   | 'marketplace.supplierRegistryPage.addSuccessMessage'
   | 'marketplace.supplierRegistryPage.approveButton'
