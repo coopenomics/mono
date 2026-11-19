@@ -35,7 +35,8 @@
           .mp-ku-bar__dialog-hint {{ $t('marketplace.kuHeaderBar.dialogHint') }}
     template(#default)
       BaseCard.mp-ku-bar__picker
-        KUSelector(v-model="picked", :coopname="coopname", map-min-height="calc(100vh - 280px)")
+        //- Повторное нажатие на выбранный участок применяет выбор сразу.
+        KUSelector(v-model="picked", :coopname="coopname", map-min-height="calc(100vh - 280px)", @confirm="apply")
     template(#footer)
       BaseButton(variant="ghost", :disabled="saving", @click="dialogOpen = false") {{ $t('common.action.cancel') }}
       BaseButton(

@@ -58,7 +58,19 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'select', pvz: IMarketplaceKUDetails): void
+  /** Повторное нажатие на уже выбранный участок — «выбрать и применить». */
+  (e: 'confirm', pvz: IMarketplaceKUDetails): void
 }>()
+
+/**
+ * Выбор участка из списка или по метке. Повторное нажатие на уже выбранный
+ * участок подтверждает выбор (замечание владельца 19.11.2026) без кнопки
+ * «Применить».
+ */
+function choose(pvz: IMarketplaceKUDetails): void {
+  if (props.selectedBraname === pvz.coreBraname) emit('confirm', pvz)
+  else emit('select', pvz)
+}
 
 const apiKey = (env as unknown as { YANDEX_MAPS_API_KEY?: string }).YANDEX_MAPS_API_KEY ?? ''
 
@@ -129,7 +141,7 @@ function geocodeWarnText(pvz: IMarketplaceKUDetails): string {
 }
 
 function onSelectFromList(pvz: IMarketplaceKUDetails) {
-  emit('select', pvz)
+  choose(pvz)
   if (mapInstance && pvz.lat !== null && pvz.lng !== null) {
     // Выбранный участок — в центре, масштаб улиц. Масштаб постоянный: прежнее
     // «текущий + 2» копилось, и повторное нажатие на тот же участок уносило
@@ -197,7 +209,7 @@ function syncPlacemarks(ymaps: any) {
       { iconContent: escapeHtml(displayName(pvz)) },
       { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz), hasBalloon: false, hasHint: false }
     )
-    pm.events.add('click', () => emit('select', pvz))
+    pm.events.add('click', () => choose(pvz))
     mapInstance.geoObjects.add(pm)
     placemarks.set(pvz.coreBraname, pm)
   }
