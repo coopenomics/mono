@@ -7,7 +7,7 @@
 //
 // Фикстура: председатель кооператива (ant).
 
-import { loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Реестр поставщиков',
@@ -44,4 +44,36 @@ export default async ({ page, shot, expect, env, context }) => {
       },
     },
   );
+
+  // Карточка поставщика (с 19.11.2026): договор, статус и кнопка
+  // «Приостановить действие договора». Сценарий договор не приостанавливает.
+  await page.locator('tr:has-text("Сидоров")').first().click();
+  await page.waitForSelector('text=Приостановить действие договора', { timeout: 30000 });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  await cleanViteOverlays(page);
+  await shot(
+    page,
+    '02-supplier-card',
+    'Карточка поставщика в реестре: договор, модель поставки и состояние. Кнопка «Приостановить действие договора» скрывает предложения поставщика из каталога и закрывает новые заказы на него; «Возобновить действие договора» возвращает допуск.',
+  );
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(800);
+
+  // «Добавить поставщика»: поставщик выбирается поиском среди пайщиков по ФИО,
+  // организации или аккаунту, аккаунт стоит под именем. Окно не отправляется.
+  await page.locator('#header-actions-host button').first().click();
+  const addDialog = page.locator('.q-dialog__inner:visible').filter({ hasText: 'Добавить поставщика' }).first();
+  await addDialog.waitFor({ state: 'visible', timeout: 20000 });
+  await addDialog.locator('input').first().click();
+  await addDialog.locator('input').first().type('Петров', { delay: 60 });
+  await page.locator('.q-menu .q-item').first().waitFor({ state: 'visible', timeout: 20000 });
+  await page.waitForTimeout(800);
+  await shot(
+    page,
+    '03-add-supplier-search',
+    'Окно «Добавить поставщика»: поиск пайщика по ФИО, организации или аккаунту; аккаунт стоит под именем, однофамильцев не перепутать. Ниже — номер и дата договора.',
+  );
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
 };

@@ -183,13 +183,16 @@ function isPackaged(o: MarketplaceOrderIssuanceView): boolean {
 const issueColumns = computed<ActLinesColumn[]>(() => [
   { key: 'check', label: '', width: 'var(--p-6, 24px)' },
   // Состояние позиции стоит под её названием: отдельная колонка не помещалась.
-  // Окно выдачи — во всю ширину экрана рядом со сводкой 340 px, поэтому поля
-  // правки шире прежних: «1000 упак.», «10000 ₽/упак.» и сумма до миллиона
-  // помещаются целиком (замечание владельца 19.11.2026: число обрезалось).
+  // Окно выдачи — во всю ширину экрана рядом со сводкой 340 px. На широком
+  // экране поля правки дорастают до 144/184/144 px: «1000 упак.», «10000 ₽/упак.»
+  // и сумма до миллиона помещаются целиком (замечание владельца 19.11.2026).
+  // При экране 1120 px левая колонка окна около 630 px: фиксированные 144/184/144
+  // выталкивали «Сумму» за край карточки (598-63, пункт 15), поэтому числовые
+  // колонки сжимаются до 104/144/104 px раньше позиции.
   { key: 'item', label: t('marketplace.issueActOpenDialog.columnItem'), wide: true, width: 'minmax(180px, 1fr)' },
-  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: '144px', align: 'right' },
-  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: '184px', align: 'right' },
-  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: '144px', align: 'right', strong: true },
+  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: 'minmax(104px, 144px)', align: 'right' },
+  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: 'minmax(144px, 184px)', align: 'right' },
+  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: 'minmax(104px, 144px)', align: 'right', strong: true },
 ]);
 
 type IssueRow = { key: string; off: boolean; order: MarketplaceOrderIssuanceView };

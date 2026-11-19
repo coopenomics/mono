@@ -106,6 +106,8 @@ const GROUPS = [
       // раскладывать нечего. Боксы заведены выше, до приёмки.
       'marketplace/operator/warehouse-cells',
       'marketplace/operator/warehouse',
+      // Карточка «Имущество на складе» с историей и сканер склада (19.11.2026).
+      'marketplace/operator/warehouse-item',
     ],
   },
   {
@@ -176,6 +178,9 @@ const GROUPS = [
       'marketplace/chairman/market-tour',
       'marketplace/chairman/ecosystem',
       'marketplace/chairman/warehouse-summary',
+      // Архив склада: выданное и списанное после групп выдачи, возврата и списания.
+      'marketplace/operator/warehouse-archive',
+      'marketplace/chairman/issuance-points',
       'marketplace/branch-chairman/pvz-list',
       'marketplace/orderer/marketplace-tour',
       'marketplace/chairman/suppliers-registry',
