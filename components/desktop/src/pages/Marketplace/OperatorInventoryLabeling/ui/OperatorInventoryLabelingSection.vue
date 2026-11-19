@@ -554,15 +554,27 @@ const boxItems = computed(() =>
   boxTarget.value ? itemsInContainer(boxTarget.value.id) : [],
 )
 
-// ─── Сканирование бокса: «что внутри» ──
-// Кладовщик идёт вдоль стеллажей со сканером и пикает тару подряд, чтобы
-// узнать содержимое, не открывая её. Это не приёмка и не выдача — только
-// просмотр, поэтому скан просто открывает карточку бокса.
+// ─── Сканирование: этикетка имущества или бокса ──
+// Этикетка имущества открывает карточку позиции. Кладовщик идёт вдоль
+// стеллажей со сканером и пикает тару подряд, чтобы узнать содержимое, не
+// открывая её. Это не приёмка и не выдача — только просмотр.
 const boxScanOpen = ref(false)
 const resolvingBox = ref(false)
 
 async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingBox.value) return
+  // Этикетка имущества участка — карточка позиции; разбор на узле не нужен.
+  const code = raw.trim()
+  const item = boardItems.value.find((row) => row.barcode_value === code)
+  if (item) {
+    boxScanOpen.value = false
+    openItem(item)
+    return
+  }
+  if (!containersEnabled.value) {
+    FailAlert(new Error(t('marketplace.operatorOwnWarehouse.labelNotFound', { code })))
+    return
+  }
   resolvingBox.value = true
   try {
     // Строку разбирает сервер — тот же путь, что у общего сканера стола.
@@ -885,8 +897,10 @@ onMounted(async () => {
   template(v-else)
     Teleport(to='#header-actions-host', defer)
       .place__head-actions
+        //- Те же кнопки, что на вкладке «Имущество» (решение владельца
+        //- 19.11.2026): скан этикетки имущества открывает карточку позиции,
+        //- скан этикетки бокса — содержимое бокса.
         BaseButton(
-          v-if='containersEnabled',
           variant='secondary',
           size='sm',
           :loading='resolvingBox',
@@ -894,7 +908,7 @@ onMounted(async () => {
         )
           template(#icon-left)
             q-icon(name='qr_code_scanner', size='16px')
-          | {{ $t('marketplace.operatorInventoryLabeling.scanBoxButton') }}
+          | {{ $t('marketplace.operatorOwnWarehouse.scanButton') }}
         BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
           template(#icon-left)
             q-icon(name='print', size='16px')
@@ -1368,17 +1382,17 @@ onMounted(async () => {
   )
   OfferRegistryOverlay(:coopname='coopname', from='warehouse', :show-full-page='false')
 
-  //- ─────────────────────── Сканирование бокса ───────────────────────
+  //- ─────────────────────── Сканирование этикетки ───────────────────────
   //- Не приёмка и не выдача: скан просто открывает карточку бокса, чтобы
   //- посмотреть содержимое, не вскрывая тару.
   ScannerDialog(
     v-model='boxScanOpen',
-    :title='$t("marketplace.operatorInventoryLabeling.scanBoxDialogTitle")',
-    :idle-caption='$t("marketplace.operatorInventoryLabeling.scanBoxIdleCaption")',
+    :title='$t("marketplace.operatorInventoryLabeling.scanDialogTitle")',
+    :idle-caption='containersEnabled ? $t("marketplace.operatorInventoryLabeling.scanIdleCaption") : $t("marketplace.operatorOwnWarehouse.scanIdleCaption")',
     :frame-hint='$t("marketplace.operatorInventoryLabeling.scanBoxFrameHint")',
-    :manual-label='$t("marketplace.operatorInventoryLabeling.scanBoxManualLabel")',
-    manual-placeholder='BX-0001',
-    :manual-button='$t("marketplace.operatorInventoryLabeling.scanBoxManualButton")',
+    :manual-label='$t("marketplace.operatorInventoryLabeling.scanManualLabel")',
+    :manual-placeholder='containersEnabled ? "BX-0001" : "4600000000000"',
+    :manual-button='$t("marketplace.operatorOwnWarehouse.scanManualButton")',
     @scanned='onBoxScanned'
   )
 </template>

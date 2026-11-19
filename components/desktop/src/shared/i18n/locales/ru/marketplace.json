@@ -1708,12 +1708,7 @@
       "renameAction": "Переименовать",
       "renameSectionError": "Не удалось переименовать секцию",
       "restoreLowerLevelAriaLabel": "Вернуть нижний ярус",
-      "scanBoxButton": "Сканировать бокс",
-      "scanBoxDialogTitle": "Сканировать бокс",
       "scanBoxFrameHint": "Поместите QR-код в рамку",
-      "scanBoxIdleCaption": "Наведите камеру на QR-этикетку бокса",
-      "scanBoxManualButton": "Показать",
-      "scanBoxManualLabel": "Или введите код бокса",
       "searchEmptyBody": "Ни одна ячейка не подходит под поиск или фильтр.",
       "searchEmptyTitle": "Ничего не найдено",
       "searchPlaceholder": "Поиск: адрес, бокс, товар, заказчик",
@@ -1737,7 +1732,10 @@
       "unlabeledBadge": "Без этикетки",
       "unplacedBoxesTitleAddressed": "Боксы без адреса",
       "unplacedBoxesTitlePlain": "Боксы участка",
-      "openItemHint": "Открыть карточку имущества"
+      "openItemHint": "Открыть карточку имущества",
+      "scanDialogTitle": "Сканировать этикетку",
+      "scanIdleCaption": "Наведите камеру на этикетку имущества или бокса либо считайте её сканером",
+      "scanManualLabel": "Код этикетки"
     },
     "operatorIssuance": {
       "announceButton": "Объявить выдачу",
