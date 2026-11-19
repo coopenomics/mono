@@ -2,7 +2,6 @@
 import { onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue'
 import { env } from 'src/shared/config'
 import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
-import PinIcon from 'src/assets/pin.svg'
 
 /**
  * Single-point карта на Yandex Maps JS API: показывает одну метку по
@@ -16,7 +15,14 @@ import PinIcon from 'src/assets/pin.svg'
 const props = defineProps<{
   long: number
   lat: number
+  /** Подпись на метке (название места); без подписи — крупная метка-«капля». */
+  caption?: string
 }>()
+
+/** Экранирование подписи: содержимое метки — HTML. */
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
+}
 
 const apiKey = env.YANDEX_MAPS_API_KEY
 
@@ -33,15 +39,13 @@ function center(): [number, number] {
 function renderPlacemark(): void {
   if (!mapInstance || !ymapsRef) return
   mapInstance.geoObjects.removeAll()
+  // Метка того же вида, что выбранный участок в окне выбора пункта выдачи:
+  // крупная тёмно-зелёная, с названием места, если оно передано. Прежняя
+  // картинка 24×32 терялась на карте (замечание владельца 19.11.2026).
   const placemark = new ymapsRef.Placemark(
     center(),
-    {},
-    {
-      iconLayout: 'default#image',
-      iconImageHref: PinIcon,
-      iconImageSize: [24, 32],
-      iconImageOffset: [-12, -32],
-    },
+    props.caption ? { iconContent: escapeHtml(props.caption), hintContent: escapeHtml(props.caption) } : {},
+    { preset: props.caption ? 'islands#darkGreenStretchyIcon' : 'islands#darkGreenIcon' },
   )
   mapInstance.geoObjects.add(placemark)
 }
@@ -71,7 +75,7 @@ async function initMap(): Promise<void> {
 }
 
 watch(
-  () => [props.lat, props.long],
+  () => [props.lat, props.long, props.caption],
   () => {
     if (mapInstance) {
       mapInstance.setCenter(center(), 17)

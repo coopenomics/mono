@@ -154,14 +154,14 @@ async function initMap() {
 }
 
 /**
- * Вид метки на карте. Выбранный участок — крупная зелёная «капля», остальные —
- * маленькие синие точки, недействующие — серые. Раньше вид не менялся вовсе:
- * человек нажимал точку, внизу подставлялось название, а какая из точек
- * выбрана, на карте видно не было.
+ * Вид метки на карте. Каждый участок — метка с его названием (замечание
+ * владельца 19.11.2026: маленькая точка терялась на карте, а подсказка над
+ * ней «торчала из земли»). Выбранный — тёмно-зелёная, остальные — синие,
+ * недействующие — серые.
  */
 function placemarkPreset(pvz: IMarketplaceKUDetails): string {
-  if (pvz.coreBraname === props.selectedBraname) return 'islands#darkGreenIcon'
-  return pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon'
+  if (pvz.coreBraname === props.selectedBraname) return 'islands#darkGreenStretchyIcon'
+  return pvz.status === 'INACTIVE' ? 'islands#grayStretchyIcon' : 'islands#blueStretchyIcon'
 }
 
 /** Выбранная метка идёт поверх соседних — иначе крупная «капля» прячется за точками. */
@@ -179,6 +179,8 @@ function syncPlacemarks(ymaps: any) {
       {
         balloonContent: balloonHtml(pvz),
         hintContent: displayName(pvz),
+        // Название на самой метке: участок виден на карте без наведения.
+        iconContent: escapeHtml(displayName(pvz)),
       },
       { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz) }
     )
