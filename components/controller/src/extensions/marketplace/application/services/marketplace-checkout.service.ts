@@ -1,4 +1,6 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Optional } from '@nestjs/common';
+import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
+import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { randomUUID } from 'crypto';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
@@ -185,7 +187,10 @@ export class MarketplaceCheckoutService {
     private readonly convertService: MarketplaceConvertService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Страница «Заказ оформлен» показывает имущество, его обложку и пункт
+    // выдачи по названию — те же поля показа, что «Мои заказы».
+    @Optional() @Inject(MarketplaceOrderDisplayService) private readonly displayService: MarketplaceOrderDisplayService | null = null
   ) {
     this.logger.setContext(MarketplaceCheckoutService.name);
   }
@@ -364,7 +369,7 @@ export class MarketplaceCheckoutService {
 
     // ── Одна транзакция на всё оформление ──
     // Перевод без заказов не отправляется: он адресуется строкам, а строк нет.
-    const createdDTOs: MarketplaceOrderDTO[] = [];
+    const createdOrders: MarketplaceOrderDomainEntity[] = [];
     const succeededOfferIds: string[] = [];
     if (prepared.length > 0) {
       let tx: { tx_hash: string; block_num: number };
@@ -401,7 +406,7 @@ export class MarketplaceCheckoutService {
             p.kind === MarketplaceCheckoutOrderActionKind.STOCK_ORDER
               ? (await this.stockService.finalizeStockOrder(p.stock, tx!.tx_hash)).order
               : (await this.orderCreateService.finalize(p.order, tx!)).order;
-          createdDTOs.push(toMarketplaceOrderDTO(order));
+          createdOrders.push(order);
           succeededOfferIds.push(p.line.offer_id);
         } catch (error: any) {
           this.logger.error(
@@ -419,6 +424,7 @@ export class MarketplaceCheckoutService {
     }
 
     const cartAfter = await this.cartService.getCart(scope);
+    const createdDTOs = await this.toCreatedDTOs(createdOrders);
 
     this.logger.log(
       `MarketplaceCheckoutService: checkout=${checkoutId} КУ=${deliveryBraname}; оформлено ${createdDTOs.length}, не прошло ${failed.length}`
@@ -519,6 +525,14 @@ export class MarketplaceCheckoutService {
       payable.push({ offer_id: item.offer_id, package_id: item.package_id ?? '', quantity: item.quantity, offer });
     }
     return { payable, failed };
+  }
+
+
+  /** Заказы оформления с полями показа: название имущества, обложка, пункт выдачи. */
+  private async toCreatedDTOs(orders: MarketplaceOrderDomainEntity[]): Promise<MarketplaceOrderDTO[]> {
+    if (!orders.length) return [];
+    const display = this.displayService ? await this.displayService.enrich(orders, { withParticipantNames: true }) : null;
+    return orders.map((o) => toMarketplaceOrderDTO(o, display?.get(o.id)));
   }
 
 }

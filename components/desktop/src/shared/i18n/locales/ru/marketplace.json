@@ -1982,9 +1982,9 @@
       "emptyBody": "Откройте «Мои заказы», чтобы увидеть оформленные заказы.",
       "emptyTitle": "Нет данных об оформлении",
       "failedCount": "Не оформлено позиций: {count}",
+      "itemsTitle": "Состав заказа",
       "myOrdersLink": "К моим заказам",
       "nextTitle": "Что дальше",
-      "ordersTitle": "Оформленные заказы",
       "pageAriaLabel": "Подтверждение заказа",
       "partialTitle": "Заказ оформлен частично",
       "pickupTitle": "Пункт выдачи",
@@ -1992,14 +1992,12 @@
       "remainderPlacedMessage": "Остаток заказа оформлен",
       "retryRemainder": "Повторить оформление остатка",
       "stepAccept": "Поставщик принимает заказ",
-      "stepAcceptHint": "До принятия поставщиком заказ можно отменить в «Моих заказах».",
       "stepDelivery": "Поставка на пункт выдачи",
-      "stepDeliveryHint": "Когда заказ поступит на участок, вы получите уведомление с режимом работы пункта выдачи.",
-      "stepPickup": "Получение",
-      "stepPickupHint": "Покажите оператору QR-код со страницы «Показать QR».",
+      "stepPickup": "Получение по QR-коду",
       "stepPlaced": "Заказ оформлен",
       "successTitle": "Заказ оформлен",
-      "summary": "{count} поз. на {amount} {symbol} · {point}"
+      "summary": "Позиций: {count} · {amount} · пункт выдачи {point}",
+      "totalLabel": "Итого"
     },
     "orderDetail": {
       "backToOrdersLink": "К реестру заказов"
@@ -2652,7 +2650,7 @@
       "orderedLabel": "Заказано"
     },
     "toOrderCardModel": {
-      "fallbackTitle": "Товар по предложению",
+      "fallbackTitle": "Имущество по предложению",
       "ordererPriceNote": "Цена для заказчика: {amount} ₽"
     },
     "ttnPrintPreview": {
