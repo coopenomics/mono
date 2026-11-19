@@ -6,7 +6,7 @@
  * на реестры стола бухгалтера содержание не выдаётся.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, caseName, expectAuthDenied, gql, gqlError, tokenOf } from '../core'
+import { CHAIRMAN, COOP, ROLES, caseName, expectCode, gql, gqlError, tokenOf } from '../core'
 
 const PROCESSES = `query($f:ProcessesFilter!,$p:PaginationInput!){
   reportsProcesses(filter:$f, pagination:$p){ items{ processHash processType } } }`
@@ -42,7 +42,12 @@ describe('отчёты: содержание процесса', () => {
     for (const row of rows) {
       const content = await contentOf(chair, row)
       expect(content, `процесс ${row.processType} ${row.processHash} остался без содержания`).not.toBeNull()
-      expect(content.title.trim().length).toBeGreaterThan(0)
+      // Описание приложения называет карточку; общая сводка заголовка не даёт —
+      // процесс называет заголовок панели, — но несёт сведения из нитки процесса.
+      expect(
+        content.title.trim().length > 0 || content.facts.length > 0,
+        `процесс ${row.processType} ${row.processHash}: ни заголовка, ни сведений`
+      ).toBe(true)
       // Пустые сведения в карточку не попадают.
       for (const fact of content.facts) expect(fact.value.trim().length).toBeGreaterThan(0)
     }
@@ -61,6 +66,7 @@ describe('отчёты: содержание процесса', () => {
   it(caseName('reports.process-content.06', 'пайщик без права на реестры стола бухгалтера получает отказ'), async () => {
     const [row] = await processesOf(chair)
     const member = await tokenOf(ROLES.member())
-    expectAuthDenied(await gqlError(member, CONTENT, { h: row.processHash, c: COOP, t: row.processType }))
+    // Пайщик вошёл, но права на реестры стола бухгалтера у него нет — отказ по праву, а не отказ входа.
+    expectCode(await gqlError(member, CONTENT, { h: row.processHash, c: COOP, t: row.processType }), 'KIT_INSUFFICIENT_RIGHTS')
   })
 })

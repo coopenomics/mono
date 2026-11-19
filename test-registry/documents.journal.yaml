@@ -39,7 +39,7 @@ cases:
     level: backend
     kind: happy
     scenario: Строки реестра показывают название и дату
-    expect: название по типу документа из реестра шаблонов (незнакомый тип — название из документа); дата подписи — время блока
+    expect: название по типу документа из реестра шаблонов (незнакомый тип — название из документа); дата подписи — время блока; документ без метаданных в цепи (заглушка наборов boot) типа не имеет, его внешний набор не проверяет
     test: components/controller/tests/unit/document/signed-document-journal.test.ts
     api: components/api-tests/src/documents/journal.test.ts
     status: passing

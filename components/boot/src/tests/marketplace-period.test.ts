@@ -215,7 +215,8 @@ describe.skipIf(!COMPRESSED)('стол заказов — счётчики сп�
     expect(units(periodRow.aid_reserve) >= 300n * UNITS, 'право получателя на следующий период').toBe(true)
     expect(units(periodRow.turnover) >= baseUnits, 'стоимость заказов — из счётчика участка').toBe(true)
     expect(units(periodRow.secured) >= dueUnits, 'собранная обеспечительная часть — из счётчика участка').toBe(true)
-    expect(periodRow.initiator).toBe(chairkrg.account)
+    // Инициатора-одиночку итог периода не хранит: средства инициаторов участка распределяются по их договорам.
+    expect(periodRow.initiator).toBeUndefined()
 
     const base = { coopname: COOP, braname: BRANAME, period, planned: asset(planned), memos: asset(0n), aid_paid: asset(0n) }
     await expect(push(MARKET, 'closeperiod', base)).rejects.toThrow(/MARKETPLACE_PERIOD_EXISTS/)

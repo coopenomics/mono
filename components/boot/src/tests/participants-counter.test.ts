@@ -133,7 +133,7 @@ describe('мажоритарная система управления', () => {
     await push('soviet', 'block', SOVIET, { coopname: COOP, admin: CHAIRMAN, username: PARTICIPANT, message: 'проверка флага' })
     expect(await branched()).toBe((await branchCount()) >= 3)
 
-    await push('soviet', 'unblock', SOVIET, { coopname: COOP, admin: CHAIRMAN, username: PARTICIPANT })
+    await push('soviet', 'unblock', SOVIET, { coopname: COOP, admin: CHAIRMAN, username: PARTICIPANT, is_registration: false, message: 'проверка флага' })
     expect(await branched()).toBe((await branchCount()) >= 3)
   })
 })
