@@ -1810,6 +1810,42 @@ export interface KuDecisions {
   type: string;
 }
 
+export interface KuPowersOfAttorney {
+  braname: string;
+  coopname: string;
+  countersigned: Json | null;
+  created_at: Generated<Timestamp>;
+  document: Json;
+  document_hash: string;
+  holder: string;
+  id: Generated<number>;
+  issued_at: Timestamp;
+  number: number;
+  protocol_date: Generated<string>;
+  protocol_number: Generated<string>;
+  registry_id: number;
+  renewal_notified_at: Timestamp | null;
+  resolved_at: Timestamp | null;
+  signed_at: Generated<Timestamp>;
+  source_hash: string | null;
+  status: Generated<string>;
+  type: string;
+  valid_until: Timestamp;
+}
+
+export interface KuTrusteeLiabilities {
+  braname: string;
+  coopname: string;
+  countersigned: Json | null;
+  document: Json;
+  document_hash: string;
+  holder: string;
+  id: Generated<number>;
+  resolved_at: Timestamp | null;
+  signed_at: Generated<Timestamp>;
+  status: Generated<string>;
+}
+
 export interface KuTrustRequests {
   _created_at: Generated<Timestamp>;
   _id: Generated<string>;
@@ -1889,7 +1925,6 @@ export interface MarketplaceBranchPeriod {
   deleted_at: Timestamp | null;
   expenses: Generated<Numeric>;
   funds_amount: Generated<Numeric>;
-  initiator: Generated<string>;
   initiator_amount: Generated<Numeric>;
   invest_phase: Generated<string>;
   investor_repaid: Generated<Numeric>;
@@ -2010,6 +2045,7 @@ export interface MarketplaceInventory {
   id: Generated<string>;
   labeled_at: Timestamp | null;
   labeled_by_operator_account: string | null;
+  last_actor_account: string | null;
   order_id: string;
   orderer_account_snapshot: string;
   origin: Generated<string>;
@@ -2027,6 +2063,22 @@ export interface MarketplaceInventory {
   status: string;
   unit_of_measure: Generated<string>;
   updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceInventoryMovement {
+  actor_account: string | null;
+  at: Generated<Timestamp>;
+  barcode_value: string | null;
+  braname: string | null;
+  cell_id: string | null;
+  container_id: string | null;
+  coopname: string;
+  id: Generated<Int8>;
+  inventory_id: string;
+  kind: string;
+  order_id: string | null;
+  quantity: number | null;
+  status: string | null;
 }
 
 export interface MarketplaceIssuanceSaga {
@@ -2174,19 +2226,19 @@ export interface MarketplaceOrder {
 
 export interface MarketplaceOutgoingPaymentRequest {
   amount: Numeric;
-  apl_reception_id: string;
   completed_at: Timestamp | null;
   coopname: string;
   core_payment_id: string | null;
   created_at: Generated<Timestamp>;
   decline_reason: string | null;
   id: Generated<string>;
-  order_hash: string;
-  order_id: string;
+  lines: Generated<Json>;
   payee_account: string;
+  payment_hash: string;
   payout_destination: string | null;
   payout_tx_hash: string | null;
   purpose: string;
+  settled_at: Timestamp | null;
   status: string;
   symbol: string;
   updated_at: Generated<Timestamp>;
@@ -2997,7 +3049,9 @@ export interface DB {
   ipn: Ipn;
   ku_decision_questions: KuDecisionQuestions;
   ku_decisions: KuDecisions;
+  ku_powers_of_attorney: KuPowersOfAttorney;
   ku_trust_requests: KuTrustRequests;
+  ku_trustee_liabilities: KuTrusteeLiabilities;
   ledger_operations: LedgerOperations;
   marketplace_apl_reception: MarketplaceAplReception;
   marketplace_branch_aid: MarketplaceBranchAid;
@@ -3010,6 +3064,7 @@ export interface DB {
   marketplace_container_type: MarketplaceContainerType;
   marketplace_handoff_code: MarketplaceHandoffCode;
   marketplace_inventory: MarketplaceInventory;
+  marketplace_inventory_movement: MarketplaceInventoryMovement;
   marketplace_issuance_saga: MarketplaceIssuanceSaga;
   marketplace_ku_details: MarketplaceKuDetails;
   marketplace_moderation_log: MarketplaceModerationLog;
