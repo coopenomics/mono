@@ -66,7 +66,17 @@ DetailsDrawer(
 
   template(v-if='item', #footer)
     .inv-item__actions
-      //- Действия стола: выпуск штрих-кода у оператора ПВЗ.
+      //- Этикетку не выпускают в карточке: её печатают заранее листом, клеят
+      //- на имущество и привязывают сканером (решение владельца 19.11.2026).
+      BaseButton(
+        v-if='labelable && !item.barcode_value',
+        variant='secondary',
+        size='sm',
+        @click='bindOpen = true'
+      )
+        template(#icon-left)
+          q-icon(name='qr_code_scanner', size='16px')
+        | {{ $t('marketplace.inventoryItemDrawer.bindLabel') }}
       slot(name='actions', :item='item')
       BaseButton(v-if='item.order_id', variant='secondary', size='sm', @click='openOrder')
         template(#icon-left)
@@ -76,6 +86,12 @@ DetailsDrawer(
         template(#icon-left)
           q-icon(name='storefront', size='16px')
         | {{ $t('marketplace.inventoryItemDrawer.openOffer') }}
+
+InventoryLabelBindDialog(
+  v-model='bindOpen',
+  :item='item',
+  @bound='(rows) => emit("label-bound", rows)'
+)
 
 //- Заказ открывается правой панелью поверх карточки (`?order=`), предложение —
 //- панелью стола (`?offer=`): закрытие панели возвращает к карточке имущества,
@@ -100,6 +116,7 @@ import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { fetchOffer } from 'src/entities/MarketplaceOffer'
 import { OrderRegistryOverlay } from 'src/widgets/Marketplace/OrderRegistryOverlay'
+import { InventoryLabelBindDialog } from 'src/widgets/Marketplace/InventoryLabelBindDialog'
 import {
   inventoryDate,
   inventoryDateTime,
@@ -121,9 +138,16 @@ const props = defineProps<{
   placeLabel: (row: MarketplaceInventoryItemView) => string
   /** Маршрут полной страницы заказа на этом столе — кнопка в панели заказа. */
   orderRouteName: string
+  /** Оператор участка привязывает наклеенную этикетку к позиции сканером. */
+  labelable?: boolean
 }>()
 
-const emit = defineEmits<{ (e: 'open-offer', offerId: string): void }>()
+const emit = defineEmits<{
+  (e: 'open-offer', offerId: string): void
+  (e: 'label-bound', updated: MarketplaceInventoryItemView[]): void
+}>()
+
+const bindOpen = ref(false)
 
 const overlay = useQueryOverlay('item')
 const route = useRoute()

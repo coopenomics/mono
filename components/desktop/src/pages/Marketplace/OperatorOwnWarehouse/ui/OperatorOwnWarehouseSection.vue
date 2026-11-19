@@ -15,6 +15,8 @@ import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog'
+import { LabelSheetPrintDialog } from 'src/widgets/Marketplace/LabelSheetPrintDialog'
 import {
   buildPlacementOptions,
   locationLabel,
@@ -26,7 +28,6 @@ import {
 import {
   MARKETPLACE_ON_WAREHOUSE_STATUSES,
   assignInventoryPlacement,
-  generateInventoryLabel,
   inventoryOrdererName,
   listInventory,
   type MarketplaceInventoryItemView,
@@ -221,21 +222,24 @@ async function commitPlacement(
   }
 }
 
-// ─── Инлайн-выпуск штрих-кода ───
-const issuingBarcodeId = ref<string | null>(null)
-async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
-  issuingBarcodeId.value = row.id
-  try {
-    const updated = await generateInventoryLabel({ inventory_id: row.id })
-    applyUpdated(updated)
-    SuccessAlert(i18nT('marketplace.operatorOwnWarehouse.barcodeIssuedMessage'))
-  } catch (e) {
-    FailAlert(e, i18nT('marketplace.operatorOwnWarehouse.barcodeIssueError'))
-  } finally {
-    issuingBarcodeId.value = null
-  }
-}
+// ─── Сканирование этикетки и печать листа ───
+// Этикетку печатают заранее листом, клеят на имущество и привязывают сканером в
+// карточке. Скан этикетки на складе открывает карточку этой позиции (решение
+// владельца 19.11.2026). Позиции участка уже загружены — код ищется среди них.
+const scanOpen = ref(false)
+const printOpen = ref(false)
 
+function onLabelScanned(raw: string): void {
+  const code = raw.trim()
+  if (!code) return
+  const found = items.value.find((row) => row.barcode_value === code)
+  if (!found) {
+    FailAlert(new Error(i18nT('marketplace.operatorOwnWarehouse.labelNotFound', { code })))
+    return
+  }
+  scanOpen.value = false
+  openItem(found)
+}
 
 </script>
 
@@ -268,6 +272,19 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
       | {{ $t('marketplace.operatorOwnWarehouse.unassignedHintLine3') }}
 
     template(v-if='activeTab === "warehouse"')
+      //- Действия раздела — в шапке стола: найти позицию по этикетке и
+      //- напечатать лист этикеток для наклейки.
+      Teleport(to='#header-actions-host', defer)
+        .warehouse__head-actions
+          BaseButton(variant='secondary', size='sm', @click='scanOpen = true')
+            template(#icon-left)
+              q-icon(name='qr_code_scanner', size='16px')
+            | {{ $t('marketplace.operatorOwnWarehouse.scanButton') }}
+          BaseButton(variant='secondary', size='sm', @click='printOpen = true')
+            template(#icon-left)
+              q-icon(name='print', size='16px')
+            | {{ $t('marketplace.operatorInventoryLabeling.printLabelsButton') }}
+
       //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
       //- поле «скачет» относительно чипов).
       BaseInput.warehouse__search.field-flush(
@@ -311,30 +328,38 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
     //- недовыдач/отказов — публикация в каталог предложением от кооператива.
     CoopStockSection(v-else-if='activeTab === "stock"', @count='(n) => (coopStockCount = n)')
 
-  //- Карточка имущества на складе; штрих-код выпускается в ней.
+  //- Карточка имущества на складе; наклеенная этикетка привязывается в ней.
   InventoryItemDrawer(
     :items='items',
     :place-label='placeLabel',
     order-route-name='marketplace-pvz-order-detail',
-    @open-offer='(id) => offerOverlay.open(id)'
+    labelable,
+    @open-offer='(id) => offerOverlay.open(id)',
+    @label-bound='applyUpdated'
   )
-    template(#actions='{ item }')
-      BaseButton(
-        v-if='!item.barcode_value',
-        variant='secondary',
-        size='sm',
-        :loading='issuingBarcodeId === item.id',
-        @click='issueBarcode(item)'
-      )
-        template(#icon-left)
-          q-icon(name='label', size='16px')
-        | {{ $t('marketplace.operatorOwnWarehouse.issueBarcodeButton') }}
+
+  ScannerDialog(
+    v-model='scanOpen',
+    :title='$t("marketplace.operatorOwnWarehouse.scanDialogTitle")',
+    :idle-caption='$t("marketplace.operatorOwnWarehouse.scanIdleCaption")',
+    :manual-label='$t("marketplace.operatorInventoryLabeling.bindLabelManualLabel")',
+    manual-placeholder='4600000000000',
+    :manual-button='$t("marketplace.operatorOwnWarehouse.scanManualButton")',
+    @scanned='onLabelScanned'
+  )
+  LabelSheetPrintDialog(v-model='printOpen')
 
   //- Предложение — по ссылке из карточки имущества.
   OfferRegistryOverlay(:coopname='coopname', from='warehouse', :show-full-page='false')
 </template>
 
 <style scoped lang="scss">
+.warehouse__head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+}
+
 .warehouse {
   // Внешние отступы держит страница-обёртка «Склад моего КУ» — секция живёт
   // внутри её полосы разделов и своих полей не добавляет.

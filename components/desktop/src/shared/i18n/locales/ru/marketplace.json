@@ -1736,7 +1736,8 @@
       "splitSumText": "Сумма: {sum} / {total}",
       "unlabeledBadge": "Без этикетки",
       "unplacedBoxesTitleAddressed": "Боксы без адреса",
-      "unplacedBoxesTitlePlain": "Боксы участка"
+      "unplacedBoxesTitlePlain": "Боксы участка",
+      "openItemHint": "Открыть карточку имущества"
     },
     "operatorIssuance": {
       "announceButton": "Объявить выдачу",
@@ -1775,8 +1776,6 @@
     },
     "operatorOwnWarehouse": {
       "ariaLabel": "Склад участка",
-      "barcodeIssueError": "Не удалось выпустить штрих-код",
-      "barcodeIssuedMessage": "Штрих-код выпущен",
       "column": {
         "barcode": "Штрих-код",
         "expiry": "Годен до",
@@ -1792,7 +1791,6 @@
       "hintLine1": "Имущество, принятое на ваш пункт выдачи: что лежит на складе, в каком",
       "hintLine2": "месте, заказчик и состояние. Место можно переназначить, а штрих-код",
       "hintLine3": "выпустить прямо в строке. Штрих-код есть не у всех позиций — он опционален.",
-      "issueBarcodeButton": "Выпустить",
       "loadError": "Не удалось загрузить склад участка",
       "notOperatorBody": "Склад участка доступен оператору участка и его доверенным лицам.",
       "notOperatorTitle": "Вы не оператор кооперативного участка",
@@ -1803,7 +1801,12 @@
       "searchPlaceholder": "Поиск: заказчик, имущество, бокс, адрес, штрих-код",
       "unassignedHintLine1": "Обезличенный остаток кооператива: имущество, которое заказчик не забрал",
       "unassignedHintLine2": "или от которого отказался. Оно уже не закреплено ни за кем — его можно",
-      "unassignedHintLine3": "опубликовать в каталог предложением от кооператива."
+      "unassignedHintLine3": "опубликовать в каталог предложением от кооператива.",
+      "scanButton": "Сканировать",
+      "scanDialogTitle": "Найти имущество по этикетке",
+      "scanIdleCaption": "Наведите камеру на этикетку имущества или считайте её сканером",
+      "scanManualButton": "Найти",
+      "labelNotFound": "Этикетка {code} не привязана к имуществу на складе участка"
     },
     "operatorReception": {
       "acceptedAtText": "Принята {date}",
@@ -3115,7 +3118,8 @@
         "TRANSFERRED": "Перемещено на другой участок",
         "ISSUED": "Выдано",
         "WRITTEN_OFF": "Списано"
-      }
+      },
+      "bindLabel": "Привязать этикетку"
     },
     "warehouseArchive": {
       "emptyTitle": "Архив пуст",
