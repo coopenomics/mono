@@ -926,7 +926,11 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('market.install.supplierProfileTitle'),
                 icon: 'storefront',
-                requires: 'SupplierProfile:read',
+                // Право стола администратора, как у соседних страниц.
+                // `SupplierProfile:read` есть у каждого заказчика: со скрытой
+                // страницей на нём стол администратора попадал в список столов
+                // обычного пайщика (замечание владельца 19.11.2026).
+                requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
