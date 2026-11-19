@@ -5,24 +5,12 @@ import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { Zeus } from '@coopenomics/sdk'
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
-import {
-  BaseBadge,
-  BaseButton,
-  BaseInput,
-  BaseSelect,
-  BaseTable,
-  EmptyState,
-} from 'src/shared/ui/base'
-import type {
-  BaseBadgeVariant,
-  BaseSelectOption,
-  BaseTableColumn,
-} from 'src/shared/ui/base'
-import { AccountBadge, PageHint } from 'src/shared/ui/domain'
-import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
+import { BaseButton, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base'
+import type { BaseSelectOption } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
+import { WarehouseInventoryTable } from 'src/widgets/Marketplace/WarehouseInventoryTable'
+import { InventoryItemDrawer } from 'src/widgets/Marketplace/InventoryItemDrawer'
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
@@ -39,6 +27,7 @@ import {
   MARKETPLACE_ON_WAREHOUSE_STATUSES,
   assignInventoryPlacement,
   generateInventoryLabel,
+  inventoryOrdererName,
   listInventory,
   type MarketplaceInventoryItemView,
 } from 'src/entities/MarketplaceInventory'
@@ -60,6 +49,12 @@ const storage = useMarketplaceStorageStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 /** Предложение открывается оверлеем поверх склада — адрес держит `?offer=`. */
 const offerOverlay = useQueryOverlay('offer')
+/** Карточка имущества на складе — адрес держит `?item=`. */
+const itemOverlay = useQueryOverlay('item')
+
+function openItem(row: MarketplaceInventoryItemView): void {
+  itemOverlay.open(row.id)
+}
 const braname = computed(() => store.activeBraname ?? '')
 
 const containersEnabled = computed(() => store.warehouseSettings.containers_enabled)
@@ -86,18 +81,6 @@ const coopStockCount = ref(0)
 // списком состояний склада (по нему же считается занятость боксов).
 const ON_WAREHOUSE_STATUSES = [...MARKETPLACE_ON_WAREHOUSE_STATUSES]
 
-// Имя заказчика для показа: ФИО (резолвится бэкендом), иначе — аккаунт.
-function ordererName(row: MarketplaceInventoryItemView): string {
-  return row.orderer_name?.trim() || row.orderer_account_snapshot
-}
-
-// «4» без единицы измерения непонятно, чего именно — штук, кг, упаковок.
-// Тот же формат, что и в «Остатке кооператива» ниже на этой странице.
-function quantityLabel(row: MarketplaceInventoryItemView): string {
-  const saleUnit = marketplaceOrderSaleUnit(row.quantity_per_label, row.unit_of_measure, row.package_size)
-  return `${saleUnit.units} ${saleUnit.unitLabel}`
-}
-
 // Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и
 // аккаунт), товар, место (код бокса и координата ячейки), штрих-код. Оператор
 // не выбирает режим заранее.
@@ -106,7 +89,7 @@ const filteredRows = computed(() => {
   return items.value.filter((row) => {
     if (q) {
       const hay = [
-        row.orderer_name,
+        inventoryOrdererName(row),
         row.orderer_account_snapshot,
         row.product_name_snapshot,
         row.barcode_value,
@@ -132,36 +115,6 @@ watch(
   ([warehouse, stock]) => emit('counts', { warehouse, stock }),
   { immediate: true },
 )
-
-const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => [
-  { key: 'place', label: i18nT('marketplace.operatorOwnWarehouse.column.place'), width: '240px', field: (row) => placeLabel(row) },
-  { key: 'product', label: i18nT('marketplace.operatorOwnWarehouse.column.product'), width: '240px', sortable: true, field: 'product_name_snapshot' },
-  { key: 'orderer', label: i18nT('marketplace.operatorOwnWarehouse.column.orderer'), width: '200px', sortable: true, field: (row) => ordererName(row) },
-  { key: 'qty', label: i18nT('marketplace.operatorOwnWarehouse.column.qty'), width: '130px', numeric: true, nowrap: true },
-  { key: 'barcode', label: i18nT('marketplace.operatorOwnWarehouse.column.barcode'), width: '150px' },
-  { key: 'status', label: i18nT('marketplace.operatorOwnWarehouse.column.status'), width: '140px', sortable: true, field: 'status' },
-  { key: 'expiry', label: i18nT('marketplace.operatorOwnWarehouse.column.expiry'), width: '120px', nowrap: true, sortable: true, field: (row) => timeOf(row.expiry_date) },
-  { key: 'received', label: i18nT('marketplace.operatorOwnWarehouse.column.received'), width: '160px', nowrap: true, sortable: true, field: (row) => timeOf(row.received_at) },
-])
-
-// Строка открывает предложение, по которому имущество попало на участок: с него
-// видно поставщика, цену, упаковку и условия — иначе по одному наименованию
-// непонятно, что именно выдаётся (жалоба 2026-09-14). Карточка та же, что в
-// реестре предложений стола администратора.
-function hasOffer(row: MarketplaceInventoryItemView): boolean {
-  return Boolean(row.offer_id)
-}
-
-function openOffer(row: MarketplaceInventoryItemView): void {
-  if (row.offer_id) offerOverlay.open(String(row.offer_id))
-}
-
-/** Дата в миллисекундах для сортировки; пусто — в конец списка. */
-function timeOf(value: unknown): number {
-  if (value === null || value === undefined) return 0
-  const t = new Date(String(value)).getTime()
-  return Number.isFinite(t) ? t : 0
-}
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) {
@@ -283,58 +236,7 @@ async function issueBarcode(row: MarketplaceInventoryItemView): Promise<void> {
   }
 }
 
-function humanStatus(status: string): string {
-  switch (status) {
-    case Zeus.MarketplaceInventoryStatus.RECEIVED:
-      return i18nT('marketplace.inventory.status.received')
-    case Zeus.MarketplaceInventoryStatus.LABELED:
-      return i18nT('marketplace.inventory.status.labeled')
-    case Zeus.MarketplaceInventoryStatus.ISSUED:
-      return i18nT('marketplace.inventory.status.issued')
-    case Zeus.MarketplaceInventoryStatus.RETURNED:
-      return i18nT('marketplace.inventory.status.returned')
-    case Zeus.MarketplaceInventoryStatus.WRITTEN_OFF:
-      return i18nT('marketplace.inventory.status.writtenOff')
-    default:
-      return status
-  }
-}
 
-function statusVariant(status: string): BaseBadgeVariant {
-  switch (status) {
-    case Zeus.MarketplaceInventoryStatus.RECEIVED:
-      return 'neutral'
-    case Zeus.MarketplaceInventoryStatus.LABELED:
-      return 'info'
-    case Zeus.MarketplaceInventoryStatus.ISSUED:
-      return 'pos'
-    case Zeus.MarketplaceInventoryStatus.RETURNED:
-      return 'warn'
-    case Zeus.MarketplaceInventoryStatus.WRITTEN_OFF:
-      return 'neg'
-    default:
-      return 'neutral'
-  }
-}
-
-// Время с бэкенда в UTC — показываем в локальном поясе оператора (env.TIMEZONE).
-function formatDateTime(value: unknown): string {
-  const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm')
-  return out || '—'
-}
-
-// Срок годности — без времени (только дата). По нему идёт списание просрочки,
-// поэтому истёкший срок подсвечиваем красным.
-function formatDate(value: unknown): string {
-  const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY')
-  return out || '—'
-}
-
-function isExpired(value: unknown): boolean {
-  if (value === null || value === undefined) return false
-  const t = new Date(String(value)).getTime()
-  return Number.isFinite(t) && t < Date.now()
-}
 </script>
 
 <template lang="pug">
@@ -375,22 +277,15 @@ function isExpired(value: unknown): boolean {
         clearable
       )
 
-      BaseTable(
+      //- Таблица склада — общая со складом стола администратора. Место
+      //- правится прямо в строке; строка открывает карточку имущества.
+      WarehouseInventoryTable(
         v-if='firstLoad || filteredRows.length',
-        :columns='columns',
         :rows='filteredRows',
-        row-key='id',
-        hover,
-        sticky-header,
         :loading='loading',
-        min-width='1380px',
-        sort-by='received',
-        descending,
-        :clickable-rows='hasOffer',
-        @row-click='openOffer'
+        :place-label='placeLabel',
+        @row-click='openItem'
       )
-        //- Место — выбор из заведённых боксов и ячеек прямо в строке. Когда
-        //- адресное хранение выключено, показываем прочерк: места просто нет.
         template(#cell-place='{ row }')
           BaseSelect.warehouse__place-input.field-flush(
             v-if='placementEnabled',
@@ -399,43 +294,10 @@ function isExpired(value: unknown): boolean {
             :placeholder='$t("marketplace.operatorOwnWarehouse.placeInputPlaceholder")',
             searchable,
             :disabled='savingPlaceId === row.id',
-            @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
+            @click.stop,
+            @update:model-value='(v) => commitPlacement(row, v)'
           )
           span.warehouse__place-static(v-else) {{ placeLabel(row) }}
-
-        template(#cell-orderer='{ row }')
-          .warehouse__orderer
-            span.warehouse__orderer-name {{ ordererName(row) }}
-            AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
-
-        template(#cell-qty='{ row }')
-          | {{ quantityLabel(row) }}
-
-        //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
-        template(#cell-barcode='{ row }')
-          span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
-          BaseButton.warehouse__issue(
-            v-else,
-            variant='ghost',
-            size='sm',
-            :loading='issuingBarcodeId === row.id',
-            @click='issueBarcode(row)'
-          )
-            template(#icon-left)
-              q-icon(name='label', size='16px')
-            | {{ $t('marketplace.operatorOwnWarehouse.issueBarcodeButton') }}
-
-        template(#cell-status='{ row }')
-          BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
-
-        template(#cell-expiry='{ row }')
-          span(:class='{ "warehouse__expired": isExpired(row.expiry_date) }') {{ formatDate(row.expiry_date) }}
-
-        template(#cell-received='{ row }')
-          | {{ formatDateTime(row.received_at) }}
-
-        template(#footer)
-          span {{ $t('marketplace.operatorOwnWarehouse.positionsCountFooter', { count: filteredRows.length }) }}
 
       EmptyState(
         v-else,
@@ -449,8 +311,26 @@ function isExpired(value: unknown): boolean {
     //- недовыдач/отказов — публикация в каталог предложением от кооператива.
     CoopStockSection(v-else-if='activeTab === "stock"', @count='(n) => (coopStockCount = n)')
 
-  //- Карточка предложения — та же, что в реестре предложений стола
-  //- администратора: одна на все реестры стола.
+  //- Карточка имущества на складе; штрих-код выпускается в ней.
+  InventoryItemDrawer(
+    :items='items',
+    :place-label='placeLabel',
+    order-route-name='marketplace-pvz-order-detail',
+    @open-offer='(id) => offerOverlay.open(id)'
+  )
+    template(#actions='{ item }')
+      BaseButton(
+        v-if='!item.barcode_value',
+        variant='secondary',
+        size='sm',
+        :loading='issuingBarcodeId === item.id',
+        @click='issueBarcode(item)'
+      )
+        template(#icon-left)
+          q-icon(name='label', size='16px')
+        | {{ $t('marketplace.operatorOwnWarehouse.issueBarcodeButton') }}
+
+  //- Предложение — по ссылке из карточки имущества.
   OfferRegistryOverlay(:coopname='coopname', from='warehouse', :show-full-page='false')
 </template>
 

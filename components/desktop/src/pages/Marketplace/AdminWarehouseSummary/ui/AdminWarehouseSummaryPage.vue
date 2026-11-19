@@ -4,9 +4,9 @@
  *
  * Страница только читает: приёмку, выдачу и списание ведут на столах ПВЗ.
  * Сверху — короткая сводка (сколько позиций, единиц, участков, просрочки и
- * непромаркированного), ниже — таблица с поиском и фильтрами. Строка
- * открывает предложение, по которому имущество попало на склад, — тем же
- * оверлеем, что и реестры предложений и заказов.
+ * непромаркированного), ниже — та же таблица позиций склада, что на столе
+ * ПВЗ, с колонкой пункта выдачи (решение владельца 19.11.2026). Строка
+ * открывает карточку «Имущество на складе»; предложение — ссылкой из неё.
  *
  * Рейтинг позиций по обороту переехал на «Экономику»: это денежный срез за
  * период, а не состояние полок.
@@ -22,16 +22,23 @@ import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-uni
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
-import {
-  WarehouseSummaryGrid,
-  type WarehouseRow,
-} from 'src/widgets/Marketplace/WarehouseSummaryGrid'
+import type { WarehouseRow } from 'src/widgets/Marketplace/WarehouseSummaryGrid'
+import { WarehouseInventoryTable } from 'src/widgets/Marketplace/WarehouseInventoryTable'
+import { InventoryItemDrawer } from 'src/widgets/Marketplace/InventoryItemDrawer'
+import { BaseInput, EmptyState } from 'src/shared/ui/base'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { fetchCategoryNames } from 'src/entities/MarketplaceOffer'
-import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
+import {
+  MARKETPLACE_ON_WAREHOUSE_STATUSES,
+  inventoryOrdererName,
+  listInventory,
+  type MarketplaceInventoryItemView,
+} from 'src/entities/MarketplaceInventory'
 import { t as i18nT } from 'src/shared/i18n';
 
 const { info } = useSystemStore()
 const offerOverlay = useQueryOverlay('offer')
+const itemOverlay = useQueryOverlay('item')
 
 const items = ref<MarketplaceInventoryItemView[]>([])
 const categoryNames = ref<Record<number, string>>({})
@@ -214,11 +221,34 @@ const stats = computed<WarehouseStat[]>(() => {
   ]
 })
 
-// Строка ведёт на предложение, по которому имущество попало на склад: с него
-// видно поставщика, цену, упаковку и участки поставки.
-function onRowClick(row: WarehouseRow): void {
-  if (!row.offerId) return
-  offerOverlay.open(row.offerId)
+// ─── Таблица позиций: что сейчас лежит на складах кооператива ───
+const firstLoad = useFirstLoad(loading)
+const search = ref('')
+const ON_WAREHOUSE = new Set<string>(MARKETPLACE_ON_WAREHOUSE_STATUSES)
+
+const tableRows = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return items.value.filter((row) => {
+    if (!ON_WAREHOUSE.has(row.status)) return false
+    if (!q) return true
+    return [row.product_name_snapshot, inventoryOrdererName(row), row.orderer_account_snapshot, row.delivery_point_name, row.barcode_value]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(q)
+  })
+})
+
+// Справочник мест хранения есть только у участка: здесь место подписывается
+// упрощённо — размещено или нет. Точный адрес видит оператор участка.
+function placeLabel(row: MarketplaceInventoryItemView): string {
+  return row.container_id || row.cell_id
+    ? i18nT('marketplace.warehouseInventoryTable.placed')
+    : i18nT('marketplaceStorage.format.noLocation')
+}
+
+function openItem(row: MarketplaceInventoryItemView): void {
+  itemOverlay.open(row.id)
 }
 </script>
 
@@ -234,7 +264,35 @@ q-page.warehouse-summary(role='region', :aria-label='$t("marketplace.warehouseSu
         :class='s.alarm && s.value > 0 ? "warehouse-summary__stat-value--alarm" : ""'
       ) {{ s.value }}
 
-  WarehouseSummaryGrid(:rows='warehouseRows', :loading='loading', @row-click='onRowClick')
+  BaseInput.warehouse-summary__search.field-flush(
+    v-model='search',
+    type='search',
+    :placeholder='$t("marketplace.warehouseInventoryTable.searchPlaceholder")',
+    clearable
+  )
+
+  WarehouseInventoryTable(
+    v-if='firstLoad || tableRows.length',
+    :rows='tableRows',
+    :loading='loading',
+    show-branch,
+    :place-label='placeLabel',
+    @row-click='openItem'
+  )
+  EmptyState(
+    v-else,
+    :title='$t("marketplace.operatorOwnWarehouse.emptyTitle")',
+    :body='$t("marketplace.operatorOwnWarehouse.emptyBody")'
+  )
+    template(#icon)
+      q-icon(name='inventory_2', size='48px')
+
+  InventoryItemDrawer(
+    :items='items',
+    :place-label='placeLabel',
+    order-route-name='marketplace-admin-order-detail',
+    @open-offer='(id) => offerOverlay.open(id)'
+  )
 
   OfferRegistryOverlay(:coopname='info.coopname', from='warehouse')
 </template>
@@ -245,6 +303,11 @@ q-page.warehouse-summary(role='region', :aria-label='$t("marketplace.warehouseSu
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  &__search {
+    max-width: 420px;
+    width: 100%;
+  }
 
   &__stats {
     display: flex;

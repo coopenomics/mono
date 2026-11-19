@@ -3065,6 +3065,34 @@
       "break": "перерыв",
       "dayOff": "выходной",
       "title": "Режим работы"
+    },
+    "warehouseInventoryTable": {
+      "branch": "Пункт выдачи",
+      "placed": "Размещено",
+      "searchPlaceholder": "Поиск: имущество, заказчик, пункт выдачи, штрих-код"
+    },
+    "inventoryItemDrawer": {
+      "barcodeLabel": "Штрих-код",
+      "branchLabel": "Пункт выдачи",
+      "expiryLabel": "Годен до",
+      "labelTitle": "Маркировка",
+      "labeledAtLabel": "Промаркировано",
+      "noBarcode": "Не выпущен",
+      "openOffer": "Предложение",
+      "openOrder": "Заказ",
+      "ordererLabel": "Заказчик",
+      "originLabel": "Основание",
+      "originReception": "Приёмка от поставщика",
+      "originWarrantyReturn": "Гарантийный возврат пайщика",
+      "placeLabel": "Место",
+      "receivedAtLabel": "Принято",
+      "receivedByLabel": "Принял",
+      "receptionTitle": "Приёмка",
+      "termsTitle": "Сроки",
+      "title": "Имущество на складе",
+      "warrantyLabel": "Гарантийный срок возврата",
+      "warrantyValue": "{days} дн. после выдачи",
+      "whereTitle": "Где и чьё"
     }
   }
 }
