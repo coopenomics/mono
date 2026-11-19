@@ -8,7 +8,7 @@
 //
 // Фикстура: chairman кооператива (ant) — роли admin/board/board_readonly.
 
-import { loginAsChairman, dismissOnboardingDialogs, cleanViteOverlays } from '../../../lib/harness.mjs';
+import { loginAsChairman, dismissOnboardingDialogs, cleanViteOverlays, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Выплаты поставщикам — обзор совета',
@@ -19,6 +19,9 @@ export const meta = {
 
 export default async ({ page, context, shot, env, expect }) => {
   await loginAsChairman(page, context);
+  // При трёх участках кооператив на системе участков, и стол просит
+  // председателя выбрать участок: окно закрывает страницу и перехватывает клики.
+  await pickBranchIfAsked(page);
   await dismissOnboardingDialogs(page);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/payouts`, {
@@ -27,6 +30,7 @@ export default async ({ page, context, shot, env, expect }) => {
   await page.waitForSelector('text=Выплаты', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
+  await pickBranchIfAsked(page);
   await dismissOnboardingDialogs(page);
   await cleanViteOverlays(page);
 
