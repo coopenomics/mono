@@ -44,7 +44,7 @@ function renderPlacemark(): void {
   // картинка 24×32 терялась на карте (замечание владельца 19.11.2026).
   const placemark = new ymapsRef.Placemark(
     center(),
-    props.caption ? { iconContent: escapeHtml(props.caption), hintContent: escapeHtml(props.caption) } : {},
+    props.caption ? { iconContent: escapeHtml(props.caption) } : {},
     { preset: props.caption ? 'islands#darkGreenStretchyIcon' : 'islands#darkGreenIcon' },
   )
   mapInstance.geoObjects.add(placemark)
