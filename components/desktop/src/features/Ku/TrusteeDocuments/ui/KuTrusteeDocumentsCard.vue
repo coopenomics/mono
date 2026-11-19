@@ -181,6 +181,7 @@ async function reload() {
 
 defineExpose({ reload });
 
+// realtime: нет источника в карточке — карточку перечитывает страница участка по ленте изменений (KuMyBranchPage зовёт reload)
 onMounted(reload);
 watch(() => props.braname, reload);
 </script>
