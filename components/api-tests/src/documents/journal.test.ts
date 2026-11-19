@@ -12,7 +12,21 @@ const DOCUMENTS = `query($d: GetDocumentsInput!){ getDocuments(data:$d){ totalCo
   statement { documentAggregate { document { hash meta } } }
 } } }`
 
-interface Row { title: string | null; role: string | null; signed_at: string | null; registry_hash: string | null }
+interface Row {
+  title: string | null
+  role: string | null
+  signed_at: string | null
+  registry_hash: string | null
+  statement?: { documentAggregate?: { document?: { meta?: unknown } } }
+}
+
+/** Тип документа из его метаданных в цепи; заглушка без метаданных — 0. */
+function registryIdOf(row: Row): number {
+  const meta = row.statement?.documentAggregate?.document?.meta
+  const parsed = typeof meta === 'string' ? (() => { try { return JSON.parse(meta) } catch { return {} } })() : (meta ?? {})
+  const id = Number((parsed as { registry_id?: unknown }).registry_id)
+  return Number.isFinite(id) ? id : 0
+}
 
 async function list(token: string, username: string, extra: Record<string, unknown> = {}): Promise<{ total: number; items: Row[] }> {
   const page = (await gql<any>(token, DOCUMENTS, { d: { username, filter: {}, type: 'newsubmitted', page: 1, limit: 100, ...extra } })).getDocuments
@@ -36,7 +50,12 @@ describe('реестр документов: журнал', () => {
 
   it(caseName('documents.journal.02', 'у каждой строки название по типу документа и дата подписи'), async () => {
     const flat = await list(chair, COOP, { view: 'FLAT' })
-    for (const item of flat.items) {
+    // Наборы boot подписывают соглашения заглушкой с пустыми метаданными — у неё
+    // типа нет, и названия по типу у неё быть не может. Настоящий документ
+    // несёт тип всегда; его строка обязана иметь название.
+    const typed = flat.items.filter(item => registryIdOf(item) > 0)
+    expect(typed.length, 'в журнале нет документов с типом').toBeGreaterThan(0)
+    for (const item of typed) {
       expect(item.title?.trim().length, `строка без названия: ${item.registry_hash}`).toBeGreaterThan(0)
       expect(item.signed_at, `строка без даты подписи: ${item.registry_hash}`).toBeTruthy()
     }
@@ -50,10 +69,17 @@ describe('реестр документов: журнал', () => {
   })
 
   it(caseName('documents.journal.04', 'тип документа сужает выдачу до документов этого типа'), async () => {
-    // 100 — заявление на вступление в кооператив: оно есть у каждого засеянного пайщика.
-    const joins = await list(chair, COOP, { view: 'FLAT', registry_ids: [100] })
-    expect(joins.total).toBeGreaterThan(0)
-    expect(joins.items.every(i => i.title === joins.items[0].title)).toBe(true)
+    // Тип берётся из самой выдачи: набор документов зависит от того, как
+    // засеян стенд (на полигоне пайщиков заводит председатель, без заявления
+    // на вступление).
+    const flat = await list(chair, COOP, { view: 'FLAT' })
+    const registryId = flat.items.map(registryIdOf).find(id => id > 0)
+    expect(registryId, 'в журнале нет документов с типом').toBeTruthy()
+    const ofType = await list(chair, COOP, { view: 'FLAT', registry_ids: [registryId] })
+    expect(ofType.total).toBeGreaterThan(0)
+    expect(ofType.total).toBeLessThanOrEqual(flat.total)
+    expect(ofType.items.every(i => registryIdOf(i) === registryId), 'в выдаче только документы этого типа').toBe(true)
+    expect(ofType.items.every(i => i.title === ofType.items[0].title)).toBe(true)
   })
 
   it(caseName('documents.journal.05', 'пайщик в обоих видах видит только свои документы'), async () => {

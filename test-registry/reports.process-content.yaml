@@ -52,7 +52,7 @@ cases:
     level: backend
     kind: side
     scenario: Процесс без описания приложения (списание по итогу периода, членские взносы участка)
-    expect: общее содержание из сводки процесса — название процесса, пайщик или участок, сумма, назначение, даты
+    expect: общее содержание из сводки процесса — пайщик или участок, сумма, назначение, даты; заголовок карточки пустой — процесс называет заголовок панели
     test: components/controller/tests/unit/process-registry/process-content.test.ts
     api: components/api-tests/src/reports/process-content.test.ts
     status: passing
@@ -88,7 +88,7 @@ cases:
     level: backend
     kind: break
     scenario: Пайщик без права Registry:read запрашивает содержание процесса на столе бухгалтера
-    expect: узел отказывает правом reportsProcessContent; core-запрос processContent закрыт правом Process:read:all
+    expect: узел отказывает правом reportsProcessContent (KIT_INSUFFICIENT_RIGHTS — отказ по праву, не отказ входа); core-запрос processContent закрыт правом Process:read:all
     test: components/api-tests/src/reports/process-content.test.ts
     api: components/api-tests/src/reports/process-content.test.ts
     status: passing
