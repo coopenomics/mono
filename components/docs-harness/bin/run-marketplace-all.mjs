@@ -177,8 +177,6 @@ const GROUPS = [
       'marketplace/chairman/ecosystem',
       'marketplace/chairman/warehouse-summary',
       'marketplace/branch-chairman/pvz-list',
-      'marketplace/board/payouts-readonly',
-      'marketplace/offerer/payments',
       'marketplace/orderer/marketplace-tour',
       'marketplace/chairman/suppliers-registry',
       'marketplace/chairman/offers-registry',
@@ -196,11 +194,14 @@ const GROUPS = [
 // Мытищи, petrova — первый кандидат пула), хотя сценарии их по имени не зовут.
 // Экономика участка по итогу месяца снимается отдельной сюитой на стенде со
 // сжатым временем (bin/run-marketplace-keu-all.mjs): участок получает членский
-// взнос первого числа, в настоящем времени общий кошелёк участка пуст.
+// взнос первого числа, в настоящем времени общий кошелёк участка пуст. Там же
+// выплаты поставщику: пакет выплаты собирает обход узла в начале суток.
 const KEU_SUITE = [
   'marketplace/operator/branch-economy',
   'marketplace/branch-chairman/economy-reserve-periods',
   'marketplace/orderer/order-secure-part-charged',
+  'marketplace/offerer/payments',
+  'marketplace/board/payouts-readonly',
 ];
 
 process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2), extraFixtures: ['chairmyt', 'petrova'], elsewhere: KEU_SUITE }));

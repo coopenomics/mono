@@ -1,8 +1,13 @@
-// Сценарий: offerer-стол «История выплат» (Эпик 5 / Story 5.9).
-// Поставщик видит список MarketplaceOutgoingPaymentRequest по своим
-// закрытым актам приёмки — статусы INITIATED / CONFIRMED / FAILED, дата,
-// сумма, валюта, банковский референс и назначение. На пустом стенде
-// выплат ещё нет, страница показывает empty-state.
+// Сценарий: стол поставщика «Выплаты» — пакеты выплаты за сутки.
+//
+// С 19.11.2026 заказы поставщика, принятые за сутки, объединяются в один
+// пакет выплаты: обход узла собирает пакет в начале суток и отправляет кассиру
+// один платёж. В настоящем времени пакета не дождаться до полуночи, поэтому
+// сценарий идёт в сюите сжатого времени (bin/run-marketplace-keu-all.mjs):
+// заказ засева mktkeu:01-common принят на участке, сутки стенда короче минуты,
+// и к началу сценария пакет поставщика уже отправлен кассиру.
+//
+// Фикстура: sidorov — поставщик засева (ROLES.supplier в api-tests).
 
 import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAs, signOnboardingAgreements } from '../../../lib/harness.mjs';
 import fs from 'node:fs';
@@ -21,13 +26,13 @@ export const meta = {
   docPath: 'new/marketplace/offerer/payments.md',
   assetsDir: 'assets/new/marketplace/offerer/payments',
   role: 'user',
-  fixture: 'ivanpetrov',
-  fixtures: ['ivanpetrov'],
+  fixture: 'sidorov',
+  fixtures: ['sidorov'],
 };
 
-export default async ({ page, shot }) => {
-  // История выплат — перспектива поставщика (ivanpetrov), не председателя.
-  const fixture = loadFixture('ivanpetrov');
+export default async ({ page, shot, expect }) => {
+  // История выплат — перспектива поставщика засева, не председателя.
+  const fixture = loadFixture('sidorov');
   await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await loginAs(page, fixture);
   await signOnboardingAgreements(page);
@@ -46,6 +51,12 @@ export default async ({ page, shot }) => {
   await shot(
     page,
     '01-payments',
-    `Стол «История выплат» поставщика: дата, сумма, валюта, статус, банковский референс и назначение платежа. URL: \`${page.url()}\`. По каждому закрытому акту приёмки кооператив формирует платёжный запрос поставщику; здесь — список запросов в статусе «Ожидает» с суммой по заказу.`,
+    'Стол поставщика «Выплаты»: реквизиты для выплат и пакеты выплаты. Пакет объединяет заказы поставщика, принятые за сутки: сумма, состояние, дата, число заказов, реквизиты и назначение по договору.',
+    {
+      expect: async (p) => {
+        // Пустой список означал бы, что обход выплат не собрал пакет.
+        await expect(p.locator('.payout-card').first()).toBeVisible({ timeout: 120000 });
+      },
+    },
   );
 };
