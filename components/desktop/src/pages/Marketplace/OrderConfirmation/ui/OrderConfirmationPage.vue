@@ -173,19 +173,37 @@ onMounted(() => {
 <style scoped lang="scss">
 .order-confirm {
   padding: var(--p-6, 24px);
+
+  @media (max-width: 600px) {
+    padding: var(--p-4, 16px);
+  }
+
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
 
   // ── Итог и действия ──
+  // Широкий экран: значок · итог · действия в одну строку. Телефон: значок и
+  // итог в первой строке, действия — второй строкой на всю ширину; иначе
+  // кнопки сжимали итог до столбика по слову (замечание владельца 19.11.2026).
   &__head {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'icon text actions';
     align-items: center;
     gap: var(--p-4, 16px);
-    flex-wrap: wrap;
+
+    @media (max-width: 600px) {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        'icon text'
+        'actions actions';
+      gap: var(--p-3, 12px);
+    }
   }
 
   &__head-icon {
+    grid-area: icon;
     width: 48px;
     height: 48px;
     flex-shrink: 0;
@@ -202,7 +220,7 @@ onMounted(() => {
   }
 
   &__head-text {
-    flex: 1;
+    grid-area: text;
     min-width: 0;
   }
 
@@ -217,8 +235,15 @@ onMounted(() => {
   }
 
   &__head-actions {
+    grid-area: actions;
     display: flex;
     gap: var(--p-2, 8px);
+
+    @media (max-width: 600px) {
+      > * {
+        flex: 1;
+      }
+    }
   }
 
   // ── Состав слева, пункт выдачи и путь справа ──
@@ -244,6 +269,11 @@ onMounted(() => {
     grid-template-columns: 64px minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--p-4, 16px);
+
+    @media (max-width: 600px) {
+      grid-template-columns: 48px minmax(0, 1fr) auto;
+      gap: var(--p-3, 12px);
+    }
     padding: var(--p-3, 12px) 0;
     border-top: 1px solid var(--p-line);
     cursor: pointer;
@@ -259,8 +289,8 @@ onMounted(() => {
   }
 
   &__thumb {
-    width: 64px;
-    height: 64px;
+    width: 100%;
+    aspect-ratio: 1;
     border-radius: var(--p-r-md);
     background: var(--p-surface-2);
     display: grid;
