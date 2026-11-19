@@ -686,9 +686,7 @@
       "toggleFailedError": "Не удалось изменить статус пункта выдачи",
       "phoneLabel": "Телефон",
       "emailLabel": "Email",
-      "hoursLabel": "Режим работы",
-      "descriptionLabel": "Описание",
-      "breakLabel": "перерыв"
+      "descriptionLabel": "Описание"
     },
     "issueActOpenDialog": {
       "addFromStockButton": "Добавить со склада",
@@ -3061,6 +3059,11 @@
       "dueLabel": "Срок",
       "advanceNote": "Аванс под отчёт",
       "signAction": "Подписать и направить в совет"
+    },
+    "workingHours": {
+      "break": "перерыв",
+      "dayOff": "выходной",
+      "title": "Режим работы"
     }
   }
 }

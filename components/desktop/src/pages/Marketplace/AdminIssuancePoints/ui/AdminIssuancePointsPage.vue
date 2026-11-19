@@ -10,7 +10,7 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 // GeocodeStatus/KuDetailsStatus — это ЗНАЧЕНИЯ (enum из Zeus), используются в
 // рантайме (GeocodeStatus.OK и т.п.); импортировать как value, не `import type`,
 // иначе тип стирается при компиляции → ReferenceError в шаблоне.
-import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetails'
+import { GeocodeStatus, KuDetailsStatus, formatWorkingHours } from 'src/entities/MarketplaceKUDetails'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
@@ -122,19 +122,9 @@ function openRow(row: IssuancePointRow): void {
   selectedBraname.value = row.branch.braname
 }
 
-const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
-
-/** Режим работы строками «Пн 09:00–18:00, перерыв 13:00–14:00»; без режима — пусто. */
+/** Режим работы строками, дни с одинаковым режимом объединены. */
 function scheduleLines(row: IssuancePointRow): string[] {
-  const hours = row.details?.workingHours
-  if (!hours) return []
-  return DAYS.flatMap((day) => {
-    const d = hours[day]
-    if (!d?.open || !d?.close) return []
-    const breaks = (d.breaks ?? []).map((b) => `${b.start}–${b.end}`).join(', ')
-    const dayLabel = t(`marketplaceDetailKU.marketplaceDetailKUDialog.day.${day}`)
-    return [`${dayLabel} ${d.open}–${d.close}${breaks ? ` · ${t('marketplace.issuancePoints.breakLabel')} ${breaks}` : ''}`]
-  })
+  return formatWorkingHours(row.details?.workingHours)
 }
 
 function hasCoords(row: IssuancePointRow): boolean {
@@ -399,7 +389,7 @@ q-page.admin-pvz
         :value='selected.details.contactEmail',
         align='spread'
       )
-      DataRow(v-if='scheduleLines(selected).length', :label='$t("marketplace.issuancePoints.hoursLabel")', align='vertical')
+      DataRow(v-if='scheduleLines(selected).length', :label='$t("marketplace.workingHours.title")', align='vertical')
         template(#value-override)
           .admin-pvz__schedule
             div(v-for='line in scheduleLines(selected)', :key='line') {{ line }}

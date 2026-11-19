@@ -14,6 +14,11 @@
         q-item-section
           q-item-label.text-weight-medium {{ displayName(pvz) }}
           q-item-label(caption, v-if="pvz.name && pvz.addressFull") {{ pvz.addressFull }}
+          //- Режим работы: пайщик выбирает пункт выдачи по удобному времени.
+          q-item-label.ku-map-with-list__hours(caption, v-if="formatWorkingHours(pvz.workingHours).length")
+            q-icon(name="schedule", size="14px")
+            span
+              span(v-for="line in formatWorkingHours(pvz.workingHours)", :key="line") {{ line }}
           q-item-label(v-if="pvz.geocodeStatus !== 'OK'" caption :class="geocodeWarnClass(pvz)") {{ geocodeWarnText(pvz) }}
         q-item-section(side top v-if="$slots.cardAction")
           slot(name="cardAction" :pvz="pvz")
@@ -29,7 +34,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { env } from 'src/shared/config'
 import { BaseBanner } from 'src/shared/ui/base'
 import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
-import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
+import { formatWorkingHours, type IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
@@ -74,6 +79,19 @@ const visibleItems = computed(() =>
 // не показываем НИКОГДА — только настоящее имя участка, затем адрес как фолбэк.
 function displayName(pvz: IMarketplaceKUDetails): string {
   return pvz.name || pvz.addressFull || t('kUMapWithList.kUMapWithList.fallbackBranchName')
+}
+
+/** Экранирование текста для подсказки метки: её содержимое — HTML. */
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
+}
+
+/** Подсказка метки: название, адрес и режим работы участка. */
+function balloonHtml(pvz: IMarketplaceKUDetails): string {
+  const lines = [`<strong>${escapeHtml(displayName(pvz))}</strong>`]
+  if (pvz.addressFull) lines.push(escapeHtml(pvz.addressFull))
+  for (const line of formatWorkingHours(pvz.workingHours)) lines.push(escapeHtml(line))
+  return lines.join('<br>')
 }
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
@@ -159,7 +177,7 @@ function syncPlacemarks(ymaps: any) {
     const pm = new ymaps.Placemark(
       [pvz.lat!, pvz.lng!],
       {
-        balloonContent: `<strong>${displayName(pvz)}</strong><br>${pvz.addressFull ?? ''}`,
+        balloonContent: balloonHtml(pvz),
         hintContent: displayName(pvz),
       },
       { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz) }
@@ -219,6 +237,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+.ku-map-with-list__hours {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-1);
+  margin-top: 2px;
+}
+.ku-map-with-list__hours > span {
+  display: flex;
+  flex-direction: column;
+}
 .ku-map-with-list {
   display: grid;
   grid-template-columns: minmax(260px, 360px) 1fr;
