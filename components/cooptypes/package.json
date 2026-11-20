@@ -43,7 +43,7 @@
     "dev": "nodemon --watch src --ext ts --exec 'unbuild'"
   },
   "dependencies": {
-    "@coopenomics/docs-templates": "1.6.13",
+    "@coopenomics/docs-templates": "1.6.14",
     "@typescript-eslint/parser": "^7.8.0"
   },
   "devDependencies": {
