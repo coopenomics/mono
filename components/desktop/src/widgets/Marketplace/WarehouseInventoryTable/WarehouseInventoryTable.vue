@@ -1,8 +1,11 @@
 <template lang="pug">
 //- Одна таблица склада для стола ПВЗ и стола администратора (решение владельца
 //- 19.11.2026): строка — позиция имущества на складе; нажатие открывает
-//- карточку «Имущество на складе». Стол администратора добавляет колонку
-//- пункта выдачи; правку места стол ПВЗ передаёт слотом `cell-place`.
+//- карточку «Имущество на складе». Стол администратора показывает пункт выдачи
+//- под названием имущества в той же колонке (решение владельца 20.11.2026:
+//- отдельная колонка выталкивала «Место» за край экрана 1120 px); стол ПВЗ
+//- пункт не показывает — там все позиции его. Правку места стол ПВЗ передаёт
+//- слотом `cell-place`.
 BaseTable(
   :columns='columns',
   :rows='rows',
@@ -10,17 +13,12 @@ BaseTable(
   hover,
   sticky-header,
   :loading='loading',
-  :min-width='showBranch ? "1180px" : "1040px"',
+  min-width='1040px',
   :sort-by='archive ? "left" : "received"',
   descending,
   clickable-rows,
   @row-click='onRowClick'
 )
-  template(#cell-branch='{ row }')
-    .wh-table__stack
-      span.wh-table__strong {{ row.delivery_point_name || row.braname }}
-      span.wh-table__meta(v-if='row.delivery_point_address') {{ row.delivery_point_address }}
-
   template(#cell-place='{ row }')
     slot(name='cell-place', :row='row')
       span.wh-table__meta {{ placeLabel(row) }}
@@ -30,7 +28,9 @@ BaseTable(
       .wh-table__thumb
         img(v-if='row.image_url', :src='row.image_url', :alt='row.product_name_snapshot')
         q-icon(v-else, name='inventory_2', size='18px')
-      span.wh-table__strong {{ row.product_name_snapshot }}
+      .wh-table__stack
+        span.wh-table__strong {{ row.product_name_snapshot }}
+        span.wh-table__meta(v-if='showBranch') {{ row.delivery_point_name || row.braname }}
 
   template(#cell-orderer='{ row }')
     .wh-table__stack
@@ -79,7 +79,7 @@ const props = withDefaults(
   defineProps<{
     rows: MarketplaceInventoryItemView[]
     loading?: boolean
-    /** Колонка пункта выдачи — склад всего кооператива (стол администратора). */
+    /** Пункт выдачи под названием имущества — склад всего кооператива (стол администратора). */
     showBranch?: boolean
     /** Подпись места хранения позиции (склад; в архиве места нет). */
     placeLabel?: (row: MarketplaceInventoryItemView) => string
@@ -98,9 +98,6 @@ function onRowClick(row: MarketplaceInventoryItemView): void {
 }
 
 const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => [
-  ...(props.showBranch
-    ? [{ key: 'branch', label: t('marketplace.warehouseInventoryTable.branch'), width: '200px', sortable: true, field: (row: MarketplaceInventoryItemView) => row.delivery_point_name || row.braname }]
-    : []),
   { key: 'product', label: t('marketplace.operatorOwnWarehouse.column.product'), width: '240px', sortable: true, field: 'product_name_snapshot' },
   { key: 'orderer', label: t('marketplace.operatorOwnWarehouse.column.orderer'), width: '200px', sortable: true, field: (row) => inventoryOrdererName(row) },
   { key: 'qty', label: t('marketplace.operatorOwnWarehouse.column.qty'), width: '130px', numeric: true, nowrap: true },

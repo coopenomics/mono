@@ -560,6 +560,11 @@ cmd_desktop() {
   set_env "$env_file" CHAIN_ID "$(chain_id)"
   # Секрет сервера — тот же, что у контроллера: SSR спрашивает у него стол пайщика по cookie.
   set_env "$env_file" SERVER_SECRET "$(grep -E '^SERVER_SECRET=' components/controller/.env | cut -d= -f2-)"
+  # Ключ Яндекс.Карт — из секрета workflow (ui-docs): без него карты пунктов
+  # выдачи на кадрах пишут «Карта недоступна». Пустой ключ не пишем.
+  if [ -n "${YANDEX_MAPS_API_KEY:-}" ]; then
+    set_env "$env_file" YANDEX_MAPS_API_KEY "$YANDEX_MAPS_API_KEY"
+  fi
 
   if [ ! -f components/desktop/dist/ssr/index.js ]; then
     echo "▸ dist/ssr нет — собираем рабочий стол..."
