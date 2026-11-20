@@ -176,6 +176,16 @@ export function useKuDecisionFlow() {
       const participantsCount = decision.participants?.length || 0;
       const ballots = decision.signed_ballots || 0;
       const quorumPercent = participantsCount > 0 ? Math.round((ballots / participantsCount) * 100) : 0;
+      // «Присутствовали пайщики» протокола — подавшие бюллетень: голос стоит хотя бы по
+      // одному вопросу. Порядок — как участники присоединялись к собранию; ФИО резолвит фабрика
+      const votedUsernames = new Set(
+        questions.flatMap((question) => [
+          ...(question.voters_for ?? []),
+          ...(question.voters_against ?? []),
+          ...(question.voters_abstained ?? []),
+        ]),
+      );
+      const voters = (decision.participants ?? []).filter((username) => votedUsernames.has(username));
 
       const formatDateTime = (value?: string | null) =>
         value ? `${formatDateToLocalTimezone(value)} (${getTimezoneLabel()})` : '—';
@@ -194,6 +204,7 @@ export function useKuDecisionFlow() {
         open_at_datetime: formatDateTime(decision.open_at),
         close_at_datetime: formatDateTime(decision.close_at),
         current_quorum_percent: quorumPercent,
+        voters,
         questions: questions.map((question) => {
           const votesFor = question.counter_votes_for ?? 0;
           const votesAgainst = question.counter_votes_against ?? 0;
