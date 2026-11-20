@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/desktop",
   "license": "SEE LICENSE IN LICENSE",
-  "version": "2026.11.12",
+  "version": "2026.11.20",
   "description": "Рабочий стол кооператива — Vue 3 + Quasar Framework",
   "productName": "Desktop App",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
