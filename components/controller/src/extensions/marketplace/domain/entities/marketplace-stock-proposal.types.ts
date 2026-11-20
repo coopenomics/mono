@@ -14,9 +14,17 @@ import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
  *  - `DECLINED`  — пайщик отказался.
  *  - `CANCELLED` — оператор отозвал/переформировал до решения пайщика.
  */
-export type MarketplaceStockProposalStatus = 'PROPOSED' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+/**
+ * PREPARING — внутреннее состояние узла: оператор формирует предложение, выдача
+ * по заказам ещё начинается (готовность в цепи, факт у стойки). Пайщику и
+ * столам такое предложение не показывается: стол пайщика иначе открывал его и
+ * просил документы на подпись раньше, чем выдача начата, и получал отказ
+ * «Выдача по заказу не начата» (замечание владельца 20.11.2026).
+ */
+export type MarketplaceStockProposalStatus = 'PREPARING' | 'PROPOSED' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 
 export const MarketplaceStockProposalStatuses = {
+  PREPARING: 'PREPARING',
   PROPOSED: 'PROPOSED',
   ACCEPTED: 'ACCEPTED',
   DECLINED: 'DECLINED',

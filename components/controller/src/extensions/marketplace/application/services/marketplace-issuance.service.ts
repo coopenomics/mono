@@ -52,9 +52,10 @@ import { MARKETPLACE_ISSUE_ACTION_CODE } from '../shared/verification-action.con
 import { toQuantityAsset } from '../shared/quantity.util';
 import { findInlineActionData } from '../shared/chain-trace.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
-import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
+import { MarketplaceOrderStatuses, type MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import {
+  MarketplaceIssuanceDecisionModes,
   MarketplaceIssuanceSagaStages,
   type MarketplaceIssuanceDecisionMode,
   type MarketplaceIssuanceSagaFact,
@@ -197,8 +198,8 @@ export class MarketplaceIssuanceService {
     notify?: boolean;
   }): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
-    if (order.status === 'READY_TO_RECEIVE') return order;
-    if (order.status !== 'ACCEPTED_TO_COOP') {
+    if (order.status === MarketplaceOrderStatuses.READY_TO_RECEIVE) return order;
+    if (order.status !== MarketplaceOrderStatuses.ACCEPTED_TO_COOP) {
       throw DomainError.conflict('MARKETPLACE_ORDER_READY_WRONG_STATUS', { status: order.status });
     }
     const available = await this.loadAvailableOnWarehouse(order);
@@ -272,7 +273,7 @@ export class MarketplaceIssuanceService {
   /** Заказ, по которому факт допустим: статус, количество, цена, личность получателя, остаток на складе, потолок цены. */
   private async validateFact(input: MarketplaceIssuanceFixFactInput): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
-    if (order.status !== 'READY_TO_RECEIVE' && order.status !== 'ACCEPTED_TO_COOP') {
+    if (order.status !== MarketplaceOrderStatuses.READY_TO_RECEIVE && order.status !== MarketplaceOrderStatuses.ACCEPTED_TO_COOP) {
       throw DomainError.conflict('MARKETPLACE_ISSUANCE_WRONG_ORDER_STATUS', { status: order.status });
     }
     if (!(input.actual_quantity > 0)) throw DomainError.badRequest('MARKETPLACE_FACT_QUANTITY_MUST_BE_POSITIVE');
@@ -332,7 +333,7 @@ export class MarketplaceIssuanceService {
     if (saga.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
       return this.settleAfterRobot(saga);
     }
-    if (order.status !== 'READY_TO_RECEIVE') {
+    if (order.status !== MarketplaceOrderStatuses.READY_TO_RECEIVE) {
       throw DomainError.conflict('MARKETPLACE_STATEMENT_SIGN_WRONG_ORDER_STATUS', { status: order.status });
     }
 
@@ -432,7 +433,7 @@ export class MarketplaceIssuanceService {
   private async settleAfterRobot(saga: MarketplaceIssuanceSagaDomainEntity): Promise<MarketplaceIssuanceSagaDomainEntity> {
     if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_PENDING || !saga.decision_id) return saga;
     const mode = await this.requestRobot(saga);
-    if (mode !== 'ROBOT') return (await this.sagaRepo.findById(saga.id)) ?? saga;
+    if (mode !== MarketplaceIssuanceDecisionModes.ROBOT) return (await this.sagaRepo.findById(saga.id)) ?? saga;
     return this.waitForStage(saga.id, [MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED, MarketplaceIssuanceSagaStages.DECLINED], ROBOT_WAIT_MS);
   }
 
@@ -503,7 +504,7 @@ export class MarketplaceIssuanceService {
     if (!moved) return;
     await this.orderRepo.applyIssuanceAuthorized(order.id, { issue_decision_id: decisionId });
     this.emitSagaUpdated(moved);
-    if (moved.decision_mode !== 'ROBOT') {
+    if (moved.decision_mode !== MarketplaceIssuanceDecisionModes.ROBOT) {
       const event: MarketplaceIssuanceDecidedOfflineEvent = {
         coopname: order.coopname,
         order_id: order.id,
@@ -782,7 +783,7 @@ export class MarketplaceIssuanceService {
       closed_at: new Date(),
     });
     const result = moved ?? (await this.requireSaga(input.coopname, order.id));
-    if (order.status !== 'READY_TO_RECEIVE') await this.orderRepo.applyIssuanceReset(order.id);
+    if (order.status !== MarketplaceOrderStatuses.READY_TO_RECEIVE) await this.orderRepo.applyIssuanceReset(order.id);
     this.emitSagaUpdated(result);
     return result;
   }
@@ -836,7 +837,7 @@ export class MarketplaceIssuanceService {
    * `watchdogTick`, чтобы ветки сторожа не вкладывались одна в другую.
    */
   private async watchdogPushDecision(coopname: string, saga: MarketplaceIssuanceSagaDomainEntity): Promise<void> {
-    if (saga.decision_mode === 'ROBOT' && saga.attempts < 5) {
+    if (saga.decision_mode === MarketplaceIssuanceDecisionModes.ROBOT && saga.attempts < 5) {
       await this.sagaRepo.update(saga.id, { attempts: saga.attempts + 1 });
       await this.requestRobot(saga);
       return;

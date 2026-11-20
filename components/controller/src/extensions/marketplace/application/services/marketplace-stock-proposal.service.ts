@@ -17,6 +17,7 @@ import { MarketplaceExtensionConfigService } from './marketplace-extension-confi
 import { defaultConfig } from '../../types';
 import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import { MarketplaceIssuanceSagaStages } from '../../domain/entities/marketplace-issuance-saga.types';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import {
   MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
   type MarketplaceIssuanceSagaDomainRepository,
@@ -376,7 +377,7 @@ export class MarketplaceStockProposalService {
     if (order.delivery_braname !== braname) {
       throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_ORDER_WRONG_KU', { orderBraname: order.delivery_braname, braname });
     }
-    if (order.status !== 'ACCEPTED_TO_COOP' && order.status !== 'READY_TO_RECEIVE') {
+    if (order.status !== MarketplaceOrderStatuses.ACCEPTED_TO_COOP && order.status !== MarketplaceOrderStatuses.READY_TO_RECEIVE) {
       throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_ORDER_NOT_READY', { orderId: order.id, orderStatus: order.status });
     }
     const active = await this.sagaRepo.findActiveByOrderId(coopname, order.id);
@@ -456,29 +457,28 @@ export class MarketplaceStockProposalService {
       });
     }
     items.push(...(await this.buildOrderItems(input, orderLines)));
-    const proposal = await this.proposalRepo.create({
+    // Предложение сначала готовится: пайщик его не видит, пока выдача по
+    // каждому заказу не начата. Иначе стол пайщика по ленте изменений открывал
+    // предложение и просил документы на подпись раньше, чем рождались выдачи, —
+    // и получал «Выдача по заказу не начата» (замечание владельца 20.11.2026).
+    const prepared = await this.proposalRepo.create({
       coopname: input.coopname,
       braname: input.braname,
       member_account: input.member_account,
       operator_account: input.operator_account,
       items,
+      status: MarketplaceStockProposalStatuses.PREPARING,
     });
-    // Существующие заказы: готовность (без подписи) и факт у стойки — сага рождается сейчас.
-    for (const line of orderLines) {
-      const order = await this.orderRepo.findById(line.order_id);
-      if (order && order.status === 'ACCEPTED_TO_COOP') {
-        // Заказчик стоит у стойки — уведомление «приходите за имуществом» не отправляется.
-        await this.issuanceService.readyIssue({ coopname: input.coopname, order_id: line.order_id, operator_account: input.operator_account, notify: false });
-      }
-      await this.issuanceService.fixFact({
-        coopname: input.coopname,
-        operator_account: input.operator_account,
-        order_id: line.order_id,
-        proposal_id: proposal.id,
-        actual_quantity: line.actual_quantity,
-        actual_unit_price: line.actual_unit_price,
-      });
+    try {
+      await this.startOrderIssuances(input, orderLines, prepared.id);
+    } catch (err) {
+      // Выдача не началась целиком — предложение пайщику не показывается, оператор видит отказ и повторяет.
+      await this.proposalRepo
+        .applyResolution(prepared.id, MarketplaceStockProposalStatuses.PREPARING, MarketplaceStockProposalStatuses.CANCELLED)
+        .catch(() => null);
+      throw err;
     }
+    const proposal = (await this.proposalRepo.publish(prepared.id)) ?? prepared;
     const event: MarketplaceStockProposalCreatedEvent = {
       coopname: proposal.coopname,
       proposal_id: proposal.id,
@@ -491,12 +491,38 @@ export class MarketplaceStockProposalService {
   }
 
   /**
+   * Существующие заказы бандла: готовность (без подписи) и факт у стойки —
+   * сага выдачи рождается сейчас. Заказчик стоит у стойки, поэтому отметка
+   * готовности уведомление «приходите за имуществом» не отправляет.
+   */
+  private async startOrderIssuances(
+    input: MarketplaceStockProposalCreateInput,
+    orderLines: MarketplaceOrderProposalCreateLine[],
+    proposal_id: string
+  ): Promise<void> {
+    for (const line of orderLines) {
+      const order = await this.orderRepo.findById(line.order_id);
+      if (order?.status === MarketplaceOrderStatuses.ACCEPTED_TO_COOP) {
+        await this.issuanceService.readyIssue({ coopname: input.coopname, order_id: line.order_id, operator_account: input.operator_account, notify: false });
+      }
+      await this.issuanceService.fixFact({
+        coopname: input.coopname,
+        operator_account: input.operator_account,
+        order_id: line.order_id,
+        proposal_id,
+        actual_quantity: line.actual_quantity,
+        actual_unit_price: line.actual_unit_price,
+      });
+    }
+  }
+
+  /**
    * Цепь недостижима в момент подписи бандла: причина сохраняется в ходе выдачи каждого
    * заказа бандла — оператор у стойки видит, почему подпись не прошла, а повтор возможен
    * (C28-85, находка 52). Прочие отказы сюда не пишутся: они уходят пайщику ответом.
    */
   private async noteChainUnavailable(proposal: MarketplaceStockProposalDomainEntity, error: unknown): Promise<void> {
-    if (!(error instanceof DomainError) || error.code !== 'BLOCKCHAIN_UNAVAILABLE') return;
+    if (!(error instanceof DomainError) || error.code !== 'BLOCKCHAIN_UNAVAILABLE') return; // enum-literal: код отказа ядра, перечисления кодов в расширении нет
     for (const item of proposal.items) {
       if (!item.order_id) continue;
       const saga = await this.sagaRepo.findActiveByOrderId(proposal.coopname, item.order_id);

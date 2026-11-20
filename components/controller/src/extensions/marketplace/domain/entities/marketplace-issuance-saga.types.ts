@@ -56,6 +56,12 @@ export const MARKETPLACE_ISSUANCE_SAGA_ACTIVE_STAGES: ReadonlySet<MarketplaceIss
  */
 export type MarketplaceIssuanceDecisionMode = 'ROBOT' | 'MANUAL' | 'UNKNOWN';
 
+export const MarketplaceIssuanceDecisionModes = {
+  ROBOT: 'ROBOT',
+  MANUAL: 'MANUAL',
+  UNKNOWN: 'UNKNOWN',
+} as const satisfies Record<string, MarketplaceIssuanceDecisionMode>;
+
 /** Факт выдачи, зафиксированный оператором у стойки. */
 export interface MarketplaceIssuanceSagaFact {
   /** Фактически выдаваемое количество в базовой единице. */

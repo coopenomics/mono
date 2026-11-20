@@ -109,14 +109,32 @@ async function closeOne(saga: IssuanceSaga, opts: { manual: boolean }): Promise<
   }
 }
 
+/** Наименований в уведомлении о серии выдач; остальные — «и ещё N». */
+const NAMES_IN_MESSAGE = 3;
+
+/**
+ * Уведомление оператору называет выданное имущество, а не число закрытых
+ * шагов (замечание владельца 20.11.2026: «Выдача закрыта: 1» ничего не
+ * говорило). Одна выдача — имущество; серия — число и перечень.
+ */
+function closedMessage(sagas: IssuanceSaga[]): string {
+  const names = sagas.map((s) => `«${s.product_name || t('marketplace.issuanceCloser.untitledProduct')}»`);
+  if (names.length === 1) return t('marketplace.issuanceCloser.closedOneMessage', { product: names[0] });
+  const shown = names.slice(0, NAMES_IN_MESSAGE).join(', ');
+  const products = names.length > NAMES_IN_MESSAGE
+    ? t('marketplace.issuanceCloser.productsMore', { products: shown, count: names.length - NAMES_IN_MESSAGE })
+    : shown;
+  return t('marketplace.issuanceCloser.closedManyMessage', { count: names.length, products });
+}
+
 /** Закрыть все ждущие выдачи; уведомление — одно на серию. */
 async function closeAll(opts: { manual: boolean }): Promise<number> {
-  let closed = 0;
+  const closed: IssuanceSaga[] = [];
   for (const saga of [...pending.value]) {
-    if (await closeOne(saga, opts)) closed++;
+    if (await closeOne(saga, opts)) closed.push(saga);
   }
-  if (closed) SuccessAlert(t('marketplace.issuanceCloser.closedMessage', { count: closed }));
-  return closed;
+  if (closed.length) SuccessAlert(closedMessage(closed));
+  return closed.length;
 }
 
 export function useIssuanceCloser() {
