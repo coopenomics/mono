@@ -67,7 +67,9 @@
       }
     },
     "adminWarehouseSummary": {
-      "intro": "Склад кооператива: что принято, выдано и списано по каждому пункту выдачи. Только для чтения — операции выполняются на столах ПВЗ. Нажмите на наименование, чтобы открыть предложение, по которому имущество принято."
+      "intro": "Склад кооператива: что принято, выдано и списано по каждому пункту выдачи. Только для чтения — операции выполняются на столах ПВЗ. Нажмите на строку, чтобы открыть карточку имущества: где и чьё, приёмка, сроки, маркировка и история. Выданное и списанное — на вкладке «Архив».",
+      "tabStock": "На складе",
+      "tabArchive": "Архив"
     },
     "adminWriteoffs": {
       "stageApproved": "Утверждено советом",
@@ -93,7 +95,7 @@
       "emptyTitle": "Выплат нет",
       "loadFailedError": "Не удалось загрузить ленту выплат",
       "pageAriaLabel": "Выплаты поставщикам",
-      "pageHint": "Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это обзор только для чтения. Откройте выплату, чтобы увидеть, за какой заказ платили и чем оплата подтверждена.",
+      "pageHint": "Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это обзор только для чтения. Выплата объединяет заказы поставщика, принятые за сутки. Откройте выплату, чтобы увидеть её заказы и чем оплата подтверждена.",
       "searchPlaceholder": "Поиск по ФИО или наименованию организации"
     },
     "cancelOrderDialog": {
@@ -114,7 +116,7 @@
       "emptyBody": "Добавьте товары из каталога — корзина соберёт их в один заказ.",
       "emptyTitle": "Корзина пуста",
       "feeLabel": "Обеспечительная часть",
-      "feeNote": "паевого взноса, {percent}%",
+      "feeNote": "паевого взноса",
       "increaseQtyAriaLabel": "Увеличить количество",
       "insufficientTitle": "Не хватает средств",
       "maxAvailableError": "Доступно не больше {max} {unit}",
@@ -638,7 +640,10 @@
     "issuanceCloser": {
       "awaitingButton": "Закрыть выдачи · {count}",
       "awaitingHint": "Пайщики подписали акты выдачи. Введите PIN-код — закрывающая подпись встанет на все выдачи сразу.",
-      "closedMessage": "Выдача закрыта: {count}"
+      "closedManyMessage": "Имущество выдано по {count} заказам: {products}. Акты выдачи подписаны.",
+      "closedOneMessage": "Имущество {product} выдано, акт выдачи подписан.",
+      "productsMore": "{products} и ещё {count}",
+      "untitledProduct": "Имущество без названия"
     },
     "issuancePoints": {
       "activateAriaLabel": "Активировать",
@@ -649,8 +654,7 @@
         "branch": "Участок",
         "city": "Город",
         "geocode": "Геокод",
-        "status": "Статус",
-        "initiator": "Инициатор участка"
+        "status": "Статус"
       },
       "connectedSummary": "Подключено пунктов выдачи: {connected} из {total}",
       "deactivateAriaLabel": "Деактивировать",
@@ -663,13 +667,6 @@
       "geocodeRetryFailedError": "Не удалось перезапустить геокодинг",
       "geocodedSuccess": "Координаты определены",
       "geocodingStartedInfo": "Геокодинг запущен — статус обновится автоматически",
-      "initiatorAssignedBadge": "Назначен",
-      "initiatorChairmanOption": "Председатель участка",
-      "initiatorDialogHint": "Инициатор получает долю экономии участка по итогу месяца на свой паевой кошелёк. По умолчанию это председатель участка. Назначение действует на следующие итоги месяцев.",
-      "initiatorDialogTitle": "Инициатор участка",
-      "initiatorEditAriaLabel": "Назначить инициатора участка",
-      "initiatorSaveFailedError": "Не удалось записать инициатора участка",
-      "initiatorSavedSuccess": "Инициатор участка записан",
       "loadFailedError": "Не удалось загрузить участки и пункты выдачи",
       "makeIssuancePointButton": "Сделать ПВЗ",
       "mapButton": "Карта",
@@ -677,13 +674,16 @@
       "openMapAriaLabel": "Открыть карту",
       "status": {
         "active": "Активен",
-        "geocodeError": "Ошибка геокода",
-        "geocoded": "Координаты есть",
-        "geocoding": "Определяются…",
+        "geocodeError": "Координаты",
+        "geocoded": "Координаты",
+        "geocoding": "Координаты",
         "inactive": "Деактивирован",
         "notConnected": "Не подключён"
       },
-      "toggleFailedError": "Не удалось изменить статус пункта выдачи"
+      "toggleFailedError": "Не удалось изменить статус пункта выдачи",
+      "phoneLabel": "Телефон",
+      "emailLabel": "Email",
+      "descriptionLabel": "Описание"
     },
     "issueActOpenDialog": {
       "addFromStockButton": "Добавить со склада",
@@ -742,7 +742,7 @@
       "statusOverStock": "Больше принятого",
       "statusShort": "Недостача",
       "surchargeLabel": "Доплата по факту (спишется с паевого)",
-      "targetFeeHeader": "Обеспечительная часть ({percent}%)",
+      "targetFeeHeader": "Обеспечительная часть паевого взноса",
       "totalToPayLabel": "Итого к оплате",
       "warnUnselectedText": "Отметьте хотя бы одну позицию к выдаче. Невыбранные позиции останутся на складе.",
       "zeroPriceError": "Укажите цену больше нуля по позиц.: {positions}.",
@@ -750,14 +750,12 @@
     },
     "kuHeaderBar": {
       "applyButton": "Применить",
-      "ariaLabel": "Текущий пункт выдачи",
+      "ariaLabel": "Пункт выдачи заказов: открыть адрес, режим работы и выбор участка",
       "branchWordLabel": "Пункт выдачи",
-      "changeButton": "Сменить",
       "dialogHint": "Выберите кооперативный участок — каталог покажет товары, которые возят на него. При смене участка позиции корзины, которых нет на новом участке, станут недоступны для оформления.",
-      "dialogTitle": "Пункт выдачи (КУ)",
+      "dialogTitle": "Пункт выдачи заказов",
       "label": "Пункт выдачи:",
       "notSelectedLabel": "Пункт выдачи не выбран",
-      "selectButton": "Выбрать пункт",
       "updatedMessage": "Пункт выдачи обновлён"
     },
     "kuSelector": {
@@ -867,7 +865,6 @@
     },
     "myOrdersPage": {
       "ariaLabel": "Мои заказы",
-      "bannerHint": "Заказ можно отменить, пока его не принял поставщик, а получение оформляет оператор пункта выдачи.",
       "emptyBody": "Перейдите в каталог, чтобы оформить первый заказ.",
       "emptyTitle": "У вас пока нет заказов",
       "filterActive": "Активные",
@@ -942,7 +939,7 @@
       "acceptOrderAction": "Принять заказ",
       "ariaLabel": "Входящие заказы поставщика",
       "declineAction": "Отказать",
-      "declineOrderPrompt": "Отказ от заказа на КУ «{pvzName}». Укажите причину — она будет показана пайщикам.",
+      "declineOrderPrompt": "Отказ от заказа на {pvzName}. Укажите причину — она будет показана пайщикам.",
       "declineOrderTitle": "Отказ от заказа",
       "emptyBody": "Когда пайщики оформят заказ на ваше предложение, он отображается здесь партией по участку.",
       "emptyTitle": "Нет партий в этом фильтре",
@@ -955,7 +952,7 @@
       "filterReadyToShip": "Собраны к отгрузке",
       "filterReceived": "Получены",
       "kuLabel": "Кооперативный участок",
-      "kuMapLabel": "КУ «{pvzName}»",
+      "kuMapLabel": "{pvzName}",
       "orderAcceptedMessage": "Заказ принят к поставке.",
       "packageSizeByVolumeLabel": "По мере",
       "packageUnitsCount": "{units} упак.",
@@ -994,14 +991,13 @@
     "offererPaymentHistoryPage": {
       "addDetailsAction": "Добавить реквизиты",
       "bankAccountMethodLabel": "Банковский счёт",
-      "bannerHintIntro": "Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего",
-      "bannerHintProcessing": "она передаётся в банк — статус обновляется здесь по мере обработки.",
+      "bannerHintIntro": "Выплата объединяет ваши заказы, принятые на участках за сутки. В начале следующих суток выплата поступает кассиру кооператива одним платежом,",
+      "bannerHintProcessing": "состояние выплаты обновляется на этой странице по мере оплаты.",
       "declineReasonLabel": "Причина отказа: {reason}",
-      "defaultDetailsHint": "Используются реквизиты по умолчанию: {details}",
       "detailsSavedMessage": "Реквизиты для выплат сохранены",
       "detailsSelectLabel": "Реквизиты для выплат",
       "detailsSelectPlaceholder": "Выберите реквизиты",
-      "emptyBody": "Здесь отображаются выплаты по вашим актам приёмки, когда совет их авторизует.",
+      "emptyBody": "Кооператив формирует выплату в начале суток после приёмки ваших заказов на участке.",
       "emptyTitle": "Выплат пока нет",
       "loadHistoryFailedMessage": "Не удалось загрузить историю выплат",
       "loadSettingsFailedMessage": "Не удалось загрузить настройки выплат",
@@ -1014,7 +1010,8 @@
       "statusDeclined": "Отклонена",
       "statusPaid": "Оплачена",
       "statusPending": "Ожидает оплаты",
-      "withheldLabel": "Удержано в счёт гарантийного долга: {amount}"
+      "withheldLabel": "Удержано в счёт гарантийного долга: {amount}",
+      "ordersCountLabel": "Заказов в выплате: {count}"
     },
     "offererShipPartyPage": {
       "ariaLabel": "Код для приёмки партии"
@@ -1229,7 +1226,7 @@
       "leadTextActive": "Заявления и акт подписываются вашим ключом без дополнительных нажатий.",
       "leadTextIdleLine1": "Чтобы завершить операцию на пункте, подтвердите документ своей подписью.",
       "leadTextIdleLine2": "Окно закроется само, как только подпись будет принята.",
-      "membershipFeeLabel": "Обеспечительная часть паевого взноса ({percent}%)",
+      "membershipFeeLabel": "Обеспечительная часть паевого взноса",
       "orderNumberLabel": "Заказ {orderId}",
       "pickupPointHint": "Одно нажатие: заявление о выдаче направляется совету, после его решения устройство само подпишет акт",
       "pickupPointLabel": "Получение в пункте выдачи",
@@ -1519,12 +1516,14 @@
       "statusPaid": "Оплачен",
       "statusUnderCouncilReview": "На рассмотрении совета",
       "statusAtCashier": "На оплате у кассира",
-      "statusPartiallyPaid": "Оплачивается частями",
+      "statusAwaitingReport": "Ждёт отчёта",
+      "statusPaidClosing": "Оплачен, закрывается",
       "statusReportSubmitted": "Отчёт подан",
       "planStageNotStarted": "Оплата не запускалась. Нажмите «Оплатить»: стол соберёт служебную записку, совет примет решение, кассир проведёт платёж.",
       "planStageCouncil": "Служебная записка подана. Совет принимает решение о расходе.",
       "planStageCashier": "Совет утвердил расход. Кассир проводит платёж.",
-      "planStagePartiallyPaid": "Кассир провёл часть платежа.",
+      "planStageAwaitingReport": "Кассир выдал аванс. Получатель отчитывается о расходе, затем председатель закрывает расход.",
+      "planStageDirectPaid": "Кассир оплатил расход. Председатель закрывает расход.",
       "planStageReport": "Получатель аванса подал отчёт. Председатель закрывает расход.",
       "planStagePaid": "Расход оплачен {date}.",
       "planStageTitle": "Состояние",
@@ -1714,12 +1713,7 @@
       "renameAction": "Переименовать",
       "renameSectionError": "Не удалось переименовать секцию",
       "restoreLowerLevelAriaLabel": "Вернуть нижний ярус",
-      "scanBoxButton": "Сканировать бокс",
-      "scanBoxDialogTitle": "Сканировать бокс",
       "scanBoxFrameHint": "Поместите QR-код в рамку",
-      "scanBoxIdleCaption": "Наведите камеру на QR-этикетку бокса",
-      "scanBoxManualButton": "Показать",
-      "scanBoxManualLabel": "Или введите код бокса",
       "searchEmptyBody": "Ни одна ячейка не подходит под поиск или фильтр.",
       "searchEmptyTitle": "Ничего не найдено",
       "searchPlaceholder": "Поиск: адрес, бокс, товар, заказчик",
@@ -1742,7 +1736,11 @@
       "splitSumText": "Сумма: {sum} / {total}",
       "unlabeledBadge": "Без этикетки",
       "unplacedBoxesTitleAddressed": "Боксы без адреса",
-      "unplacedBoxesTitlePlain": "Боксы участка"
+      "unplacedBoxesTitlePlain": "Боксы участка",
+      "openItemHint": "Открыть карточку имущества",
+      "scanDialogTitle": "Сканировать этикетку",
+      "scanIdleCaption": "Наведите камеру на этикетку имущества или бокса либо считайте её сканером",
+      "scanManualLabel": "Код этикетки"
     },
     "operatorIssuance": {
       "announceButton": "Объявить выдачу",
@@ -1751,7 +1749,6 @@
       "cancelIssueButton": "Снять",
       "cancelledMessage": "Выдача снята — заказ снова ждёт пайщика.",
       "closeError": "Не удалось закрыть выдачу — попробуйте кнопкой «Закрыть»",
-      "closedMessage": "Выдача закрыта: заказ {orderShort} выдан.",
       "emptyBody": "Здесь отображаются заказы, принятые кооперативом на ваш участок, для выдачи пайщикам.",
       "emptyNoStockHint": "На складе участка нет имущества к предложению.",
       "emptyTitle": "Заказов на выдачу нет",
@@ -1781,8 +1778,6 @@
     },
     "operatorOwnWarehouse": {
       "ariaLabel": "Склад участка",
-      "barcodeIssueError": "Не удалось выпустить штрих-код",
-      "barcodeIssuedMessage": "Штрих-код выпущен",
       "column": {
         "barcode": "Штрих-код",
         "expiry": "Годен до",
@@ -1798,7 +1793,6 @@
       "hintLine1": "Имущество, принятое на ваш пункт выдачи: что лежит на складе, в каком",
       "hintLine2": "месте, заказчик и состояние. Место можно переназначить, а штрих-код",
       "hintLine3": "выпустить прямо в строке. Штрих-код есть не у всех позиций — он опционален.",
-      "issueBarcodeButton": "Выпустить",
       "loadError": "Не удалось загрузить склад участка",
       "notOperatorBody": "Склад участка доступен оператору участка и его доверенным лицам.",
       "notOperatorTitle": "Вы не оператор кооперативного участка",
@@ -1809,7 +1803,12 @@
       "searchPlaceholder": "Поиск: заказчик, имущество, бокс, адрес, штрих-код",
       "unassignedHintLine1": "Обезличенный остаток кооператива: имущество, которое заказчик не забрал",
       "unassignedHintLine2": "или от которого отказался. Оно уже не закреплено ни за кем — его можно",
-      "unassignedHintLine3": "опубликовать в каталог предложением от кооператива."
+      "unassignedHintLine3": "опубликовать в каталог предложением от кооператива.",
+      "scanButton": "Сканировать",
+      "scanDialogTitle": "Найти имущество по этикетке",
+      "scanIdleCaption": "Наведите камеру на этикетку имущества или считайте её сканером",
+      "scanManualButton": "Найти",
+      "labelNotFound": "Этикетка {code} не привязана к имуществу на складе участка"
     },
     "operatorReception": {
       "acceptedAtText": "Принята {date}",
@@ -1861,7 +1860,7 @@
       "selfPickupLabel": "Самовывоз",
       "shipmentNotFoundError": "Партия по этой ТТН не найдена среди ожидающих приёмки на вашем КУ ",
       "shipmentNotFoundNote": "(возможно, уже принята или направлена на другой участок).",
-      "signAsOperatorButton": "Подписать оператором",
+      "signAsOperatorButton": "Оприходовать",
       "supplierPropertyLabel": "Имущество поставщика",
       "supplierReceptionTitle": "Приёмка имущества поставщика",
       "supplierSignedAtText": "Поставщик подписал {date}",
@@ -1950,7 +1949,8 @@
       "tabProperty": "Имущество",
       "tabPutaway": "Раскладка и маркировка",
       "tabStock": "Остатки",
-      "tabWriteoff": "Списание"
+      "tabWriteoff": "Списание",
+      "tabArchive": "Архив"
     },
     "order": {
       "status": {
@@ -1987,17 +1987,23 @@
     },
     "orderConfirmationPage": {
       "catalogLink": "В каталог",
-      "createdCount": "Создано заказов на пункт выдачи: {count}",
       "emptyBody": "Откройте «Мои заказы», чтобы увидеть оформленные заказы.",
       "emptyTitle": "Нет данных об оформлении",
       "failedCount": "Не оформлено позиций: {count}",
       "myOrdersLink": "К моим заказам",
+      "nextTitle": "Что дальше",
       "pageAriaLabel": "Подтверждение заказа",
       "partialTitle": "Заказ оформлен частично",
       "remainderFailedMessage": "Часть позиций снова не прошла — остаток в корзине.",
       "remainderPlacedMessage": "Остаток заказа оформлен",
       "retryRemainder": "Повторить оформление остатка",
-      "successTitle": "Заказ оформлен"
+      "stepAccept": "Поставщик принимает заказ",
+      "stepDelivery": "Поставка на пункт выдачи",
+      "stepPickup": "Получение по QR-коду",
+      "stepPlaced": "Заказ оформлен",
+      "successTitle": "Заказ оформлен",
+      "summary": "Позиций: {count} · пункт выдачи {point}",
+      "totalLabel": "Итого"
     },
     "orderDetail": {
       "backToOrdersLink": "К реестру заказов"
@@ -2136,74 +2142,29 @@
         "pending": "Ожидает оплаты",
         "pendingMany": "Ожидают оплаты",
         "rejected": "Отклонено",
-        "rejectedMany": "Отклонены"
+        "rejectedMany": "Отклонены",
+        "forming": "Формируется"
       }
     },
     "payoutDetail": {
-      "acceptedAmountLabel": "Принято на сумму",
       "cashierCommentLabel": "Комментарий кассира",
       "chainTransactionLabel": "Транзакция в цепи",
       "cooperativePaymentLabel": "Платёж кооператива",
       "createdLabel": "Создана",
-      "customerLabel": "Заказчик",
-      "deliveryBranchLabel": "Участок доставки",
       "heldForDebtLabel": "Удержано в счёт долга",
       "loadFailedError": "Не удалось загрузить выплату",
       "notFoundHint": "Выплата не найдена.",
-      "orderCostLabel": "Стоимость заказа",
-      "orderSectionTitle": "Заказ",
-      "orderStateLabel": "Состояние заказа",
       "overlayTitle": "Выплата",
       "paidLabel": "Оплачена",
       "paymentConfirmationTitle": "Подтверждение оплаты",
       "paymentNotRegisteredHint": "Платёж в реестре кассира ещё не заведён.",
       "paymentNumberLabel": "Платёж №",
       "processedLabel": "Проведён",
-      "productLabel": "Товар",
       "purposeLabel": "Назначение",
       "rejectReasonLabel": "Причина отказа",
       "supplierLabel": "Поставщик",
-      "transferDestinationLabel": "Куда переведено",
-      "volumeLabel": "Объём"
-    },
-    "processReturnInfo": {
-      "contentUnavailable": "Содержание заявления ещё не доступно.",
-      "kuLabel": "Кооперативный участок (КУ)",
-      "loadingText": "Загрузка содержания заявления…",
-      "openAtPvzButton": "Открыть заявление на столе ПВЗ",
-      "ordererLabel": "Заказчик",
-      "processTypeLabel": "Тип процесса",
-      "processTypeValue": "Гарантийный возврат имущества",
-      "reasonLabel": "Причина обращения",
-      "sourceOrderLabel": "Исходный заказ",
-      "statusLabel": "Состояние заявления"
-    },
-    "processSupplyInfo": {
-      "contentUnavailable": "Содержание заказа ещё не доступно.",
-      "kuLabel": "Кооперативный участок (КУ)",
-      "loadingText": "Загрузка содержания заказа…",
-      "openAtPvzButton": "Открыть заказ на столе ПВЗ",
-      "ordererLabel": "Заказчик",
-      "processTypeLabel": "Тип процесса",
-      "processTypeValue": "Поставка имущества кооперативу",
-      "statusLabel": "Состояние заказа",
-      "supplierLabel": "Поставщик",
-      "unitsLabel": "Единиц в заказе"
-    },
-    "processWriteoffInfo": {
-      "contentUnavailable": "Содержание проекта ещё не доступно.",
-      "councilDecisionLabel": "Решение совета",
-      "cycleStartedLabel": "Расчётный цикл начат",
-      "loadingText": "Загрузка проекта решения…",
-      "notRegistered": "не зарегистрировано",
-      "openAtWriteoffDeskButton": "Открыть проект на столе списания скоропорта",
-      "processTypeLabel": "Тип процесса",
-      "processTypeValue": "Списание скоропорта",
-      "sourceAutomatic": "Автоматический (ежемесячный)",
-      "sourceLabel": "Источник проекта",
-      "sourceManual": "Ручной (по инициативе председателя)",
-      "statusLabel": "Состояние решения",
-      "totalAmountLabel": "Итоговая сумма"
+      "transferDestinationLabel": "Реквизиты для выплаты",
+      "ordersSectionTitle": "Заказы в выплате ({count})"
     },
     "pvzWriteoffsSection": {
       "column": {
@@ -2228,7 +2189,7 @@
       "status": {
         "acceptedToCoop": "Принят кооперативом",
         "cancelled": "Отменён",
-        "pendingOperatorSign": "Ждёт подписи оператора",
+        "pendingOperatorSign": "Ждёт оприходования",
         "pendingSupplierSign": "Ждёт подписи поставщика"
       }
     },
@@ -2304,7 +2265,7 @@
       "boardDeclinedTitle": "Совет не принял имущество",
       "confirmLabel": "Готово",
       "defectCategoryText": "Категория дефекта: {category}",
-      "historyEntry": "{chairmanName} · КУ {branchName} · {date}",
+      "historyEntry": "{chairmanName} · {branchName} · {date}",
       "historyTitle": "История решений по заявлению",
       "inspectionPhotoLabel": "Фото осмотра {index}",
       "inspectionResultTitle": "Результат очного осмотра",
@@ -2431,7 +2392,7 @@
       "instructionLine1": "По каждой позиции: наклейте этикетку и привяжите её сканером, затем",
       "instructionLine2": "укажите бокс — сканом или выбором из списка. Если в один бокс не",
       "instructionLine3": "помещается, добавьте «Ещё место» и укажите, сколько кладёте в каждое.",
-      "kuNameText": "КУ {ku}",
+      "kuNameText": "{ku}",
       "labelColumnHeader": "Этикетка",
       "labelScanDialogTitle": "Привязать этикетку",
       "labelScanFrameHint": "Поместите этикетку в рамку",
@@ -2582,6 +2543,8 @@
       "modelLabel": "Модель",
       "openProfileButton": "Открыть профиль",
       "rejectButton": "Отклонить",
+      "resumeButton": "Возобновить действие договора",
+      "suspendButton": "Приостановить действие договора",
       "title": "Поставщик"
     },
     "supplierMyProfilePage": {
@@ -2641,8 +2604,7 @@
       "showMoreAction": "Показать ещё"
     },
     "supplierRegistryPage": {
-      "accountLabel": "Аккаунт поставщика",
-      "accountPlaceholder": "например, ivanov",
+      "accountLabel": "Поставщик — ФИО, организация или аккаунт",
       "addDialogTitle": "Добавить поставщика",
       "addSuccessMessage": "Поставщик добавлен и допущен",
       "approveButton": "Одобрить",
@@ -2664,26 +2626,31 @@
       "introText2": "администратор может добавить поставщика напрямую.",
       "pageAriaLabel": "Реестр поставщиков",
       "rejectButton": "Отклонить",
-      "rejectSuccessMessage": "Заявка отклонена"
+      "rejectSuccessMessage": "Заявка отклонена",
+      "resumeSuccessMessage": "Действие договора поставщика возобновлено",
+      "suspendConfirmMessage": "Поставщик потеряет доступ к столу поставщика и не сможет публиковать предложения, пока председатель не возобновит действие договора.",
+      "suspendConfirmTitle": "Приостановить действие договора поставщика?",
+      "suspendSuccessMessage": "Действие договора поставщика приостановлено"
     },
     "supplierStatus": {
       "approved": "Одобрен",
       "membership": "Членская",
       "pending": "На рассмотрении",
       "rejected": "Отклонён",
-      "share": "Паевая"
+      "share": "Паевая",
+      "suspended": "Приостановлен"
     },
     "supplyParty": {
       "orderCount": "{n} заказ | {n} заказа | {n} заказов"
     },
     "supplyPartyCard": {
       "collectedLabel": "Собрано",
-      "kuTitle": "КУ «{kuName}»",
+      "kuTitle": "{kuName}",
       "mapButton": "На карте",
       "orderedLabel": "Заказано"
     },
     "toOrderCardModel": {
-      "fallbackTitle": "Товар по предложению",
+      "fallbackTitle": "Имущество по предложению",
       "ordererPriceNote": "Цена для заказчика: {amount} ₽"
     },
     "ttnPrintPreview": {
@@ -3095,6 +3062,65 @@
       "dueLabel": "Срок",
       "advanceNote": "Аванс под отчёт",
       "signAction": "Подписать и направить в совет"
+    },
+    "workingHours": {
+      "break": "перерыв",
+      "dayOff": "выходной",
+      "title": "Режим работы"
+    },
+    "warehouseInventoryTable": {
+      "branch": "Пункт выдачи",
+      "placed": "Размещено",
+      "searchPlaceholder": "Поиск: имущество, заказчик, пункт выдачи, штрих-код",
+      "left": "Выбыло",
+      "shownOf": "Показано {shown} из {total}"
+    },
+    "inventoryItemDrawer": {
+      "barcodeLabel": "Штрих-код",
+      "branchLabel": "Пункт выдачи",
+      "expiryLabel": "Годен до",
+      "labelTitle": "Маркировка",
+      "labeledAtLabel": "Промаркировано",
+      "noBarcode": "Этикетка не привязана",
+      "openOffer": "Предложение",
+      "openOrder": "Заказ",
+      "ordererLabel": "Заказчик",
+      "originLabel": "Основание",
+      "originReception": "Приёмка от поставщика",
+      "originWarrantyReturn": "Гарантийный возврат пайщика",
+      "placeLabel": "Место",
+      "receivedAtLabel": "Принято",
+      "receivedByLabel": "Принял",
+      "receptionTitle": "Приёмка",
+      "termsTitle": "Сроки",
+      "title": "Имущество на складе",
+      "warrantyLabel": "Гарантийный срок возврата",
+      "warrantyValue": "{days} дн. после выдачи",
+      "whereTitle": "Где и чьё",
+      "historyTitle": "История",
+      "historyEmpty": "Записей о движении пока нет.",
+      "movementUnplaced": "Снято с места хранения",
+      "movementRecipient": "Получатель: {name}",
+      "movement": {
+        "RECEIVED": "Принято на склад",
+        "RETURNED": "Возвращено заказчиком",
+        "PLACED": "Размещено",
+        "LABELED": "Промаркировано",
+        "UNLABELED": "Штрих-код снят",
+        "RESERVED": "Зарезервировано под заказ",
+        "RELEASED": "Резерв снят",
+        "RESIZED": "Количество изменено",
+        "TO_STOCK": "Перенесено в остаток кооператива",
+        "TRANSFERRED": "Перемещено на другой участок",
+        "ISSUED": "Выдано",
+        "WRITTEN_OFF": "Списано"
+      },
+      "bindLabel": "Привязать этикетку"
+    },
+    "warehouseArchive": {
+      "emptyTitle": "Архив пуст",
+      "emptyBody": "В архиве — имущество, выданное заказчикам или списанное.",
+      "loadMore": "Показать ещё"
     }
   }
 }

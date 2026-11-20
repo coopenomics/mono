@@ -9,11 +9,10 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
 import type { MarketplaceShipmentDomainRepository } from '../../domain/repositories/marketplace-shipment.repository';
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceAplReceptionDomainRepository } from '../../domain/repositories/marketplace-apl-reception.repository';
-import type { MarketplaceOutgoingPaymentRequestDomainRepository } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
 import type { MarketplaceOfferCountersService } from './marketplace-offer-counters.service';
 import type { MarketplaceCanonicalBlockchainPort } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { type IPaymentDeskPort, type IDocumentPort } from '@coopenomics/innercoop';
+import { type IDocumentPort } from '@coopenomics/innercoop';
 
 function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): MarketplaceOrderDomainEntity {
   return {
@@ -96,13 +95,9 @@ function buildMocks() {
   const chainPort = {
     signSupp: jest.fn(),
     signChair: jest.fn(),
-    payOut: jest.fn(),
+    addPayouts: jest.fn(),
+    sendPayout: jest.fn(),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
-
-  const paymentRepo = {
-    findByOrderId: jest.fn(),
-    createPending: jest.fn(),
-  } as unknown as jest.Mocked<MarketplaceOutgoingPaymentRequestDomainRepository>;
 
   const offerRepo = {
     findByIds: jest.fn().mockResolvedValue([]),
@@ -114,25 +109,9 @@ function buildMocks() {
     create: jest.fn().mockResolvedValue({}),
   } as any;
 
-  const coreGateway = {
-    createSystemOutgoingPayment: jest.fn(),
-    setPaymentStatus: jest.fn(),
-  } as unknown as jest.Mocked<IPaymentDeskPort>;
-
   const documentDomainService = {
     generate: jest.fn(),
   } as unknown as jest.Mocked<IDocumentPort>;
-
-  const supplierSettings = {
-    resolvePayoutMethod: jest.fn().mockResolvedValue(null),
-  } as any;
-
-  // Реквизиты договора поставщика для назначения платежа в initiatePayouts
-  // (см. MarketplaceSupplierRegistryService.findByMember). По умолчанию —
-  // «нет записи»: buildPayoutPurpose падает на fallback-текст без реквизитов.
-  const supplierRegistry = {
-    findByMember: jest.fn().mockResolvedValue(null),
-  } as any;
 
   const supplierActionService = {
     declineOrdersAtReception: jest.fn().mockResolvedValue([]),
@@ -157,12 +136,8 @@ function buildMocks() {
     receptionRepo,
     counters,
     chainPort,
-    paymentRepo,
     offerRepo,
     inventoryRepo,
-    coreGateway,
-    supplierSettings,
-    supplierRegistry,
     supplierActionService,
     documentDomainService,
     eventBus,
@@ -177,7 +152,6 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.receptionRepo,
     mocks.counters,
     mocks.chainPort,
-    mocks.paymentRepo,
     mocks.offerRepo,
     mocks.inventoryRepo,
     // Эпик 19 (адресное хранение): боксы, координатные ячейки и настройки
@@ -192,14 +166,8 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
       get: jest.fn().mockResolvedValue({ containers_enabled: false, cells_enabled: false }),
     } as never,
     { symbol: 'RUB', decimals: 4 },
-    mocks.coreGateway,
-    mocks.supplierSettings,
-    mocks.supplierRegistry,
     mocks.supplierActionService,
     mocks.documentDomainService,
-    // 99D-13: остаток признанного гарантийного долга поставщика читается из
-    // кеша кошельков; в сценариях спека долга нет.
-    { findByWalletAndUsername: jest.fn().mockResolvedValue(null) } as never,
     mocks.eventBus,
     mocks.logger
   );
@@ -731,53 +699,35 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
   });
 });
 
-describe('MarketplaceAplReceptionService — сумма выплаты поставщику (99D-14)', () => {
-  let mocks: ReturnType<typeof buildMocks>;
-  let service: MarketplaceAplReceptionService;
-
-  beforeEach(() => {
-    mocks = buildMocks();
-    service = buildService(mocks);
-  });
-
-  async function signChairWithFact(fact: Array<{ order_id: string; fact_quantity: number; fact_unit_price?: string }>) {
+describe('MarketplaceAplReceptionService — приёмка без выплаты поставщику', () => {
+  // Выплата поставщику при приёмке не заводится (решение владельца 19.11.2026):
+  // заказы поставщика за день объединяет в один пакет обход выплат.
+  it('закрывающая подпись приёмки не включает заказы в пакет и не отправляет выплату кассиру', async () => {
+    const mocks = buildMocks();
+    const service = buildService(mocks);
     const reception = buildReception({
       status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
       supplier_signed_at: new Date('2026-05-19T01:00:00Z'),
       supplier_signsupp_tx_hash: 'tx-supplier-ok',
-      fact_quantity_per_order: fact,
+      fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 2, fact_unit_price: '120.0000' }],
     });
     const order = buildOrder({ id: 'order-1', order_hash: '0xorder1hash', quantity: 2, price_per_unit: '150.0000' });
     mocks.receptionRepo.findById.mockResolvedValue(reception);
     mocks.orderRepo.findByCycleId.mockResolvedValue([order]);
     (mocks.chainPort.signChair as jest.Mock).mockResolvedValue({ response: { transaction_id: 'tx-chair' } });
-    (mocks.chainPort.payOut as jest.Mock).mockResolvedValue({ response: { transaction_id: 'tx-payout' } });
     mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
       Object.assign(reception, patch);
       return reception;
     });
-    (mocks.paymentRepo as any).createIfNotExists = jest.fn().mockResolvedValue({ id: 'pay-1', core_payment_id: null });
-    (mocks.paymentRepo as any).applyCorePaymentId = jest.fn();
     await service.signAsChairman({
       coopname: 'voskhod',
       chairman_account: 'chair1',
       apl_reception_id: 'apl-1',
       signed_documents: buildSignedDocs(['order-1']),
     });
-    return (mocks.paymentRepo as any).createIfNotExists.mock.calls[0][0];
-  }
-
-  it('сумма выплаты считается по цене из акта приёмки, а не по цене заказа', async () => {
-    // Оператор принял со скидкой: 2 × 120 вместо 2 × 150. Контракт на
-    // signchair приходует 240 (Дт 10 / Кт 76) — столько же обязан перевести кассир.
-    const projection = await signChairWithFact([{ order_id: 'order-1', fact_quantity: 2, fact_unit_price: '120.0000' }]);
-    expect(projection.amount).toBe('240.0000');
-    expect(projection.withheld_amount).toBe('0.0000');
-  });
-
-  it('без цены в акте выплата идёт по цене заказа на принятое количество', async () => {
-    const projection = await signChairWithFact([{ order_id: 'order-1', fact_quantity: 1 }]);
-    expect(projection.amount).toBe('150.0000');
+    expect(mocks.chainPort.signChair).toHaveBeenCalled();
+    expect(mocks.chainPort.addPayouts).not.toHaveBeenCalled();
+    expect(mocks.chainPort.sendPayout).not.toHaveBeenCalled();
   });
 });
 

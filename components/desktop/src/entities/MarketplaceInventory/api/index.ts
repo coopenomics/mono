@@ -99,3 +99,39 @@ export const api = {
   bindInventoryBarcode,
   clearInventoryLabel,
 }
+
+/** Страница архива склада: выданное и списанное имущество, свежее сверху. */
+export interface MarketplaceInventoryArchivePage {
+  items: MarketplaceInventoryItemView[]
+  totalCount: number
+  totalPages: number
+  currentPage: number
+}
+
+export async function listInventoryArchive(
+  input: { braname?: string | null; page: number; limit: number },
+): Promise<MarketplaceInventoryArchivePage> {
+  const { [Queries.Marketplace.ListInventoryArchive.name]: result } = await client.Query(
+    Queries.Marketplace.ListInventoryArchive.query,
+    {
+      variables: {
+        data: input.braname ? { braname: input.braname } : null,
+        options: { page: input.page, limit: input.limit, sortOrder: 'DESC' },
+      },
+    },
+  )
+  // Zeus отдаёт скаляр ID как unknown; сужаем идентификаторы во вью-типе.
+  return result as MarketplaceInventoryArchivePage
+}
+
+export type MarketplaceInventoryMovementView =
+  Queries.Marketplace.InventoryMovements.IOutput['marketplaceInventoryMovements'][number]
+
+/** Журнал движения позиции склада: приёмка, размещение, маркировка, выдача, списание. */
+export async function fetchInventoryMovements(inventoryId: string): Promise<MarketplaceInventoryMovementView[]> {
+  const { [Queries.Marketplace.InventoryMovements.name]: result } = await client.Query(
+    Queries.Marketplace.InventoryMovements.query,
+    { variables: { inventory_id: inventoryId } },
+  )
+  return result
+}

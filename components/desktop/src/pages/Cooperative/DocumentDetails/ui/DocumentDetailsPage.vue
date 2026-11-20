@@ -49,8 +49,10 @@ const loading = ref(true);
 
 // Заголовок документа — в шапку (вместо статичного «Документ»).
 const documentTitle = computed(() => {
+  // Пакет без заявления в выдаче (поставщику — только его акт): заголовок — из акта.
   const meta = (document.value?.statement?.documentAggregate?.document?.meta ??
-    document.value?.decision?.documentAggregate?.document?.meta) as Record<string, any> | undefined;
+    document.value?.decision?.documentAggregate?.document?.meta ??
+    document.value?.acts?.[0]?.documentAggregate?.document?.meta) as Record<string, any> | undefined;
   const title = typeof meta?.title === 'string' ? meta.title : '';
   return title || t('cooperative.documentDetailsPage.defaultTitle');
 });

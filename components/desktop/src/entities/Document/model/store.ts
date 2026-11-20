@@ -20,6 +20,17 @@ interface IDocumentStore {
   loadPackage: (username: string, packageHash: string) => Promise<IDocumentPackageAggregate | null>
   resetDocuments: () => void
   reloadLoaded: (username: string, filter: Record<string, any>) => Promise<void>
+  /** Вид выдачи и фильтры журнала: пакеты или каждый документ, период подписи, типы документов. */
+  listOptions: Ref<IDocumentListOptions>
+  setListOptions: (options: Partial<IDocumentListOptions>, username: string, filter: Record<string, any>) => Promise<void>
+}
+
+/** Вид выдачи и фильтры реестра документов. */
+export interface IDocumentListOptions {
+  view: 'PACKAGE' | 'FLAT'
+  signed_from: string | null
+  signed_to: string | null
+  registry_ids: number[]
 }
 /**
  * Хранилище для работы с документами
@@ -28,6 +39,15 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
   const documents = ref<IDocumentPackageAggregate[]>([])
   const loading = ref(false)
   const documentType = ref<DocumentType>('newsubmitted')
+  const listOptions = ref<IDocumentListOptions>({ view: 'PACKAGE', signed_from: null, signed_to: null, registry_ids: [] })
+
+  /** Поля запроса по виду и фильтрам; пустые фильтры в запрос не попадают. */
+  const optionFields = () => ({
+    view: listOptions.value.view as IGetDocuments['view'],
+    ...(listOptions.value.signed_from ? { signed_from: listOptions.value.signed_from } : {}),
+    ...(listOptions.value.signed_to ? { signed_to: listOptions.value.signed_to } : {}),
+    ...(listOptions.value.registry_ids.length ? { registry_ids: listOptions.value.registry_ids } : {}),
+  })
 
   // Информация о пагинации
   const pagination = ref<IPagination>({
@@ -72,7 +92,8 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
         filter,
         type: documentType.value,
         page: page,
-        limit: PAGE_SIZE
+        limit: PAGE_SIZE,
+        ...optionFields()
       }
 
       const result = await api.loadDocuments(data)
@@ -166,6 +187,7 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
         filter,
         type: documentType.value,
         ...window.options,
+        ...optionFields(),
       })
       documents.value = result.items
       pagination.value = {
@@ -178,7 +200,19 @@ export const useDocumentStore = defineStore(namespace, (): IDocumentStore => {
     }
   }
 
+  /** Новый вид выдачи или фильтр — реестр перечитывается с первой страницы. */
+  const setListOptions = async (
+    options: Partial<IDocumentListOptions>,
+    username: string,
+    filter: Record<string, any>
+  ): Promise<void> => {
+    listOptions.value = { ...listOptions.value, ...options }
+    await changePage(1, username, filter)
+  }
+
   return {
+    listOptions,
+    setListOptions,
     documents,
     loading,
     documentType,

@@ -68,6 +68,8 @@
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
                 :no-data-label='$t("reports.accountsPage.postingsEmptyLabel")'
+                class='movement-rows'
+                @row-click='(_evt, row) => openOperation(row)'
               )
                 template(#body-cell-action='cp')
                   q-td(:props='cp')
@@ -94,15 +96,6 @@
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
                 template(#body-cell-createdAt='cp')
                   q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
-                template(#body-cell-open='cp')
-                  q-td.text-right(:props='cp')
-                    q-btn(
-                      v-if='cp.row.parentApplyGlobalSequence'
-                      flat dense round size='sm' color='primary'
-                      icon='fa-solid fa-arrow-right'
-                      :to='{ name: "reports-operations", query: { operation_id: cp.row.parentApplyGlobalSequence } }'
-                    )
-                      q-tooltip {{ $t('reports.accountsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -131,6 +124,13 @@
               .col-4
                 .text-caption.t-faint {{ $t('reports.accountsPage.balanceLabel') }}
                 .text-body2.text-weight-bold {{ formatAsset2Digits(props.row.balance) }}
+
+  //- Операция проводки в правой панели (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='openedOperation'
+    @close='openedOperation = null'
+  )
 </template>
 
 <script setup lang="ts">
@@ -148,10 +148,24 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { getWalletAccount } from 'src/shared/lib/ledger2'
-import { AccountIdCell, WalletIdCell } from '../../../shared/ui'
+import { AccountIdCell, OperationDetailsDrawer, WalletIdCell, type OperationRef } from '../../../shared/ui'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
+
+// Операция проводки по счёту в правой панели — без перехода в реестр операций.
+const openedOperation = ref<OperationRef | null>(null)
+function openOperation(row: { parentApplyGlobalSequence?: string | null; processHash?: string | null; operationCode?: string | null; memo?: string | null; quantity?: string | null; createdAt?: string | Date | null }): void {
+  if (!row.parentApplyGlobalSequence) return
+  openedOperation.value = {
+    globalSequence: String(row.parentApplyGlobalSequence),
+    processHash: row.processHash,
+    operationCode: row.operationCode,
+    memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
+  }
+}
 const { isMobile } = useWindowSize()
 const registries = useDeskRegistries()
 
@@ -203,12 +217,11 @@ const columns: any[] = [
 ]
 
 const childColumns: any[] = [
-  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
   { name: 'postingId', align: 'left', label: t('reports.accountsPage.column.postingId'), field: 'globalSequence' },
   { name: 'processHash', align: 'left', label: t('reports.accountsPage.column.processId'), field: 'processHash' },
-  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
   { name: 'createdAt', align: 'left', label: t('reports.accountsPage.column.date'), field: 'createdAt' },
-  { name: 'open', align: 'right', label: '', field: 'parentApplyGlobalSequence' },
+  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
+  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
 ]
 
 async function toggleExpand(id: number) {
@@ -265,6 +278,10 @@ useLiveReload(LEDGER_LIVE_TABLES, loadAccounts)
 </script>
 
 <style scoped lang="scss">
+/* Строка истории проводок открывает операцию в правой панели. */
+.movement-rows :deep(tbody tr) {
+  cursor: pointer;
+}
 .accounts-page {
   padding: var(--p-6, 24px);
   @media (max-width: 768px) {

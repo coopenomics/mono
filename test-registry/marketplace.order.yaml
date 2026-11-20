@@ -118,7 +118,6 @@ sources:
     - components/contracts/cpp/lib/core/marketplace/dues.hpp
     - components/contracts/cpp/lib/domain/table_marketplace_dues.hpp
     - components/contracts/cpp/marketplace/src/p.mkt.supply/setshares.cpp
-    - components/contracts/cpp/marketplace/src/p.mkt.supply/setinitiator.cpp
     - components/contracts/cpp/branch/src/setreserve.cpp
     - components/contracts/cpp/branch/src/delreserve.cpp
     - components/contracts/cpp/branch/src/setaidlimit.cpp
@@ -1112,7 +1111,7 @@ cases:
   # участия». Контракты: fund (w.fnd.accum, fund::accrue), branch (резерв
   # обеспечения по получателям, потолок, предел материальной помощи),
   # marketplace (процесс p.mkt.due: счётчики kudues/kucounters, closeperiod,
-  # chargeperiod, exitdue, delperiod, migratedue, setshares, setinitiator).
+  # chargeperiod, exitdue, delperiod, migratedue, setshares, setretshare).
   #
   # Правка 09.11.2026 (99D-33): суммы для итога и списания контракт берёт из
   # своих счётчиков, узел передаёт только участок, пайщика, период и факты о
@@ -1150,7 +1149,8 @@ cases:
       участок и период, суммы — из строки счётчика.
     expect: >
       одной транзакцией в нитке p.mkt.due с хэшем строки: o.mkt.charge на сумму
-      участку + фонды + инициаторам (+ удержания), o.brn.common участку (Дт 80 / Кт 86),
+      участку + фонды + инициаторам (+ удержания) — единственная проводка Дт 80 / Кт 86
+      (17.11.2026), o.brn.common участку по кошелькам без проводки,
       o.fnd.indiv / o.fnd.resrv / o.fnd.devel по проценту каждого фонда с остатком
       округления у последнего, o.mkt.repay инициаторам либо участку, o.mkt.retdue
       пайщику на свободный паевой; в нитке заказа списания нет; кошелёк к списанию
@@ -1189,12 +1189,10 @@ cases:
     level: contract
     kind: side
     scenario: >
-      Настройки модели: доля инициатора в экономии и инициатор участка отдельно
-      от председателя.
+      Настройки модели: доля инициаторов и доля пайщиков в экономии.
     expect: >
       setshares пишет долю, выше 100 % — MARKETPLACE_INITIATOR_SHARE_INVALID;
-      setinitiator назначает пайщика, не пайщика отклоняет, пустое имя снимает
-      назначение; строка итога месяца хранит получателя доли
+      setretshare пишет долю пайщиков и долю инициаторов не трогает
     test: components/boot/src/tests/marketplace-period.test.ts
     status: written
 
@@ -1774,6 +1772,21 @@ cases:
     external: unreachable
     external_reason: "эталон — чистая функция пакета типов"
     status: passing
+
+  - id: mkt.order.invest.docs.01
+    level: contract
+    kind: side
+    scenario: >
+      Паевой взнос имуществом в участок доведён до второй подписи акта; в
+      реестре документов открыт пакет по хэшу взноса
+    expect: >
+      под хэшем взноса один пакет: главный документ — заявление о паевом взносе
+      имуществом (1120), при нём протокол совета и акт приёма-передачи (1122);
+      акт входит в пакет действием soviet::newact, отдельного пакета «акт +
+      протокол» нет
+    test: components/api-tests/src/marketplace/invest.test.ts
+    api: components/api-tests/src/marketplace/invest.test.ts
+    status: written   # запуск — CI на полигоне ci/blackbox
 
   - id: mkt.order.keu.model.09
     level: backend

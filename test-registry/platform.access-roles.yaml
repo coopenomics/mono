@@ -11,6 +11,11 @@ title: Платформа — назначаемые роли приложени
 # (ревизора дополняют отчётность и расходы). Ключ роли
 # уникален среди всех приложений, повтор останавливает запуск узла.
 
+# 17.11.2026: резолвер стола бухгалтера (registries.resolver.ts) получил запрос
+# reportsProcessContent — содержание процесса под тем же правом Registry:read,
+# что и reportsProcess. Права и роли не менялись; случаи слайса без изменений
+# (слайс содержания — reports.process-content).
+
 sources:
   backend:
     - components/controller/src/application/access-roles/**

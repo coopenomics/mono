@@ -1,5 +1,6 @@
 import { rethrowChainError, DomainError, standDaySeconds } from '@coopenomics/extension-kit';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { MARKETPLACE_SUPPLIER_REGISTRY_SERVICE, type MarketplaceSupplierRegistryService } from './marketplace-supplier-registry.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { LOGGER_PORT, type ILoggerPort,
@@ -168,7 +169,12 @@ export class MarketplaceOrderCreateService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Новый заказ на приостановленного поставщика не оформляется: позиция,
+    // положенная в корзину до приостановки, получает понятный отказ.
+    @Optional()
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService | null = null
   ) {
     this.logger.setContext(MarketplaceOrderCreateService.name);
   }
@@ -219,6 +225,7 @@ export class MarketplaceOrderCreateService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw DomainError.badRequest('MARKETPLACE_ORDER_OFFER_NOT_ACTIVE', { status: offer.status });
     }
+    await this.supplierRegistry?.assertNotSuspended(input.coopname, offer.supplier_account, 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED');
     // Эпик 18: разрешаем способ отпуска в базовое количество/цену/упаковку.
     // По мере — quantity как базовое количество; упаковкой — quantity как число
     // упаковок, базовое = число × содержимое, цена — за упаковку.

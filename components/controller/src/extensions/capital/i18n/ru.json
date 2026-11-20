@@ -1345,6 +1345,30 @@
     },
     "programProperty": {
       "chainDescription": "{name}. {description}. Количество: {quantity} {unit}"
+    },
+    "processContent": {
+      "participant": "Пайщик",
+      "createdAt": "Заявление подано",
+      "repaidAt": "Займ погашен",
+      "memo": "Назначение",
+      "debt": {
+        "amountLabel": "Сумма займа"
+      },
+      "property": {
+        "title": "Имущественный паевой взнос",
+        "amountLabel": "Оценка имущества"
+      },
+      "rid": {
+        "amountLabel": "Оценка результата"
+      },
+      "withdraw": {
+        "amountLabel": "Сумма возврата"
+      },
+      "contributor": {
+        "amountLabel": "Сумма",
+        "asInvestor": "Внесено инвестором",
+        "asCreator": "Внесено создателем"
+      }
     }
   },
   "errors": {

@@ -229,84 +229,39 @@ export function useKuDecisionFlow() {
   }
 
   /**
-   * Сгенерировать (без подписи) пакет документов председателя в совет для предпросмотра:
-   * заявление (324), договор о полной материальной ответственности (328) и доверенность
-   * председателю участка (329) — с уже подставленными паспортными данными. Пайщик читает
-   * их перед подписанием; подпись и отправка — отдельным шагом execDecision.
+   * Сгенерировать (без подписи) заявление председателя в совет об учреждении
+   * участка (324) для предпросмотра. Доверенность и договор о полной
+   * материальной ответственности председатель участка подписывает после решения
+   * совета на странице «Мой участок»: доверенность ссылается на протокол совета.
    */
-  async function prepareExecDocuments(decision: IKuDecision): Promise<{
-    petition: IGeneratedDocument;
-    liability: IGeneratedDocument;
-    authority: IGeneratedDocument;
-  }> {
+  async function prepareExecDocuments(decision: IKuDecision): Promise<{ petition: IGeneratedDocument }> {
     isSubmitting.value = true;
     try {
-      const branchName = decision.branch_name ?? '';
-
       // человекочитаемое наименование участка, служебный braname в документы не попадает
       const petition = await new DigitalDocument().generate<Registry.BranchEstablishmentPetition.Action>({
         registry_id: Registry.BranchEstablishmentPetition.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
-        branch_name: branchName,
+        branch_name: decision.branch_name ?? '',
         address: decision.address ?? '',
         // username избранного председателя участка; ФИО резолвит фабрика
         chairman: decision.chairman ?? '',
       });
-
-      const liability = await new DigitalDocument().generate<Registry.BranchTrusteeLiabilityAgreement.Action>({
-        registry_id: Registry.BranchTrusteeLiabilityAgreement.registry_id,
-        coopname: system.info.coopname,
-        username: session.username,
-        hash: decision.hash,
-        branch_name: branchName,
-      });
-
-      const authority = await new DigitalDocument().generate<Registry.BranchTrusteePowerOfAttorney.Action>({
-        registry_id: Registry.BranchTrusteePowerOfAttorney.registry_id,
-        coopname: system.info.coopname,
-        username: session.username,
-        hash: decision.hash,
-        branch_name: branchName,
-        branch_address: decision.address ?? '',
-      });
-
-      return { petition, liability, authority };
+      return { petition };
     } finally {
       isSubmitting.value = false;
     }
   }
 
-  /**
-   * Подписать предпросмотренный пакет и направить в совет (exec): заявление (324),
-   * договор матответственности (328) и доверенность (329) — все подписывает избранный
-   * собранием председатель участка. Договор и доверенность получат встречную подпись
-   * председателя совета после решения совета об учреждении участка.
-   */
-  async function execDecision(
-    decision: IKuDecision,
-    prepared: { petition: IGeneratedDocument; liability: IGeneratedDocument; authority: IGeneratedDocument },
-  ): Promise<void> {
+  /** Подписать предпросмотренное заявление и направить вопрос в совет (exec). */
+  async function execDecision(decision: IKuDecision, prepared: { petition: IGeneratedDocument }): Promise<void> {
     isSubmitting.value = true;
     try {
       const petition = await new DigitalDocument(prepared.petition).sign<
         Registry.BranchEstablishmentPetition.Meta
       >(session.username);
-      const liability = await new DigitalDocument(prepared.liability).sign<
-        Registry.BranchTrusteeLiabilityAgreement.Meta
-      >(session.username);
-      const authority = await new DigitalDocument(prepared.authority).sign<
-        Registry.BranchTrusteePowerOfAttorney.Meta
-      >(session.username);
-
-      await api.execDecision({
-        coopname: system.info.coopname,
-        hash: decision.hash,
-        petition,
-        liability,
-        authority,
-      });
+      await api.execDecision({ coopname: system.info.coopname, hash: decision.hash, petition });
     } finally {
       isSubmitting.value = false;
     }

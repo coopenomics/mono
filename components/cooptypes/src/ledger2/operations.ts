@@ -274,7 +274,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // счётчика пайщика за период (p.mkt.due, задача 99D-33), не заказ.
   { code: 'o.mkt.charge',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'CHARGE_DUE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.fee',
-    debit: null, credit: null,
+    debit: 80, credit: 86,
     human_name: 'Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП' },
 
   // Гарантийный возврат: обеспечительная часть за возвращённое — с кошелька к
@@ -298,7 +298,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // остаётся в пуле). Решение владельца 31.10.2026, задача 99D-18.
   { code: 'o.mkt.exfee',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'EXIT_DUE_TO_POOL', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.due', wallet_to: 'w.mkt.fee',
-    debit: null, credit: null,
+    debit: 80, credit: 86,
     human_name: 'Списание обеспечительной части в членский взнос при выходе пайщика из кооператива' },
 
   // Списание по итогу периода участка (задачи 99D-21, 99D-33): o.mkt.charge на
@@ -307,7 +307,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // пайщику — o.mkt.retdue. Нитка p.mkt.due.
   { code: 'o.mkt.initr',   process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INITIATOR_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.invest',
-    debit: null, credit: null,
+    debit: 86, credit: 80,
     human_name: 'Вознаграждение инициатора кооперативного участка из экономии месяца' },
 
   { code: 'o.mkt.retdue',  process_type: 'p.mkt.due',     contract: 'marketplace',
@@ -340,14 +340,14 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.mkt.repay',   process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'INVEST_REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.repay',
-    debit: 80, credit: 86,
+    debit: null, credit: null,
     human_name: 'Возмещение паевых взносов инициаторов из экономии месяца участка' },
 
   // Вторые 38,2 % экономии месяца участка — в фонд социально-экономического
   // взаимодействия и социального обеспечения по участку (решение владельца 16.11.2026).
   { code: 'o.mkt.social',  process_type: 'p.mkt.due',     contract: 'marketplace',
     name: 'SOCIAL_FUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.social',
-    debit: 80, credit: 86,
+    debit: null, credit: null,
     human_name: 'Отчисление в фонд социально-экономического взаимодействия и социального обеспечения из экономии месяца участка' },
 
   { code: 'o.mkt.rpsurp',  process_type: 'p.mkt.due',     contract: 'marketplace',
@@ -563,14 +563,14 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // заказов» становится членским взносом участка (задача 99D-18).
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',
-    debit: 80, credit: 86,
+    debit: null, credit: null,
     human_name: 'Зачисление членского взноса в общий кошелёк кооперативного участка' },
 
   // Сторно зачисления — точная инверсия o.brn.common. С задачи 99D-18 Стол
   // заказов её не вызывает: гарантийный возврат идёт до списания.
   { code: 'o.brn.retfee',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'RETURN_FEE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.mkt.fee',
-    debit: 86, credit: 80,
+    debit: null, credit: null,
     human_name: 'Возврат членского взноса из общего кошелька кооперативного участка' },
 
   // fund — фонды накопления кооператива (задачи 99D-19 и 99D-25). Вторая из трёх
@@ -579,17 +579,17 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   // контракт fund (fund::accrue инлайн); имя нитки — процесса источника.
   { code: 'o.fnd.indiv',   process_type: 'p.fnd.accum',   contract: 'fund',
     name: 'ACCRUE_INDIVISIBLE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.indiv',
-    debit: 80, credit: 86,
+    debit: null, credit: null,
     human_name: 'Отчисление в неделимый фонд из членского взноса кооперативного участка' },
 
   { code: 'o.fnd.resrv',   process_type: 'p.fnd.accum',   contract: 'fund',
     name: 'ACCRUE_RESERVE', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.resrv',
-    debit: 80, credit: 86,
+    debit: null, credit: null,
     human_name: 'Отчисление в резервный фонд из членского взноса кооперативного участка' },
 
   { code: 'o.fnd.devel',   process_type: 'p.fnd.accum',   contract: 'fund',
     name: 'ACCRUE_DEVELOPMENT', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.fnd.devel',
-    debit: 80, credit: 86,
+    debit: null, credit: null,
     human_name: 'Отчисление в фонд развития кооперации из членского взноса кооперативного участка' },
 
   { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
@@ -747,7 +747,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
   { code: 'o.mig.entry', process_type: 'p.mig.trans', contract: 'migration', name: 'ENTRY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.reg.entry', debit: 51, credit: 86, human_name: 'Перенос вступительных взносов из прежнего учёта' },
 
   // Обеспечительная часть невыданных заказов — из общего пула на кошелёк пайщика под заказы (разовый перенос из marketplace::migrate, 05.11.2026).
-  { code: 'o.mig.mktsec', process_type: 'p.mig.trans', contract: 'migration', name: 'SECURE_ORDER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.secure', debit: null, credit: null, human_name: 'Перенос обеспечительной части невыданных заказов на кошелёк пайщика' },
+  { code: 'o.mig.mktsec', process_type: 'p.mig.trans', contract: 'migration', name: 'SECURE_ORDER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.secure', debit: 86, credit: 80, human_name: 'Перенос обеспечительной части невыданных заказов на кошелёк пайщика' },
   { code: 'o.mig.topay', process_type: 'p.mig.trans', contract: 'migration', name: 'SUPPLIER_PAYABLE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.topay', debit: null, credit: null, human_name: 'Перенос открытых обязательств перед поставщиками на кошелёк к оплате' },
   // Хозяйственные расходы до цифрового учёта: остаток миграции 10.05.2026 на кошельке фонда сжигается без проводки (99D-26).
   { code: 'o.mig.spent', process_type: 'p.mig.trans', contract: 'migration', name: 'SPENT', wallet_op: 'BURN', wallet_from: 'w.sov.expns', wallet_to: null, debit: null, credit: null, human_name: 'Хозяйственные расходы, произведённые до цифрового учёта' },

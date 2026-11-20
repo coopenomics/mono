@@ -1,13 +1,22 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 
-import type { BranchContract } from 'cooptypes';
-import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
+import { BranchContract } from 'cooptypes';
+import { OnEvent } from '@nestjs/event-emitter';
+import type { InnerChainDelta } from '@coopenomics/innercoop';
+import {
+  BRANCH_PORT,
+  POWERS_OF_ATTORNEY_PORT,
+  type IBranchPort,
+  type IPowersOfAttorneyPort,
+} from '@coopenomics/innercoop';
 
 
 export const MARKETPLACE_KU_CHAIRMAN_SERVICE = Symbol('MARKETPLACE_KU_CHAIRMAN_SERVICE');
 
 interface IBranchesCacheEntry {
   branches: BranchContract.Tables.Branches.IBranch[];
+  /** Пары «участок:пайщик» с истёкшей доверенностью — полномочия закрыты. */
+  lapsed: Set<string>;
   expires_at: number;
 }
 
@@ -39,6 +48,11 @@ interface IBranchesCacheEntry {
  * `deltrusted`), TTL покрывает обычные сценарии. Резолверы, меняющие
  * состав КУ, дёргают `invalidate(coopname)`.
  */
+/** Ключ закрытых полномочий: участок и пайщик. */
+function lapsedKey(braname: string, account: string): string {
+  return `${braname}:${account}`;
+}
+
 @Injectable()
 export class MarketplaceKuChairmanService {
   private static readonly BRANCHES_CACHE_TTL_MS = 60_000;
@@ -46,12 +60,17 @@ export class MarketplaceKuChairmanService {
 
   constructor(
     @Inject(BRANCH_PORT)
-    private readonly branchPort: IBranchPort
+    private readonly branchPort: IBranchPort,
+    // Доверенности (решение владельца 18.11.2026): истёкшая доверенность закрывает
+    // председателю участка и доверенному лицу работу с пунктом выдачи до встречной
+    // подписи новой. Без расширения участков проверки нет.
+    @Optional() @Inject(POWERS_OF_ATTORNEY_PORT)
+    private readonly powersOfAttorney?: IPowersOfAttorneyPort
   ) {}
 
   async isKuChairman(coopname: string, member_account: string): Promise<boolean> {
-    const branches = await this.getBranches(coopname);
-    return branches.some((b) => this.branchIncludesMember(b, member_account));
+    const { branches, lapsed } = await this.getEntry(coopname);
+    return branches.some((b) => this.branchIncludesMember(b, member_account, lapsed));
   }
 
   async isMemberOfBranch(
@@ -59,10 +78,10 @@ export class MarketplaceKuChairmanService {
     braname: string,
     member_account: string
   ): Promise<boolean> {
-    const branches = await this.getBranches(coopname);
+    const { branches, lapsed } = await this.getEntry(coopname);
     const branch = branches.find((b) => b.braname === braname);
     if (!branch) return false;
-    return this.branchIncludesMember(branch, member_account);
+    return this.branchIncludesMember(branch, member_account, lapsed);
   }
 
   /**
@@ -71,16 +90,18 @@ export class MarketplaceKuChairmanService {
    * в селекторе оператора или для bulk-фильтрации лент.
    */
   async listBranamesForMember(coopname: string, member_account: string): Promise<string[]> {
-    const branches = await this.getBranches(coopname);
+    const { branches, lapsed } = await this.getEntry(coopname);
     return branches
-      .filter((b) => this.branchIncludesMember(b, member_account))
+      .filter((b) => this.branchIncludesMember(b, member_account, lapsed))
       .map((b) => b.braname);
   }
 
   /** Участки, где пайщик председатель: охват права `chaired-KU`. */
   async listChairedBranames(coopname: string, member_account: string): Promise<string[]> {
-    const branches = await this.getBranches(coopname);
-    return branches.filter((b) => b.trustee === member_account).map((b) => b.braname);
+    const { branches, lapsed } = await this.getEntry(coopname);
+    return branches
+      .filter((b) => b.trustee === member_account && !lapsed.has(lapsedKey(b.braname, member_account)))
+      .map((b) => b.braname);
   }
 
   /**
@@ -91,10 +112,10 @@ export class MarketplaceKuChairmanService {
    * trustee'у).
    */
   async listOperatorsOfBranch(coopname: string, braname: string): Promise<string[]> {
-    const branches = await this.getBranches(coopname);
+    const { branches, lapsed } = await this.getEntry(coopname);
     const branch = branches.find((b) => b.braname === braname);
     if (!branch) return [];
-    return [branch.trustee, ...branch.trusted];
+    return [branch.trustee, ...branch.trusted].filter((account) => !lapsed.has(lapsedKey(braname, account)));
   }
 
   /**
@@ -117,23 +138,62 @@ export class MarketplaceKuChairmanService {
     this.branchesCache.delete(coopname);
   }
 
-  private async getBranches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]> {
-    const now = Date.now();
-    const cached = this.branchesCache.get(coopname);
-    if (cached && cached.expires_at > now) return cached.branches;
-
-    const branches = await this.branchPort.getBranches(coopname);
-    this.branchesCache.set(coopname, {
-      branches,
-      expires_at: now + MarketplaceKuChairmanService.BRANCHES_CACHE_TTL_MS,
-    });
-    return branches;
+  /**
+   * Состав участка изменился в цепи (назначен председатель, добавлено или
+   * снято доверенное лицо) — кэш сбрасывается сразу. Стол ПВЗ перечитывает
+   * «мои участки» по тому же сигналу ленты и получает свежий ответ, а не
+   * состав минутной давности (замечание владельца 19.11.2026).
+   */
+  @OnEvent(`delta::${BranchContract.contractName.production}::${BranchContract.Tables.Branches.tableName}`)
+  onBranchesDelta(delta: InnerChainDelta): void {
+    this.invalidate(delta.scope);
   }
 
+  /**
+   * Доверенность председателя или доверенного лица подписана встречно,
+   * отклонена или заменена — меняется, кто работает с пунктом выдачи.
+   */
+  @OnEvent(`action::${BranchContract.contractName.production}::apprauth`)
+  @OnEvent(`action::${BranchContract.contractName.production}::declauth`)
+  @OnEvent(`action::${BranchContract.contractName.production}::apprtrusted`)
+  @OnEvent(`action::${BranchContract.contractName.production}::decltrusted`)
+  onAuthorityAction(record: { data?: { coopname?: string } }): void {
+    const coopname = record?.data?.coopname;
+    if (coopname) this.invalidate(String(coopname));
+    else this.branchesCache.clear();
+  }
+
+  private async getBranches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]> {
+    return (await this.getEntry(coopname)).branches;
+  }
+
+  /** Состав участков и закрытые полномочия — один кэш на кооператив. */
+  private async getEntry(coopname: string): Promise<IBranchesCacheEntry> {
+    const now = Date.now();
+    const cached = this.branchesCache.get(coopname);
+    if (cached && cached.expires_at > now) return cached;
+
+    const [branches, lapsed] = await Promise.all([
+      this.branchPort.getBranches(coopname),
+      // Сбой учёта доверенностей не закрывает пункт выдачи: полномочия по составу участка.
+      this.powersOfAttorney?.listLapsedAuthorities(coopname).catch(() => []) ?? Promise.resolve([]),
+    ]);
+    const entry: IBranchesCacheEntry = {
+      branches,
+      lapsed: new Set(lapsed.map((item) => lapsedKey(item.braname, item.username))),
+      expires_at: now + MarketplaceKuChairmanService.BRANCHES_CACHE_TTL_MS,
+    };
+    this.branchesCache.set(coopname, entry);
+    return entry;
+  }
+
+  /** Работник участка: председатель или доверенное лицо, и доверенность у него не истекла. */
   private branchIncludesMember(
     branch: BranchContract.Tables.Branches.IBranch,
-    member_account: string
+    member_account: string,
+    lapsed: Set<string>
   ): boolean {
+    if (lapsed.has(lapsedKey(branch.braname, member_account))) return false;
     return branch.trustee === member_account || branch.trusted.includes(member_account);
   }
 }

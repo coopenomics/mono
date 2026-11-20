@@ -12,7 +12,7 @@ registerEnumType(MarketplaceSupplierModel, {
 
 registerEnumType(MarketplaceSupplierStatus, {
   name: 'MarketplaceSupplierStatus',
-  description: 'Статус поставщика в реестре: на рассмотрении, одобрен, отклонён',
+  description: 'Статус поставщика в реестре: на рассмотрении, одобрен, отклонён, действие договора приостановлено',
 });
 
 @ObjectType('MarketplaceSupplier')

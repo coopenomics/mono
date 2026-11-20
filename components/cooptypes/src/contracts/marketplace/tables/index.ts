@@ -34,7 +34,6 @@ export * as Counters from './counters'
 /**
  * Инициаторы кооперативных участков Стола заказов (задача 99D-21).
  */
-export * as Initiators from './initiators'
 
 /**
  * Отсечки персонального распределения членского взноса по КУ (requirement b6).
@@ -47,3 +46,8 @@ export * as InvAgreements from './invAgreements'
 export * as InvBranches from './invBranches'
 export * as Investors from './investors'
 export * as InvProps from './invProps'
+
+/**
+ * Пакеты выплаты поставщикам: один платёж кассиру на заказы поставщика за день.
+ */
+export * as Payouts from './payouts'

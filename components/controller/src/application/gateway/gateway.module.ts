@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-registry-domain.module';
+import { PaymentProcessContentService } from './services/payment-process-content.service';
 import { GatewayResolver } from './resolvers/gateway.resolver';
 import { PaymentFilesResolver } from './resolvers/payment-files.resolver';
 import { GatewayService } from './services/gateway.service';
@@ -24,6 +26,8 @@ import { CoreRightsModule } from '../rights/core-rights.module';
 @Module({
   imports: [
     CoreRightsModule,
+    // Строка кандидата процесса приёма — для содержания процесса на столе бухгалтера.
+    ProcessRegistryDomainModule,
     // Реестр платёжных провайдеров (PROVIDER_PORT). Обратного ребра нет:
     // инфраструктура шлюза про приложение не знает.
     GatewayInfrastructureModule,
@@ -49,6 +53,8 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     GatewayNotificationHandler,
     WithdrawAuthorizationListener,
     PayoutRequestService,
+    // Содержание платёжных процессов для стола бухгалтера (реестр processContent).
+    PaymentProcessContentService,
     GatewayExpiryCronService,
   ],
   exports: [

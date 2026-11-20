@@ -19,6 +19,7 @@ import { ParticipantDetailsPage } from 'src/pages/Cooperative/ParticipantDetails
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { DocumentTemplatesPage } from 'src/pages/Cooperative/DocumentTemplates';
+import { PowersOfAttorneyPage } from 'src/pages/Cooperative/PowersOfAttorney';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
@@ -127,6 +128,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               requires: 'Document:read:all',
             },
             children: [
+              {
+                // Вкладка реестра: доверенности кооператива — номер, срок, состояние
+                // (решение владельца 18.11.2026). Учёт ведёт расширение участков.
+                path: 'powers-of-attorney',
+                name: 'document-powers-of-attorney',
+                component: markRaw(PowersOfAttorneyPage),
+                meta: {
+                  title: t('soviet.install.powersOfAttorneyTitle'),
+                  requires: 'KuAuthority:read:all',
+                  hidden: true,
+                },
+              },
               {
                 // Вкладка реестра: шаблоны документов кооператива, их редакции и
                 // утверждение советом (фабрика утверждений документов). Стоит

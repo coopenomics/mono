@@ -1,5 +1,6 @@
 import type { SignedDocumentStatus } from '../enums/signed-document-status.enum';
 import type { DocumentPackageAggregateDomainInterface } from '../interfaces/document-package-aggregate-domain.interface';
+import type { SignedDocumentRole } from '../enums/signed-document-role.enum';
 
 /**
  * Данные для записи/обновления одной записи реестра подписанных документов.
@@ -23,6 +24,8 @@ export interface SignedDocumentUpsertInput {
   full_title: string;
   /** html заявления без тегов — для ILIKE-поиска */
   content_text: string;
+  /** Владелец заявления и все субъекты и подписанты документов пакета — по ним реестр отбирает пакеты пайщика. */
+  participants: string[];
   /** ФИО/наименования всех подписантов пакета + их username — для поиска по подписанту */
   signers_text: string;
   /** bigint из блокчейна приходит строкой */
@@ -32,6 +35,12 @@ export interface SignedDocumentUpsertInput {
   document_aggregate: DocumentPackageAggregateDomainInterface | null;
   /** data действия-носителя заявления — для пересборки агрегата при доприходе decision/act/link */
   source_action_data: Record<string, unknown> | null;
+  /** Роль документа в процессе. */
+  role: SignedDocumentRole;
+  /** Время блока, в котором документ попал в цепь. */
+  signed_at: Date | null;
+  /** Хэши документов, которые заявление перечисляет в meta.links. */
+  links: string[];
 }
 
 export interface SignedDocumentSearchParams {
@@ -70,6 +79,15 @@ export interface SignedDocumentListParams {
   hash?: string;
   /** фильтр по пакету документов — хэшу процесса, которым операции учёта ссылаются на документы */
   package?: string;
+  /** Роли строк выдачи; по умолчанию — заявления (пакетный вид). Хэш ищется по всем ролям. */
+  roles?: SignedDocumentRole[];
+  /** Период по дате подписи (время блока). */
+  signedFrom?: Date;
+  signedTo?: Date;
+  /** Тип документа (номер шаблона). */
+  registryIds?: number[];
+  /** Поиск по названию, тексту и подписантам. */
+  query?: string;
   afterBlock?: number;
   beforeBlock?: number;
   page: number;
@@ -78,6 +96,12 @@ export interface SignedDocumentListParams {
 
 export interface SignedDocumentListResult {
   items: DocumentPackageAggregateDomainInterface[];
+  /** Владелец заявления каждого пакета — в том же порядке, что `items`. */
+  owners: string[];
+  /** Ключ записи реестра (хэш подписанного заявления) каждого пакета — в том же порядке. */
+  hashes: string[];
+  /** Сведения строк журнала по порядку выдачи: тип, название из документа, роль, дата подписи. */
+  rows: Array<{ registry_id: number; full_title: string; role: SignedDocumentRole; signed_at: Date | null }>;
   total: number;
 }
 
@@ -94,6 +118,7 @@ export interface SignedDocumentAggregateUpdate {
   full_title: string;
   content_text: string;
   signers_text: string;
+  participants: string[];
 }
 
 /** Состояние записи для guard'ов ingestion (не понижать статус / не откатывать версию подписи). */
@@ -101,6 +126,8 @@ export interface SignedDocumentState {
   status: SignedDocumentStatus;
   /** номер блока крайней версии (для сравнения «новее ли пришедшая версия») */
   blockNum: number | null;
+  /** Роль документа в процессе. */
+  role: SignedDocumentRole;
 }
 
 /** Строка реестра для пересборки агрегата: документ пакета + его действие-носитель. */
@@ -109,6 +136,7 @@ export interface SignedDocumentPackageRow {
   hash: string;
   status: SignedDocumentStatus;
   sourceActionData: Record<string, unknown> | null;
+  role: SignedDocumentRole;
 }
 
 /**
@@ -141,6 +169,18 @@ export interface SignedDocumentRepository {
 
   /** Список готовых агрегатов с пагинацией и фильтрами (read-path getDocuments). */
   findAggregates(params: SignedDocumentListParams): Promise<SignedDocumentListResult>;
+
+  /** Пакет заявления, которое перечисляет документ в своих связях (meta.links); иначе null. */
+  findLinkingPackage(coopname: string, docHash: string): Promise<string | null>;
+
+  /**
+   * Соглашения, уже записанные своими пакетами, переводит в пакет заявления,
+   * которое их перечисляет. Число переведённых строк.
+   */
+  attachLinkedAgreements(coopname: string, packageHash: string, docHashes: string[]): Promise<number>;
+
+  /** Число строк журнала с ролями кроме заявления — признак, что журнал уже наполнен. */
+  countParts(coopname: string): Promise<number>;
 }
 
 /** Токен для инъекции зависимости репозитория реестра подписанных документов. */

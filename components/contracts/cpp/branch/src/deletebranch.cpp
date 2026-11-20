@@ -38,7 +38,7 @@
 
   uint64_t new_count = sub_branch_count(coopname);
   
-  if (coop.is_branched && new_count < 3) { //отключаем систему КУ, если их меньше 3
+  if (coop.is_branched && new_count < MIN_BRANCHES_COUNT) { //отключаем систему КУ, если их меньше 3
     action(
         permission_level{ _branch, "active"_n},
         _registrator,

@@ -52,6 +52,7 @@ export * from './registries/get-ledger2-postings-input.dto';
 export * from './registries/processes-filter.input';
 export * from './registries/process-summary.dto';
 export * from './registries/process-view.dto';
+export * from './registries/process-content';
 export * from './dto/require-fields';
 export * from './dto/transaction-result-response.dto';
 export * from './config/config-policy';

@@ -79,4 +79,4 @@ pnpm --filter migrator run test
 
 ## Лицензия
 
-[BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru)
+[MIT](../../LICENSE) — условия лицензий репозитория приведены в файле `LICENSE` в корне.

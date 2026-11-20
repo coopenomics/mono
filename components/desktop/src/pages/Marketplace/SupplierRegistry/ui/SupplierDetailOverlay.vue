@@ -41,6 +41,21 @@ DetailsDrawer(
         :disabled='acting',
         @click='emit("reject", supplier)'
       ) {{ $t('marketplace.supplierDetailOverlay.rejectButton') }}
+
+    //- Действие договора: председатель приостанавливает и возобновляет допуск
+    //- поставщика к работе (решение владельца 19.11.2026).
+    .supplier-detail__actions(v-if='canSuspend')
+      BaseButton(
+        variant='danger',
+        :loading='acting',
+        @click='emit("suspend", supplier)'
+      ) {{ $t('marketplace.supplierDetailOverlay.suspendButton') }}
+    .supplier-detail__actions(v-if='canResume')
+      BaseButton(
+        variant='primary',
+        :loading='acting',
+        @click='emit("resume", supplier)'
+      ) {{ $t('marketplace.supplierDetailOverlay.resumeButton') }}
 </template>
 
 <script setup lang="ts">
@@ -77,6 +92,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   approve: [supplier: MarketplaceSupplierView];
   reject: [supplier: MarketplaceSupplierView];
+  suspend: [supplier: MarketplaceSupplierView];
+  resume: [supplier: MarketplaceSupplierView];
 }>();
 
 const overlay = useQueryOverlay('supplier');
@@ -112,6 +129,10 @@ const contractLabel = computed(() => {
 const canModerate = computed(
   () => !!props.canModerate && supplier.value?.status === 'PENDING',
 );
+
+// GraphQL отдаёт статус именем перечисления (APPROVED, SUSPENDED).
+const canSuspend = computed(() => !!props.canModerate && supplier.value?.status === 'APPROVED');
+const canResume = computed(() => !!props.canModerate && supplier.value?.status === 'SUSPENDED');
 </script>
 
 <style lang="scss" scoped>

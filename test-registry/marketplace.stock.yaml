@@ -72,14 +72,25 @@ title: Обезличенный остаток кооператива — пер
 # гарантийном возврате (feepend, payretfee) сняты. Случаи слайса,
 # описывавшие прежнюю модель, переписаны.
 
+# Правка 2026-11-19 (598-63, пункт 18): карточка «Имущество на складе» в поле
+# «Принял» показывает ФИО принявшего (из шага журнала «Принято на склад») над
+# аккаунтом. Поведение и набор случаев прежние.
+
+# Правка 2026-11-20 (598-63, пункт 17): склад стола администратора показывает
+# пункт выдачи под названием имущества, отдельной колонки нет; стол ПВЗ пункт
+# не показывает. Поведение и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock-proposal.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-convert.service.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1795097639101-inventory-movement.ts
   ui:
     - components/desktop/src/widgets/Marketplace/CoopStockSection/**
     - components/desktop/src/pages/Marketplace/OperatorOwnWarehouse/**
+    - components/desktop/src/widgets/Marketplace/WarehouseArchive/**
+    - components/desktop/src/widgets/Marketplace/InventoryItemDrawer/**
 
 cases:
   - id: mkt.stock.happy.01
@@ -286,6 +297,78 @@ cases:
     # снятие с публикации и списание по упаковке — изнутри.
     test: components/api-tests/src/marketplace/stock.test.ts
     status: written
+
+  # 19.11.2026 (598-63, решение владельца): строка склада открывает карточку
+  # «Имущество на складе», а не предложение; таблица позиций одна на склад ПВЗ
+  # и склад стола администратора (колонка пункта выдачи у администратора).
+  - id: mkt.stock.ui.item-card
+    level: ui
+    kind: side
+    scenario: Оператор ПВЗ или администратор нажимает на строку склада
+    expect: >
+      открывается правая панель «Имущество на складе»: пункт выдачи и место,
+      заказчик, когда и кем принято, основание, срок годности, гарантийный срок
+      возврата, штрих-код; предложение и заказ — кнопками внизу, открываются
+      правой панелью поверх карточки, закрытие панели возвращает к карточке; у
+      оператора — «Привязать этикетку»: наклеенная этикетка сканируется или
+      вводится кодом, код не генерируется; карточка открывается и со страницы
+      раскладки (кнопка на позиции, нажатие на позицию в ячейке, строка бокса)
+    status: missing   # сценарий docs-harness не заведён
+
+  - id: mkt.stock.ui.scan-label
+    level: ui
+    kind: side
+    scenario: Оператор на вкладке «Имущество» или на раскладке нажимает «Сканировать» и считывает этикетку
+    expect: >
+      этикетка, привязанная к позиции участка, открывает карточку этой позиции;
+      непривязанная — отказ с кодом этикетки, окно сканера остаётся открытым;
+      рядом — «Печать этикеток» тем же окном, что на раскладке; на раскладке
+      этикетка бокса открывает содержимое бокса
+    status: missing   # сценарий docs-harness не заведён
+
+  - id: mkt.stock.journal.01
+    level: backend
+    kind: side
+    scenario: Оператор открывает карточку позиции — запрос журнала движения
+    expect: >
+      шаги журнала в порядке времени; исполнитель и участок — именами; место —
+      кодами бокса и ячейки; у выдачи выдавший и получатель — из акта выдачи по
+      заказу, акт читается один раз на заказ; пустой журнал — без чтения актов
+    test: components/controller/tests/unit/marketplace/marketplace-inventory-movements.test.ts
+    api: components/api-tests/src/marketplace/inventory-journal.test.ts
+    status: passing
+
+  - id: mkt.stock.journal.02
+    level: backend
+    kind: side
+    scenario: Позицию принимают, размещают, маркируют, выдают готовым SQL
+    expect: >
+      триггер базы пишет шаг на каждое изменение (приёмка, место, штрих-код,
+      резерв, количество, остаток кооператива, перенос участка, выдача,
+      списание); исполнитель одноразовый — выдача готовым SQL не приписывается
+      оператору прошлого размещения
+    status: missing   # проверено на стенде 4 вручную с откатом транзакции; теста базы нет
+
+  - id: mkt.stock.archive.01
+    level: backend
+    kind: side
+    scenario: Оператор или администратор открывает вкладку «Архив»
+    expect: >
+      выданное и списанное, свежее сверху, постранично (не больше 100 строк);
+      только участки от гарда; без участков — пустая страница без чтения базы
+    test: components/controller/tests/unit/marketplace/marketplace-inventory-movements.test.ts
+    api: components/api-tests/src/marketplace/inventory-journal.test.ts
+    status: passing
+
+  - id: mkt.stock.ui.history
+    level: ui
+    kind: side
+    scenario: В карточке «Имущество на складе» раздел «История»; вкладка «Архив» на складе ПВЗ и стола администратора
+    expect: >
+      лента шагов с исполнителем и временем обновляется по ленте изменений;
+      архив — та же таблица с датой выбытия и кнопкой «Показать ещё», строка
+      открывает ту же карточку с историей
+    status: missing   # сценарий docs-harness не заведён
 
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из

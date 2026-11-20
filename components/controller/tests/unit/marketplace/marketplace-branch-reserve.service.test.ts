@@ -36,7 +36,6 @@ function build(opts: {
   reserves?: Array<{ braname: string; username: string; amount: string; accrued_period?: number; outstanding?: string }>;
   /** Подано за текущий период по зеркалу заявлений узла (колонка «Подано в текущем месяце»). */
   mirrorSubmitted?: Record<string, string>;
-  initiators?: Array<{ braname: string; username: string }>;
   config?: { membership_fee_percent: number; initiator_share_percent?: number; return_share_percent?: number } | null;
   submitted?: Record<string, string>;
   aidPeriod?: number;
@@ -59,7 +58,6 @@ function build(opts: {
     listBranchReserves: jest.fn(async (_coopname: string, braname: string) =>
       (opts.reserves ?? []).map((r, i) => ({ id: i + 1, ...r })).filter((r: any) => r.braname === braname)
     ),
-    getInitiator: jest.fn(async (_coopname: string, braname: string) => (opts.initiators ?? []).find((r: any) => r.braname === braname) ?? null),
     getUserWallet: jest.fn(async (_coopname: string, walletName: string, username: string) =>
       [
         { username: 'investor', wallet_name: 'w.mkt.invest', available: '31447.5900 RUB' },
@@ -70,7 +68,6 @@ function build(opts: {
     setRetShare: jest.fn(async () => ({})),
     setAidLimit: jest.fn(async () => ({})),
     setAidPeriod: jest.fn(async () => ({})),
-    setInitiator: jest.fn(async () => ({})),
     setReserve: jest.fn(async () => ({})),
     deleteReserve: jest.fn(async () => ({})),
   };
@@ -81,7 +78,6 @@ function build(opts: {
   };
   const kuChairman = {
     isMemberOfBranch: jest.fn(async (_c: string, _b: string, u: string) => (opts.trusted ?? ['chairkrg', 'oper1']).includes(u)),
-    getTrusteeOfBranch: jest.fn(async () => 'chairkrg'),
   };
   // Накопитель контракта branch::aidmonths: месяц — год × 12 + месяц по UTC.
   Object.assign(chainPort, {
@@ -150,15 +146,6 @@ describe('mkt.order.keu.10 — настройки экономики для ад
     expect(await service.setAidLimit(COOP, 150000)).toBe('150000.0000 RUB');
     expect(chainPort.setAidLimit).toHaveBeenCalledWith({ coopname: COOP, limit: '150000.0000 RUB' });
     await expect(service.setAidLimit(COOP, -1)).rejects.toMatchObject({ code: 'MARKETPLACE_AID_LIMIT_INVALID' });
-  });
-
-  it('инициатор участка: назначенный, иначе председатель; снятие — пустым именем', async () => {
-    const assigned = build({ initiators: [{ braname: 'krg', username: 'investor' }] });
-    expect(await assigned.service.getBranchInitiator(COOP, 'krg')).toEqual({ username: 'investor', assigned: true, invest_balance: '31447.5900 RUB' });
-    const byChair = build();
-    expect(await byChair.service.getBranchInitiator(COOP, 'krg')).toEqual({ username: 'chairkrg', assigned: false, invest_balance: '0.0000 RUB' });
-    await byChair.service.setBranchInitiator(COOP, 'krg', null);
-    expect(byChair.chainPort.setInitiator).toHaveBeenCalledWith({ coopname: COOP, braname: 'krg', username: '' });
   });
 });
 

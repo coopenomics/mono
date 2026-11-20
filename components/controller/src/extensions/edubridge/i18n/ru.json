@@ -243,6 +243,57 @@
           "queueManage": "Повтор задач очереди доступа и отметка удалённых аккаунтов"
         }
       }
+    },
+    "processContent": {
+      "access": {
+        "untitled": "Курс",
+        "amountLabel": "Внесено за курс",
+        "member": "Ученик",
+        "paidMonths": "Оплачено месяцев",
+        "paidUntil": "Доступ оплачен до",
+        "joinedAt": "Подписка оформлена",
+        "cancelledAt": "Подписка отменена",
+        "refunded": "Возвращено",
+        "refundReason": "Причина возврата"
+      },
+      "rid": {
+        "untitled": "Результат интеллектуальной деятельности",
+        "amountLabel": "Оценка результата",
+        "teacher": "Преподаватель",
+        "holdUntil": "Удержание до",
+        "decidedAt": "Совет решил",
+        "declineReason": "Причина отказа"
+      },
+      "teach": {
+        "title": "Договор преподавателя № {number}",
+        "teacher": "Преподаватель",
+        "hourlyRate": "Ставка часа",
+        "approvedAt": "Совет одобрил",
+        "signedAt": "Договор подписан",
+        "declineReason": "Причина отказа"
+      },
+      "accessStatus": {
+        "pending": "Ожидает оплаты",
+        "active": "Доступ открыт",
+        "expired": "Срок доступа истёк",
+        "revoked": "Доступ отозван",
+        "cancelled": "Подписка отменена"
+      },
+      "ridStatus": {
+        "draft": "Черновик",
+        "held": "Удерживается до проверки",
+        "submitted": "На решении совета",
+        "council_approved": "Совет принял",
+        "declined": "Совет отказал",
+        "accepted": "Принят",
+        "act_signed": "Акт подписан"
+      },
+      "teachStatus": {
+        "pending_approval": "На одобрении совета",
+        "active": "Действует",
+        "declined": "Отклонён",
+        "terminated": "Расторгнут"
+      }
     }
   },
   "errors": {

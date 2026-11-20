@@ -3,6 +3,7 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
 const rawSupplierPaymentSettingsSelector = {
   payout_method_id: true,
+  resolved_method_id: true,
   has_payout_method: true,
   payout_destination: true,
 }

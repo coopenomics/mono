@@ -23,6 +23,7 @@ void registrator::decparticpnt(eosio::name coopname, eosio::name username)
       cooperatives.modify(coop_itr, RamPayer::of(cooperatives, coopname), [&](auto &coop) {
         coop.active_participants_count = coop.active_participants_count.value() - 1;
       });
+      sync_branched(cooperatives, coop_itr);
     }
   }
 } 

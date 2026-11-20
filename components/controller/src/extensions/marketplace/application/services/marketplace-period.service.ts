@@ -364,7 +364,6 @@ export class MarketplacePeriodService {
       rate_funds: String(row.rate_funds),
       rate_initiator: String(row.rate_initiator),
       rate_social: String(row.rate_social ?? 0),
-      initiator: String(row.initiator),
       rows_total: rowsTotal,
       rows_charged: 0,
       // time_point_sec цепи приходит без признака пояса — это UTC.

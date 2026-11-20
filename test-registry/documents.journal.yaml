@@ -1,0 +1,98 @@
+feature: documents.journal
+title: Журнал документов — строка на каждый подписанный документ
+
+# Решение владельца 18.11.2026: реестр документов узла строится не только по
+# событиям make_complete_document. Узел пишет строку на каждый подписанный
+# документ — заявление, решение совета, акт, связанный документ, соглашение — с
+# ролью, пакетом процесса и датой подписи (время блока). Пакетный вид узел строит
+# по строкам заявлений, плоский показывает каждый документ. Соглашение, которое
+# заявление перечисляет в meta.links (вступление), реестр записывает в пакет
+# заявления при любом порядке событий; соглашение, подписанное действующим
+# пайщиком отдельно, остаётся своим пакетом. Название строки — по типу документа
+# из реестра шаблонов фабрики. Пакеты строк, записанных раньше, не меняются.
+
+sources:
+  backend:
+    - components/controller/src/application/signed-documents/services/signed-document-ingestion.service.ts
+    - components/controller/src/application/signed-documents/services/signed-document-backfill.service.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/signed-document.kysely-repository.ts
+    - components/controller/src/domain/document/repository/signed-document.repository.ts
+    - components/controller/src/domain/document/services/document-title.ts
+    - components/controller/src/application/document/interactors/document.interactor.ts
+    - components/controller/src/infrastructure/database/migrations/1794992888820-signed-document-journal.ts
+  ui:
+    - components/desktop/src/widgets/Cooperative/Documents/ListOfDocuments/ui/ListOfDocumentsWidget.vue
+    - components/desktop/src/widgets/Cooperative/Documents/ListOfDocuments/ui/DocumentCardsList.vue
+    - components/desktop/src/entities/Document/model/store.ts
+
+cases:
+  - id: documents.journal.01
+    level: backend
+    kind: happy
+    scenario: Совет открывает реестр документов в пакетном и в плоском виде
+    expect: пакетный вид — строки заявлений; плоский — каждый подписанный документ, включая решения, акты и связи
+    test: components/controller/tests/unit/document/signed-document-journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.02
+    level: backend
+    kind: happy
+    scenario: Строки реестра показывают название и дату
+    expect: название по типу документа из реестра шаблонов (незнакомый тип — название из документа); дата подписи — время блока; документ без метаданных в цепи (заглушка наборов boot) типа не имеет, его внешний набор не проверяет
+    test: components/controller/tests/unit/document/signed-document-journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.03
+    level: backend
+    kind: side
+    scenario: Совет задаёт период по дате подписи
+    expect: выдача только документов, подписанных в периоде; период в будущем — пусто
+    test: components/api-tests/src/documents/journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.04
+    level: backend
+    kind: side
+    scenario: Совет выбирает тип документа
+    expect: выдача только документов этого типа
+    test: components/api-tests/src/documents/journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.05
+    level: backend
+    kind: break
+    scenario: Пайщик открывает реестр своих документов в пакетном и плоском виде
+    expect: только его документы — субъект либо подписант; чужие строки не выдаются ни в одном виде
+    test: components/api-tests/src/documents/journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.06
+    level: backend
+    kind: side
+    scenario: Вступление — заявление перечисляет соглашения в meta.links; события заявления и соглашений идут в любом порядке
+    expect: соглашения в пакете заявления с ролью «соглашение», отдельных пакетов нет; соглашение действующего пайщика без заявления — свой пакет
+    test: components/controller/tests/unit/document/signed-document-journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.07
+    level: backend
+    kind: side
+    scenario: Акт или связь процесса — тот же документ, что заявление другого процесса; повтор события той же версии
+    expect: строка заявления не перетирается; повтор не меняет строку
+    test: components/controller/tests/unit/document/signed-document-journal.test.ts
+    api: components/api-tests/src/documents/journal.test.ts
+    status: passing
+
+  - id: documents.journal.08
+    level: ui
+    kind: happy
+    scenario: Совет переключает «Пакеты / Документы», задаёт период подписи и тип документа
+    expect: реестр перечитывается с первой страницы; у строки — название по типу и дата подписи; на реестре пайщика панели нет, вид — пакеты
+    status: missing
+    decision_needed: false

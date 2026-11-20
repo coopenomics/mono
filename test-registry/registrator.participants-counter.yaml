@@ -14,6 +14,13 @@ title: Счётчик активных пайщиков и минимальны�
 # ранних пайщиков с кооперативного кошелька w.sov.mnused на личные строки
 # w.reg.minshr (ledger2::migrate), без проводок. Без личной строки выход
 # (registrator::confirmexit) минимальный взнос не возвращал.
+#
+# Слово владельца 18.11.2026: мажоритарная система управления (флаг
+# coops.is_branched) включается, когда кооперативных участков не меньше трёх и
+# активных пайщиков не меньше ста. Регистратор пересчитывает флаг при каждом
+# изменении счётчика пайщиков и по сигналу контракта участков
+# (enabranches/disbranches). Проверка мягкая: действие не отклоняется. Тестовая
+# сборка порога пайщиков не имеет — флаг следует числу участков.
 
 sources:
   contract:
@@ -24,6 +31,9 @@ sources:
     - components/contracts/cpp/soviet/src/participant/block.cpp
     - components/contracts/cpp/soviet/src/system/migrate.cpp
     - components/contracts/cpp/ledger2/src/migrate/migrate.cpp
+    - components/contracts/cpp/registrator/src/coop/sync_branched.hpp
+    - components/contracts/cpp/registrator/src/coop/enabranches.cpp
+    - components/contracts/cpp/registrator/src/coop/disbranches.cpp
 
 cases:
   - id: counter.happy.01
@@ -79,3 +89,21 @@ cases:
       Состояние w.sov.mnused на стенде не воспроизводится: ни одна операция на
       этот кошелёк не пишет, он заведён только миграцией боевого ВОСХОДа.
       Проверяется чтением боевой цепи после раскатки.
+  - id: branched.side.01
+    level: contract
+    kind: side
+    scenario: Председатель блокирует и разблокирует пайщика на тестовой сборке.
+    expect: Флаг мажоритарной системы равен условию «участков не меньше трёх»; порога пайщиков в тестовой сборке нет.
+    test: components/boot/src/tests/participants-counter.test.ts
+    status: written
+  - id: branched.side.02
+    level: contract
+    kind: side
+    scenario: Кооператив на боевой сборке учреждает третий участок при числе активных пайщиков меньше ста, затем принимает сотого пайщика.
+    expect: Третий участок флаг не включает; приём сотого пайщика включает; блокировка до 99 пайщиков выключает.
+    test: ~
+    status: missing
+    note: >
+      Порог 100 действует только в боевой сборке (IS_TESTNET выключен); стенды и
+      CI работают на тестовой сборке, где порог 0. Сто пайщиков на стенде не
+      воспроизводятся.

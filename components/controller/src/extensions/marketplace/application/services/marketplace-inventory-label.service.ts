@@ -112,7 +112,7 @@ export class MarketplaceInventoryLabelService {
       container_id: input.container_id ?? null,
       cell_id: input.cell_id ?? null,
     });
-    const updated = await this.inventoryRepo.assignPlacement(item.id, placement);
+    const updated = await this.inventoryRepo.assignPlacement(item.id, placement, input.operator_account);
     return { inventory: [updated] };
   }
 
@@ -333,7 +333,7 @@ export class MarketplaceInventoryLabelService {
     if (item.status !== MarketplaceInventoryStatuses.LABELED) {
       throw DomainError.conflict('MARKETPLACE_BARCODE_REMOVE_WRONG_STATUS', { status: item.status });
     }
-    const updated = await this.inventoryRepo.clearLabel(item.id);
+    const updated = await this.inventoryRepo.clearLabel(item.id, input.operator_account);
     this.logger.log(`Inventory: штрих-код снят с позиции ${item.id} (переклейка).`);
     return { inventory: [updated] };
   }

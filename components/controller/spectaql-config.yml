@@ -16,8 +16,8 @@ info:
     email: support@coopenomics.world
     # url: https://yoursite.com/support
   license:
-    name: BY-NC-SA 4.0
-    url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru'
+    name: MIT
+    url: 'https://github.com/coopenomics/mono/blob/main/components/controller/LICENSE'
 
   # x-introItems:
   # Can be a Title (for the Nav panel) + URL to simply add a link to somewhere

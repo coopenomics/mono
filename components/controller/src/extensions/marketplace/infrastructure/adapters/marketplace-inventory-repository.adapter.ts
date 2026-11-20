@@ -18,6 +18,7 @@ import type {
   MarketplaceInventoryDomainRepository,
   MarketplaceInventoryLabelPatch,
   MarketplaceInventoryListFilter,
+  MarketplaceInventoryMovement,
   MarketplaceWriteoffCandidate,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { MarketplaceUnitsOfMeasure } from '../../domain/entities/marketplace-offer.types';
@@ -69,6 +70,7 @@ private readonly repo: TableStore<MarketplaceInventoryEntity>,
       received_by_operator_account: input.received_by_operator_account,
       labeled_at: input.labeled_at ?? null,
       labeled_by_operator_account: input.labeled_by_operator_account ?? null,
+      last_actor_account: null,
       expiry_date: input.expiry_date ?? null,
       ownership: input.ownership ?? MarketplaceInventoryOwnerships.ORDER,
       origin: input.origin ?? 'RECEPTION',
@@ -246,14 +248,57 @@ private readonly repo: TableStore<MarketplaceInventoryEntity>,
 
   async assignPlacement(
     id: string,
-    placement: MarketplaceInventoryPlacement
+    placement: MarketplaceInventoryPlacement,
+    actor: string | null = null
   ): Promise<MarketplaceInventoryDomainEntity> {
     await this.repo.update(
       { id },
-      { cell_id: placement.cell_id, container_id: placement.container_id }
+      { cell_id: placement.cell_id, container_id: placement.container_id, last_actor_account: actor }
     );
     const row = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(row);
+  }
+
+  async listMovements(coopname: string, inventory_id: string): Promise<MarketplaceInventoryMovement[]> {
+    const rows = await this.repo.kysely
+      .selectFrom('marketplace_inventory_movement')
+      .selectAll()
+      .where('coopname', '=', coopname)
+      .where('inventory_id', '=', inventory_id)
+      .orderBy('at', 'asc')
+      .orderBy('id', 'asc')
+      .execute();
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      inventory_id: String(r.inventory_id),
+      kind: String(r.kind),
+      status: r.status ?? null,
+      braname: r.braname ?? null,
+      container_id: r.container_id ?? null,
+      cell_id: r.cell_id ?? null,
+      quantity: r.quantity == null ? null : Number(r.quantity),
+      barcode_value: r.barcode_value ?? null,
+      order_id: r.order_id ?? null,
+      actor_account: r.actor_account ?? null,
+      at: new Date(r.at),
+    }));
+  }
+
+  async listArchive(
+    filter: { coopname: string; braname?: string | string[] },
+    page: { limit: number; offset: number }
+  ): Promise<{ items: MarketplaceInventoryDomainEntity[]; totalCount: number }> {
+    const where: Record<string, unknown> = {
+      coopname: filter.coopname,
+      status: oneOf([MarketplaceInventoryStatuses.ISSUED, MarketplaceInventoryStatuses.WRITTEN_OFF]),
+    };
+    if (filter.braname) where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
+    const [rows, totalCount] = await this.repo.findAndCount(where, {
+      order: { updated_at: 'DESC', id: 'DESC' },
+      limit: page.limit,
+      offset: page.offset,
+    });
+    return { items: rows.map((r) => this.mapper.toDomain(r)), totalCount };
   }
 
   async countOnWarehouseByCell(coopname: string, cell_id: string): Promise<number> {
@@ -290,10 +335,11 @@ private readonly repo: TableStore<MarketplaceInventoryEntity>,
     return this.mapper.toDomain(row);
   }
 
-  async clearLabel(id: string): Promise<MarketplaceInventoryDomainEntity> {
+  async clearLabel(id: string, actor: string | null = null): Promise<MarketplaceInventoryDomainEntity> {
     await this.repo.update(
       { id },
       {
+        last_actor_account: actor,
         barcode_value: null,
         barcode_format: null,
         labeled_at: null,
@@ -577,6 +623,7 @@ private readonly repo: TableStore<MarketplaceInventoryEntity>,
       received_by_operator_account: row.received_by_operator_account,
       labeled_at: null,
       labeled_by_operator_account: null,
+      last_actor_account: null,
       expiry_date: row.expiry_date,
       ownership: MarketplaceInventoryOwnerships.COOP,
       arrival_price: row.arrival_price ?? arrival_price,

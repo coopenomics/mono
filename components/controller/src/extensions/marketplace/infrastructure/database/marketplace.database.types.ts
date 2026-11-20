@@ -102,7 +102,6 @@ export interface MarketplaceBranchPeriod {
   deleted_at: Timestamp | null;
   expenses: Generated<Numeric>;
   funds_amount: Generated<Numeric>;
-  initiator: Generated<string>;
   initiator_amount: Generated<Numeric>;
   invest_phase: Generated<string>;
   investor_repaid: Generated<Numeric>;
@@ -223,6 +222,7 @@ export interface MarketplaceInventory {
   id: Generated<string>;
   labeled_at: Timestamp | null;
   labeled_by_operator_account: string | null;
+  last_actor_account: string | null;
   order_id: string;
   orderer_account_snapshot: string;
   origin: Generated<string>;
@@ -240,6 +240,22 @@ export interface MarketplaceInventory {
   status: string;
   unit_of_measure: Generated<string>;
   updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceInventoryMovement {
+  actor_account: string | null;
+  at: Generated<Timestamp>;
+  barcode_value: string | null;
+  braname: string | null;
+  cell_id: string | null;
+  container_id: string | null;
+  coopname: string;
+  id: Generated<Int8>;
+  inventory_id: string;
+  kind: string;
+  order_id: string | null;
+  quantity: number | null;
+  status: string | null;
 }
 
 export interface MarketplaceIssuanceSaga {
@@ -387,19 +403,19 @@ export interface MarketplaceOrder {
 
 export interface MarketplaceOutgoingPaymentRequest {
   amount: Numeric;
-  apl_reception_id: string;
   completed_at: Timestamp | null;
   coopname: string;
   core_payment_id: string | null;
   created_at: Generated<Timestamp>;
   decline_reason: string | null;
   id: Generated<string>;
-  order_hash: string;
-  order_id: string;
+  lines: Generated<Json>;
   payee_account: string;
+  payment_hash: string;
   payout_destination: string | null;
   payout_tx_hash: string | null;
   purpose: string;
+  settled_at: Timestamp | null;
   status: string;
   symbol: string;
   updated_at: Generated<Timestamp>;
@@ -662,6 +678,7 @@ export interface DB {
   marketplace_container_type: MarketplaceContainerType;
   marketplace_handoff_code: MarketplaceHandoffCode;
   marketplace_inventory: MarketplaceInventory;
+  marketplace_inventory_movement: MarketplaceInventoryMovement;
   marketplace_issuance_saga: MarketplaceIssuanceSaga;
   marketplace_ku_details: MarketplaceKuDetails;
   marketplace_moderation_log: MarketplaceModerationLog;

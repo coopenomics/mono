@@ -33,7 +33,7 @@ private readonly repo: TableStore<MarketplaceStockProposalEntity>,
       member_account: input.member_account,
       operator_account: input.operator_account,
       items: input.items,
-      status: MarketplaceStockProposalStatuses.PROPOSED,
+      status: input.status ?? MarketplaceStockProposalStatuses.PROPOSED,
       created_order_ids: [],
       resolved_at: null,
     });
@@ -54,11 +54,23 @@ private readonly repo: TableStore<MarketplaceStockProposalEntity>,
     if (filter.braname) {
       where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
     }
-    if (filter.status) {
-      where.status = Array.isArray(filter.status) ? oneOf(filter.status) : filter.status;
-    }
+    // Подготовка предложения — внутреннее состояние узла: в выборки не попадает.
+    const visible: MarketplaceStockProposalStatus[] = (Object.values(MarketplaceStockProposalStatuses) as MarketplaceStockProposalStatus[]).filter(
+      (status) => status !== MarketplaceStockProposalStatuses.PREPARING
+    );
+    const requested = filter.status ? (Array.isArray(filter.status) ? filter.status : [filter.status]) : visible;
+    where.status = oneOf(requested.filter((status) => visible.includes(status)));
     const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async publish(id: string): Promise<MarketplaceStockProposalDomainEntity | null> {
+    const res = await this.repo.update(
+      { id, status: MarketplaceStockProposalStatuses.PREPARING },
+      { status: MarketplaceStockProposalStatuses.PROPOSED }
+    );
+    if (!res) return null;
+    return this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
   }
 
   async applyResolution(

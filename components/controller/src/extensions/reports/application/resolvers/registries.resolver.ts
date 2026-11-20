@@ -16,6 +16,8 @@ import {
   ProcessesFilterInput,
   RequireRight,
   RightsGuard,
+  ProcessContentDTO,
+  processContentRegistry,
 } from '@coopenomics/extension-kit';
 import { ReportsParticipantDTO, ReportsParticipantWalletDTO, ReportsSubjectDTO } from '../dto/registries.dto';
 import { ReportsRegistriesService } from '../services/registries.service';
@@ -64,6 +66,21 @@ export class ReportsRegistriesResolver {
     @Args('coopname', { type: () => String }) coopname: string
   ): Promise<ProcessViewDTO> {
     return this.registries.process(hash, coopname);
+  }
+
+  @Query(() => ProcessContentDTO, {
+    name: 'reportsProcessContent',
+    nullable: true,
+    description: 'Стол бухгалтера: содержание процесса — имущество, стороны, суммы, состояние',
+  })
+  @RequireRight('Registry', 'read')
+  async reportsProcessContent(
+    @Args('hash', { type: () => String }) hash: string,
+    @Args('coopname', { type: () => String }) coopname: string,
+    @Args('process_type', { type: () => String }) processType: string
+  ): Promise<ProcessContentDTO | null> {
+    // Содержание описывает приложение процесса; иначе общее — из сводки процесса.
+    return processContentRegistry.describe(hash, coopname, processType);
   }
 
   @Query(() => PaginatedProcessSummary, { name: 'reportsProcesses', description: 'Стол бухгалтера: реестр процессов' })

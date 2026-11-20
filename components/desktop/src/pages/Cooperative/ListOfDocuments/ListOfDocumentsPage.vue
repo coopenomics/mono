@@ -5,7 +5,7 @@
 //- Активная вкладка задаётся явно: маршрут шаблонов вложен в маршрут реестра,
 //- и по `route.matched` таб «Документы» считал бы себя активным вместе с
 //- «Шаблонами» — подсвечивались оба, а клик по «Документам» глотался.
-PageTabs(v-if='showTabs', :tabs='tabs', :active-key='isTemplates ? "templates" : "documents"', hoist)
+PageTabs(v-if='showTabs', :tabs='tabs', :active-key='activeTab', hoist)
 //- Родитель реестра: деталь документа и вкладка шаблонов — child
 //- (подсветка «Реестр документов» в matched).
 router-view(v-if='!isDocumentsRoot', @changed='loadAttention')
@@ -14,7 +14,8 @@ q-page.documents-page(v-else)
     :username='coopname',
     :filter='{}',
     :showFilter='false',
-    :initialDocumentType='typeForToggle'
+    :initialDocumentType='typeForToggle',
+    journal
   )
 </template>
 
@@ -22,6 +23,7 @@ q-page.documents-page(v-else)
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
+import { useDesktopStore } from 'src/entities/Desktop/model';
 import { ListOfDocumentsWidget } from 'src/widgets/Cooperative/Documents/ListOfDocuments/ui';
 import { SearchHeaderAction } from 'src/features/DocumentSearch';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -37,7 +39,15 @@ const { info } = system;
 const coopname = computed(() => info.coopname);
 const isDocumentsRoot = computed(() => route.name === 'documents');
 const isTemplates = computed(() => route.name === 'document-templates');
-const showTabs = computed(() => isDocumentsRoot.value || isTemplates.value);
+const isPowersOfAttorney = computed(() => route.name === 'document-powers-of-attorney');
+const showTabs = computed(() => isDocumentsRoot.value || isTemplates.value || isPowersOfAttorney.value);
+const activeTab = computed(() => (isTemplates.value ? 'templates' : isPowersOfAttorney.value ? 'powers' : 'documents'));
+
+// Вкладка доверенностей — при праве на реестр доверенностей (расширение участков).
+const desktop = useDesktopStore();
+const canSeePowersOfAttorney = computed(() =>
+  (desktop.currentDesktop?.workspaces ?? []).some((ws) => desktop.hasGrant(ws.name, 'KuAuthority:read:all')),
+);
 
 // Счётчик на вкладке шаблонов: документы, ждущие решения совета. Считает
 // сервер, чтобы вкладку не забывали, пока есть неутверждённые редакции.
@@ -56,6 +66,9 @@ useLiveReload(DOCUMENT_TEMPLATES_LIVE_TABLES, loadAttention);
 
 const tabs = computed((): PageTab[] => [
   { key: 'documents', label: t('cooperative.listOfDocumentsPage.documentsTab'), routeName: 'documents' },
+  ...(canSeePowersOfAttorney.value
+    ? [{ key: 'powers', label: t('cooperative.listOfDocumentsPage.powersOfAttorneyTab'), routeName: 'document-powers-of-attorney' }]
+    : []),
   { key: 'templates', label: t('cooperative.listOfDocumentsPage.templatesTab'), routeName: 'document-templates', count: attention.value || undefined },
 ]);
 // «Все входящие» (newsubmitted) → status не ограничивается → совет видит ВСЕ документы кооператива

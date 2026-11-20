@@ -30,8 +30,7 @@
         "active": "Активный",
         "passive": "Пассивный"
       },
-      "toAccountOperationsLabel": "К операциям счёта",
-      "toOperationLabel": "К операции"
+      "toAccountOperationsLabel": "К операциям счёта"
     },
     "buhotchEditor": {
       "addressLabel": "Адрес места нахождения",
@@ -121,7 +120,6 @@
       "emptyLabel": "Кошельки не найдены",
       "movementsEmptyLabel": "Движений нет",
       "movementsTitle": "Движения по кошельку",
-      "toOperationLabel": "К операции",
       "toOperationsLabel": "К операциям",
       "transferFromLabel": "Перевести с этого кошелька"
     },
@@ -129,6 +127,7 @@
       "accountLabel": "Счёт",
       "availableLabel": "Остаток фонда",
       "branchMeta": "участок {branch}",
+      "branchNamedMeta": "участок «{name}» ({branch})",
       "branchesAvailableLabel": "Средства участков",
       "branchesLine": "в том числе средства участков {amount} · кошелёк {wallet}",
       "branchesWalletLabel": "Кошелёк средств участков",
@@ -280,7 +279,8 @@
         "settingsTitle": "Реквизиты",
         "walletsCoopTitle": "Кооператив",
         "walletsParticipantsTitle": "Пайщики",
-        "walletsTitle": "Реестр кошельков"
+        "walletsTitle": "Реестр кошельков",
+        "processTitle": "Процесс"
       },
       "title": "Стол бухгалтера"
     },
@@ -400,7 +400,6 @@
       "participantLabel": "Пайщик: {name}",
       "postingsEmptyLabel": "Проводок нет",
       "postingsTitle": "Проводки по счетам",
-      "processContentTitle": "Содержание процесса",
       "processIdLabel": "ID процесса:",
       "processTypeLabel": "Тип процесса:",
       "resetLabel": "Сбросить",
@@ -449,8 +448,7 @@
       "openProcessLabel": "Открыть процесс в реестре процессов",
       "participantLabel": "Пайщик: {name}",
       "resetLabel": "Сбросить",
-      "searchLabel": "Поиск (№ проводки / операции / процесса)",
-      "toOperationLabel": "К операции"
+      "searchLabel": "Поиск (№ проводки / операции / процесса)"
     },
     "processesPage": {
       "chip": {
@@ -461,7 +459,7 @@
         "amount": "Сумма",
         "createdAt": "Создан",
         "lastEvent": "Последнее событие",
-        "participant": "Пайщик",
+        "participant": "Пайщик или участок",
         "processType": "Тип процесса"
       },
       "copyError": "Не удалось скопировать",
@@ -477,7 +475,8 @@
       "subjectType": {
         "branch": "Участок",
         "participant": "Пайщик"
-      }
+      },
+      "openFullPageButton": "На всю страницу"
     },
     "reportEditorDialog": {
       "actionsLabel": "Действия",
@@ -751,6 +750,19 @@
         "chairman": "1 — руководитель",
         "representative": "2 — уполномоченный представитель"
       }
+    },
+    "processPage": {
+      "backToRegistry": "К реестру процессов"
+    },
+    "operationDetails": {
+      "amountLabel": "Сумма операции",
+      "postingTitle": "Проводка",
+      "noPosting": "Без проводки: движение по кошелькам внутри одного счёта",
+      "processTitle": "Процесс: {name}",
+      "date": "Дата",
+      "number": "№ операции",
+      "code": "Код операции",
+      "memo": "Назначение"
     }
   }
 }

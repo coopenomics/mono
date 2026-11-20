@@ -10,7 +10,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
-import { PageHint } from 'src/shared/ui/domain';
+import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, marketLiveTables } from 'src/shared/lib/marketplace';
@@ -43,6 +44,9 @@ const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
+// «Мои заказы» показывают заказы выбранного пункта выдачи — того же, что в
+// каталоге и корзине (решение владельца 19.11.2026). Пункт не выбран — все заказы.
+const cartStore = useMarketplaceCartStore();
 
 const items = ref<MarketplaceOrderView[]>([]);
 const totalCount = ref(0);
@@ -232,6 +236,7 @@ async function load(page: number, append: boolean): Promise<void> {
   try {
     const result = await fetchMyOrders({
       statuses: activeStatuses.value,
+      delivery_braname: cartStore.currentBraname ?? undefined,
       page,
       limit: PAGE_SIZE,
       sortBy: 'updated_at',
@@ -270,9 +275,22 @@ function goReceive(): void {
   receiveDialogOpen.value = true;
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Пункт выдачи хранит корзина: без неё отбор по участку неизвестен.
+  if (!cartStore.cart) {
+    try {
+      await cartStore.load();
+    } catch {
+      // Корзина недоступна — показываем все заказы пайщика.
+    }
+  }
   void load(1, false);
 });
+
+/** Сменили пункт выдачи в плашке — список перечитывается под новый участок. */
+function onKUChanged(): void {
+  void load(1, false);
+}
 
 // Заказ сменил статус (председатель открыл выдачу → READY_TO_RECEIVE, поставщик
 // принял и т.п.) → персональный ws-сигнал, и список тихо перечитывается, чтобы
@@ -296,7 +314,8 @@ q-page.orders(role="region", :aria-label="$t('marketplace.myOrdersPage.ariaLabel
         q-icon(name="qr_code_2", size="16px")
       | {{ $t('marketplace.myOrdersPage.showQrAction') }}
 
-  PageHint(storage-key="mp:my-orders:banner-dismissed") {{ $t('marketplace.myOrdersPage.bannerHint') }}
+  //- Пункт выдачи — тот же, что в каталоге и корзине: список показывает его заказы.
+  KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 

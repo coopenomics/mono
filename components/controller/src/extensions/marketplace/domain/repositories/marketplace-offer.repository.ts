@@ -27,6 +27,11 @@ export interface OfferListFilter {
    * возит на этот пункт выдачи).
    */
   delivery_braname?: string;
+  /**
+   * Витрина: без предложений поставщиков с приостановленным договором
+   * (решение владельца 19.11.2026). Стол поставщика и администратора видят всё.
+   */
+  without_suspended_suppliers?: boolean;
 }
 
 export interface OfferCreateInput {

@@ -308,7 +308,8 @@ function proposalLines(p: ProposalTask): Array<{ label: string; value: string }>
     { label: t('marketplace.onsiteSignatureGateOverlay.receivedCostLabel'), value: rub(p.total_cost) },
   ];
   if (feePercent.value > 0) {
-    lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.membershipFeeLabel', { percent: feePercent.value }), value: rub(proposalFeeAmount(p)) });
+    // Без процента ставки — как в корзине и на оформлении (решение владельца 19.11.2026).
+    lines.push({ label: t('marketplace.onsiteSignatureGateOverlay.membershipFeeLabel'), value: rub(proposalFeeAmount(p)) });
   }
   // Строки о движении денег скрыты переключателем, описание — в money-flow-lines.ts.
   if (!SHOW_MONEY_FLOW_LINES) return lines;

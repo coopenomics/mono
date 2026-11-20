@@ -165,7 +165,7 @@ export interface MarketplaceCanonicalBlockchainPort {
    * и устанавливает `current_warehouse_braname = accept_braname`.
    *
    * Locked Decision L12 / PR #389: o.mkt.payout вынесен из signchair в
-   * отдельный action `marketplace::payout` (см. метод `payOut`); приёмка
+   * пакет выплаты поставщику (см. `addPayouts` / `closePayouts`); приёмка
    * на КУ закрывает только корреспонденцию 10/86, обязательство 86/51
    * (выплата поставщику) формируется отдельной транзакцией после
    * фактического банковского перевода кассиром.
@@ -176,22 +176,38 @@ export interface MarketplaceCanonicalBlockchainPort {
   signChair(data: MarketContract.Actions.SignChair.ISignChair): Promise<InnerTransactResult>;
 
   /**
-   * E11 техдолг 598-16 / Locked Decision L12: инициация исходящей выплаты
-   * поставщику по одному Order'у через контракт gateway. Триггерит C++
-   * `marketplace::payout` → inline `gateway::createoutpay` — gateway
-   * регистрирует запись в `outcomes` со статусом pending и привязанными
-   * callback'ами `payconfirm` / `paydecline`. Ledger2-операция o.mkt.payout
-   * (Дт 86 / Кт 51) применится позже в callback'е `payconfirm` после
-   * фактического банковского перевода кассиром; backend сам callback не
-   * вызывает — слушает delta через parser2 и обновляет
-   * `marketplace_outgoing_payment_request.status` соответственно.
-   *
-   * `order.payout_status`: NONE/DECLINED → PENDING. Defence-in-depth от
-   * двойной инициации — на уровне C++ guard.
-   *
-   * Авторизация — кооператив (`require_auth(coopname)`).
+   * Пакет выплаты поставщику (решение владельца 19.11.2026): заказы
+   * включаются в пакет `payout_hash` одной транзакцией — по действию
+   * `marketplace::addpayout` на заказ. Сумму пакета и удержание долга считает
+   * контракт. Авторизация — кооператив.
    */
-  payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult>;
+  addPayouts(coopname: string, payout_hash: string, order_hashes: string[]): Promise<InnerTransactResult>;
+
+  /**
+   * Пакет выплаты отправляется кассиру: `marketplace::sendpayout` → inline
+   * `gateway::createoutpay` на сумму пакета. Сумма пакета после этого не
+   * меняется. Авторизация — кооператив.
+   */
+  sendPayout(coopname: string, payout_hash: string): Promise<InnerTransactResult>;
+
+  /**
+   * Заказы оплаченного пакета закрываются одной транзакцией — по действию
+   * `marketplace::closepayout` на заказ (o.mkt.payout, Дт 76 / Кт 51).
+   */
+  closePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult>;
+
+  /**
+   * Заказы отклонённого пакета возвращаются в ожидание выплаты одной
+   * транзакцией — по действию `marketplace::releasepay` на заказ.
+   */
+  releasePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult>;
+
+  /**
+   * Строка пакета выплаты в цепи по хэшу (индекс `byhash`, одна строка);
+   * пакета в цепи нет — `null`. Обход выплат сверяет по ней, что узел разобрал
+   * блок включения заказов, прежде чем отправить пакет кассиру.
+   */
+  getPayout(coopname: string, payout_hash: string): Promise<MarketContract.Tables.Payouts.IPayout | null>;
 
 
 
@@ -323,8 +339,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult>;
   /** Доля пайщиков в экономии месяца — первое деление экономии (`marketplace::setretshare`). */
   setRetShare(data: MarketContract.Actions.SetRetShare.ISetRetShare): Promise<InnerTransactResult>;
-  /** Инициатор участка; пустое имя снимает назначение (marketplace::setinitiator). */
-  setInitiator(data: MarketContract.Actions.SetInitiator.ISetInitiator): Promise<InnerTransactResult>;
   /** Потолок резерва социально-экономического обеспечения на получателя в месяц (branch::setaidlimit). */
   setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult>;
   /** Длина периода предела материальной помощи, секунд; ноль — календарный месяц UTC (стенд ставит длину своего месяца). */
@@ -408,8 +422,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   listMemberDues(coopname: string, username: string): Promise<MarketContract.Tables.Dues.IKuDue[]>;
   /** В цепи есть хоть одна строка счётчика пайщика — счётчики уже ведутся (переходный перенос не нужен). */
   hasAnyDues(coopname: string): Promise<boolean>;
-  /** Назначенный инициатор участка (marketplace::initiators) — по ключу участка; null — не назначен. */
-  getInitiator(coopname: string, braname: string): Promise<MarketContract.Tables.Initiators.IMktInitiator | null>;
   /** Резерв социально-экономического обеспечения участка по получателям (branch::reserves) — по индексу участка. */
   listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]>;
   /** Строки резерва всех участков кооператива (branch::reserves): по строке на получателя, таблица не растёт с историей. */

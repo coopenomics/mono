@@ -402,12 +402,12 @@
   "marketplaceAplReceptionCancelledBySupplier": {
     "description": "Уведомление оператору ПВЗ, который сформировал акт приёмки: поставщик у стойки отказался подписывать и отменил черновик. Нужно повторить приёмку или оформить отказ в приёмке по партии.",
     "inApp": {
-      "body": "{{payload.supplierName}} не подтвердил приёмку на КУ {{payload.kuName}}. Повторите приёмку или оформите отказ в приёмке по партии.",
+      "body": "{{payload.supplierName}} не подтвердил приёмку на {{payload.kuName}}. Повторите приёмку или оформите отказ в приёмке по партии.",
       "subject": "Поставщик отменил приёмку"
     },
     "name": "Поставщик отменил приёмку на ПВЗ",
     "push": {
-      "body": "{{payload.supplierName}} на КУ {{payload.kuName}}: повторите приёмку или оформите отказ.",
+      "body": "{{payload.supplierName}} на {{payload.kuName}}: повторите приёмку или оформите отказ.",
       "subject": "Поставщик отменил приёмку"
     }
   },
@@ -415,22 +415,22 @@
     "description": "Уведомление поставщику о новом акте приёмки экспедитором (вариант Б) — требуется первая подпись поставщика, чтобы оператор смог провести закрывающую подпись.",
     "email": {
       "body": "Уважаемый {{payload.supplierName}}!<br><br>Экспедитор <strong>{{payload.expeditorName}}</strong> сдал партию по ТТН <strong>{{payload.ttnNumber}}</strong> на КУ <strong>{{payload.kuName}}</strong>.<br><br>Чтобы оператор мог завершить приёмку и обеспечить выплату по партии, нужна ваша первая подпись акта приёмки.<br><br>Открыть акт: {{payload.deepLinkUrl}}",
-      "subject": "Требуется ваша подпись акта приёмки на КУ {{payload.kuName}}"
+      "subject": "Требуется ваша подпись акта приёмки на {{payload.kuName}}"
     },
     "inApp": {
-      "body": "Партия по ТТН {{payload.ttnNumber}} принята на КУ {{payload.kuName}}. Подпишите акт, чтобы оператор завершил приёмку.",
+      "body": "Партия по ТТН {{payload.ttnNumber}} принята на {{payload.kuName}}. Подпишите акт, чтобы оператор завершил приёмку.",
       "subject": "Акт приёмки ожидает вашей подписи"
     },
     "name": "Акт приёмки экспедитором ожидает подписи поставщика",
     "push": {
-      "body": "ТТН {{payload.ttnNumber}} на КУ {{payload.kuName}}: требуется ваша подпись.",
+      "body": "ТТН {{payload.ttnNumber}} на {{payload.kuName}}: требуется ваша подпись.",
       "subject": "Акт приёмки ждёт подписи"
     }
   },
   "marketplaceCashierNewPayment": {
-    "description": "Задача кассы о выплате поставщику Стола заказов после закрывающей подписи по акту приёмки: председателю и кассирам.",
+    "description": "Задача кассы о выплате поставщику Стола заказов: один платёж на заказы поставщика за день — председателю и кассирам.",
     "email": {
-      "body": "{{payload.cashierName}}, по акту приёмки {{payload.apl_reception_id}} поставщику <strong>{{payload.supplierName}}</strong> причитается выплата <strong>{{payload.amount}}</strong>.<br><br>Подтвердите банковский перевод в реестре платежей стола кассира: {{payload.deepLinkUrl}}",
+      "body": "{{payload.cashierName}}, поставщику <strong>{{payload.supplierName}}</strong> причитается выплата <strong>{{payload.amount}}</strong> по {{payload.ordersLabel}}.<br><br>Подтвердите банковский перевод в реестре платежей стола кассира: {{payload.deepLinkUrl}}",
       "subject": "Выплата {{payload.amount}} поставщику {{payload.supplierName}}"
     },
     "inApp": {
@@ -447,7 +447,7 @@
     "description": "Уведомление пайщику-заказчику о решении совета по выдаче имущества, принятом после его ухода с пункта выдачи.",
     "email": {
       "body": "Уважаемый {{payload.ordererName}}!<br><br>{{payload.outcomeText}}<br><br>{{payload.nextStepText}}<br><br>Заказ: <strong>{{payload.order_id}}</strong>, участок <strong>{{payload.kuName}}</strong>.<br><br>Открыть заказ: {{payload.deepLinkUrl}}",
-      "subject": "Решение совета по вашему заказу на КУ {{payload.kuName}}"
+      "subject": "Решение совета по вашему заказу на {{payload.kuName}}"
     },
     "inApp": {
       "body": "{{payload.outcomeText}} {{payload.nextStepText}}",
@@ -542,29 +542,29 @@
       "subject": "Поставщик отклонил ваш заказ «{{payload.productName}}»"
     },
     "inApp": {
-      "body": "КУ {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}. Средства возвращены.",
+      "body": "{{payload.kuName}}. Причина: {{payload.reasonExcerpt}}. Средства возвращены.",
       "subject": "Поставщик отклонил заказ «{{payload.productName}}»"
     },
     "name": "Заказ отклонён поставщиком",
     "push": {
-      "body": "Поставщик отклонил заказ на КУ {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}",
+      "body": "Поставщик отклонил заказ на {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}",
       "subject": "Заказ «{{payload.productName}}» отклонён"
     }
   },
   "marketplaceOrderReady": {
-    "description": "Уведомление пайщику-заказчику о том, что его заказ принят кооперативом и готов к получению на кооперативном участке.",
+    "description": "Уведомление пайщику-заказчику: оператор кооперативного участка пригласил его за имуществом заказа. Отправляется по каждой позиции отдельно и только по кнопке оператора «Пригласить на выдачу»; при выдаче у стойки уведомления нет.",
     "email": {
-      "body": "Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.passportReminder}}<br><br>Подробности заказа: {{payload.deepLinkUrl}}",
-      "subject": "Ваш заказ готов к получению на КУ {{payload.kuName}}"
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>Имущество <strong>«{{payload.productName}}»</strong> готово к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.workingHoursNote}}{{payload.passportReminder}}<br><br>Заказ: {{payload.deepLinkUrl}}",
+      "subject": "«{{payload.productName}}» готово к получению на {{payload.kuName}}"
     },
     "inApp": {
-      "body": "Ваш заказ на КУ {{payload.kuName}} ждёт получения — приходите на пункт выдачи.{{payload.passportReminder}}",
-      "subject": "Заказ готов к получению"
+      "body": "«{{payload.productName}}» ждёт вас на пункте выдачи {{payload.kuName}}.{{payload.workingHoursNote}}{{payload.passportReminder}}",
+      "subject": "Имущество готово к получению"
     },
-    "name": "Заказ готов к получению",
+    "name": "Имущество готово к получению",
     "push": {
-      "body": "Ваш заказ на КУ {{payload.kuName}} ждёт вас на пункте выдачи.{{payload.passportReminder}}",
-      "subject": "Заказ готов к получению"
+      "body": "«{{payload.productName}}» ждёт вас на пункте выдачи {{payload.kuName}}.{{payload.workingHoursNote}}{{payload.passportReminder}}",
+      "subject": "Имущество готово к получению"
     }
   },
   "marketplaceReturnClaimDecided": {
@@ -664,34 +664,34 @@
     }
   },
   "marketplaceSupplierPaymentConfirmed": {
-    "description": "Уведомление поставщику о подтверждённой кассиром выплате — банковский перевод выполнен, обязательство по акту приёмки закрыто.",
+    "description": "Уведомление поставщику о подтверждённой кассиром выплате — банковский перевод выполнен, обязательство по заказам выплаты закрыто.",
     "email": {
-      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир подтвердил выплату по акту приёмки <strong>{{payload.apl_reception_id}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Номер платёжного поручения: {{payload.paymentReference}}.<br><br>История выплат: {{payload.deepLinkUrl}}",
-      "subject": "Выплата по акту приёмки {{payload.apl_reception_id}} подтверждена"
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кооператив перечислил вам <strong>{{payload.amount}}</strong> за {{payload.itemName}}{% if payload.quantity %}, {{payload.quantity}}{% endif %}{% if payload.actDate %}, по акту приёмки от {{payload.actDate}}{% endif %}.<br><br>История выплат: {{payload.deepLinkUrl}}",
+      "subject": "Оплата поставки: {{payload.amount}}"
     },
     "inApp": {
-      "body": "Кассир подтвердил выплату {{payload.amount}} по акту приёмки {{payload.apl_reception_id}}. Платёжное поручение: {{payload.paymentReference}}.",
+      "body": "Кооператив перечислил {{payload.amount}} за {{payload.itemName}}{% if payload.quantity %}, {{payload.quantity}}{% endif %}{% if payload.actDate %}, по акту приёмки от {{payload.actDate}}{% endif %}.",
       "subject": "Выплата подтверждена"
     },
     "name": "Выплата поставщику подтверждена кассиром",
     "push": {
-      "body": "{{payload.amount}} по акту {{payload.apl_reception_id}}.",
+      "body": "{{payload.amount}} по {{payload.ordersLabel}}.",
       "subject": "Выплата получена"
     }
   },
   "marketplaceSupplierPaymentDeclined": {
-    "description": "Уведомление поставщику об отказе кассира провести банковский перевод по акту приёмки — обязательство кооператива остаётся открытым, требуется уточнение реквизитов.",
+    "description": "Уведомление поставщику об отказе кассира провести банковский перевод — обязательство кооператива остаётся открытым, требуется уточнение реквизитов.",
     "email": {
-      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир приостановил выплату по акту приёмки <strong>{{payload.apl_reception_id}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reason}}.<br><br>Обязательство кооператива перед вами остаётся открытым; пожалуйста, свяжитесь с оператором для уточнения банковских реквизитов или сопроводительных документов.<br><br>История выплат: {{payload.deepLinkUrl}}",
-      "subject": "Выплата по акту приёмки {{payload.apl_reception_id}} приостановлена"
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир приостановил выплату по {{payload.ordersLabel}} на сумму <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reason}}.<br><br>Обязательство кооператива перед вами остаётся открытым; пожалуйста, свяжитесь с оператором для уточнения банковских реквизитов или сопроводительных документов.<br><br>История выплат: {{payload.deepLinkUrl}}",
+      "subject": "Выплата поставщику приостановлена"
     },
     "inApp": {
-      "body": "Кассир приостановил выплату {{payload.amount}} по акту приёмки {{payload.apl_reception_id}}. Причина: {{payload.reason}}.",
+      "body": "Кассир приостановил выплату {{payload.amount}} по {{payload.ordersLabel}}. Причина: {{payload.reason}}.",
       "subject": "Выплата приостановлена"
     },
     "name": "Кассир отказал в выплате поставщику",
     "push": {
-      "body": "Кассир приостановил {{payload.amount}} по акту {{payload.apl_reception_id}}: {{payload.reason}}",
+      "body": "Кассир приостановил {{payload.amount}} по {{payload.ordersLabel}}: {{payload.reason}}",
       "subject": "Выплата приостановлена"
     }
   },
@@ -1245,6 +1245,22 @@
     "push": {
       "body": "{{payload.branchName}}: доступно {{payload.amount}}",
       "subject": "Возмещение паевого взноса"
+    }
+  },
+  "branchAuthorityExpiring": {
+    "description": "Напоминание председателю кооперативного участка: срок доверенности подходит к концу, необходимо подписать новую",
+    "email": {
+      "body": "Уважаемый {{payload.trusteeName}}!<br><br>Доверенность № {{payload.poaNumber}} председателя кооперативного участка «{{payload.branchName}}» действует по {{payload.validUntil}} — осталось {{payload.daysLeft}} дн.<br><br>Подпишите новую доверенность на странице участка: {{payload.branchUrl}}<br><br>После окончания срока работа с пунктом выдачи закрывается до встречной подписи новой доверенности председателем совета.",
+      "subject": "Доверенность председателя участка «{{payload.branchName}}» истекает через {{payload.daysLeft}} дн."
+    },
+    "inApp": {
+      "body": "Доверенность № {{payload.poaNumber}} по участку «{{payload.branchName}}» действует по {{payload.validUntil}}. Подпишите новую на странице участка.",
+      "subject": "Доверенность истекает"
+    },
+    "name": "Доверенность председателя кооперативного участка истекает",
+    "push": {
+      "body": "Доверенность по участку «{{payload.branchName}}» действует по {{payload.validUntil}} — осталось {{payload.daysLeft}} дн.",
+      "subject": "Доверенность истекает"
     }
   }
 }

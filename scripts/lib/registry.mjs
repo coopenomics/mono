@@ -214,5 +214,8 @@ export function featuresForPath(features, path) {
 }
 
 export function isSignificant(path) {
+  // Файл LICENSE в каталоге приложения — уведомление о правах, а не код фичи:
+  // правка лицензии не требует обновлять реестр тестов.
+  if (/(^|\/)LICENSE(\.md)?$/.test(path)) return false;
   return SIGNIFICANT_ROOTS.some((root) => path.startsWith(root));
 }

@@ -1,40 +1,40 @@
 import type {
+  MarketplaceOutgoingPaymentLine,
   MarketplaceOutgoingPaymentRequestProps,
   MarketplaceOutgoingPaymentRequestStatus,
 } from './marketplace-outgoing-payment-request.types';
 import { MarketplaceOutgoingPaymentRequestStatuses } from './marketplace-outgoing-payment-request.types';
 
 /**
- * Audit-projection одного outcome'а в gateway::outcomes для marketplace
- * (L12 / 598-16). Жизненный цикл управляется не пользовательскими
- * мутациями, а слушателями blockchain action delta.
+ * Пакет выплаты поставщику: один платёж кассиру на заказы поставщика за день.
+ * Жизненный цикл ведёт обход выплат и слушатели цепи, пользовательских мутаций
+ * нет.
  */
 export class MarketplaceOutgoingPaymentRequestDomainEntity {
   public readonly id: string;
   public readonly coopname: string;
-  public readonly order_hash: string;
-  public readonly order_id: string;
-  public readonly apl_reception_id: string;
+  public readonly payment_hash: string;
+  public lines: MarketplaceOutgoingPaymentLine[];
   public readonly payee_account: string;
-  public readonly amount: string;
+  public amount: string;
   public readonly symbol: string;
   public readonly purpose: string;
   public readonly payout_destination: string | null;
-  public readonly withheld_amount: string;
+  public withheld_amount: string;
   public status: MarketplaceOutgoingPaymentRequestStatus;
   public completed_at: Date | null;
   public decline_reason: string | null;
   public core_payment_id: string | null;
   public payout_tx_hash: string | null;
+  public settled_at: Date | null;
   public readonly created_at: Date;
   public updated_at: Date;
 
   constructor(props: MarketplaceOutgoingPaymentRequestProps) {
     this.id = props.id;
     this.coopname = props.coopname;
-    this.order_hash = props.order_hash;
-    this.order_id = props.order_id;
-    this.apl_reception_id = props.apl_reception_id;
+    this.payment_hash = props.payment_hash;
+    this.lines = props.lines;
     this.payee_account = props.payee_account;
     this.amount = props.amount;
     this.symbol = props.symbol;
@@ -46,8 +46,13 @@ export class MarketplaceOutgoingPaymentRequestDomainEntity {
     this.decline_reason = props.decline_reason;
     this.core_payment_id = props.core_payment_id;
     this.payout_tx_hash = props.payout_tx_hash;
+    this.settled_at = props.settled_at;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;
+  }
+
+  public get is_open(): boolean {
+    return this.status === MarketplaceOutgoingPaymentRequestStatuses.OPEN;
   }
 
   public get is_pending(): boolean {

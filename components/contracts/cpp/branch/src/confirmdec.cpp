@@ -56,7 +56,7 @@
 
   uint64_t branch_count = add_branch_count(coopname);
 
-  if (!coop.is_branched && branch_count >= 3) {  // переход на режим кооперативных участков
+  if (!coop.is_branched && branch_count >= MIN_BRANCHES_COUNT) {  // переход на режим кооперативных участков
     action(
       permission_level{_branch, "active"_n},
       _registrator,
@@ -65,36 +65,9 @@
       .send();
   }
 
-  // Участок учреждён. Договор о полной материальной ответственности председателя участка
-  // (подписан председателем участка при подаче заявления) уходит на встречную подпись
-  // председателю совета: единоличное одобрение без повторного голосования. Отклонить нельзя —
-  // решение об учреждении уже принято (см. branch::declliab).
-  ::Soviet::create_approval(
-    _branch,
-    coopname,
-    dec.chairman,
-    dec.liability,
-    "branchliab"_n,
-    hash,
-    _branch,
-    "apprliab"_n,
-    "declliab"_n,
-    std::string(""));
-
-  // Доверенность председателю участка уходит на встречную подпись председателю совета
-  // отдельным одобрением рядом с договором. Якорь одобрения — хэш самого документа
-  // доверенности (hash процесса уже занят одобрением договора). Отклонить нельзя.
-  ::Soviet::create_approval(
-    _branch,
-    coopname,
-    dec.chairman,
-    dec.authority,
-    "branchauth"_n,
-    dec.authority.hash,
-    _branch,
-    "apprauth"_n,
-    "declauth"_n,
-    std::string(""));
+  // Участок учреждён. Доверенность и договор о полной материальной ответственности
+  // председатель участка подписывает на своём участке (signauth, signliab): доверенность
+  // ссылается на протокол этого решения.
 
   // Решение исполнено — стираем запись и вопросы повестки (история в журнале действий)
   decision_index decisions(_branch, coopname.value);

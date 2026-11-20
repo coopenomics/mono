@@ -350,7 +350,8 @@ q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.
           .mp-cart__summary-line(v-if="feePercent > 0")
             .mp-cart__summary-label
               | {{ $t('marketplace.cart.feeLabel') }}
-              .mp-cart__summary-note {{ $t('marketplace.cart.feeNote', { percent: feePercent }) }}
+              //- Процент не показывается (решение владельца 19.11.2026).
+              .mp-cart__summary-note {{ $t('marketplace.cart.feeNote') }}
             .mp-cart__summary-val {{ money(feeAmount) }}&nbsp;{{ symbol }}
         .mp-cart__summary-total
           .mp-cart__summary-label {{ $t('marketplace.cart.totalLabel') }}

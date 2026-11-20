@@ -182,14 +182,17 @@ function isPackaged(o: MarketplaceOrderIssuanceView): boolean {
 // помещались в карточку рядом со сводкой (слово владельца 01.11.2026).
 const issueColumns = computed<ActLinesColumn[]>(() => [
   { key: 'check', label: '', width: 'var(--p-6, 24px)' },
-  // Таблица стоит в левой колонке окна (~640 px при экране 1120). Шесть колонок
-  // требовали ~880 px: «Сумму» обрезала карточка акта, «Состояние» стояло за
-  // краем. Состояние позиции перенесено под её название, числовые колонки
-  // сужены — позиции остаётся от 180 px (598-63).
+  // Состояние позиции стоит под её названием: отдельная колонка не помещалась.
+  // Окно выдачи — во всю ширину экрана рядом со сводкой 340 px. На широком
+  // экране поля правки дорастают до 144/184/144 px: «1000 упак.», «10000 ₽/упак.»
+  // и сумма до миллиона помещаются целиком (замечание владельца 19.11.2026).
+  // При экране 1120 px левая колонка окна около 630 px: фиксированные 144/184/144
+  // выталкивали «Сумму» за край карточки (598-63, пункт 15), поэтому числовые
+  // колонки сжимаются до 104/144/104 px раньше позиции.
   { key: 'item', label: t('marketplace.issueActOpenDialog.columnItem'), wide: true, width: 'minmax(180px, 1fr)' },
-  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: '104px', align: 'right' },
-  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: '128px', align: 'right' },
-  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: '104px', align: 'right', strong: true },
+  { key: 'issue', label: t('marketplace.issueActOpenDialog.columnIssue'), width: 'minmax(104px, 144px)', align: 'right' },
+  { key: 'price', label: t('marketplace.issueActOpenDialog.columnPrice'), width: 'minmax(144px, 184px)', align: 'right' },
+  { key: 'sum', label: t('marketplace.issueActOpenDialog.columnSum'), width: 'minmax(104px, 144px)', align: 'right', strong: true },
 ]);
 
 type IssueRow = { key: string; off: boolean; order: MarketplaceOrderIssuanceView };
@@ -359,7 +362,8 @@ const summaryLines = computed(() => {
   ];
   if (feePercent.value > 0) {
     lines.push({
-      label: t('marketplace.issueActOpenDialog.targetFeeHeader', { percent: feePercent.value }),
+      // Без процента ставки — как в корзине и на оформлении (решение владельца 19.11.2026).
+      label: t('marketplace.issueActOpenDialog.targetFeeHeader'),
       value: rub(membershipFeeAmount.value),
     });
   }

@@ -30,6 +30,7 @@ import { workflow as documentEditionAvailableWorkflow } from './document-edition
 import { workflow as documentApprovalDeclinedWorkflow } from './document-approval-declined';
 import { workflow as documentEditionReminderWorkflow } from './document-edition-reminder';
 import { workflow as endorsementExpiringWorkflow } from './endorsement-expiring';
+import { workflow as branchAuthorityExpiringWorkflow } from './branch-authority-expiring';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
 import { workflow as marketplaceAplSupplierSignRequestWorkflow } from './marketplace-apl-supplier-sign-request';
@@ -116,6 +117,7 @@ export * as DocumentEditionAvailable from './document-edition-available';
 export * as DocumentApprovalDeclined from './document-approval-declined';
 export * as DocumentEditionReminder from './document-edition-reminder';
 export * as EndorsementExpiring from './endorsement-expiring';
+export * as BranchAuthorityExpiring from './branch-authority-expiring';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
 export * as MarketplaceAplSupplierSignRequest from './marketplace-apl-supplier-sign-request';
@@ -198,6 +200,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   documentApprovalDeclinedWorkflow,
   documentEditionReminderWorkflow,
   endorsementExpiringWorkflow,
+  branchAuthorityExpiringWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
   marketplaceAplSupplierSignRequestWorkflow,

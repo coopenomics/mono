@@ -1,4 +1,5 @@
 import './i18n';
+import { CapitalProcessContentService } from './application/services/capital-process-content.service';
 import { Module, Injectable, Inject, Optional } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
@@ -850,6 +851,8 @@ export class CapitalExtension extends BaseExtensionModule {
 @Module({
   imports: [CapitalDatabaseModule],
   providers: [
+    // Содержание процессов Благороста для стола бухгалтера (реестр processContent).
+    CapitalProcessContentService,
     // Права стола: описание для общего гарда операций и прав страниц
     CapitalRights,
     { provide: APP_RIGHTS, useExisting: CapitalRights },

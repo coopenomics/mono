@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 339.
+Всего экспортов: 344.
 
 ## ACCOUNT_PORT
 
@@ -1517,6 +1517,15 @@
 
 - `ACTIVE = 'active',`
 
+## InnerLapsedAuthority
+
+`interface` · cross-plugin-ports
+
+- `braname: string`
+- `username: string`
+- `type: InnerPowerOfAttorneyType`
+- `valid_until: string`
+
 ## InnerLedger2Account
 
 `interface` · core-ports
@@ -2023,6 +2032,18 @@
 - `RELEASED = 'released',`
 - `DECLINED = 'declined',`
 
+## InnerPowerOfAttorneyStatus
+
+`type` · cross-plugin-ports
+
+- `'pending' | 'active' | 'expired' | 'declined'`
+
+## InnerPowerOfAttorneyType
+
+`type` · cross-plugin-ports
+
+- `'branch_trustee' | 'branch_trusted'`
+
 ## InnerPrivateAccount
 
 `interface` · core-ports
@@ -2407,6 +2428,12 @@
 - `registerProvider(name: string, provider: IPaymentProvider): void`
 - `getProvider(name: string): IPaymentProvider | undefined`
 
+## IPowersOfAttorneyPort
+
+`interface` · cross-plugin-ports
+
+- `listLapsedAuthorities(coopname: string): Promise<InnerLapsedAuthority[]>`
+
 ## IProgramAgreementPort
 
 `interface` · core-ports
@@ -2784,6 +2811,12 @@
 - `EXPENSE_OVERSPEND = 'expense_overspend',`
 - `AID = 'aid',`
 - `TAX = 'tax',`
+
+## POWERS_OF_ATTORNEY_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.PowersOfAttorney')`
 
 ## PROGRAM_AGREEMENT_PORT
 

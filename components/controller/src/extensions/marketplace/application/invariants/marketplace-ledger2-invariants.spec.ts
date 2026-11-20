@@ -843,8 +843,9 @@ describe('I2 — счёт 86: только списание обеспечите
         amount: 150,
         walletFrom: 'w.mkt.due',
         walletTo: 'w.mkt.fee',
-        debitAccount: null,
-        creditAccount: null,
+        // С 17.11.2026 проводка одна — на списании; доля участку идёт по кошелькам.
+        debitAccount: 80,
+        creditAccount: 86,
       }),
       ...buildApplyTrio({
         processHash: orderHash,
@@ -852,8 +853,8 @@ describe('I2 — счёт 86: только списание обеспечите
         amount: 150,
         walletFrom: 'w.mkt.fee',
         walletTo: 'w.brn.common',
-        debitAccount: 80,
-        creditAccount: 86,
+        debitAccount: null,
+        creditAccount: null,
       }),
     ]
     const res = checkInvariantI2Account86Usage(rows)
@@ -863,7 +864,8 @@ describe('I2 — счёт 86: только списание обеспечите
 
   it('happy path: возмещение паевых взносов инициаторов при списании по итогу месяца (Кт 86) — законная проводка', () => {
     // Задача 99D-27: доля инициаторов из списания заказа ложится на кошелёк
-    // возмещения участка (Дт 80 / Кт 86) в нитке заказа.
+    // возмещения участка. До 17.11.2026 — с проводкой Дт 80 / Кт 86: такие
+    // записи остаются в истории и законны.
     const res = checkInvariantI2Account86Usage(
       buildApplyTrio({
         processHash: newProcessHash(),

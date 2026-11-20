@@ -18,13 +18,11 @@ import { MARKETPLACE_ECONOMY_SERVICE, MarketplaceEconomyService } from '../servi
 import { MarketplaceSecureDueService, monthKey } from '../services/marketplace-secure-due.service';
 import {
   MarketplaceBranchCurrentPeriodDTO,
-  MarketplaceBranchInitiatorDTO,
   MarketplaceBranchPeriodDTO,
   MarketplaceBranchReservesDTO,
   MarketplaceDeleteBranchReserveInputDTO,
   MarketplaceEconomySettingsDTO,
   MarketplaceSetAidLimitInputDTO,
-  MarketplaceSetBranchInitiatorInputDTO,
   MarketplaceSetBranchReserveInputDTO,
   MarketplaceSetInitiatorShareInputDTO,
   MarketplaceSetReturnShareInputDTO,
@@ -105,31 +103,6 @@ export class MarketplaceKeuResolver {
     const coopname = platformSettings().coopname;
     await this.reserves.setAidLimit(coopname, data.aid_month_limit);
     return toMarketplaceEconomySettingsDTO(await this.reserves.getSettings(coopname));
-  }
-
-  @Query(() => MarketplaceBranchInitiatorDTO, {
-    name: 'marketplaceGetBranchInitiator',
-    description: 'Инициатор кооперативного участка — получатель доли экономии месяца. Без назначения им считается председатель участка.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
-  @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
-  async marketplaceGetBranchInitiator(@Args('braname') braname: string): Promise<MarketplaceBranchInitiatorDTO> {
-    const coopname = platformSettings().coopname;
-    const initiator = await this.reserves.getBranchInitiator(coopname, braname);
-    return { braname, ...initiator };
-  }
-
-  @Mutation(() => MarketplaceBranchInitiatorDTO, {
-    name: 'marketplaceSetBranchInitiator',
-    description: 'Назначить инициатора кооперативного участка отдельно от председателя; пустое имя снимает назначение. Доступно администратору.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
-  @RequireRight('Economy', 'set-fee')
-  async marketplaceSetBranchInitiator(@Args('data') data: MarketplaceSetBranchInitiatorInputDTO): Promise<MarketplaceBranchInitiatorDTO> {
-    const coopname = platformSettings().coopname;
-    await this.reserves.setBranchInitiator(coopname, data.braname, data.username ?? null);
-    const initiator = await this.reserves.getBranchInitiator(coopname, data.braname);
-    return { braname: data.braname, ...initiator };
   }
 
   // ── Резерв социально-экономического обеспечения пайщиков ─────────────

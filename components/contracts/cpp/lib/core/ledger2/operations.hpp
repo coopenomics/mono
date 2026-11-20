@@ -624,12 +624,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Постановка обеспечительной части паевого взноса на списание" },
 
   // 12j³. p.mkt.due: Списание обеспечительной части по итогу периода — первая
-  //       нога chargeperiod (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr); проводку
-  //       Дт 80 / Кт 86 делает вторая нога o.brn.common в той же транзакции.
+  //       нога chargeperiod (TRANSFER w.mkt.due → w.mkt.fee, Дт 80 / Кт 86).
+  //       Единственная проводка списания (решение владельца 17.11.2026): пул
+  //       w.mkt.fee — субсчёт 86, дальше доли участку, фондам, инициаторам и
+  //       фонду социального обеспечения идут по кошелькам внутри 86 без проводок.
   //       Нитка — строка счётчика пайщика за период (задача 99D-33).
   { operations::marketplace::CHARGE_DUE, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    0, 0,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП" },
 
   // 12j⁴. p.mkt.return: Возврат обеспечительной части за возвращённое имущество
@@ -644,7 +646,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   //       без Dr/Cr — паевой переходит между пайщиками внутри 80). Задача 99D-21.
   { operations::marketplace::INITIATOR_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_INITIATOR,
-    0, 0,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
     "Вознаграждение инициатора кооперативного участка из экономии месяца" },
 
   // 12j⁶. p.mkt.due: Возврат части обеспечительной части пайщику по итогу
@@ -677,11 +679,11 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Возврат невыделенных средств инициаторов из пула" },
   { operations::marketplace::INVEST_REPAY, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_INVEST_REPAY,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    0, 0,
     "Возмещение паевых взносов инициаторов из экономии месяца участка" },
   { operations::marketplace::SOCIAL_FUND, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_SOCIAL_BRANCH,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    0, 0,
     "Отчисление в фонд социально-экономического взаимодействия и социального обеспечения из экономии месяца участка" },
   { operations::marketplace::INVEST_REPAY_SURPLUS, processes::marketplace::DUE, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_INVEST_REPAY, ledger2_wallets::BRANCH_COMMON,
@@ -751,12 +753,12 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Вывод свободного паевого «Стола заказов» в общий паевой" },
 
   // 12q. Остаток обеспечительной части к списанию при выходе пайщика из
-  //      кооператива — транзитом в пул (TRANSFER w.mkt.due → w.mkt.fee, без
-  //      Dr/Cr — оба на 80), далее o.brn.common (Дт 80 / Кт 86) в общий
-  //      кошелёк участка; зовёт registrator. Задача 99D-18.
+  //      кооператива — в пул (TRANSFER w.mkt.due → w.mkt.fee, Дт 80 / Кт 86 —
+  //      единственная проводка), далее o.brn.common в общий кошелёк участка
+  //      по кошелькам внутри 86; зовёт registrator. Задача 99D-18.
   { operations::marketplace::EXIT_DUE_TO_POOL, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    0, 0,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
     "Списание обеспечительной части в членский взнос при выходе пайщика из кооператива" },
 
   // 12e. p.edu.access: Конвертация паевого в членский взнос ЦПП «Образование»
@@ -955,17 +957,18 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Снятие материалов занятия с ответственного хранения" },
 
   // 13a. p.brn.fees: Зачисление членского взноса в общий кошелёк КУ
-  //      (TRANSFER w.mkt.fee → w.brn.common, Дт 80 / Кт 86; username = braname).
-  //      Единственная точка, где обеспечительная часть паевого взноса «Стола
-  //      заказов» становится членским взносом: списание по условиям ЦПП
-  //      (chargedue) и выход пайщика. Задача 99D-18.
+  //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — оба на 86; username =
+  //      braname). Членским взносом обеспечительная часть становится раньше —
+  //      проводкой Дт 80 / Кт 86 на списании (o.mkt.charge, o.mkt.exfee);
+  //      решение владельца 17.11.2026. Задача 99D-18.
   { operations::branch::DISTRIBUTE_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::BRANCH_COMMON,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    0, 0,
     "Зачисление членского взноса в общий кошелёк кооперативного участка" },
 
   // 13a¹. p.fnd.accum: Отчисления в фонды накопления из членского взноса участка
-  //      (TRANSFER w.mkt.fee → кошелёк фонда, Дт 80 / Кт 86) — по одной операции
+  //      (TRANSFER w.mkt.fee → кошелёк фонда, без Dr/Cr — оба на 86; проводку
+  //      Дт 80 / Кт 86 делает списание o.mkt.charge) — по одной операции
   //      на каждый из трёх фондов: кошелёк и есть субсчёт фонда (решение
   //      владельца 03.11.2026, задача 99D-25). Вторая из трёх ног списания
   //      обеспечительной части (chargeperiod): участку (o.brn.common), в фонды,
@@ -973,24 +976,25 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   //      (fund::accrue инлайн); имя нитки — процесса источника. Задача 99D-19.
   { operations::fund::ACCRUE_INDIVISIBLE, processes::fund::ACCUM, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_INDIVISIBLE,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    0, 0,
     "Отчисление в неделимый фонд из членского взноса кооперативного участка" },
   { operations::fund::ACCRUE_RESERVE, processes::fund::ACCUM, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_RESERVE,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    0, 0,
     "Отчисление в резервный фонд из членского взноса кооперативного участка" },
   { operations::fund::ACCRUE_DEVELOPMENT, processes::fund::ACCUM, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_DEVELOPMENT,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    0, 0,
     "Отчисление в фонд развития кооперации из членского взноса кооперативного участка" },
 
   // 13a². p.brn.fees: Сторно зачисления — из общего кошелька КУ обратно в пул
-  //      обеспечительной части (TRANSFER w.brn.common → w.mkt.fee, Дт 86 / Кт 80;
+  //      обеспечительной части (TRANSFER w.brn.common → w.mkt.fee, без Dr/Cr —
+  //      оба на 86 с 17.11.2026;
   //      username = braname). Точная инверсия DISTRIBUTE_COMMON. С задачи 99D-18
   //      Стол заказов её не вызывает: гарантийный возврат идёт до списания.
   { operations::branch::RETURN_FEE_FROM_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
     ledger2_wallets::BRANCH_COMMON, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
+    0, 0,
     "Возврат членского взноса из общего кошелька кооперативного участка" },
 
   // 13b-1. p.brn.fees: Изъятие из общего кошелька КУ на ручное распределение
@@ -1358,7 +1362,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   //      владельца 05.11.2026: средства заказа видны пайщику на всём пути).
   { operations::migration::SECURE_ORDER, processes::migration::TRANSIT, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SECURE_ORDER,
-    0, 0,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
     "Перенос обеспечительной части невыданных заказов на кошелёк пайщика" },
 
   // 19. Миграция: хозяйственные расходы, произведённые до цифрового учёта, —

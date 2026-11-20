@@ -50,15 +50,6 @@ export interface MarketplaceEconomySettingsView {
   funds: MarketplaceAccumulationFundView[];
 }
 
-/** Инициатор участка — получатель доли экономии месяца и остаток его паевого кошелька. */
-export interface MarketplaceBranchInitiatorView {
-  username: string | null;
-  /** Назначен отдельно от председателя участка. */
-  assigned: boolean;
-  /** Остаток `w.mkt.invest` инициатора, asset-строка. */
-  invest_balance: string;
-}
-
 /** Фонд накопления кооператива для чтения на столе администратора. */
 export interface MarketplaceAccumulationFundView {
   name: string;
@@ -79,9 +70,6 @@ export interface MarketplaceAccumulationFundView {
  * обращения в цепь. Суммы резерва называет председатель — это
  * допустимый случай суммы-аргумента.
  */
-/** Паевой кошелёк инициатора участка (ledger2, счёт 80). */
-const INVEST_WALLET = 'w.mkt.invest';
-
 /**
  * Номер периода предела материальной помощи — тот же, что считает контракт
  * (`Branch::aid_period`): при длине периода в настройках участков — номер
@@ -203,30 +191,6 @@ export class MarketplaceBranchReserveService implements OnApplicationBootstrap {
       rethrowChainError(e);
     }
     return limit;
-  }
-
-  /** Инициатор участка; пустое имя снимает назначение, и получателем доли снова становится председатель. */
-  async setBranchInitiator(coopname: string, braname: string, username: string | null): Promise<string | null> {
-    try {
-      await this.chainPort.setInitiator({ coopname, braname, username: username ?? '' });
-    } catch (e) {
-      rethrowChainError(e);
-    }
-    return username;
-  }
-
-  /** Получатель доли инициатора участка сегодня: назначенный либо председатель участка. */
-  async getBranchInitiator(coopname: string, braname: string): Promise<MarketplaceBranchInitiatorView> {
-    const assigned = await this.chainPort.getInitiator(coopname, braname);
-    const username = assigned ? assigned.username : await this.kuChairmanService.getTrusteeOfBranch(coopname, braname);
-    // Паевой кошелёк инициатора `w.mkt.invest` — его остаток показывает экономика
-    // участка; у пайщика без отчислений строки кошелька ещё нет.
-    const invest = username ? (await this.chainPort.getUserWallet(coopname, INVEST_WALLET, username))?.available : undefined;
-    return {
-      username,
-      assigned: Boolean(assigned),
-      invest_balance: invest ? String(invest) : this.economyService.unitsToAsset(0n),
-    };
   }
 
   // ── Резерв участка ─────────────────────────────────────────────────────

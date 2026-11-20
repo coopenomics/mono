@@ -195,6 +195,16 @@ export interface MarketplaceOrderDomainRepository
   listOpenSupplierSettlements(coopname: string): Promise<MarketplaceOrderDomainEntity[]>;
 
   /**
+   * Заказы, ждущие включения в пакет выплаты поставщику (решение владельца
+   * 19.11.2026): приняты кооперативом, выплата не начата либо отклонена
+   * кассиром, и это случилось до начала текущих суток `cutoff`. Принятые
+   * сегодня и отклонённые сегодня ждут пакета следующего дня. Статусы — те,
+   * в которых контракт принимает `addpayout`; заказы из остатка кооператива
+   * не входят.
+   */
+  listAwaitingSupplierPayout(coopname: string, cutoff: Date): Promise<MarketplaceOrderDomainEntity[]>;
+
+  /**
    * Уценка, рассчитанная при закрытии выдачи и ожидающая проведения на цепи
    * (задача 99D-15). Пишется до отправки `markdown`; снимается кроном, когда
    * цепь отзеркалила `markdown_cost`, либо явно.

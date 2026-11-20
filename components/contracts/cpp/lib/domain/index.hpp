@@ -87,7 +87,6 @@
 // shipments) удалены вместе с donor-actions (AR30). Batch (consolidated request)
 // — backend-only, on-chain не хранится (Locked Decision L10).
 #include "table_marketplace_fee_config.hpp"
-#include "table_marketplace_initiators.hpp"
 #include "table_marketplace_periods.hpp"
 #include "table_marketplace_invest.hpp"
 #include "table_marketplace_orders.hpp"

@@ -76,7 +76,7 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
                               eosio::binary_extension<eosio::asset> planned_target) {
   require_auth(coopname);
 
-  auto branch = get_branch_or_fail(coopname, braname);
+  get_branch_or_fail(coopname, braname);
 
   const auto non_negative = [](const eosio::asset& a) {
     return a.is_valid() && a.amount >= 0 && a.symbol == _root_govern_symbol;
@@ -236,7 +236,6 @@ void marketplace::closeperiod(eosio::name coopname, eosio::name braname, uint32_
     row.rate_branch = rate(branch_amount);
     row.rate_funds = rate(funds_amount);
     row.rate_initiator = rate(initiator_amount);
-    row.initiator = Marketplace::initiator_of(coopname, braname, branch.trustee);
     row.closed_at = eosio::time_point_sec(eosio::current_time_point());
     if (by_target) {
       row.planned_target = planned_target.value();

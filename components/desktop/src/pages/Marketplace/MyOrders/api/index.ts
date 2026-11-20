@@ -10,6 +10,8 @@ export interface ListMyOrdersVariables {
   statuses?: MarketplaceOrderStatusView[];
   supplier_account?: string;
   offer_id?: string;
+  /** Пункт выдачи заказа; без него — все заказы пайщика. */
+  delivery_braname?: string;
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -17,7 +19,7 @@ export interface ListMyOrdersVariables {
 }
 
 export async function fetchMyOrders(variables: ListMyOrdersVariables = {}): Promise<MarketplaceOrderPage> {
-  const { page, limit, sortBy, sortOrder, statuses, supplier_account, offer_id } = variables;
+  const { page, limit, sortBy, sortOrder, statuses, supplier_account, offer_id, delivery_braname } = variables;
   const { [Queries.Marketplace.ListMyOrders.name]: result } = await client.Query(
     Queries.Marketplace.ListMyOrders.query,
     {
@@ -25,6 +27,7 @@ export async function fetchMyOrders(variables: ListMyOrdersVariables = {}): Prom
         input: {
           supplier_account,
           offer_id,
+          delivery_braname,
           statuses,
         },
         options: {

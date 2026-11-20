@@ -65,17 +65,11 @@ const methodOptions = computed<BaseSelectOption[]>(() =>
 
 const hasMethods = computed(() => methodOptions.value.length > 0);
 
-// Выбранное значение селектора: явный выбор поставщика; если выбора не было —
-// показываем пусто, а действующий фолбэк (метод по умолчанию) описывает hint.
-const selectedMethodId = computed(() => settings.value?.payout_method_id ?? null);
-
-const selectHint = computed(() => {
-  if (!settings.value) return undefined;
-  if (!settings.value.payout_method_id && settings.value.has_payout_method) {
-    return t('marketplace.offererPaymentHistoryPage.defaultDetailsHint', { details: settings.value.payout_destination ?? '' });
-  }
-  return undefined;
-});
+// Выбранное значение селектора — реквизиты, на которые поступит следующая
+// выплата: явный выбор поставщика либо реквизиты по умолчанию (в том числе
+// когда выбранные удалены). Поле не пустует, пока реквизиты есть (замечание
+// владельца 20.11.2026).
+const selectedMethodId = computed(() => settings.value?.resolved_method_id ?? null);
 
 async function loadSettings(): Promise<void> {
   settingsLoading.value = true;
@@ -118,6 +112,7 @@ const firstLoad = useFirstLoad(loading);
 
 // Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
+  OPEN: { label: t('marketplace.payout.status.forming'), variant: 'info' },
   PENDING: { label: t('marketplace.offererPaymentHistoryPage.statusPending'), variant: 'warn' },
   COMPLETED: { label: t('marketplace.offererPaymentHistoryPage.statusPaid'), variant: 'pos' },
   DECLINED: { label: t('marketplace.offererPaymentHistoryPage.statusDeclined'), variant: 'neg' },
@@ -178,7 +173,6 @@ q-page.offerer-payments
         :options='methodOptions',
         :label='$t("marketplace.offererPaymentHistoryPage.detailsSelectLabel")',
         :placeholder='$t("marketplace.offererPaymentHistoryPage.detailsSelectPlaceholder")',
-        :hint='selectHint',
         :disabled='savingMethod || settingsLoading',
         @update:model-value='onPickMethod'
       )
@@ -200,6 +194,10 @@ q-page.offerer-payments
           .payout-card__amount {{ formatAsset2Digits(`${row.amount} ${row.symbol}`) }}
           BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
         .payout-card__date {{ formatDateToHumanDateTime(row.created_at) }}
+        //- Одна выплата на заказы поставщика за день (решение владельца 19.11.2026).
+        .payout-card__row
+          q-icon(name='receipt_long', size='14px')
+          span {{ $t('marketplace.offererPaymentHistoryPage.ordersCountLabel', { count: row.orders_count }) }}
         .payout-card__row(v-if='row.payout_destination')
           q-icon(name='account_balance', size='14px')
           span {{ row.payout_destination }}

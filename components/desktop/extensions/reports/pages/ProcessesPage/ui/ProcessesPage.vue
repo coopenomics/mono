@@ -75,12 +75,18 @@ div.processes-page
       @request='onRequest'
     )
       template(#body='props')
-        q-tr(:key='`proc_${props.row.processHash}`' :props='props')
-          q-td(auto-width)
-            ExpandToggleButton(
-              :expanded='expanded.get(props.row.processHash)'
-              @click='toggleExpand(props.row.processHash)'
+        q-tr.cursor-pointer(
+          :key='`proc_${props.row.processHash}`'
+          :props='props'
+          @click='processOverlay.open(props.row.processHash)'
+        )
+          q-td
+            EntityIdBadge(
+              :rawId='shortHash(props.row.processHash)'
+              @click='copyText(props.row.processHash)'
             )
+              q-tooltip {{ $t('reports.processesPage.copyFullHashHintLabel') }}
+          q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td
             q-chip(
               dense
@@ -88,12 +94,7 @@ div.processes-page
               :color='processChipBg(props.row.processType)'
               :text-color='processChipText(props.row.processType)'
             ) {{ processTypeLabel(props.row.processType) }}
-          q-td
-            EntityIdBadge(
-              :rawId='shortHash(props.row.processHash)'
-              @click='copyText(props.row.processHash)'
-            )
-              q-tooltip {{ $t('reports.processesPage.copyFullHashHintLabel') }}
+          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
           q-td
             span {{ subjectName(props.row.username) }}
             q-chip.q-ml-xs(
@@ -106,32 +107,11 @@ div.processes-page
               :label='$t("reports.processesPage.kuLabel")'
             )
               q-tooltip {{ $t('reports.processesPage.kuTooltip') }}
-          q-td.text-right.font-monospace {{ formatProcessAmount(props.row.amount) }}
-          q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
-
-        q-tr.q-virtual-scroll--with-prev(
-          no-hover
-          v-if='expanded.get(props.row.processHash)'
-          :key='`exp_${props.row.processHash}`'
-          :props='props'
-        )
-          q-td(colspan='100%')
-            .q-pa-md
-              //- Детализация процесса (документы + операции + проводки) —
-              //- общий виджет; № операции/проводки ведут в реестры бухгалтера.
-              ProcessDetailCard(
-                :coopname='info.coopname'
-                :process-hash='props.row.processHash'
-                :process-type='props.row.processType'
-                operation-route-name='reports-operations'
-                posting-route-name='reports-postings'
-                :source='DESK_SOURCE'
-              )
 
       template(#item='props')
         .col-12
-          q-card.q-pa-md.q-mb-sm
+          q-card.q-pa-md.q-mb-sm.cursor-pointer(@click='processOverlay.open(props.row.processHash)')
             .row.items-center.q-gutter-x-md
               .col
                 .text-caption.text-grey-6 {{ formatDate(props.row.lastSeenAt) }}
@@ -145,6 +125,29 @@ div.processes-page
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
                 )
+
+  //- Процесс в правой панели (?process=<хэш>): ссылку с открытым процессом
+  //- можно переслать, «назад» закрывает панель. Кнопка в шапке панели ведёт
+  //- на страницу процесса во весь экран.
+  DetailsDrawer(
+    :model-value='processOverlay.isOpen.value'
+    :width='1040'
+    :title='openedTitle'
+    @update:model-value='(open) => !open && processOverlay.close()'
+  )
+    template(#actions)
+      BaseButton(variant='ghost', size='sm', @click='openFullPage')
+        template(#icon-left)
+          q-icon(name='open_in_full', size='16px')
+        | {{ $t('reports.processesPage.openFullPageButton') }}
+    DeskProcessView(
+      v-if='processOverlay.value.value'
+      :key='processOverlay.value.value'
+      :coopname='info.coopname'
+      :process-hash='processOverlay.value.value'
+      :process-type='openedRowType'
+      @resolved='(type) => (openedType = type)'
+    )
 </template>
 
 <script setup lang="ts">
@@ -156,12 +159,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
 import type { IProcessSummary } from 'src/entities/Process'
-import { DESK_SOURCE, useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
-import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
+import { useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
+import { BaseButton } from 'src/shared/ui/base'
+import { DetailsDrawer } from 'src/shared/ui/domain'
+import { useQueryOverlay } from 'src/shared/lib/navigation'
+import { DeskProcessView } from '../../../shared/ui'
 import {
   formatProcessAmount,
   processChipBg,
@@ -173,6 +178,22 @@ import { Zeus } from '@coopenomics/sdk'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
+
+// Процесс в правой панели по адресу ?process=<хэш>.
+const processOverlay = useQueryOverlay('process')
+const openedType = ref<string | null>(null)
+/** Тип открытого процесса из строки реестра; по прямой ссылке его даёт виджет. */
+const openedRowType = computed(
+  () => items.value.find((row) => row.processHash === processOverlay.value.value)?.processType ?? null,
+)
+const openedTitle = computed(() => processTypeLabel(openedRowType.value ?? openedType.value))
+
+function openFullPage(): void {
+  const hash = processOverlay.value.value
+  if (!hash) return
+  void router.push({ name: 'reports-process', params: { coopname: info.coopname, processHash: hash } }) // i18n-ignore
+}
+
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
@@ -192,7 +213,6 @@ function isBranch(username: string | null | undefined): boolean {
 
 const loading = ref(false)
 const items = ref<IProcessSummary[]>([])
-const expanded = ref(new Map<string, boolean>())
 
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 
@@ -243,12 +263,11 @@ const hasAnyFilter = computed(
 )
 
 const columns = [
-  { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
-  { name: 'processType', align: 'left' as const, label: t('reports.processesPage.column.processType'), field: 'processType' },
   { name: 'processHash', align: 'left' as const, label: t('reports.processesPage.processIdLabel'), field: 'processHash' },
-  { name: 'username', align: 'left' as const, label: t('reports.processesPage.column.participant'), field: 'username' },
-  { name: 'amount', align: 'right' as const, label: t('reports.processesPage.column.amount'), field: 'amount' },
   { name: 'firstSeenAt', align: 'left' as const, label: t('reports.processesPage.column.createdAt'), field: 'firstSeenAt' },
+  { name: 'processType', align: 'left' as const, label: t('reports.processesPage.column.processType'), field: 'processType' },
+  { name: 'amount', align: 'right' as const, label: t('reports.processesPage.column.amount'), field: 'amount' },
+  { name: 'username', align: 'left' as const, label: t('reports.processesPage.column.participant'), field: 'username' },
   { name: 'lastSeenAt', align: 'left' as const, label: t('reports.processesPage.column.lastEvent'), field: 'lastSeenAt' },
 ]
 
@@ -333,14 +352,6 @@ async function load() {
       items.value = resp.items ?? []
       pagination.value.rowsNumber = resp.totalCount ?? 0
       enrichFio(items.value.map((r) => r.username))
-      // Deep-link по process_hash — единственный процесс на странице,
-      // разворачиваем его автоматически (как реестр операций по operation_id).
-      if (filters.processHash && items.value.length === 1) {
-        const only = items.value[0]
-        if (only && !expanded.value.get(only.processHash)) {
-          toggleExpand(only.processHash)
-        }
-      }
     }
   } catch (e) {
     if (myId === lastRequestId) FailAlert(e)
@@ -356,12 +367,6 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
     rowsNumber: props.pagination.rowsNumber ?? pagination.value.rowsNumber,
   }
   load()
-}
-
-// Детализация процесса грузится внутри ProcessDetailCard при разворачивании
-// строки (виджет монтируется по v-if) — странице достаточно переключить флаг.
-function toggleExpand(processHash: string) {
-  expanded.value.set(processHash, !expanded.value.get(processHash))
 }
 
 onMounted(async () => {

@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.33.0",
   "description": "CLI-утилита инициализации блокчейна и кооператива",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
-  "license": "",
+  "license": "MIT",
   "keywords": [],
   "main": "./dist/index.cjs",
   "files": [
@@ -38,8 +38,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@coopenomics/docs-factory": "1.6.9",
-    "@coopenomics/docs-templates": "1.6.9",
+    "@coopenomics/docs-factory": "1.6.12",
+    "@coopenomics/docs-templates": "1.6.12",
     "@coopenomics/sdk": "workspace:*",
     "@types/pg": "^8.16.0",
     "axios": "^1.13.5",

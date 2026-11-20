@@ -205,7 +205,7 @@ describe('приёмка на участке: права, одна приёмк�
     expect((await getOrder(memberToken, orderId)).status, 'заказ не принят кооперативом').not.toBe('ACCEPTED_TO_COOP')
   })
 
-  it(caseName('mkt.supply.side.35', 'выплата поставщику — по принятому количеству и цене из акта'), async () => {
+  it(caseName('mkt.supply.side.35', 'долг поставщику — по принятому количеству и цене из акта; выплату заводит обход в конце суток'), async () => {
     const cp = await gql<any>(operatorToken, CHAIR_PAYLOADS, { d: { apl_reception_id: receptionId } })
     const signed: any[] = []
     for (const p of cp.marketplaceAplReceptionChairmanSignablePayloads) signed.push(await signDocument(chairkrg.wif, p.rawDocument, chairkrg.account, 2, [p.document]))
@@ -216,13 +216,13 @@ describe('приёмка на участке: права, одна приёмк�
     const order = await getOrder(memberToken, orderId)
     expect(amount(order.accepted_cost), 'принятая стоимость — по акту').toBeCloseTo(accepted, 4)
 
-    const d = await gql<any>(supplierToken, 'query{ marketplaceListOutgoingPaymentsAsSupplier{ order_id amount withheld_amount status payee_account } }')
-    const payout = (d.marketplaceListOutgoingPaymentsAsSupplier as any[]).find(p => p.order_id === orderId)
-    expect(payout, 'выплата поставщику заведена при закрытии приёмки').toBeTruthy()
-    expect(payout.payee_account).toBe(sidorov.account)
-    // Признанный гарантийный долг поставщика удерживается из выплаты, поэтому
-    // сверяется сумма перевода и удержания.
-    expect(amount(payout.amount) + amount(payout.withheld_amount), `выплата по цене акта ${markdownPrice}, а не заказа ${price}`).toBeCloseTo(accepted, 4)
+    // Выплату по принятой стоимости заводит обход в начале следующих суток
+    // одним платежом на заказы поставщика (решение владельца 19.11.2026):
+    // закрывающая подпись приёмки выплату не создаёт. Сумму выплаты и её
+    // отправку кассиру проверяет набор payouts в фазе со сжатым временем.
+    const d = await gql<any>(supplierToken, 'query{ marketplaceListOutgoingPaymentsAsSupplier{ order_ids status } }')
+    const immediate = (d.marketplaceListOutgoingPaymentsAsSupplier as any[]).find(p => p.order_ids.includes(orderId))
+    expect(immediate, 'закрывающая подпись приёмки выплату не заводит').toBeUndefined()
   })
 
   it(caseName('mkt.supply.side.10', 'уценка на приёмке: склад и выдача по цене приёмки, разница возвращается пайщице'), async () => {

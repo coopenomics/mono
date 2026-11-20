@@ -9,8 +9,15 @@ export const marketplaceSupplierPaymentConfirmedPayloadSchema = z.object({
   supplierName: z.string(),
   amount: z.string(),
   paymentReference: z.string(),
-  apl_reception_id: z.string(),
+  /** Основание выплаты — заказы пакета, в дательном падеже после «по»: «6 заказам». */
+  ordersLabel: z.string(),
   payment_request_id: z.string(),
+  /** Название принятого имущества по заказу выплаты. */
+  itemName: z.string().optional(),
+  /** Принятое количество с единицей продажи («1000 упак. 1 л»); пусто — не прочитано. */
+  quantity: z.string().optional(),
+  /** Дата закрывающей подписи акта приёмки («17.11.2026»); пусто — не прочитана. */
+  actDate: z.string().optional(),
   coopname: z.string(),
   deepLinkUrl: z.string().optional(),
 });

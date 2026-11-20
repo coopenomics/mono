@@ -61,12 +61,12 @@ const columns: BaseTableColumn<MarketplaceOutgoingPaymentView>[] = [
     field: (row) => `${formatAsset2Digits(String(row.amount))} ${row.symbol}`,
     numeric: true,
     nowrap: true,
-    width: '160px',
+    width: '150px',
     sortable: true,
     sort: (_a, _b, rowA, rowB) =>
       Number.parseFloat(String(rowA.amount)) - Number.parseFloat(String(rowB.amount)),
   },
-  { key: 'status', label: i18nT('marketplace.boardPayouts.column.status'), width: '160px', sortable: true, field: (row) => row.status },
+  { key: 'status', label: i18nT('marketplace.boardPayouts.column.status'), width: '150px', sortable: true, field: (row) => row.status },
   { key: 'purpose', label: i18nT('marketplace.boardPayouts.column.purpose'), field: (row) => row.purpose },
 ];
 
@@ -178,6 +178,8 @@ q-page.board-payouts(role="region", :aria-label="$t('marketplace.boardPayouts.pa
     template(#prepend)
       q-icon(name="search", size="18px")
 
+  //- min-width 760 px: при экране 1120 px и боковом меню карточка шириной около
+  //- 820 px, порог 880 px прятал колонку «Назначение» за горизонтальную прокрутку.
   BaseTable(
     v-if="!isEmpty",
     :columns="columns",
@@ -188,7 +190,7 @@ q-page.board-payouts(role="region", :aria-label="$t('marketplace.boardPayouts.pa
     :loading="loading",
     sort-by="created_at",
     descending,
-    min-width="880px",
+    min-width="760px",
     @row-click="openPayout"
   )
     template(#cell-status="{ row }")

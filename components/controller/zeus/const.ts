@@ -661,6 +661,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	DocumentTemplateEdition: "enum" as const,
+	DocumentsView: "enum" as const,
 	EditBranchInput:{
 
 	},
@@ -856,8 +857,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ExecKuDecisionInput:{
-		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput",
-		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
 		petition:"BranchEstablishmentPetitionSignedDocumentInput"
 	},
 	ExpenseAdvanceState: "enum" as const,
@@ -1025,7 +1024,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	GetDocumentsInput:{
 		actions:"DocumentAction",
-		filter:"JSON"
+		filter:"JSON",
+		signed_from:"DateTime",
+		signed_to:"DateTime",
+		view:"DocumentsView"
 	},
 	GetExpenseInput:{
 
@@ -1181,12 +1183,21 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	KuDecisionStatus: "enum" as const,
 	KuDecisionType: "enum" as const,
+	KuPowerOfAttorneyFilterInput:{
+		type:"KuPowerOfAttorneyType"
+	},
+	KuPowerOfAttorneyStatus: "enum" as const,
+	KuPowerOfAttorneyType: "enum" as const,
 	KuProtocolQuestionInput:{
 
 	},
 	KuTrustRequestFilterInput:{
 
 	},
+	KuTrusteeDocumentsInput:{
+
+	},
+	KuTrusteeLiabilityStatus: "enum" as const,
 	KuVoteItemInput:{
 
 	},
@@ -1462,6 +1473,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListContainersInput:{
 
 	},
+	MarketplaceListInventoryArchiveInput:{
+
+	},
 	MarketplaceListInventoryInput:{
 		statuses:"MarketplaceInventoryStatus"
 	},
@@ -1600,9 +1614,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceScanTarget: "enum" as const,
 	MarketplaceSecurePartState: "enum" as const,
 	MarketplaceSetAidLimitInput:{
-
-	},
-	MarketplaceSetBranchInitiatorInput:{
 
 	},
 	MarketplaceSetBranchReserveInput:{
@@ -2597,6 +2608,12 @@ export const AllTypesProps: Record<string,any> = {
 		kuRequestTrusted:{
 			data:"RequestKuTrustedInput"
 		},
+		kuSignTrusteeAuthority:{
+			data:"SignKuTrusteeAuthorityInput"
+		},
+		kuSignTrusteeLiability:{
+			data:"SignKuTrusteeLiabilityInput"
+		},
 		kuStartDecision:{
 			data:"StartKuDecisionInput"
 		},
@@ -2822,6 +2839,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceRequestSupplier:{
 			input:"MarketplaceRequestSupplierInput"
 		},
+		marketplaceResumeSupplier:{
+			input:"MarketplaceSupplierMemberInput"
+		},
 		marketplaceRetireStorageCells:{
 			data:"MarketplaceRetireStorageCellsInput"
 		},
@@ -2830,9 +2850,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSetAidLimit:{
 			data:"MarketplaceSetAidLimitInput"
-		},
-		marketplaceSetBranchInitiator:{
-			data:"MarketplaceSetBranchInitiatorInput"
 		},
 		marketplaceSetBranchReserve:{
 			data:"MarketplaceSetBranchReserveInput"
@@ -2890,6 +2907,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSubmitWriteoffDraft:{
 			data:"MarketplaceSubmitWriteoffDraftInput"
+		},
+		marketplaceSuspendSupplier:{
+			input:"MarketplaceSupplierMemberInput"
 		},
 		marketplaceSwitchSupplierModel:{
 			input:"MarketplaceSwitchSupplierModelInput"
@@ -3811,9 +3831,16 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"KuDecisionFilterInput",
 			options:"PaginationInput"
 		},
+		kuPowersOfAttorney:{
+			filter:"KuPowerOfAttorneyFilterInput",
+			options:"PaginationInput"
+		},
 		kuTrustRequests:{
 			filter:"KuTrustRequestFilterInput",
 			options:"PaginationInput"
+		},
+		kuTrusteeDocuments:{
+			data:"KuTrusteeDocumentsInput"
 		},
 		listExpensePlans:{
 			data:"ListExpensePlansInput"
@@ -3848,9 +3875,6 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetBranchEconomy:{
 
 		},
-		marketplaceGetBranchInitiator:{
-
-		},
 		marketplaceGetBranchMovementParts:{
 
 		},
@@ -3880,6 +3904,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceHandoffCode:{
 			data:"MarketplaceHandoffCodeInput"
+		},
+		marketplaceInventoryMovements:{
+
 		},
 		marketplaceInvestAgreementSignablePayload:{
 
@@ -3952,6 +3979,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListInventory:{
 			data:"MarketplaceListInventoryInput"
+		},
+		marketplaceListInventoryArchive:{
+			data:"MarketplaceListInventoryArchiveInput",
+			options:"PaginationInput"
 		},
 		marketplaceListIssuanceSagas:{
 			data:"MarketplaceListIssuanceSagasInput"
@@ -4083,6 +4114,9 @@ export const AllTypesProps: Record<string,any> = {
 		process:{
 
 		},
+		processContent:{
+
+		},
 		processes:{
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
@@ -4110,6 +4144,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		reportsProcess:{
+
+		},
+		reportsProcessContent:{
 
 		},
 		reportsProcesses:{
@@ -4403,6 +4440,12 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SignBySecretaryOnAnnualGeneralMeetInput:{
 		secretary_decision:"AnnualGeneralMeetingDecisionSignedDocumentInput"
+	},
+	SignKuTrusteeAuthorityInput:{
+		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput"
+	},
+	SignKuTrusteeLiabilityInput:{
+		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput"
 	},
 	SignProgramPropertyActInput:{
 		act:"SignedDigitalDocumentInput"
@@ -6356,7 +6399,11 @@ export const ReturnTypes: Record<string,any> = {
 		acts:"ActDetailAggregate",
 		decision:"DecisionDetailAggregate",
 		links:"DocumentAggregate",
-		statement:"StatementDetailAggregate"
+		registry_hash:"String",
+		role:"String",
+		signed_at:"DateTime",
+		statement:"StatementDetailAggregate",
+		title:"String"
 	},
 	DocumentReproducibilityAudit:{
 		checked:"Int",
@@ -7369,6 +7416,22 @@ export const ReturnTypes: Record<string,any> = {
 		display_name:"String",
 		username:"String"
 	},
+	KuPowerOfAttorney:{
+		braname:"String",
+		document:"DocumentAggregate",
+		holder:"String",
+		holder_name:"String",
+		issued_at:"String",
+		number:"Int",
+		protocol_date:"String",
+		protocol_number:"String",
+		renewal_due:"Boolean",
+		resolved_at:"DateTime",
+		signed_at:"DateTime",
+		status:"KuPowerOfAttorneyStatus",
+		type:"KuPowerOfAttorneyType",
+		valid_until:"String"
+	},
 	KuTrustRequest:{
 		application:"JSON",
 		authority:"JSON",
@@ -7382,6 +7445,15 @@ export const ReturnTypes: Record<string,any> = {
 		id:"Int",
 		present:"Boolean",
 		username:"String"
+	},
+	KuTrusteeDocuments:{
+		active_authority:"KuPowerOfAttorney",
+		authority:"KuPowerOfAttorney",
+		braname:"String",
+		can_sign_authority:"Boolean",
+		has_protocol:"Boolean",
+		liability:"DocumentAggregate",
+		liability_status:"KuTrusteeLiabilityStatus"
 	},
 	Ledger2Account:{
 		accountType:"Int",
@@ -7574,12 +7646,6 @@ export const ReturnTypes: Record<string,any> = {
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
 	},
-	MarketplaceBranchInitiator:{
-		assigned:"Boolean",
-		braname:"String",
-		invest_balance:"String",
-		username:"String"
-	},
 	MarketplaceBranchInvestment:{
 		braname:"String",
 		investors:"MarketplaceInvestor",
@@ -7606,7 +7672,6 @@ export const ReturnTypes: Record<string,any> = {
 		ends_at:"DateTime",
 		expenses:"String",
 		funds_amount:"String",
-		initiator:"String",
 		initiator_amount:"String",
 		invest_phase:"MarketplacePeriodInvestPhase",
 		investor_repaid:"String",
@@ -7829,6 +7894,12 @@ export const ReturnTypes: Record<string,any> = {
 		expires_at:"DateTime",
 		kind:"MarketplaceHandoffCodeKind"
 	},
+	MarketplaceInventoryArchivePaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceInventoryItem",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	MarketplaceInventoryItem:{
 		arrival_price:"String",
 		barcode_format:"MarketplaceBarcodeFormat",
@@ -7864,6 +7935,20 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceInventoryStatus",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime"
+	},
+	MarketplaceInventoryMovement:{
+		actor_account:"String",
+		actor_name:"String",
+		at:"DateTime",
+		barcode_value:"String",
+		branch_name:"String",
+		id:"String",
+		kind:"String",
+		order_id:"String",
+		place_label:"String",
+		quantity:"Float",
+		recipient_account:"String",
+		recipient_name:"String"
 	},
 	MarketplaceInventoryMutationResult:{
 		inventory:"MarketplaceInventoryItem"
@@ -8160,7 +8245,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOutgoingPaymentDetail:{
 		core_payment:"MarketplaceOutgoingPaymentCoreRecord",
-		order:"MarketplaceOutgoingPaymentOrderSummary",
+		orders:"MarketplaceOutgoingPaymentOrderSummary",
 		payment:"MarketplaceOutgoingPaymentRequest"
 	},
 	MarketplaceOutgoingPaymentOrderSummary:{
@@ -8177,17 +8262,17 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
-		apl_reception_id:"String",
 		completed_at:"DateTime",
 		coopname:"String",
 		core_payment_id:"String",
 		created_at:"DateTime",
 		decline_reason:"String",
 		id:"String",
-		order_hash:"String",
-		order_id:"String",
+		order_ids:"String",
+		orders_count:"Int",
 		payee_account:"String",
 		payee_name:"String",
+		payment_hash:"String",
 		payout_destination:"String",
 		payout_tx_hash:"String",
 		purpose:"String",
@@ -8494,7 +8579,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceSupplierPaymentSettings:{
 		has_payout_method:"Boolean",
 		payout_destination:"String",
-		payout_method_id:"String"
+		payout_method_id:"String",
+		resolved_method_id:"String"
 	},
 	MarketplaceSupplierProfile:{
 		about:"String",
@@ -9016,6 +9102,8 @@ export const ReturnTypes: Record<string,any> = {
 		kuGenerateTrusteePowerOfAttorney:"GeneratedDocument",
 		kuJoinDecision:"Transaction",
 		kuRequestTrusted:"Transaction",
+		kuSignTrusteeAuthority:"Transaction",
+		kuSignTrusteeLiability:"Transaction",
 		kuStartDecision:"Transaction",
 		kuVoteOnDecision:"Transaction",
 		login:"RegisteredAccount",
@@ -9093,10 +9181,10 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
 		marketplaceRepublishOffer:"MarketplaceOffer",
 		marketplaceRequestSupplier:"MarketplaceSupplier",
+		marketplaceResumeSupplier:"MarketplaceSupplier",
 		marketplaceRetireStorageCells:"MarketplaceStorageCell",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
 		marketplaceSetAidLimit:"MarketplaceEconomySettings",
-		marketplaceSetBranchInitiator:"MarketplaceBranchInitiator",
 		marketplaceSetBranchReserve:"MarketplaceBranchReserves",
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetInitiatorShare:"MarketplaceEconomySettings",
@@ -9116,6 +9204,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
 		marketplaceSplitInventory:"MarketplaceInventoryMutationResult",
 		marketplaceSubmitWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceSuspendSupplier:"MarketplaceSupplier",
 		marketplaceSwitchSupplierModel:"MarketplaceSupplier",
 		marketplaceUnpublishStock:"MarketplaceUnpublishStockResult",
 		marketplaceUpdateCartItem:"MarketplaceCart",
@@ -9516,6 +9605,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedKuPowersOfAttorneyPaginationResult:{
+		currentPage:"Int",
+		items:"KuPowerOfAttorney",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedKuTrustRequestsPaginationResult:{
 		currentPage:"Int",
 		items:"KuTrustRequest",
@@ -9679,6 +9774,30 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		name:"String",
 		transaction_id:"String"
+	},
+	ProcessContent:{
+		amount:"String",
+		amount_label:"String",
+		facts:"ProcessContentFact",
+		image_url:"String",
+		lines:"ProcessContentLine",
+		links:"ProcessContentLink",
+		status:"String",
+		subtitle:"String",
+		title:"String"
+	},
+	ProcessContentFact:{
+		label:"String",
+		value:"String"
+	},
+	ProcessContentLine:{
+		amount:"String",
+		label:"String",
+		subject:"String"
+	},
+	ProcessContentLink:{
+		label:"String",
+		path:"String"
 	},
 	ProcessDelta:{
 		block_num:"Float",
@@ -10125,7 +10244,9 @@ export const ReturnTypes: Record<string,any> = {
 		isEmailRegistered:"Boolean",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
+		kuPowersOfAttorney:"PaginatedKuPowersOfAttorneyPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
+		kuTrusteeDocuments:"KuTrusteeDocuments",
 		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
 		lookupEntrepreneur:"EntrepreneurLookupResult",
@@ -10143,7 +10264,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
 		marketplaceGetBranchCurrentPeriod:"MarketplaceBranchCurrentPeriod",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
-		marketplaceGetBranchInitiator:"MarketplaceBranchInitiator",
 		marketplaceGetBranchMovementParts:"MarketplaceBranchWalletOperation",
 		marketplaceGetBranchReserves:"MarketplaceBranchReserves",
 		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
@@ -10159,6 +10279,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetShipment:"MarketplaceShipment",
 		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
 		marketplaceHandoffCode:"MarketplaceHandoffCode",
+		marketplaceInventoryMovements:"MarketplaceInventoryMovement",
 		marketplaceInvestAgreementSignablePayload:"GeneratedDocument",
 		marketplaceInvestClaimSignablePayload:"GeneratedDocument",
 		marketplaceInvestPropertyActSignablePayload:"GeneratedDocument",
@@ -10187,6 +10308,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListCoopCategories:"MarketplaceCategory",
 		marketplaceListExpressPickupsByBraname:"MarketplaceExpressPickupCandidate",
 		marketplaceListInventory:"MarketplaceInventoryItem",
+		marketplaceListInventoryArchive:"MarketplaceInventoryArchivePaginationResult",
 		marketplaceListIssuanceSagas:"MarketplaceIssuanceSaga",
 		marketplaceListIssuancesByBraname:"MarketplaceOrder",
 		marketplaceListKUDetails:"MarketplaceKUDetails",
@@ -10244,6 +10366,7 @@ export const ReturnTypes: Record<string,any> = {
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
+		processContent:"ProcessContent",
 		processes:"ProcessSummaryPaginationResult",
 		reportsFundHistory:"ReportsFundHistoryPaginationResult",
 		reportsFunds:"ReportsFundsRegistry",
@@ -10254,6 +10377,7 @@ export const ReturnTypes: Record<string,any> = {
 		reportsParticipantWallets:"ReportsParticipantWallet",
 		reportsParticipants:"ReportsParticipant",
 		reportsProcess:"ProcessView",
+		reportsProcessContent:"ProcessContent",
 		reportsProcesses:"ProcessSummaryPaginationResult",
 		reportsSubjects:"ReportsSubject",
 		searchDocuments:"SearchResult",

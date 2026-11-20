@@ -1,10 +1,10 @@
 <template lang="pug">
 .process-detail
-  .op-header.q-mb-md(:style='{ borderLeftColor: processAccentColor(processType) }')
-    .text-h6.text-weight-medium {{ processTypeLabel(processType) }}
-    .row.items-center.q-gutter-sm.q-mb-xs
-      .text-caption.text-grey-7 {{ $t('process.processDetailCard.processIdLabel') }}
-      EntityIdBadge(:rawId='processHash' copy-on-click)
+  //- Шапки у карточки нет: процесс называет место, где она стоит, — строка
+  //- реестра процессов либо шапка страницы сущности (заказа).
+  //- Место под сводку процесса. Реестр процессов кладёт в слот содержание
+  //- процесса; страница сущности (заказ) оставляет пустым — у неё своя шапка.
+  slot(name='summary')
 
   //- Загрузка: каркас на местах документов, операций и проводок. Спиннер
   //- крутился у левого края под шапкой — по нему не видно ни что грузится, ни
@@ -23,11 +23,11 @@
   template(v-else)
     //- Документы процесса (наименование / дата / подписанты). Открываются во
     //- всплывающем окне без переадресации — агрегат уже загружен в getProcess.
-    q-card.q-mb-md(flat bordered)
-      q-card-section.q-pb-none
-        .text-subtitle2 {{ $t('process.processDetailCard.documentsTitle') }}
-      q-card-section.q-pt-sm
-        .text-body2.text-grey-7(v-if='!documents.length') {{ $t('process.processDetailCard.documentsEmpty') }}
+    section.process-detail__section
+      div
+        h4.process-detail__title {{ $t('process.processDetailCard.documentsTitle') }}
+      div
+        .process-detail__empty(v-if='!documents.length') {{ $t('process.processDetailCard.documentsEmpty') }}
         .column.q-gutter-xs(v-else)
           DocumentRow(
             v-for='d in documents'
@@ -42,17 +42,19 @@
     .row.q-col-gutter-md
       //- Операции процесса (apply + корректировки)
       .col-12
-        q-card(flat bordered)
-          q-card-section.q-pb-none
-            .text-subtitle2 {{ $t('process.processDetailCard.operationsTitle') }}
-          q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!operations.length') {{ $t('process.processDetailCard.operationsEmpty') }}
+        section.process-detail__section
+          div
+            h4.process-detail__title {{ $t('process.processDetailCard.operationsTitle') }}
+          div
+            .process-detail__empty(v-if='!operations.length') {{ $t('process.processDetailCard.operationsEmpty') }}
             q-table(
               v-else
               flat dense
               :rows='operations'
               :columns='opColumns'
               row-key='globalSequence'
+              :class='{ "process-detail__rows--clickable": !!onOpenOperation }'
+              @row-click='(_evt, row) => onOpenOperation?.(row)'
               hide-pagination
               :pagination='{ rowsPerPage: 0 }'
             )
@@ -60,13 +62,7 @@
                 q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
               template(#body-cell-op='cp')
                 q-td(:props='cp')
-                  EntityIdBadge(
-                    v-if='operationRouteName'
-                    :rawId='cp.row.globalSequence'
-                    @click='goToOperation(cp.row.globalSequence)'
-                  )
-                    q-tooltip {{ $t('process.processDetailCard.openInOperationsRegistry') }}
-                  EntityIdBadge(v-else :rawId='cp.row.globalSequence' copy-on-click)
+                  EntityIdBadge(:rawId='cp.row.globalSequence' :copy-on-click='!onOpenOperation')
               template(#body-cell-label='cp')
                 q-td(:props='cp')
                   BaseChip(
@@ -78,17 +74,19 @@
 
       //- Проводки процесса (Дт → Кт парами)
       .col-12
-        q-card(flat bordered)
-          q-card-section.q-pb-none
-            .text-subtitle2 {{ $t('process.processDetailCard.postingsTitle') }}
-          q-card-section.q-pt-sm
-            .text-body2.text-grey-7(v-if='!postings.length') {{ $t('process.processDetailCard.postingsEmpty') }}
+        section.process-detail__section
+          div
+            h4.process-detail__title {{ $t('process.processDetailCard.postingsTitle') }}
+          div
+            .process-detail__empty(v-if='!postings.length') {{ $t('process.processDetailCard.postingsEmpty') }}
             q-table(
               v-else
               flat dense
               :rows='postings'
               :columns='pstColumns'
               row-key='key'
+              :class='{ "process-detail__rows--clickable": !!onOpenPosting }'
+              @row-click='(_evt, row) => onOpenPosting?.(row)'
               hide-pagination
               :pagination='{ rowsPerPage: 0 }'
             )
@@ -97,15 +95,9 @@
               template(#body-cell-posting='cp')
                 q-td(:props='cp')
                   EntityIdBadge(
-                    v-if='postingRouteName && cp.row.debitGlobalSequence'
+                    v-if='cp.row.debitGlobalSequence'
                     :rawId='cp.row.debitGlobalSequence'
-                    @click='goToPosting(cp.row.debitGlobalSequence)'
-                  )
-                    q-tooltip {{ $t('process.processDetailCard.openInPostingsRegistry') }}
-                  EntityIdBadge(
-                    v-else-if='cp.row.debitGlobalSequence'
-                    :rawId='cp.row.debitGlobalSequence'
-                    copy-on-click
+                    :copy-on-click='!onOpenPosting'
                   )
                   span.text-grey-6(v-else) —
               //- Суть проводки: та же операция, что в реестре проводок. Без неё
@@ -142,7 +134,6 @@ import { onMounted, ref } from 'vue'
 import { Ledger2Contract, SovietContract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { uiLocale, t } from 'src/shared/i18n';
-import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
@@ -163,10 +154,8 @@ import {
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
 import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates'
 import {
-  processAccentColor,
   processChipBg,
   processChipText,
-  processTypeLabel,
   operationLabel,
   accountCodeFromId,
   formatProcessAmount,
@@ -180,15 +169,18 @@ const props = defineProps<{
   processHash: string
   /** Тип процесса (p.mkt.supply и т.д.) — определяет цвет/подпись. */
   processType: string
-  /** Имя маршрута реестра операций. Задан → клик по № операции ведёт туда; не задан → копирование. */
-  operationRouteName?: string
-  /** Имя маршрута реестра проводок. Задан → клик по № проводки ведёт туда; не задан → копирование. */
-  postingRouteName?: string
+  /**
+   * Нажатие на строку операции. Реестр стола бухгалтера открывает по нему
+   * операцию в правой панели; без обработчика № операции копируется.
+   * Объявлен свойством, чтобы карточка знала о подписке (событие open-operation).
+   */
+  onOpenOperation?: (operation: ILedger2Operation) => void
+  /** Нажатие на строку проводки — так же, как у операции (событие open-posting). */
+  onOpenPosting?: (posting: ILedger2Posting) => void
   /** Откуда брать процесс, операции и проводки: общие операции ядра либо операции стола бухгалтера. */
   source?: RegistrySource
 }>()
 
-const router = useRouter()
 const processStore = useProcessStore()
 const ledger2Store = useLedger2Store()
 
@@ -274,14 +266,6 @@ function openDoc(d: IProcessDocument) {
   viewerOpen.value = true
 }
 
-function goToOperation(seq: string) {
-  if (!props.operationRouteName) return
-  router.push({ name: props.operationRouteName, query: { operation_id: seq } })
-}
-function goToPosting(id: string) {
-  if (!props.postingRouteName) return
-  router.push({ name: props.postingRouteName, query: { posting_id: id } })
-}
 
 async function copyText(text: string | null | undefined) {
   if (!text) return
@@ -341,12 +325,26 @@ useLiveReload(
 </script>
 
 <style scoped>
+.process-detail__section {
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.process-detail__title {
+  margin: 0 0 var(--p-3);
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.process-detail__empty {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
+}
+.process-detail__rows--clickable :deep(tbody tr) {
+  cursor: pointer;
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
-}
-.op-header {
-  border-left: 4px solid #9e9e9e;
-  padding: 4px 0 4px 12px;
 }
 </style>

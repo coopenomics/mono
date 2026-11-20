@@ -67,6 +67,11 @@ void marketplace::accretrn(eosio::name coopname,
     upd.cancel_statement.emplace(statement);
   });
 
+  // Рекламация с двумя подписями — связанный документ пакета возврата: заявление
+  // пакета одно — обращение оператора в совет, его публикует повестка.
+  Action::send<newlink_interface>(_soviet, "newlink"_n, _marketplace, coopname, r.orderer,
+                                  "accretrn"_n, request_hash, reclamation);
+
   // Повестка совета: hash = request_hash, чтобы обратные вызовы нашли заявку;
   // автор повестки — пайщик (его сделка отменяется), документ — заявление
   // оператора; протокол 1117 берёт деловые поля из его метаданных.

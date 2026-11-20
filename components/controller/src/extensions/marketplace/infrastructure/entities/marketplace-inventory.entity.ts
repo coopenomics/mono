@@ -76,6 +76,9 @@ export class MarketplaceInventoryEntity {
 
   public labeled_by_operator_account!: string | null;
 
+  /** Кто выполнил последнее действие с позицией (место, снятие штрих-кода) — для журнала движения. */
+  public last_actor_account!: string | null;
+
   /**
    * Story 8.3: срок годности (received_at + Offer.warranty_days * 86400);
    * nullable для бессрочных Offer'ов и legacy-записей без warranty_days.

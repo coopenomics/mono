@@ -1,0 +1,26 @@
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+(CC BY-NC-SA 4.0)
+
+© 2024–2026 Потребительский кооператив «ВОСХОД» (ОГРН 1247700283346, ИНН 9728130611).
+
+Смарт-контракты в этом каталоге, включая смарт-контракты приложений
+«Стол заказов» (cpp/marketplace), «Благорост» (cpp/capital) и «Образование»
+(cpp/edubridge), распространяются на условиях лицензии Creative Commons
+«С указанием авторства — Некоммерческая — С сохранением условий 4.0
+Международная» (CC BY-NC-SA 4.0). Коммерческое использование запрещено.
+
+Юридический текст лицензии:
+https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru
+
+Лицензия на смарт-контракты не предоставляет права использования программ
+для ЭВМ «Стол заказов», «Благорост» и «Образование» в остальных частях
+репозитория (LICENSES/VOSKHOD-PROPRIETARY.md в корне репозитория).
+
+Файлы сторонних правообладателей распространяются на условиях лицензий в их
+каталогах: cpp/system (AntelopeIO reference-contracts), docs/css.
+
+---
+
+Smart contracts in this directory are licensed under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International License.
+Copyright (c) 2024-2026 Consumer Cooperative "VOSKHOD".

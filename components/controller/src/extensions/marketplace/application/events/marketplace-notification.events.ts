@@ -151,9 +151,11 @@ export interface MarketplaceAplSupplierOnsiteSignRequestEvent {
   ku_name: string;
 }
 
+/** Пакет выплаты поставщику отправлен кассиру: один платёж на заказы поставщика за день. */
 export interface MarketplaceCashierNewPaymentEvent {
   coopname: string;
-  apl_reception_id: string;
+  /** Заказов в пакете выплаты. */
+  orders_count: number;
   payment_request_id: string;
   supplier_account: string;
   amount: string;
@@ -161,16 +163,20 @@ export interface MarketplaceCashierNewPaymentEvent {
 
 export interface MarketplaceSupplierPaymentConfirmedEvent {
   coopname: string;
-  apl_reception_id: string;
+  /** Заказов в пакете выплаты. */
+  orders_count: number;
   payment_request_id: string;
   supplier_account: string;
   amount: string;
   payment_reference: string;
+  /** Что оплачено: имущество заказов пакета («Мёд цветочный, Чай и ещё 2»). */
+  item_name?: string;
 }
 
 export interface MarketplaceSupplierPaymentDeclinedEvent {
   coopname: string;
-  apl_reception_id: string;
+  /** Заказов в пакете выплаты. */
+  orders_count: number;
   payment_request_id: string;
   supplier_account: string;
   amount: string;
@@ -198,6 +204,8 @@ export interface MarketplaceOrderReadyToReceiveEvent {
   orderer_account: string;
   /** Кооперативный участок, где имущество готово к выдаче. */
   braname: string;
+  /** Название имущества заказа: уведомление идёт по каждой позиции отдельно. */
+  product_name: string;
 }
 
 /**

@@ -34,7 +34,7 @@ const chairkrg = ROLES.branchChairman()
 const chairodn = ROLES.foreignBranchChairman()
 const ODN = 'odn'
 // Реестр документов пайщика: число и сырые агрегаты (ищем номер шаблона в тексте).
-const DOCUMENTS = 'query($d: GetDocumentsInput!){ getDocuments(data:$d){ totalCount items { statement { documentAggregate { document { meta } } } } } }'
+const DOCUMENTS = 'query($d: GetDocumentsInput!){ getDocuments(data:$d){ totalCount items { statement { documentAggregate { document { meta } } } decision { documentAggregate { document { meta } } } acts { documentAggregate { document { meta } } } } } }'
 const SUM = 1_000
 const PROPERTY_SUM = 25_000
 
@@ -112,7 +112,19 @@ describe('инвестиционный этап участка: договор, 
     const all = await packageOf(krgToken, chairkrg.account, {})
     expect(all.totalCount, 'без фильтра пакета список не сужается до пакета').toBeGreaterThan(own.totalCount)
 
-    await investPropertyAccepted({ investor: chairkrg, chairman: chairkrg, braname: KRG, sum: PROPERTY_SUM, name: `Холодильная витрина ${Date.now().toString(36)}` })
+    const propertyHash = await investPropertyAccepted({ investor: chairkrg, chairman: chairkrg, braname: KRG, sum: PROPERTY_SUM, name: `Холодильная витрина ${Date.now().toString(36)}` })
+    // Документы взноса имуществом в реестре — один пакет под заявлением (1120):
+    // при нём протокол совета и акт приёма-передачи (1122). До 17.11.2026 акт
+    // публиковался отдельным заявлением и получал тот же протокол вторым пакетом.
+    const registryOf = (part: any): number => Number(part?.documentAggregate?.document?.meta?.registry_id)
+    const propertyPackage = await waitFor(async () => {
+      const found = await packageOf(krgToken, chairkrg.account, { package: propertyHash.toUpperCase() })
+      const first = found.items?.[0]
+      return first?.decision && (first.acts?.length ?? 0) >= 1 ? found : null
+    }, { timeoutMs: 120_000, intervalMs: 2_000, label: 'пакет документов взноса имуществом в реестре' })
+    expect(propertyPackage.totalCount, 'под хэшем взноса — один пакет').toBe(1)
+    expect(registryOf(propertyPackage.items[0].statement), 'главный документ — заявление о паевом взносе имуществом').toBe(1120)
+    expect((propertyPackage.items[0].acts as any[]).map(registryOf), 'акт приёма-передачи — актом пакета').toEqual([1122])
     const view = (await gql<any>(krgToken, BRANCH_INVESTMENT, { b: KRG })).marketplaceBranchInvestment
     const mine = investorOf(view, chairkrg.account)
     expect(amount(mine.property) - amount(mineBefore?.property ?? 0), 'имущество по цене приёма').toBeCloseTo(PROPERTY_SUM, 4)

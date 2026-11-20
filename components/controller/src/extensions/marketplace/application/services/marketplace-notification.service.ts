@@ -1,6 +1,7 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
+import { MarketContract } from 'cooptypes';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
@@ -56,6 +57,8 @@ import {
   type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
 import { t } from '../../i18n';
+import { ordersDative } from '../shared/payout-batch.util';
+import { KU_DETAILS_DOMAIN_REPOSITORY, type KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
 
 /**
  * Story 5.4 / 5.6 / 5.7 — push-уведомления marketplace flow.
@@ -82,7 +85,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort
+    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort,
+    @Inject(KU_DETAILS_DOMAIN_REPOSITORY) private readonly kuDetails: KuDetailsDomainRepository
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
   }
@@ -101,6 +105,28 @@ export class MarketplaceNotificationService implements OnModuleInit {
       return (await this.accountPort.getDisplayName(braname)) || braname;
     } catch {
       return braname;
+    }
+  }
+
+  /**
+   * Режим работы пункта выдачи для уведомления о готовности заказа (решение
+   * владельца 19.11.2026): пайщик узнаёт, когда участок выдаёт заказы, не
+   * открывая стол. Время — местное время участка, как его ввёл председатель;
+   * пояс не пересчитывается. Дни с одинаковым режимом объединены: «Пн–Пт
+   * 09:00–18:00; Сб–Вс выходной». Режим не задан или деталей нет — пустая
+   * строка: уведомление важнее подробностей.
+   */
+  private async workingHoursNote(coopname: string, braname: string): Promise<string> {
+    try {
+      const details = await this.kuDetails.findByCoreBraname(coopname, braname);
+      const hours = MarketContract.WorkingHours.formatWorkingHours(details?.workingHours, {
+        day: (day) => t(`marketplace.workingHours.day.${day}`),
+        breakWord: t('marketplace.workingHours.break'),
+        dayOff: t('marketplace.workingHours.dayOff'),
+      }).join('; ');
+      return hours ? t('marketplace.notification.workingHoursNote', { hours }) : '';
+    } catch {
+      return '';
     }
   }
 
@@ -190,7 +216,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         cashierName: await this.accountPort.getDisplayName(username),
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
         // Реестр платежей стола кассира, отфильтрованный по поставщику
@@ -272,8 +298,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         paymentReference: event.payment_reference,
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
+        itemName: event.item_name || t('marketplace.notification.paymentItemFallback'),
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
@@ -314,11 +341,14 @@ export class MarketplaceNotificationService implements OnModuleInit {
       }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
+        productName: event.product_name,
         kuName,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
+        // Нажатие на уведомление открывает страницу заказа (замечание владельца 20.11.2026).
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/orders/${event.order_id}`,
         passportReminder,
+        workingHoursNote: await this.workingHoursNote(event.coopname, event.braname),
       };
       await this.notificationSenderService.notifyUser(
         event.orderer_account,
@@ -542,8 +572,10 @@ export class MarketplaceNotificationService implements OnModuleInit {
 
   /**
    * Совет решил по выдаче имущества не у стойки (решение шло вручную):
-   * пайщик уже ушёл — push «подпишите акт в приложении, заберёте при
-   * следующем визите» либо «совет отказал, паевой взнос остался на месте».
+   * «совет согласовал возврат» либо «совет отказал, паевой взнос остался на
+   * месте». При согласии следующего шага в тексте нет (решение владельца
+   * 19.11.2026): акт подписывается при визите пайщика на участок,
+   * призыв «подпишите акт в приложении» только путал.
    */
   @OnEvent(MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT)
   async handleIssuanceDecidedOffline(event: MarketplaceIssuanceDecidedOfflineEvent): Promise<void> {
@@ -558,9 +590,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         outcomeText: event.authorized
           ? t('marketplace.notification.councilApprovedReturnBody')
           : t('marketplace.notification.councilRejectedIssuanceBody'),
-        nextStepText: event.authorized
-          ? t('marketplace.notification.signActPromptBody', { kuName })
-          : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
+        nextStepText: event.authorized ? '' : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
       await this.notificationSenderService.notifyUser(
@@ -582,7 +612,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reason: event.reason,
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,

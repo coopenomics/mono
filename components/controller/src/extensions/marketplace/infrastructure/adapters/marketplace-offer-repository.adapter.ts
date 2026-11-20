@@ -18,6 +18,7 @@ import {
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOfferEntity } from '../entities/marketplace-offer.entity';
 import { MarketplaceOfferMapper } from '../mappers/marketplace-offer.mapper';
+import { MarketplaceSupplierStatus } from '../../domain/entities/marketplace-supplier.types';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 
 /** Одно из четырёх движений счётчиков предложения и упаковки. */
@@ -72,7 +73,7 @@ const PACKAGE_AVAILABLE_GUARD_SQL = `(o.unlimited_flag = true OR EXISTS (
   SELECT 1 FROM jsonb_array_elements(o.packages) q
    WHERE q->>'id' = $3 AND ${pv('q', 'quantity_available')} >= $4))`;
 
-type OfferConditionFilter = Pick<OfferListFilter, 'coopname' | 'supplier_account' | 'status' | 'category_id' | 'available_only'> & {
+type OfferConditionFilter = Pick<OfferListFilter, 'coopname' | 'supplier_account' | 'status' | 'category_id' | 'available_only' | 'without_suspended_suppliers'> & {
   delivery_braname?: string | null;
 };
 
@@ -89,6 +90,12 @@ function offerConditions(eb: ExpressionBuilder<any, any>, filter: OfferCondition
   if (filter.available_only) conditions.push(sql<boolean>`(unlimited_flag = true OR quantity_available > 0)`);
   if (filter.delivery_braname) {
     conditions.push(sql<boolean>`delivery_points @> ${JSON.stringify([{ braname: filter.delivery_braname }])}::jsonb`);
+  }
+  if (filter.without_suspended_suppliers) {
+    // Реестр поставщиков мал (ключ coopname + member_account): подзапрос по нему дешёвый.
+    conditions.push(
+      sql<boolean>`supplier_account NOT IN (SELECT member_account FROM marketplace_supplier WHERE coopname = ${filter.coopname} AND status = ${MarketplaceSupplierStatus.SUSPENDED})`
+    );
   }
   return conditions;
 }
@@ -158,7 +165,15 @@ private readonly repo: TableStore<MarketplaceOfferEntity>,
       .select('category_id')
       .select((eb) => eb.fn.countAll<string>().as('cnt'))
       .where((eb) =>
-        eb.and(offerConditions(eb, { coopname, status: MarketplaceOfferStatuses.ACTIVE, available_only: true, delivery_braname }))
+        eb.and(
+          offerConditions(eb, {
+            coopname,
+            status: MarketplaceOfferStatuses.ACTIVE,
+            available_only: true,
+            delivery_braname,
+            without_suspended_suppliers: true,
+          })
+        )
       )
       .groupBy('category_id')
       .execute();

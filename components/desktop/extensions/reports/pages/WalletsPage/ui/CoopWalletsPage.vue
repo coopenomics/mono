@@ -66,6 +66,8 @@ div.coop-wallets-page
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
                 :no-data-label='$t("reports.coopWalletsPage.movementsEmptyLabel")'
+                class='movement-rows'
+                @row-click='(_evt, row) => openOperation(row)'
               )
                 template(#body-cell-movementId='cp')
                   q-td(:props='cp')
@@ -89,15 +91,6 @@ div.coop-wallets-page
                   q-td.memo-cell(:props='cp') {{ cp.row.memo || '—' }}
                 template(#body-cell-createdAt='cp')
                   q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
-                template(#body-cell-open='cp')
-                  q-td.text-right(:props='cp')
-                    q-btn(
-                      v-if='cp.row.processHash'
-                      flat dense round size='sm' color='primary'
-                      icon='fa-solid fa-arrow-right'
-                      :to='{ name: "reports-operations", query: { process_hash: cp.row.processHash } }'
-                    )
-                      q-tooltip {{ $t('reports.coopWalletsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -124,6 +117,13 @@ div.coop-wallets-page
     :fixed-from-wallet='transferDialog.fromWallet'
     @success='onTransferSuccess'
   )
+
+  //- Операция движения по кошельку в правой панели (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='openedOperation'
+    @close='openedOperation = null'
+  )
 </template>
 
 <script setup lang="ts">
@@ -144,12 +144,25 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { getWalletAccount } from 'src/shared/lib/ledger2'
-import { AccountIdCell, DirectionCell, WalletIdCell } from '../../../shared/ui'
+import { AccountIdCell, DirectionCell, OperationDetailsDrawer, WalletIdCell, type OperationRef } from '../../../shared/ui'
 import WalletTransferDialog from './WalletTransferDialog.vue'
 import TransferWalletsButton from './TransferWalletsButton.vue'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
+
+// Операция движения по кошельку в правой панели — без перехода в реестр операций.
+const openedOperation = ref<OperationRef | null>(null)
+function openOperation(row: { parentApplyGlobalSequence?: string | null; globalSequence: string; processHash?: string | null; operationCode?: string | null; memo?: string | null; quantity?: string | null; createdAt?: string | Date | null }): void {
+  openedOperation.value = {
+    globalSequence: String(row.parentApplyGlobalSequence ?? row.globalSequence),
+    processHash: row.processHash,
+    operationCode: row.operationCode,
+    memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
+  }
+}
 const { isMobile } = useWindowSize()
 const registries = useDeskRegistries()
 const session = useSessionStore()
@@ -235,13 +248,12 @@ const columns = computed<any[]>(() => {
 
 const childColumns: any[] = [
   { name: 'movementId', align: 'left', label: '№', field: 'globalSequence' },
+  { name: 'createdAt', align: 'left', label: t('reports.coopWalletsPage.column.date'), field: 'createdAt' },
   { name: 'direction', align: 'center', label: '', field: 'direction' },
   { name: 'walletFrom', align: 'left', label: t('reports.coopWalletsPage.column.walletFrom'), field: 'walletFrom' },
   { name: 'walletTo', align: 'left', label: t('reports.coopWalletsPage.column.walletTo'), field: 'walletTo' },
   { name: 'quantity', align: 'right', label: t('reports.coopWalletsPage.column.amount'), field: 'quantity' },
   { name: 'memo', align: 'left', label: t('reports.coopWalletsPage.column.memo'), field: 'memo' },
-  { name: 'createdAt', align: 'left', label: t('reports.coopWalletsPage.column.date'), field: 'createdAt' },
-  { name: 'open', align: 'right', label: '', field: 'processHash' },
 ]
 
 function directionFor(op: ILedger2Operation, walletName: string): 'in' | 'out' | 'move' {
@@ -311,6 +323,10 @@ useLiveReload(LEDGER_LIVE_TABLES, reloadWallets)
 </script>
 
 <style scoped lang="scss">
+/* Строка движения открывает операцию в правой панели. */
+.movement-rows :deep(tbody tr) {
+  cursor: pointer;
+}
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;

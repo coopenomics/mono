@@ -10,6 +10,7 @@ import { OperatorInventoryLabelingSection } from 'src/pages/Marketplace/Operator
 import { OperatorOwnWarehouseSection } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { OperatorContainersSection } from 'src/pages/Marketplace/OperatorContainers'
 import { PvzWriteoffsSection } from 'src/pages/Marketplace/PvzWriteoffs'
+import { WarehouseArchive } from 'src/widgets/Marketplace/WarehouseArchive'
 import { listWriteoffPendingConfirmations } from 'src/pages/Marketplace/PvzWriteoffs/api'
 import { listStock } from 'src/pages/Marketplace/OperatorOwnWarehouse/api'
 import {
@@ -36,7 +37,8 @@ import { t } from 'src/shared/i18n';
 // Типы боксов уехали на стол администратора (решение владельца 14.09.2026):
 // габариты тары общие на весь кооператив, участок только берёт готовый тип
 // при заведении боксов. Здесь остались сами боксы участка.
-const SECTIONS = ['labeling', 'warehouse', 'stock', 'writeoffs', 'containers'] as const
+// «Архив» — выданное и списанное имущество участка (решение владельца 19.11.2026).
+const SECTIONS = ['labeling', 'warehouse', 'stock', 'writeoffs', 'archive', 'containers'] as const
 type WarehouseSection = (typeof SECTIONS)[number]
 
 const DEFAULT_SECTION: WarehouseSection = 'labeling'
@@ -96,6 +98,7 @@ const tabs = computed<PageTab[]>(() => {
       count: counts.value.writeoffs ?? undefined,
     })
   }
+  list.push({ key: 'archive', label: t('marketplace.operatorWarehouseDeskPage.tabArchive') })
   if (containersAllowed.value) {
     list.push({
       key: 'containers',
@@ -227,6 +230,12 @@ q-page.wh-desk(role='region', :aria-label='$t("marketplace.operatorWarehouseDesk
   )
 
   PvzWriteoffsSection(v-else-if='activeSection === "writeoffs"', @count='onWriteoffCount')
+
+  WarehouseArchive(
+    v-else-if='activeSection === "archive"',
+    :braname='branchStore.activeBraname',
+    order-route-name='marketplace-pvz-order-detail'
+  )
 
   OperatorContainersSection(v-else, @counts='onContainerCounts')
 </template>

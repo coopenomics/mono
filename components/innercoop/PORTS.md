@@ -17,12 +17,12 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
-| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
+| `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, edubridge, expenses, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
 | `ACCOUNTING_REGISTRY_PORT` | `IAccountingRegistryPort` (6)<br><sub>core-ports/accounting-registry.port.ts</sub> | `AccountingRegistryInnercoopAdapter` | reports | Реестры бухгалтерии и процессов для приложения, которое показывает их на своём столе. |
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
 | `CANDIDATE_PORT` | `ICandidatePort` (2)<br><sub>core-ports/candidate.port.ts</sub> | `CandidateInnercoopAdapter` | capital | Заявки на вступление в кооператив. |
-| `CHAIN_CHANGES_PORT` | `IChainChangesPort` (4)<br><sub>core-ports/chain-changes.port.ts</sub> | `ChainChangesService` | capital*, cardcoop*, chairman*, chatcoop*, edubridge*, expenses*, marketplace*, reports*, soviet-robot* | Лента изменений цепи — сигнал столу «эти данные изменились, перечитай». |
+| `CHAIN_CHANGES_PORT` | `IChainChangesPort` (4)<br><sub>core-ports/chain-changes.port.ts</sub> | `ChainChangesService` | capital*, cardcoop*, chairman*, chatcoop*, edubridge*, expenses*, ku*, marketplace*, reports*, soviet-robot* | Лента изменений цепи — сигнал столу «эти данные изменились, перечитай». |
 | `CHAIN_DELTA_WAIT_PORT` | `IChainDeltaWaitPort` (3)<br><sub>core-ports/chain-delta-wait.port.ts</sub> | `ChainDeltaWaiterService` | capital*, chairman* | Ответ после факта из цепи. |
 | `CHAIN_RESOURCES_PORT` | `IChainResourcesPort` (2)<br><sub>core-ports/chain-resources.port.ts</sub> | `ChainResourcesInnercoopAdapter` | powerup | Ресурсы аккаунта в цепи: оперативная память, полоса, процессорное время. |
 | `CHAIN_PORT` | `IChainPort` (5)<br><sub>core-ports/chain.port.ts</sub> | `ChainInnercoopAdapter` | capital, cardcoop, chairman, edubridge, expenses, ku, marketplace, reports, soviet-robot | Проводка действий в цепь и чтение её таблиц. |
@@ -81,6 +81,7 @@
 | `COOP_CALENDAR_EVENT_NOTIFICATION_PORT` | `ICoopCalendarEventNotificationPort` (2)<br><sub>cross-plugin-ports/coop-calendar-event-notification.port.ts</sub> | — | chatcoop | Оповещения пайщиков о событиях кооперативного календаря (Novu / стол связи). |
 | `EXPENSE_CHASSIS_PORT` | `IExpenseChassisPort` (12)<br><sub>cross-plugin-ports/expense-chassis.port.ts</sub> | `ExpensesInnercoopExpenseChassisAdapter` | capital, edubridge, marketplace | Шасси расходов (контракт `expense`): read-side для приложений-потребителей (capital, marketplace, EMP). |
 | `MATRIX_ROOM_MESSAGING_PORT` | `IMatrixRoomMessagingPort` (4)<br><sub>cross-plugin-ports/matrix-room-messaging.port.ts</sub> | `ChatcoopInnercoopMatrixRoomMessagingAdapter` | capital* | Отправка сообщений в Matrix (Client-Server API) от имени сервисной учётки. |
+| `POWERS_OF_ATTORNEY_PORT` | `IPowersOfAttorneyPort` (1)<br><sub>cross-plugin-ports/powers-of-attorney.port.ts</sub> | `KuPowersOfAttorneyService` | marketplace* | Доверенности кооператива — системный учёт (решение владельца 18.11.2026). |
 | `PROJECT_CAPITAL_CLEARANCE_PORT` | `IProjectCapitalClearancePort` (2)<br><sub>cross-plugin-ports/project-capital-clearance.port.ts</sub> | `CapitalInnercoopProjectCapitalClearanceAdapter` | chatcoop* | Допуск к проекту Capital (подтверждённый appendix / makeClearance). |
 | `PROJECT_COMMUNICATION_ARTIFACTS_PORT` | `IProjectCommunicationArtifactsPort` (8)<br><sub>cross-plugin-ports/project-communication-artifacts.port.ts</sub> | `ChatcoopInnercoopProjectCommunicationArtifactsAdapter` | capital*, chatcoop* | Сообщения Matrix в истории (текст и расшифрованное аудио). |
 | `SOVIET_ROBOT_PORT` | `ISovietRobotPort` (2)<br><sub>cross-plugin-ports/soviet-robot.port.ts</sub> | `SovietRobotInnercoopAdapter` | marketplace* | Робот решений совета (расширение `soviet-robot`): прямой рычаг для расширений, которые ставят повестку и ждут решение здесь и сейчас. |
@@ -98,4 +99,4 @@
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 66.
+Всего портов: 67.

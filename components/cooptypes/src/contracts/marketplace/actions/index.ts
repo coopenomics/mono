@@ -57,7 +57,7 @@ export * as SignSupp from './signSupp'
 
 /**
  * Председатель / trustee приёмного КУ ставит закрывающую подпись на АПП приёмки (Story 5.3/5.4).
- * Per-Order: только o.mkt.purch (Дт 10 / Кт 86). Выплата поставщику отделена в `PayOut`
+ * Per-Order: только o.mkt.purch (Дт 10 / Кт 86). Выплата поставщику — пакетом в конце дня (`AddPayout`, `SendPayout`, `ClosePayout`)
  * (Locked Decision L12, E11 техдолг 598-16).
  */
 export * as SignChair from './signChair'
@@ -68,7 +68,10 @@ export * as SignChair from './signChair'
  * gateway::outcomes со статусом pending; ledger2 здесь не двигается — Дт 86 / Кт 51
  * применится позже в callback'е `PayConfirm` после действия кассира.
  */
-export * as PayOut from './payOut'
+export * as AddPayout from './addPayout'
+export * as SendPayout from './sendPayout'
+export * as ClosePayout from './closePayout'
+export * as ReleasePay from './releasePay'
 
 /**
  * Callback gateway::outcomplete — кассир подтвердил банковский перевод поставщику.
@@ -127,7 +130,6 @@ export * as SetRetShare from './setRetShare'
 /**
  * Инициатор кооперативного участка Стола заказов (задача 99D-21).
  */
-export * as SetInitiator from './setInitiator'
 
 // ── Списание обеспечительной части по итогу периода (процесс p.mkt.due; задачи 99D-21, 99D-33) ──
 /**

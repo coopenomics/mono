@@ -12,10 +12,10 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "@coopenomics/docs-factory": "1.6.9",
-    "@coopenomics/docs-templates": "1.6.9",
+    "@coopenomics/docs-factory": "1.6.12",
+    "@coopenomics/docs-templates": "1.6.12",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",

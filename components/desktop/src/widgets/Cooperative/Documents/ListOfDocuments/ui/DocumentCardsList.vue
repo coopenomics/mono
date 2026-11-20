@@ -53,7 +53,7 @@ import {
 import { DocumentModel } from 'src/entities/Document';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model';
 import { t } from 'src/shared/i18n';
-import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates';
+import { formatDateToHumanDateTime, formatDocumentCreatedAt } from 'src/shared/lib/utils/dates';
 
 interface IPagination {
   totalCount: number;
@@ -80,22 +80,29 @@ function getMeta(row: IDocumentPackageAggregate): Record<string, any> | undefine
   return (
     (row.statement?.documentAggregate?.document?.meta as any) ||
     (row.decision?.documentAggregate?.document?.meta as any) ||
+    // Пакет, выданный без заявления (поставщику — только его акт): данные строки — из акта.
+    (row.acts?.[0]?.documentAggregate?.document?.meta as any) ||
+    (row.links?.[0]?.document?.meta as any) ||
     undefined
   );
 }
 
-// Чистое наименование — из meta.title; запасной вариант — full_title.
+// Название по типу документа узел отдаёт сам (текущая редакция шаблона);
+// запасной вариант — meta.title и full_title из документа.
 function getDocumentTitle(row: IDocumentPackageAggregate): string {
   return (
+    row.title ||
     getMeta(row)?.title ||
     row.statement?.documentAggregate?.rawDocument?.full_title ||
     row.decision?.documentAggregate?.rawDocument?.full_title ||
+    row.acts?.[0]?.documentAggregate?.rawDocument?.full_title ||
     t('cooperative.documentCardsList.untitledDocument')
   );
 }
 
+// Дата подписи — время блока, в котором документ попал в цепь; иначе дата из меты.
 function getDocumentDate(row: IDocumentPackageAggregate): string {
-  return formatDocumentCreatedAt(getMeta(row));
+  return row.signed_at ? formatDateToHumanDateTime(row.signed_at) : formatDocumentCreatedAt(getMeta(row));
 }
 
 // block_num монотонно растёт со временем — надёжный ключ хронологической сортировки.
@@ -109,6 +116,8 @@ function getBlockNum(row: IDocumentPackageAggregate): number {
 // колонкой hash, поэтому для навигации берём именно document.hash.
 function getDocumentHash(row: IDocumentPackageAggregate): string {
   return (
+    // Ключ записи реестра: пакет без заявления в выдаче открывается по нему.
+    row.registry_hash ||
     row.statement?.documentAggregate?.document?.hash ||
     row.decision?.documentAggregate?.document?.hash ||
     ''
@@ -148,9 +157,14 @@ function toRowDoc(row: IDocumentPackageAggregate): DocumentRowDoc {
 }
 
 // Свежие документы сверху (по block_num).
+// Порядок выдачи узла — по дате подписи; у прежней выдачи без даты — по номеру блока.
 const sortedDocuments = computed(() =>
-  [...props.documents].sort((a, b) => getBlockNum(b) - getBlockNum(a)),
+  [...props.documents].sort((a, b) => signedTime(b) - signedTime(a) || getBlockNum(b) - getBlockNum(a)),
 );
+
+function signedTime(row: IDocumentPackageAggregate): number {
+  return row.signed_at ? new Date(row.signed_at).getTime() : 0;
+}
 
 const hasMore = computed(
   () => (props.pagination?.currentPage ?? 1) < (props.pagination?.totalPages ?? 1),

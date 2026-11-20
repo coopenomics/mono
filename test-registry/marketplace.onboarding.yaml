@@ -90,6 +90,11 @@ title: Онбординг Стола заказов — приём ЦПП коо
 # 12.11.2026 (0e265d7d9e8, 99D-35), страница знала только два, и новый
 # кооператив не мог завершить подключение. Набор случаев прежний.
 
+# 17.11.2026: из install.ts стола убрана регистрация старых виджетов
+# «Содержание процесса» (processInfoFactory) — содержание процессов теперь
+# описывает узел (reports.process-content). Подключение ЦПП не менялось,
+# случаи слайса без изменений.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/onboarding/**
@@ -428,6 +433,35 @@ cases:
       меняется. Общее описание — desktop.document-html-display, задача C28-74
     test: ~
     status: missing
+
+  # 19.11.2026 (598-63, решение владельца): председатель приостанавливает и
+  # возобновляет действие договора поставщика в его карточке реестра; аккаунт
+  # кооперативного участка поставщиком не добавляется.
+  - id: mkt.onb.side.supplier.suspend
+    level: backend
+    kind: side
+    scenario: Председатель приостанавливает действие договора действующего поставщика, затем возобновляет
+    expect: >
+      каталог не показывает предложения приостановленного поставщика; новая
+      публикация, добавление в корзину и оформление заказа на него — отказ;
+      стол поставщика открыт (isOfferer — да), взятые заказы идут своим путём;
+      возобновление возвращает «одобрен»; приостановить можно только действующего,
+      возобновить — только приостановленного; новая заявка и смена модели
+      приостановку не обходят
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-registry-service.test.ts
+    external: unreachable
+    external_reason: "приостановка проверяется модульно; поставщик стенда нужен другим сценариям в рабочем состоянии"
+    status: written   # проверка — CI на полигоне ci/tests
+
+  - id: mkt.onb.break.supplier.branch
+    level: backend
+    kind: break
+    scenario: Администратор добавляет поставщиком аккаунт кооперативного участка
+    expect: отказ MARKETPLACE_SUPPLIER_REGISTRY_BRANCH_ACCOUNT, запись в реестре не создаётся; поиск на столе участки не показывает
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-registry-service.test.ts
+    external: unreachable
+    external_reason: "отказ проверяется модульно; на стенде участки уже скрыты из поиска стола"
+    status: written   # проверка — CI на полигоне ci/tests
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст

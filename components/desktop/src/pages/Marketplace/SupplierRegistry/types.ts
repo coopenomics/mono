@@ -5,12 +5,14 @@ export const SUPPLIER_STATUS_LABEL: Record<string, string> = {
   PENDING: t('marketplace.supplierStatus.pending'),
   APPROVED: t('marketplace.supplierStatus.approved'),
   REJECTED: t('marketplace.supplierStatus.rejected'),
+  SUSPENDED: t('marketplace.supplierStatus.suspended'),
 };
 
 export const SUPPLIER_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
   PENDING: 'warn',
   APPROVED: 'pos',
   REJECTED: 'neg',
+  SUSPENDED: 'neutral',
 };
 
 export const SUPPLIER_MODEL_LABEL: Record<string, string> = {

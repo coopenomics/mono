@@ -91,4 +91,4 @@ pnpm --filter cooptypes run test
 
 ## Лицензия
 
-[BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru)
+[MIT](LICENSE).

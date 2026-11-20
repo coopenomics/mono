@@ -41,6 +41,16 @@ export const MARKETPLACE_UNIT_OPTIONS: Array<{ label: string; value: Marketplace
   MARKETPLACE_UNITS.map(({ label, value }) => ({ label, value }));
 
 /**
+ * Единица по значению без учёта регистра: поля-строки GraphQL (заказы пакета
+ * выплаты и др.) отдают единицу как в базе узла («kg»), перечисление Zeus —
+ * именем («KG»). Строгое сравнение выводило пайщику «3 kg».
+ */
+function unitDef(value: string): MarketplaceUnitDef | undefined {
+  const key = value.toUpperCase();
+  return MARKETPLACE_UNITS.find((u) => u.value === key);
+}
+
+/**
  * Короткая русская подпись единицы для карточек/мета. Принимает строку (а не
  * строгий union), чтобы одинаково работать со значениями из Zeus-enum'ов
  * разных операций. Неизвестное значение возвращается как есть — лучше показать
@@ -48,13 +58,13 @@ export const MARKETPLACE_UNIT_OPTIONS: Array<{ label: string; value: Marketplace
  */
 export function marketplaceUnitShort(value: string | null | undefined): string {
   if (!value) return t('consts.marketplaceUnits.unitShortFallback');
-  return MARKETPLACE_UNITS.find((u) => u.value === value)?.short ?? value;
+  return unitDef(value)?.short ?? value;
 }
 
 /** Полная русская подпись единицы (для подробных экранов). */
 export function marketplaceUnitLabel(value: string | null | undefined): string {
   if (!value) return t('consts.marketplaceUnits.unitLabelFallback');
-  return MARKETPLACE_UNITS.find((u) => u.value === value)?.label ?? value;
+  return unitDef(value)?.label ?? value;
 }
 
 /** Убирает хвостовые нули количества: 1.000 → «1», 0.500 → «0.5». */

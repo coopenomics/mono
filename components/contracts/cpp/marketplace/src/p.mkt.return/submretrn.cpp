@@ -119,11 +119,10 @@ void marketplace::submretrn(eosio::name coopname,
     upd.return_request_id = request_id;
   });
 
-  // Заявление публикуется в реестр документов со статусом «подан» в пакете
-  // процесса заказа (package = order_hash, рядом с актами приёма-передачи).
-  // Итог рассмотрения доводит статус: accretrn → newresolved (со-подписанная
-  // версия), rejretrn/rejretrem → newdeclined.
-  Action::send<newsubmitted_interface>(_soviet, "newsubmitted"_n, _marketplace,
-                                       coopname, orderer, "submretrn"_n,
-                                       o.hash, statement, uint64_t(0));
+  // В реестр документов рекламация попадает по итогу рассмотрения, в пакет
+  // процесса возврата (package = хэш рекламации), где заявление одно (решение
+  // владельца 17.11.2026): принял оператор — заявлением пакета становится его
+  // обращение в совет, рекламация входит связанным документом (accretrn);
+  // отказал — совета нет, рекламация становится заявлением пакета с итогом
+  // «отклонено» (rejretrn, rejretrem).
 }

@@ -16,6 +16,7 @@
 #include "memo.hpp"
 #include "dues.hpp"
 #include "../../domain/table_marketplace_orders.hpp"
+#include "../../domain/table_marketplace_payouts.hpp"
 #include "../../domain/table_marketplace_return_requests.hpp"
 #include "../../domain/table_marketplace_writeoff_proposals.hpp"
 
@@ -151,6 +152,48 @@ inline eosio::asset get_accepted_cost(const order& o) {
 /// Долг поставщика, уже удержанный при инициации выплаты; без суммы — ноль.
 inline eosio::asset get_payout_withheld(const order& o) {
   return get_asset_extension(o.payout_withheld).value_or(eosio::asset(0, _root_govern_symbol));
+}
+
+/// Пакет выплаты заказа; заказ не включён в пакет — пустой хэш.
+inline checksum256 get_payout_hash(const order& o) {
+  return o.payout_hash.has_value() ? o.payout_hash.value() : checksum256();
+}
+
+/// Пакет выплаты по хэшу; нет — пусто.
+inline std::optional<payout> get_payout_by_hash(eosio::name coopname, const checksum256& hash) {
+  payouts_index payouts(_marketplace, coopname.value);
+  auto idx = payouts.get_index<"byhash"_n>();
+  auto it = idx.find(hash);
+  if (it == idx.end()) return std::nullopt;
+  return *it;
+}
+
+/// Пакет выплаты по хэшу либо отказ с кодом.
+inline payout get_payout_by_hash_or_fail(eosio::name coopname, const checksum256& hash) {
+  auto p = get_payout_by_hash(coopname, hash);
+  eosio::check(p.has_value(), "MARKETPLACE_PAYOUT_NOT_FOUND: Пакет выплаты не найден");
+  return *p;
+}
+
+inline void update_payout(eosio::name coopname, uint64_t payout_id, const std::function<void(payout&)>& fn) {
+  payouts_index payouts(_marketplace, coopname.value);
+  auto it = payouts.find(payout_id);
+  eosio::check(it != payouts.end(), "MARKETPLACE_PAYOUT_NOT_FOUND: Пакет выплаты не найден");
+  payouts.modify(it, RamPayer::of(payouts, coopname), [&](auto& p) { fn(p); });
+}
+
+/// Заказ закрыт в пакете (`closepayout` / `releasepay`): счётчик пакета
+/// уменьшается; последний заказ стирает строку пакета.
+inline void detach_order_from_payout(eosio::name coopname, const payout& p) {
+  payouts_index payouts(_marketplace, coopname.value);
+  auto it = payouts.find(p.id);
+  eosio::check(it != payouts.end(), "MARKETPLACE_PAYOUT_NOT_FOUND: Пакет выплаты не найден");
+  eosio::check(it->orders > 0, "MARKETPLACE_PAYOUT_EMPTY: В пакете выплаты не осталось заказов");
+  if (it->orders == 1) {
+    payouts.erase(it);
+    return;
+  }
+  payouts.modify(it, RamPayer::of(payouts, coopname), [&](auto& upd) { upd.orders -= 1; });
 }
 
 /// Выплата поставщику по заказу ещё не завершена: заказ нельзя стирать —
@@ -380,20 +423,6 @@ inline uint64_t get_return_share_percent(eosio::name coopname) {
   return state.return_share_percent.has_value()
     ? state.return_share_percent.value()
     : DEFAULT_RETURN_SHARE_PERCENT;
-}
-
-/**
- * @brief Получатель доли инициатора участка (задача 99D-21, решение владельца
- * 03.11.2026). Единственная точка выбора: строка `initiators` участка, а без
- * неё — председатель участка. Инициатор и председатель не связаны намертво:
- * председатель сменился — инициатор продолжает получать свою долю. На
- * инвестиционном этапе здесь встанет правило «паевой взнос возвращён — получатель
- * кошелёк обеспечения пайщиков участка» и несколько инициаторов с долями.
- */
-inline eosio::name initiator_of(eosio::name coopname, eosio::name braname, eosio::name trustee) {
-  mkt_initiators_index initiators(_marketplace, coopname.value);
-  auto it = initiators.find(braname.value);
-  return it != initiators.end() ? it->username : trustee;
 }
 
 /// Строка прогона участка за период либо отказ: без неё списание по ставкам

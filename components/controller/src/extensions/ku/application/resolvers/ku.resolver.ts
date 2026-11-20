@@ -14,6 +14,13 @@ import {
 } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { KuService } from '../services/ku.service';
+import { KuPowersOfAttorneyService } from '../services/ku-powers-of-attorney.service';
+import {
+  KuPowerOfAttorneyDTO,
+  KuPowerOfAttorneyFilterInputDTO,
+  KuTrusteeDocumentsDTO,
+  KuTrusteeDocumentsInputDTO,
+} from '../dto/ku-power-of-attorney.dto';
 import { KuDecisionDTO, KuDecisionFilterInputDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
 import {
@@ -25,6 +32,8 @@ import {
   ExecKuDecisionInputDTO,
   JoinKuDecisionInputDTO,
   RequestKuTrustedInputDTO,
+  SignKuTrusteeAuthorityInputDTO,
+  SignKuTrusteeLiabilityInputDTO,
   StartKuDecisionInputDTO,
   VoteOnKuDecisionInputDTO,
 } from '../dto/ku-action-inputs.dto';
@@ -44,13 +53,17 @@ import {
 // Пагинированные результаты
 const paginatedKuDecisionsResult = createPaginationResult(KuDecisionDTO, 'PaginatedKuDecisions');
 const paginatedKuTrustRequestsResult = createPaginationResult(KuTrustRequestDTO, 'PaginatedKuTrustRequests');
+const paginatedKuPowersOfAttorneyResult = createPaginationResult(KuPowerOfAttorneyDTO, 'PaginatedKuPowersOfAttorney');
 
 /**
  * GraphQL-резолвер собраний и решений кооперативных участков (контракт branch)
  */
 @Resolver()
 export class KuResolver {
-  constructor(private readonly kuService: KuService) {}
+  constructor(
+    private readonly kuService: KuService,
+    private readonly powersOfAttorney: KuPowersOfAttorneyService
+  ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
   // Мутации собрания
@@ -132,6 +145,61 @@ export class KuResolver {
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
     return this.kuService.execDecision(data, currentUser);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Документы председателя участка (после решения совета об учреждении)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  @Mutation(() => TransactionDTO, {
+    name: 'kuSignTrusteeAuthority',
+    description: 'Подписать доверенность председателя кооперативного участка — на встречную подпись председателю совета',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuAuthority', 'sign')
+  async kuSignTrusteeAuthority(
+    @Args('data', { type: () => SignKuTrusteeAuthorityInputDTO }) data: SignKuTrusteeAuthorityInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
+  ): Promise<TransactionDTO> {
+    return this.kuService.signTrusteeAuthority(data, currentUser);
+  }
+
+  @Mutation(() => TransactionDTO, {
+    name: 'kuSignTrusteeLiability',
+    description: 'Подписать договор о полной материальной ответственности председателя участка — на встречную подпись председателю совета',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuAuthority', 'sign')
+  async kuSignTrusteeLiability(
+    @Args('data', { type: () => SignKuTrusteeLiabilityInputDTO }) data: SignKuTrusteeLiabilityInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
+  ): Promise<TransactionDTO> {
+    return this.kuService.signTrusteeLiability(data, currentUser);
+  }
+
+  @Query(() => KuTrusteeDocumentsDTO, {
+    name: 'kuTrusteeDocuments',
+    description: 'Доверенность и договор председателя кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuAuthority', ['read:own', 'read:all'], { owner: 'data.username' })
+  async kuTrusteeDocuments(
+    @Args('data', { type: () => KuTrusteeDocumentsInputDTO }) data: KuTrusteeDocumentsInputDTO
+  ): Promise<KuTrusteeDocumentsDTO> {
+    return this.powersOfAttorney.trusteeDocuments(data.coopname, data.braname, data.username);
+  }
+
+  @Query(() => paginatedKuPowersOfAttorneyResult, {
+    name: 'kuPowersOfAttorney',
+    description: 'Реестр доверенностей кооператива',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuAuthority', ['read:own', 'read:all'], { owner: 'filter.holder' })
+  async kuPowersOfAttorney(
+    @Args('filter', { type: () => KuPowerOfAttorneyFilterInputDTO }) filter: KuPowerOfAttorneyFilterInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<PaginationResult<KuPowerOfAttorneyDTO>> {
+    return this.powersOfAttorney.listDTO(filter, options);
   }
 
   @Mutation(() => TransactionDTO, {

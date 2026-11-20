@@ -8,7 +8,11 @@ import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
-import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
+import { InventoryLabelBindDialog } from 'src/widgets/Marketplace/InventoryLabelBindDialog'
+import { LabelSheetPrintDialog } from 'src/widgets/Marketplace/LabelSheetPrintDialog'
+import { InventoryItemDrawer } from 'src/widgets/Marketplace/InventoryItemDrawer'
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
+import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog'
 import {
   BaseBadge,
@@ -23,12 +27,13 @@ import {
 } from 'src/shared/ui/base'
 import type { BaseSelectOption } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import { printBarcodeSheet, marketLiveTables, useMarketplaceHandoffSignal } from 'src/shared/lib/marketplace'
+import { marketLiveTables, useMarketplaceHandoffSignal } from 'src/shared/lib/marketplace'
 import { resolveScan } from 'src/entities/MarketplaceHandoff'
 import {
   buildPlacementOptions,
   containerLabel,
   createStorageGrid,
+  locationLabel,
   moveContainer,
   nextSectionCode,
   parsePlacementValue,
@@ -42,7 +47,6 @@ import {
 } from 'src/entities/MarketplaceStorage'
 import {
   assignInventoryPlacement,
-  bindInventoryBarcode,
   clearInventoryLabel,
   listInventory,
   splitInventory,
@@ -550,15 +554,27 @@ const boxItems = computed(() =>
   boxTarget.value ? itemsInContainer(boxTarget.value.id) : [],
 )
 
-// ─── Сканирование бокса: «что внутри» ──
-// Кладовщик идёт вдоль стеллажей со сканером и пикает тару подряд, чтобы
-// узнать содержимое, не открывая её. Это не приёмка и не выдача — только
-// просмотр, поэтому скан просто открывает карточку бокса.
+// ─── Сканирование: этикетка имущества или бокса ──
+// Этикетка имущества открывает карточку позиции. Кладовщик идёт вдоль
+// стеллажей со сканером и пикает тару подряд, чтобы узнать содержимое, не
+// открывая её. Это не приёмка и не выдача — только просмотр.
 const boxScanOpen = ref(false)
 const resolvingBox = ref(false)
 
 async function onBoxScanned(raw: string): Promise<void> {
   if (resolvingBox.value) return
+  // Этикетка имущества участка — карточка позиции; разбор на узле не нужен.
+  const code = raw.trim()
+  const item = boardItems.value.find((row) => row.barcode_value === code)
+  if (item) {
+    boxScanOpen.value = false
+    openItem(item)
+    return
+  }
+  if (!containersEnabled.value) {
+    FailAlert(new Error(t('marketplace.operatorOwnWarehouse.labelNotFound', { code })))
+    return
+  }
   resolvingBox.value = true
   try {
     // Строку разбирает сервер — тот же путь, что у общего сканера стола.
@@ -751,51 +767,36 @@ async function retireLevel(level: number): Promise<void> {
   }
 }
 
-// ─── Печать листа этикеток (для нарезки и наклейки) ──
-// Сама печать живёт в shared/lib/marketplace: тот же лист печатается из окна
-// оприходования при закрывающей подписи.
+// ─── Печать листа этикеток и привязка этикетки ──
+// Окна общие со складом (LabelSheetPrintDialog, InventoryLabelBindDialog):
+// этикетку печатают заранее листом, клеят на имущество и привязывают сканером.
 const printDialogOpen = ref(false)
-const printCount = ref<number | null>(24)
 
 function openPrintDialog(): void {
   printDialogOpen.value = true
 }
 
-function doPrint(): void {
-  const n = Math.trunc(Number(printCount.value) || 0)
-  if (n < 1) return
-  printDialogOpen.value = false
-  printBarcodeSheet(n)
-}
-
-// ─── Привязка штрих-кода к позиции ──
-// Сканируем камерой устройства (CodeScanner), либо ручной ввод/USB-сканер в
-// запасном поле виджета. Считанный код привязывается сразу — без отдельной кнопки.
 const scanDialogOpen = ref(false)
 const scanTarget = ref<MarketplaceInventoryItemView | null>(null)
-const binding = ref(false)
 
 function openScan(item: MarketplaceInventoryItemView): void {
   scanTarget.value = item
   scanDialogOpen.value = true
 }
 
-async function submitScan(raw: string): Promise<void> {
-  const item = scanTarget.value
-  const code = raw.trim()
-  if (!item || !code || binding.value) return
-  binding.value = true
-  try {
-    await bindInventoryBarcode({ inventory_id: item.id, barcode_value: code })
-    SuccessAlert(t('marketplace.operatorInventoryLabeling.labelBoundMessage', { code }))
-    scanDialogOpen.value = false
-    scanTarget.value = null
-    await load()
-  } catch (e) {
-    FailAlert(e, t('marketplace.operatorInventoryLabeling.bindLabelError'))
-  } finally {
-    binding.value = false
-  }
+// ─── Карточка имущества ──
+// Та же карточка, что на складе (решение владельца 19.11.2026): строка
+// раскладки открывает её маленькой кнопкой — сама карточка позиции занята
+// перетаскиванием.
+const itemOverlay = useQueryOverlay('item')
+const offerOverlay = useQueryOverlay('offer')
+
+function openItem(item: MarketplaceInventoryItemView): void {
+  itemOverlay.open(item.id)
+}
+
+function itemPlaceLabel(item: MarketplaceInventoryItemView): string {
+  return locationLabel(item, storage.index)
 }
 
 // ─── Раскладка по количеству на несколько мест (split/merge/move) ──
@@ -896,8 +897,10 @@ onMounted(async () => {
   template(v-else)
     Teleport(to='#header-actions-host', defer)
       .place__head-actions
+        //- Те же кнопки, что на вкладке «Имущество» (решение владельца
+        //- 19.11.2026): скан этикетки имущества открывает карточку позиции,
+        //- скан этикетки бокса — содержимое бокса.
         BaseButton(
-          v-if='containersEnabled',
           variant='secondary',
           size='sm',
           :loading='resolvingBox',
@@ -905,7 +908,7 @@ onMounted(async () => {
         )
           template(#icon-left)
             q-icon(name='qr_code_scanner', size='16px')
-          | {{ $t('marketplace.operatorInventoryLabeling.scanBoxButton') }}
+          | {{ $t('marketplace.operatorOwnWarehouse.scanButton') }}
         BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
           template(#icon-left)
             q-icon(name='print', size='16px')
@@ -980,6 +983,16 @@ onMounted(async () => {
                   .place__card-name {{ item.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productOfferFallback') }}
                   .place__card-meta {{ $t('marketplace.operatorInventoryLabeling.itemMetaText', { quantity: item.quantity_per_label, orderer: ordererLabel(item) }) }}
                 .place__card-actions
+                  BaseButton(
+                    variant='ghost',
+                    size='sm',
+                    icon-only,
+                    :aria-label='$t("marketplace.operatorInventoryLabeling.openItemHint")',
+                    @click='openItem(item)'
+                  )
+                    template(#icon-left)
+                      q-icon(name='open_in_new', size='18px')
+                      q-tooltip {{ $t('marketplace.operatorInventoryLabeling.openItemHint') }}
                   BaseButton(
                     v-if='!item.barcode_value',
                     variant='ghost',
@@ -1190,7 +1203,8 @@ onMounted(async () => {
                           draggable='true',
                           :class='{ "is-dragging": dragId === item.id }',
                           @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || $t("marketplace.operatorInventoryLabeling.productFallback"), $t(`marketplace.operatorInventoryLabeling.itemQtyText`, { quantity: item.quantity_per_label }))',
-                          @dragend='onDragEnd'
+                          @dragend='onDragEnd',
+                          @click='openItem(item)'
                         )
                           span.place__mini-name {{ item.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback') }}
                           span.place__mini-qty {{ item.quantity_per_label }}
@@ -1259,7 +1273,9 @@ onMounted(async () => {
     span {{ dragTargetLabel }}
 
   //- ─────────────────────── Содержимое бокса ───────────────────────
-  BaseDialog(v-model='boxDialogOpen', :title='boxTarget ? $t(`marketplace.operatorInventoryLabeling.boxLabel`, { code: boxTarget.code }) : $t("marketplace.operatorInventoryLabeling.boxDialogTitleFallback")', size='md')
+  //- Карточка имущества открывается поверх бокса: окно бокса при смене адреса
+  //- (`?item=`) не закрывается.
+  BaseDialog(v-model='boxDialogOpen', :close-on-route-change='false', :title='boxTarget ? $t(`marketplace.operatorInventoryLabeling.boxLabel`, { code: boxTarget.code }) : $t("marketplace.operatorInventoryLabeling.boxDialogTitleFallback")', size='md')
     .place__box-dialog(v-if='boxTarget')
       .place__note {{ $t('marketplace.operatorInventoryLabeling.boxDialogSubtitle', { label: containerLabel(boxTarget, storage.index), count: boxItems.length }) }}
 
@@ -1271,6 +1287,16 @@ onMounted(async () => {
         .place__card-info
           .place__card-name {{ item.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback') }}
           .place__card-meta {{ $t('marketplace.operatorInventoryLabeling.itemMetaText', { quantity: item.quantity_per_label, orderer: ordererLabel(item) }) }}
+        BaseButton(
+          variant='ghost',
+          size='sm',
+          icon-only,
+          :aria-label='$t("marketplace.operatorInventoryLabeling.openItemHint")',
+          @click='openItem(item)'
+        )
+          template(#icon-left)
+            q-icon(name='open_in_new', size='18px')
+            q-tooltip {{ $t('marketplace.operatorInventoryLabeling.openItemHint') }}
         BaseButton(variant='secondary', size='sm', @click='movePlacement(item, {})')
           template(#icon-left)
             q-icon(name='logout', size='16px')
@@ -1341,52 +1367,32 @@ onMounted(async () => {
       BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', size='sm', :loading='splitting', :disabled='!splitValid', @click='applySplit') {{ $t('marketplace.operatorInventoryLabeling.splitSubmitButton') }}
 
-  //- ─────────────────────── Печать штрих-кодов ───────────────────────
-  BaseDialog(v-model='printDialogOpen', :title='$t("marketplace.operatorInventoryLabeling.printDialogTitle")', size='sm')
-    .place__form
-      .place__note
-        | {{ $t('marketplace.operatorInventoryLabeling.printNoteLine1') }}
-        | {{ $t('marketplace.operatorInventoryLabeling.printNoteLine2') }}
-      BaseInput(
-        v-model.number='printCount',
-        type='number',
-        :label='$t("marketplace.operatorInventoryLabeling.printCountLabel")',
-        @keydown.enter='doPrint'
-      )
-    template(#footer)
-      BaseButton(variant='ghost', size='sm', @click='printDialogOpen = false') {{ $t('common.action.cancel') }}
-      BaseButton(variant='primary', size='sm', :disabled='!printCount || printCount < 1', @click='doPrint') {{ $t('marketplace.operatorInventoryLabeling.printSubmitButton') }}
+  //- ─────────────────────── Печать и привязка этикеток ───────────────────────
+  LabelSheetPrintDialog(v-model='printDialogOpen')
+  InventoryLabelBindDialog(v-model='scanDialogOpen', :item='scanTarget', @bound='load')
 
-  //- ─────────────────────── Привязка штрих-кода ───────────────────────
-  //- Считанный код привязывается сразу, отдельной кнопки «Привязать» не нужно.
-  BaseDialog(v-model='scanDialogOpen', :title='$t("marketplace.operatorInventoryLabeling.bindLabelDialogTitle")', size='sm')
-    .place__form
-      .place__note(v-if='scanTarget')
-        | {{ $t('marketplace.operatorInventoryLabeling.bindLabelNote', { productName: scanTarget.product_name_snapshot || $t('marketplace.operatorInventoryLabeling.productFallback') }) }}
-      CodeScanner(
-        :formats='BARCODE_FORMATS',
-        :idle-caption='$t("marketplace.operatorInventoryLabeling.bindLabelIdleCaption")',
-        :frame-hint='$t("marketplace.operatorInventoryLabeling.bindLabelFrameHint")',
-        :start-label='$t("marketplace.operatorInventoryLabeling.bindLabelStartLabel")',
-        :manual-label='$t("marketplace.operatorInventoryLabeling.bindLabelManualLabel")',
-        manual-placeholder='4600000000000',
-        :manual-button='$t("marketplace.operatorInventoryLabeling.bindLabelManualButton")',
-        @scanned='submitScan'
-      )
-    template(#footer)
-      BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') {{ $t('common.action.close') }}
+  //- ─────────────────────── Карточка имущества ───────────────────────
+  InventoryItemDrawer(
+    :items='boardItems',
+    :place-label='itemPlaceLabel',
+    order-route-name='marketplace-pvz-order-detail',
+    labelable,
+    @open-offer='(id) => offerOverlay.open(id)',
+    @label-bound='load'
+  )
+  OfferRegistryOverlay(:coopname='coopname', from='warehouse', :show-full-page='false')
 
-  //- ─────────────────────── Сканирование бокса ───────────────────────
+  //- ─────────────────────── Сканирование этикетки ───────────────────────
   //- Не приёмка и не выдача: скан просто открывает карточку бокса, чтобы
   //- посмотреть содержимое, не вскрывая тару.
   ScannerDialog(
     v-model='boxScanOpen',
-    :title='$t("marketplace.operatorInventoryLabeling.scanBoxDialogTitle")',
-    :idle-caption='$t("marketplace.operatorInventoryLabeling.scanBoxIdleCaption")',
+    :title='$t("marketplace.operatorInventoryLabeling.scanDialogTitle")',
+    :idle-caption='containersEnabled ? $t("marketplace.operatorInventoryLabeling.scanIdleCaption") : $t("marketplace.operatorOwnWarehouse.scanIdleCaption")',
     :frame-hint='$t("marketplace.operatorInventoryLabeling.scanBoxFrameHint")',
-    :manual-label='$t("marketplace.operatorInventoryLabeling.scanBoxManualLabel")',
-    manual-placeholder='BX-0001',
-    :manual-button='$t("marketplace.operatorInventoryLabeling.scanBoxManualButton")',
+    :manual-label='$t("marketplace.operatorInventoryLabeling.scanManualLabel")',
+    :manual-placeholder='containersEnabled ? "BX-0001" : "4600000000000"',
+    :manual-button='$t("marketplace.operatorOwnWarehouse.scanManualButton")',
     @scanned='onBoxScanned'
   )
 </template>
@@ -1879,6 +1885,11 @@ onMounted(async () => {
     gap: var(--p-3, 12px);
     border-bottom: 1px solid var(--p-line);
     padding-bottom: var(--p-2, 8px);
+
+    // Название тянется, кнопки «открыть» и «убрать» — у правого края.
+    > .place__card-info {
+      flex: 1 1 auto;
+    }
   }
 
   &__split {

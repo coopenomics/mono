@@ -76,7 +76,6 @@ interface ChainPeriod {
   period: number;
   totals: MarketContract.PeriodModel.IPeriodTotals;
   facts: MarketContract.PeriodModel.IPeriodFacts;
-  initiator: string;
 }
 
 /** Строка счётчика пайщика за период (`kudues`). */
@@ -150,7 +149,6 @@ export function createKeuWorld() {
     plans: [] as Array<{ branchName: string; dueDate: Date; amount: string; proposalHash?: string; paidAt?: Date }>,
     /** Материальная помощь, выплаченная участком за месяц: участок/номер месяца → сумма. */
     aidPaid: new Map<string, bigint>(),
-    initiator: new Map<string, string>(),
     /** Открытые заявления на гарантийный возврат — по хэшу заказа; контракт по ним отказывает в списании пайщику. */
     openClaims: new Set<string>(),
     /** Журнал учёта участков для фактов месяца: служебные записки (o.brn.expfnd, o.mkt.ipool и возвраты). */
@@ -260,7 +258,6 @@ export function createKeuWorld() {
     rate_branch: Number(p.totals.rateBranch),
     rate_funds: Number(p.totals.rateFunds),
     rate_initiator: Number(p.totals.rateInitiator),
-    initiator: p.initiator,
     closed_at: clock.toISOString().replace('Z', ''),
     // Поля цели резерва (задача 99D-34) — только у итога, посчитанного новым узлом.
     ...(p.facts.plannedTarget !== undefined
@@ -371,7 +368,6 @@ export function createKeuWorld() {
         period: data.period,
         facts,
         totals: Model.closePeriod(facts),
-        initiator: settings.initiator.get(data.braname) ?? `chair.${data.braname}`,
       });
       counters.delete(counterKey(data.braname, data.period));
       return {};
@@ -435,8 +431,9 @@ export function createKeuWorld() {
         inv.repaid += route.repay;
         add(wallets.repay, data.braname, route.repay);
         add(wallets.branch, data.braname, route.toBranch);
-      } else if (period) {
-        add(wallets.invest, period.initiator, parts.initiator);
+      } else {
+        // Без паевых взносов инициаторов доля целиком — на общий кошелёк участка.
+        add(wallets.branch, data.braname, parts.initiator);
       }
       add(wallets.social, data.braname, parts.social);
       add(wallets.share, data.username, parts.returned);

@@ -32,6 +32,16 @@ async function search(token: string | null, query: string, limit = 5): Promise<G
 
 const group = (groups: Group[], key: string) => groups.find(g => g.key === key)
 
+const DOCUMENTS = `query($d: GetDocumentsInput!){ getDocuments(data:$d){ totalCount items {
+  statement { documentAggregate { document { hash } } }
+} } }`
+
+/** Хэши документов, которые реестр показывает пайщику как его собственные. */
+async function ownDocumentHashes(token: string, username: string, filter: Record<string, unknown> = {}): Promise<Set<string>> {
+  const page = (await gql<any>(token, DOCUMENTS, { d: { username, filter, type: 'newsubmitted', page: 1, limit: 100 } })).getDocuments
+  return new Set((page.items as any[]).map(i => String(i.statement?.documentAggregate?.document?.hash ?? '').toUpperCase()))
+}
+
 describe('единый поиск', () => {
   it(caseName('plat.gsearch.happy.01', 'совет находит пайщика по фамилии, находка ведёт на страницу пайщика'), async () => {
     const who = ROLES.member()
@@ -60,14 +70,27 @@ describe('единый поиск', () => {
   })
 
   it(caseName('plat.gsearch.side.02', 'пайщик не находит чужих документов, свои открывает в столе пайщика'), async () => {
-    // Документы другого пайщика ищутся по его аккаунту: совет их находит,
-    // рядовой пайщик — нет.
-    const other = ROLES.otherMember().account
+    // Документы другого пайщика ищутся по его аккаунту: совет их находит.
+    const otherWho = ROLES.otherMember()
+    const other = otherWho.account
     const council = group(await search(await tokenOf(CHAIRMAN), other), 'documents')
     expect(council?.hits.length).toBeGreaterThan(0)
 
-    const token = await tokenOf(ROLES.member())
-    expect(group(await search(token, other), 'documents')).toBeUndefined()
+    // Рядовой пайщик по тому же запросу получает только свои пакеты. Другой
+    // пайщик может стоять подписантом в пакете пайщика — например, поставщиком
+    // на акте приёмки в пакете заказа (с 17.11.2026 акт входит в пакет
+    // заказа): такой пакет принадлежит пайщику и находится законно. Чужим
+    // остаётся пакет, где владелец — другой пайщик: таких находок быть не должно.
+    const member = ROLES.member()
+    const token = await tokenOf(member)
+    const memberHits = group(await search(token, other), 'documents')?.hits ?? []
+    const othersOwn = await ownDocumentHashes(await tokenOf(otherWho), other)
+    for (const hit of memberHits) {
+      expect(othersOwn.has(hit.key.toUpperCase()), 'пакет другого пайщика пайщику не находится').toBe(false)
+      const mine = await ownDocumentHashes(token, member.account, { hash: hit.key.toUpperCase() })
+      expect(mine.has(hit.key.toUpperCase()), 'находка открывается в реестре пайщика как его документ').toBe(true)
+      expect(hit.route.name).toBe('user-document-details')
+    }
 
     const own = group(await search(token, 'Заявление'), 'documents')
     expect(own?.hits.length).toBeGreaterThan(0)

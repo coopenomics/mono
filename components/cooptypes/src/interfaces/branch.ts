@@ -230,8 +230,6 @@ export interface IExec {
   coopname: IName
   hash: IChecksum256
   petition: IDocument2
-  liability: IDocument2
-  authority: IDocument2
 }
 
 export interface IApprliab {
@@ -445,6 +443,20 @@ export interface IBranchSpend {
   braname: IName
   amount: IAsset
   memo: string
+}
+
+export interface ISignauth {
+  coopname: IName
+  braname: IName
+  username: IName
+  authority: IDocument2
+}
+
+export interface ISignliab {
+  coopname: IName
+  braname: IName
+  username: IName
+  liability: IDocument2
 }
 
 export interface IStartdec {

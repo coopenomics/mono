@@ -167,6 +167,7 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { formatOrderPrice } from 'src/shared/lib/marketplace'
 import { uiLocale, t } from 'src/shared/i18n';
 import { BaseCard, BaseBadge, BaseButton } from 'src/shared/ui/base'
 import type { OrderStatus, OrderRole, Order } from './OrderCard.types'
@@ -278,7 +279,7 @@ function formatDate(v: string | Date) {
 }
 
 function formatPrice(v: number) {
-  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0 }).format(v) + ' ₽'
+  return formatOrderPrice(v)
 }
 </script>
 
