@@ -14604,6 +14604,8 @@ export type ValueTypes = {
 	payout_destination?:boolean | `@${string}`,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?:boolean | `@${string}`,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierPaymentSettings']?: Omit<ValueTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 }>;
@@ -34066,6 +34068,8 @@ export type ResolverInputTypes = {
 	payout_destination?:boolean | `@${string}`,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?:boolean | `@${string}`,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceSupplierProfile"]: AliasType<{
@@ -52831,7 +52835,9 @@ export type ModelTypes = {
 	/** Короткая подпись реквизитов получения выплат, например «Сбербанк •1234». */
 	payout_destination?: string | undefined | null,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
-	payout_method_id?: string | undefined | null
+	payout_method_id?: string | undefined | null,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?: string | undefined | null
 };
 	["MarketplaceSupplierProfile"]: {
 		/** Что поставщик рассказывает о себе. */
@@ -72880,6 +72886,8 @@ export type GraphQLTypes = {
 	payout_destination?: string | undefined | null,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?: string | undefined | null,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?: string | undefined | null,
 	['...on MarketplaceSupplierPaymentSettings']: Omit<GraphQLTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 };
 	["MarketplaceSupplierProfile"]: {

@@ -8579,7 +8579,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceSupplierPaymentSettings:{
 		has_payout_method:"Boolean",
 		payout_destination:"String",
-		payout_method_id:"String"
+		payout_method_id:"String",
+		resolved_method_id:"String"
 	},
 	MarketplaceSupplierProfile:{
 		about:"String",

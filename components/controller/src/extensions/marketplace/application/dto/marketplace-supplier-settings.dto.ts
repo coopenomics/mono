@@ -12,6 +12,14 @@ export class MarketplaceSupplierPaymentSettingsDTO {
   })
   payout_method_id!: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком ' +
+      'либо реквизитов по умолчанию. Пусто — реквизитов нет.',
+  })
+  resolved_method_id!: string | null;
+
   @Field(() => Boolean, {
     description:
       'Есть ли у поставщика реквизиты, на которые уйдёт выплата. ' +
@@ -31,6 +39,7 @@ export function toMarketplaceSupplierPaymentSettingsDTO(
 ): MarketplaceSupplierPaymentSettingsDTO {
   const dto = new MarketplaceSupplierPaymentSettingsDTO();
   dto.payout_method_id = view.payout_method_id;
+  dto.resolved_method_id = view.resolved_method_id;
   dto.has_payout_method = view.has_payout_method;
   dto.payout_destination = view.payout_destination;
   return dto;

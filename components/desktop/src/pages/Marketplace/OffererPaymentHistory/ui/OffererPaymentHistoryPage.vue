@@ -65,17 +65,11 @@ const methodOptions = computed<BaseSelectOption[]>(() =>
 
 const hasMethods = computed(() => methodOptions.value.length > 0);
 
-// Выбранное значение селектора: явный выбор поставщика; если выбора не было —
-// показываем пусто, а действующий фолбэк (метод по умолчанию) описывает hint.
-const selectedMethodId = computed(() => settings.value?.payout_method_id ?? null);
-
-const selectHint = computed(() => {
-  if (!settings.value) return undefined;
-  if (!settings.value.payout_method_id && settings.value.has_payout_method) {
-    return t('marketplace.offererPaymentHistoryPage.defaultDetailsHint', { details: settings.value.payout_destination ?? '' });
-  }
-  return undefined;
-});
+// Выбранное значение селектора — реквизиты, на которые поступит следующая
+// выплата: явный выбор поставщика либо реквизиты по умолчанию (в том числе
+// когда выбранные удалены). Поле не пустует, пока реквизиты есть (замечание
+// владельца 20.11.2026).
+const selectedMethodId = computed(() => settings.value?.resolved_method_id ?? null);
 
 async function loadSettings(): Promise<void> {
   settingsLoading.value = true;
@@ -179,7 +173,6 @@ q-page.offerer-payments
         :options='methodOptions',
         :label='$t("marketplace.offererPaymentHistoryPage.detailsSelectLabel")',
         :placeholder='$t("marketplace.offererPaymentHistoryPage.detailsSelectPlaceholder")',
-        :hint='selectHint',
         :disabled='savingMethod || settingsLoading',
         @update:model-value='onPickMethod'
       )
