@@ -146,6 +146,9 @@ jobs:
 
       - name: Стенд — рабочий стол (SSR)
         timeout-minutes: 15
+        env:
+          # Карты пунктов выдачи на кадрах (секрет зеркала, 20.11.2026).
+          YANDEX_MAPS_API_KEY: ${{ secrets.YANDEX_MAPS_API_KEY }}
         run: bash scripts/blackbox/stack.sh desktop
 
       - name: Браузер Playwright

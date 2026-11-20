@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { Zeus } from '@coopenomics/sdk';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
@@ -76,7 +77,7 @@ function sagaByOrder(order_id: string): MarketplaceIssuanceSagaView | undefined 
 function isIssuable(o: MarketplaceOrderIssuanceView): boolean {
   if (!ISSUABLE_STATUSES.includes(o.status)) return false;
   const saga = sagaByOrder(o.id);
-  return !saga || saga.stage === 'FACT_FIXED';
+  return !saga || saga.stage === Zeus.MarketplaceIssuanceSagaStage.FACT_FIXED;
 }
 
 // Строка выдачи: одинаковое имущество (один товар, одна цена за единицу, одна
@@ -118,7 +119,7 @@ function factOf(
   const orderedTotal = Number.parseFloat(String(o.total_cost ?? '0')) || 0;
   const orderedTotalWithFee = Number.parseFloat(String(o.total_cost_with_fee ?? '0')) || 0;
   const warehouseQty = Math.min(ordered, o.warehouse_quantity ?? ordered);
-  if (o.status === 'READY_TO_RECEIVE') {
+  if (o.status === Zeus.MarketplaceOrderStatus.READY_TO_RECEIVE) {
     // Факт открытой выдачи сперва живёт в саге и только с подписью заявления
     // заказчика закрепляется в заказе. Пока подписи нет, заказ читать нечего —
     // без саги карточка показывала заказанное и теряла пометку недопоставки
@@ -245,7 +246,7 @@ const groups = computed<IssuanceGroup[]>(() => {
   for (const [account, orders] of map) {
     const named = orders.find((o) => o.orderer_name);
     const toIssue = orders.filter(isIssuable);
-    const toAnnounce = toIssue.filter((o) => o.status === 'ACCEPTED_TO_COOP');
+    const toAnnounce = toIssue.filter((o) => o.status === Zeus.MarketplaceOrderStatus.ACCEPTED_TO_COOP);
     const announcedCount = toIssue.length - toAnnounce.length;
     const toIssueLines = mergeLines(toIssue);
     const inProgress = orders
@@ -334,7 +335,7 @@ const closingOrders = closer.closing;
 async function closeManually(saga: MarketplaceIssuanceSagaView): Promise<void> {
   if (!(await ensureSigningUnlocked(t('marketplace.operatorIssuance.missingOperatorKeyError')))) return;
   if (await closer.closeOne(saga, { manual: true })) {
-    SuccessAlert(t('marketplace.operatorIssuance.closedMessage', { orderShort: saga.order_id.slice(0, 8) }));
+    SuccessAlert(t('marketplace.issuanceCloser.closedOneMessage', { product: `«${saga.product_name || t('marketplace.issuanceCloser.untitledProduct')}»` }));
   }
   await load();
 }
@@ -366,7 +367,7 @@ function stageOf(saga: MarketplaceIssuanceSagaView) {
  * Пока совет рассматривает заявление, сервер отмену не принимает — кнопки нет.
  */
 function canCancel(saga: MarketplaceIssuanceSagaView): boolean {
-  return !saga.awaits_operator_close && !saga.awaits_council && saga.stage !== 'CLOSED';
+  return !saga.awaits_operator_close && !saga.awaits_council && saga.stage !== Zeus.MarketplaceIssuanceSagaStage.CLOSED;
 }
 
 // Код получения: общий сканер стола нашёл заказчика → резолвим аккаунт против

@@ -1,35 +1,25 @@
 /**
- * @brief Callback от gateway об отклонении исходящей выплаты поставщику
- * (E11 техдолг 598-16, Locked Decision L12, p.mkt.supply).
+ * @brief Обратный вызов gateway::outdecline: кассир отметил, что банковский
+ * перевод пакета не состоялся (p.mkt.supply).
  *
- * Inline-action отправляется контрактом gateway из `gateway::outdecline` —
- * кассир отметил, что банковский перевод не прошёл (нет реквизитов,
- * платёж отменён банком, ошибка ввода). Бухгалтерия не двигается —
- * обязательство Кт 76 перед поставщиком остаётся открытым. Удержанный при
- * инициации долг (`payout_withheld`, o.mkt.deduct) не восстанавливается:
- * зачёт состоялся, повторная инициация переведёт остаток. Backend может
- * повторно вызвать `marketplace::payout` после исправления реквизитов;
- * gateway-запись по этому outcome_hash уже стёрта на outdecline, поэтому
- * повторная инициация проходит штатно (см. payout-гард `payout_status ∈ {
- * NONE, DECLINED }`).
+ * Пакет переходит sent → declined, причина сохраняется. Проводки нет —
+ * обязательство Кт 76 по заказам остаётся открытым. Заказы пакета
+ * возвращаются в ожидание выплаты по одному (`releasepay`) и попадают в
+ * пакет следующего дня.
  *
- * Guards:
- *  - require_auth(_gateway) — callback легитимен только от gateway-контракта.
- *  - Order найден по `outcome_hash`.
- *  - `payout_status == PENDING`.
+ * Авторизация: `_gateway`. `outcome_hash` — хэш пакета.
  *
  * @ingroup public_marketplace_actions
  */
 void marketplace::paydecline(eosio::name coopname, checksum256 outcome_hash, std::string reason) {
   require_auth(_gateway);
 
-  auto o = Marketplace::get_order_by_hash_or_fail(coopname, outcome_hash,
-             "Order не найден по outcome_hash из callback'а gateway");
-  eosio::check(o.payout_status == OrderPayoutStatus::PENDING,
-               "Callback gateway::outdecline получен на Order не в статусе ожидания выплаты");
+  auto p = Marketplace::get_payout_by_hash_or_fail(coopname, outcome_hash);
+  eosio::check(p.status == PayoutStatus::SENT,
+               "MARKETPLACE_PAYOUT_NOT_SENT: Отказ кассира получен на пакет выплаты, не отправленный кассиру");
 
-  Marketplace::update_order(coopname, o.id, [&](auto& upd) {
-    upd.payout_status = OrderPayoutStatus::DECLINED;
-    upd.payout_decline_reason = reason;
+  Marketplace::update_payout(coopname, p.id, [&](auto& upd) {
+    upd.status = PayoutStatus::DECLINED;
+    upd.decline_reason = reason;
   });
 }

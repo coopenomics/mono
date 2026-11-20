@@ -46,3 +46,8 @@ export * as InvAgreements from './invAgreements'
 export * as InvBranches from './invBranches'
 export * as Investors from './investors'
 export * as InvProps from './invProps'
+
+/**
+ * Пакеты выплаты поставщикам: один платёж кассиру на заказы поставщика за день.
+ */
+export * as Payouts from './payouts'

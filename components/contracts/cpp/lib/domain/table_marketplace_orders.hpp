@@ -54,17 +54,18 @@ namespace OrderStatus {
 
 /**
  * @brief Состояние выплаты поставщику по Order'у (Locked Decision L12, E11
- * техдолг 598-16). Выплата идёт через gateway::createoutpay → действие
- * кассира → callback `marketplace::payconfirm` / `marketplace::paydecline`.
+ * техдолг 598-16). Заказы поставщика выплачиваются пакетом (таблица `payouts`,
+ * решение владельца 19.11.2026): один исходящий платёж gateway на пакет →
+ * действие кассира → callback `payconfirm` / `paydecline` по пакету → закрытие
+ * заказов пакета по одному.
  *
  * Допустимые переходы:
- *   none → pending             — `marketplace::payout` отправил inline в gateway.
- *   pending → completed        — gateway::outcomplete → callback `payconfirm`.
+ *   none → pending             — `addpayout` включил заказ в пакет.
+ *   pending → completed        — пакет оплачен, `closepayout` закрыл заказ.
  *                                Здесь применяется o.mkt.payout (Дт 76 / Кт 51).
- *   pending → declined         — gateway::outdecline → callback `paydecline`.
+ *   pending → declined         — пакет отклонён, `releasepay` вернул заказ.
  *                                Без ledger-движения; обязательство Кт 76 остаётся.
- *   declined → pending         — повторная попытка `marketplace::payout` после
- *                                исправления реквизитов кассиром.
+ *   declined → pending         — заказ включён в пакет следующего дня.
  */
 namespace OrderPayoutStatus {
   inline constexpr eosio::name NONE      = "none"_n;
@@ -222,6 +223,12 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   /// (задача 99D-14). binary_extension: у заказов, принятых до этого поля,
   /// значения нет — читать через `Marketplace::get_accepted_cost`.
   eosio::binary_extension<eosio::asset> accepted_cost;
+  /// Пакет выплаты поставщику, в который включён заказ (`addpayout`, решение
+  /// владельца 19.11.2026): хэш строки `payouts`. Заполнен, пока
+  /// `payout_status == pending`; `closepayout` / `releasepay` сверяют по нему,
+  /// что закрывают заказ своего пакета. binary_extension: у заказов, не
+  /// включавшихся в пакет, значения нет.
+  eosio::binary_extension<checksum256> payout_hash;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

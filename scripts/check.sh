@@ -150,6 +150,10 @@ gate_timing() {
   node "$REPO_ROOT/scripts/check-timing.mjs"
 }
 
+gate_enum_literals() {
+  node "$REPO_ROOT/scripts/check-enum-literals.mjs"
+}
+
 gate_transact_fact() {
   node "$REPO_ROOT/scripts/check-transact-fact.mjs"
 }
@@ -238,6 +242,7 @@ case "$MODE" in
     run_gate "плательщик памяти в контрактах" gate_ram_payer
     run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "факт: пауза вместо факта" gate_timing
+    run_gate "строка вместо перечисления" gate_enum_literals
     run_gate "факт: транзакция мимо факта" gate_transact_fact
     run_gate "факт: экран без зеркала" gate_live_mirror
     run_gate "текст в словарях i18n" gate_i18n

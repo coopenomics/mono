@@ -57,6 +57,7 @@ import {
   type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
 import { t } from '../../i18n';
+import { ordersDative } from '../shared/payout-batch.util';
 import { KU_DETAILS_DOMAIN_REPOSITORY, type KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
 
 /**
@@ -215,7 +216,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         cashierName: await this.accountPort.getDisplayName(username),
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
         // Реестр платежей стола кассира, отфильтрованный по поставщику
@@ -297,11 +298,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         paymentReference: event.payment_reference,
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         itemName: event.item_name || t('marketplace.notification.paymentItemFallback'),
-        quantity: event.quantity ?? '',
-        actDate: event.act_date ?? '',
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
@@ -342,10 +341,12 @@ export class MarketplaceNotificationService implements OnModuleInit {
       }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
+        productName: event.product_name,
         kuName,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
+        // Нажатие на уведомление открывает страницу заказа (замечание владельца 20.11.2026).
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/orders/${event.order_id}`,
         passportReminder,
         workingHoursNote: await this.workingHoursNote(event.coopname, event.braname),
       };
@@ -611,7 +612,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reason: event.reason,
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,

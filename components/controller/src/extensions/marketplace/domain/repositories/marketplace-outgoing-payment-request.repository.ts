@@ -1,49 +1,42 @@
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../entities/marketplace-outgoing-payment-request.entity';
-import type { MarketplaceOutgoingPaymentRequestStatus } from '../entities/marketplace-outgoing-payment-request.types';
+import type {
+  MarketplaceOutgoingPaymentLine,
+  MarketplaceOutgoingPaymentRequestStatus,
+} from '../entities/marketplace-outgoing-payment-request.types';
 
 export const MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY = Symbol(
   'MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY'
 );
 
+/** Новый пакет выплаты: заводит обход выплат до включения заказов в цепи. */
 export interface MarketplaceOutgoingPaymentRequestCreateInput {
   coopname: string;
-  order_hash: string;
-  order_id: string;
-  apl_reception_id: string;
+  payment_hash: string;
+  lines: MarketplaceOutgoingPaymentLine[];
   payee_account: string;
-  amount: string;
   symbol: string;
   purpose: string;
-  /** Маскированные реквизиты получателя на момент создания выплаты. */
+  /** Маскированные реквизиты получателя на момент создания пакета. */
   payout_destination?: string | null;
-  /** Часть выплаты, удержанная в счёт признанного гарантийного долга поставщика (99D-13). */
-  withheld_amount?: string | null;
-  payout_tx_hash?: string | null;
-  core_payment_id?: string | null;
+}
+
+/** Состояние пакета из дельты таблицы `payouts`: сумму и удержание считает контракт. */
+export interface MarketplaceOutgoingPaymentChainState {
+  amount: string;
+  withheld_amount: string;
+  status: MarketplaceOutgoingPaymentRequestStatus;
 }
 
 export interface MarketplaceOutgoingPaymentRequestDomainRepository {
-  /**
-   * Идемпотентное создание projection одного outcome'а в статусе PENDING.
-   * При повторном вызове с тем же `(coopname, order_hash)` возвращает
-   * существующую запись без ошибок — нужно для retry-safety listener'а
-   * `action::marketplace::payout`.
-   */
-  createIfNotExists(
-    input: MarketplaceOutgoingPaymentRequestCreateInput
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity>;
+  /** Новый пакет в состоянии OPEN, сумма 0 до дельты цепи. */
+  create(input: MarketplaceOutgoingPaymentRequestCreateInput): Promise<MarketplaceOutgoingPaymentRequestDomainEntity>;
 
   findById(id: string): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
 
-  findByOrderHash(
+  findByPaymentHash(
     coopname: string,
-    order_hash: string
+    payment_hash: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
-
-  findByAplReceptionId(
-    coopname: string,
-    apl_reception_id: string
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]>;
 
   listByPayee(
     coopname: string,
@@ -53,8 +46,7 @@ export interface MarketplaceOutgoingPaymentRequestDomainRepository {
 
   /**
    * Лента выплат по всему кооперативу для совета (read:all). Опциональные
-   * фильтры по поставщику-получателю и статусам. В отличие от listByPayee
-   * не привязана к текущему пайщику.
+   * фильтры по поставщику-получателю и статусам.
    */
   listAll(
     coopname: string,
@@ -64,38 +56,50 @@ export interface MarketplaceOutgoingPaymentRequestDomainRepository {
     }
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]>;
 
-  /**
-   * Переход PENDING → COMPLETED. Listener `action::marketplace::payconfirm`.
-   * Идемпотентен — повторный вызов не меняет уже COMPLETED-запись.
-   */
-  applyCompletion(
+  /** Заказы пакета после включения в цепи: остаются те, что вошли в пакет. */
+  applyLines(
     coopname: string,
-    order_hash: string,
-    patch: {
-      completed_at: Date;
-      core_payment_id?: string | null;
-      payout_tx_hash?: string | null;
-    }
+    payment_hash: string,
+    lines: MarketplaceOutgoingPaymentLine[]
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
 
   /**
-   * Переход PENDING → DECLINED. Listener `action::marketplace::paydecline`.
-   * Идемпотентен — повторный вызов не меняет уже DECLINED-запись.
+   * Сумма, удержание и состояние из дельты `payouts`. Состояние вперёд не
+   * откатывается: COMPLETED и DECLINED — конечные.
    */
+  applyChainState(
+    coopname: string,
+    payment_hash: string,
+    state: MarketplaceOutgoingPaymentChainState
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
+
+  /** Переход → COMPLETED по подтверждению кассира. Идемпотентен. */
+  applyCompletion(
+    coopname: string,
+    payment_hash: string,
+    patch: { completed_at: Date; payout_tx_hash?: string | null }
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
+
+  /** Переход → DECLINED по отказу кассира. Идемпотентен. */
   applyDecline(
     coopname: string,
-    order_hash: string,
+    payment_hash: string,
     reason: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
 
-  /**
-   * Story 598-17 / AR35: проставить связку с платежом в core-реестре
-   * (записывается отдельно от createIfNotExists, если core-вызов
-   * выполняется после `marketplace::payout` delta).
-   */
+  /** Платёж пакета в реестре кассира. */
   applyCorePaymentId(
     coopname: string,
-    order_hash: string,
+    payment_hash: string,
     core_payment_id: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null>;
+
+  /** Пакеты, у которых не все заказы закрыты: их довозит обход выплат. */
+  listUnsettled(coopname: string): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]>;
+
+  /** Все заказы пакета закрыты: обходу пакет больше не нужен. Идемпотентно. */
+  markSettled(coopname: string, payment_hash: string, at: Date): Promise<void>;
+
+  /** Пакет без заказов (долг покрыл всю стоимость) — записи не остаётся. */
+  deleteByPaymentHash(coopname: string, payment_hash: string): Promise<void>;
 }

@@ -57,6 +57,10 @@ export class WebPushChannelAdapter implements WebPushChannelPort {
     const template = resolveTemplate(message.workflowId, NotificationChannel.PUSH, message.locale);
     const title = renderTemplate(template?.subject, message) || t('notificationCenter.webPushChannelAdapter.defaultTitle');
     const body = renderTemplate(template?.body, message);
+    // Нажатие на пуш открывает то, о чём уведомление: ссылку сценария
+    // (`deepLinkUrl`), без неё — главную. Без адреса пуш всегда вёл на главную.
+    const deepLink = message.payload?.deepLinkUrl;
+    const url = typeof deepLink === 'string' && deepLink ? deepLink : undefined;
 
     // info-уровень: видно сколько эндпоинтов адресуем (диагностика «push не пришёл»).
     this.logger.log(`web-push → '${username}': ${subscriptions.length} активн. подписк(а), workflow=${message.workflowId}`);
@@ -66,7 +70,7 @@ export class WebPushChannelAdapter implements WebPushChannelPort {
       const dto = new WebPushSubscriptionDto(new WebPushSubscriptionDomainEntity(subscription));
       const ok = await this.webPushService.sendNotification(
         dto,
-        { title, body },
+        { title, body, url },
         // 410 Gone — деактивируем мёртвую подписку.
         async (_subscriptionId: string) => {
           await this.subscriptionPort.deactivateSubscription(subscription.endpoint);

@@ -4,11 +4,11 @@ import { Actors } from '../../../common'
 
 /**
  * Callback от gateway::outdecline — кассир отметил, что банковский перевод
- * поставщику не состоялся (E11 техдолг 598-16, Locked Decision L12).
- * Inline-action, отправляется контрактом gateway; backend сам этот action не
- * дёргает. Авторизация — `_gateway`. Ledger2 НЕ применяется; `order.payout_status`
- * переходит PENDING → DECLINED, `payout_decline_reason` сохраняется. Backend
- * может повторно вызвать `payOut` после исправления реквизитов.
+ * пакета выплаты поставщику не состоялся (Locked Decision L12). Inline-action,
+ * отправляется контрактом gateway; backend сам этот action не дёргает.
+ * Авторизация — `_gateway`. `outcome_hash` — хэш пакета. Ledger2 НЕ
+ * применяется; пакет переходит sent → declined, причина сохраняется. Заказы
+ * пакета backend возвращает в ожидание выплаты действием `releasepay`.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._contract }] as const
 

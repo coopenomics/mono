@@ -1,10 +1,11 @@
-import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaymentStatus } from '@coopenomics/innercoop';
 import { MarketplaceOrderStatusEnum } from './marketplace-order.dto';
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 
 export enum MarketplaceOutgoingPaymentRequestStatusEnum {
+  OPEN = 'OPEN',
   PENDING = 'PENDING',
   COMPLETED = 'COMPLETED',
   DECLINED = 'DECLINED',
@@ -13,9 +14,8 @@ export enum MarketplaceOutgoingPaymentRequestStatusEnum {
 registerEnumType(MarketplaceOutgoingPaymentRequestStatusEnum, {
   name: 'MarketplaceOutgoingPaymentRequestStatus',
   description:
-    'Статус исходящей выплаты поставщику на стороне marketplace. ' +
-    'Подтверждение и отказ выполняет общий стол кассира кооператива; ' +
-    'marketplace отображает результат только для истории.',
+    'Статус выплаты поставщику: OPEN — заказы включаются в выплату, PENDING — ждёт кассира, ' +
+    'COMPLETED — перевод подтверждён, DECLINED — кассир отказал, заказы попадут в выплату следующего дня.',
 });
 
 @InputType('MarketplaceListOutgoingPaymentsAsSupplierFilterInput')
@@ -59,15 +59,15 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   coopname!: string;
 
   @Field(() => String, {
-    description: 'Хэш заказа в каталоге поставок — один заказ = одна выплата.',
+    description: 'Хэш выплаты: по нему кассир подтверждает перевод в реестре платежей.',
   })
-  order_hash!: string;
+  payment_hash!: string;
 
-  @Field(() => String, { description: 'Идентификатор заказа в каталоге поставок.' })
-  order_id!: string;
+  @Field(() => Int, { description: 'Заказов, оплачиваемых этой выплатой.' })
+  orders_count!: number;
 
-  @Field(() => String, { description: 'Акт приёмки, по которому возникло обязательство.' })
-  apl_reception_id!: string;
+  @Field(() => [String], { description: 'Заказы, оплачиваемые этой выплатой.' })
+  order_ids!: string[];
 
   @Field(() => String, { description: 'Аккаунт поставщика — получатель выплаты.' })
   payee_account!: string;
@@ -131,9 +131,9 @@ export function toMarketplaceOutgoingPaymentRequestDTO(
   const dto = new MarketplaceOutgoingPaymentRequestDTO();
   dto.id = e.id;
   dto.coopname = e.coopname;
-  dto.order_hash = e.order_hash;
-  dto.order_id = e.order_id;
-  dto.apl_reception_id = e.apl_reception_id;
+  dto.payment_hash = e.payment_hash;
+  dto.orders_count = e.lines.length;
+  dto.order_ids = e.lines.map((l) => l.order_id);
   dto.payee_account = e.payee_account;
   dto.amount = e.amount;
   dto.symbol = e.symbol;
@@ -220,7 +220,7 @@ export class MarketplaceOutgoingPaymentCoreRecordDTO {
 }
 
 /**
- * Разворот выплаты: сама выплата, оплаченный заказ и запись в реестре кассира.
+ * Разворот выплаты: сама выплата, оплаченные заказы и запись в реестре кассира.
  * Собирается на бэкенде, чтобы совет не составлял картину из трёх запросов.
  */
 @ObjectType('MarketplaceOutgoingPaymentDetail')
@@ -228,11 +228,10 @@ export class MarketplaceOutgoingPaymentDetailDTO {
   @Field(() => MarketplaceOutgoingPaymentRequestDTO)
   payment!: MarketplaceOutgoingPaymentRequestDTO;
 
-  @Field(() => MarketplaceOutgoingPaymentOrderSummaryDTO, {
-    nullable: true,
-    description: 'Заказ, за который платят. Null — заказ не найден (удалён или ещё не доехал).',
+  @Field(() => [MarketplaceOutgoingPaymentOrderSummaryDTO], {
+    description: 'Заказы, за которые платят этой выплатой.',
   })
-  order!: MarketplaceOutgoingPaymentOrderSummaryDTO | null;
+  orders!: MarketplaceOutgoingPaymentOrderSummaryDTO[];
 
   @Field(() => MarketplaceOutgoingPaymentCoreRecordDTO, {
     nullable: true,

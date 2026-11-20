@@ -12,6 +12,8 @@ export interface MarketplaceStockProposalCreateInput {
   member_account: string;
   operator_account: string;
   items: MarketplaceStockProposalItem[];
+  /** Начальное состояние; по умолчанию — предложено пайщику. */
+  status?: MarketplaceStockProposalStatus;
 }
 
 export interface MarketplaceStockProposalListFilter {
@@ -32,6 +34,8 @@ export interface MarketplaceStockProposalDomainRepository {
    * Перевод статуса с CAS-гардом на текущий статус (двойной акцепт/отзыв при
    * гонке оператор-пайщик не пройдёт: 0 affected → null).
    */
+  /** Подготовленное предложение показывается пайщику: PREPARING → PROPOSED. */
+  publish(id: string): Promise<MarketplaceStockProposalDomainEntity | null>;
   applyResolution(
     id: string,
     from_status: MarketplaceStockProposalStatus,

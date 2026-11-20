@@ -337,7 +337,9 @@ cmd_keu() {
     # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
     # Экономика участка (economy) ждёт списания обеспечительной части по
     # итогу периода (99D-33): в настоящем времени его не дождаться.
-    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts \
+    # Выплату поставщику пакетом (payouts) заводит обход в начале следующих
+    # суток стенда — в настоящем времени только после полуночи.
+    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts src/marketplace/payouts.test.ts \
       --reporter=default --reporter=junit \
       --outputFile.junit="$OUT/junit-keu.xml"
   ) || failed=1
@@ -558,6 +560,11 @@ cmd_desktop() {
   set_env "$env_file" CHAIN_ID "$(chain_id)"
   # Секрет сервера — тот же, что у контроллера: SSR спрашивает у него стол пайщика по cookie.
   set_env "$env_file" SERVER_SECRET "$(grep -E '^SERVER_SECRET=' components/controller/.env | cut -d= -f2-)"
+  # Ключ Яндекс.Карт — из секрета workflow (ui-docs): без него карты пунктов
+  # выдачи на кадрах пишут «Карта недоступна». Пустой ключ не пишем.
+  if [ -n "${YANDEX_MAPS_API_KEY:-}" ]; then
+    set_env "$env_file" YANDEX_MAPS_API_KEY "$YANDEX_MAPS_API_KEY"
+  fi
 
   if [ ! -f components/desktop/dist/ssr/index.js ]; then
     echo "▸ dist/ssr нет — собираем рабочий стол..."

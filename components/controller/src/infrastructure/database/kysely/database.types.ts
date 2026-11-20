@@ -2226,19 +2226,19 @@ export interface MarketplaceOrder {
 
 export interface MarketplaceOutgoingPaymentRequest {
   amount: Numeric;
-  apl_reception_id: string;
   completed_at: Timestamp | null;
   coopname: string;
   core_payment_id: string | null;
   created_at: Generated<Timestamp>;
   decline_reason: string | null;
   id: Generated<string>;
-  order_hash: string;
-  order_id: string;
+  lines: Generated<Json>;
   payee_account: string;
+  payment_hash: string;
   payout_destination: string | null;
   payout_tx_hash: string | null;
   purpose: string;
+  settled_at: Timestamp | null;
   status: string;
   symbol: string;
   updated_at: Generated<Timestamp>;

@@ -53,6 +53,22 @@ function agendaPathOf(url: unknown, coopname: string): string | undefined {
 }
 
 /**
+ * Ссылка сценария (`deepLinkUrl`) — внутренний маршрут стола этого кооператива:
+ * путь и параметры адреса без домена. Чужой адрес и адрес другого кооператива
+ * не принимаются.
+ */
+function deepLinkPathOf(url: unknown, coopname: string): string | undefined {
+  if (typeof url !== 'string' || !url) return undefined;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const path = parsed.pathname.replace(/\/+$/, '');
+    return path.startsWith(`/${coopname}/`) ? `${path}${parsed.search}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Deep-link уведомления — внутренний маршрут, куда ведёт нажатие. Уведомления
  * безопасности («вход с нового устройства») несут в payload `securityUrl` — по
  * этому маркеру ведём на страницу настроек: там карточка активных сессий с
@@ -67,7 +83,9 @@ function linkFromNotification(n: IInboxNotification, coopname: string): string |
   if (typeof p.reviewOrderId === 'string' && p.reviewOrderId) {
     return `/${coopname}/market/orders/${p.reviewOrderId}?review=1`;
   }
-  return agendaPathOf(p.agendaUrl, coopname);
+  // Остальные уведомления ведут по ссылке своего сценария: «имущество готово
+  // к получению» — на страницу заказа (замечание владельца 20.11.2026).
+  return agendaPathOf(p.agendaUrl, coopname) ?? deepLinkPathOf(p.deepLinkUrl, coopname);
 }
 
 function toItem(n: IInboxNotification, coopname: string): NotificationItem {

@@ -18,7 +18,9 @@ void gateway::outdecline(eosio::name coopname, checksum256 outcome_hash, std::st
 
   auto outcome = outcomes.find(exist_outcome -> id);
   
-  eosio::check(outcome -> status == "pending"_n, "Только принятые заявления на вывод могут быть обработаны");
+  // Строка стирается после решения кассира, поэтому обработать её повторно нельзя;
+  // проверка состояния защищает от будущих промежуточных состояний платежа.
+  eosio::check(outcome -> status == "pending"_n, "GATEWAY_OUTCOME_NOT_PENDING: Исходящий платёж уже обработан: решение кассира по нему принято");
 
   // Используем интерфейс для типизированного вызова callback действия
   Action::send<declinewthd_interface>(

@@ -9,7 +9,8 @@ export const marketplaceSupplierPaymentConfirmedPayloadSchema = z.object({
   supplierName: z.string(),
   amount: z.string(),
   paymentReference: z.string(),
-  apl_reception_id: z.string(),
+  /** Основание выплаты — заказы пакета, в дательном падеже после «по»: «6 заказам». */
+  ordersLabel: z.string(),
   payment_request_id: z.string(),
   /** Название принятого имущества по заказу выплаты. */
   itemName: z.string().optional(),

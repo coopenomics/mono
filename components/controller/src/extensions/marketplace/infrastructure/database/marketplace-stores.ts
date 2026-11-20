@@ -278,6 +278,7 @@ export const marketplaceStoreProviders: Provider[] = [
       new TableStore<MarketplaceOutgoingPaymentRequestEntity>(db, {
         table: 'marketplace_outgoing_payment_request',
         primaryKey: ['id'],
+        json: ['lines'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

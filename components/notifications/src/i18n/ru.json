@@ -428,9 +428,9 @@
     }
   },
   "marketplaceCashierNewPayment": {
-    "description": "Задача кассы о выплате поставщику Стола заказов после закрывающей подписи по акту приёмки: председателю и кассирам.",
+    "description": "Задача кассы о выплате поставщику Стола заказов: один платёж на заказы поставщика за день — председателю и кассирам.",
     "email": {
-      "body": "{{payload.cashierName}}, по акту приёмки {{payload.apl_reception_id}} поставщику <strong>{{payload.supplierName}}</strong> причитается выплата <strong>{{payload.amount}}</strong>.<br><br>Подтвердите банковский перевод в реестре платежей стола кассира: {{payload.deepLinkUrl}}",
+      "body": "{{payload.cashierName}}, поставщику <strong>{{payload.supplierName}}</strong> причитается выплата <strong>{{payload.amount}}</strong> по {{payload.ordersLabel}}.<br><br>Подтвердите банковский перевод в реестре платежей стола кассира: {{payload.deepLinkUrl}}",
       "subject": "Выплата {{payload.amount}} поставщику {{payload.supplierName}}"
     },
     "inApp": {
@@ -552,19 +552,19 @@
     }
   },
   "marketplaceOrderReady": {
-    "description": "Уведомление пайщику-заказчику о том, что его заказ принят кооперативом и готов к получению на кооперативном участке.",
+    "description": "Уведомление пайщику-заказчику: оператор кооперативного участка пригласил его за имуществом заказа. Отправляется по каждой позиции отдельно и только по кнопке оператора «Пригласить на выдачу»; при выдаче у стойки уведомления нет.",
     "email": {
-      "body": "Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.workingHoursNote}}{{payload.passportReminder}}<br><br>Подробности заказа: {{payload.deepLinkUrl}}",
-      "subject": "Ваш заказ готов к получению на {{payload.kuName}}"
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>Имущество <strong>«{{payload.productName}}»</strong> готово к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.workingHoursNote}}{{payload.passportReminder}}<br><br>Заказ: {{payload.deepLinkUrl}}",
+      "subject": "«{{payload.productName}}» готово к получению на {{payload.kuName}}"
     },
     "inApp": {
-      "body": "Ваш заказ на {{payload.kuName}} ждёт получения — приходите на пункт выдачи.{{payload.workingHoursNote}}{{payload.passportReminder}}",
-      "subject": "Заказ готов к получению"
+      "body": "«{{payload.productName}}» ждёт вас на пункте выдачи {{payload.kuName}}.{{payload.workingHoursNote}}{{payload.passportReminder}}",
+      "subject": "Имущество готово к получению"
     },
-    "name": "Заказ готов к получению",
+    "name": "Имущество готово к получению",
     "push": {
-      "body": "Ваш заказ на {{payload.kuName}} ждёт вас на пункте выдачи.{{payload.workingHoursNote}}{{payload.passportReminder}}",
-      "subject": "Заказ готов к получению"
+      "body": "«{{payload.productName}}» ждёт вас на пункте выдачи {{payload.kuName}}.{{payload.workingHoursNote}}{{payload.passportReminder}}",
+      "subject": "Имущество готово к получению"
     }
   },
   "marketplaceReturnClaimDecided": {
@@ -664,7 +664,7 @@
     }
   },
   "marketplaceSupplierPaymentConfirmed": {
-    "description": "Уведомление поставщику о подтверждённой кассиром выплате — банковский перевод выполнен, обязательство по акту приёмки закрыто.",
+    "description": "Уведомление поставщику о подтверждённой кассиром выплате — банковский перевод выполнен, обязательство по заказам выплаты закрыто.",
     "email": {
       "body": "Уважаемый {{payload.supplierName}}!<br><br>Кооператив перечислил вам <strong>{{payload.amount}}</strong> за {{payload.itemName}}{% if payload.quantity %}, {{payload.quantity}}{% endif %}{% if payload.actDate %}, по акту приёмки от {{payload.actDate}}{% endif %}.<br><br>История выплат: {{payload.deepLinkUrl}}",
       "subject": "Оплата поставки: {{payload.amount}}"
@@ -675,23 +675,23 @@
     },
     "name": "Выплата поставщику подтверждена кассиром",
     "push": {
-      "body": "{{payload.amount}} по акту {{payload.apl_reception_id}}.",
+      "body": "{{payload.amount}} по {{payload.ordersLabel}}.",
       "subject": "Выплата получена"
     }
   },
   "marketplaceSupplierPaymentDeclined": {
-    "description": "Уведомление поставщику об отказе кассира провести банковский перевод по акту приёмки — обязательство кооператива остаётся открытым, требуется уточнение реквизитов.",
+    "description": "Уведомление поставщику об отказе кассира провести банковский перевод — обязательство кооператива остаётся открытым, требуется уточнение реквизитов.",
     "email": {
-      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир приостановил выплату по акту приёмки <strong>{{payload.apl_reception_id}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reason}}.<br><br>Обязательство кооператива перед вами остаётся открытым; пожалуйста, свяжитесь с оператором для уточнения банковских реквизитов или сопроводительных документов.<br><br>История выплат: {{payload.deepLinkUrl}}",
-      "subject": "Выплата по акту приёмки {{payload.apl_reception_id}} приостановлена"
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир приостановил выплату по {{payload.ordersLabel}} на сумму <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reason}}.<br><br>Обязательство кооператива перед вами остаётся открытым; пожалуйста, свяжитесь с оператором для уточнения банковских реквизитов или сопроводительных документов.<br><br>История выплат: {{payload.deepLinkUrl}}",
+      "subject": "Выплата поставщику приостановлена"
     },
     "inApp": {
-      "body": "Кассир приостановил выплату {{payload.amount}} по акту приёмки {{payload.apl_reception_id}}. Причина: {{payload.reason}}.",
+      "body": "Кассир приостановил выплату {{payload.amount}} по {{payload.ordersLabel}}. Причина: {{payload.reason}}.",
       "subject": "Выплата приостановлена"
     },
     "name": "Кассир отказал в выплате поставщику",
     "push": {
-      "body": "Кассир приостановил {{payload.amount}} по акту {{payload.apl_reception_id}}: {{payload.reason}}",
+      "body": "Кассир приостановил {{payload.amount}} по {{payload.ordersLabel}}: {{payload.reason}}",
       "subject": "Выплата приостановлена"
     }
   },

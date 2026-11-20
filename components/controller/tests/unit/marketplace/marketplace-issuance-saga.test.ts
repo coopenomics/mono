@@ -47,6 +47,30 @@ describe('Готовность к выдаче (readyIssue)', () => {
     expect(m.chainPort.readyIssue).toHaveBeenCalledWith(expect.objectContaining({ signer: 'chairkrg', order_hash: 'h-order-1' }));
     expect(m.eventBus.emit).toHaveBeenCalledWith(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, expect.objectContaining({ order_id: 'order-1' }));
   });
+
+  it('приглашение на выдачу называет имущество позиции: уведомление по каждой позиции отдельно', async () => {
+    const m = buildMocks({ order: buildOrder({ status: 'ACCEPTED_TO_COOP' }), warehouse: 5 });
+    m.offerRepo.findById.mockResolvedValue({ product_name: 'Мёд цветочный' });
+    await buildService(m).readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg' });
+    expect(m.eventBus.emit).toHaveBeenCalledWith(
+      MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+      expect.objectContaining({ order_id: 'order-1', product_name: 'Мёд цветочный' })
+    );
+  });
+
+  it('предложение не прочиталось — уведомление называет имущество общим словом, а не пустотой', async () => {
+    const m = buildMocks({ order: buildOrder({ status: 'ACCEPTED_TO_COOP' }), warehouse: 5 });
+    await buildService(m).readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg' });
+    const [, event] = m.eventBus.emit.mock.calls.find(([name]: [string]) => name === MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT);
+    expect(event.product_name).toBe('Имущество без названия');
+  });
+
+  it('выдача у стойки (notify: false): заказ готов к получению в цепи, уведомления заказчику нет — он уже у стойки', async () => {
+    const m = buildMocks({ order: buildOrder({ status: 'ACCEPTED_TO_COOP' }), warehouse: 5 });
+    await buildService(m).readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg', notify: false });
+    expect(m.chainPort.readyIssue).toHaveBeenCalled();
+    expect(m.eventBus.emit).not.toHaveBeenCalledWith(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, expect.anything());
+  });
 });
 
 describe('Факт у стойки (fixFact)', () => {

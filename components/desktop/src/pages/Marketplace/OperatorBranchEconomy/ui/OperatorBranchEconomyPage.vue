@@ -711,15 +711,27 @@ function planStatus(plan: ExpensePlanView): PlanStatus | null {
   switch (plan.proposal_status) {
     case Zeus.ExpenseProposalStatus.AUTHORIZED:
       return { label: i18nT('marketplace.operatorBranchEconomyPage.statusAtCashier'), variant: 'warn' }
+    // Статья планового расхода одна, поэтому «оплата началась» в цепи у него
+    // значит «аванс выдан, ждёт отчёта получателя», а не оплату частями
+    // (замечание владельца 20.11.2026). Касса называет это состояние так же.
     case Zeus.ExpenseProposalStatus.PARTIALLY_PAID:
-      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPartiallyPaid'), variant: 'warn' }
+      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusAwaitingReport'), variant: 'warn' }
+    // Прямую оплату организации контракт считает отчитанной сразу после
+    // платежа: отчёта получателя у неё нет, председатель закрывает расход.
     case Zeus.ExpenseProposalStatus.REPORT_SUBMITTED:
-      return { label: i18nT('marketplace.operatorBranchEconomyPage.statusReportSubmitted'), variant: 'info' }
+      return isDirectPlan(plan)
+        ? { label: i18nT('marketplace.operatorBranchEconomyPage.statusPaidClosing'), variant: 'info' }
+        : { label: i18nT('marketplace.operatorBranchEconomyPage.statusReportSubmitted'), variant: 'info' }
     case Zeus.ExpenseProposalStatus.CLOSED:
       return { label: i18nT('marketplace.operatorBranchEconomyPage.statusPaid'), variant: 'pos' }
     default:
       return { label: i18nT('marketplace.operatorBranchEconomyPage.statusUnderCouncilReview'), variant: 'info' }
   }
+}
+
+/** Расход организации кассир оплачивает прямо, расход пайщику — авансом под отчёт (PayPlanDialog). */
+function isDirectPlan(plan: ExpensePlanView): boolean {
+  return plan.recipient_type === Zeus.ExpenseRecipientType.ORG
 }
 
 /** Что происходит с записью сейчас — строка под состоянием в панели. */
@@ -732,9 +744,11 @@ function planStage(plan: ExpensePlanView): string {
     case Zeus.ExpenseProposalStatus.AUTHORIZED:
       return i18nT('marketplace.operatorBranchEconomyPage.planStageCashier')
     case Zeus.ExpenseProposalStatus.PARTIALLY_PAID:
-      return i18nT('marketplace.operatorBranchEconomyPage.planStagePartiallyPaid')
+      return i18nT('marketplace.operatorBranchEconomyPage.planStageAwaitingReport')
     case Zeus.ExpenseProposalStatus.REPORT_SUBMITTED:
-      return i18nT('marketplace.operatorBranchEconomyPage.planStageReport')
+      return isDirectPlan(plan)
+        ? i18nT('marketplace.operatorBranchEconomyPage.planStageDirectPaid')
+        : i18nT('marketplace.operatorBranchEconomyPage.planStageReport')
     default:
       return i18nT('marketplace.operatorBranchEconomyPage.planStageCouncil')
   }

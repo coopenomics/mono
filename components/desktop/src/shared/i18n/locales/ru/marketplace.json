@@ -67,7 +67,7 @@
       }
     },
     "adminWarehouseSummary": {
-      "intro": "Склад кооператива: что принято, выдано и списано по каждому пункту выдачи. Только для чтения — операции выполняются на столах ПВЗ. Нажмите на наименование, чтобы открыть предложение, по которому имущество принято.",
+      "intro": "Склад кооператива: что принято, выдано и списано по каждому пункту выдачи. Только для чтения — операции выполняются на столах ПВЗ. Нажмите на строку, чтобы открыть карточку имущества: где и чьё, приёмка, сроки, маркировка и история. Выданное и списанное — на вкладке «Архив».",
       "tabStock": "На складе",
       "tabArchive": "Архив"
     },
@@ -95,7 +95,7 @@
       "emptyTitle": "Выплат нет",
       "loadFailedError": "Не удалось загрузить ленту выплат",
       "pageAriaLabel": "Выплаты поставщикам",
-      "pageHint": "Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это обзор только для чтения. Откройте выплату, чтобы увидеть, за какой заказ платили и чем оплата подтверждена.",
+      "pageHint": "Лента выплат поставщикам по всему кооперативу. Подтверждение и отказ выплат выполняет кассир кооператива — для совета это обзор только для чтения. Выплата объединяет заказы поставщика, принятые за сутки. Откройте выплату, чтобы увидеть её заказы и чем оплата подтверждена.",
       "searchPlaceholder": "Поиск по ФИО или наименованию организации"
     },
     "cancelOrderDialog": {
@@ -640,7 +640,10 @@
     "issuanceCloser": {
       "awaitingButton": "Закрыть выдачи · {count}",
       "awaitingHint": "Пайщики подписали акты выдачи. Введите PIN-код — закрывающая подпись встанет на все выдачи сразу.",
-      "closedMessage": "Выдача закрыта: {count}"
+      "closedManyMessage": "Имущество выдано по {count} заказам: {products}. Акты выдачи подписаны.",
+      "closedOneMessage": "Имущество {product} выдано, акт выдачи подписан.",
+      "productsMore": "{products} и ещё {count}",
+      "untitledProduct": "Имущество без названия"
     },
     "issuancePoints": {
       "activateAriaLabel": "Активировать",
@@ -988,14 +991,13 @@
     "offererPaymentHistoryPage": {
       "addDetailsAction": "Добавить реквизиты",
       "bankAccountMethodLabel": "Банковский счёт",
-      "bannerHintIntro": "Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего",
-      "bannerHintProcessing": "она передаётся в банк — статус обновляется здесь по мере обработки.",
+      "bannerHintIntro": "Выплата объединяет ваши заказы, принятые на участках за сутки. В начале следующих суток выплата поступает кассиру кооператива одним платежом,",
+      "bannerHintProcessing": "состояние выплаты обновляется на этой странице по мере оплаты.",
       "declineReasonLabel": "Причина отказа: {reason}",
-      "defaultDetailsHint": "Используются реквизиты по умолчанию: {details}",
       "detailsSavedMessage": "Реквизиты для выплат сохранены",
       "detailsSelectLabel": "Реквизиты для выплат",
       "detailsSelectPlaceholder": "Выберите реквизиты",
-      "emptyBody": "Здесь отображаются выплаты по вашим актам приёмки, когда совет их авторизует.",
+      "emptyBody": "Кооператив формирует выплату в начале суток после приёмки ваших заказов на участке.",
       "emptyTitle": "Выплат пока нет",
       "loadHistoryFailedMessage": "Не удалось загрузить историю выплат",
       "loadSettingsFailedMessage": "Не удалось загрузить настройки выплат",
@@ -1008,7 +1010,8 @@
       "statusDeclined": "Отклонена",
       "statusPaid": "Оплачена",
       "statusPending": "Ожидает оплаты",
-      "withheldLabel": "Удержано в счёт гарантийного долга: {amount}"
+      "withheldLabel": "Удержано в счёт гарантийного долга: {amount}",
+      "ordersCountLabel": "Заказов в выплате: {count}"
     },
     "offererShipPartyPage": {
       "ariaLabel": "Код для приёмки партии"
@@ -1513,12 +1516,14 @@
       "statusPaid": "Оплачен",
       "statusUnderCouncilReview": "На рассмотрении совета",
       "statusAtCashier": "На оплате у кассира",
-      "statusPartiallyPaid": "Оплачивается частями",
+      "statusAwaitingReport": "Ждёт отчёта",
+      "statusPaidClosing": "Оплачен, закрывается",
       "statusReportSubmitted": "Отчёт подан",
       "planStageNotStarted": "Оплата не запускалась. Нажмите «Оплатить»: стол соберёт служебную записку, совет примет решение, кассир проведёт платёж.",
       "planStageCouncil": "Служебная записка подана. Совет принимает решение о расходе.",
       "planStageCashier": "Совет утвердил расход. Кассир проводит платёж.",
-      "planStagePartiallyPaid": "Кассир провёл часть платежа.",
+      "planStageAwaitingReport": "Кассир выдал аванс. Получатель отчитывается о расходе, затем председатель закрывает расход.",
+      "planStageDirectPaid": "Кассир оплатил расход. Председатель закрывает расход.",
       "planStageReport": "Получатель аванса подал отчёт. Председатель закрывает расход.",
       "planStagePaid": "Расход оплачен {date}.",
       "planStageTitle": "Состояние",
@@ -1744,7 +1749,6 @@
       "cancelIssueButton": "Снять",
       "cancelledMessage": "Выдача снята — заказ снова ждёт пайщика.",
       "closeError": "Не удалось закрыть выдачу — попробуйте кнопкой «Закрыть»",
-      "closedMessage": "Выдача закрыта: заказ {orderShort} выдан.",
       "emptyBody": "Здесь отображаются заказы, принятые кооперативом на ваш участок, для выдачи пайщикам.",
       "emptyNoStockHint": "На складе участка нет имущества к предложению.",
       "emptyTitle": "Заказов на выдачу нет",
@@ -2138,35 +2142,29 @@
         "pending": "Ожидает оплаты",
         "pendingMany": "Ожидают оплаты",
         "rejected": "Отклонено",
-        "rejectedMany": "Отклонены"
+        "rejectedMany": "Отклонены",
+        "forming": "Формируется"
       }
     },
     "payoutDetail": {
-      "acceptedAmountLabel": "Принято на сумму",
       "cashierCommentLabel": "Комментарий кассира",
       "chainTransactionLabel": "Транзакция в цепи",
       "cooperativePaymentLabel": "Платёж кооператива",
       "createdLabel": "Создана",
-      "customerLabel": "Заказчик",
-      "deliveryBranchLabel": "Участок доставки",
       "heldForDebtLabel": "Удержано в счёт долга",
       "loadFailedError": "Не удалось загрузить выплату",
       "notFoundHint": "Выплата не найдена.",
-      "orderCostLabel": "Стоимость заказа",
-      "orderSectionTitle": "Заказ",
-      "orderStateLabel": "Состояние заказа",
       "overlayTitle": "Выплата",
       "paidLabel": "Оплачена",
       "paymentConfirmationTitle": "Подтверждение оплаты",
       "paymentNotRegisteredHint": "Платёж в реестре кассира ещё не заведён.",
       "paymentNumberLabel": "Платёж №",
       "processedLabel": "Проведён",
-      "productLabel": "Товар",
       "purposeLabel": "Назначение",
       "rejectReasonLabel": "Причина отказа",
       "supplierLabel": "Поставщик",
-      "transferDestinationLabel": "Куда переведено",
-      "volumeLabel": "Объём"
+      "transferDestinationLabel": "Реквизиты для выплаты",
+      "ordersSectionTitle": "Заказы в выплате ({count})"
     },
     "pvzWriteoffsSection": {
       "column": {
@@ -3083,7 +3081,7 @@
       "expiryLabel": "Годен до",
       "labelTitle": "Маркировка",
       "labeledAtLabel": "Промаркировано",
-      "noBarcode": "Не выпущен",
+      "noBarcode": "Этикетка не привязана",
       "openOffer": "Предложение",
       "openOrder": "Заказ",
       "ordererLabel": "Заказчик",

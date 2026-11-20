@@ -4,12 +4,11 @@ import { Actors } from '../../../common'
 
 /**
  * Callback от gateway::outcomplete — подтверждение фактического банковского
- * перевода поставщику (E11 техдолг 598-16, Locked Decision L12). Inline-action,
+ * перевода пакета выплаты поставщику (Locked Decision L12). Inline-action,
  * отправляется контрактом gateway; backend сам этот action не дёргает.
- * Авторизация — `_gateway`. Здесь применяется o.mkt.payout (Дт 76 / Кт 51) на
- * принятую стоимость `accepted_cost` за вычетом долга, удержанного при
- * инициации в `payout`, и `order.payout_status` переходит PENDING →
- * COMPLETED; заказ в статусе `refused` после проводки стирается.
+ * Авторизация — `_gateway`. `outcome_hash` — хэш пакета. Пакет переходит
+ * sent → paid; проводки o.mkt.payout (Дт 76 / Кт 51) backend ставит по каждому
+ * заказу пакета действием `closepayout`.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._contract }] as const
 

@@ -20,7 +20,7 @@ import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop
  * приходит. Отказ до выплаты возможен только решением совета и приходит в
  * `MarketplaceAidCouncilSyncService`.
  *
- * В отличие от `MarketplacePayoutSyncService` (выплата поставщику) здесь НЕТ
+ * В отличие от `MarketplaceSupplierPayoutService` (выплата поставщику) здесь НЕТ
  * собственной projection-таблицы: `outcome_hash` = `aid_hash`, который уже
  * лежит на core-платеже как `hash` (проставлен при createSystemOutgoingPayment),
  * поэтому платёж находится прямым поиском `getPayments({ hash })` — заводить

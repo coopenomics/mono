@@ -13391,8 +13391,8 @@ export type ValueTypes = {
 	["MarketplaceOutgoingPaymentDetail"]: AliasType<{
 	/** Платёж в общем реестре кооператива. Null — выплата ещё не заведена кассиру. */
 	core_payment?:ValueTypes["MarketplaceOutgoingPaymentCoreRecord"],
-	/** Заказ, за который платят. Null — заказ не найден (удалён или ещё не доехал). */
-	order?:ValueTypes["MarketplaceOutgoingPaymentOrderSummary"],
+	/** Заказы, за которые платят этой выплатой. */
+	orders?:ValueTypes["MarketplaceOutgoingPaymentOrderSummary"],
 	payment?:ValueTypes["MarketplaceOutgoingPaymentRequest"],
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOutgoingPaymentDetail']?: Omit<ValueTypes["MarketplaceOutgoingPaymentDetail"], "...on MarketplaceOutgoingPaymentDetail">
@@ -13423,8 +13423,6 @@ export type ValueTypes = {
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount?:boolean | `@${string}`,
-	/** Акт приёмки, по которому возникло обязательство. */
-	apl_reception_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
@@ -13433,14 +13431,16 @@ export type ValueTypes = {
 	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
 	decline_reason?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
-	order_hash?:boolean | `@${string}`,
-	/** Идентификатор заказа в каталоге поставок. */
-	order_id?:boolean | `@${string}`,
+	/** Заказы, оплачиваемые этой выплатой. */
+	order_ids?:boolean | `@${string}`,
+	/** Заказов, оплачиваемых этой выплатой. */
+	orders_count?:boolean | `@${string}`,
 	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account?:boolean | `@${string}`,
 	/** Отображаемое имя получателя выплаты (ФИО физлица/ИП или наименование организации). */
 	payee_name?:boolean | `@${string}`,
+	/** Хэш выплаты: по нему кассир подтверждает перевод в реестре платежей. */
+	payment_hash?:boolean | `@${string}`,
 	/** Куда уходит выплата — короткая подпись реквизитов, например «Сбербанк •1234». */
 	payout_destination?:boolean | `@${string}`,
 	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
@@ -13456,7 +13456,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOutgoingPaymentRequest']?: Omit<ValueTypes["MarketplaceOutgoingPaymentRequest"], "...on MarketplaceOutgoingPaymentRequest">
 }>;
-	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
+	/** Статус выплаты поставщику: OPEN — заказы включаются в выплату, PENDING — ждёт кассира, COMPLETED — перевод подтверждён, DECLINED — кассир отказал, заказы попадут в выплату следующего дня. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
 	/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
 ["MarketplacePeriodInvestPhase"]:MarketplacePeriodInvestPhase;
@@ -14604,6 +14604,8 @@ export type ValueTypes = {
 	payout_destination?:boolean | `@${string}`,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?:boolean | `@${string}`,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierPaymentSettings']?: Omit<ValueTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 }>;
@@ -32889,8 +32891,8 @@ export type ResolverInputTypes = {
 	["MarketplaceOutgoingPaymentDetail"]: AliasType<{
 	/** Платёж в общем реестре кооператива. Null — выплата ещё не заведена кассиру. */
 	core_payment?:ResolverInputTypes["MarketplaceOutgoingPaymentCoreRecord"],
-	/** Заказ, за который платят. Null — заказ не найден (удалён или ещё не доехал). */
-	order?:ResolverInputTypes["MarketplaceOutgoingPaymentOrderSummary"],
+	/** Заказы, за которые платят этой выплатой. */
+	orders?:ResolverInputTypes["MarketplaceOutgoingPaymentOrderSummary"],
 	payment?:ResolverInputTypes["MarketplaceOutgoingPaymentRequest"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -32919,8 +32921,6 @@ export type ResolverInputTypes = {
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount?:boolean | `@${string}`,
-	/** Акт приёмки, по которому возникло обязательство. */
-	apl_reception_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
 	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
@@ -32929,14 +32929,16 @@ export type ResolverInputTypes = {
 	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
 	decline_reason?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
-	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
-	order_hash?:boolean | `@${string}`,
-	/** Идентификатор заказа в каталоге поставок. */
-	order_id?:boolean | `@${string}`,
+	/** Заказы, оплачиваемые этой выплатой. */
+	order_ids?:boolean | `@${string}`,
+	/** Заказов, оплачиваемых этой выплатой. */
+	orders_count?:boolean | `@${string}`,
 	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account?:boolean | `@${string}`,
 	/** Отображаемое имя получателя выплаты (ФИО физлица/ИП или наименование организации). */
 	payee_name?:boolean | `@${string}`,
+	/** Хэш выплаты: по нему кассир подтверждает перевод в реестре платежей. */
+	payment_hash?:boolean | `@${string}`,
 	/** Куда уходит выплата — короткая подпись реквизитов, например «Сбербанк •1234». */
 	payout_destination?:boolean | `@${string}`,
 	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
@@ -32951,7 +32953,7 @@ export type ResolverInputTypes = {
 	withheld_amount?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
+	/** Статус выплаты поставщику: OPEN — заказы включаются в выплату, PENDING — ждёт кассира, COMPLETED — перевод подтверждён, DECLINED — кассир отказал, заказы попадут в выплату следующего дня. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
 	/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
 ["MarketplacePeriodInvestPhase"]:MarketplacePeriodInvestPhase;
@@ -34066,6 +34068,8 @@ export type ResolverInputTypes = {
 	payout_destination?:boolean | `@${string}`,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?:boolean | `@${string}`,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceSupplierProfile"]: AliasType<{
@@ -51707,8 +51711,8 @@ export type ModelTypes = {
 	["MarketplaceOutgoingPaymentDetail"]: {
 		/** Платёж в общем реестре кооператива. Null — выплата ещё не заведена кассиру. */
 	core_payment?: ModelTypes["MarketplaceOutgoingPaymentCoreRecord"] | undefined | null,
-	/** Заказ, за который платят. Null — заказ не найден (удалён или ещё не доехал). */
-	order?: ModelTypes["MarketplaceOutgoingPaymentOrderSummary"] | undefined | null,
+	/** Заказы, за которые платят этой выплатой. */
+	orders: Array<ModelTypes["MarketplaceOutgoingPaymentOrderSummary"]>,
 	payment: ModelTypes["MarketplaceOutgoingPaymentRequest"]
 };
 	["MarketplaceOutgoingPaymentOrderSummary"]: {
@@ -51735,8 +51739,6 @@ export type ModelTypes = {
 	["MarketplaceOutgoingPaymentRequest"]: {
 		/** Сумма платежа (numeric с 4 знаками). */
 	amount: string,
-	/** Акт приёмки, по которому возникло обязательство. */
-	apl_reception_id: string,
 	completed_at?: ModelTypes["DateTime"] | undefined | null,
 	coopname: string,
 	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
@@ -51745,14 +51747,16 @@ export type ModelTypes = {
 	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
 	decline_reason?: string | undefined | null,
 	id: string,
-	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
-	order_hash: string,
-	/** Идентификатор заказа в каталоге поставок. */
-	order_id: string,
+	/** Заказы, оплачиваемые этой выплатой. */
+	order_ids: Array<string>,
+	/** Заказов, оплачиваемых этой выплатой. */
+	orders_count: number,
 	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account: string,
 	/** Отображаемое имя получателя выплаты (ФИО физлица/ИП или наименование организации). */
 	payee_name?: string | undefined | null,
+	/** Хэш выплаты: по нему кассир подтверждает перевод в реестре платежей. */
+	payment_hash: string,
 	/** Куда уходит выплата — короткая подпись реквизитов, например «Сбербанк •1234». */
 	payout_destination?: string | undefined | null,
 	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
@@ -52831,7 +52835,9 @@ export type ModelTypes = {
 	/** Короткая подпись реквизитов получения выплат, например «Сбербанк •1234». */
 	payout_destination?: string | undefined | null,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
-	payout_method_id?: string | undefined | null
+	payout_method_id?: string | undefined | null,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?: string | undefined | null
 };
 	["MarketplaceSupplierProfile"]: {
 		/** Что поставщик рассказывает о себе. */
@@ -56640,7 +56646,7 @@ export type ModelTypes = {
 	marketplaceGetOffer?: ModelTypes["MarketplaceOffer"] | undefined | null,
 	/** Получить один заказ по его идентификатору (доступ зависит от роли). */
 	marketplaceGetOrder: ModelTypes["MarketplaceOrder"],
-	/** Разворот одной выплаты: сама выплата, оплаченный заказ и запись в реестре кассира. Null — выплаты с таким идентификатором в кооперативе нет. */
+	/** Разворот одной выплаты: сама выплата, оплаченные заказы и запись в реестре кассира. Null — выплаты с таким идентификатором в кооперативе нет. */
 	marketplaceGetOutgoingPayment?: ModelTypes["MarketplaceOutgoingPaymentDetail"] | undefined | null,
 	/** Персональные членские средства текущего пайщика, распределённые ему как доверенному кооперативного участка. */
 	marketplaceGetPersonalEconomy: ModelTypes["MarketplacePersonalEconomy"],
@@ -56728,7 +56734,7 @@ export type ModelTypes = {
 	marketplaceListMyReturnClaims: Array<ModelTypes["MarketplaceReturnClaim"]>,
 	/** Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам. */
 	marketplaceListOutgoingPayments: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
-	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
+	/** История выплат поставщику в столе поставщика: одна выплата на заказы поставщика за день. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<ModelTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
 	marketplaceListPendingOffers: ModelTypes["MarketplaceOfferPaginationResult"],
@@ -71667,8 +71673,8 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceOutgoingPaymentDetail",
 	/** Платёж в общем реестре кооператива. Null — выплата ещё не заведена кассиру. */
 	core_payment?: GraphQLTypes["MarketplaceOutgoingPaymentCoreRecord"] | undefined | null,
-	/** Заказ, за который платят. Null — заказ не найден (удалён или ещё не доехал). */
-	order?: GraphQLTypes["MarketplaceOutgoingPaymentOrderSummary"] | undefined | null,
+	/** Заказы, за которые платят этой выплатой. */
+	orders: Array<GraphQLTypes["MarketplaceOutgoingPaymentOrderSummary"]>,
 	payment: GraphQLTypes["MarketplaceOutgoingPaymentRequest"],
 	['...on MarketplaceOutgoingPaymentDetail']: Omit<GraphQLTypes["MarketplaceOutgoingPaymentDetail"], "...on MarketplaceOutgoingPaymentDetail">
 };
@@ -71699,8 +71705,6 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceOutgoingPaymentRequest",
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount: string,
-	/** Акт приёмки, по которому возникло обязательство. */
-	apl_reception_id: string,
 	completed_at?: GraphQLTypes["DateTime"] | undefined | null,
 	coopname: string,
 	/** Идентификатор связанного платежа в общем реестре кооператива — кассир видит выплату в общей ленте платежей. */
@@ -71709,14 +71713,16 @@ export type GraphQLTypes = {
 	/** Причина отказа банковского перевода, если кассир отказал в проведении. */
 	decline_reason?: string | undefined | null,
 	id: string,
-	/** Хэш заказа в каталоге поставок — один заказ = одна выплата. */
-	order_hash: string,
-	/** Идентификатор заказа в каталоге поставок. */
-	order_id: string,
+	/** Заказы, оплачиваемые этой выплатой. */
+	order_ids: Array<string>,
+	/** Заказов, оплачиваемых этой выплатой. */
+	orders_count: number,
 	/** Аккаунт поставщика — получатель выплаты. */
 	payee_account: string,
 	/** Отображаемое имя получателя выплаты (ФИО физлица/ИП или наименование организации). */
 	payee_name?: string | undefined | null,
+	/** Хэш выплаты: по нему кассир подтверждает перевод в реестре платежей. */
+	payment_hash: string,
 	/** Куда уходит выплата — короткая подпись реквизитов, например «Сбербанк •1234». */
 	payout_destination?: string | undefined | null,
 	/** Идентификатор транзакции payout / payconfirm — для трассировки в логах. */
@@ -71731,7 +71737,7 @@ export type GraphQLTypes = {
 	withheld_amount: string,
 	['...on MarketplaceOutgoingPaymentRequest']: Omit<GraphQLTypes["MarketplaceOutgoingPaymentRequest"], "...on MarketplaceOutgoingPaymentRequest">
 };
-	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
+	/** Статус выплаты поставщику: OPEN — заказы включаются в выплату, PENDING — ждёт кассира, COMPLETED — перевод подтверждён, DECLINED — кассир отказал, заказы попадут в выплату следующего дня. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
 	/** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
 ["MarketplacePeriodInvestPhase"]: MarketplacePeriodInvestPhase;
@@ -72880,6 +72886,8 @@ export type GraphQLTypes = {
 	payout_destination?: string | undefined | null,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?: string | undefined | null,
+	/** Идентификатор реквизитов, на которые поступит следующая выплата: выбранных поставщиком либо реквизитов по умолчанию. Пусто — реквизитов нет. */
+	resolved_method_id?: string | undefined | null,
 	['...on MarketplaceSupplierPaymentSettings']: Omit<GraphQLTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 };
 	["MarketplaceSupplierProfile"]: {
@@ -76984,7 +76992,7 @@ export type GraphQLTypes = {
 	marketplaceGetOffer?: GraphQLTypes["MarketplaceOffer"] | undefined | null,
 	/** Получить один заказ по его идентификатору (доступ зависит от роли). */
 	marketplaceGetOrder: GraphQLTypes["MarketplaceOrder"],
-	/** Разворот одной выплаты: сама выплата, оплаченный заказ и запись в реестре кассира. Null — выплаты с таким идентификатором в кооперативе нет. */
+	/** Разворот одной выплаты: сама выплата, оплаченные заказы и запись в реестре кассира. Null — выплаты с таким идентификатором в кооперативе нет. */
 	marketplaceGetOutgoingPayment?: GraphQLTypes["MarketplaceOutgoingPaymentDetail"] | undefined | null,
 	/** Персональные членские средства текущего пайщика, распределённые ему как доверенному кооперативного участка. */
 	marketplaceGetPersonalEconomy: GraphQLTypes["MarketplacePersonalEconomy"],
@@ -77072,7 +77080,7 @@ export type GraphQLTypes = {
 	marketplaceListMyReturnClaims: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
 	/** Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам. */
 	marketplaceListOutgoingPayments: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
-	/** История выплат поставщику в столе поставщика — статусы по каждому заказу. */
+	/** История выплат поставщику в столе поставщика: одна выплата на заказы поставщика за день. */
 	marketplaceListOutgoingPaymentsAsSupplier: Array<GraphQLTypes["MarketplaceOutgoingPaymentRequest"]>,
 	/** Список Offer'ов на модерации (admin) */
 	marketplaceListPendingOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
@@ -80703,10 +80711,11 @@ export enum MarketplaceOrderStatus {
 	RETURNED = "RETURNED",
 	SUPPLY_PREPARED = "SUPPLY_PREPARED"
 }
-/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
+/** Статус выплаты поставщику: OPEN — заказы включаются в выплату, PENDING — ждёт кассира, COMPLETED — перевод подтверждён, DECLINED — кассир отказал, заказы попадут в выплату следующего дня. */
 export enum MarketplaceOutgoingPaymentRequestStatus {
 	COMPLETED = "COMPLETED",
 	DECLINED = "DECLINED",
+	OPEN = "OPEN",
 	PENDING = "PENDING"
 }
 /** Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку. */
