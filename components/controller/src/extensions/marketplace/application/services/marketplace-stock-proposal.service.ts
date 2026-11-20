@@ -467,7 +467,8 @@ export class MarketplaceStockProposalService {
     for (const line of orderLines) {
       const order = await this.orderRepo.findById(line.order_id);
       if (order && order.status === 'ACCEPTED_TO_COOP') {
-        await this.issuanceService.readyIssue({ coopname: input.coopname, order_id: line.order_id, operator_account: input.operator_account });
+        // Заказчик стоит у стойки — уведомление «приходите за имуществом» не отправляется.
+        await this.issuanceService.readyIssue({ coopname: input.coopname, order_id: line.order_id, operator_account: input.operator_account, notify: false });
       }
       await this.issuanceService.fixFact({
         coopname: input.coopname,
@@ -608,7 +609,8 @@ export class MarketplaceStockProposalService {
     const settled = await mapSettledWithConcurrency(issuables, limit, async ({ order_id, item, fresh }) => {
       if (fresh) {
         const order = await this.orderRepo.findById(order_id);
-        await this.issuanceService.readyIssue({ coopname, order_id, operator_account: proposal.operator_account });
+        // Заказчик стоит у стойки — уведомление «приходите за имуществом» не отправляется.
+        await this.issuanceService.readyIssue({ coopname, order_id, operator_account: proposal.operator_account, notify: false });
         await this.issuanceService.fixFact({
           coopname,
           operator_account: proposal.operator_account,

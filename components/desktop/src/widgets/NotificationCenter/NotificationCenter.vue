@@ -105,7 +105,8 @@ function onOpenNotification(id: string): void {
   // Уведомление с deep-link'ом не просто «прочитывается» — ведёт к действию
   // (например, «вход с нового устройства» → активные сессии в настройках).
   const item = store.items.find((i) => i.id === id);
-  if (item?.link) {
+  // Ссылка, которой нет среди маршрутов стола, не уводит со страницы.
+  if (item?.link && router.resolve(item.link).matched.length > 0) {
     menuRef.value?.hide();
     void router.push(item.link);
   }

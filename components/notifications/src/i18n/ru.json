@@ -552,19 +552,19 @@
     }
   },
   "marketplaceOrderReady": {
-    "description": "Уведомление пайщику-заказчику о том, что его заказ принят кооперативом и готов к получению на кооперативном участке.",
+    "description": "Уведомление пайщику-заказчику: оператор кооперативного участка пригласил его за имуществом заказа. Отправляется по каждой позиции отдельно и только по кнопке оператора «Пригласить на выдачу»; при выдаче у стойки уведомления нет.",
     "email": {
-      "body": "Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.workingHoursNote}}{{payload.passportReminder}}<br><br>Подробности заказа: {{payload.deepLinkUrl}}",
-      "subject": "Ваш заказ готов к получению на {{payload.kuName}}"
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>Имущество <strong>«{{payload.productName}}»</strong> готово к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.workingHoursNote}}{{payload.passportReminder}}<br><br>Заказ: {{payload.deepLinkUrl}}",
+      "subject": "«{{payload.productName}}» готово к получению на {{payload.kuName}}"
     },
     "inApp": {
-      "body": "Ваш заказ на {{payload.kuName}} ждёт получения — приходите на пункт выдачи.{{payload.workingHoursNote}}{{payload.passportReminder}}",
-      "subject": "Заказ готов к получению"
+      "body": "«{{payload.productName}}» ждёт вас на пункте выдачи {{payload.kuName}}.{{payload.workingHoursNote}}{{payload.passportReminder}}",
+      "subject": "Имущество готово к получению"
     },
-    "name": "Заказ готов к получению",
+    "name": "Имущество готово к получению",
     "push": {
-      "body": "Ваш заказ на {{payload.kuName}} ждёт вас на пункте выдачи.{{payload.workingHoursNote}}{{payload.passportReminder}}",
-      "subject": "Заказ готов к получению"
+      "body": "«{{payload.productName}}» ждёт вас на пункте выдачи {{payload.kuName}}.{{payload.workingHoursNote}}{{payload.passportReminder}}",
+      "subject": "Имущество готово к получению"
     }
   },
   "marketplaceReturnClaimDecided": {

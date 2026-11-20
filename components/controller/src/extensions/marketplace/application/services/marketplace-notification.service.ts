@@ -341,10 +341,12 @@ export class MarketplaceNotificationService implements OnModuleInit {
       }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
+        productName: event.product_name,
         kuName,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
+        // Нажатие на уведомление открывает страницу заказа (замечание владельца 20.11.2026).
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/orders/${event.order_id}`,
         passportReminder,
         workingHoursNote: await this.workingHoursNote(event.coopname, event.braname),
       };

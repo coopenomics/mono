@@ -204,6 +204,8 @@ export interface MarketplaceOrderReadyToReceiveEvent {
   orderer_account: string;
   /** Кооперативный участок, где имущество готово к выдаче. */
   braname: string;
+  /** Название имущества заказа: уведомление идёт по каждой позиции отдельно. */
+  product_name: string;
 }
 
 /**

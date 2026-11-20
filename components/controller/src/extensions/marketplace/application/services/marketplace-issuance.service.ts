@@ -182,10 +182,20 @@ export class MarketplaceIssuanceService {
 
   /**
    * Оператор участка выдачи отмечает поступление имущества по заказу:
-   * `readyissue` в цепи (acceptcoop → readyrecv, без подписи), заказчику —
-   * push «приходите заберите». Идемпотентно: заказ уже в readyrecv — no-op.
+   * `readyissue` в цепи (acceptcoop → readyrecv, без подписи). Идемпотентно:
+   * заказ уже в readyrecv — no-op.
+   *
+   * Уведомление «имущество готово к получению» заказчику — только по кнопке
+   * оператора «Пригласить на выдачу» (`notify`, по умолчанию да). Выдача у
+   * стойки переводит заказ в готовность без уведомления: заказчик уже стоит у стойки
+   * (замечание владельца 20.11.2026).
    */
-  async readyIssue(input: { coopname: string; order_id: string; operator_account: string }): Promise<MarketplaceOrderDomainEntity> {
+  async readyIssue(input: {
+    coopname: string;
+    order_id: string;
+    operator_account: string;
+    notify?: boolean;
+  }): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
     if (order.status === 'READY_TO_RECEIVE') return order;
     if (order.status !== 'ACCEPTED_TO_COOP') {
@@ -207,12 +217,15 @@ export class MarketplaceIssuanceService {
     }
     void this.extractTxHash(tx);
     const updated = await this.orderRepo.applyReadyIssue(order.id, { current_warehouse_braname: order.delivery_braname });
+    if (input.notify === false) return updated;
+    const offer = await this.offerRepo.findById(updated.offer_id).catch(() => null);
     const event: MarketplaceOrderReadyToReceiveEvent = {
       coopname: updated.coopname,
       order_id: updated.id,
       order_hash: updated.order_hash,
       orderer_account: updated.orderer_account,
       braname: updated.delivery_braname,
+      product_name: offer?.product_name || t('marketplace.processContent.untitledProduct'),
     };
     this.eventBus.emit(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, event);
     return updated;

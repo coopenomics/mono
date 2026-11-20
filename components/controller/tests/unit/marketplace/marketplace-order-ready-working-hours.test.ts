@@ -35,7 +35,7 @@ function makeService(findByCoreBraname: jest.Mock) {
   return { service, notifyUser };
 }
 
-const event = { coopname: COOP, order_id: 'order-1', orderer_account: ORDERER, braname: BRANCH } as never;
+const event = { coopname: COOP, order_id: 'order-1', orderer_account: ORDERER, braname: BRANCH, product_name: 'Мёд цветочный' } as never;
 
 function payloadOf(notifyUser: jest.Mock): Workflows.MarketplaceOrderReady.IPayload {
   expect(notifyUser).toHaveBeenCalledTimes(1);
@@ -66,5 +66,15 @@ describe('Уведомление о готовности заказа: режи�
     const { service, notifyUser } = makeService(jest.fn(async () => Promise.reject(new Error('база недоступна'))));
     await service.handleOrderReadyToReceive(event);
     expect(payloadOf(notifyUser).workingHoursNote).toBe('');
+  });
+});
+
+describe('Уведомление о готовности: имущество и ссылка', () => {
+  it('называет имущество позиции и ведёт на страницу заказа (замечание владельца 20.11.2026)', async () => {
+    const { service, notifyUser } = makeService(jest.fn(async () => null));
+    await service.handleOrderReadyToReceive(event);
+    const payload = payloadOf(notifyUser);
+    expect(payload.productName).toBe('Мёд цветочный');
+    expect(payload.deepLinkUrl).toMatch(new RegExp(`/${COOP}/market/orders/order-1$`));
   });
 });

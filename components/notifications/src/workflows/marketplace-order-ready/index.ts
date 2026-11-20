@@ -7,6 +7,8 @@ import { nt } from '../../i18n';
 
 export const marketplaceOrderReadyPayloadSchema = z.object({
   ordererName: z.string(),
+  /** Название имущества: уведомление идёт по каждой позиции заказа отдельно. */
+  productName: z.string(),
   kuName: z.string(),
   coopname: z.string(),
   order_id: z.string(),
