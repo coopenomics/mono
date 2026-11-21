@@ -5,9 +5,8 @@
 //- сворачивается в компактную шапку с полосой прогресса, форма занимает всю ширину.
 .auth-split(:class='`auth-split--${size ?? "sm"}`')
   aside.auth-split__pane
-    span.auth-split__mark(v-html='logoSvg', aria-hidden='true')
-    //- Прокручивается только содержимое: водяной знак вылезает за низ панели и,
-    //- будь он внутри прокрутки, добавлял бы ей лишнюю высоту.
+    //- Знак кооператива — только маленький, у названия вверху панели. Крупный
+    //- водяной знак внизу панели снят по слову владельца 21.11.2026.
     .auth-split__pane-scroll
       .auth-split__pane-head
         .auth-split__brand
@@ -122,19 +121,6 @@ function stepClass(key: string): Record<string, boolean> {
   padding: var(--p-8, 40px);
   background: var(--p-pane-bg);
   color: var(--p-pane-ink);
-}
-.auth-split__mark {
-  position: absolute;
-  right: -120px;
-  bottom: -140px;
-  width: 420px;
-  color: var(--p-pane-mark);
-  pointer-events: none;
-}
-.auth-split__mark :deep(svg) {
-  display: block;
-  width: 100%;
-  height: auto;
 }
 .auth-split__pane-scroll {
   position: relative;
@@ -371,11 +357,6 @@ function stepClass(key: string): Record<string, boolean> {
     flex: none;
     overflow: visible;
     gap: var(--p-4, 16px);
-  }
-  .auth-split__mark {
-    right: -160px;
-    bottom: -220px;
-    width: 360px;
   }
   .auth-split__title {
     margin-top: var(--p-4, 16px);
