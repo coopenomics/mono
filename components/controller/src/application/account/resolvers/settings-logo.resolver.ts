@@ -1,6 +1,6 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { SettingsDTO } from '~/application/system/dto/settings.dto';
-import type { CooperativeLogoService } from '../services/cooperative-logo.service';
+import { CooperativeLogoService } from '../services/cooperative-logo.service';
 
 /**
  * Поле `Settings.logo_url`: подписанная ссылка живёт недолго, поэтому её не
