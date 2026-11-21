@@ -86,9 +86,9 @@ q-page.coop-profile(role="region", :aria-label="$t('marketplace.coopProfilePage.
     SupplierProfileForm(:profile="profile", :save="updateCooperativeProfile", @saved="onSaved")
       //- Логотип кооператива лежит в настройках узла, а не в фото пайщика:
       //- тот же загрузчик по наведению меняет его сразу на всех столах.
-      template(#avatar="{ name }")
+      template(#avatar="{ avatarName }")
         AvatarUpload(
-          :name="name",
+          :name="avatarName",
           :src="logoUrl",
           subject="logo",
           :upload="uploadCooperativeLogo",

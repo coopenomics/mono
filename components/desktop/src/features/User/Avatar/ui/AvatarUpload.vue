@@ -14,7 +14,7 @@ button.avatar-upload(
     q-list(dense style="min-width: 190px")
       q-item(clickable @click="pick")
         q-item-section {{ replaceLabel }}
-      q-item(clickable @click="remove")
+      q-item(clickable @click="clear")
         q-item-section {{ removeLabel }}
   input.avatar-upload__input(ref="fileInput" type="file" :accept="ACCEPT" @click.stop @change="onPicked")
 </template>
@@ -103,7 +103,7 @@ async function onPicked(event: Event): Promise<void> {
   }
 }
 
-async function remove(): Promise<void> {
+async function clear(): Promise<void> {
   busy.value = true;
   try {
     if (props.remove) await props.remove();

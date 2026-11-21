@@ -91,9 +91,9 @@ q-page.my-profile(role="region", :aria-label="$t('marketplace.supplierMyProfileP
     SupplierProfileForm(:profile="profile", :save="updateMySupplierProfile", @saved="onSaved")
       //- Фотография поставщика — та же, что в удостоверении: один снимок на
       //- аккаунт, загрузчик тот же самый, со своим наведением и меню.
-      template(#avatar="{ name }")
+      template(#avatar="{ avatarName }")
         AvatarUpload(
-          :name="name",
+          :name="avatarName",
           :src="avatarSrc",
           size="xl",
           @changed="onAvatarChanged"
