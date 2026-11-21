@@ -42,8 +42,6 @@ const coverUrl = computed(() =>
   props.coverOverride === undefined ? props.profile.cover_url : props.coverOverride,
 );
 
-// Инициалы — по словам названия; кавычки вокруг имени кооператива в них не нужны.
-const avatarName = computed(() => displayName.value.replace(/["«»„“”']/g, '').trim());
 const hasReviews = computed(() => props.profile.reviews_count > 0 && props.profile.rating_avg != null);
 const ratingLabel = computed(() =>
   (props.profile.rating_avg ?? 0).toLocaleString(uiLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
@@ -115,7 +113,7 @@ BaseCard.profile-head(:class="{ 'profile-head--editable': editable }")
       //- Кружок одновременно и есть загрузчик: столы в режиме правки кладут
       //- сюда AvatarUpload со своим источником картинки, остальные — портрет.
       slot(name="avatar")
-        Avatar(:name="avatarName", :src="avatarSrc || undefined", size="xl")
+        Avatar(:name="displayName", :src="avatarSrc || undefined", size="xl")
     .profile-head__row
       .profile-head__identity
         .profile-head__context
