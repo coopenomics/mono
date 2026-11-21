@@ -1,7 +1,7 @@
 <template lang="pug">
 button.avatar-upload(
   type="button"
-  :aria-label="src ? $t('user.avatarUpload.replacePhoto') : $t('user.avatarUpload.uploadPhoto')"
+  :aria-label="src ? replaceLabel : uploadLabel"
   :disabled="busy"
   @click="onClick"
 )
@@ -9,18 +9,18 @@ button.avatar-upload(
   span.avatar-upload__veil
     q-spinner(v-if="busy" size="20px")
     q-icon(v-else name="photo_camera" size="20px")
-  q-tooltip(v-if="!busy") {{ src ? $t('user.avatarUpload.replacePhoto') : $t('user.avatarUpload.uploadPhoto') }}
+  q-tooltip(v-if="!busy") {{ src ? replaceLabel : uploadLabel }}
   q-menu(v-if="src && !busy" auto-close anchor="bottom middle" self="top middle")
     q-list(dense style="min-width: 190px")
       q-item(clickable @click="pick")
-        q-item-section {{ $t('user.avatarUpload.replacePhoto') }}
-      q-item(clickable @click="remove")
-        q-item-section {{ $t('user.avatarUpload.remove') }}
+        q-item-section {{ replaceLabel }}
+      q-item(clickable @click="clear")
+        q-item-section {{ removeLabel }}
   input.avatar-upload__input(ref="fileInput" type="file" :accept="ACCEPT" @click.stop @change="onPicked")
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { fileToBase64 } from 'src/shared/lib/utils';
@@ -28,28 +28,46 @@ import { Avatar, type AvatarSize } from 'src/shared/ui/base';
 import { removeAvatar, uploadAvatar } from '../api';
 import { t } from 'src/shared/i18n';
 
-/**
- * Фотография пайщика: одна на аккаунт, хранится ядром. Узел ставится и в
- * удостоверении пайщика, и на столах расширений — снимок везде один, поэтому
- * загрузка на столе преподавателя меняет и удостоверение.
- *
- * Весь узел — сам кружок: значок фотоаппарата всплывает поверх него при
- * наведении, а рядом остаётся место для имени. Кнопка с подписью и перечень
- * форматов занимали половину карточки ради того, что делают один раз.
- */
+/** Что меняет этот кружок: фотографию пайщика либо логотип кооператива. */
+type Subject = 'photo' | 'logo';
+
 const ACCEPT = 'image/jpeg,image/png,image/webp';
 const MAX_BYTES = 5 * 1024 * 1024;
 
-const props = withDefaults(defineProps<{ name: string; src?: string | null; size?: AvatarSize }>(), {
-  size: 'xl',
-});
+const props = withDefaults(
+  defineProps<{
+    name: string;
+    src?: string | null;
+    size?: AvatarSize;
+    subject?: Subject;
+    /** Своя загрузка вместо фотографии аккаунта — так узел служит логотипу кооператива. */
+    upload?: (file: File) => Promise<string>;
+    /** Своё снятие вместо фотографии аккаунта. */
+    remove?: () => Promise<void>;
+  }>(),
+  { size: 'xl', subject: 'photo' },
+);
 const emit = defineEmits<{ changed: [url: string | null] }>();
 
 const session = useSessionStore();
 const fileInput = ref<HTMLInputElement | null>(null);
 const busy = ref(false);
 
-/** Фотографии нет — клик сразу открывает выбор файла; есть — меню замены и снятия. */
+const isLogo = computed(() => props.subject === 'logo');
+const uploadLabel = computed(() => t(isLogo.value ? 'user.avatarUpload.uploadLogo' : 'user.avatarUpload.uploadPhoto'));
+const replaceLabel = computed(() => t(isLogo.value ? 'user.avatarUpload.replaceLogo' : 'user.avatarUpload.replacePhoto'));
+const removeLabel = computed(() => t(isLogo.value ? 'user.avatarUpload.removeLogo' : 'user.avatarUpload.remove'));
+const tooLargeText = computed(() =>
+  t(isLogo.value ? 'user.avatarUpload.logoTooLarge' : 'user.avatarUpload.fileTooLarge'),
+);
+const updatedText = computed(() =>
+  t(isLogo.value ? 'user.avatarUpload.logoUpdatedSuccess' : 'user.avatarUpload.updatedSuccess'),
+);
+const removedText = computed(() =>
+  t(isLogo.value ? 'user.avatarUpload.logoRemovedSuccess' : 'user.avatarUpload.removedSuccess'),
+);
+
+/** Картинки нет — клик сразу открывает выбор файла; есть — меню замены и снятия. */
 function onClick(): void {
   if (!props.src) pick();
 }
@@ -64,16 +82,19 @@ async function onPicked(event: Event): Promise<void> {
   input.value = '';
   if (!file) return;
   if (file.size > MAX_BYTES) {
-    FailAlert(t('user.avatarUpload.fileTooLarge'));
+    FailAlert(tooLargeText.value);
     return;
   }
   busy.value = true;
   try {
-    const url = await uploadAvatar({ content_base64: await fileToBase64(file), mime_type: file.type });
-    // Снимок кладётся в аккаунт сессии: столы читают его оттуда и показывают
-    // новую фотографию сразу, без перезагрузки кабинета.
-    session.setAvatarUrl(url);
-    SuccessAlert(t('user.avatarUpload.updatedSuccess'));
+    const url = props.upload
+      ? await props.upload(file)
+      : await uploadAvatar({ content_base64: await fileToBase64(file), mime_type: file.type });
+    // Снимок пайщика кладётся в аккаунт сессии: столы читают его оттуда и
+    // показывают новую фотографию сразу, без перезагрузки кабинета. Логотип
+    // кооператива обновляет страница, передавшая свою загрузку.
+    if (!props.upload) session.setAvatarUrl(url);
+    SuccessAlert(updatedText.value);
     emit('changed', url);
   } catch (e) {
     FailAlert(e);
@@ -82,12 +103,15 @@ async function onPicked(event: Event): Promise<void> {
   }
 }
 
-async function remove(): Promise<void> {
+async function clear(): Promise<void> {
   busy.value = true;
   try {
-    await removeAvatar();
-    session.setAvatarUrl(null);
-    SuccessAlert(t('user.avatarUpload.removedSuccess'));
+    if (props.remove) await props.remove();
+    else {
+      await removeAvatar();
+      session.setAvatarUrl(null);
+    }
+    SuccessAlert(removedText.value);
     emit('changed', null);
   } catch (e) {
     FailAlert(e);

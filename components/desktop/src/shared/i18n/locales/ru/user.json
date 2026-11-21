@@ -35,10 +35,16 @@
     },
     "avatarUpload": {
       "fileTooLarge": "Фотография больше 5 МБ — выберите файл поменьше",
+      "logoTooLarge": "Логотип больше 5 МБ — выберите файл поменьше",
+      "logoRemovedSuccess": "Логотип убран",
+      "logoUpdatedSuccess": "Логотип обновлён",
       "remove": "Убрать",
+      "removeLogo": "Убрать логотип",
       "removedSuccess": "Фотография убрана",
+      "replaceLogo": "Заменить логотип",
       "replacePhoto": "Заменить фотографию",
       "updatedSuccess": "Фотография обновлена",
+      "uploadLogo": "Загрузить логотип",
       "uploadPhoto": "Загрузить фотографию"
     },
     "batchImport": {

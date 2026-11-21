@@ -32,6 +32,13 @@ export class MarketplaceSupplierProfileDTO {
   })
   public readonly cover_url!: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Кружок в шапке: логотип кооператива либо фотография поставщика. Пусто — показываются инициалы.',
+  })
+  public readonly avatar_url!: string | null;
+
   @Field(() => Boolean, {
     description: 'Профиль кооператива: он поставляет имущество со своего склада.',
   })
@@ -58,6 +65,7 @@ export class MarketplaceSupplierProfileDTO {
     this.custom_display_name = view.custom_display_name;
     this.about = view.about;
     this.cover_url = cover_url;
+    this.avatar_url = view.avatar_url;
     this.is_cooperative = view.is_cooperative;
     this.offers_count = view.offers_count;
     this.rating_avg = view.rating_avg;

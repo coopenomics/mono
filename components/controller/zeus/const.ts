@@ -1749,6 +1749,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceUpdateWriteoffDraftInput:{
 		items:"MarketplaceWriteoffItemInput"
 	},
+	MarketplaceUploadCooperativeLogoInput:{
+
+	},
 	MarketplaceWithdrawOfferInput:{
 
 	},
@@ -2940,6 +2943,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceUpdateWriteoffDraft:{
 			data:"MarketplaceUpdateWriteoffDraftInput"
+		},
+		marketplaceUploadCooperativeLogo:{
+			data:"MarketplaceUploadCooperativeLogoInput"
 		},
 		marketplaceWithdrawOffer:{
 			input:"MarketplaceWithdrawOfferInput"
@@ -8584,6 +8590,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceSupplierProfile:{
 		about:"String",
+		avatar_url:"String",
 		cover_url:"String",
 		custom_display_name:"String",
 		display_name:"String",
@@ -9176,6 +9183,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRejectSupplier:"MarketplaceSupplier",
 		marketplaceRemoveAvailableCategories:"Boolean",
 		marketplaceRemoveAvailableCategoryTypes:"Boolean",
+		marketplaceRemoveCooperativeLogo:"Boolean",
 		marketplaceRemoveFromCart:"MarketplaceCart",
 		marketplaceRenameStorageSection:"MarketplaceStorageCell",
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
@@ -9215,6 +9223,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceUpdateOffer:"MarketplaceOffer",
 		marketplaceUpdateStorageCell:"MarketplaceStorageCell",
 		marketplaceUpdateWriteoffDraft:"MarketplaceWriteoffProposal",
+		marketplaceUploadCooperativeLogo:"String",
 		marketplaceWithdrawOffer:"MarketplaceOffer",
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
 		overspendExpenseItem:"Transaction",
@@ -10749,6 +10758,7 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String",
 		created_at:"DateTime",
 		is_registration_open:"Boolean",
+		logo_url:"String",
 		non_authorized_default_route:"String",
 		non_authorized_default_workspace:"String",
 		onboarding_completed_at:"DateTime",

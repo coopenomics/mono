@@ -58,6 +58,7 @@ import {
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_AVATAR_PORT,
+  COOPERATIVE_LOGO_PORT,
   USER_CERTIFICATE_PORT,
   VERIFICATION_PORT,
   USER_DIRECTORY_PORT,
@@ -75,6 +76,7 @@ import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-inne
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { AccountModule } from '~/application/account/account.module';
 import { UserAvatarService } from '~/application/account/services/user-avatar.service';
+import { CooperativeLogoService } from '~/application/account/services/cooperative-logo.service';
 import { NotificationCenterModule } from '~/application/notification-center/notification-center.module';
 import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
 import { MeetDataAdapter } from '~/infrastructure/meet/meet-data.adapter';
@@ -455,6 +457,10 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       useExisting: UserAvatarService,
     },
     {
+      provide: COOPERATIVE_LOGO_PORT,
+      useExisting: CooperativeLogoService,
+    },
+    {
       provide: USER_CERTIFICATE_PORT,
       useExisting: UserCertificateInnercoopAdapter,
     },
@@ -608,6 +614,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     MUTATION_LOG_PORT,
     CANDIDATE_PORT,
     USER_AVATAR_PORT,
+    COOPERATIVE_LOGO_PORT,
     USER_CERTIFICATE_PORT,
     VERIFICATION_PORT,
     AGREEMENT_CATALOG_PORT,

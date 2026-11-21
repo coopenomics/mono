@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
@@ -7,6 +7,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { BaseButton } from 'src/shared/ui/base';
+import { AvatarUpload } from 'src/features/User/Avatar';
 import { PageHint } from 'src/shared/ui/domain';
 import { useSessionStore } from 'src/entities/Session';
 import {
@@ -26,8 +27,22 @@ const session = useSessionStore();
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const profile = ref<MarketplaceSupplierProfileView | null>(null);
+const avatarSrc = ref<string | null>(null);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
+
+// Фото аккаунта в сессии свежее профиля: замена на другом столе видна сразу.
+watch(
+  () => profile.value?.avatar_url,
+  (url) => {
+    avatarSrc.value = session.currentUserAccount?.avatar_url ?? url ?? null;
+  },
+  { immediate: true },
+);
+
+function onAvatarChanged(url: string | null): void {
+  avatarSrc.value = url;
+}
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -74,6 +89,15 @@ q-page.my-profile(role="region", :aria-label="$t('marketplace.supplierMyProfileP
 
   template(v-else)
     SupplierProfileForm(:profile="profile", :save="updateMySupplierProfile", @saved="onSaved")
+      //- Фотография поставщика — та же, что в удостоверении: один снимок на
+      //- аккаунт, загрузчик тот же самый, со своим наведением и меню.
+      template(#avatar="{ avatarName }")
+        AvatarUpload(
+          :name="avatarName",
+          :src="avatarSrc",
+          size="xl",
+          @changed="onAvatarChanged"
+        )
       template(#actions)
         BaseButton(variant="secondary", size="sm", @click="openAsOrderer")
           template(#icon-left)

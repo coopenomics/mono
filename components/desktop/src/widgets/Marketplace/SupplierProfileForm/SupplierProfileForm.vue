@@ -125,6 +125,7 @@ onBeforeUnmount(releasePreview);
   SupplierProfileHead(
     v-if="profile",
     :profile="profile",
+    :avatar-src="profile.avatar_url",
     editable,
     :cover-accept="COVER_ACCEPT",
     :name-max="NAME_MAX",
@@ -134,6 +135,10 @@ onBeforeUnmount(releasePreview);
     @cover-pick="onCoverPicked",
     @cover-remove="onCoverRemove"
   )
+    //- Кружок может быть загрузчиком: поставщик меняет своё фото, председатель —
+    //- логотип кооператива. Без слота шапка показывает картинку из профиля.
+    template(v-if="$slots.avatar", #avatar)
+      slot(name="avatar", :avatar-name="displayName || profile.display_name", :src="profile.avatar_url")
     template(v-if="$slots.actions", #actions)
       slot(name="actions")
 

@@ -43,8 +43,11 @@ sources:
     - components/desktop/src/widgets/Marketplace/ReviewList/**
     - components/desktop/src/widgets/Marketplace/ReviewSummary/**
     - components/desktop/src/widgets/Marketplace/SupplierProfileForm/**
+    - components/desktop/src/widgets/Marketplace/SupplierProfileHead/**
     - components/desktop/src/entities/MarketplaceReview/**
     - components/desktop/src/entities/MarketplaceSupplierProfile/**
+    - components/desktop/src/features/User/Avatar/**
+    - components/desktop/src/features/Cooperative/Logo/**
 
 cases:
   - id: mkt.review.happy.01
@@ -632,3 +635,29 @@ cases:
     scenario: "Заказчик открывает полученный заказ"
     expect: "карточки «Отзыв» и «Гарантийный возврат» стоят сразу под заказом, выше «Где забрать» и «Факта выдачи»"
     status: missing
+
+  # 21.11.2026: кружок в шапке стал общим загрузчиком. Поставщик меняет фото
+  # аккаунта, председатель — логотип кооператива из настроек узла; оба видны
+  # на публичной странице профиля и в «Моём профиле».
+  - id: mkt.review.ui.avatar.01
+    level: ui
+    kind: happy
+    scenario: поставщик наводит на кружок в «Моём профиле» и загружает фотографию
+    expect: наведение проявляет значок камеры, фото сразу видно в шапке и в удостоверении пайщика
+    status: missing
+
+  - id: mkt.review.ui.avatar.02
+    level: ui
+    kind: happy
+    scenario: председатель меняет логотип кооператива в профиле кооператива на столе администратора
+    expect: логотип сразу виден в шапке профиля кооператива и на публичной странице поставщика
+    status: missing
+
+  - id: mkt.review.backend.avatar.01
+    level: backend
+    kind: happy
+    scenario: профиль поставщика читается, когда у кооператива нет логотипа, а у пайщика нет фотографии
+    expect: в ответе avatar_url пусто, шапка показывает инициалы, страница не падает
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
+    status: written

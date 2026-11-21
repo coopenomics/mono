@@ -12,7 +12,6 @@
   "components/desktop/src/pages/_dev/ui/index.vue",
   "components/desktop/src/shared/ui/DiffViewer/DiffViewer.vue",
   "components/desktop/src/shared/ui/Editor/Editor.vue",
-  "components/desktop/src/shared/ui/base/Avatar/Avatar.vue",
   "components/desktop/src/shared/ui/base/BaseBadge/BaseBadge.vue",
   "components/desktop/src/shared/ui/base/BaseBanner/BaseBanner.vue",
   "components/desktop/src/shared/ui/base/BaseButton/BaseButton.vue",

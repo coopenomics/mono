@@ -33,7 +33,7 @@ const SUMMARY = 'query($f:MarketplaceReviewSummaryInput!){ marketplaceReviewSumm
 const MY_BY_ORDER = `query($o:String!){ marketplaceMyReviewByOrder(order_id:$o){ ${REVIEW_FIELDS} } }`
 const OFFER_RATING = 'query($id:String!){ marketplaceGetOffer(id:$id){ id rating_avg reviews_count } }'
 
-const PROFILE_FIELDS = 'supplier_account display_name custom_display_name about cover_url is_cooperative offers_count rating_avg reviews_count'
+const PROFILE_FIELDS = 'supplier_account display_name custom_display_name about cover_url avatar_url is_cooperative offers_count rating_avg reviews_count'
 const PROFILE = `query($a:String!){ marketplaceSupplierProfile(supplier_account:$a){ ${PROFILE_FIELDS} } }`
 const UPDATE_MY_PROFILE = `mutation($d:MarketplaceUpdateSupplierProfileInput!){ marketplaceUpdateMySupplierProfile(data:$d){ ${PROFILE_FIELDS} } }`
 const UPDATE_COOP_PROFILE = `mutation($d:MarketplaceUpdateSupplierProfileInput!){ marketplaceUpdateCooperativeProfile(data:$d){ ${PROFILE_FIELDS} } }`
@@ -289,6 +289,15 @@ describe('профиль поставщика: читают все, правит
     const p = await profileOf(memberToken, newSupplier.account)
     expect(p).toMatchObject({ supplier_account: newSupplier.account, custom_display_name: null, about: '', cover_url: null, is_cooperative: false })
     expect(String(p.display_name).length, 'имя из сертификата').toBeGreaterThan(0)
+  })
+
+  it(caseName('mkt.review.backend.avatar.01', 'кружок шапки отдаётся профилем: логотип кооператива либо фото пайщика'), async () => {
+    // Картинка может быть не загружена на стенде — тогда поле пустое и шапка
+    // показывает инициалы. Само поле обязано быть в ответе на всех страницах.
+    for (const account of [COOP, newSupplier.account]) {
+      const p = await profileOf(memberToken, account)
+      expect(p.avatar_url === null || typeof p.avatar_url === 'string').toBe(true)
+    }
   })
 
   it(caseName('mkt.profile.side.01', 'поставщик из реестра без предложений — страница открывается'), async () => {

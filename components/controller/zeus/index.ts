@@ -14612,6 +14612,8 @@ export type ValueTypes = {
 	["MarketplaceSupplierProfile"]: AliasType<{
 	/** Что поставщик рассказывает о себе. */
 	about?:boolean | `@${string}`,
+	/** Кружок в шапке: логотип кооператива либо фотография поставщика. Пусто — показываются инициалы. */
+	avatar_url?:boolean | `@${string}`,
 	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
 	cover_url?:boolean | `@${string}`,
 	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
@@ -14742,6 +14744,12 @@ export type ValueTypes = {
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string | Variable<any, string>,
 	items: Array<ValueTypes["MarketplaceWriteoffItemInput"]> | Variable<any, string>
+};
+	["MarketplaceUploadCooperativeLogoInput"]: {
+	/** Содержимое файла в base64 */
+	content_base64: string | Variable<any, string>,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string | Variable<any, string>
 };
 	["MarketplaceVitrine"]: AliasType<{
 	/** eosio::name кооператива-владельца витрины */
@@ -15679,6 +15687,8 @@ marketplaceRejectReturnRemote?: [{	data: ValueTypes["MarketplaceRejectReturnRemo
 marketplaceRejectSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
+	/** Администратор снимает логотип кооператива — в шапке останутся инициалы. */
+	marketplaceRemoveCooperativeLogo?:boolean | `@${string}`,
 marketplaceRemoveFromCart?: [{	input: ValueTypes["MarketplaceRemoveFromCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceRenameStorageSection?: [{	data: ValueTypes["MarketplaceRenameStorageSectionInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
@@ -15718,6 +15728,7 @@ marketplaceUpdateMySupplierProfile?: [{	data: ValueTypes["MarketplaceUpdateSuppl
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceUpdateStorageCell?: [{	data: ValueTypes["MarketplaceUpdateStorageCellInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ValueTypes["MarketplaceUpdateWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceUploadCooperativeLogo?: [{	data: ValueTypes["MarketplaceUploadCooperativeLogoInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceWithdrawOffer?: [{	input: ValueTypes["MarketplaceWithdrawOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 notifyOnAnnualGeneralMeet?: [{	data: ValueTypes["NotifyOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 overspendExpenseItem?: [{	data: ValueTypes["OverspendExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -19607,6 +19618,8 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	created_at?:boolean | `@${string}`,
 	/** Открыта ли регистрация новых пайщиков */
 	is_registration_open?:boolean | `@${string}`,
+	/** Ссылка на логотип кооператива. Пусто — в шапке профиля показываются инициалы. */
+	logo_url?:boolean | `@${string}`,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route?:boolean | `@${string}`,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -34075,6 +34088,8 @@ export type ResolverInputTypes = {
 	["MarketplaceSupplierProfile"]: AliasType<{
 	/** Что поставщик рассказывает о себе. */
 	about?:boolean | `@${string}`,
+	/** Кружок в шапке: логотип кооператива либо фотография поставщика. Пусто — показываются инициалы. */
+	avatar_url?:boolean | `@${string}`,
 	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
 	cover_url?:boolean | `@${string}`,
 	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
@@ -34202,6 +34217,12 @@ export type ResolverInputTypes = {
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string,
 	items: Array<ResolverInputTypes["MarketplaceWriteoffItemInput"]>
+};
+	["MarketplaceUploadCooperativeLogoInput"]: {
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string
 };
 	["MarketplaceVitrine"]: AliasType<{
 	/** eosio::name кооператива-владельца витрины */
@@ -35116,6 +35137,8 @@ marketplaceRejectReturnRemote?: [{	data: ResolverInputTypes["MarketplaceRejectRe
 marketplaceRejectSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
+	/** Администратор снимает логотип кооператива — в шапке останутся инициалы. */
+	marketplaceRemoveCooperativeLogo?:boolean | `@${string}`,
 marketplaceRemoveFromCart?: [{	input: ResolverInputTypes["MarketplaceRemoveFromCartInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceRenameStorageSection?: [{	data: ResolverInputTypes["MarketplaceRenameStorageSectionInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
@@ -35155,6 +35178,7 @@ marketplaceUpdateMySupplierProfile?: [{	data: ResolverInputTypes["MarketplaceUpd
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceUpdateStorageCell?: [{	data: ResolverInputTypes["MarketplaceUpdateStorageCellInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceUpdateWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceUploadCooperativeLogo?: [{	data: ResolverInputTypes["MarketplaceUploadCooperativeLogoInput"]},boolean | `@${string}`],
 marketplaceWithdrawOffer?: [{	input: ResolverInputTypes["MarketplaceWithdrawOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 notifyOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["NotifyOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 overspendExpenseItem?: [{	data: ResolverInputTypes["OverspendExpenseItemInput"]},ResolverInputTypes["Transaction"]],
@@ -38898,6 +38922,8 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	created_at?:boolean | `@${string}`,
 	/** Открыта ли регистрация новых пайщиков */
 	is_registration_open?:boolean | `@${string}`,
+	/** Ссылка на логотип кооператива. Пусто — в шапке профиля показываются инициалы. */
+	logo_url?:boolean | `@${string}`,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route?:boolean | `@${string}`,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -52842,6 +52868,8 @@ export type ModelTypes = {
 	["MarketplaceSupplierProfile"]: {
 		/** Что поставщик рассказывает о себе. */
 	about: string,
+	/** Кружок в шапке: логотип кооператива либо фотография поставщика. Пусто — показываются инициалы. */
+	avatar_url?: string | undefined | null,
 	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
 	cover_url?: string | undefined | null,
 	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
@@ -52964,6 +52992,12 @@ export type ModelTypes = {
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string,
 	items: Array<ModelTypes["MarketplaceWriteoffItemInput"]>
+};
+	["MarketplaceUploadCooperativeLogoInput"]: {
+	/** Содержимое файла в base64 */
+	content_base64: string,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string
 };
 	["MarketplaceVitrine"]: {
 		/** eosio::name кооператива-владельца витрины */
@@ -54174,6 +54208,8 @@ export type ModelTypes = {
 	marketplaceRemoveAvailableCategories: boolean,
 	/** Удалить конкретные типы товаров из доступных для кооператива */
 	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Администратор снимает логотип кооператива — в шапке останутся инициалы. */
+	marketplaceRemoveCooperativeLogo: boolean,
 	/** Убрать позицию из корзины. */
 	marketplaceRemoveFromCart: ModelTypes["MarketplaceCart"],
 	/** Председатель кооперативного участка переименовывает секцию склада целиком — вместе с адресами всех её ячеек. */
@@ -54252,6 +54288,8 @@ export type ModelTypes = {
 	marketplaceUpdateStorageCell: ModelTypes["MarketplaceStorageCell"],
 	/** Изменить состав черновика — добавить, удалить или поправить позиции. */
 	marketplaceUpdateWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Администратор меняет логотип кооператива — файл хранится ядром в настройках узла. */
+	marketplaceUploadCooperativeLogo: string,
 	/** Поставщик снимает свой Offer (статус → WITHDRAWN) */
 	marketplaceWithdrawOffer: ModelTypes["MarketplaceOffer"],
 	/** Уведомление о проведении общего собрания пайщиков */
@@ -58139,6 +58177,8 @@ export type ModelTypes = {
 	created_at: ModelTypes["DateTime"],
 	/** Открыта ли регистрация новых пайщиков */
 	is_registration_open: boolean,
+	/** Ссылка на логотип кооператива. Пусто — в шапке профиля показываются инициалы. */
+	logo_url?: string | undefined | null,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route: string,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -72894,6 +72934,8 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceSupplierProfile",
 	/** Что поставщик рассказывает о себе. */
 	about: string,
+	/** Кружок в шапке: логотип кооператива либо фотография поставщика. Пусто — показываются инициалы. */
+	avatar_url?: string | undefined | null,
 	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
 	cover_url?: string | undefined | null,
 	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
@@ -73023,6 +73065,12 @@ export type GraphQLTypes = {
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 		id: string,
 	items: Array<GraphQLTypes["MarketplaceWriteoffItemInput"]>
+};
+	["MarketplaceUploadCooperativeLogoInput"]: {
+		/** Содержимое файла в base64 */
+	content_base64: string,
+	/** Тип файла: image/jpeg, image/png или image/webp */
+	mime_type: string
 };
 	["MarketplaceVitrine"]: {
 	__typename: "MarketplaceVitrine",
@@ -74288,6 +74336,8 @@ export type GraphQLTypes = {
 	marketplaceRemoveAvailableCategories: boolean,
 	/** Удалить конкретные типы товаров из доступных для кооператива */
 	marketplaceRemoveAvailableCategoryTypes: boolean,
+	/** Администратор снимает логотип кооператива — в шапке останутся инициалы. */
+	marketplaceRemoveCooperativeLogo: boolean,
 	/** Убрать позицию из корзины. */
 	marketplaceRemoveFromCart: GraphQLTypes["MarketplaceCart"],
 	/** Председатель кооперативного участка переименовывает секцию склада целиком — вместе с адресами всех её ячеек. */
@@ -74366,6 +74416,8 @@ export type GraphQLTypes = {
 	marketplaceUpdateStorageCell: GraphQLTypes["MarketplaceStorageCell"],
 	/** Изменить состав черновика — добавить, удалить или поправить позиции. */
 	marketplaceUpdateWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Администратор меняет логотип кооператива — файл хранится ядром в настройках узла. */
+	marketplaceUploadCooperativeLogo: string,
 	/** Поставщик снимает свой Offer (статус → WITHDRAWN) */
 	marketplaceWithdrawOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Уведомление о проведении общего собрания пайщиков */
@@ -78594,6 +78646,8 @@ export type GraphQLTypes = {
 	created_at: GraphQLTypes["DateTime"],
 	/** Открыта ли регистрация новых пайщиков */
 	is_registration_open: boolean,
+	/** Ссылка на логотип кооператива. Пусто — в шапке профиля показываются инициалы. */
+	logo_url?: string | undefined | null,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route: string,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -81882,6 +81936,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceUpdateStorageCellInput"]: ValueTypes["MarketplaceUpdateStorageCellInput"];
 	["MarketplaceUpdateSupplierProfileInput"]: ValueTypes["MarketplaceUpdateSupplierProfileInput"];
 	["MarketplaceUpdateWriteoffDraftInput"]: ValueTypes["MarketplaceUpdateWriteoffDraftInput"];
+	["MarketplaceUploadCooperativeLogoInput"]: ValueTypes["MarketplaceUploadCooperativeLogoInput"];
 	["MarketplaceWithdrawOfferInput"]: ValueTypes["MarketplaceWithdrawOfferInput"];
 	["MarketplaceWriteoffItemInput"]: ValueTypes["MarketplaceWriteoffItemInput"];
 	["MarketplaceWriteoffProposalStatus"]: ValueTypes["MarketplaceWriteoffProposalStatus"];

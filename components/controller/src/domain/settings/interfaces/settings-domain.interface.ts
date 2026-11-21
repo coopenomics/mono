@@ -45,6 +45,13 @@ export interface SettingsDomainInterface {
   onboarding_completed_at?: Date | null;
 
   /**
+   * Логотип кооператива: ключ файла в хранилище и его тип. Пусто — показываются
+   * инициалы. Снимок один на кооператив, показывается на всех столах.
+   */
+  logo_key?: string | null;
+  logo_mime?: string | null;
+
+  /**
    * Дата создания настроек
    */
   created_at: Date;

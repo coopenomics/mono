@@ -39,6 +39,8 @@ import {
   REGISTRATION_REGISTRY_PORT,
   SOVIET_ROBOT_PORT,
   USER_CERTIFICATE_PORT,
+  USER_AVATAR_PORT,
+  COOPERATIVE_LOGO_PORT,
   USER_DATA_PORT,
   VERIFICATION_PORT,
   USER_DIRECTORY_PORT,
@@ -81,6 +83,10 @@ export const marketplacePorts = {
   ],
   optional: [
     REGISTRATION_REGISTRY_PORT,
+    // Логотип кооператива и фотографии пайщиков в шапке профиля поставщика —
+    // картинки хранит ядро, расширение своей копии не держит.
+    COOPERATIVE_LOGO_PORT,
+    USER_AVATAR_PORT,
     // Робот решений совета: без него выдача и гарантийный возврат ждут людей
     // в повестке столько, сколько нужно, — стол заказов работает и так.
     SOVIET_ROBOT_PORT,

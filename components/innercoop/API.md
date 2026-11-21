@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 344.
+Всего экспортов: 346.
 
 ## ACCOUNT_PORT
 
@@ -108,6 +108,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.CoopCredential')`
+
+## COOPERATIVE_LOGO_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.CooperativeLogo')`
 
 ## COOPERATIVE_VARS_PORT
 
@@ -396,6 +402,14 @@
 - `getTrustChain(): Promise<InnerEndorsementCredential[]>`
 - `getChainId(): Promise<string>`
 - `getPermissionKey(account: string, permission: string): Promise<string | null>`
+
+## ICooperativeLogoPort
+
+`interface` · core-ports
+
+- `getLogoUrl(): Promise<string | null>`
+- `upload(contentBase64: string, mimeType: string): Promise<string>`
+- `remove(): Promise<void>`
 
 ## ICooperativeVarsPort
 
