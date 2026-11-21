@@ -1,10 +1,9 @@
-<template>
-  <span :class="classes" :aria-label="name">
-    <img v-if="src" :src="src" :alt="name ?? ''" />
-    <template v-else-if="initials.text">{{ initials.text }}</template>
-    <!-- A legal-form-only name gets a generic icon instead of an empty circle. -->
-    <q-icon v-else-if="initials.organization" name="apartment" size="1.4em" aria-hidden="true" />
-  </span>
+<template lang="pug">
+span(:class="classes" :aria-label="name")
+  img(v-if="src" :src="src" :alt="name ?? ''")
+  template(v-else-if="initials.text") {{ initials.text }}
+  //- A legal-form-only name gets a generic icon instead of an empty circle.
+  q-icon(v-else-if="initials.organization" name="apartment" size="1.4em" aria-hidden="true")
 </template>
 
 <script setup lang="ts">
