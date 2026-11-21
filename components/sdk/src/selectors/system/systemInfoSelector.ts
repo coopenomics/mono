@@ -67,6 +67,7 @@ export const rawSettingsSelector = {
   non_authorized_default_route: true,
   is_registration_open: true,
   onboarding_completed_at: true,
+  logo_url: true,
   created_at: true,
   updated_at: true,
 }

@@ -13,6 +13,8 @@ import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-l
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { UserAvatarService } from './services/user-avatar.service';
+import { CooperativeLogoService } from './services/cooperative-logo.service';
+import { SettingsLogoResolver } from './resolvers/settings-logo.resolver';
 import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
@@ -40,9 +42,12 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     RegistrationDeclineListener,
     AuthRateLimitGuard,
     UserAvatarService,
-    // Бакет фотографий пайщиков создаётся по объявлению `@UseBucket` сервиса.
-    ...bucketProvidersFor(FILE_STORAGE_PORT, [UserAvatarService]),
+    CooperativeLogoService,
+    SettingsLogoResolver,
+    // Бакеты фотографий пайщика и логотипа кооператива создаются по объявлению
+    // `@UseBucket` соответствующих сервисов.
+    ...bucketProvidersFor(FILE_STORAGE_PORT, [UserAvatarService, CooperativeLogoService]),
   ],
-  exports: [AccountInteractor, AccountService, UserAvatarService],
+  exports: [AccountInteractor, AccountService, UserAvatarService, CooperativeLogoService],
 })
 export class AccountModule {}

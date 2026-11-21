@@ -443,6 +443,7 @@
     "MARKETPLACE_SUPPLIER_PROFILE_ABOUT_TOO_LONG": "Рассказ о себе длиннее {max} знаков.",
     "MARKETPLACE_SUPPLIER_PROFILE_NAME_TOO_LONG": "Название длиннее {max} знаков.",
     "MARKETPLACE_SUPPLIER_PROFILE_NOT_FOUND": "Поставщик не найден.",
+    "MARKETPLACE_COOP_LOGO_PORT_UNAVAILABLE": "Хранилище логотипа кооператива недоступно.",
     "MARKETPLACE_SUPPLIER_REGISTRY_ALREADY_APPROVED": "Вы уже допущены как поставщик.",
     "MARKETPLACE_SUPPLIER_REGISTRY_BRANCH_ACCOUNT": "Кооперативный участок не может быть поставщиком. Выберите пайщика.",
     "MARKETPLACE_SUPPLIER_REGISTRY_NOT_ACTIVE": "Приостановить можно только действующего поставщика.",

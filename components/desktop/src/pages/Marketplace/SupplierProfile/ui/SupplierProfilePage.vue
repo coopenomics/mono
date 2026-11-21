@@ -214,7 +214,7 @@ q-page.supplier-profile(role="region", :aria-label="$t('marketplace.supplierProf
         BaseButton(variant="secondary", size="sm", @click="goBack") {{ backLabel }}
 
   template(v-else)
-    SupplierProfileHead(:profile="profile")
+    SupplierProfileHead(:profile="profile", :avatar-src="profile.avatar_url")
       template(#context)
         //- Возврат — первой крошкой строки контекста, внутри карточки.
         button.supplier-profile__back(type="button", @click="goBack")

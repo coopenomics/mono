@@ -58,5 +58,6 @@ export * from './signature-info.contract';
 export * from './meta-document.contract';
 export * from './mono-account.contract';
 export * from './user-avatar.port';
+export * from './cooperative-logo.port';
 export * from './role-assignments.port';
 export * from './accounting-registry.port';

@@ -8,6 +8,7 @@ const rawSupplierProfileSelector = {
   custom_display_name: true,
   about: true,
   cover_url: true,
+  avatar_url: true,
   is_cooperative: true,
   offers_count: true,
   rating_avg: true,

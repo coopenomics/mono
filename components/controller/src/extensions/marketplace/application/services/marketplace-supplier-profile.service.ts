@@ -1,5 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { DomainError } from '@coopenomics/extension-kit';
+import {
+  COOPERATIVE_LOGO_PORT,
+  type ICooperativeLogoPort,
+  USER_AVATAR_PORT,
+  type IUserAvatarPort,
+} from '@coopenomics/innercoop';
 import { MarketplaceOfferStatuses, type MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
 import {
   MARKETPLACE_SUPPLIER_PROFILE_ABOUT_MAX,
@@ -27,6 +33,8 @@ export interface SupplierProfileView {
   custom_display_name: string | null;
   about: string;
   cover: MarketplaceOfferImage | null;
+  /** Кружок в шапке: логотип кооператива либо фотография пайщика. */
+  avatar_url: string | null;
   /** Профиль кооператива: он поставщик имущества со своего склада. */
   is_cooperative: boolean;
   /** Предложения, доступные к заказу в каталоге. */
@@ -64,7 +72,15 @@ export class MarketplaceSupplierProfileService {
     private readonly registry: MarketplaceSupplierRegistryService,
     private readonly display: MarketplaceOrderDisplayService,
     private readonly images: MarketplaceOfferImagesService,
-    private readonly reviews: MarketplaceReviewService
+    private readonly reviews: MarketplaceReviewService,
+    // Картинки шапки хранит ядро: у кооператива — логотип в настройках, у
+    // пайщика — фотография аккаунта. Без портов шапка показывает инициалы.
+    @Optional()
+    @Inject(COOPERATIVE_LOGO_PORT)
+    private readonly coopLogo: ICooperativeLogoPort | null = null,
+    @Optional()
+    @Inject(USER_AVATAR_PORT)
+    private readonly avatars: IUserAvatarPort | null = null
   ) {}
 
   async getProfile(coopname: string, supplier_account: string): Promise<SupplierProfileView> {
@@ -85,6 +101,7 @@ export class MarketplaceSupplierProfileService {
       custom_display_name,
       about: profile?.about ?? '',
       cover: profile?.cover ?? null,
+      avatar_url: await this.headerAvatarUrl(coopname, supplier_account),
       is_cooperative: supplier_account === coopname,
       offers_count,
       rating_avg: summary.rating_avg,
@@ -114,6 +131,21 @@ export class MarketplaceSupplierProfileService {
   /** Ссылка на обложку для показа; обложки нет — null. */
   async coverUrl(cover: MarketplaceOfferImage | null): Promise<string | null> {
     return cover ? this.images.getReadUrl(cover.bucket_key) : null;
+  }
+
+  /**
+   * Кружок в шапке: у кооператива — логотип из настроек узла, у остальных —
+   * фотография аккаунта. Подписанную ссылку не кешируем: она живёт по TTL.
+   */
+  private async headerAvatarUrl(coopname: string, supplier_account: string): Promise<string | null> {
+    try {
+      if (supplier_account === coopname) return (await this.coopLogo?.getLogoUrl()) ?? null;
+      return (await this.avatars?.getAvatarUrl(supplier_account)) ?? null;
+    } catch {
+      // Хранилище картинок может быть недоступно: страница поставщика не падает
+      // из-за отсутствующего портрета, на ней останутся инициалы.
+      return null;
+    }
   }
 
   /** Имя из сертификата пайщика; сертификат не читается — учётная запись. */

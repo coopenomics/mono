@@ -2770,6 +2770,14 @@ export interface Settings {
    * Когда председатель завершил онбординг кооператива
    */
   onboarding_completed_at: Timestamp | null;
+  /**
+   * Ключ логотипа кооператива в хранилище изображений
+   */
+  logo_key: string | null;
+  /**
+   * Тип файла логотипа кооператива
+   */
+  logo_mime: string | null;
   provider_name: Generated<string>;
   updated_at: Generated<Timestamp>;
 }

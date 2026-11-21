@@ -26,6 +26,10 @@ export class SettingsKyselyRepository implements SettingsRepository {
       authorized_default_route: settings.authorized_default_route,
       non_authorized_default_workspace: settings.non_authorized_default_workspace,
       non_authorized_default_route: settings.non_authorized_default_route,
+      // Логотип сохраняется отдельной операцией загрузки; при обычной правке
+      // настроек он приходит из прочитанной строки и не теряется.
+      logo_key: settings.logo_key ?? null,
+      logo_mime: settings.logo_mime ?? null,
       // Отметку пишем, только если она передана: настройки создаются и
       // переписываются и без неё, и молча обнулять завершённый онбординг нельзя.
       ...(settings.onboarding_completed_at !== undefined
@@ -59,6 +63,8 @@ export class SettingsKyselyRepository implements SettingsRepository {
       non_authorized_default_workspace: row.non_authorized_default_workspace,
       non_authorized_default_route: row.non_authorized_default_route,
       onboarding_completed_at: row.onboarding_completed_at,
+      logo_key: row.logo_key,
+      logo_mime: row.logo_mime,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });

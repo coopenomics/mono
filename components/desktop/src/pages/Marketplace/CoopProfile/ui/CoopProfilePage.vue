@@ -1,11 +1,13 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { BaseButton } from 'src/shared/ui/base';
+import { AvatarUpload } from 'src/features/User/Avatar';
+import { removeCooperativeLogo, uploadCooperativeLogo } from 'src/features/Cooperative/Logo';
 import { PageHint } from 'src/shared/ui/domain';
 import {
   loadSupplierProfile,
@@ -24,8 +26,21 @@ const router = useRouter();
 
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const profile = ref<MarketplaceSupplierProfileView | null>(null);
+const logoUrl = ref<string | null>(null);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
+
+watch(
+  () => profile.value?.avatar_url,
+  (url) => {
+    logoUrl.value = url ?? null;
+  },
+  { immediate: true },
+);
+
+function onLogoChanged(url: string | null): void {
+  logoUrl.value = url;
+}
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -69,6 +84,17 @@ q-page.coop-profile(role="region", :aria-label="$t('marketplace.coopProfilePage.
 
   template(v-else)
     SupplierProfileForm(:profile="profile", :save="updateCooperativeProfile", @saved="onSaved")
+      //- Логотип кооператива лежит в настройках узла, а не в фото пайщика:
+      //- тот же загрузчик по наведению меняет его сразу на всех столах.
+      template(#avatar="{ name }")
+        AvatarUpload(
+          :name="name",
+          :src="logoUrl",
+          subject="logo",
+          :upload="uploadCooperativeLogo",
+          :remove="removeCooperativeLogo",
+          @changed="onLogoChanged"
+        )
       template(#actions)
         BaseButton(variant="secondary", size="sm", @click="openProfile")
           template(#icon-left)

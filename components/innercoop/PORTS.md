@@ -27,6 +27,7 @@
 | `CHAIN_RESOURCES_PORT` | `IChainResourcesPort` (2)<br><sub>core-ports/chain-resources.port.ts</sub> | `ChainResourcesInnercoopAdapter` | powerup | Ресурсы аккаунта в цепи: оперативная память, полоса, процессорное время. |
 | `CHAIN_PORT` | `IChainPort` (5)<br><sub>core-ports/chain.port.ts</sub> | `ChainInnercoopAdapter` | capital, cardcoop, chairman, edubridge, expenses, ku, marketplace, reports, soviet-robot | Проводка действий в цепь и чтение её таблиц. |
 | `COOP_CREDENTIAL_PORT` | `ICoopCredentialPort` (4)<br><sub>core-ports/coop-credential.port.ts</sub> | `CoopCredentialInnercoopAdapter` | cardcoop | Удостоверение кооператива в сети: чем он подписывает свои свидетельства и чем доказывает, что сеть его признаёт. |
+| `COOPERATIVE_LOGO_PORT` | `ICooperativeLogoPort` (3)<br><sub>core-ports/cooperative-logo.port.ts</sub> | `CooperativeLogoService` | marketplace* | Логотип кооператива — одно изображение в настройках узла, хранится ядром. |
 | `COOPERATIVE_VARS_PORT` | `ICooperativeVarsPort` (1)<br><sub>core-ports/cooperative-vars.port.ts</sub> | `CooperativeVarsInnercoopAdapter` | chairman, chatcoop | Реквизиты кооператива, которому принадлежит контур: как он называется и как его называть в текстах. |
 | `COUNCIL_PORT` | `ICouncilPort` (5)<br><sub>core-ports/council.port.ts</sub> | `CouncilInnercoopAdapter` | capital, chairman, edubridge, marketplace | Совет кооператива: решения и типовые соглашения. |
 | `DECISION_TRACKING_PORT` | `IDecisionTrackingPort` (7)<br><sub>core-ports/decision-tracking.port.ts</sub> | `DecisionTrackingAdapter` | capital, chairman | Отслеживание решений: расширение регистрирует правило «когда примут решение с этим хэшем — обновить такое-то поле параметров кооператива», и дальше ядро следит само. |
@@ -60,7 +61,7 @@
 | `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
 | `ROLE_ASSIGNMENTS_PORT` | `IRoleAssignmentsPort` (4)<br><sub>core-ports/role-assignments.port.ts</sub> | `RoleAssignmentsRegistry` | capital, edubridge, expenses, reports | Назначаемые роли приложений. |
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop, edubridge, soviet-robot | Шифрование секретов расширения. |
-| `USER_AVATAR_PORT` | `IUserAvatarPort` (2)<br><sub>core-ports/user-avatar.port.ts</sub> | `UserAvatarService` | edubridge | Фотография пайщика — одна на аккаунт, хранится ядром. |
+| `USER_AVATAR_PORT` | `IUserAvatarPort` (2)<br><sub>core-ports/user-avatar.port.ts</sub> | `UserAvatarService` | edubridge, marketplace* | Фотография пайщика — одна на аккаунт, хранится ядром. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | edubridge, marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, edubridge, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |
 | `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, cardcoop, chatcoop, edubridge, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
@@ -99,4 +100,4 @@
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 67.
+Всего портов: 68.

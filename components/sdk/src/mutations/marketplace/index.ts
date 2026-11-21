@@ -185,3 +185,7 @@ export * as ApproveInvestProperty from './approveInvestProperty'
 export * as SignInvestPropertyAct from './signInvestPropertyAct'
 export * as DeclineInvestProperty from './declineInvestProperty'
 export * as ClaimInvestment from './claimInvestment'
+
+// Логотип кооператива: ядро хранит файл, стол заказов меняет его в профиле кооператива.
+export * as UploadCooperativeLogo from './uploadCooperativeLogo'
+export * as RemoveCooperativeLogo from './removeCooperativeLogo'

@@ -27,6 +27,8 @@ const props = defineProps<{
   nameOverride?: string | null;
   /** Обложка из черновика: адрес файла, `null` — снята, `undefined` — из профиля. */
   coverOverride?: string | null;
+  /** Кружок в шапке: логотип кооператива либо фотография поставщика. */
+  avatarSrc?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -110,7 +112,10 @@ BaseCard.profile-head(:class="{ 'profile-head--editable': editable }")
       input.profile-head__file(ref="fileInput", type="file", :accept="coverAccept", @change="onFilePicked")
   .profile-head__body
     .profile-head__avatar
-      Avatar(:name="avatarName", size="xl")
+      //- Кружок одновременно и есть загрузчик: столы в режиме правки кладут
+      //- сюда AvatarUpload со своим источником картинки, остальные — портрет.
+      slot(name="avatar")
+        Avatar(:name="avatarName", :src="avatarSrc || undefined", size="xl")
     .profile-head__row
       .profile-head__identity
         .profile-head__context

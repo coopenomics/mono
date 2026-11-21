@@ -35,7 +35,13 @@ function makeProfile(over: Partial<MarketplaceSupplierProfileDomainEntity> = {})
   });
 }
 
-function build(world: { profile?: MarketplaceSupplierProfileDomainEntity | null; offers?: number; offerer?: boolean } = {}) {
+function build(world: {
+  profile?: MarketplaceSupplierProfileDomainEntity | null;
+  offers?: number;
+  offerer?: boolean;
+  logos?: { getLogoUrl: jest.Mock; upload: jest.Mock; remove: jest.Mock } | null;
+  avatars?: { getAvatarUrl: jest.Mock; getAvatarUrls: jest.Mock } | null;
+} = {}) {
   let stored = world.profile ?? null;
   const profiles = {
     find: jest.fn(async () => stored),
@@ -60,7 +66,9 @@ function build(world: { profile?: MarketplaceSupplierProfileDomainEntity | null;
     registry as any,
     display as any,
     images as any,
-    reviews as any
+    reviews as any,
+    world.logos ?? null,
+    world.avatars ?? null
   );
   return { service, profiles, offers, registry, display, images, reviews };
 }
@@ -225,5 +233,36 @@ describe('правка профиля', () => {
 
     await expect(service.coverUrl(COVER)).resolves.toBe(`https://files.test/${COVER.bucket_key}`);
     await expect(service.coverUrl(null)).resolves.toBeNull();
+  });
+
+  // mkt.review.backend.avatar.01
+  it('кружок шапки берётся из портов: логотип кооператива либо фото пайщика', async () => {
+    const logos = {
+      getLogoUrl: jest.fn().mockResolvedValue('https://files.test/logo.png'),
+      upload: jest.fn(),
+      remove: jest.fn(),
+    };
+    const avatars = {
+      getAvatarUrl: jest.fn().mockResolvedValue('https://files.test/ava.png'),
+      getAvatarUrls: jest.fn().mockResolvedValue(new Map()),
+    };
+    const { service } = build({ offerer: true, logos, avatars });
+
+    const coop = await service.getProfile(COOP, COOP);
+    expect(coop.avatar_url).toBe('https://files.test/logo.png');
+    expect(avatars.getAvatarUrl).not.toHaveBeenCalled();
+
+    const person = await service.getProfile(COOP, 'sup1');
+    expect(person.avatar_url).toBe('https://files.test/ava.png');
+    expect(avatars.getAvatarUrl).toHaveBeenCalledWith('sup1');
+  });
+
+  it('портов нет либо хранилище картинок отказало — шапка показывает инициалы', async () => {
+    const { service } = build({ offerer: true });
+    await expect(service.getProfile(COOP, COOP)).resolves.toMatchObject({ avatar_url: null });
+
+    const broken = { getLogoUrl: jest.fn().mockRejectedValue(new Error('storage')), upload: jest.fn(), remove: jest.fn() };
+    const withBrokenPort = build({ offerer: true, logos: broken }).service;
+    await expect(withBrokenPort.getProfile(COOP, COOP)).resolves.toMatchObject({ avatar_url: null });
   });
 });

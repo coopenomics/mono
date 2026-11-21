@@ -1,12 +1,24 @@
-import { Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, Optional, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
+import {
+  COOPERATIVE_LOGO_PORT,
+  type ICooperativeLogoPort,
+} from '@coopenomics/innercoop';
+import {
+  DomainError,
+  GqlJwtAuthGuard,
+  platformSettings,
+  RequireRight,
+  RightsGuard,
+  SELF,
+} from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceSupplierProfileDTO,
   MarketplaceUpdateSupplierProfileInputDTO,
 } from '../dto/marketplace-supplier-profile.dto';
+import { MarketplaceUploadCooperativeLogoInputDTO } from '../dto/marketplace-upload-cooperative-logo-input.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import {
   MarketplaceSupplierProfileService,
@@ -21,7 +33,12 @@ import {
 @Resolver()
 @Injectable()
 export class MarketplaceSupplierProfileResolver {
-  constructor(private readonly profiles: MarketplaceSupplierProfileService) {}
+  constructor(
+    private readonly profiles: MarketplaceSupplierProfileService,
+    @Optional()
+    @Inject(COOPERATIVE_LOGO_PORT)
+    private readonly logos: ICooperativeLogoPort | null = null
+  ) {}
 
   @Query(() => MarketplaceSupplierProfileDTO, {
     name: 'marketplaceSupplierProfile',
@@ -60,6 +77,29 @@ export class MarketplaceSupplierProfileResolver {
   ): Promise<MarketplaceSupplierProfileDTO> {
     const { coopname } = platformSettings();
     return this.toDTO(await this.profiles.updateProfile(coopname, coopname, data));
+  }
+
+  @Mutation(() => String, {
+    name: 'marketplaceUploadCooperativeLogo',
+    description: 'Администратор меняет логотип кооператива — файл хранится ядром в настройках узла.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('SupplierProfile', 'manage')
+  async marketplaceUploadCooperativeLogo(@Args('data') data: MarketplaceUploadCooperativeLogoInputDTO): Promise<string> {
+    if (!this.logos) throw DomainError.badRequest('MARKETPLACE_COOP_LOGO_PORT_UNAVAILABLE');
+    return this.logos.upload(data.content_base64, data.mime_type);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'marketplaceRemoveCooperativeLogo',
+    description: 'Администратор снимает логотип кооператива — в шапке останутся инициалы.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('SupplierProfile', 'manage')
+  async marketplaceRemoveCooperativeLogo(): Promise<boolean> {
+    if (!this.logos) throw DomainError.badRequest('MARKETPLACE_COOP_LOGO_PORT_UNAVAILABLE');
+    await this.logos.remove();
+    return true;
   }
 
   private async toDTO(view: SupplierProfileView): Promise<MarketplaceSupplierProfileDTO> {
