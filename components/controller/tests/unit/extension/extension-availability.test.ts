@@ -50,9 +50,9 @@ describe('Доступность расширений по сети', () => {
       expect(isExtensionAvailable(AppRegistry.edubridge.availability, false)).toBe(true);
     });
 
-    it('Стол заказов открыт только вне основной сети', () => {
-      expect(AppRegistry.market.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
-      expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(false);
+    it('Стол заказов открыт везде, включая основную сеть (решение владельца 22.11.2026)', () => {
+      expect(AppRegistry.market.availability).toBe(ExtensionAvailability.EVERYWHERE);
+      expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(true);
       expect(isExtensionAvailable(AppRegistry.market.availability, false)).toBe(true);
     });
 

@@ -511,9 +511,9 @@ export const AppRegistry: INamedExtension = {
   },
   market: {
     is_internal: true,
-    // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
-    // остаётся закрытым, пока здесь не поставят EVERYWHERE.
-    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    // Стол заказов открыт в основной сети (решение владельца 22.11.2026):
+    // ограничение тестовым контуром снято, приложение ставится и в проде.
+    availability: ExtensionAvailability.EVERYWHERE,
     // Расширение «Стол заказов» предоставляет ЧЕТЫРЕ рабочих стола, разнесённых
     // по ролям пайщика. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
     // `extensions/market/install.ts`: фронт привязывает маршруты только к тем
