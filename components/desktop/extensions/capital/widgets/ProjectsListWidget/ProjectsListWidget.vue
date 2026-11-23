@@ -5,7 +5,15 @@
     .skel(v-for='i in 8', :key='i')
 
   .projects-scroll-area(v-else, ref='scrollAreaRef')
+    //- Пустое состояние — канон EmptyState по центру списка,
+    //- без серой «прижатой» зоны q-table
+    .list-empty-state(v-if='!projects.items.length')
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasFiltersApplied ? "search_off" : "folder_open"', size='48px')
+
     q-table(
+      v-else,
       ref='tableRef',
       :rows='projects?.items || []',
       :columns='columns',
@@ -86,12 +94,6 @@
           //- сжимает строку проекта в ширину первой из них
           q-td.project-row__nested
             slot(name='project-content', :project='props.row')
-
-      // Канон-пустое состояние вместо дефолтного q-table no-data
-      template(#no-data)
-        .list-empty
-          q-icon(name='inbox', size='20px')
-          span {{ hasFiltersApplied ? $t('capital.projectsListWidget.noFilterResults') : $t('capital.projectsListWidget.emptyText') }}
 </template>
 
 <script lang="ts" setup>
@@ -100,6 +102,7 @@ import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realt
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
@@ -196,6 +199,14 @@ const hasFiltersApplied = computed(() => {
 const isInitialLoading = computed(() => {
   return loading.value && projects.value.items.length === 0;
 });
+
+// Пустой список и пустой результат фильтра — разные подсказки
+const emptyTitle = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterTitle') : t('capital.projectsListWidget.emptyTitle'),
+);
+const emptyBody = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterBody') : t('capital.projectsListWidget.emptyBody'),
+);
 
 // Пагинация
 const pagination = ref({
@@ -522,15 +533,12 @@ const columns = [
   white-space: nowrap;
 }
 
-// Канон-пустое состояние списка
-.list-empty {
+// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
+.list-empty-state {
   display: flex;
   align-items: center;
-  gap: var(--p-2);
-  width: 100%;
-  padding: var(--p-3) var(--p-4);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
+  justify-content: center;
+  min-height: 100%;
 }
 
 .projects-scroll-area :deep(.q-table) {

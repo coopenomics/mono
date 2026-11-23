@@ -39,11 +39,14 @@
               @click='handleIssueClick'
             )
 
-      // Канон-пустое состояние вместо дефолтного q-table no-data
+      // Пустое состояние — канон EmptyState вместо дефолтного q-table no-data
       template(#no-data)
-        .list-empty
-          q-icon(name='inbox', size='20px')
-          span {{ $t('capital.issuesListWidget.emptyText') }}
+        EmptyState(
+          :title='$t("capital.issuesListWidget.emptyTitle")',
+          :body='$t("capital.issuesListWidget.emptyBody")'
+        )
+          template(#icon)
+            q-icon(name='task_alt', size='48px')
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   template(v-else)
@@ -92,6 +95,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
 import { t } from '../../../i18n';

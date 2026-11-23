@@ -27,14 +27,15 @@ router-view(v-if='!isRoot')
                 @click='openIssue',
                 @context-click='openContext'
               )
+        //- Пустое состояние рисуется снаружи таблицы — без серой зоны q-table
         template(#no-data)
-          .list-empty
-            q-icon(name='inbox', size='20px')
-            span {{ hasActiveFilters ? $t('capital.myTasksPage.emptyFilteredText') : $t('capital.myTasksPage.emptyText') }}
+          div
 
-      .list-empty(v-else-if='!loading')
-        q-icon(name='inbox', size='20px')
-        span {{ hasActiveFilters ? $t('capital.myTasksPage.emptyFilteredText') : $t('capital.myTasksPage.emptyText') }}
+      //- Пустое состояние — канон EmptyState по центру списка
+      .list-empty-state(v-else-if='!loading')
+        EmptyState(:title='emptyTitle', :body='emptyBody')
+          template(#icon)
+            q-icon(:name='hasActiveFilters ? "search_off" : "task_alt"', size='48px')
 
   //- Диалог назначения компонента свободной задаче (открывается по клику «Без компонента»)
   MoveIssueButton(
@@ -57,6 +58,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { EMPTY_HASH } from 'src/shared/lib/consts';
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue';
 import { CreateIssueHeaderButton } from 'app/extensions/capital/features/Issue/CreateIssue';
@@ -87,6 +89,14 @@ const isRoot = computed(() => route.name === 'capital-my-tasks');
 
 // Фильтры и сортировка списка задач — общие с кнопками в шапке
 const { filters, sort, hasActiveFilters } = useListPreferences('issues');
+
+// Пустой список и пустой результат фильтра — разные подсказки
+const emptyTitle = computed(() =>
+  hasActiveFilters.value ? t('capital.listEmpty.filterTitle') : t('capital.myTasksPage.emptyTitle'),
+);
+const emptyBody = computed(() =>
+  hasActiveFilters.value ? t('capital.listEmpty.filterBody') : t('capital.myTasksPage.emptyBody'),
+);
 
 const loading = ref(false);
 const items = ref<IIssue[]>([]);
@@ -355,13 +365,11 @@ onBeforeUnmount(() => {
   }
 }
 
-.list-empty {
+// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
+.list-empty-state {
   display: flex;
   align-items: center;
-  gap: var(--p-2);
-  width: 100%;
-  padding: var(--p-3) var(--p-4);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
+  justify-content: center;
+  min-height: 100%;
 }
 </style>

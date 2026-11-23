@@ -25,9 +25,14 @@
       .artifacts-loading(v-else-if='loading')
         q-spinner(size='24px')
 
-      .list-empty(v-else)
-        q-icon(name='inbox', size='20px')
-        span {{ $t('capital.artifactsListPage.emptyText') }}
+      //- Пустое состояние — канон EmptyState по центру списка
+      .list-empty-state(v-else)
+        EmptyState(
+          :title='$t("capital.artifactsListPage.emptyTitle")',
+          :body='$t("capital.artifactsListPage.emptyBody")'
+        )
+          template(#icon)
+            q-icon(name='article', size='48px')
 
   //- Просмотр/правка — оверлей поверх списка (?story= в адресе), тот же,
   //- что на вкладках «Артефакты»: список не размонтируется, «назад»
@@ -42,6 +47,7 @@ import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
@@ -124,6 +130,14 @@ function onStoryUpdated(updated: IStory): void {
   justify-content: center;
   padding: var(--p-5);
   color: var(--p-ink-3);
+}
+
+// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
+.list-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
 }
 
 .artifact-row {

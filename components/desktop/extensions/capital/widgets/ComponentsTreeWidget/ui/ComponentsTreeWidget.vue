@@ -21,10 +21,11 @@
       .component-row__nested(v-if='expanded[component.project_hash]')
         slot(name='component-content', :component='component')
 
-    // Канон-пустое состояние
-    .list-empty(v-if='!components.items.length')
-      q-icon(name='inbox', size='20px')
-      span {{ hasFiltersApplied ? $t('capital.componentsTreeWidget.noFilterResults') : $t('capital.componentsTreeWidget.emptyText') }}
+    // Пустое состояние — канон EmptyState по центру списка
+    .list-empty-state(v-if='!components.items.length')
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasFiltersApplied ? "search_off" : "account_tree"', size='48px')
 
     // Сентинел догрузки: попал в вид — тянем следующую страницу
     .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
@@ -37,6 +38,7 @@ import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realt
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IGetProjectsInput } from 'app/extensions/capital/entities/Project/model';
 import { ComponentListRow } from 'app/extensions/capital/widgets/ComponentsListWidget';
@@ -103,6 +105,14 @@ const hasFiltersApplied = computed(
 
 const isInitialLoading = computed(
   () => loading.value && components.value.items.length === 0,
+);
+
+// Пустой список и пустой результат фильтра — разные подсказки
+const emptyTitle = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterTitle') : t('capital.componentsTreeWidget.emptyTitle'),
+);
+const emptyBody = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterBody') : t('capital.componentsTreeWidget.emptyBody'),
 );
 
 const hasMorePages = computed(() => nextPage.value <= lastPage.value);
@@ -287,13 +297,11 @@ watch(
   min-height: var(--p-6);
 }
 
-.list-empty {
+// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
+.list-empty-state {
   display: flex;
   align-items: center;
-  gap: var(--p-2);
-  width: 100%;
-  padding: var(--p-3) var(--p-4);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
+  justify-content: center;
+  min-height: 100%;
 }
 </style>
