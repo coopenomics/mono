@@ -3,7 +3,11 @@
 router-view(v-if='!isRoot')
 .my-tasks-page.page-shell(v-else)
   .page-surface.list-surface.list-surface--fill
-    .issues-scroll-area(v-if='items.length || loading')
+    // Скелетон первичной загрузки — как на проектах и компонентах
+    .tasks-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
+
+    .issues-scroll-area(v-else-if='items.length')
       q-table(
         :rows='items',
         :columns='columns',
@@ -26,6 +30,7 @@ router-view(v-if='!isRoot')
                 @click='openIssue',
                 @context-click='openContext'
               )
+
     //- Пустое состояние — канон EmptyState по центру экрана
     .empty-fill(v-else)
       EmptyState(:title='emptyTitle', :body='emptyBody')
@@ -95,6 +100,10 @@ const emptyBody = computed(() =>
 
 const loading = ref(false);
 const items = ref<IIssue[]>([]);
+
+// Скелетон только при первичной загрузке: повторные запросы (смена фильтров,
+// живая лента) молча обновляют таблицу или пустое состояние
+const isInitialLoading = computed(() => loading.value && items.value.length === 0);
 const contextByHash = ref<Record<string, string>>({});
 const originByHash = ref<Record<string, string>>({});
 
@@ -320,6 +329,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.tasks-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+  background: var(--p-surface);
+
+  .skel {
+    height: var(--p-7);
+  }
+}
+
 // Высоту экрана задаёт канон-оболочка .page-shell; список забирает остаток
 .my-tasks-page {
   display: flex;

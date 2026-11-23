@@ -1,35 +1,38 @@
 <template lang="pug">
 .components-tree-widget
-  // Скелетон первичной загрузки (догрузка страниц идёт молча)
-  .components-skeleton(v-if='isInitialLoading')
-    .skel(v-for='i in 8', :key='i')
+  // Плоскость списка — та же (page-shell + surface), что у задач/артефактов:
+  // скелетон, лента или пустое состояние
+  .page-surface.list-surface
+    // Скелетон первичной загрузки (догрузка страниц идёт молча)
+    .components-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
 
-  .components-scroll-area(v-else-if='components.items.length', ref='scrollAreaRef')
-    // Список — плоские строки компонентов; таблица здесь не нужна:
-    // строка одна на всех уровнях дерева, а под ней раскрывается контент
-    // переменной высоты (задачи компонента)
-    template(v-for='component in components.items', :key='component.project_hash')
-      ComponentListRow.component-row--root(
-        :component='component',
-        :expanded='expanded[component.project_hash]',
-        :is-private='component.origin === "local"',
-        show-parent,
-        @toggle='emit("toggleExpand", component.project_hash)',
-        @open='emit("openComponent", component.project_hash)',
-        @open-parent='emit("openParent", component.parent_hash || "")'
-      )
-      .component-row__nested(v-if='expanded[component.project_hash]')
-        slot(name='component-content', :component='component')
+    .components-scroll-area(v-else-if='components.items.length', ref='scrollAreaRef')
+      // Список — плоские строки компонентов; таблица здесь не нужна:
+      // строка одна на всех уровнях дерева, а под ней раскрывается контент
+      // переменной высоты (задачи компонента)
+      template(v-for='component in components.items', :key='component.project_hash')
+        ComponentListRow.component-row--root(
+          :component='component',
+          :expanded='expanded[component.project_hash]',
+          :is-private='component.origin === "local"',
+          show-parent,
+          @toggle='emit("toggleExpand", component.project_hash)',
+          @open='emit("openComponent", component.project_hash)',
+          @open-parent='emit("openParent", component.parent_hash || "")'
+        )
+        .component-row__nested(v-if='expanded[component.project_hash]')
+          slot(name='component-content', :component='component')
 
-    // Сентинел догрузки: попал в вид — тянем следующую страницу
-    .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
-      q-spinner(v-if='loading', size='18px', color='primary')
+      // Сентинел догрузки: попал в вид — тянем следующую страницу
+      .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
+        q-spinner(v-if='loading', size='18px', color='primary')
 
-  // Пустое состояние — канон EmptyState по центру экрана
-  .empty-fill(v-else)
-    EmptyState(:title='emptyTitle', :body='emptyBody')
-      template(#icon)
-        q-icon(:name='hasFiltersApplied ? "search_off" : "account_tree"')
+    // Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasFiltersApplied ? "search_off" : "account_tree"')
 </template>
 
 <script lang="ts" setup>
@@ -249,11 +252,19 @@ watch(
   flex-direction: column;
   gap: var(--p-3);
   padding: var(--p-4);
-  background: var(--p-surface);
 
   .skel {
     height: var(--p-7);
   }
+}
+
+// Плоскость списка — та же (page-shell + surface), что у задач/артефактов
+.page-surface.list-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-surface);
 }
 
 // Колонка на высоту, которую даёт страница: лента скроллится внутри,
@@ -263,7 +274,6 @@ watch(
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--p-surface);
 }
 
 .components-scroll-area {

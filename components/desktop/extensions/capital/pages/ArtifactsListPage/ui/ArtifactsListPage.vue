@@ -1,29 +1,29 @@
 <template lang="pug">
 .artifacts-list-page.page-shell
   .page-surface.list-surface.list-surface--fill
-    .artifacts-scroll-area(v-if='items.length || loading')
-      template(v-if='items.length')
-        .row.items-center.artifact-row(
-          v-for='story in items',
-          :key='story._id',
-          role='button',
-          tabindex='0',
-          @click='openStory(story)',
-          @keydown.enter='openStory(story)'
-        )
-          // Избранное — слева, до иконки типа и наименования
-          .col-auto.row-favorite
-            FavoriteStarButton(
-              :target-type='FavoriteTargetType.ARTIFACT',
-              :target-hash='story.story_hash'
-            )
-          .col-auto.artifact-row__icon
-            q-icon(:name='storyContentIcon(story)', size='sm')
-          .col.artifact-row__title-col
-            span.list-item-title {{ story.title }}
+    // Скелетон первичной загрузки — как на проектах и компонентах
+    .artifacts-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
 
-      .artifacts-loading(v-else)
-        q-spinner(size='24px')
+    .artifacts-scroll-area(v-else-if='items.length')
+      .row.items-center.artifact-row(
+        v-for='story in items',
+        :key='story._id',
+        role='button',
+        tabindex='0',
+        @click='openStory(story)',
+        @keydown.enter='openStory(story)'
+      )
+        // Избранное — слева, до иконки типа и наименования
+        .col-auto.row-favorite
+          FavoriteStarButton(
+            :target-type='FavoriteTargetType.ARTIFACT',
+            :target-hash='story.story_hash'
+          )
+        .col-auto.artifact-row__icon
+          q-icon(:name='storyContentIcon(story)', size='sm')
+        .col.artifact-row__title-col
+          span.list-item-title {{ story.title }}
 
     //- Пустое состояние — канон EmptyState по центру экрана
     .empty-fill(v-else)
@@ -41,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
@@ -64,6 +64,9 @@ const { info } = useSystemStore();
 // (совет — всё, остальные — свои проекты, допуски и свободные задачи)
 const loading = ref(false);
 const items = ref<IStory[]>([]);
+
+// Скелетон только при первичной загрузке — как на проектах и компонентах
+const isInitialLoading = computed(() => loading.value && items.value.length === 0);
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -126,11 +129,17 @@ function onStoryUpdated(updated: IStory): void {
   padding: 0;
 }
 
-.artifacts-loading {
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.artifacts-skeleton {
   display: flex;
-  justify-content: center;
-  padding: var(--p-5);
-  color: var(--p-ink-3);
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+  background: var(--p-surface);
+
+  .skel {
+    height: var(--p-7);
+  }
 }
 
 .artifact-row {

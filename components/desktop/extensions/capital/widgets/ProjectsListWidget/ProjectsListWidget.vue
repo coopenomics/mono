@@ -1,98 +1,100 @@
 <template lang="pug">
 .projects-list-widget
-  // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
-  .projects-skeleton(v-if='isInitialLoading')
-    .skel(v-for='i in 8', :key='i')
+  // Плоскость списка — та же, что у задач/артефактов: скелетон, лента или
+  // пустое состояние, всё по центру остатка экрана
+  .page-surface.list-surface
+    // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
+    .projects-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(v-else-if='projects.items.length', ref='scrollAreaRef')
-    q-table(
-      ref='tableRef',
-      :rows='projects?.items || []',
-      :columns='columns',
-      row-key='project_hash',
-      :pagination='pagination',
-      flat,
-      square,
-      hide-header,
-      hide-pagination,
-      virtual-scroll,
-      @virtual-scroll='onScroll',
-      :virtual-scroll-target='".projects-scroll-area"',
-      :virtual-scroll-item-size='48',
-      :virtual-scroll-sticky-size-start='48',
-      :rows-per-page-options='[0]'
-    )
-      template(#body='props')
-        q-tr(
-          :props='props'
-        )
-          q-td
-            .row.items-center.project-row
-              // Кнопка раскрытия
-              .col-auto.project-row__toggle
-                ExpandToggleButton(
-                  :expanded='expanded[props.row.project_hash]',
-                  @click='handleToggleExpand(props.row.project_hash)'
-                )
+    .projects-scroll-area(v-else-if='projects.items.length', ref='scrollAreaRef')
+      q-table(
+        ref='tableRef',
+        :rows='projects?.items || []',
+        :columns='columns',
+        row-key='project_hash',
+        :pagination='pagination',
+        flat,
+        square,
+        hide-header,
+        hide-pagination,
+        virtual-scroll,
+        @virtual-scroll='onScroll',
+        :virtual-scroll-target='".projects-scroll-area"',
+        :virtual-scroll-item-size='48',
+        :virtual-scroll-sticky-size-start='48',
+        :rows-per-page-options='[0]'
+      )
+        template(#body='props')
+          q-tr(
+            :props='props'
+          )
+            q-td
+              .row.items-center.project-row
+                // Кнопка раскрытия
+                .col-auto.project-row__toggle
+                  ExpandToggleButton(
+                    :expanded='expanded[props.row.project_hash]',
+                    @click='handleToggleExpand(props.row.project_hash)'
+                  )
 
-              // ID — плоский muted-текст фиксированной колонки (Linear-style)
-              .col-auto.project-row__id
-                EntityIdBadge(
-                  v-if='props.row.id'
-                  :raw-id='props.row.id'
-                  copy-on-click
-                  address-clipboard
-                  flat
-                )
+                // ID — плоский muted-текст фиксированной колонки (Linear-style)
+                .col-auto.project-row__id
+                  EntityIdBadge(
+                    v-if='props.row.id'
+                    :raw-id='props.row.id'
+                    copy-on-click
+                    address-clipboard
+                    flat
+                  )
 
-              // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
-              .col-auto.row-status
-                ProjectPriorityChip(:project='props.row' variant='icon')
+                // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
+                .col-auto.row-status
+                  ProjectPriorityChip(:project='props.row' variant='icon')
 
-              // Избранное — рядом со статусом, до заголовка
-              .col-auto.row-favorite
-                FavoriteStarButton(
-                  :target-type='FavoriteTargetType.PROJECT',
-                  :target-hash='props.row.project_hash'
-                )
+                // Избранное — рядом со статусом, до заголовка
+                .col-auto.row-favorite
+                  FavoriteStarButton(
+                    :target-type='FavoriteTargetType.PROJECT',
+                    :target-hash='props.row.project_hash'
+                  )
 
-              // Title
-              .col.project-row__title-col
-                .list-item-title(
-                  @click.stop='handleOpenProject(props.row.project_hash)'
-                )
-                  PrivateShieldIcon(:show='props.row.origin === "local"')
-                  span {{ props.row.title }}
+                // Title
+                .col.project-row__title-col
+                  .list-item-title(
+                    @click.stop='handleOpenProject(props.row.project_hash)'
+                  )
+                    PrivateShieldIcon(:show='props.row.origin === "local"')
+                    span {{ props.row.title }}
 
-              // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
-              // время на уровне проекта пока скрыто — почти всегда нули
-              .col-auto.row-cells
-                .cell-time
-                .cell-side
-                  // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
-                  ProjectStatusChip(:project='props.row')
-                .cell-actions
-                  // Мастер — ответственный за проект (зеркально исполнителям задач)
-                  SetMasterAvatar(:project='props.row')
+                // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
+                // время на уровне проекта пока скрыто — почти всегда нули
+                .col-auto.row-cells
+                  .cell-time
+                  .cell-side
+                    // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
+                    ProjectStatusChip(:project='props.row')
+                  .cell-actions
+                    // Мастер — ответственный за проект (зеркально исполнителям задач)
+                    SetMasterAvatar(:project='props.row')
 
-        // Слот для дополнительного контента проекта (ComponentsListWidget)
-        q-tr.q-virtual-scroll--with-prev(
-          no-hover,
-          v-if='expanded[props.row.project_hash]',
-          :key='`${props.row.project_hash}`'
-        )
-          //- Без colspan: в теле одна ячейка на строку, а colspan='100%'
-          //- парсится браузером как 100 колонок и при table-layout: fixed
-          //- сжимает строку проекта в ширину первой из них
-          q-td.project-row__nested
-            slot(name='project-content', :project='props.row')
+          // Слот для дополнительного контента проекта (ComponentsListWidget)
+          q-tr.q-virtual-scroll--with-prev(
+            no-hover,
+            v-if='expanded[props.row.project_hash]',
+            :key='`${props.row.project_hash}`'
+          )
+            //- Без colspan: в теле одна ячейка на строку, а colspan='100%'
+            //- парсится браузером как 100 колонок и при table-layout: fixed
+            //- сжимает строку проекта в ширину первой из них
+            q-td.project-row__nested
+              slot(name='project-content', :project='props.row')
 
-  //- Пустое состояние — канон EmptyState по центру экрана,
-  //- без серой «прижатой» зоны q-table
-  .empty-fill(v-else)
-    EmptyState(:title='emptyTitle', :body='emptyBody')
-      template(#icon)
-        q-icon(:name='hasFiltersApplied ? "search_off" : "folder_open"')
+    //- Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasFiltersApplied ? "search_off" : "folder_open"')
 </template>
 
 <script lang="ts" setup>
@@ -410,11 +412,19 @@ const columns = [
   flex-direction: column;
   gap: var(--p-3);
   padding: var(--p-4);
-  background: var(--p-surface);
 
   .skel {
     height: var(--p-7);
   }
+}
+
+// Плоскость списка — та же (page-shell + surface), что у задач/артефактов
+.page-surface.list-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-surface);
 }
 
 // Высоту задаёт страница (flex-колонка .page-shell под шапкой);
