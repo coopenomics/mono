@@ -2764,12 +2764,6 @@ export interface Settings {
   coopname: string;
   created_at: Generated<Timestamp>;
   extra_settings: Generated<Json>;
-  non_authorized_default_route: string;
-  non_authorized_default_workspace: string;
-  /**
-   * Когда председатель завершил онбординг кооператива
-   */
-  onboarding_completed_at: Timestamp | null;
   /**
    * Ключ логотипа кооператива в хранилище изображений
    */
@@ -2778,6 +2772,12 @@ export interface Settings {
    * Тип файла логотипа кооператива
    */
   logo_mime: string | null;
+  non_authorized_default_route: string;
+  non_authorized_default_workspace: string;
+  /**
+   * Когда председатель завершил онбординг кооператива
+   */
+  onboarding_completed_at: Timestamp | null;
   provider_name: Generated<string>;
   updated_at: Generated<Timestamp>;
 }
