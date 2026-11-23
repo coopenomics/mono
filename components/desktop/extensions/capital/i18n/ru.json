@@ -698,6 +698,8 @@
       "cancelChanges": "Отменить изменения",
       "descriptionEmpty": "Описание отсутствует",
       "descriptionPlaceholder": "Опишите артефакт подробно...",
+      "openFullPage": "Открыть",
+      "openFullPageAriaLabel": "Открыть артефакт на отдельной странице",
       "savedMergedFullSuccess": "Артефакт сохранён и слит с параллельными правками",
       "savedMergedSuccess": "Сохранено и слито с параллельными правками",
       "savedSuccess": "Сохранено",
@@ -1475,7 +1477,8 @@
     },
     "requirementOverlay": {
       "loadError": "Не удалось загрузить артефакт: ",
-      "notFoundError": "Артефакт не найден или недоступен"
+      "notFoundError": "Артефакт не найден или недоступен",
+      "openFullPageError": "Не удалось определить проект артефакта"
     },
     "requirementsListWidget": {
       "columnArtifact": "Артефакт",

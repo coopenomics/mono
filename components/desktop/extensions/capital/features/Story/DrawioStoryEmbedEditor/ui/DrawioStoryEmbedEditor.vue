@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useQuasar } from 'quasar';
 import {
   EMPTY_DRAWIO_STORY_XML,
   decodeBpmnXmlIfEscaped,
@@ -56,14 +57,21 @@ let suppressXmlEmit = false;
 /** В браузере `setTimeout` возвращает `number`; с @types/node иначе часто выводится `NodeJS.Timeout`. */
 let safetyRevealTimer: number | null = null;
 
-const iframeKey = computed(() => (props.readonly ? 'ro' : 'rw'));
+const $q = useQuasar();
+const isAppDark = computed(() => $q.dark.isActive);
+
+// Тема входит в ключ: смена темы стола перезагружает редактор в новой схеме,
+// а событие init заново отдаёт ему текущий XML (правки уже в modelValue)
+const iframeKey = computed(
+  () => `${props.readonly ? 'ro' : 'rw'}-${isAppDark.value ? 'dark' : 'light'}`,
+);
 
 const iframeSrc = computed((): string => {
   const base = getDrawioEmbedOrigin();
-  return buildDrawioEmbedIframeSrc(base, props.readonly);
+  return buildDrawioEmbedIframeSrc(base, props.readonly, isAppDark.value);
 });
 
-// Как у BpmnStoryEditor: заполняем доступную высоту родителя (q-card-section.col), не фиксируем px.
+// Как у BpmnStoryEditor: заполняем доступную высоту родителя (тело панели артефакта), не фиксируем px.
 const rootStyle = computed(() => ({
   minHeight: `${props.minHeight}px`,
   height: '100%',
@@ -213,8 +221,9 @@ watch(iframeKey, () => {
 
 <style lang="scss" scoped>
 .drawio-story-embed-editor {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface);
   overflow: hidden;
   display: flex;
   flex-direction: column;

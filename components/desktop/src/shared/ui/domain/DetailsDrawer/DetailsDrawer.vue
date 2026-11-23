@@ -28,7 +28,7 @@ q-dialog(
       )
         q-icon(name='close', size='20px')
 
-    .details-drawer__body
+    .details-drawer__body(:class='{ "details-drawer__body--flush": flush }')
       slot
 
     footer.details-drawer__footer(v-if='hasFooterSlot')
@@ -44,6 +44,7 @@ const props = withDefaults(defineProps<DetailsDrawerProps>(), {
   width: 480,
   closable: true,
   clickOutsideClose: true,
+  flush: false,
 });
 
 const emit = defineEmits<{
@@ -131,6 +132,11 @@ function close(): void {
   flex: 1 1 auto;
   overflow-y: auto;
   padding: var(--p-4, 16px);
+}
+.details-drawer__body--flush {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .details-drawer__footer {

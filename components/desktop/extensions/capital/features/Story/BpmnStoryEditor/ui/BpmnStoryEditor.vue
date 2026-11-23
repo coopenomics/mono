@@ -363,7 +363,12 @@ watch(
 
 <style lang="scss" scoped>
 /* bpmn-js рассчитан на светлую схему; при body--dark Quasar даёт светлый color — наследуется
-   direct-editing (contenteditable) → невидимый текст на светлом холсте. */
+   direct-editing (contenteditable) → невидимый текст на светлом холсте.
+   Своей тёмной темы у bpmn-js нет, поэтому в тёмной теме стола холст и
+   палитра рисуются светлыми и обращаются фильтром целиком: белые заливки
+   становятся тёмными, чёрные линии и текст — светлыми, поворот оттенка на
+   180° возвращает цвета выделения и раскраски к исходным. Смена темы
+   диаграмму не перерисовывает — фильтр меняет только показ. */
 .bpmn-story-editor {
   --bpmn-story-fg: hsl(225, 10%, 15%);
 
@@ -373,8 +378,8 @@ watch(
   min-height: 0;
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
   overflow: hidden;
   background: #fff;
   color: var(--bpmn-story-fg);
@@ -382,8 +387,11 @@ watch(
   isolation: isolate;
 
   &.bpmn-story-editor--app-dark {
-    border-color: rgba(255, 255, 255, 0.14);
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+    background: var(--p-surface);
+
+    :deep(.bjs-container) {
+      filter: invert(0.92) hue-rotate(180deg);
+    }
   }
 
   :deep(.bjs-container) {

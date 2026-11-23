@@ -23,7 +23,7 @@ CreateDialog(
         )
 
       //- Только заголовок и тип: содержимое пишется после создания
-      //- в полноэкранном редакторе, который открывается сам
+      //- на полной странице артефакта, она открывается сама
       .crf-block
         .crf-toggle-shell
           q-btn-toggle.crf-toggle(
@@ -34,26 +34,18 @@ CreateDialog(
             toggle-color="primary"
             :options="contentFormatOptions"
           )
-
-EditRequirementDialog(
-  ref="followUpEditRef"
-  :requirement="storyForFollowUpEdit"
-  :canEdit="true"
-  @close="onFollowUpClose"
-  @updated="onFollowUpUpdated"
-)
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput } from 'src/shared/ui/base';
 import { useCreateStory } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
-import { EditRequirementDialog } from 'app/extensions/capital/features/Story/EditRequirement';
-import type { IStory } from 'app/extensions/capital/entities/Story/model';
+import { resolveStoryPageRoute } from 'app/extensions/capital/features/Story/EditRequirement';
 import { t } from '../../../../../i18n';
 
 const props = defineProps<{
@@ -72,7 +64,8 @@ const emit = defineEmits<{
 }>();
 
 const dialogRef = ref();
-const followUpEditRef = ref();
+const route = useRoute();
+const router = useRouter();
 const system = useSystemStore();
 const { createStory } = useCreateStory();
 
@@ -87,8 +80,6 @@ const contentFormatOptions = [
   { label: 'Draw.io', value: drawioFormat, icon: 'device_hub' },
   { label: 'Mermaid', value: mermaidFormat, icon: 'schema' },
 ];
-
-const storyForFollowUpEdit = ref<IStory | null>(null);
 
 const isSubmitting = ref(false);
 
@@ -112,20 +103,12 @@ const clear = async () => {
   await clearForm();
 };
 
-const onFollowUpClose = () => {
-  storyForFollowUpEdit.value = null;
-};
-
-const onFollowUpUpdated = (updated: IStory) => {
-  storyForFollowUpEdit.value = updated;
-
-};
-
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
     // Содержимое всегда пишется после создания: тело пустое (диаграммным
-    // форматам сервер подставляет шаблон), сразу открывается полноэкранный редактор
+    // форматам сервер подставляет шаблон), сразу открывается полная страница
+    // артефакта — с постоянной ссылкой, как при открытии из списка
     const inputData = {
       coopname: system.info.coopname,
       title: formData.value.title,
@@ -142,9 +125,8 @@ const handleSubmit = async () => {
     dialogRef.value?.clear();
     emit('success');
 
-    storyForFollowUpEdit.value = created;
-    await nextTick();
-    followUpEditRef.value?.openDialog();
+    const target = await resolveStoryPageRoute(created, route);
+    if (target) await router.push(target);
   } catch (error) {
     FailAlert(error);
     emit('error', error);

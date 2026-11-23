@@ -10,7 +10,16 @@ export function getDrawioPostMessageOrigin(): string {
   return new URL(DRAWIO_EMBED_BASE).origin;
 }
 
-export function buildDrawioEmbedIframeSrc(embedBase: string, readonly: boolean): string {
+/**
+ * Адрес встраивания draw.io. `dark` — тема стола: редактор diagrams.net
+ * рисует интерфейс и холст в тёмной схеме по параметру `dark=1`, поэтому
+ * схема следует теме стола, а не остаётся белым листом в тёмном окне.
+ */
+export function buildDrawioEmbedIframeSrc(
+  embedBase: string,
+  readonly: boolean,
+  dark = false,
+): string {
   const base = embedBase.replace(/\/+$/, '');
   const url = new URL(`${base}/`);
   url.searchParams.set('embed', '1');
@@ -20,6 +29,7 @@ export function buildDrawioEmbedIframeSrc(embedBase: string, readonly: boolean):
   url.searchParams.set('noExitBtn', '1');
   url.searchParams.set('noSaveBtn', '1');
   url.searchParams.set('saveAndExit', '0');
+  url.searchParams.set('dark', dark ? '1' : '0');
   if (readonly) {
     url.searchParams.set('chrome', '0');
   } else {
