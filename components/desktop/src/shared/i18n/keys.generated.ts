@@ -4256,7 +4256,6 @@ export type MessageKey =
   | 'extensionStore.extensionsManagement.showcaseTab'
   | 'extensionStore.showcase.active'
   | 'extensionStore.showcase.alreadyActive'
-  | 'extensionStore.showcase.intro'
   | 'extensionStore.showcase.lastActiveVersion'
   | 'extensionStore.showcase.loadFailed'
   | 'extensionStore.showcase.notRegistered'

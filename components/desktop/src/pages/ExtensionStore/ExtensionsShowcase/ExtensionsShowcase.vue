@@ -2,9 +2,6 @@
 //- Один каталог: встроенные расширения и пакеты внешнего каталога стоят
 //- в общей сетке без заголовков-разделителей. Пустой список пакетов
 //- ничего не добавляет на страницу — встроенные расширения уже есть.
-BaseBanner.q-mb-md(variant='info')
-  | {{ $t('extensionStore.showcase.intro') }}
-
 .catalog-grid
   ExtensionCard(
     v-for='extension in filteredExtensions',
