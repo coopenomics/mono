@@ -4,16 +4,8 @@
   .projects-skeleton(v-if='isInitialLoading')
     .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(v-else, ref='scrollAreaRef')
-    //- Пустое состояние — канон EmptyState по центру списка,
-    //- без серой «прижатой» зоны q-table
-    .list-empty-state(v-if='!projects.items.length')
-      EmptyState(:title='emptyTitle', :body='emptyBody')
-        template(#icon)
-          q-icon(:name='hasFiltersApplied ? "search_off" : "folder_open"', size='48px')
-
+  .projects-scroll-area(v-else-if='projects.items.length', ref='scrollAreaRef')
     q-table(
-      v-else,
       ref='tableRef',
       :rows='projects?.items || []',
       :columns='columns',
@@ -94,6 +86,13 @@
           //- сжимает строку проекта в ширину первой из них
           q-td.project-row__nested
             slot(name='project-content', :project='props.row')
+
+  //- Пустое состояние — канон EmptyState по центру экрана,
+  //- без серой «прижатой» зоны q-table
+  .empty-fill(v-else)
+    EmptyState(:title='emptyTitle', :body='emptyBody')
+      template(#icon)
+        q-icon(:name='hasFiltersApplied ? "search_off" : "folder_open"')
 </template>
 
 <script lang="ts" setup>
@@ -418,16 +417,18 @@ const columns = [
   }
 }
 
-// Высоту задаёт страница (flex-колонка под шапкой и панелью фильтров);
-// fallback на полный вьюпорт минус шапка — для standalone-использования
+// Высоту задаёт страница (flex-колонка .page-shell под шапкой);
+// пустое состояние (.empty-fill) забирает остаток и центрируется
 .projects-list-widget {
   height: 100%;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .projects-scroll-area {
-  height: 100%;
-  max-height: calc(100vh - 55px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -531,14 +532,6 @@ const columns = [
   gap: var(--p-1);
   color: var(--p-ink-3);
   white-space: nowrap;
-}
-
-// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
-.list-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
 }
 
 .projects-scroll-area :deep(.q-table) {

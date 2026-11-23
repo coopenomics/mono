@@ -1,7 +1,7 @@
 <template lang="pug">
-.artifacts-list-page
+.artifacts-list-page.page-shell
   .page-surface.list-surface.list-surface--fill
-    .artifacts-scroll-area
+    .artifacts-scroll-area(v-if='items.length || loading')
       template(v-if='items.length')
         .row.items-center.artifact-row(
           v-for='story in items',
@@ -22,17 +22,17 @@
           .col.artifact-row__title-col
             span.list-item-title {{ story.title }}
 
-      .artifacts-loading(v-else-if='loading')
+      .artifacts-loading(v-else)
         q-spinner(size='24px')
 
-      //- Пустое состояние — канон EmptyState по центру списка
-      .list-empty-state(v-else)
-        EmptyState(
-          :title='$t("capital.artifactsListPage.emptyTitle")',
-          :body='$t("capital.artifactsListPage.emptyBody")'
-        )
-          template(#icon)
-            q-icon(name='article', size='48px')
+    //- Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(
+        :title='$t("capital.artifactsListPage.emptyTitle")',
+        :body='$t("capital.artifactsListPage.emptyBody")'
+      )
+        template(#icon)
+          q-icon(name='article')
 
   //- Просмотр/правка — оверлей поверх списка (?story= в адресе), тот же,
   //- что на вкладках «Артефакты»: список не размонтируется, «назад»
@@ -101,9 +101,10 @@ function onStoryUpdated(updated: IStory): void {
 </script>
 
 <style lang="scss" scoped>
+// Высоту экрана задаёт канон-оболочка .page-shell; список забирает остаток
 .artifacts-list-page {
-  height: 100%;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-surface,
@@ -112,8 +113,8 @@ function onStoryUpdated(updated: IStory): void {
 }
 
 .list-surface--fill {
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -130,14 +131,6 @@ function onStoryUpdated(updated: IStory): void {
   justify-content: center;
   padding: var(--p-5);
   color: var(--p-ink-3);
-}
-
-// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
-.list-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
 }
 
 .artifact-row {

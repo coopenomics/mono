@@ -1403,8 +1403,37 @@ body {
   color: var(--p-ink-3);
 }
 .empty__icon svg { width: 22px; height: 22px; }
+/* Шрифтовая иконка (Material) держит тот же размер, что и svg: страницы зовут
+   EmptyState с size='48px', и глиф вылезал за плитку 44px — на одном столе
+   иконка была крошечной, на другом огромной (замечание владельца 23.11.2026).
+   Размер плитки и глифа задаёт канон, а не проп страницы. */
+.empty__icon .q-icon { font-size: 22px !important; }
 .empty__title { font-size: var(--p-fs-h3); font-weight: 600; letter-spacing: var(--p-ls-h3); }
 .empty__body  { color: var(--p-ink-2); font-size: var(--p-fs-body-sm); max-width: 380px; }
+
+/* Пустое состояние экрана: забирает всё свободное место списка и стоит по
+   центру — одинаково на всех столах. Родитель — flex-колонка на высоту
+   экрана (`.page-shell`, `.page-fill` или список с flex: 1). Без этого
+   пустой блок прижимался к верху или уезжал ниже центра: у страниц были
+   разные height/min-height, и центр считался от разной высоты. */
+.empty-fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Страница, которая растёт от содержимого, но пустой показывается на весь
+   экран: высота не ниже окна под шапкой (и поднятыми вкладками). И height, и
+   min-height — см. пояснение выше: без определённой высоты flex-grow
+   потомка не растягивает содержимое до центра. */
+.page-fill {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--p-topbar-h) - var(--p-tabs-host-h, 0px));
+  min-height: calc(100dvh - var(--p-topbar-h) - var(--p-tabs-host-h, 0px));
+}
 
 /* ---- Dialog ---- */
 .dialog-backdrop {

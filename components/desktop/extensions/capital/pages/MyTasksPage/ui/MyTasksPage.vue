@@ -1,11 +1,10 @@
 <template lang="pug">
 //- Список на корне; задача — child через router-view (рейл остаётся на «Мои задачи»)
 router-view(v-if='!isRoot')
-.my-tasks-page(v-else)
+.my-tasks-page.page-shell(v-else)
   .page-surface.list-surface.list-surface--fill
-    .issues-scroll-area
+    .issues-scroll-area(v-if='items.length || loading')
       q-table(
-        v-if='items.length || loading',
         :rows='items',
         :columns='columns',
         row-key='_id',
@@ -27,15 +26,11 @@ router-view(v-if='!isRoot')
                 @click='openIssue',
                 @context-click='openContext'
               )
-        //- Пустое состояние рисуется снаружи таблицы — без серой зоны q-table
-        template(#no-data)
-          div
-
-      //- Пустое состояние — канон EmptyState по центру списка
-      .list-empty-state(v-else-if='!loading')
-        EmptyState(:title='emptyTitle', :body='emptyBody')
-          template(#icon)
-            q-icon(:name='hasActiveFilters ? "search_off" : "task_alt"', size='48px')
+    //- Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasActiveFilters ? "search_off" : "task_alt"')
 
   //- Диалог назначения компонента свободной задаче (открывается по клику «Без компонента»)
   MoveIssueButton(
@@ -325,9 +320,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+// Высоту экрана задаёт канон-оболочка .page-shell; список забирает остаток
 .my-tasks-page {
-  height: 100%;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-surface {
@@ -339,8 +335,8 @@ onBeforeUnmount(() => {
 }
 
 .list-surface--fill {
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -365,11 +361,5 @@ onBeforeUnmount(() => {
   }
 }
 
-// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
-.list-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-}
+
 </style>

@@ -2,7 +2,7 @@
 //- Страница «Мои взносы» (решение владельца 30–31.10.2026): все паевые взносы
 //- пайщика в Благорост одной лентой — деньги, имущество и результаты; кнопки
 //- взносов в шапке.
-q-page.contributions(role='region', :aria-label='$t("capital.myContributionsPage.ariaLabel")')
+q-page.contributions.page-fill(role='region', :aria-label='$t("capital.myContributionsPage.ariaLabel")')
   PageHint(storage-key='capital:my-contributions:banner-dismissed')
     | {{ $t('capital.myContributionsPage.hint') }}
 

@@ -4,7 +4,7 @@
   .components-skeleton(v-if='isInitialLoading')
     .skel(v-for='i in 8', :key='i')
 
-  .components-scroll-area(v-else, ref='scrollAreaRef')
+  .components-scroll-area(v-else-if='components.items.length', ref='scrollAreaRef')
     // Список — плоские строки компонентов; таблица здесь не нужна:
     // строка одна на всех уровнях дерева, а под ней раскрывается контент
     // переменной высоты (задачи компонента)
@@ -21,15 +21,15 @@
       .component-row__nested(v-if='expanded[component.project_hash]')
         slot(name='component-content', :component='component')
 
-    // Пустое состояние — канон EmptyState по центру списка
-    .list-empty-state(v-if='!components.items.length')
-      EmptyState(:title='emptyTitle', :body='emptyBody')
-        template(#icon)
-          q-icon(:name='hasFiltersApplied ? "search_off" : "account_tree"', size='48px')
-
     // Сентинел догрузки: попал в вид — тянем следующую страницу
     .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
       q-spinner(v-if='loading', size='18px', color='primary')
+
+  // Пустое состояние — канон EmptyState по центру экрана
+  .empty-fill(v-else)
+    EmptyState(:title='emptyTitle', :body='emptyBody')
+      template(#icon)
+        q-icon(:name='hasFiltersApplied ? "search_off" : "account_tree"')
 </template>
 
 <script lang="ts" setup>
@@ -256,15 +256,19 @@ watch(
   }
 }
 
+// Колонка на высоту, которую даёт страница: лента скроллится внутри,
+// пустое состояние (.empty-fill) забирает всё место и центрируется
 .components-tree-widget {
   height: 100%;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--p-surface);
 }
 
 .components-scroll-area {
-  height: 100%;
-  max-height: calc(100vh - 55px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -297,11 +301,5 @@ watch(
   min-height: var(--p-6);
 }
 
-// Пустой список занимает всю высоту ленты — EmptyState стоит по центру экрана
-.list-empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-}
+
 </style>

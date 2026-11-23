@@ -31,13 +31,14 @@
         @click.stop='sign(row.property, row.key)'
       ) {{ $t('capital.contributionsFeed.signAct') }}
 
-  EmptyState(
-    v-else,
-    :title='$t("capital.contributionsFeed.emptyTitle")',
-    :body='$t("capital.contributionsFeed.emptyBody")'
-  )
-    template(#icon)
-      q-icon(name='volunteer_activism', size='48px')
+  //- Пустое состояние — канон EmptyState по центру остатка экрана
+  .empty-fill(v-else)
+    EmptyState(
+      :title='$t("capital.contributionsFeed.emptyTitle")',
+      :body='$t("capital.contributionsFeed.emptyBody")'
+    )
+      template(#icon)
+        q-icon(name='volunteer_activism')
 
   .row.justify-center(v-if='hasMore')
     BaseButton(variant='ghost', :loading='loading', @click='loadMore') {{ $t('capital.contributionsFeed.loadMore') }}
@@ -228,10 +229,20 @@ defineExpose({ reload: () => live.refresh() });
 </script>
 
 <style scoped lang="scss">
+// Колонка во всю высоту страницы «Мои взносы»: внешне пустой список забирает
+// остаток экрана, а EmptyState (.empty-fill) центрируется в нём
 .contrib-feed {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: var(--p-3);
+
+  // С появлением flex таблица попала в колонку: не вминишать её на экран —
+  // длинный журнал пусть тянет высоту страницы, как раньше
+  :deep(.base-table) {
+    flex-shrink: 0;
+  }
 
   &__title {
     font-weight: 600;
