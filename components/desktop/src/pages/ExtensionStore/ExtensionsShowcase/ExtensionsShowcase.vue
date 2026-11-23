@@ -1,24 +1,19 @@
 <template lang="pug">
+//- Один каталог: встроенные расширения и пакеты внешнего каталога стоят
+//- в общей сетке без заголовков-разделителей. Пустой список пакетов
+//- ничего не добавляет на страницу — встроенные расширения уже есть.
 BaseBanner.q-mb-md(variant='info')
   | {{ $t('extensionStore.showcase.intro') }}
 
-section.catalog-section
-  h3.catalog-section__title {{ $t('extensionStore.showcase.nativeTitle') }}
-  .catalog-grid
-    ExtensionCard(
-      v-for='extension in filteredExtensions',
-      :key='extension.name',
-      :extension='extension'
-    )
+.catalog-grid
+  ExtensionCard(
+    v-for='extension in filteredExtensions',
+    :key='extension.name',
+    :extension='extension'
+  )
 
-section.catalog-section.catalog-section--remote
-  .catalog-section__head
-    h3.catalog-section__title {{ $t('extensionStore.showcase.remoteTitle') }}
-    span.catalog-section__hint(v-if='!remoteLoading && !remoteError && remoteExtensions.length')
-      | {{ $t('extensionStore.showcase.remoteCount', remoteExtensions.length) }}
-
-  .catalog-grid(v-if='remoteLoading && !remoteExtensions.length')
-    article.remote-card(v-for='n in 3', :key='n')
+  template(v-if='remoteLoading && !remoteExtensions.length')
+    article.remote-card(v-for='n in 3', :key='`remote-skeleton-${n}`')
       .remote-card__head
         .remote-card__tile.skel
         .remote-card__heading
@@ -27,47 +22,42 @@ section.catalog-section.catalog-section--remote
       .skel.skel--text(style='width: 90%')
       .skel.skel--text(style='width: 60%')
 
-  .catalog-state.catalog-state--error(v-else-if='remoteError')
-    q-icon.catalog-state__icon(name='warning', size='28px')
-    .catalog-state__body
-      h4.catalog-state__title {{ $t('extensionStore.showcase.loadFailed') }}
-      p.catalog-state__text {{ remoteError }}
-      div
-        BaseButton(variant='secondary', size='sm', @click='loadRemote') {{ $t('common.action.retry') }}
-
-  EmptyState(
-    v-else-if='!remoteExtensions.length',
-    :title="$t('extensionStore.showcase.emptyTitle')",
-    :body="$t('extensionStore.showcase.emptyBody')"
+  article.remote-card(
+    v-for='pkg in remoteExtensions',
+    :key='pkg.packageId'
   )
-    template(#icon)
-      q-icon(name='inventory_2', size='28px')
+    .remote-card__head
+      AutoAvatar.remote-card__avatar(
+        :username='pkg.title || pkg.packageId',
+        :size='48',
+        radius='var(--p-r-md, 12px)',
+        background='var(--p-surface-2)',
+        animated
+      )
+      .remote-card__heading
+        h3.remote-card__title {{ pkg.title }}
+    p.remote-card__desc {{ pkg.description }}
+    .remote-card__meta
+      span.remote-card__publisher
+        q-icon(name='business', size='12px')
+        | {{ pkg.publisher }}
+      span.remote-card__version(
+        v-if='pkg.lastActiveVersion',
+        :title="$t('extensionStore.showcase.lastActiveVersion')"
+      )
+        q-icon(name='commit', size='12px')
+        | {{ pkg.lastActiveVersion }}
+      span.remote-card__price {{ $t('extensionStore.showcase.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
+    .remote-card__foot
+      BaseButton(variant='primary', size='sm', @click='openSubscribe(pkg)') {{ $t('extensionStore.showcase.subscribe') }}
 
-  .catalog-grid(v-else)
-    article.remote-card(
-      v-for='pkg in remoteExtensions',
-      :key='pkg.packageId'
-    )
-      .remote-card__head
-        .remote-card__tile
-          q-icon(name='extension', size='22px')
-        .remote-card__heading
-          h3.remote-card__title {{ pkg.title }}
-          BaseBadge(variant='info') {{ $t('extensionStore.showcase.remoteBadge') }}
-      p.remote-card__desc {{ pkg.description }}
-      .remote-card__meta
-        span.remote-card__publisher
-          q-icon(name='business', size='12px')
-          | {{ pkg.publisher }}
-        span.remote-card__version(
-          v-if='pkg.lastActiveVersion',
-          :title="$t('extensionStore.showcase.lastActiveVersion')"
-        )
-          q-icon(name='commit', size='12px')
-          | {{ pkg.lastActiveVersion }}
-        span.remote-card__price {{ $t('extensionStore.showcase.perMonth', { amount: formatPrice(pkg.rubPerMonth) }) }}
-      .remote-card__foot
-        BaseButton(variant='primary', size='sm', @click='openSubscribe(pkg)') {{ $t('extensionStore.showcase.subscribe') }}
+.catalog-state.catalog-state--error(v-if='remoteError')
+  q-icon.catalog-state__icon(name='warning', size='28px')
+  .catalog-state__body
+    h4.catalog-state__title {{ $t('extensionStore.showcase.loadFailed') }}
+    p.catalog-state__text {{ remoteError }}
+    div
+      BaseButton(variant='secondary', size='sm', @click='loadRemote') {{ $t('common.action.retry') }}
 
 BaseDialog(v-model='subscribeDialog', :title='subscribeTitle', size='sm')
   .subscribe-dialog__body
@@ -95,7 +85,8 @@ import { useLiveReload } from 'src/shared/lib/realtime';
 import { t } from 'src/shared/i18n';
 import { ExtensionCard } from 'src/widgets/ExtensionCard';
 import { Queries, Zeus } from '@coopenomics/sdk';
-import { BaseBadge, BaseBanner, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
+import { BaseBanner, BaseButton, BaseDialog } from 'src/shared/ui/base';
 
 type RemotePackage = Queries.Extensions.AppsCatalogRemotePackages.IOutput[
   typeof Queries.Extensions.AppsCatalogRemotePackages.name
@@ -218,30 +209,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-.catalog-section {
-  margin-bottom: var(--p-6);
-}
-
-.catalog-section__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--p-3);
-  margin-bottom: var(--p-3);
-}
-
-.catalog-section__title {
-  margin: 0 0 var(--p-3);
-  font-size: var(--p-fs-h3);
-  font-weight: 600;
-  color: var(--p-ink);
-}
-
-.catalog-section__hint {
-  font-size: var(--p-fs-body-sm);
-  color: var(--p-ink-2);
-}
-
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -310,6 +277,12 @@ onMounted(async () => {
   gap: var(--p-3);
 }
 
+.remote-card__avatar {
+  flex: none;
+  filter: saturate(0.5);
+  opacity: 0.85;
+}
+
 .remote-card__tile {
   display: flex;
   align-items: center;
@@ -369,7 +342,6 @@ onMounted(async () => {
 
 .remote-card__foot {
   display: flex;
-  justify-content: flex-end;
 }
 
 .subscribe-dialog__body {
