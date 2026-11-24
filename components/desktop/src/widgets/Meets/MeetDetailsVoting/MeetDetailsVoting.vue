@@ -21,13 +21,22 @@ section.meet-voting
       :number='index + 1',
       :question='item'
     )
-      BaseSegmented(
-        v-if='canVoteNow',
-        :model-value='votes[index] ?? null',
-        @update:model-value='(value) => setVote(index, value)',
-        :options='voteOptions',
-        :aria-label='$t("meet.meetDetailsVoting.yourVoteLabel")'
-      )
+      //- Кружок-переключатель в рамке и значок показывают, что вариант отмечается нажатием.
+      .vote-options(v-if='canVoteNow', role='radiogroup', :aria-label='$t("meet.meetDetailsVoting.yourVoteLabel")')
+        label.vote-option(
+          v-for='option in voteOptions',
+          :key='option.value',
+          :class='[`vote-option--${option.value}`, { "vote-option--selected": votes[index] === option.value }]'
+        )
+          q-radio(
+            :model-value='votes[index] ?? null',
+            :val='option.value',
+            :color='option.color',
+            size='md',
+            @update:model-value='(value) => setVote(index, value)'
+          )
+          q-icon.vote-option__icon(:name='option.icon', size='18px')
+          span.vote-option__label {{ option.label }}
       BaseBadge(v-else-if='myVote(item)', :variant='voteVariant(myVote(item))')
         | {{ $t('meet.meetDetailsVoting.yourVote', { vote: voteLabel(myVote(item)) }) }}
 
@@ -43,7 +52,7 @@ section.meet-voting
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { BaseBadge, BaseButton, BaseSegmented } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { MeetQuestion } from 'src/widgets/Meets/MeetQuestion';
 import { noVoteMessage, type IMeet } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
@@ -85,9 +94,9 @@ const isVoted = computed(() => Boolean(props.meet?.processing?.isVoted));
 const canVoteNow = computed(() => !noVote.value && !isVoted.value);
 
 const voteOptions = computed(() => [
-  { value: 'for', label: t('meet.meetDetailsVoting.forOption') },
-  { value: 'against', label: t('meet.meetDetailsVoting.againstOption') },
-  { value: 'abstained', label: t('meet.meetDetailsVoting.abstainOption') },
+  { value: 'for', label: t('meet.meetDetailsVoting.forOption'), icon: 'thumb_up', color: 'positive' },
+  { value: 'against', label: t('meet.meetDetailsVoting.againstOption'), icon: 'thumb_down', color: 'negative' },
+  { value: 'abstained', label: t('meet.meetDetailsVoting.abstainOption'), icon: 'remove_circle_outline', color: 'grey' },
 ]);
 
 const selectedCount = computed(
@@ -223,6 +232,67 @@ const submitVote = async () => {
   border-top: 1px solid var(--p-line);
   border-radius: 0 0 var(--p-r-lg, 16px) var(--p-r-lg, 16px);
 }
+
+.vote-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--p-2, 8px);
+}
+
+.vote-option {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  min-height: 48px;
+  padding: var(--p-2, 8px) var(--p-3, 12px);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm, 8px);
+  background: var(--p-surface-2);
+  cursor: pointer;
+  transition: border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+
+  &:hover {
+    border-color: var(--p-line-2);
+  }
+}
+
+.vote-option__icon {
+  color: var(--p-ink-3);
+}
+
+.vote-option__label {
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+// Выбранный вариант — рамка и значок цвета ответа.
+.vote-option--for.vote-option--selected {
+  border-color: var(--p-pos);
+  .vote-option__icon {
+    color: var(--p-pos);
+  }
+}
+
+.vote-option--against.vote-option--selected {
+  border-color: var(--p-neg);
+  .vote-option__icon {
+    color: var(--p-neg);
+  }
+}
+
+.vote-option--abstained.vote-option--selected {
+  border-color: var(--p-ink-3);
+  .vote-option__icon {
+    color: var(--p-ink-2);
+  }
+}
+
+@media (max-width: 600px) {
+  .vote-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 .meet-voting__count {
   font-size: var(--p-fs-body-sm, 13px);

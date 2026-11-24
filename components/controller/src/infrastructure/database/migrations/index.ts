@@ -14,6 +14,7 @@ import { CoreSignedDocumentParticipants1794926742339 } from './1794926742339-sig
 import { CoreSignedDocumentJournal1794992888820 } from './1794992888820-signed-document-journal';
 import { CoreSettingsCoopLogo1795200000000 } from './1795200000000-settings-coop-logo';
 import { CoreExtensionsSoftUninstall1795501306341 } from './1795501306341-extensions-soft-uninstall';
+import { CoreMeetPreReplacedBy1795536951950 } from './1795536951950-meet-pre-replaced-by';
 
 /**
  * Миграции таблиц ядра — в порядке появления (метка времени в имени класса).
@@ -35,4 +36,5 @@ export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [Core
   CorePayoutRequests1793781600000,
   CoreDepositPaymentExpiry1793869546649,
   CoreBankSafePaymentPurpose1793946153183, CoreSignedDocumentParticipants1794926742339,
-  CoreSignedDocumentJournal1794992888820, CoreSettingsCoopLogo1795200000000, CoreExtensionsSoftUninstall1795501306341];
+  CoreSignedDocumentJournal1794992888820, CoreSettingsCoopLogo1795200000000, CoreExtensionsSoftUninstall1795501306341,
+  CoreMeetPreReplacedBy1795536951950];

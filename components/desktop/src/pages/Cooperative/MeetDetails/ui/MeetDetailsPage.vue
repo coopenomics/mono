@@ -62,7 +62,7 @@ import { MeetDetailsAgenda } from 'src/widgets/Meets/MeetDetailsAgenda';
 import { MeetDetailsVoting } from 'src/widgets/Meets/MeetDetailsVoting';
 import { MeetDetailsResults } from 'src/widgets/Meets/MeetDetailsResults';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { useMeetStore, MEET_LIVE_TABLES, canSignNotification } from 'src/entities/Meet';
+import { useMeetStore, MEET_LIVE_TABLES, canSignNotification, useMeetBoundaryReload } from 'src/entities/Meet';
 import { useDesktopStore } from 'src/entities/Desktop';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
@@ -120,6 +120,11 @@ const loadMeetDetails = async (silent = false) => {
       { silent },
     );
     if (meet.value) setMeet(meet.value);
+    // Собрание созвано повторно: сервер вернул действующий созыв под новым
+    // хэшем — адрес страницы переводится на него, ссылка по старому не пустует.
+    const actualHash = meet.value?.hash;
+    if (actualHash && actualHash.toUpperCase() !== meetHash.value.toUpperCase())
+      void router.replace({ name: route.name ?? undefined, params: { ...route.params, hash: actualHash } });
   } catch (error: any) {
     // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
     if (!silent) FailAlert(error);
@@ -156,6 +161,13 @@ onMounted(() => {
 // пайщиков, открытие, закрытие и подпись протокола приходят сигналом.
 useLiveReload(
   MEET_LIVE_TABLES,
+  () => loadMeetDetails(true),
+);
+
+// Открытие и закрытие голосования событием цепи не являются: страница сама
+// перечитывает собрание в эти моменты.
+useMeetBoundaryReload(
+  () => (meet.value ? [meet.value] : []),
   () => loadMeetDetails(true),
 );
 

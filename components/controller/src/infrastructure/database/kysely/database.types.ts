@@ -2502,6 +2502,7 @@ export interface MeetPre {
   open_at: Timestamp;
   presider: string;
   proposal: Json | null;
+  replaced_by: string | null;
   secretary: string;
 }
 

@@ -142,7 +142,25 @@ export class MeetInteractor {
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
-  async getMeet(data: GetMeetInputDomainInterface, username?: string): Promise<MeetAggregate> {
+  /**
+   * Повторный созыв меняет хэш собрания в цепи. Ссылка по прежнему хэшу ведёт
+   * к действующему созыву по цепочке замен; цепочка ограничена, чтобы ошибка в
+   * данных не зациклила чтение.
+   */
+  private async currentMeetHash(hash: string): Promise<string> {
+    let current = hash;
+    for (let hop = 0; hop < MeetInteractor.MAX_RESTART_HOPS; hop++) {
+      const next = await this.meetPreRepository.findReplacement(current);
+      if (!next) return current;
+      current = next;
+    }
+    return current;
+  }
+
+  private static readonly MAX_RESTART_HOPS = 20;
+
+  async getMeet(input: GetMeetInputDomainInterface, username?: string): Promise<MeetAggregate> {
+    const data = { ...input, hash: await this.currentMeetHash(input.hash) };
     // Получаем данные из блокчейна через порт
     const processingMeet = await this.meetBlockchainPort.getMeet({
       coopname: data.coopname,
@@ -249,6 +267,7 @@ export class MeetInteractor {
     });
 
     await this.meetPreRepository.create(preProcessing);
+    await this.meetPreRepository.markReplaced(data.hash, new_hash);
 
     const preMeet = await this.meetPreRepository.findByHash(new_hash);
     const processedMeetEntity = await this.meetProcessedRepository.findByHash(new_hash);

@@ -18,6 +18,16 @@ export interface MeetPreProcessingRepository {
    * @param hash Хеш собрания
    */
   deleteByHash(hash: string): Promise<void>;
+  /**
+   * Отметить, что собрание созвано повторно под новым хэшем: черновик прежнего
+   * созыва помнит новый хэш, и ссылка по прежнему ведёт к действующему собранию.
+   */
+  markReplaced(hash: string, replacedBy: string): Promise<void>;
+  /**
+   * Новый хэш собрания после повторного созыва; `null` — повторного созыва не было.
+   * @param hash Хеш прежнего созыва
+   */
+  findReplacement(hash: string): Promise<string | null>;
 }
 
 export const MEET_PRE_PROCESSING_REPOSITORY = Symbol('MeetPreProcessingRepository');
