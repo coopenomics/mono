@@ -16,6 +16,9 @@ title: Общее собрание пайщиков — созыв по подп
 # прежний; форма собрания покрыта test-registry/meet.assembly-form.yaml.
 
 sources:
+  ui:
+    - components/desktop/src/features/Meet/CloseMeetWithDecision/**
+    - components/desktop/src/widgets/Meets/MeetDetailsActions/**
   backend:
     - components/controller/src/application/meet/**
     - components/controller/src/domain/meet/**
@@ -79,4 +82,21 @@ cases:
     expect: отказ MEET_NOT_FOUND со статусом 404, без внутреннего текста
     test: components/api-tests/src/meet/general-meet.test.ts
     api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing
+
+  # 24.11.2026 (A86-3, решение владельца): протокол собрания вслепую не подписывается.
+  - id: meet.gm.ui.01
+    level: ui
+    kind: side
+    scenario: Секретарь нажимает «Подписать протокол», председатель — «Утвердить протокол»
+    expect: открывается окно с текстом протокола (у председателя — с подписью секретаря); стол подписывает протокол только по подтверждению в окне
+    test: components/desktop/test/unit/meet-protocol-preview.test.ts
+    status: passing
+
+  - id: meet.gm.ui.02
+    level: ui
+    kind: break
+    scenario: Секретарь открыл протокол и нажал «Назад»
+    expect: окно закрывается, протокол не подписан, транзакции нет
+    test: components/desktop/test/unit/meet-protocol-preview.test.ts
     status: passing

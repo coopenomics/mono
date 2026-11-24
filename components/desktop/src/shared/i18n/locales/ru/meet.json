@@ -78,6 +78,8 @@
     },
     "meetDetailsActions": {
       "approveProtocol": "Утвердить протокол",
+      "protocolPreviewNotice": "Прочитайте протокол перед подписью. Если в нём ошибка, вернитесь и не подписывайте.",
+      "protocolPreviewTitle": "Протокол общего собрания",
       "signProtocol": "Подписать протокол"
     },
     "meetDetailsAgenda": {

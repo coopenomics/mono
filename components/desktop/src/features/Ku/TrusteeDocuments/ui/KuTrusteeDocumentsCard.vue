@@ -73,6 +73,7 @@ import { BaseBadge, BaseButton, BaseCard, BaseDialog, TableSkeleton } from 'src/
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
+import { previewAggregate } from 'src/entities/Document/model';
 import type { IGeneratedDocument } from 'src/shared/lib/document';
 import { t } from 'src/shared/i18n';
 import { useKuTrusteeDocuments } from '../model';
@@ -131,7 +132,7 @@ const previewTitle = computed(() =>
 // неподписанный документ: подписей ещё нет — минимальный агрегат для BaseDocument
 const previewAggregate = computed(() =>
   prepared.value
-    ? ({ rawDocument: prepared.value, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate)
+    ? previewAggregate(prepared.value)
     : null,
 );
 

@@ -7447,6 +7447,8 @@ export type MessageKey =
   | 'meet.meetCardsList.emptyBody'
   | 'meet.meetCardsList.emptyTitle'
   | 'meet.meetDetailsActions.approveProtocol'
+  | 'meet.meetDetailsActions.protocolPreviewNotice'
+  | 'meet.meetDetailsActions.protocolPreviewTitle'
   | 'meet.meetDetailsActions.signProtocol'
   | 'meet.meetDetailsAgenda.contextLabel'
   | 'meet.meetDetailsAgenda.decisionLabel'

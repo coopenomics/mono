@@ -1,20 +1,22 @@
 <template lang="pug">
 .meet-actions
+  //- Протокол вслепую не подписывается: кнопка открывает текст протокола,
+  //- подпись — по подтверждению в окне (решение владельца 24.11.2026).
   BaseButton(
     v-if="canCloseBySecretary",
     variant="primary",
     :loading="isProcessing",
-    @click="closeMeetBySecretary"
+    @click="openSecretaryProtocol"
   )
-    q-icon(name="fa-solid fa-signature", size="16px")
+    q-icon(name="draw", size="18px")
     span.q-ml-sm {{ $t('meet.meetDetailsActions.signProtocol') }}
   BaseButton(
     v-if="canCloseByPresider",
     variant="primary",
     :loading="isProcessing",
-    @click="closeMeetByPresider"
+    @click="openPresiderProtocol"
   )
-    q-icon(name="fa-solid fa-stamp", size="16px")
+    q-icon(name="approval", size="18px")
     span.q-ml-sm {{ $t('meet.meetDetailsActions.approveProtocol') }}
   RestartMeet(
     v-if="canRestartMeet",
@@ -22,6 +24,19 @@
     :loading="isProcessing",
     @restart="handleRestartMeet"
   )
+
+BaseDialog(
+  v-model="protocolPreviewOpen",
+  :title="$t('meet.meetDetailsActions.protocolPreviewTitle')",
+  size="lg"
+)
+  template(v-if="protocolPreview")
+    .t-sm.t-muted.q-mb-md {{ $t('meet.meetDetailsActions.protocolPreviewNotice') }}
+    BaseDocument(:document-aggregate="protocolPreview.aggregate")
+    .row.justify-end.q-gutter-sm.q-mt-md
+      BaseButton(variant="secondary", type="button", @click="protocolPreviewOpen = false") {{ $t('common.action.back') }}
+      BaseButton(variant="primary", :loading="isProcessing", @click="confirmProtocol")
+        | {{ protocolPreview.role === 'secretary' ? $t('meet.meetDetailsActions.signProtocol') : $t('meet.meetDetailsActions.approveProtocol') }}
 </template>
 
 <script setup lang="ts">
@@ -30,7 +45,8 @@ import { useRouter } from 'vue-router'
 import { useCloseMeet } from 'src/features/Meet/CloseMeetWithDecision/model'
 import { useRestartMeet } from 'src/features/Meet/RestartMeet/model'
 import { RestartMeet } from 'src/features/Meet/RestartMeet'
-import { BaseButton } from 'src/shared/ui/base/BaseButton'
+import { BaseButton, BaseDialog } from 'src/shared/ui/base'
+import { BaseDocument } from 'src/shared/ui/BaseDocument'
 import { useMeetStore } from 'src/entities/Meet'
 import type { IMeet } from 'src/entities/Meet'
 
@@ -56,8 +72,11 @@ watch(() => props.meet, (newMeet) => {
 const {
   canCloseBySecretary,
   canCloseByPresider,
-  closeMeetBySecretary,
-  closeMeetByPresider
+  protocolPreview,
+  protocolPreviewOpen,
+  openSecretaryProtocol,
+  openPresiderProtocol,
+  confirmProtocol
 } = useCloseMeet(isProcessing)
 
 const {

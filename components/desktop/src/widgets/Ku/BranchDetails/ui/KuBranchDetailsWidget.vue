@@ -132,6 +132,7 @@ import { useKuStore, KU_LIVE_TABLES } from 'src/entities/Ku/model';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
+import { previewAggregate } from 'src/entities/Document/model';
 import { useKuTrustedFlow } from 'src/features/Ku/TrustedFlow/model';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { useSystemStore } from 'src/entities/System/model';
@@ -289,7 +290,7 @@ const trustedPreviewDocs = computed(() => {
   // оборачиваем в минимальный агрегат для предпросмотра (BaseDocument рендерит rawDocument)
   const wrap = (gen: object, title: string) => ({
     title,
-    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate,
+    aggregate: previewAggregate(gen),
   });
   return [
     wrap(d.application, t('ku.kuBranchDetailsWidget.contractDialogTitle')),

@@ -1,5 +1,12 @@
 <template lang="pug">
 .meet-results
+  //- Протокол — главный итог закрытого собрания: сразу под строкой статуса,
+  //- над разбором голосов по вопросам.
+  ExpandableDocument.meet-results__protocol(
+    v-if='protocolDocumentAggregate',
+    :documentAggregate='protocolDocumentAggregate',
+    :title='$t("meet.meetDetailsResults.protocolTitle")'
+  )
   .meet-results__card
     .meet-results__head
       q-icon(name='fact_check', size='18px')
@@ -38,11 +45,6 @@
             span.vote-stat__label {{ $t('meet.meetDetailsResults.abstainedLabel') }}
             span.vote-stat__value {{ item.votes_abstained }}
 
-  ExpandableDocument.meet-results__protocol(
-    v-if='protocolDocumentAggregate',
-    :documentAggregate='protocolDocumentAggregate',
-    :title='$t("meet.meetDetailsResults.protocolTitle")'
-  )
 </template>
 
 <script setup lang="ts">
@@ -235,6 +237,6 @@ const getOutcomeChipClass = (question: any) => {
 
 .meet-results__protocol {
   display: block;
-  margin-top: var(--p-5, 20px);
+  margin-bottom: var(--p-5, 20px);
 }
 </style>
