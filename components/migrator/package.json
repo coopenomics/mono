@@ -14,8 +14,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@coopenomics/docs-factory": "1.6.14",
-    "@coopenomics/docs-templates": "1.6.14",
+    "@coopenomics/docs-factory": "1.6.15",
+    "@coopenomics/docs-templates": "1.6.15",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",
