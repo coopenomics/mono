@@ -2677,7 +2677,9 @@ export type ValueTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
+	version?: string | undefined | null | Variable<any, string>,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null | Variable<any, string>
 };
 	["BranchMeetingDecisionSignedDocumentInput"]: {
 	/** Хэш содержимого документа */
@@ -2731,7 +2733,9 @@ export type ValueTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
+	version: string | Variable<any, string>,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null | Variable<any, string>
 };
 	["BranchMeetingProposalGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -22505,7 +22509,9 @@ export type ResolverInputTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
+	version?: string | undefined | null,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null
 };
 	["BranchMeetingDecisionSignedDocumentInput"]: {
 	/** Хэш содержимого документа */
@@ -22559,7 +22565,9 @@ export type ResolverInputTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
-	version: string
+	version: string,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null
 };
 	["BranchMeetingProposalGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -41752,7 +41760,9 @@ export type ModelTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
+	version?: string | undefined | null,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null
 };
 	["BranchMeetingDecisionSignedDocumentInput"]: {
 	/** Хэш содержимого документа */
@@ -41806,7 +41816,9 @@ export type ModelTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
-	version: string
+	version: string,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null
 };
 	["BranchMeetingProposalGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -61052,7 +61064,9 @@ export type GraphQLTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
+	version?: string | undefined | null,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null
 };
 	["BranchMeetingDecisionSignedDocumentInput"]: {
 		/** Хэш содержимого документа */
@@ -61106,7 +61120,9 @@ export type GraphQLTypes = {
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
-	version: string
+	version: string,
+	/** Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе */
+	voters?: Array<string> | undefined | null
 };
 	["BranchMeetingProposalGenerateDocumentInput"]: {
 		/** Адрес привязки кооперативного участка */

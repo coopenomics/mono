@@ -294,6 +294,18 @@ class BaseBranchMeetingDecisionMetaDocumentInputDTO implements ExcludeCommonProp
   @ValidateNested({ each: true })
   @Type(() => KuProtocolQuestionInputDTO)
   questions!: KuProtocolQuestionInputDTO[];
+
+  // Сборщик протокола 1.1 печатает «Присутствовали пайщики» по этому списку и
+  // кладёт его в мету документа; без поля во входе подписанный протокол
+  // отклонялся схемой. У протоколов версии 1.0 списка нет — поле необязательное.
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  voters?: string[];
 }
 
 @InputType('BranchMeetingDecisionGenerateDocumentInput')
