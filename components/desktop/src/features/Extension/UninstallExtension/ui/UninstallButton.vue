@@ -31,7 +31,7 @@ import { t } from 'src/shared/i18n';
 interface Props {
   extensionName: string;
   /** Название для вопроса подтверждения; без него — техническое имя */
-  extensionTitle?: string;
+  extensionTitle?: string | null;
   disabled?: boolean;
 }
 
