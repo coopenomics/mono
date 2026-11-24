@@ -256,7 +256,7 @@ export class YookassaExtension extends IPNProvider {
               });
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+                { id: payment.id, status: PaymentStatus.FAILED }
               );
             }
             return;
@@ -277,9 +277,12 @@ export class YookassaExtension extends IPNProvider {
 
             if (payment.id) {
               await this.payments.update(payment.id, { status: PaymentStatus.PAID });
+              // Сообщение — объектом: порт сериализует его сам. Строка JSON здесь
+              // сериализовалась дважды, шлюз получал пустой id, и оплаченный
+              // взнос не зачислялся в цепи (24.11.2026).
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.PAID })
+                { id: payment.id, status: PaymentStatus.PAID }
               );
             }
           } else {
@@ -297,7 +300,7 @@ export class YookassaExtension extends IPNProvider {
               });
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+                { id: payment.id, status: PaymentStatus.FAILED }
               );
             }
           }
@@ -309,7 +312,7 @@ export class YookassaExtension extends IPNProvider {
             await this.payments.update(payment.id, { status: PaymentStatus.FAILED });
             this.messageChannel.publish(
               `${platformSettings().coopname}:orderStatusUpdate`,
-              JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+              { id: payment.id, status: PaymentStatus.FAILED }
             );
           }
         }

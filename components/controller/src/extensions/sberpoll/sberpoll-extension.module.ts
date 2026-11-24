@@ -275,7 +275,7 @@ export class SberpollExtension extends PollingProvider {
               });
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+                { id: payment.id, status: PaymentStatus.FAILED }
               );
             }
             continue; // Переходим к следующей транзакции
@@ -297,7 +297,7 @@ export class SberpollExtension extends PollingProvider {
               });
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+                { id: payment.id, status: PaymentStatus.FAILED }
               );
             }
             continue; // Переходим к следующей транзакции
@@ -308,7 +308,7 @@ export class SberpollExtension extends PollingProvider {
             await this.payments.update(payment.id, { status: PaymentStatus.PAID });
             await this.messageChannel.publish(
               `${platformSettings().coopname}:orderStatusUpdate`,
-              JSON.stringify({ id: payment.id, status: PaymentStatus.PAID })
+              { id: payment.id, status: PaymentStatus.PAID }
             );
           }
 
