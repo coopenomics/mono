@@ -5,6 +5,13 @@
       q-icon(name='how_to_vote', size='24px')
     .meet-voting__voted-text {{ $t('meet.meetDetailsVoting.alreadyVoted') }}
 
+  //- Собрание уполномоченных: бюллетень подаёт председатель участка. Пайщик без
+  //- права голоса видит, кто голосует за его участок, а не форму с отказом цепи.
+  .banner.banner--info(v-else-if='noVote')
+    .banner__icon
+      q-icon(name='groups', size='20px')
+    .banner__body {{ $t(noVote.key, noVote.params) }}
+
   template(v-else)
     .meet-voting__head
       q-icon(name='how_to_vote', size='18px')
@@ -67,10 +74,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import type { IMeet } from 'src/entities/Meet';
+import { noVoteMessage, type IMeet } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { signDocument } from 'src/shared/lib/document';
@@ -98,6 +105,9 @@ const {
 } = useVoteOnMeet();
 
 const sessionStore = useSessionStore();
+
+// Право пайщика на собрании считает контроллер; без входа признаков нет — форма как прежде.
+const noVote = computed(() => noVoteMessage(props.meet));
 
 const isVoting = ref(false);
 

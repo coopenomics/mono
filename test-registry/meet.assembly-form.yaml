@@ -20,6 +20,11 @@ sources:
     - components/contracts/cpp/branch/src/createbranch.cpp
     - components/contracts/cpp/branch/src/confirmdec.cpp
     - components/contracts/cpp/meet/meet.hold.standard.yaml
+  ui:
+    - components/desktop/src/entities/Meet/lib/participation.ts
+    - components/desktop/src/widgets/Meets/MeetDetailsVoting/MeetDetailsVoting.vue
+    - components/desktop/src/widgets/Meets/MeetDetailsAgenda/MeetDetailsAgenda.vue
+    - components/desktop/src/shared/ui/MeetInfoCard/ui/MeetInfoCard.vue
   backend:
     - components/controller/src/domain/meet/utils/meet-voters.ts
     - components/controller/src/domain/meet/services/meet-voters-domain.service.ts
@@ -201,4 +206,37 @@ cases:
     expect: отказ MEET_NOT_TRUSTEE или MEET_BRANCH_ALREADY_VOTED до обращения в цепь, транзакции нет
     test: components/controller/tests/unit/meet/meet-voters.test.ts
     api: components/api-tests/src/meet/full-cycle.test.ts
+    status: passing
+
+  # ── Рабочий стол (задача A86-3) ─────────────────────────────────────────
+  - id: meet.form.ui.happy.01
+    level: ui
+    kind: happy
+    scenario: Пайщик открывает идущее собрание пайщиков; председатель участка — собрание уполномоченных
+    expect: бюллетень и подтверждение уведомления на странице
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing
+
+  - id: meet.form.ui.side.01
+    level: ui
+    kind: side
+    scenario: Рядовой пайщик открывает собрание уполномоченных
+    expect: вместо бюллетеня строка «Голосует председатель вашего участка — ФИО»; без участка — «Голосуют председатели кооперативных участков»; кнопки подтверждения уведомления нет
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing
+
+  - id: meet.form.ui.side.02
+    level: ui
+    kind: side
+    scenario: Участок уже проголосовал, страницу открывает новый председатель участка
+    expect: вместо бюллетеня строка «Ваш кооперативный участок уже подал голос»; подтверждение уведомления доступно
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing
+
+  - id: meet.form.ui.side.03
+    level: ui
+    kind: side
+    scenario: Ответ собрания без права пайщика (запрос без входа)
+    expect: страница работает как до появления формы собрания — бюллетень и подтверждение доступны
+    test: components/desktop/test/unit/meet-participation.test.ts
     status: passing

@@ -24,8 +24,9 @@
         span.meet-agenda-card__value(v-else) —
 
   .meet-agenda__foot
+    //- На собрании уполномоченных получение уведомления подтверждают председатели участков.
     SignNotificationButton(
-      v-if='coopname && meetHash',
+      v-if='coopname && meetHash && canNotify',
       :coopname='coopname',
       :meetHash='meetHash'
     )
@@ -33,7 +34,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { IMeet } from 'src/entities/Meet';
+import { canSignNotification, type IMeet } from 'src/entities/Meet';
 import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
 import { SignNotificationButton } from 'src/features/Meet/SignNotification/ui';
 import { parseLinks } from 'src/shared/lib/utils';
@@ -46,6 +47,8 @@ const props = defineProps<{
 
 const coopname = computed(() => props.coopname || '');
 const meetHash = computed(() => props.meetHash || '');
+// Право считает контроллер; без признаков (запрос без входа) кнопка остаётся как прежде.
+const canNotify = computed(() => canSignNotification(props.meet));
 
 const meetDetailsHtml = computed(() => {
   const raw = props.meet?.pre?.details?.trim();
