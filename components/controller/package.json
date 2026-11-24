@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/controller",
-  "version": "2026.11.23-1",
+  "version": "2026.11.24",
   "description": "Бэкенд GraphQL API кооператива на NestJS",
   "private": true,
   "main": "src/index.ts",
