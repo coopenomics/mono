@@ -1,0 +1,153 @@
+feature: greetings.birthday
+title: Поздравления пайщиков с днём рождения по шаблону председателя
+
+# Приложение «Поздравления» (C28-75, 24.11.2026). Председатель пишет шаблон
+# письма с периодом действия и переменными, проверяет письмо на пайщике и
+# включает шаблон. Каждое утро рассылка отправляет письма именинникам дня —
+# физическим лицам и индивидуальным предпринимателям — через центр
+# уведомлений; журнал держит одну запись на пайщика в год. Календарь дней
+# рождения — своя выборка приложения с индексом (месяц, день), её пополняют
+# события ядра о вступлении и личных данных пайщика.
+sources:
+  backend:
+    - components/controller/src/extensions/greetings/**
+    - components/controller/src/application/account/lib/participant-profile-updated.ts
+    - components/notifications/src/workflows/birthday-greeting/**
+  ui:
+    - components/desktop/extensions/greetings/**
+
+cases:
+  - id: grt.tpl.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель сохраняет черновик шаблона, совет читает список шаблонов
+    expect: шаблон записан черновиком на председателя и виден совету
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.tpl.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель включает шаблон в рассылку и возвращает в черновики
+    expect: состояние шаблона меняется на «действует» и обратно
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.tpl.side.01
+    level: backend
+    kind: side
+    scenario: включение шаблона с неизвестной переменной
+    expect: отказ GREETINGS_TEMPLATE_UNKNOWN_VARIABLES, шаблон остаётся черновиком
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.tpl.side.02
+    level: backend
+    kind: side
+    scenario: включение второго шаблона с тем же периодом, что у действующего
+    expect: отказ GREETINGS_TEMPLATE_PERIOD_TAKEN с названием действующего шаблона
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.tpl.side.03
+    level: backend
+    kind: side
+    scenario: сохранение шаблона с началом периода позже окончания
+    expect: отказ GREETINGS_TEMPLATE_PERIOD_INVALID
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.tpl.side.04
+    level: backend
+    kind: side
+    scenario: член совета пишет шаблон, пайщик без роли в совете читает шаблоны
+    expect: оба запроса отклонены KIT_INSUFFICIENT_RIGHTS
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.tpl.happy.03
+    level: backend
+    kind: happy
+    scenario: выбор шаблона на дату при годовом шаблоне и шаблоне на месяц
+    expect: в дни месяца берётся шаблон месяца, в остальные — годовой; черновик не берётся
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    external: unreachable
+    external_reason: выбор шаблона срабатывает в рассылке по расписанию в день рождения пайщика; снаружи стенда нельзя перевести часы узла на нужную дату
+    status: written
+
+  - id: grt.prv.happy.01
+    level: backend
+    kind: happy
+    scenario: стол запрашивает переменные шаблона для панели вставки
+    expect: возвращены слова переменных — Фамилия, Имя, Отчество, Обращение, Возраст, Летие, Кооператив, Председатель
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.prv.happy.02
+    level: backend
+    kind: happy
+    scenario: предпросмотр несохранённого текста на ближайшем имениннике
+    expect: переменные подставлены, Markdown превращён в HTML, неизвестная переменная названа в ответе
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.prv.side.01
+    level: backend
+    kind: side
+    scenario: в тексте шаблона и в ФИО пайщика встречается HTML
+    expect: разметка экранирована, тег script в письмо не попадает
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.cal.side.01
+    level: backend
+    kind: side
+    scenario: пайщик родился 29 февраля, год невисокосный
+    expect: поздравление отправляется 28 февраля
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    external: unreachable
+    external_reason: правило срабатывает в рассылке по расписанию 28 февраля невисокосного года; снаружи стенда нельзя перевести часы узла
+    status: written
+
+  - id: grt.cal.side.02
+    level: backend
+    kind: side
+    scenario: день рождения по часовой зоне кооператива наступил раньше, чем по UTC
+    expect: сегодняшний день берётся по часовой зоне кооператива
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    external: unreachable
+    external_reason: проверяется тиком рассылки на границе суток; снаружи стенда нельзя выбрать момент запуска расписания
+    status: written
+
+  - id: grt.snd.happy.01
+    level: backend
+    kind: happy
+    scenario: рассылка в день рождения действующего пайщика с почтой при действующем шаблоне
+    expect: центр уведомлений принял письмо, журнал записал одну строку на пайщика и год
+    test: ~
+    status: missing
+
+  - id: grt.snd.side.01
+    level: backend
+    kind: side
+    scenario: повторный запуск рассылки в тот же день
+    expect: принятое к доставке письмо не повторяется, пропуск и ошибка повторяются
+    test: ~
+    status: missing
+
+  - id: grt.ui.happy.01
+    level: ui
+    kind: happy
+    scenario: председатель вставляет переменную в место курсора и видит письмо в предпросмотре
+    expect: переменная встаёт в позицию курсора темы или текста, предпросмотр обновляется
+    test: ~
+    status: missing
