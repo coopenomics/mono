@@ -43,6 +43,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useSystemStore } from 'src/entities/System/model'
 import { usePaymentProvider } from '../model'
 import { api as extensionApi } from 'src/entities/Extension/api'
+import { useLiveReload } from 'src/shared/lib/realtime'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { t } from '../../../i18n';
 
@@ -111,15 +112,24 @@ const resetForm = () => {
   formData.value = { ...originalData.value }
 }
 
-// Загрузка данных при монтировании
-onMounted(() => {
+// Установлена ли и включена ЮKassa: при открытии и по сигналу ленты — председатель
+// мог включить или выключить её в каталоге, не закрывая страницу.
+const loadYookassaReady = (): Promise<void> =>
   extensionApi
     .loadExtensions({ name: 'yookassa' })
     .then((list) => {
       const ext = list.find((e) => e.name === 'yookassa')
       yookassaReady.value = Boolean(ext?.is_installed && ext?.enabled)
     })
-    .catch(() => (yookassaReady.value = false))
+    .catch(() => {
+      yookassaReady.value = false
+    })
+
+useLiveReload([{ code: 'core', table: 'extensions' }], loadYookassaReady)
+
+// Загрузка данных при монтировании
+onMounted(() => {
+  void loadYookassaReady()
 
   if (systemStore.info?.settings) {
     const settings = systemStore.info.settings

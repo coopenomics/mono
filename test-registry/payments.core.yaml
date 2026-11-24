@@ -12,8 +12,16 @@ title: Платежи ядра — паевой платёж, статус, че
 # закрывают случаи: 59d8b7349bc (статус меняет только совет, реквизиты —
 # владелец или председатель), 3f22ba9d792 (платежи пайщика по точному имени).
 
+# Правка 24.11.2026 (487-28): ЮKassa открыта вне основной сети. Отклонение
+# кассиром входящего платежа провайдера, который сам принимает деньги, сначала
+# оформляет возврат у провайдера (порт `refundPayment`), потом меняет статус;
+# сбой возврата платёж не отклоняет. Комиссия ЮKassa — из настроек. Сигнал
+# шлюзу об оплате расширения публикуют объектом: строкой JSON он
+# сериализовался дважды, и оплаченный взнос не зачислялся в цепи.
+
 sources:
   backend:
+    - components/controller/src/extensions/yookassa/yookassa-extension.module.ts
     - components/controller/src/application/gateway/resolvers/*.ts
     - components/controller/src/application/gateway/services/gateway.service.ts
     - components/controller/src/application/gateway/services/payment-files.service.ts
@@ -258,11 +266,14 @@ cases:
     level: backend
     kind: side
     scenario: уведомление провайдера об оплате (ipn) — запись в журнал уведомлений и перевод платежа в PAID
-    expect: уведомление без подтверждения провайдером платёж не меняет; повтор того же уведомления не обрабатывается второй раз
-    test: ~
-    status: missing
+    expect: >
+      уведомление без подтверждения провайдером платёж не меняет; повтор того же
+      уведомления не обрабатывается второй раз; оплата публикует шлюзу сигнал
+      объектом { id, status } — шлюз проводит взнос в цепи
+    test: components/controller/tests/unit/gateway/yookassa-ipn-verify.test.ts
+    status: passing
     external: unreachable
-    external_reason: "уведомление принимает только расширение ЮKassa, а оно помечено «не ставится нигде»: через API его не установить, адрес API провайдера не настраивается"
+    external_reason: "уведомление подтверждается запросом в ЮKassa ключом магазина: снаружи нужен настоящий платёж в ЮKassa"
 
   - id: pay.core.side.19
     level: backend
@@ -380,4 +391,41 @@ cases:
     test: components/controller/tests/unit/extension-kit/bank-safe-text.test.ts
     external: unreachable
     external_reason: "назначение записывает сервер при создании платежа; снаружи видно только итог, отдельной операции у замены нет"
+    status: passing
+
+  - id: pay.core.side.30
+    level: backend
+    kind: side
+    scenario: кассир отклоняет входящий платёж ЮKassa, по которому деньги поступили (недобор комиссии)
+    expect: >
+      ЮKassa возвращает плательщику всю оплаченную сумму, затем платёж отклоняется
+      с припиской о возврате; повторное отклонение второй возврат не создаёт
+      (ключ идемпотентности не длиннее 64 знаков); неоплаченный платёж
+      отклоняется без возврата
+    test: components/controller/tests/unit/gateway/yookassa-refund-fee.test.ts
+    external: unreachable
+    external_reason: "возврат оформляет ЮKassa по настоящему оплаченному платежу: снаружи нужен платёж в магазине ЮKassa"
+    status: passing
+
+  - id: pay.core.break.30
+    level: backend
+    kind: break
+    scenario: ЮKassa отказала в возврате либо платёж ЮKassa принадлежит чужому секрету
+    expect: >
+      платёж не отклоняется, кассир видит причину текстом ЮKassa
+      (YOOKASSA_REQUEST_REFUSED, YOOKASSA_REFUND_CANCELED,
+      YOOKASSA_REFUND_FOREIGN_PAYMENT), а не «Internal Server Error»
+    test: components/controller/tests/unit/gateway/yookassa-refund-fee.test.ts
+    external: unreachable
+    external_reason: "отказ даёт ЮKassa по настоящему платежу: снаружи его не вызвать"
+    status: passing
+
+  - id: pay.core.side.31
+    level: backend
+    kind: side
+    scenario: сумма к оплате через ЮKassa по наибольшей комиссии из настроек приложения
+    expect: сумма к оплате = взнос / (1 − комиссия); после удержания комиссии поступает не меньше взноса
+    test: components/controller/tests/unit/gateway/yookassa-refund-fee.test.ts
+    external: unreachable
+    external_reason: "платёж ЮKassa создаётся ключами магазина: снаружи нужен магазин ЮKassa"
     status: passing

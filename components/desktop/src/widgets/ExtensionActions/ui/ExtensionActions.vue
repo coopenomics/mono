@@ -46,7 +46,7 @@
     )
     SettingsButton
     DisableButton(v-if='extension.enabled', :extension='extension')
-    UninstallButton(:extension-name='extension.name', :extension-title='extension.title')
+    UninstallButton(:extension-name='extension.name', :extension-title='extension.title ?? undefined')
     DesktopsList(:desktops='extension.desktops')
 </template>
 

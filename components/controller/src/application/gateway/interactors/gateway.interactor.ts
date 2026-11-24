@@ -288,7 +288,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       } catch (e: any) {
         const message = e?.message ?? String(e);
         // переходный период до 30.07.2026: on-chain объекта нет — старый путь
-        if (chainErrorCode(e) === 'GATEWAY_OUTCOME_NOT_FOUND') {
+        if (chainErrorCode(e) === 'GATEWAY_OUTCOME_NOT_FOUND') { // enum-literal: код отказа контракта gateway из текста ошибки цепи, перечисления кодов цепи нет
           if (payment.id) {
             await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
           }
