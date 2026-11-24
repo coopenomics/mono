@@ -2502,6 +2502,9 @@ export interface MeetPre {
   open_at: Timestamp;
   presider: string;
   proposal: Json | null;
+  /**
+   * Хэш собрания после повторного созыва; пусто — собрание не созывалось повторно
+   */
   replaced_by: string | null;
   secretary: string;
 }
