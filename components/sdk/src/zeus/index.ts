@@ -10452,6 +10452,145 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on GlobalSearchRoute']?: Omit<ValueTypes["GlobalSearchRoute"], "...on GlobalSearchRoute">
 }>;
+	/** Пайщик — физическое лицо или индивидуальный предприниматель */
+["GreetingAccountType"]:GreetingAccountType;
+	/** День рождения пайщика в календаре */
+["GreetingCalendarEntry"]: AliasType<{
+	/** Физическое лицо или индивидуальный предприниматель */
+	account_type?:boolean | `@${string}`,
+	/** Сколько лет исполняется в году календаря */
+	age?:boolean | `@${string}`,
+	/** Дата поздравления в году календаря, ГГГГ-ММ-ДД */
+	date?:boolean | `@${string}`,
+	/** День рождения */
+	day?:boolean | `@${string}`,
+	/** ФИО пайщика */
+	displayName?:boolean | `@${string}`,
+	/** Месяц рождения, 1–12 */
+	month?:boolean | `@${string}`,
+	/** Итог поздравления в году календаря; пусто — ещё не поздравляли */
+	send_status?:boolean | `@${string}`,
+	/** Шаблон, который рассылка возьмёт на дату поздравления */
+	template_title?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingCalendarEntry']?: Omit<ValueTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
+}>;
+	/** Письмо, которое получит пайщик */
+["GreetingPreview"]: AliasType<{
+	/** Сколько лет исполняется в ближайший день рождения */
+	age?:boolean | `@${string}`,
+	/** Тело письма в HTML */
+	bodyHtml?:boolean | `@${string}`,
+	/** ФИО пайщика */
+	displayName?:boolean | `@${string}`,
+	/** Тема письма */
+	subject?:boolean | `@${string}`,
+	/** Неизвестные переменные текста: такой шаблон нельзя включить */
+	unknownVariables?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingPreview']?: Omit<ValueTypes["GreetingPreview"], "...on GreetingPreview">
+}>;
+	/** Текст для предпросмотра письма на пайщике */
+["GreetingPreviewInput"]: {
+	/** Текст письма в Markdown с переменными */
+	body: string | Variable<any, string>,
+	/** Тема письма с переменными */
+	subject: string | Variable<any, string>,
+	/** Пайщик для предпросмотра; без него — ближайший именинник */
+	username?: string | undefined | null | Variable<any, string>
+};
+	/** Запись журнала поздравлений */
+["GreetingSend"]: AliasType<{
+	/** Число попыток */
+	attempts?:boolean | `@${string}`,
+	/** Когда поздравление записано в журнал впервые */
+	created_at?:boolean | `@${string}`,
+	/** ФИО пайщика */
+	displayName?:boolean | `@${string}`,
+	/** Текст ошибки отправки */
+	error?:boolean | `@${string}`,
+	/** Идентификатор записи */
+	id?:boolean | `@${string}`,
+	/** Почему поздравление не отправлено */
+	reason?:boolean | `@${string}`,
+	/** Итог поздравления */
+	status?:boolean | `@${string}`,
+	/** Тема отправленного письма */
+	subject?:boolean | `@${string}`,
+	/** Название шаблона на момент отправки */
+	template_title?:boolean | `@${string}`,
+	/** Когда запись журнала изменена */
+	updated_at?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+	/** Год поздравления */
+	year?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingSend']?: Omit<ValueTypes["GreetingSend"], "...on GreetingSend">
+}>;
+	/** Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась */
+["GreetingSendStatus"]:GreetingSendStatus;
+	/** Почему поздравление не отправлено */
+["GreetingSkipReason"]:GreetingSkipReason;
+	/** Шаблон поздравления с днём рождения */
+["GreetingTemplate"]: AliasType<{
+	/** Текст письма в Markdown с переменными */
+	body?:boolean | `@${string}`,
+	/** Когда создан */
+	created_at?:boolean | `@${string}`,
+	/** Кто создал шаблон */
+	created_by?:boolean | `@${string}`,
+	/** Идентификатор шаблона */
+	id?:boolean | `@${string}`,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end?:boolean | `@${string}`,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start?:boolean | `@${string}`,
+	/** Состояние шаблона */
+	status?:boolean | `@${string}`,
+	/** Тема письма с переменными */
+	subject?:boolean | `@${string}`,
+	/** Название шаблона, например «Поздравление на 2026 год» */
+	title?:boolean | `@${string}`,
+	/** Когда изменён */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingTemplate']?: Omit<ValueTypes["GreetingTemplate"], "...on GreetingTemplate">
+}>;
+	/** Шаблон поздравления: новый или правка существующего */
+["GreetingTemplateInput"]: {
+	/** Текст письма в Markdown с переменными */
+	body: string | Variable<any, string>,
+	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
+	id?: string | undefined | null | Variable<any, string>,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end: string | Variable<any, string>,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start: string | Variable<any, string>,
+	/** Тема письма с переменными */
+	subject: string | Variable<any, string>,
+	/** Название шаблона */
+	title: string | Variable<any, string>
+};
+	/** Состояние шаблона поздравления: черновик или действует */
+["GreetingTemplateStatus"]:GreetingTemplateStatus;
+	/** Переменная шаблона поздравления */
+["GreetingVariable"]:GreetingVariable;
+	/** Переменная, которую можно вставить в шаблон */
+["GreetingVariableInfo"]: AliasType<{
+	/** Что подставляется */
+	description?:boolean | `@${string}`,
+	/** Слово переменной в тексте шаблона, например «Имя» */
+	token?:boolean | `@${string}`,
+	/** Переменная */
+	variable?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingVariableInfo']?: Omit<ValueTypes["GreetingVariableInfo"], "...on GreetingVariableInfo">
+}>;
 	["ImportContributorInput"]: {
 	/** Дата соглашения Благорост в формате DD.MM.YYYY */
 	blagorost_agreement_created_at: string | Variable<any, string>,
@@ -15612,6 +15751,9 @@ generateSignatureAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Vari
 generateSovietDecisionOnAnnualMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingSovietDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateUserAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+greetingsDeleteTemplate?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+greetingsSaveTemplate?: [{	data: ValueTypes["GreetingTemplateInput"] | Variable<any, string>},ValueTypes["GreetingTemplate"]],
+greetingsSetTemplateStatus?: [{	id: string | Variable<any, string>,	status: ValueTypes["GreetingTemplateStatus"] | Variable<any, string>},ValueTypes["GreetingTemplate"]],
 initSystem?: [{	data: ValueTypes["Init"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 installExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTypes["SystemInfo"]],
@@ -16513,6 +16655,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedGatewayPaymentsPaginationResult']?: Omit<ValueTypes["PaginatedGatewayPaymentsPaginationResult"], "...on PaginatedGatewayPaymentsPaginationResult">
+}>;
+	["PaginatedGreetingSendsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["GreetingSend"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedGreetingSendsPaginationResult']?: Omit<ValueTypes["PaginatedGreetingSendsPaginationResult"], "...on PaginatedGreetingSendsPaginationResult">
 }>;
 	["PaginatedKuDecisionsPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -18081,6 +18235,15 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, st
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState?:ValueTypes["WithheldTaxState"],
 globalSearch?: [{	data: ValueTypes["GlobalSearchInput"] | Variable<any, string>},ValueTypes["GlobalSearchGroup"]],
+greetingsCalendar?: [{	month: number | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GreetingCalendarEntry"]],
+greetingsJournal?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGreetingSendsPaginationResult"]],
+greetingsPreview?: [{	data: ValueTypes["GreetingPreviewInput"] | Variable<any, string>},ValueTypes["GreetingPreview"]],
+greetingsTemplate?: [{	id: string | Variable<any, string>},ValueTypes["GreetingTemplate"]],
+	/** Шаблоны поздравлений, новые периоды первыми */
+	greetingsTemplates?:ValueTypes["GreetingTemplate"],
+greetingsUpcoming?: [{	limit: number | Variable<any, string>},ValueTypes["GreetingCalendarEntry"]],
+	/** Переменные, которые можно вставить в шаблон */
+	greetingsVariables?:ValueTypes["GreetingVariableInfo"],
 inviteRecipient?: [{	data: ValueTypes["InviteRecipientInput"] | Variable<any, string>},ValueTypes["InviteRecipient"]],
 isEmailRegistered?: [{	data: ValueTypes["EmailRegistrationCheckInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
@@ -30081,6 +30244,140 @@ export type ResolverInputTypes = {
 	query?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Пайщик — физическое лицо или индивидуальный предприниматель */
+["GreetingAccountType"]:GreetingAccountType;
+	/** День рождения пайщика в календаре */
+["GreetingCalendarEntry"]: AliasType<{
+	/** Физическое лицо или индивидуальный предприниматель */
+	account_type?:boolean | `@${string}`,
+	/** Сколько лет исполняется в году календаря */
+	age?:boolean | `@${string}`,
+	/** Дата поздравления в году календаря, ГГГГ-ММ-ДД */
+	date?:boolean | `@${string}`,
+	/** День рождения */
+	day?:boolean | `@${string}`,
+	/** ФИО пайщика */
+	displayName?:boolean | `@${string}`,
+	/** Месяц рождения, 1–12 */
+	month?:boolean | `@${string}`,
+	/** Итог поздравления в году календаря; пусто — ещё не поздравляли */
+	send_status?:boolean | `@${string}`,
+	/** Шаблон, который рассылка возьмёт на дату поздравления */
+	template_title?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Письмо, которое получит пайщик */
+["GreetingPreview"]: AliasType<{
+	/** Сколько лет исполняется в ближайший день рождения */
+	age?:boolean | `@${string}`,
+	/** Тело письма в HTML */
+	bodyHtml?:boolean | `@${string}`,
+	/** ФИО пайщика */
+	displayName?:boolean | `@${string}`,
+	/** Тема письма */
+	subject?:boolean | `@${string}`,
+	/** Неизвестные переменные текста: такой шаблон нельзя включить */
+	unknownVariables?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Текст для предпросмотра письма на пайщике */
+["GreetingPreviewInput"]: {
+	/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Тема письма с переменными */
+	subject: string,
+	/** Пайщик для предпросмотра; без него — ближайший именинник */
+	username?: string | undefined | null
+};
+	/** Запись журнала поздравлений */
+["GreetingSend"]: AliasType<{
+	/** Число попыток */
+	attempts?:boolean | `@${string}`,
+	/** Когда поздравление записано в журнал впервые */
+	created_at?:boolean | `@${string}`,
+	/** ФИО пайщика */
+	displayName?:boolean | `@${string}`,
+	/** Текст ошибки отправки */
+	error?:boolean | `@${string}`,
+	/** Идентификатор записи */
+	id?:boolean | `@${string}`,
+	/** Почему поздравление не отправлено */
+	reason?:boolean | `@${string}`,
+	/** Итог поздравления */
+	status?:boolean | `@${string}`,
+	/** Тема отправленного письма */
+	subject?:boolean | `@${string}`,
+	/** Название шаблона на момент отправки */
+	template_title?:boolean | `@${string}`,
+	/** Когда запись журнала изменена */
+	updated_at?:boolean | `@${string}`,
+	/** Имя аккаунта пайщика */
+	username?:boolean | `@${string}`,
+	/** Год поздравления */
+	year?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась */
+["GreetingSendStatus"]:GreetingSendStatus;
+	/** Почему поздравление не отправлено */
+["GreetingSkipReason"]:GreetingSkipReason;
+	/** Шаблон поздравления с днём рождения */
+["GreetingTemplate"]: AliasType<{
+	/** Текст письма в Markdown с переменными */
+	body?:boolean | `@${string}`,
+	/** Когда создан */
+	created_at?:boolean | `@${string}`,
+	/** Кто создал шаблон */
+	created_by?:boolean | `@${string}`,
+	/** Идентификатор шаблона */
+	id?:boolean | `@${string}`,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end?:boolean | `@${string}`,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start?:boolean | `@${string}`,
+	/** Состояние шаблона */
+	status?:boolean | `@${string}`,
+	/** Тема письма с переменными */
+	subject?:boolean | `@${string}`,
+	/** Название шаблона, например «Поздравление на 2026 год» */
+	title?:boolean | `@${string}`,
+	/** Когда изменён */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Шаблон поздравления: новый или правка существующего */
+["GreetingTemplateInput"]: {
+	/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
+	id?: string | undefined | null,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end: string,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start: string,
+	/** Тема письма с переменными */
+	subject: string,
+	/** Название шаблона */
+	title: string
+};
+	/** Состояние шаблона поздравления: черновик или действует */
+["GreetingTemplateStatus"]:GreetingTemplateStatus;
+	/** Переменная шаблона поздравления */
+["GreetingVariable"]:GreetingVariable;
+	/** Переменная, которую можно вставить в шаблон */
+["GreetingVariableInfo"]: AliasType<{
+	/** Что подставляется */
+	description?:boolean | `@${string}`,
+	/** Слово переменной в тексте шаблона, например «Имя» */
+	token?:boolean | `@${string}`,
+	/** Переменная */
+	variable?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ImportContributorInput"]: {
 	/** Дата соглашения Благорост в формате DD.MM.YYYY */
 	blagorost_agreement_created_at: string,
@@ -35084,6 +35381,9 @@ generateSignatureAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"
 generateSovietDecisionOnAnnualMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingSovietDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateUserAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+greetingsDeleteTemplate?: [{	id: string},boolean | `@${string}`],
+greetingsSaveTemplate?: [{	data: ResolverInputTypes["GreetingTemplateInput"]},ResolverInputTypes["GreetingTemplate"]],
+greetingsSetTemplateStatus?: [{	id: string,	status: ResolverInputTypes["GreetingTemplateStatus"]},ResolverInputTypes["GreetingTemplate"]],
 initSystem?: [{	data: ResolverInputTypes["Init"]},ResolverInputTypes["SystemInfo"]],
 installExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["SystemInfo"]],
@@ -35934,6 +36234,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["GatewayPayment"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedGreetingSendsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["GreetingSend"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -37455,6 +37766,15 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | u
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState?:ResolverInputTypes["WithheldTaxState"],
 globalSearch?: [{	data: ResolverInputTypes["GlobalSearchInput"]},ResolverInputTypes["GlobalSearchGroup"]],
+greetingsCalendar?: [{	month: number,	year: number},ResolverInputTypes["GreetingCalendarEntry"]],
+greetingsJournal?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGreetingSendsPaginationResult"]],
+greetingsPreview?: [{	data: ResolverInputTypes["GreetingPreviewInput"]},ResolverInputTypes["GreetingPreview"]],
+greetingsTemplate?: [{	id: string},ResolverInputTypes["GreetingTemplate"]],
+	/** Шаблоны поздравлений, новые периоды первыми */
+	greetingsTemplates?:ResolverInputTypes["GreetingTemplate"],
+greetingsUpcoming?: [{	limit: number},ResolverInputTypes["GreetingCalendarEntry"]],
+	/** Переменные, которые можно вставить в шаблон */
+	greetingsVariables?:ResolverInputTypes["GreetingVariableInfo"],
 inviteRecipient?: [{	data: ResolverInputTypes["InviteRecipientInput"]},ResolverInputTypes["InviteRecipient"]],
 isEmailRegistered?: [{	data: ResolverInputTypes["EmailRegistrationCheckInputDTO"]},boolean | `@${string}`],
 kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
@@ -49066,6 +49386,130 @@ export type ModelTypes = {
 	/** Параметры запроса в адресе страницы */
 	query?: ModelTypes["JSON"] | undefined | null
 };
+	["GreetingAccountType"]:GreetingAccountType;
+	/** День рождения пайщика в календаре */
+["GreetingCalendarEntry"]: {
+		/** Физическое лицо или индивидуальный предприниматель */
+	account_type: ModelTypes["GreetingAccountType"],
+	/** Сколько лет исполняется в году календаря */
+	age: number,
+	/** Дата поздравления в году календаря, ГГГГ-ММ-ДД */
+	date: string,
+	/** День рождения */
+	day: number,
+	/** ФИО пайщика */
+	displayName: string,
+	/** Месяц рождения, 1–12 */
+	month: number,
+	/** Итог поздравления в году календаря; пусто — ещё не поздравляли */
+	send_status?: ModelTypes["GreetingSendStatus"] | undefined | null,
+	/** Шаблон, который рассылка возьмёт на дату поздравления */
+	template_title?: string | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	/** Письмо, которое получит пайщик */
+["GreetingPreview"]: {
+		/** Сколько лет исполняется в ближайший день рождения */
+	age?: number | undefined | null,
+	/** Тело письма в HTML */
+	bodyHtml: string,
+	/** ФИО пайщика */
+	displayName: string,
+	/** Тема письма */
+	subject: string,
+	/** Неизвестные переменные текста: такой шаблон нельзя включить */
+	unknownVariables: Array<string>,
+	/** Имя аккаунта пайщика */
+	username: string
+};
+	/** Текст для предпросмотра письма на пайщике */
+["GreetingPreviewInput"]: {
+	/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Тема письма с переменными */
+	subject: string,
+	/** Пайщик для предпросмотра; без него — ближайший именинник */
+	username?: string | undefined | null
+};
+	/** Запись журнала поздравлений */
+["GreetingSend"]: {
+		/** Число попыток */
+	attempts: number,
+	/** Когда поздравление записано в журнал впервые */
+	created_at: ModelTypes["DateTime"],
+	/** ФИО пайщика */
+	displayName: string,
+	/** Текст ошибки отправки */
+	error?: string | undefined | null,
+	/** Идентификатор записи */
+	id: string,
+	/** Почему поздравление не отправлено */
+	reason?: ModelTypes["GreetingSkipReason"] | undefined | null,
+	/** Итог поздравления */
+	status: ModelTypes["GreetingSendStatus"],
+	/** Тема отправленного письма */
+	subject?: string | undefined | null,
+	/** Название шаблона на момент отправки */
+	template_title?: string | undefined | null,
+	/** Когда запись журнала изменена */
+	updated_at: ModelTypes["DateTime"],
+	/** Имя аккаунта пайщика */
+	username: string,
+	/** Год поздравления */
+	year: number
+};
+	["GreetingSendStatus"]:GreetingSendStatus;
+	["GreetingSkipReason"]:GreetingSkipReason;
+	/** Шаблон поздравления с днём рождения */
+["GreetingTemplate"]: {
+		/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Когда создан */
+	created_at: ModelTypes["DateTime"],
+	/** Кто создал шаблон */
+	created_by: string,
+	/** Идентификатор шаблона */
+	id: string,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end: string,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start: string,
+	/** Состояние шаблона */
+	status: ModelTypes["GreetingTemplateStatus"],
+	/** Тема письма с переменными */
+	subject: string,
+	/** Название шаблона, например «Поздравление на 2026 год» */
+	title: string,
+	/** Когда изменён */
+	updated_at: ModelTypes["DateTime"]
+};
+	/** Шаблон поздравления: новый или правка существующего */
+["GreetingTemplateInput"]: {
+	/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
+	id?: string | undefined | null,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end: string,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start: string,
+	/** Тема письма с переменными */
+	subject: string,
+	/** Название шаблона */
+	title: string
+};
+	["GreetingTemplateStatus"]:GreetingTemplateStatus;
+	["GreetingVariable"]:GreetingVariable;
+	/** Переменная, которую можно вставить в шаблон */
+["GreetingVariableInfo"]: {
+		/** Что подставляется */
+	description: string,
+	/** Слово переменной в тексте шаблона, например «Имя» */
+	token: string,
+	/** Переменная */
+	variable: ModelTypes["GreetingVariable"]
+};
 	["ImportContributorInput"]: {
 	/** Дата соглашения Благорост в формате DD.MM.YYYY */
 	blagorost_agreement_created_at: string,
@@ -54082,6 +54526,12 @@ export type ModelTypes = {
 	generateUserAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" */
 	generateWalletAgreement: ModelTypes["GeneratedDocument"],
+	/** Удалить шаблон поздравления */
+	greetingsDeleteTemplate: boolean,
+	/** Сохранить шаблон поздравления: без идентификатора создаётся черновик */
+	greetingsSaveTemplate: ModelTypes["GreetingTemplate"],
+	/** Включить шаблон в рассылку либо вернуть в черновики */
+	greetingsSetTemplateStatus: ModelTypes["GreetingTemplate"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: ModelTypes["SystemInfo"],
 	/** Установить расширение */
@@ -55082,6 +55532,16 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["GatewayPayment"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedGreetingSendsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["GreetingSend"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -56684,6 +57144,20 @@ export type ModelTypes = {
 	getWithheldTaxState: ModelTypes["WithheldTaxState"],
 	/** Единый поиск: пайщики, документы и записи приложений, сгруппированные по источнику */
 	globalSearch: Array<ModelTypes["GlobalSearchGroup"]>,
+	/** Дни рождения пайщиков месяца */
+	greetingsCalendar: Array<ModelTypes["GreetingCalendarEntry"]>,
+	/** Журнал поздравлений, свежие записи первыми */
+	greetingsJournal: ModelTypes["PaginatedGreetingSendsPaginationResult"],
+	/** Письмо по несохранённому тексту на выбранном пайщике либо на ближайшем имениннике */
+	greetingsPreview: ModelTypes["GreetingPreview"],
+	/** Шаблон поздравления */
+	greetingsTemplate: ModelTypes["GreetingTemplate"],
+	/** Шаблоны поздравлений, новые периоды первыми */
+	greetingsTemplates: Array<ModelTypes["GreetingTemplate"]>,
+	/** Ближайшие дни рождения пайщиков */
+	greetingsUpcoming: Array<ModelTypes["GreetingCalendarEntry"]>,
+	/** Переменные, которые можно вставить в шаблон */
+	greetingsVariables: Array<ModelTypes["GreetingVariableInfo"]>,
 	/** Получатель приглашения по токену из письма */
 	inviteRecipient: ModelTypes["InviteRecipient"],
 	/** Зарегистрирован ли в кооперативе пайщик с этой электронной почтой */
@@ -68839,6 +69313,145 @@ export type GraphQLTypes = {
 	query?: GraphQLTypes["JSON"] | undefined | null,
 	['...on GlobalSearchRoute']: Omit<GraphQLTypes["GlobalSearchRoute"], "...on GlobalSearchRoute">
 };
+	/** Пайщик — физическое лицо или индивидуальный предприниматель */
+["GreetingAccountType"]: GreetingAccountType;
+	/** День рождения пайщика в календаре */
+["GreetingCalendarEntry"]: {
+	__typename: "GreetingCalendarEntry",
+	/** Физическое лицо или индивидуальный предприниматель */
+	account_type: GraphQLTypes["GreetingAccountType"],
+	/** Сколько лет исполняется в году календаря */
+	age: number,
+	/** Дата поздравления в году календаря, ГГГГ-ММ-ДД */
+	date: string,
+	/** День рождения */
+	day: number,
+	/** ФИО пайщика */
+	displayName: string,
+	/** Месяц рождения, 1–12 */
+	month: number,
+	/** Итог поздравления в году календаря; пусто — ещё не поздравляли */
+	send_status?: GraphQLTypes["GreetingSendStatus"] | undefined | null,
+	/** Шаблон, который рассылка возьмёт на дату поздравления */
+	template_title?: string | undefined | null,
+	/** Имя аккаунта пайщика */
+	username: string,
+	['...on GreetingCalendarEntry']: Omit<GraphQLTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
+};
+	/** Письмо, которое получит пайщик */
+["GreetingPreview"]: {
+	__typename: "GreetingPreview",
+	/** Сколько лет исполняется в ближайший день рождения */
+	age?: number | undefined | null,
+	/** Тело письма в HTML */
+	bodyHtml: string,
+	/** ФИО пайщика */
+	displayName: string,
+	/** Тема письма */
+	subject: string,
+	/** Неизвестные переменные текста: такой шаблон нельзя включить */
+	unknownVariables: Array<string>,
+	/** Имя аккаунта пайщика */
+	username: string,
+	['...on GreetingPreview']: Omit<GraphQLTypes["GreetingPreview"], "...on GreetingPreview">
+};
+	/** Текст для предпросмотра письма на пайщике */
+["GreetingPreviewInput"]: {
+		/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Тема письма с переменными */
+	subject: string,
+	/** Пайщик для предпросмотра; без него — ближайший именинник */
+	username?: string | undefined | null
+};
+	/** Запись журнала поздравлений */
+["GreetingSend"]: {
+	__typename: "GreetingSend",
+	/** Число попыток */
+	attempts: number,
+	/** Когда поздравление записано в журнал впервые */
+	created_at: GraphQLTypes["DateTime"],
+	/** ФИО пайщика */
+	displayName: string,
+	/** Текст ошибки отправки */
+	error?: string | undefined | null,
+	/** Идентификатор записи */
+	id: string,
+	/** Почему поздравление не отправлено */
+	reason?: GraphQLTypes["GreetingSkipReason"] | undefined | null,
+	/** Итог поздравления */
+	status: GraphQLTypes["GreetingSendStatus"],
+	/** Тема отправленного письма */
+	subject?: string | undefined | null,
+	/** Название шаблона на момент отправки */
+	template_title?: string | undefined | null,
+	/** Когда запись журнала изменена */
+	updated_at: GraphQLTypes["DateTime"],
+	/** Имя аккаунта пайщика */
+	username: string,
+	/** Год поздравления */
+	year: number,
+	['...on GreetingSend']: Omit<GraphQLTypes["GreetingSend"], "...on GreetingSend">
+};
+	/** Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась */
+["GreetingSendStatus"]: GreetingSendStatus;
+	/** Почему поздравление не отправлено */
+["GreetingSkipReason"]: GreetingSkipReason;
+	/** Шаблон поздравления с днём рождения */
+["GreetingTemplate"]: {
+	__typename: "GreetingTemplate",
+	/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Когда создан */
+	created_at: GraphQLTypes["DateTime"],
+	/** Кто создал шаблон */
+	created_by: string,
+	/** Идентификатор шаблона */
+	id: string,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end: string,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start: string,
+	/** Состояние шаблона */
+	status: GraphQLTypes["GreetingTemplateStatus"],
+	/** Тема письма с переменными */
+	subject: string,
+	/** Название шаблона, например «Поздравление на 2026 год» */
+	title: string,
+	/** Когда изменён */
+	updated_at: GraphQLTypes["DateTime"],
+	['...on GreetingTemplate']: Omit<GraphQLTypes["GreetingTemplate"], "...on GreetingTemplate">
+};
+	/** Шаблон поздравления: новый или правка существующего */
+["GreetingTemplateInput"]: {
+		/** Текст письма в Markdown с переменными */
+	body: string,
+	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
+	id?: string | undefined | null,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	period_end: string,
+	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	period_start: string,
+	/** Тема письма с переменными */
+	subject: string,
+	/** Название шаблона */
+	title: string
+};
+	/** Состояние шаблона поздравления: черновик или действует */
+["GreetingTemplateStatus"]: GreetingTemplateStatus;
+	/** Переменная шаблона поздравления */
+["GreetingVariable"]: GreetingVariable;
+	/** Переменная, которую можно вставить в шаблон */
+["GreetingVariableInfo"]: {
+	__typename: "GreetingVariableInfo",
+	/** Что подставляется */
+	description: string,
+	/** Слово переменной в тексте шаблона, например «Имя» */
+	token: string,
+	/** Переменная */
+	variable: GraphQLTypes["GreetingVariable"],
+	['...on GreetingVariableInfo']: Omit<GraphQLTypes["GreetingVariableInfo"], "...on GreetingVariableInfo">
+};
 	["ImportContributorInput"]: {
 		/** Дата соглашения Благорост в формате DD.MM.YYYY */
 	blagorost_agreement_created_at: string,
@@ -74233,6 +74846,12 @@ export type GraphQLTypes = {
 	generateUserAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" */
 	generateWalletAgreement: GraphQLTypes["GeneratedDocument"],
+	/** Удалить шаблон поздравления */
+	greetingsDeleteTemplate: boolean,
+	/** Сохранить шаблон поздравления: без идентификатора создаётся черновик */
+	greetingsSaveTemplate: GraphQLTypes["GreetingTemplate"],
+	/** Включить шаблон в рассылку либо вернуть в черновики */
+	greetingsSetTemplateStatus: GraphQLTypes["GreetingTemplate"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: GraphQLTypes["SystemInfo"],
 	/** Установить расширение */
@@ -75335,6 +75954,18 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedGatewayPaymentsPaginationResult']: Omit<GraphQLTypes["PaginatedGatewayPaymentsPaginationResult"], "...on PaginatedGatewayPaymentsPaginationResult">
+};
+	["PaginatedGreetingSendsPaginationResult"]: {
+	__typename: "PaginatedGreetingSendsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["GreetingSend"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedGreetingSendsPaginationResult']: Omit<GraphQLTypes["PaginatedGreetingSendsPaginationResult"], "...on PaginatedGreetingSendsPaginationResult">
 };
 	["PaginatedKuDecisionsPaginationResult"]: {
 	__typename: "PaginatedKuDecisionsPaginationResult",
@@ -77067,6 +77698,20 @@ export type GraphQLTypes = {
 	getWithheldTaxState: GraphQLTypes["WithheldTaxState"],
 	/** Единый поиск: пайщики, документы и записи приложений, сгруппированные по источнику */
 	globalSearch: Array<GraphQLTypes["GlobalSearchGroup"]>,
+	/** Дни рождения пайщиков месяца */
+	greetingsCalendar: Array<GraphQLTypes["GreetingCalendarEntry"]>,
+	/** Журнал поздравлений, свежие записи первыми */
+	greetingsJournal: GraphQLTypes["PaginatedGreetingSendsPaginationResult"],
+	/** Письмо по несохранённому тексту на выбранном пайщике либо на ближайшем имениннике */
+	greetingsPreview: GraphQLTypes["GreetingPreview"],
+	/** Шаблон поздравления */
+	greetingsTemplate: GraphQLTypes["GreetingTemplate"],
+	/** Шаблоны поздравлений, новые периоды первыми */
+	greetingsTemplates: Array<GraphQLTypes["GreetingTemplate"]>,
+	/** Ближайшие дни рождения пайщиков */
+	greetingsUpcoming: Array<GraphQLTypes["GreetingCalendarEntry"]>,
+	/** Переменные, которые можно вставить в шаблон */
+	greetingsVariables: Array<GraphQLTypes["GreetingVariableInfo"]>,
 	/** Получатель приглашения по токену из письма */
 	inviteRecipient: GraphQLTypes["InviteRecipient"],
 	/** Зарегистрирован ли в кооперативе пайщик с этой электронной почтой */
@@ -80553,6 +81198,39 @@ export enum GlobalSearchGroupStatus {
 	OK = "OK",
 	TIMEOUT = "TIMEOUT"
 }
+/** Пайщик — физическое лицо или индивидуальный предприниматель */
+export enum GreetingAccountType {
+	ENTREPRENEUR = "ENTREPRENEUR",
+	INDIVIDUAL = "INDIVIDUAL"
+}
+/** Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась */
+export enum GreetingSendStatus {
+	FAILED = "FAILED",
+	SENT = "SENT",
+	SKIPPED = "SKIPPED"
+}
+/** Почему поздравление не отправлено */
+export enum GreetingSkipReason {
+	NOT_ACTIVE = "NOT_ACTIVE",
+	NO_RECIPIENT = "NO_RECIPIENT",
+	NO_TEMPLATE = "NO_TEMPLATE"
+}
+/** Состояние шаблона поздравления: черновик или действует */
+export enum GreetingTemplateStatus {
+	ACTIVE = "ACTIVE",
+	DRAFT = "DRAFT"
+}
+/** Переменная шаблона поздравления */
+export enum GreetingVariable {
+	ADDRESS = "ADDRESS",
+	AGE = "AGE",
+	ANNIVERSARY = "ANNIVERSARY",
+	CHAIRMAN = "CHAIRMAN",
+	COOPERATIVE = "COOPERATIVE",
+	FIRST_NAME = "FIRST_NAME",
+	LAST_NAME = "LAST_NAME",
+	MIDDLE_NAME = "MIDDLE_NAME"
+}
 /** Статусы жизненного цикла инстанса кооператива */
 export enum InstanceStatus {
 	ACTIVE = "ACTIVE",
@@ -81791,6 +82469,13 @@ type ZEUS_VARIABLES = {
 	["GetVoteInput"]: ValueTypes["GetVoteInput"];
 	["GlobalSearchGroupStatus"]: ValueTypes["GlobalSearchGroupStatus"];
 	["GlobalSearchInput"]: ValueTypes["GlobalSearchInput"];
+	["GreetingAccountType"]: ValueTypes["GreetingAccountType"];
+	["GreetingPreviewInput"]: ValueTypes["GreetingPreviewInput"];
+	["GreetingSendStatus"]: ValueTypes["GreetingSendStatus"];
+	["GreetingSkipReason"]: ValueTypes["GreetingSkipReason"];
+	["GreetingTemplateInput"]: ValueTypes["GreetingTemplateInput"];
+	["GreetingTemplateStatus"]: ValueTypes["GreetingTemplateStatus"];
+	["GreetingVariable"]: ValueTypes["GreetingVariable"];
 	["ImportContributorInput"]: ValueTypes["ImportContributorInput"];
 	["Init"]: ValueTypes["Init"];
 	["Install"]: ValueTypes["Install"];
