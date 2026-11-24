@@ -37,9 +37,12 @@ export function formatDay(date: string, withYear = true): string {
   return withYear ? `${day}.${month}.${year}` : `${day}.${month}`;
 }
 
-/** Момент времени → `ДД.ММ.ГГГГ ЧЧ:ММ` по местному времени стола. */
-export function formatMoment(value: string | Date): string {
-  const date = new Date(value);
+/**
+ * Момент времени → `ДД.ММ.ГГГГ ЧЧ:ММ` по местному времени стола. Параметр
+ * `unknown`: скаляр даты Zeus типизирует так, а сервер отдаёт строку ISO.
+ */
+export function formatMoment(value: unknown): string {
+  const date = value instanceof Date ? value : new Date(String(value));
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
