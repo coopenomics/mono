@@ -1,18 +1,18 @@
 <template lang="pug">
 .meet-results
-  //- Протокол — главный итог закрытого собрания: сразу под строкой статуса,
-  //- над разбором голосов по вопросам.
-  ExpandableDocument.meet-results__protocol(
-    v-if='protocolDocumentAggregate',
-    :documentAggregate='protocolDocumentAggregate',
-    :title='$t("meet.meetDetailsResults.protocolTitle")'
-  )
   .meet-results__card
     .meet-results__head
       q-icon(name='fact_check', size='18px')
       span.meet-results__title {{ $t('meet.meetDetailsResults.title') }}
 
     .meet-results__items
+      //- Протокол — итог собрания, часть результатов: строка внутри карточки,
+      //- разворачивается по нажатию (решение владельца 24.11.2026).
+      ExpandableDocument.meet-results__protocol(
+        v-if='protocolDocumentAggregate',
+        :documentAggregate='protocolDocumentAggregate',
+        :title='$t("meet.meetDetailsResults.protocolTitle")'
+      )
       .meet-result-card(
         v-for='(item, index) in meetAgendaItems',
         :key='index'
@@ -235,8 +235,11 @@ const getOutcomeChipClass = (question: any) => {
   color: var(--p-ink);
 }
 
-.meet-results__protocol {
+// Строка протокола выглядит как блоки вопросов: рамка и радиус те же,
+// внешних отступов нет — расстояние задаёт список результатов.
+.meet-results__items .meet-results__protocol {
   display: block;
-  margin-bottom: var(--p-5, 20px);
+  margin: 0;
+  border-radius: var(--p-r-md, 12px);
 }
 </style>
