@@ -55,6 +55,11 @@ title: Доступность расширений в зависимости о�
 # расширению сохранённый config (мягкое удаление, случаи ext.soft.* в
 # system.extensions); проверка доступности в сети не менялась.
 
+# Правка 24.11.2026 (487-28): в реестре расширений поменялись только тексты
+# страниц каталога — getReadmeContent читает CATALOG.md раньше README.md,
+# у «Стола Совета» текст из builtin/soviet вместо чужого каталога yookassa.
+# Доступность расширений в сети не менялась.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

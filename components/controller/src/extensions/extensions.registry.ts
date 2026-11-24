@@ -84,8 +84,17 @@ interface INamedExtension {
 }
 
 // Асинхронные функции для чтения Markdown
+/**
+ * Текст страницы расширения в каталоге — для председателя и совета.
+ * `CATALOG.md` главнее `README.md`: у расширения, где README — документация
+ * для разработчиков (Стол заказов), текст каталога лежит отдельно.
+ */
 function getReadmeContent(dirPath: string): Promise<string> {
-  return fs.readFile(path.join(__dirname, dirPath, 'README.md'), 'utf-8').catch(() => '');
+  const dir = path.join(__dirname, dirPath);
+  return fs
+    .readFile(path.join(dir, 'CATALOG.md'), 'utf-8')
+    .catch(() => fs.readFile(path.join(dir, 'README.md'), 'utf-8'))
+    .catch(() => '');
 }
 function getInstructionsContent(dirPath: string): Promise<string> {
   return fs.readFile(path.join(__dirname, dirPath, 'INSTALL.md'), 'utf-8').catch(() => '');
@@ -145,8 +154,8 @@ export const AppRegistry: INamedExtension = {
     schema: BuiltinSchema,
     ports: builtinPorts,
     tags: [t('app.extensionsRegistry.soviet.tagDesk'), t('app.extensionsRegistry.soviet.tagManagement')],
-    readme: getReadmeContent('./yookassa'),
-    instructions: getInstructionsContent('./yookassa'),
+    readme: getReadmeContent('./builtin/soviet'),
+    instructions: getInstructionsContent('./builtin/soviet'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

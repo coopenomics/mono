@@ -1,10 +1,11 @@
 <template lang="pug">
 .extension-page(v-if='extension')
-  button.extension-page__back(type='button', @click='goBack')
-    q-icon(name='fa-solid fa-chevron-left' size='13px')
-    span {{ $t('common.action.back') }}
-
   .extension-page__panel
+    //- «Назад» — внутри карточки, в её левом верхнем углу: карточка стоит
+    //- сразу под шапкой и не сдвигается (замечание владельца 24.11.2026)
+    button.extension-page__back(type='button', @click='goBack')
+      q-icon(name='chevron_left' size='18px')
+      span {{ $t('common.action.back') }}
     .extension-page__grid
       aside.extension-page__side
         AutoAvatar.extension-page__logo(
@@ -115,7 +116,9 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
   display: inline-flex;
   align-items: center;
   gap: var(--p-1, 4px);
-  margin-bottom: var(--p-5, 20px);
+  // Над сеткой, у левого верхнего края карточки: отрицательные отступы
+  // подтягивают кнопку в угол, ближе к краю, чем поле карточки
+  margin: calc(-1 * var(--p-2, 8px)) 0 var(--p-3, 12px) calc(-1 * var(--p-2, 8px));
   padding: 0;
   border: 0;
   background: transparent;
