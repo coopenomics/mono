@@ -21,6 +21,7 @@ import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/int
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import httpStatus from 'http-status';
 import { DomainError } from '@coopenomics/extension-kit';
+import { MeetVotersDomainService } from '~/domain/meet/services/meet-voters-domain.service';
 
 @Injectable()
 export class MeetInteractor {
@@ -29,8 +30,33 @@ export class MeetInteractor {
     @Inject(MEET_REPOSITORY) private readonly meetPreRepository: MeetPreProcessingRepository,
     @Inject(MEET_PROCESSED_REPOSITORY) private readonly meetProcessedRepository: MeetProcessedRepository,
     @Inject(MEET_BLOCKCHAIN_PORT) private readonly meetBlockchainPort: MeetBlockchainPort,
-    private readonly documentAggregator: DocumentAggregator
+    private readonly documentAggregator: DocumentAggregator,
+    private readonly meetVoters: MeetVotersDomainService
   ) {}
+
+  /**
+   * Правило собрания уполномоченных, которое держит контракт, проверяется до
+   * обращения в цепь: пайщик получает понятный отказ с кодом, а не текст
+   * отклонённой транзакции. Собрание пайщиков и отсутствие собрания в цепи
+   * пропускаются — их разбирает контракт.
+   */
+  private async assertMeetParticipation(
+    coopname: string,
+    hash: string,
+    username: string,
+    action: 'vote' | 'notify'
+  ): Promise<void> {
+    const processing = await this.meetBlockchainPort.getMeet({ coopname, hash });
+    if (!processing?.meet) return;
+    const participation = await this.meetVoters.getParticipation(processing.meet, username);
+    if (!participation.isTrusteesMeet) return;
+    if (action === 'vote' && !participation.canVote) {
+      throw DomainError.forbidden(participation.branchVoted && participation.canNotify ? 'MEET_BRANCH_ALREADY_VOTED' : 'MEET_NOT_TRUSTEE');
+    }
+    if (action === 'notify' && !participation.canNotify) {
+      throw DomainError.forbidden('MEET_NOT_TRUSTEE');
+    }
+  }
 
   async generateAnnualGeneralMeetAgendaDocument(
     data: Registry.AnnualGeneralMeetingAgenda.Action,
@@ -166,6 +192,7 @@ export class MeetInteractor {
   }
 
   async vote(data: VoteOnAnnualGeneralMeetInputDomainInterface): Promise<MeetAggregate> {
+    await this.assertMeetParticipation(data.coopname, data.hash, data.username, 'vote');
     // Вызов блокчейн порта для голосования
     await this.meetBlockchainPort.vote(data);
 
@@ -286,6 +313,7 @@ export class MeetInteractor {
    * @param data Данные уведомления
    */
   async notifyOnAnnualGeneralMeet(data: NotifyOnAnnualGeneralMeetInputDomainInterface): Promise<MeetAggregate> {
+    await this.assertMeetParticipation(data.coopname, data.meet_hash, data.username, 'notify');
     // Вызов блокчейн порта для отправки уведомления
     await this.meetBlockchainPort.notifyOnAnnualGeneralMeet(data);
 

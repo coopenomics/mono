@@ -4,6 +4,7 @@ import { IsArray, IsEnum, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MeetDTO } from './meet.dto';
 import { QuestionDTO } from './question.dto';
+import { MeetParticipationDTO } from './meet-participation.dto';
 
 @ObjectType('MeetProcessing', { description: 'Данные о собрании в процессе обработки' })
 export class MeetProcessingDTO {
@@ -29,6 +30,12 @@ export class MeetProcessingDTO {
   })
   @IsEnum(ExtendedMeetStatus)
   extendedStatus!: ExtendedMeetStatus;
+
+  @Field(() => MeetParticipationDTO, {
+    nullable: true,
+    description: 'Право текущего пайщика на собрании; пусто, если запрос без входа',
+  })
+  participation?: MeetParticipationDTO | null;
 
   constructor(data: MeetProcessingDTO) {
     Object.assign(this, data);

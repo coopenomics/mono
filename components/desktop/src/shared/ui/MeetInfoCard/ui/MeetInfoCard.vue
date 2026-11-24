@@ -39,7 +39,7 @@
         .meet-info__metric
           span.meet-info__label {{ $t('ui.meetInfoCard.attendanceLabel') }}
           span.meet-info__num {{ turnoutPercent }}%
-      .meet-info__note {{ $t('ui.meetInfoCard.quorumRequirementText', { quorumPercent: meet.processing?.meet?.quorum_percent }) }}
+      .meet-info__note {{ $t(quorumRequirementKey, { quorumPercent: meet.processing?.meet?.quorum_percent }) }}
 
   MeetStatusBanner.meet-info-card__banner(:meet='meet')
 </template>
@@ -58,6 +58,13 @@ const props = defineProps<{
 
 const timezoneLabel = getTimezoneLabel();
 const meetStatus = useMeetStatus(props.meet);
+
+// Собрание уполномоченных: явка считается от числа кооперативных участков.
+const quorumRequirementKey = computed(() =>
+  props.meet.processing?.participation?.isTrusteesMeet
+    ? 'ui.meetInfoCard.quorumRequirementTrusteesText'
+    : 'ui.meetInfoCard.quorumRequirementText',
+);
 
 const turnoutPercent = computed(() => {
   const v = props.meet.processing?.meet?.current_quorum_percent ?? 0;

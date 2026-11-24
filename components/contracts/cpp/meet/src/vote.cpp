@@ -1,14 +1,15 @@
-// Заглушка для получения числа пайщиков кооператива.
-uint64_t get_total_participants(eosio::name coopname) {
-    // Получаем кооператив и проверяем режим участков
+// Знаменатель кворума собрания.
+// Собрание с закреплённой формой: собрание уполномоченных — число участков на
+// момент одобрения советом, собрание пайщиков — активные пайщики.
+// Собрание без формы (одобрено до её появления) — по флагу кооператива сейчас.
+uint64_t get_total_participants(eosio::name coopname, const Meet::meet &meet_record) {
     auto cooperative = get_cooperative_or_fail(coopname);
-    
-    // Если включен режим кооперативных участков, используем количество участков
-    if (cooperative.is_branched) {
-        return Branch::get_branch_count(coopname);
+
+    if (meet_record.is_branched_or(cooperative.is_branched)) {
+        return meet_record.form.has_value() ? meet_record.form.value().branches_count
+                                            : Branch::get_branch_count(coopname);
     }
-    
-    // Иначе используем обычный подсчет активных пайщиков
+
     return Registrator::get_active_participants_count(coopname);
 }
 
@@ -38,12 +39,25 @@ void meet::vote(name coopname, checksum256 hash, name username, document2 ballot
     eosio::check(meet_opt.has_value(), "Собрание не найдено");
     auto meet_record = meet_opt.value();
 
-    // Получаем кооператив для проверки режима участков
+    // Собрание уполномоченных: голосует председатель участка, участок — один раз.
+    // Форма берётся из записи собрания (закреплена при одобрении советом), чтобы
+    // участок, созданный во время собрания пайщиков, не переводил его в другую форму.
     auto cooperative = get_cooperative_or_fail(coopname);
-    
-    // Если включен режим кооперативных участков, проверяем что голосующий является уполномоченным
-    if (cooperative.is_branched) {
-        eosio::check(Branch::is_trustee(coopname, username), "Только уполномоченные кооперативных участков могут голосовать при режиме участков");
+    std::optional<eosio::name> voter_branch;
+
+    if (meet_record.is_branched_or(cooperative.is_branched)) {
+        auto branch = Branch::get_trustee_branch(coopname, username);
+        eosio::check(branch.has_value(),
+                     "MEET_NOT_TRUSTEE: На общем собрании уполномоченных голосуют только председатели кооперативных участков");
+
+        if (meet_record.form.has_value()) {
+            const auto &form = meet_record.form.value();
+            eosio::check(!branch->is_created_after(form.fixed_at),
+                         "MEET_BRANCH_NOT_IN_MEET: Кооперативный участок создан после объявления собрания и в собрании не участвует");
+            eosio::check(!form.has_voted(branch->braname),
+                         "MEET_BRANCH_ALREADY_VOTED: Кооперативный участок уже подал голос на этом собрании");
+            voter_branch = branch->braname;
+        }
     }
 
     // Проверяем статус собрания и временное окно голосования
@@ -114,7 +128,10 @@ void meet::vote(name coopname, checksum256 hash, name username, document2 ballot
     eosio::check(meet_itr != genmeets.end(), "Собрание не найдено при обновлении кворума");
     genmeets.modify(meet_itr, RamPayer::of(genmeets, coopname), [&](auto &m) {
         m.signed_ballots++; // регистрируем принятый бюллетень
-        uint64_t total_participants = get_total_participants(coopname);
+        if (voter_branch.has_value()) {
+            m.form.value().voted_branches.push_back(voter_branch.value());
+        }
+        uint64_t total_participants = get_total_participants(coopname, m);
         if (total_participants == 0) {
             m.current_quorum_percent = 0;
         } else {

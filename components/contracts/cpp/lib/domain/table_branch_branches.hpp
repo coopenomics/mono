@@ -24,6 +24,31 @@ struct [[eosio::table, eosio::contract(BRANCH)]] coobranch {
   // обратную совместимость десериализации (старые записи читаются как публичные с пустым списком).
   eosio::binary_extension<bool> is_private;                  // приватный участок: выбрать его могут только из белого списка
   eosio::binary_extension<std::vector<eosio::name>> whitelist; // белый список аккаунтов, допущенных к выбору приватного участка
+  // Дата создания участка (компонент «Общее собрание уполномоченных»): голосовать на
+  // собрании уполномоченных может председатель участка, созданного не позже
+  // одобрения собрания советом. У участков, созданных до появления поля, даты нет —
+  // они считаются существовавшими всегда.
+  eosio::binary_extension<eosio::time_point_sec> created_at;
+
+  // Расширения сериализуются подряд и только при наличии значения: заданное поле
+  // при пустом предыдущем записалось бы на место предыдущего и испортило строку.
+  // Перед записью любого поля хвоста предыдущие заполняются значениями по умолчанию.
+  void ensure_is_private() {
+    if (!is_private.has_value()) is_private.emplace(false);
+  }
+  void ensure_whitelist() {
+    ensure_is_private();
+    if (!whitelist.has_value()) whitelist.emplace();
+  }
+  /// Новый участок: весь хвост расширений задан, дата создания — сейчас.
+  void set_created_at(eosio::time_point_sec at) {
+    ensure_whitelist();
+    created_at.emplace(at);
+  }
+  /// Участок создан после указанного момента (участки без даты — созданы раньше любого момента).
+  bool is_created_after(eosio::time_point_sec at) const {
+    return created_at.has_value() && created_at.value() > at;
+  }
 
   uint64_t primary_key() const { return braname.value; }
   uint64_t by_trustee() const { return trustee.value; }
@@ -62,9 +87,7 @@ struct [[eosio::table, eosio::contract(BRANCH)]] coobranch {
   void set_private(bool value) { is_private.emplace(value); }
 
   void add_account_to_whitelist(const eosio::name &account) {
-    if (!whitelist.has_value()) {
-      whitelist.emplace();
-    }
+    ensure_whitelist();
     auto &wl = whitelist.value();
     eosio::check(std::find(wl.begin(), wl.end(), account) == wl.end(),
                  "Аккаунт уже добавлен в белый список кооперативного участка");

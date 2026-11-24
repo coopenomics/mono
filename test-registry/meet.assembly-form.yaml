@@ -1,0 +1,242 @@
+feature: meet.assembly-form
+title: Форма общего собрания — собрание пайщиков или собрание уполномоченных
+
+# Компонент 76 «Общее собрание уполномоченных», задача A86-1 (24.11.2026).
+# Форма собрания закрепляется в записи собрания при одобрении советом
+# (meet::authmeet) и до закрытия не меняется. Собрание уполномоченных —
+# голосуют председатели участков, участок голосует один раз, кворум — от
+# числа участков на момент одобрения; порог 75 % и понижение при повторе
+# прежние. Собрания, одобренные до появления формы, работают по флагу
+# кооператива на момент голоса (поле формы в binary_extension).
+
+sources:
+  contract:
+    - components/contracts/cpp/meet/src/authmeet.cpp
+    - components/contracts/cpp/meet/src/vote.cpp
+    - components/contracts/cpp/meet/src/gmnotify.cpp
+    - components/contracts/cpp/meet/include/structs/meet_form.hpp
+    - components/contracts/cpp/meet/include/tables/meet.hpp
+    - components/contracts/cpp/lib/domain/table_branch_branches.hpp
+    - components/contracts/cpp/branch/src/createbranch.cpp
+    - components/contracts/cpp/branch/src/confirmdec.cpp
+    - components/contracts/cpp/meet/meet.hold.standard.yaml
+  ui:
+    - components/desktop/src/entities/Meet/lib/participation.ts
+    - components/desktop/src/widgets/Meets/MeetDetailsVoting/MeetDetailsVoting.vue
+    - components/desktop/src/widgets/Meets/MeetDetailsAgenda/MeetDetailsAgenda.vue
+    - components/desktop/src/shared/ui/MeetInfoCard/ui/MeetInfoCard.vue
+  backend:
+    - components/controller/src/domain/meet/utils/meet-voters.ts
+    - components/controller/src/domain/meet/services/meet-voters-domain.service.ts
+    - components/controller/src/infrastructure/meet/meet-data.adapter.ts
+    - components/controller/src/application/meet/dto/meet-participation.dto.ts
+    - components/controller/src/extensions/participant/meet-workflow-notification.service.ts
+
+cases:
+  - id: meet.form.happy.01
+    level: contract
+    kind: happy
+    scenario: Совет одобряет собрание, кооператив без системы участков
+    expect: в записи собрания форма «собрание пайщиков», число участков 0, проголосовавших участков нет
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.happy.02
+    level: contract
+    kind: happy
+    scenario: На собрании пайщиков голосует рядовой пайщик
+    expect: бюллетень принят, кворум — доля от активных пайщиков
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.01
+    level: contract
+    kind: side
+    scenario: Во время собрания пайщиков создан третий участок, кооператив перешёл на систему участков
+    expect: форма собрания прежняя, рядовой пайщик голосует, кворум по-прежнему от пайщиков
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.happy.03
+    level: contract
+    kind: happy
+    scenario: Совет одобряет собрание кооператива с тремя участками
+    expect: форма «собрание уполномоченных», закреплено число участков 3
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.01
+    level: contract
+    kind: break
+    scenario: На собрании уполномоченных голосует рядовой пайщик
+    expect: отказ MEET_NOT_TRUSTEE
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.02
+    level: contract
+    kind: break
+    scenario: На собрании уполномоченных уведомление подтверждает рядовой пайщик
+    expect: отказ MEET_NOT_TRUSTEE; председатель участка подтверждает и попадает в список оповещённых
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.happy.04
+    level: contract
+    kind: happy
+    scenario: Председатель участка подаёт бюллетень на собрании уполномоченных
+    expect: участок в списке проголосовавших, кворум — один из трёх участков
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.03
+    level: contract
+    kind: break
+    scenario: Председатель участка сменён после голоса участка, новый председатель подаёт бюллетень
+    expect: отказ MEET_BRANCH_ALREADY_VOTED, число бюллетеней прежнее
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.04
+    level: contract
+    kind: break
+    scenario: Председатель участка, созданного после одобрения собрания, голосует и подтверждает уведомление
+    expect: оба действия — отказ MEET_BRANCH_NOT_IN_MEET
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.02
+    level: contract
+    kind: side
+    scenario: Собрание уполномоченных не собрало кворум, созвано повторно, во время созыва создан участок
+    expect: новое одобрение закрепляет число участков на момент одобрения, голоса участков прошлого цикла сброшены, участок голосует снова
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.03
+    level: contract
+    kind: side
+    scenario: Собрание одобрено до появления формы и голосует после обновления контракта
+    expect: голос и кворум по флагу кооператива на момент голоса, как до обновления
+    test: ~
+    status: missing
+    note: на стенде собрание без формы создать нельзя — новый контракт закрепляет форму при каждом одобрении; ветка проверена чтением кода
+
+  - id: meet.form.side.04
+    level: contract
+    kind: side
+    scenario: Председатель кооператива создаёт участок
+    expect: у нового участка задана дата создания, признак приватности и белый список заполнены значениями по умолчанию
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.05
+    level: contract
+    kind: side
+    scenario: В белый список участка, созданного до появления признака приватности, добавляется аккаунт
+    expect: запись заполняет признак приватности перед белым списком, строка читается без порчи
+    test: ~
+    status: missing
+    note: строку старого формата на стенде не создать; ветка проверена чтением кода
+
+  # ── Контроллер (задача A86-2) ───────────────────────────────────────────
+  - id: meet.form.backend.happy.01
+    level: backend
+    kind: happy
+    scenario: Шесть оповещений собрания пайщиков (объявление, до начала, начало, до конца, повторное, завершение)
+    expect: письмо каждому активному пайщику с почтой, обход всех страниц пайщиков; сценарий, кооператив, номер собрания и ссылка в каждом письме
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "рассылку запускает трекер собраний по расписанию; через API её не вызвать, а письма стенда наружу не перехватываются"
+
+  - id: meet.form.backend.happy.02
+    level: backend
+    kind: happy
+    scenario: Шесть оповещений собрания уполномоченных
+    expect: письма только председателям участков собрания; аккаунты читаются по имени, все пайщики не перебираются
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "рассылку запускает трекер собраний по расписанию; через API её не вызвать, а письма стенда наружу не перехватываются"
+
+  - id: meet.form.backend.side.01
+    level: backend
+    kind: side
+    scenario: Председатель участка без активации или без почты; аккаунт председателя не прочитался
+    expect: такой председатель письма не получает, остальные получают; сбой одного аккаунта записан в журнал
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "аккаунт председателя без почты или с ошибкой чтения через API стенда не создать"
+
+  - id: meet.form.backend.break.01
+    level: backend
+    kind: break
+    scenario: Состав голосующих пуст или не прочитался из цепи
+    expect: рассылка не выполнена (трекер повторит), всем пайщикам письмо не отправляется
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "сбой чтения цепи посреди рассылки через API не вызвать"
+
+  - id: meet.form.backend.happy.03
+    level: backend
+    kind: happy
+    scenario: Состав собрания уполномоченных по данным цепи
+    expect: председатели участков, созданных не позже одобрения; собрание пайщиков с формой цепь не читает; собрание без формы следует флагу кооператива
+    test: components/controller/tests/unit/meet/meet-voters.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "участок, созданный после одобрения, и собрание без формы через API стенда не поставить; состав проверяется по правам пайщика в meet.form.backend.happy.04"
+
+  - id: meet.form.backend.happy.04
+    level: backend
+    kind: happy
+    scenario: Право пайщика на собрании для рабочего стола
+    expect: собрание пайщиков — голос и подтверждение у всех; председатель участка — голос и подтверждение; рядовой пайщик — без голоса, с председателем своего участка; участок проголосовал — голоса нет
+    test: components/controller/tests/unit/meet/meet-voters.test.ts
+    api: components/api-tests/src/meet/full-cycle.test.ts
+    status: passing
+
+  - id: meet.form.backend.break.02
+    level: backend
+    kind: break
+    scenario: Рядовой пайщик голосует или подтверждает уведомление на собрании уполномоченных; новый председатель голосует за проголосовавший участок
+    expect: отказ MEET_NOT_TRUSTEE или MEET_BRANCH_ALREADY_VOTED до обращения в цепь, транзакции нет
+    test: components/controller/tests/unit/meet/meet-voters.test.ts
+    api: components/api-tests/src/meet/full-cycle.test.ts
+    status: passing
+
+  # ── Рабочий стол (задача A86-3) ─────────────────────────────────────────
+  - id: meet.form.ui.happy.01
+    level: ui
+    kind: happy
+    scenario: Пайщик открывает идущее собрание пайщиков; председатель участка — собрание уполномоченных
+    expect: бюллетень и подтверждение уведомления на странице
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing
+
+  - id: meet.form.ui.side.01
+    level: ui
+    kind: side
+    scenario: Рядовой пайщик открывает собрание уполномоченных
+    expect: вместо бюллетеня строка «Голосует председатель вашего участка — ФИО»; без участка — «Голосуют председатели кооперативных участков»; кнопки подтверждения уведомления нет
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing
+
+  - id: meet.form.ui.side.02
+    level: ui
+    kind: side
+    scenario: Участок уже проголосовал, страницу открывает новый председатель участка
+    expect: вместо бюллетеня строка «Ваш кооперативный участок уже подал голос»; подтверждение уведомления доступно
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing
+
+  - id: meet.form.ui.side.03
+    level: ui
+    kind: side
+    scenario: Ответ собрания без права пайщика (запрос без входа)
+    expect: страница работает как до появления формы собрания — бюллетень и подтверждение доступны
+    test: components/desktop/test/unit/meet-participation.test.ts
+    status: passing

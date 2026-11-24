@@ -72,6 +72,20 @@ export interface IMeet {
   authorization: IDocument2
   decision1: IDocument2
   decision2: IDocument2
+  /** Форма собрания, закреплённая при одобрении советом; у собраний, одобренных до её появления, отсутствует (binary_extension). */
+  form?: IMeetForm
+}
+
+/** Форма общего собрания: собрание пайщиков или собрание уполномоченных. */
+export interface IMeetForm {
+  /** Собрание уполномоченных — голосуют председатели кооперативных участков. */
+  is_branched: boolean
+  /** Число участков при одобрении собрания — знаменатель кворума собрания уполномоченных. */
+  branches_count: IUint64
+  /** Момент закрепления формы. */
+  fixed_at: ITimePointSec
+  /** Участки, подавшие голос. */
+  voted_branches: IName[]
 }
 
 export interface IMeetPoint {

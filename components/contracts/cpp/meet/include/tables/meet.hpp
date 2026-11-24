@@ -1,3 +1,6 @@
+#include <eosio/binary_extension.hpp>
+#include "../structs/meet_form.hpp"
+
 namespace Meet {
   
 /**
@@ -35,6 +38,17 @@ struct [[eosio::table, eosio::contract(MEET)]] meet {
     document2 authorization;                     ///< Решение совета
     document2 decision1;                         ///< Подпись протокола секретарём общего собрания
     document2 decision2;                         ///< Подпись протокола председателем общего собрания
+
+    // Форма собрания закрепляется при одобрении советом (authmeet). Поле в конце
+    // записи и в binary_extension: собрания, одобренные до его появления,
+    // десериализуются без формы и голосуют по прежним правилам. Новые поля
+    // добавлять только после этого и тоже в binary_extension.
+    eosio::binary_extension<meet_form> form;     ///< Форма собрания: пайщиков или уполномоченных, участки, проголосовавшие участки
+
+    /// Собрание уполномоченных по закреплённой форме; без формы — по флагу кооператива.
+    bool is_branched_or(bool cooperative_is_branched) const {
+        return form.has_value() ? form.value().is_branched : cooperative_is_branched;
+    }
     
     uint64_t primary_key() const { return id; } ///< Основной ключ
     checksum256 by_hash() const { return hash;} ///< Хэш-ключ

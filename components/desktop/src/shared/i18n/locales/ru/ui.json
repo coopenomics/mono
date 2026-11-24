@@ -466,6 +466,7 @@
       "openingLabel": "Открытие",
       "quorumLabel": "Кворум",
       "quorumRequirementText": "Собрание состоится при явке не менее {quorumPercent}% пайщиков",
+      "quorumRequirementTrusteesText": "Собрание уполномоченных состоится при явке не менее {quorumPercent}% уполномоченных кооперативных участков",
       "secretaryLabel": "Секретарь собрания"
     },
     "meetStatusBanner": {
