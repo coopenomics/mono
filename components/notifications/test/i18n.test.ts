@@ -42,6 +42,7 @@ const FROZEN_IDS = [
   'platyozh-vypolnen',
   'podtverzhdenie-vykhoda-iz-kooperativa',
   'postavschik-otmenil-priyomku-na-pvz',
+  'pozdravlenie-s-dnem-rozhdeniya',
   'predlozhenie-otkloneno-moderatsiey',
   'predlozhenie-proshlo-moderatsiyu',
   'predsedatel-odobril-vznos-imushchestvom',

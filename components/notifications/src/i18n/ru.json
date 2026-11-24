@@ -1262,5 +1262,17 @@
       "body": "Доверенность по участку «{{payload.branchName}}» действует по {{payload.validUntil}} — осталось {{payload.daysLeft}} дн.",
       "subject": "Доверенность истекает"
     }
+  },
+  "birthdayGreeting": {
+    "description": "Поздравление пайщика с днём рождения по шаблону председателя кооператива",
+    "email": {
+      "body": "{{payload.bodyHtml}}",
+      "subject": "{{payload.subject}}"
+    },
+    "inApp": {
+      "body": "{{payload.coopShortName}} поздравляет вас с днём рождения. Письмо направлено на вашу электронную почту.",
+      "subject": "{{payload.subject}}"
+    },
+    "name": "Поздравление с днём рождения"
   }
 }
