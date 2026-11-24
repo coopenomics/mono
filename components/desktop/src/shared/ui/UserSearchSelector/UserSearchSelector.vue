@@ -83,6 +83,9 @@ const props = defineProps<{
 // Эмиты
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string | undefined): void;
+  // ФИО (или краткое название организации) выбранного пайщика — для экранов,
+  // которые показывают выбор человеку, а не имя аккаунта.
+  (e: 'update:displayName', value: string): void;
 }>();
 
 // Композабл для поиска пользователей
@@ -93,12 +96,26 @@ const selectedUser = ref<string | undefined>(props.modelValue);
 const searchQuery = ref('');
 const selectedUserData = ref<UserSearchResult | null>(null);
 
-// Отладка при монтировании
+// Поле монтируется заново (возврат на шаг мастера, повторное открытие формы)
+// с уже выбранным именем аккаунта, но без данных пайщика: без них q-select
+// показывает пустое поле, и выбор выглядит сброшенным. Данные выбранного
+// пайщика дочитываются поиском по имени аккаунта.
+async function restoreSelectedUser(username: string | undefined): Promise<void> {
+  if (!username || selectedUserData.value?.data.username === username) return;
+  try {
+    await searchUsers(username);
+    const found = searchResults.value.find((result) => result.data.username === username);
+    if (found && selectedUser.value === username) {
+      selectedUserData.value = found;
+      emit('update:displayName', getDisplayName(found));
+    }
+  } catch {
+    // поле останется с именем аккаунта — выбор при этом не теряется
+  }
+}
+
 onMounted(() => {
-  // console.log('UserSearchSelector mounted');
-  // console.log('searchResults:', searchResults.value);
-  // console.log('loading:', loading.value);
-  // console.log('searchUsers function:', typeof searchUsers);
+  void restoreSelectedUser(props.modelValue);
 });
 
 // Следим за изменениями modelValue
@@ -331,6 +348,7 @@ const onUpdate = (value: UserSearchResult | string | undefined) => {
 
   selectedUser.value = username;
   emit('update:modelValue', username);
+  emit('update:displayName', selectedUserData.value ? getDisplayName(selectedUserData.value) : '');
 };
 </script>
 
