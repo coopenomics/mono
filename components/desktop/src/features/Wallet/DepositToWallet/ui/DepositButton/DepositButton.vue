@@ -136,7 +136,8 @@ const clear = (): void => {
   isSubmitting.value = false;
   paymentOrder.value = null;
   waitingConfirmation.value = false;
-  quantity.value = 1000;
+  // Сумму вводит пайщик: поле пустое, подсказка «Введите сумму».
+  quantity.value = undefined;
 };
 
 const handlerSubmit = async (): Promise<void> => {
