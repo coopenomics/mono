@@ -51,6 +51,10 @@ title: Доступность расширений в зависимости о�
 # столы `developer` и `publisher`. Логика доступности не
 # менялась, случаи те же.
 
+# Правка 24.11.2026 (487-28): каталог отдаёт удалённому председателем
+# расширению сохранённый config (мягкое удаление, случаи ext.soft.* в
+# system.extensions); проверка доступности в сети не менялась.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts

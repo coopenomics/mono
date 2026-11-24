@@ -1655,6 +1655,10 @@ export interface Extensions {
   enabled: Generated<boolean>;
   name: string;
   schema_version: Generated<number>;
+  /**
+   * Когда расширение удалено председателем; NULL — установлено. Запись и настройки сохраняются для повторной установки
+   */
+  uninstalled_at: Timestamp | null;
   updated_at: Generated<Timestamp>;
 }
 

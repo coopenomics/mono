@@ -192,6 +192,33 @@ describe('каталог расширений и рабочие столы', () 
     expect((await gql<any>(chairToken, UNINSTALL, { d: { name: PROBE_EXT } })).uninstallExtension).toBe(false)
   })
 
+  // Удаление мягкое (24.11.2026): запись и config остаются, в config у
+  // расширений лежат отметки онбординга и служебное состояние. Маркер — лишний
+  // ключ: пустая схема «Кооперативного участка» его пропускает и сохраняет.
+  it(caseName('ext.soft.happy.01', 'удаление сохраняет настройки, повторная установка продолжает с них'), async () => {
+    const marker = `soft-${crypto.randomBytes(3).toString('hex')}`
+    expect((await extension(PROBE_EXT)).is_installed).toBe(false)
+
+    await gql<any>(chairToken, INSTALL, { d: { name: PROBE_EXT, enabled: true, config: { soft_probe: marker } } })
+    expect((await gql<any>(chairToken, UNINSTALL, { d: { name: PROBE_EXT } })).uninstallExtension).toBe(true)
+
+    // ext.soft.happy.03: удалённое — неустановленное, но с прежними настройками
+    const removed = await extension(PROBE_EXT)
+    expect(removed).toMatchObject({ is_installed: false, enabled: false })
+    expect(removed.config?.soft_probe).toBe(marker)
+    expect(await desktopExtensions(null)).not.toContain(PROBE_EXT)
+
+    // ext.soft.happy.02: форма прислала пустой config — сохранённый ключ остаётся
+    const again = (await gql<any>(chairToken, INSTALL, { d: { name: PROBE_EXT, enabled: true, config: {} } })).installExtension
+    expect(again).toMatchObject({ name: PROBE_EXT, is_installed: true, enabled: true })
+    expect(again.config?.soft_probe).toBe(marker)
+    expect(await desktopExtensions(null)).toContain(PROBE_EXT)
+
+    // стенд возвращается в исходное: расширение удалено
+    expect((await gql<any>(chairToken, UNINSTALL, { d: { name: PROBE_EXT } })).uninstallExtension).toBe(true)
+    expect((await extension(PROBE_EXT)).is_installed).toBe(false)
+  })
+
   it(caseName('sys.ext.side.04', 'рабочий стол по негодному токену — отказ, а не гостевой ответ'), async () => {
     const err = await gqlError('not-a-token', DESKTOP)
     expectAuthDenied(err)

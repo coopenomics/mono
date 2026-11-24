@@ -2,6 +2,10 @@
 
 import { Injectable, Inject } from '@nestjs/common';
 import { DomainError, EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import {
+  EXTENSION_UNINSTALLED_REPOSITORY,
+  type ExtensionUninstalledRepository,
+} from '~/domain/extension/repositories/extension-uninstalled.repository';
 import { isExtensionAvailable } from '@coopenomics/extension-kit';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import { defaultConfig as builtinDefaultConfig } from '~/extensions/builtin/builtin-extension.module';
@@ -10,8 +14,19 @@ import appConfig from '~/config/config';
 @Injectable()
 export class ExtensionDomainService<TConfig = any> {
   constructor(
-    @Inject(EXTENSION_REPOSITORY) private readonly extensionDomainRepository: ExtensionDomainRepository<TConfig> // Используем токен для инъекции зависимости
+    @Inject(EXTENSION_REPOSITORY) private readonly extensionDomainRepository: ExtensionDomainRepository<TConfig>, // Используем токен для инъекции зависимости
+    @Inject(EXTENSION_UNINSTALLED_REPOSITORY)
+    private readonly uninstalledRepository: ExtensionUninstalledRepository<TConfig>
   ) {}
+
+  /** Удалённое председателем расширение (запись с настройками сохранена) или null */
+  async getUninstalledAppByName(name: string): Promise<ExtensionDomainEntity<TConfig> | null> {
+    return this.uninstalledRepository.findUninstalledByName(name);
+  }
+
+  async getUninstalledAppList(): Promise<ExtensionDomainEntity<TConfig>[]> {
+    return this.uninstalledRepository.findUninstalled();
+  }
 
   async getAppList(filter?: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>[]> {
     return this.extensionDomainRepository.find(filter);
