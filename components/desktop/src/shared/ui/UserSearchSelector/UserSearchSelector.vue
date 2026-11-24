@@ -62,6 +62,7 @@ q-select(
 import { ref, watch, computed, onMounted } from 'vue';
 import { useUserSearch } from './composables/useUserSearch';
 import type { UserSearchResult } from './model/types';
+import { rememberedUsers } from './model/rememberedUsers';
 import { t, t as i18nT } from 'src/shared/i18n';
 
 // Пропсы компонента
@@ -98,24 +99,19 @@ const selectedUserData = ref<UserSearchResult | null>(null);
 
 // Поле монтируется заново (возврат на шаг мастера, повторное открытие формы)
 // с уже выбранным именем аккаунта, но без данных пайщика: без них q-select
-// показывает пустое поле, и выбор выглядит сброшенным. Данные выбранного
-// пайщика дочитываются поиском по имени аккаунта.
-async function restoreSelectedUser(username: string | undefined): Promise<void> {
+// показывает пустое поле, и выбор выглядит сброшенным. Поиск по имени аккаунта
+// не ищет (только по ФИО), поэтому данные выбранных пайщиков поле помнит само
+// в общем на всю вкладку кэше и при монтировании берёт их из этого кэша.
+function restoreSelectedUser(username: string | undefined): void {
   if (!username || selectedUserData.value?.data.username === username) return;
-  try {
-    await searchUsers(username);
-    const found = searchResults.value.find((result) => result.data.username === username);
-    if (found && selectedUser.value === username) {
-      selectedUserData.value = found;
-      emit('update:displayName', getDisplayName(found));
-    }
-  } catch {
-    // поле останется с именем аккаунта — выбор при этом не теряется
-  }
+  const remembered = rememberedUsers.get(username);
+  if (!remembered) return;
+  selectedUserData.value = remembered;
+  emit('update:displayName', getDisplayName(remembered));
 }
 
 onMounted(() => {
-  void restoreSelectedUser(props.modelValue);
+  restoreSelectedUser(props.modelValue);
 });
 
 // Следим за изменениями modelValue
@@ -346,6 +342,8 @@ const onUpdate = (value: UserSearchResult | string | undefined) => {
     selectedUserData.value = null;
   }
 
+  if (username && selectedUserData.value?.data.username === username)
+    rememberedUsers.set(username, selectedUserData.value);
   selectedUser.value = username;
   emit('update:modelValue', username);
   emit('update:displayName', selectedUserData.value ? getDisplayName(selectedUserData.value) : '');
