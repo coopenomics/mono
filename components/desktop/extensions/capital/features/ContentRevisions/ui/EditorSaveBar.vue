@@ -1,7 +1,9 @@
 <template lang="pug">
 //- Полоска над редактором: слева состояние, справа текстовая кнопка «Редакции» и «Сохранить»
-.row.items-center.editor-save-bar
-  .col.editor-save-bar__status
+//- inline — команды в чужой строке (строка разделов проекта): только кнопки,
+//- состояние правок показывают доступная «Сохранить» и значок отмены у заголовка
+.row.items-center.no-wrap.editor-save-bar(:class="{ 'editor-save-bar--inline': inline }")
+  .col.editor-save-bar__status(v-if="!inline")
     .text-caption(:class="statusClass") {{ statusText }}
   .col-auto.row.items-center.no-wrap.q-gutter-xs
     BaseButton(variant="ghost" size="sm" @click="revisionsOpen = true") {{ $t('capital.editorSaveBar.revisionsLabel') }}
@@ -45,6 +47,8 @@ const props = defineProps<{
   saving: boolean
   /** Подпись после удачного сохранения (например, «слито с чужими правками») */
   note?: string | null
+  /** Только кнопки, без строки состояния и нижнего поля */
+  inline?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -70,6 +74,10 @@ const statusClass = computed(() => ({
 .editor-save-bar {
   min-height: var(--p-8);
   padding-bottom: var(--p-2);
+}
+.editor-save-bar--inline {
+  min-height: 0;
+  padding-bottom: 0;
 }
 /* Колонка статуса обязана уметь сжиматься: без min-width:0 flex-элемент не
    уходит уже своего содержимого, и длинная подпись («Есть несохранённые

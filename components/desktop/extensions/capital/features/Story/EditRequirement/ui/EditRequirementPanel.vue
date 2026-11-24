@@ -58,26 +58,30 @@
         )
           template(#icon-left)
             q-icon(name='close' size='18px')
-    //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте
-    EditorSaveBar(
-      v-if='requirement'
-      :entity-type='Zeus.CapitalContentEntityType.STORY'
-      :entity-hash='requirement.story_hash'
-      :current-title='localTitle'
-      :current-description='localDescription'
-      :current-rev='currentRev'
-      :can-edit='canEdit'
-      :has-changes='hasChanges && titleOk'
-      :saving='isSaving'
-      :note='saveNote'
-      @save='handleSave'
-      @restored='handleRestored'
-    )
-      template(#actions)
-        FavoriteStarButton(
-          :target-type='FavoriteTargetType.ARTIFACT'
-          :target-hash='requirement.story_hash'
-        )
+    //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте.
+    //- На полной странице команды стоят в строке разделов проекта вместо «+ Артефакт»
+    //- (решение владельца 24.11.2026): телепорт в хост оболочки, без хоста — на месте
+    Teleport(:to='tabActionsHost' :disabled='!saveBarInTabs')
+      EditorSaveBar(
+        v-if='requirement'
+        :inline='saveBarInTabs'
+        :entity-type='Zeus.CapitalContentEntityType.STORY'
+        :entity-hash='requirement.story_hash'
+        :current-title='localTitle'
+        :current-description='localDescription'
+        :current-rev='currentRev'
+        :can-edit='canEdit'
+        :has-changes='hasChanges && titleOk'
+        :saving='isSaving'
+        :note='saveNote'
+        @save='handleSave'
+        @restored='handleRestored'
+      )
+        template(#actions)
+          FavoriteStarButton(
+            :target-type='FavoriteTargetType.ARTIFACT'
+            :target-hash='requirement.story_hash'
+          )
 
   //- Диаграммы встают вплотную к краям панели; у текста — обычные поля
   .col.scroll.column.no-wrap.edit-req-panel__body(
@@ -129,6 +133,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { Editor } from 'src/shared/ui';
 import { BaseButton } from 'src/shared/ui/base';
+import { useEntityTabActionsHost } from 'app/extensions/capital/shared/lib/entityTabActions';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStoryEditor';
@@ -175,6 +180,10 @@ const emit = defineEmits<{
 }>();
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
+
+// Хост строки разделов проекта/компонента; вне оболочки — null, команды на месте
+const tabActionsHost = useEntityTabActionsHost();
+const saveBarInTabs = computed(() => props.variant === 'page' && !!tabActionsHost.value);
 
 const formatIcon = computed(() =>
   props.requirement ? storyContentIcon(props.requirement) : 'description',
@@ -361,6 +370,7 @@ defineExpose({
 }
 
 .edit-req-panel--page {
+  background: var(--p-surface);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;

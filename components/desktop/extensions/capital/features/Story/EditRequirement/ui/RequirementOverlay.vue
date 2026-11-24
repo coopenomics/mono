@@ -87,7 +87,7 @@ async function openFullPage(): Promise<void> {
   const s = story.value;
   if (!s || !canLeave()) return;
   try {
-    const target = await resolveStoryPageRoute(s, route);
+    const target = await resolveStoryPageRoute(s, route, router);
     if (!target) {
       FailAlert(t('capital.requirementOverlay.openFullPageError'));
       return;

@@ -2,15 +2,15 @@
 .component-to-project-path
   // Путь к родительскому проекту
   .breadcrumb-item(
-    v-if="project?.parent_hash && parentProject?.title"
+    v-if="hasParent && parentProject?.title"
     @click="goToParentProject"
   )
     q-icon(name="folder", size="14px", color="grey-7")
     span {{ truncateText(parentProject.title, 35) }}
     q-icon.breadcrumb-link(name="open_in_new", size="10px")
 
-  // Или сообщение, если проект не загружен
-  .breadcrumb-loading(v-else-if="project?.parent_hash && !parentProject")
+  // Пока родитель грузится; не загрузился — строки нет, вечного лоадера тоже
+  .breadcrumb-loading(v-else-if="hasParent && loadingParent")
     q-icon(name="folder", size="14px", color="grey-5")
     span.text-grey-6 {{ $t('capital.componentToProjectPathWidget.loadingText') }}
 
@@ -18,11 +18,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
 import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
+import { isComponent } from 'app/extensions/capital/shared/lib/project-utils';
 
 const router = useRouter();
 const route = useRoute();
@@ -33,6 +34,10 @@ const props = defineProps<{
 
 // Родительский проект
 const parentProject = ref<IProject | null>(null);
+const loadingParent = ref(false);
+
+// Нулевой parent_hash — проект верхнего уровня: пути к родителю нет
+const hasParent = computed(() => !!props.project && isComponent(props.project));
 
 // Функция для сокращения текста
 const truncateText = (text: string, maxLength: number): string => {
@@ -42,7 +47,8 @@ const truncateText = (text: string, maxLength: number): string => {
 
 // Загрузка информации о родительском проекте
 const loadParentProject = async () => {
-  if (props.project?.parent_hash && !parentProject.value) {
+  if (hasParent.value && props.project?.parent_hash && !parentProject.value && !loadingParent.value) {
+    loadingParent.value = true;
     try {
       const projectData = await ProjectApi.loadProject({
         hash: props.project.parent_hash,
@@ -54,6 +60,8 @@ const loadParentProject = async () => {
     } catch (error) {
       console.error('Ошибка при загрузке родительского проекта:', error);
       parentProject.value = null;
+    } finally {
+      loadingParent.value = false;
     }
   }
 };
@@ -61,7 +69,7 @@ const loadParentProject = async () => {
 // Переход к родительскому проекту — обычный push: «назад» с проекта вернёт
 // сюда штатной историей (см. smartBack.ts), снимки в sessionStorage не нужны
 const goToParentProject = () => {
-  if (!props.project?.parent_hash) return;
+  if (!hasParent.value || !props.project?.parent_hash) return;
   router.push({
     name: capitalRouteName('project-description', route),
     params: { project_hash: props.project.parent_hash },
@@ -70,7 +78,7 @@ const goToParentProject = () => {
 
 // Загружаем родительский проект при изменении props.project
 watch(() => props.project, async (newProject) => {
-  if (newProject?.parent_hash) {
+  if (newProject && isComponent(newProject)) {
     await loadParentProject();
   } else {
     parentProject.value = null;
@@ -80,7 +88,7 @@ watch(() => props.project, async (newProject) => {
 // Инициализация
 // realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 onMounted(async () => {
-  if (props.project?.parent_hash) {
+  if (hasParent.value) {
     await loadParentProject();
   }
 });

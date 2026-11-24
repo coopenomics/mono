@@ -21,3 +21,4 @@ export * from './mapCapitalLogToActivity';
 export * from './capitalWorkspaceRoutes';
 export * from './listPreferences';
 export * from './listSort';
+export * from './entityTabActions';

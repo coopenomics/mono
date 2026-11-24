@@ -125,7 +125,7 @@ const handleSubmit = async () => {
     dialogRef.value?.clear();
     emit('success');
 
-    const target = await resolveStoryPageRoute(created, route);
+    const target = await resolveStoryPageRoute(created, route, router);
     if (target) await router.push(target);
   } catch (error) {
     FailAlert(error);

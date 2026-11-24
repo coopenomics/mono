@@ -7,6 +7,9 @@
     :active-key="activeTabKey"
   )
     template(#actions)
+      //- Страница артефакта переносит в этот хост свои команды («Редакции»,
+      //- избранное, «Сохранить») — см. shared/lib/entityTabActions.ts
+      span.entity-tab-actions-host(v-if="isRequirementDetail" ref="tabActionsHost")
       template(v-if="isLocalProject")
         CreateIssueButton(
           v-if="activeTabKey.endsWith('component-tasks') && project.permissions?.can_manage_issues"
@@ -17,7 +20,7 @@
           @action-completed="handleIssueCreated"
         )
         CreateRequirementButton(
-          v-if="activeTabKey.endsWith('component-requirements')"
+          v-if="isRequirementsList"
           ref="createRequirementRef"
           :filter="{ project_hash: projectHash }"
           :permissions="project.permissions"
@@ -49,7 +52,7 @@
             @action-completed="handleIssueCreated"
           )
           CreateRequirementButton(
-            v-if="activeTabKey.endsWith('component-requirements')"
+            v-if="isRequirementsList"
             ref="createRequirementRef"
             :filter="{ project_hash: projectHash }"
             :permissions="project.permissions"
@@ -177,7 +180,7 @@ import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/Pending
 import { ComponentSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
 import { ComponentToProjectPathWidget } from 'app/extensions/capital/widgets/ComponentToProjectPathWidget';
-import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
+import { provideEntityTabActionsHost, useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 import { t, t as i18nT } from '../../../i18n';
 
 // Используем window size для определения размера экрана
@@ -281,6 +284,15 @@ const activeTabKey = computed(() => {
   if (name.endsWith('component-requirement-detail')) return routeName('component-requirements');
   return name;
 });
+
+// Открыт сам артефакт: в строке разделов его команды вместо «+ Артефакт»
+const isRequirementDetail = computed(() =>
+  String(route.name ?? '').endsWith('component-requirement-detail'),
+);
+const isRequirementsList = computed(() =>
+  String(route.name ?? '').endsWith('component-requirements'),
+);
+const tabActionsHost = provideEntityTabActionsHost();
 
 // Управление (статус, мастер, video, git, удалить) — только на вкладке «Описание»
 const showSidebar = computed(
@@ -468,5 +480,12 @@ onMounted(async () => {
       width: 100%;
     }
   }
+}
+
+// Хост команд артефакта в строке разделов: кнопки в ряд, как остальные действия
+.entity-tab-actions-host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2);
 }
 </style>

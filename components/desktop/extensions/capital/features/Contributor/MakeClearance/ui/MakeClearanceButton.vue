@@ -33,7 +33,7 @@ q-btn(
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { formatCapitalFabLabel } from 'app/extensions/capital/shared/lib';
+import { formatCapitalFabLabel, isComponent } from 'app/extensions/capital/shared/lib';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useMakeClearance } from '../model';
 import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget';
@@ -77,7 +77,8 @@ const isSubmitDisabled = computed(() => contributionText.value.trim().length ===
 
 // Функция загрузки родительского проекта
 const loadParentProject = async () => {
-  if (!props.project?.parent_hash) {
+  // Нулевой parent_hash — это проект без родителя, грузить нечего
+  if (!props.project?.parent_hash || !isComponent(props.project)) {
     parentProject.value = null;
     return;
   }
@@ -161,7 +162,7 @@ const handleConfirmRespond = async () => {
         targetProject,
         info.coopname,
         contributionWithMeta,
-        targetProject.parent_hash ? parentProject.value : null
+        isComponent(targetProject) ? parentProject.value : null
       );
     }
 
