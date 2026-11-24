@@ -9,12 +9,17 @@
         template(#actions)
           BaseBadge(:variant="stateOf(c).variant") {{ stateOf(c).label }}
         DataRow(v-if="c.credential_fields.length" :label="$t('edubridge.adminConnectorsPage.credentialsLabel')" :value="c.configured ? $t('edubridge.adminConnectorsPage.credentialsSet') : $t('edubridge.adminConnectorsPage.credentialsNotSet')")
-        DataRow(:label="$t('edubridge.adminConnectorsPage.lastCheckLabel')" :value="c.last_check_at ? formatDateTime(c.last_check_at) : '______'")
+        //- Площадка без ключей проверяться не может — строки проверки нет до ввода ключей
+        DataRow(v-if="!needsKeys(c)" :label="$t('edubridge.adminConnectorsPage.lastCheckLabel')" :value="c.last_check_at ? formatDateTime(c.last_check_at) : '______'")
         DataRow(v-if="c.last_check_message" :label="$t('edubridge.adminConnectorsPage.lastCheckResultLabel')" :value="c.last_check_message")
+        //- Площадка без ключей: единственное действие — задать ключи. Включать,
+        //- выключать и проверять нечего, пока площадка не настроена
+        //- (замечание владельца 24.11.2026)
         .edu-connector__actions
-          BaseButton(v-if="c.credential_fields.length" variant="secondary" size="sm" @click="openCredentials(c)") {{ c.configured ? $t('edubridge.adminConnectorsPage.editCredentialsButton') : $t('edubridge.adminConnectorsPage.setCredentialsButton') }}
-          BaseButton(variant="secondary" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? $t('edubridge.adminConnectorsPage.disableButton') : $t('edubridge.adminConnectorsPage.enableButton') }}
-          BaseButton(variant="secondary" size="sm" :disabled="!c.configured" :loading="busy === c.carrier" @click="check(c)") {{ $t('edubridge.adminConnectorsPage.checkButton') }}
+          BaseButton(v-if="c.credential_fields.length" :variant="needsKeys(c) ? 'primary' : 'secondary'" size="sm" @click="openCredentials(c)") {{ c.configured ? $t('edubridge.adminConnectorsPage.editCredentialsButton') : $t('edubridge.adminConnectorsPage.setCredentialsButton') }}
+          template(v-if="!needsKeys(c)")
+            BaseButton(variant="secondary" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? $t('edubridge.adminConnectorsPage.disableButton') : $t('edubridge.adminConnectorsPage.enableButton') }}
+            BaseButton(variant="secondary" size="sm" :loading="busy === c.carrier" @click="check(c)") {{ $t('edubridge.adminConnectorsPage.checkButton') }}
 
   BaseDialog(v-model="credentialsOpen" :title="editing ? $t(`edubridge.adminConnectorsPage.credentialsDialogTitleFor`, { carrier: carrierLabel(editing.carrier) }) : $t('edubridge.adminConnectorsPage.credentialsDialogTitle')" size="lg")
     BaseForm(v-if="editing" :loading="savingCredentials" @submit="saveCredentials")
@@ -71,8 +76,12 @@ const formatDateTime = (v: unknown) => {
   const input = asDateInput(v);
   return input ? new Date(input).toLocaleString('ru-RU') : '______';
 };
+/** Площадка работает по ключам, а ключи не заданы */
+function needsKeys(c: IConnector): boolean {
+  return c.credential_fields.length > 0 && !c.configured;
+}
 function stateOf(c: IConnector): { label: string; variant: 'pos' | 'neg' | 'warn' | 'neutral' } {
-  if (c.credential_fields.length && !c.configured) return { label: t('edubridge.adminConnectorsPage.state.notConfigured'), variant: 'warn' };
+  if (needsKeys(c)) return { label: t('edubridge.adminConnectorsPage.state.notConfigured'), variant: 'warn' };
   if (!c.enabled) return { label: t('edubridge.adminConnectorsPage.state.disabled'), variant: 'neutral' };
   return HEALTH_LABELS[c.health] ?? { label: c.health, variant: 'neutral' };
 }
