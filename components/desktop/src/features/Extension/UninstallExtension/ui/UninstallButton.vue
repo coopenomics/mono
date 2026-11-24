@@ -1,19 +1,24 @@
 <template lang="pug">
-q-btn.full-width(
-  size='sm',
-  @click='uninstall',
-  flat,
+//- Удаление стирает запись расширения вместе с настройками — только после
+//- подтверждения; выключение настройки сохраняет
+BaseButton(
+  variant='ghost',
+  block,
   :disabled='disabled',
-  :loading='isUninstalling'
+  :loading='isUninstalling',
+  @click='uninstall'
 )
-  q-icon.text-grey(name='delete')
-  span.q-ml-xs {{ $t('extension.uninstallButton.action') }}
+  template(#icon-left)
+    q-icon(name='delete', size='18px')
+  | {{ $t('extension.uninstallButton.action') }}
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUninstallExtension } from '../model';
+import { BaseButton } from 'src/shared/ui/base';
+import { useConfirm } from 'src/shared/lib/composables';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import {
   extractGraphQLErrorMessages,
@@ -24,6 +29,8 @@ import { t } from 'src/shared/i18n';
 
 interface Props {
   extensionName: string;
+  /** Название для вопроса подтверждения; без него — техническое имя */
+  extensionTitle?: string;
   disabled?: boolean;
 }
 
@@ -32,8 +39,20 @@ const props = defineProps<Props>();
 const router = useRouter();
 const desktop = useDesktopStore();
 const isUninstalling = ref(false);
+const { confirm } = useConfirm();
 
 const uninstall = async () => {
+  const confirmed = await confirm({
+    title: t('extension.uninstallButton.confirmTitle', {
+      title: props.extensionTitle || props.extensionName,
+    }),
+    message: t('extension.uninstallButton.confirmMessage'),
+    note: t('extension.uninstallButton.confirmNote'),
+    confirmLabel: t('extension.uninstallButton.confirmLabel'),
+    danger: true,
+  });
+  if (!confirmed) return;
+
   const { uninstallExtension } = useUninstallExtension();
   isUninstalling.value = true;
 

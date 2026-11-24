@@ -1,9 +1,13 @@
 <template lang="pug">
-q-btn.full-width(color='primary', unelevated, no-caps, @click='openSettings') {{ $t('extension.settingsButton.label') }}
+BaseButton(variant='secondary', block, @click='openSettings')
+  template(#icon-left)
+    q-icon(name='tune', size='18px')
+  | {{ $t('extension.settingsButton.label') }}
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { BaseButton } from 'src/shared/ui/base';
 
 const router = useRouter();
 

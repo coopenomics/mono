@@ -4,19 +4,19 @@
       "label": "Отмена"
     },
     "disableButton": {
+      "action": "Выключить",
       "disableError": "Ошибка отключения расширения: {errorMessage}",
-      "stateLabel": "включено",
       "updatedSuccess": "Расширение обновлено"
     },
     "enableButton": {
+      "action": "Включить",
       "enableError": "Ошибка включения расширения: {errorMessage}",
-      "stateLabel": "отключено",
       "updatedSuccess": "Расширение обновлено"
     },
     "installButton": {
       "installError": "Ошибка установки расширения: {errorMessage}",
-      "installedSuccess": "Расширение установлено",
-      "submit": "Включить"
+      "installedSuccess": "Расширение установлено и включено",
+      "submit": "Завершить установку"
     },
     "saveButton": {
       "saveError": "Ошибка сохранения расширения: {errorMessage}",
@@ -26,7 +26,11 @@
       "label": "Настройки"
     },
     "uninstallButton": {
-      "action": "удалить",
+      "action": "Удалить",
+      "confirmLabel": "Удалить",
+      "confirmMessage": "Столы расширения закрываются для всех пайщиков кооператива.",
+      "confirmNote": "Настройки расширения удаляются вместе с ним. Чтобы сохранить настройки, выключите расширение.",
+      "confirmTitle": "Удалить расширение «{title}»?",
       "uninstallError": "Ошибка удаления расширения: {errorMessage}",
       "uninstalledSuccess": "Расширение удалено"
     }

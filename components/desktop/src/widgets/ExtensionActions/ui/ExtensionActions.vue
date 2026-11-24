@@ -1,4 +1,11 @@
 <template lang="pug">
+//- Левая колонка страницы расширения. Три состояния различаются видом, а не
+//- одной сменой подписи на том же месте (замечание владельца 24.11.2026):
+//-   не установлено — «Установить»;
+//-   шаг установки — метка «Установка не завершена», кнопка «Завершить
+//-     установку» стоит под настройками справа (ExtensionInstall);
+//-   установлено — метка состояния и команды «Настройки», «Включить» или
+//-     «Выключить», «Удалить».
 .ext-actions
   //- Режим настроек: сохранить + отменить (вернуться без сохранения).
   template(v-if='isSettings')
@@ -11,36 +18,35 @@
     )
     CancelButton
 
-  //- Главная, ещё не установлено: кнопка «установить» + список столов.
+  //- Главная, ещё не установлено: кнопка «Установить» открывает шаг настроек.
   template(v-if='isMain && !extension.is_installed')
-    q-btn.full-width(
-      color='primary',
-      unelevated,
-      no-caps,
-      @click='router.push({ name: "extension-install" })'
-    ) {{ $t('extensionActions.extensionActions.installButton') }}
+    BaseButton(variant='primary', block, @click='router.push({ name: "extension-install" })')
+      template(#icon-left)
+        q-icon(name='download', size='18px')
+      | {{ $t('extensionActions.extensionActions.installButton') }}
     DesktopsList(:desktops='extension.desktops')
 
-  //- Шаг установки.
+  //- Шаг установки: на сервере ещё ничего нет, кнопки — под настройками.
   template(v-if='isInstall && !extension.is_installed')
-    InstallButton(
-      :extension-name='extension?.name',
-      :config='config',
-      :my-form-ref='formRef'
-    )
+    .ext-actions__state
+      BaseBadge(variant='info') {{ $t('extensionActions.extensionActions.installPending') }}
     DesktopsList(:desktops='extension.desktops')
 
-  //- Главная, установлено: настройки / вкл-выкл / удаление.
+  //- Главная, установлено: состояние, настройки, вкл-выкл, удаление.
   template(v-if='isMain && extension.is_installed')
+    .ext-actions__state
+      BaseBadge(:variant='extension.enabled ? "pos" : "warn"')
+        | {{ extension.enabled ? $t('extensionActions.extensionActions.statusEnabled') : $t('extensionActions.extensionActions.statusDisabled') }}
+      .ext-actions__hint(v-if='!extension.enabled') {{ $t('extensionActions.extensionActions.disabledHint') }}
+    //- Выключенное расширение: главное действие — включить
+    EnableButton(
+      v-if='!extension.enabled',
+      :extension-name='extension.name',
+      :config='extension.config'
+    )
     SettingsButton
-    .ext-actions__toggle
-      DisableButton(v-if='extension.enabled', :extension='extension')
-      EnableButton(
-        v-if='!extension.enabled',
-        :extension-name='extension.name',
-        :config='extension.config'
-      )
-      UninstallButton(:extension-name='extension.name')
+    DisableButton(v-if='extension.enabled', :extension='extension')
+    UninstallButton(:extension-name='extension.name', :extension-title='extension.title')
     DesktopsList(:desktops='extension.desktops')
 </template>
 
@@ -54,10 +60,10 @@ import {
   CancelButton,
 } from 'src/features/Extension/UpdateExtension';
 import { UninstallButton } from 'src/features/Extension/UninstallExtension';
-import { InstallButton } from 'src/features/Extension/InstallExtension';
 import { EnableButton } from 'src/features/Extension/EnableExtension';
 import { DisableButton } from 'src/features/Extension/DisableExtension';
 import { DesktopsList } from 'src/widgets/ExtensionDesktopsList';
+import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 
 interface Props {
   extension: IExtension;
@@ -82,13 +88,18 @@ const isSettings = computed(() => props.mode === 'settings');
   gap: var(--p-3, 12px);
 }
 
-.ext-actions__toggle {
+// Метка состояния — по центру колонки, под логотипом
+.ext-actions__state {
   display: flex;
-  gap: var(--p-2, 8px);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  text-align: center;
 }
-// Кнопки вкл/выкл и удаления делят строку поровну (full-width внутри).
-.ext-actions__toggle > * {
-  flex: 1;
-  min-width: 0;
+
+.ext-actions__hint {
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  color: var(--p-ink-2);
 }
 </style>

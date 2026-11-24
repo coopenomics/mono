@@ -1,11 +1,18 @@
 <template lang="pug">
-q-btn.full-width(color='primary', unelevated, no-caps, @click='install', :loading='isInstalling') {{ $t('extension.installButton.submit') }}
+//- Последний шаг установки: запись расширения создаётся только здесь, сразу
+//- включённой. До этой кнопки на сервере ничего нет — «Отмена» и «Назад» на
+//- шаге настроек ничего не оставляют и удалять нечего
+BaseButton(variant='primary', :block='block', :loading='isInstalling', @click='install')
+  template(#icon-left)
+    q-icon(name='check', size='18px')
+  | {{ $t('extension.installButton.submit') }}
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInstallExtension } from '../model';
+import { BaseButton } from 'src/shared/ui/base';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
@@ -20,9 +27,11 @@ interface Props {
   extensionName: string;
   config: any;
   myFormRef?: any;
+  /** На всю ширину колонки */
+  block?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { block: false });
 
 const router = useRouter();
 const desktop = useDesktopStore();
@@ -33,28 +42,20 @@ const validateForm = async () => {
 };
 
 const install = async () => {
-  console.log('install', props.extensionName, props.config, props.myFormRef)
   const is_valid = await validateForm();
-  console.log('is_valid', is_valid)
   if (is_valid === false) return;
 
   const { installExtension } = useInstallExtension();
   isInstalling.value = true;
 
   try {
-    console.log('🔧 [InstallExtension] Starting extension installation:', props.extensionName);
     await installExtension(props.extensionName, true, props.config);
-    console.log('🔧 [InstallExtension] Extension installed on backend');
 
     // Сначала загружаем обновленный desktop с сервера
-    console.log('🔧 [InstallExtension] Loading desktop from server...');
     await desktop.loadDesktop();
-    console.log('🔧 [InstallExtension] Desktop loaded, current workspaces:', desktop.currentDesktop?.workspaces?.map(ws => ({ name: ws.name, title: ws.title })));
 
     // Затем динамически загружаем маршруты для установленного расширения
-    console.log('🔧 [InstallExtension] Loading extension routes...');
     await loadExtensionRoutes(props.extensionName, router);
-    console.log('🔧 [InstallExtension] Extension routes loaded');
 
     // Редирект на первую ДОСТУПНУЮ пользователю страницу расширения (канон
     // grants): для расширений с онбордингом это страница подключения ЦПП, иначе —
