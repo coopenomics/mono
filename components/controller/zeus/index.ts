@@ -15010,6 +15010,23 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MeetAggregate']?: Omit<ValueTypes["MeetAggregate"], "...on MeetAggregate">
 }>;
+	/** Право текущего пайщика на общем собрании: голос, подтверждение уведомления, представитель участка */
+["MeetParticipation"]: AliasType<{
+	/** Председатель кооперативного участка пайщика, голосующий за участок на собрании уполномоченных */
+	branchTrustee?:boolean | `@${string}`,
+	/** Сертификат председателя кооперативного участка пайщика */
+	branchTrusteeCertificate?:ValueTypes["UserCertificateUnion"],
+	/** Кооперативный участок пайщика уже подал голос на этом собрании */
+	branchVoted?:boolean | `@${string}`,
+	/** Пайщик вправе подтвердить получение уведомления о собрании */
+	canNotify?:boolean | `@${string}`,
+	/** Пайщик вправе подать бюллетень на этом собрании */
+	canVote?:boolean | `@${string}`,
+	/** Собрание проходит в форме собрания уполномоченных: голосуют председатели кооперативных участков */
+	isTrusteesMeet?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MeetParticipation']?: Omit<ValueTypes["MeetParticipation"], "...on MeetParticipation">
+}>;
 	/** Предварительные данные собрания перед обработкой */
 ["MeetPreProcessing"]: AliasType<{
 	/** Повестка собрания */
@@ -15080,6 +15097,8 @@ export type ValueTypes = {
 	isVoted?:boolean | `@${string}`,
 	/** Основная информация о собрании */
 	meet?:ValueTypes["Meet"],
+	/** Право текущего пайщика на собрании; пусто, если запрос без входа */
+	participation?:ValueTypes["MeetParticipation"],
 	/** Список вопросов повестки собрания */
 	questions?:ValueTypes["Question"],
 		__typename?: boolean | `@${string}`,
@@ -34472,6 +34491,22 @@ export type ResolverInputTypes = {
 	processing?:ResolverInputTypes["MeetProcessing"],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Право текущего пайщика на общем собрании: голос, подтверждение уведомления, представитель участка */
+["MeetParticipation"]: AliasType<{
+	/** Председатель кооперативного участка пайщика, голосующий за участок на собрании уполномоченных */
+	branchTrustee?:boolean | `@${string}`,
+	/** Сертификат председателя кооперативного участка пайщика */
+	branchTrusteeCertificate?:ResolverInputTypes["UserCertificateUnion"],
+	/** Кооперативный участок пайщика уже подал голос на этом собрании */
+	branchVoted?:boolean | `@${string}`,
+	/** Пайщик вправе подтвердить получение уведомления о собрании */
+	canNotify?:boolean | `@${string}`,
+	/** Пайщик вправе подать бюллетень на этом собрании */
+	canVote?:boolean | `@${string}`,
+	/** Собрание проходит в форме собрания уполномоченных: голосуют председатели кооперативных участков */
+	isTrusteesMeet?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Предварительные данные собрания перед обработкой */
 ["MeetPreProcessing"]: AliasType<{
 	/** Повестка собрания */
@@ -34540,6 +34575,8 @@ export type ResolverInputTypes = {
 	isVoted?:boolean | `@${string}`,
 	/** Основная информация о собрании */
 	meet?:ResolverInputTypes["Meet"],
+	/** Право текущего пайщика на собрании; пусто, если запрос без входа */
+	participation?:ResolverInputTypes["MeetParticipation"],
 	/** Список вопросов повестки собрания */
 	questions?:ResolverInputTypes["Question"],
 		__typename?: boolean | `@${string}`
@@ -53234,6 +53271,21 @@ export type ModelTypes = {
 	/** Данные собрания на этапе обработки */
 	processing?: ModelTypes["MeetProcessing"] | undefined | null
 };
+	/** Право текущего пайщика на общем собрании: голос, подтверждение уведомления, представитель участка */
+["MeetParticipation"]: {
+		/** Председатель кооперативного участка пайщика, голосующий за участок на собрании уполномоченных */
+	branchTrustee?: string | undefined | null,
+	/** Сертификат председателя кооперативного участка пайщика */
+	branchTrusteeCertificate?: ModelTypes["UserCertificateUnion"] | undefined | null,
+	/** Кооперативный участок пайщика уже подал голос на этом собрании */
+	branchVoted: boolean,
+	/** Пайщик вправе подтвердить получение уведомления о собрании */
+	canNotify: boolean,
+	/** Пайщик вправе подать бюллетень на этом собрании */
+	canVote: boolean,
+	/** Собрание проходит в форме собрания уполномоченных: голосуют председатели кооперативных участков */
+	isTrusteesMeet: boolean
+};
 	/** Предварительные данные собрания перед обработкой */
 ["MeetPreProcessing"]: {
 		/** Повестка собрания */
@@ -53300,6 +53352,8 @@ export type ModelTypes = {
 	isVoted: boolean,
 	/** Основная информация о собрании */
 	meet: ModelTypes["Meet"],
+	/** Право текущего пайщика на собрании; пусто, если запрос без входа */
+	participation?: ModelTypes["MeetParticipation"] | undefined | null,
 	/** Список вопросов повестки собрания */
 	questions: Array<ModelTypes["Question"]>
 };
@@ -73331,6 +73385,23 @@ export type GraphQLTypes = {
 	processing?: GraphQLTypes["MeetProcessing"] | undefined | null,
 	['...on MeetAggregate']: Omit<GraphQLTypes["MeetAggregate"], "...on MeetAggregate">
 };
+	/** Право текущего пайщика на общем собрании: голос, подтверждение уведомления, представитель участка */
+["MeetParticipation"]: {
+	__typename: "MeetParticipation",
+	/** Председатель кооперативного участка пайщика, голосующий за участок на собрании уполномоченных */
+	branchTrustee?: string | undefined | null,
+	/** Сертификат председателя кооперативного участка пайщика */
+	branchTrusteeCertificate?: GraphQLTypes["UserCertificateUnion"] | undefined | null,
+	/** Кооперативный участок пайщика уже подал голос на этом собрании */
+	branchVoted: boolean,
+	/** Пайщик вправе подтвердить получение уведомления о собрании */
+	canNotify: boolean,
+	/** Пайщик вправе подать бюллетень на этом собрании */
+	canVote: boolean,
+	/** Собрание проходит в форме собрания уполномоченных: голосуют председатели кооперативных участков */
+	isTrusteesMeet: boolean,
+	['...on MeetParticipation']: Omit<GraphQLTypes["MeetParticipation"], "...on MeetParticipation">
+};
 	/** Предварительные данные собрания перед обработкой */
 ["MeetPreProcessing"]: {
 	__typename: "MeetPreProcessing",
@@ -73402,6 +73473,8 @@ export type GraphQLTypes = {
 	isVoted: boolean,
 	/** Основная информация о собрании */
 	meet: GraphQLTypes["Meet"],
+	/** Право текущего пайщика на собрании; пусто, если запрос без входа */
+	participation?: GraphQLTypes["MeetParticipation"] | undefined | null,
 	/** Список вопросов повестки собрания */
 	questions: Array<GraphQLTypes["Question"]>,
 	['...on MeetProcessing']: Omit<GraphQLTypes["MeetProcessing"], "...on MeetProcessing">

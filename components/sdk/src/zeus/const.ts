@@ -8734,6 +8734,14 @@ export const ReturnTypes: Record<string,any> = {
 		processed:"MeetProcessed",
 		processing:"MeetProcessing"
 	},
+	MeetParticipation:{
+		branchTrustee:"String",
+		branchTrusteeCertificate:"UserCertificateUnion",
+		branchVoted:"Boolean",
+		canNotify:"Boolean",
+		canVote:"Boolean",
+		isTrusteesMeet:"Boolean"
+	},
 	MeetPreProcessing:{
 		agenda:"AgendaMeetPoint",
 		close_at:"DateTime",
@@ -8768,6 +8776,7 @@ export const ReturnTypes: Record<string,any> = {
 		hash:"String",
 		isVoted:"Boolean",
 		meet:"Meet",
+		participation:"MeetParticipation",
 		questions:"Question"
 	},
 	MeetQuestionResult:{

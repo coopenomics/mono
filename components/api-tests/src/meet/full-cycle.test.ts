@@ -21,6 +21,8 @@ import {
   awaitDecision,
   caseName,
   chainDoc,
+  expectCode,
+  gqlError,
   fixture,
   grantMemberKey,
   gql,
@@ -37,8 +39,9 @@ const digest = (text: string): string => crypto.createHash('sha256').update(text
 
 const AGGREGATE = `rawDocument{ full_title html hash meta binary }
   document{ version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta } }`
+const PARTICIPATION = 'participation{ isTrusteesMeet canVote canNotify branchVoted branchTrustee }'
 const MEET = `hash
-  processing{ hash isVoted extendedStatus
+  processing{ hash isVoted extendedStatus ${PARTICIPATION}
     meet{ id hash status quorum_passed current_quorum_percent decision1{ ${AGGREGATE} } }
     questions{ id number title context decision counter_votes_for counter_votes_against } }
   processed{ hash quorum_passed results{ number title context decision votes_for votes_against accepted } }`
@@ -69,6 +72,12 @@ describe('общее собрание: созыв, голосование упо
   /** Сколько уполномоченных проголосовало: фикстуры и уполномоченные чужих участков. */
   let voters = 0
   let closedList: any[] = []
+  /** Право на собрании уполномоченных до голосования (компонент 76, A86-2). */
+  let trusteeBefore: any
+  let outsiderBefore: any
+  let trusteeAfter: any
+  let outsiderVoteError: any
+  let outsiderNotifyError: any
 
   async function meetAs(who: Who): Promise<any> {
     return (await gql<any>(await tokenOf(who), GET, { d: { coopname: COOP, hash: meetHash } })).getMeet
@@ -135,6 +144,35 @@ describe('общее собрание: созыв, голосование упо
 
     // Голосование открылось — уполномоченные подают бюллетени.
     await waitFor(async () => (Date.now() > opens.getTime() + 1_500 ? true : null), { timeoutMs: OPENS_IN_MS + 30_000, intervalMs: 500, label: 'открытие голосования' })
+
+    // Собрание уполномоченных: рядовой пайщик видит, что голосует председатель
+    // его участка, а голос и подтверждение уведомления узел отклоняет сам,
+    // до обращения в цепь (компонент 76, A86-2).
+    trusteeBefore = (await meetAs(trustees[0])).processing.participation
+    const outsider = ROLES.member()
+    const outsiderToken = await tokenOf(outsider)
+    outsiderBefore = (await meetAs(outsider)).processing.participation
+    const outsiderQuestions = (await meetAs(outsider)).processing.questions as any[]
+    const outsiderBallot = (await gql<any>(outsiderToken, `mutation($d:AnnualGeneralMeetingVotingBallotGenerateDocumentInput!){
+      generateBallotForAnnualGeneralMeetDocument(data:$d){ ${GENERATED} } }`, {
+      d: { coopname: COOP, username: outsider.account, meet_hash: meetHash, answers: outsiderQuestions.map(q => ({ id: String(q.id), number: String(q.number), vote: 'for' })) },
+    })).generateBallotForAnnualGeneralMeetDocument
+    outsiderVoteError = await gqlError(outsiderToken, 'mutation($d:VoteOnAnnualGeneralMeetInput!){ voteOnAnnualGeneralMeet(data:$d){ hash } }', {
+      d: {
+        coopname: COOP,
+        hash: meetHash,
+        username: outsider.account,
+        ballot: await signDocument(outsider.wif, outsiderBallot, outsider.account, 1),
+        votes: outsiderQuestions.map(q => ({ question_id: Number(q.id), vote: 'for' })),
+      },
+    })
+    const notification = (await gql<any>(outsiderToken, `mutation($d:AnnualGeneralMeetingNotificationGenerateDocumentInput!){
+      generateAnnualGeneralMeetNotificationDocument(data:$d){ ${GENERATED} } }`, {
+      d: { coopname: COOP, username: outsider.account, meet_hash: meetHash },
+    })).generateAnnualGeneralMeetNotificationDocument
+    outsiderNotifyError = await gqlError(outsiderToken, 'mutation($d:NotifyOnAnnualGeneralMeetInput!){ notifyOnAnnualGeneralMeet(data:$d){ hash } }', {
+      d: { coopname: COOP, meet_hash: meetHash, username: outsider.account, notification: await signDocument(outsider.wif, notification, outsider.account, 1) },
+    })
     for (const trustee of trustees) {
       const token = await tokenOf(trustee)
       const questions = (await meetAs(trustee)).processing.questions as any[]
@@ -161,6 +199,7 @@ describe('общее собрание: созыв, голосование упо
       }])
     }
     voters = trustees.length + strangers.length
+    trusteeAfter = (await meetAs(trustees[0])).processing.participation
     const voted = await waitFor(async () => {
       const m = await meetAs(trustees[0])
       return m.processing?.meet?.quorum_passed ? m : null
@@ -221,6 +260,18 @@ describe('общее собрание: созыв, голосование упо
     expect(results.map(r => Number(r.number))).toEqual([1, 2])
     expect(results.map(r => [r.title, r.context, r.decision])).toEqual(agenda.map(q => [q.title, q.context, q.decision]))
     expect(results.every(r => Number(r.votes_for) === voters && Number(r.votes_against) === 0 && r.accepted === true)).toBe(true)
+  })
+
+  it(caseName('meet.form.backend.happy.04', 'собрание уполномоченных: председатель участка голосует, рядовой пайщик видит председателя своего участка'), () => {
+    expect(trusteeBefore).toEqual(expect.objectContaining({ isTrusteesMeet: true, canVote: true, canNotify: true, branchVoted: false, branchTrustee: trustees[0].account }))
+    expect(outsiderBefore).toEqual(expect.objectContaining({ isTrusteesMeet: true, canVote: false, canNotify: false }))
+    // Участок проголосовал — повторного голоса у председателя нет.
+    expect(trusteeAfter).toEqual(expect.objectContaining({ canVote: false, branchVoted: true }))
+  })
+
+  it(caseName('meet.form.backend.break.02', 'рядовой пайщик на собрании уполномоченных не голосует и не подтверждает уведомление'), () => {
+    expectCode(outsiderVoteError, 'MEET_NOT_TRUSTEE')
+    expectCode(outsiderNotifyError, 'MEET_NOT_TRUSTEE')
   })
 
   it(caseName('meet.texts.side.05', 'документ собрания собирается с текстами формулировок, а не с их хешами'), () => {

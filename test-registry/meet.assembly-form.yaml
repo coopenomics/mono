@@ -20,6 +20,12 @@ sources:
     - components/contracts/cpp/branch/src/createbranch.cpp
     - components/contracts/cpp/branch/src/confirmdec.cpp
     - components/contracts/cpp/meet/meet.hold.standard.yaml
+  backend:
+    - components/controller/src/domain/meet/utils/meet-voters.ts
+    - components/controller/src/domain/meet/services/meet-voters-domain.service.ts
+    - components/controller/src/infrastructure/meet/meet-data.adapter.ts
+    - components/controller/src/application/meet/dto/meet-participation.dto.ts
+    - components/controller/src/extensions/participant/meet-workflow-notification.service.ts
 
 cases:
   - id: meet.form.happy.01
@@ -127,3 +133,72 @@ cases:
     test: ~
     status: missing
     note: строку старого формата на стенде не создать; ветка проверена чтением кода
+
+  # ── Контроллер (задача A86-2) ───────────────────────────────────────────
+  - id: meet.form.backend.happy.01
+    level: backend
+    kind: happy
+    scenario: Шесть оповещений собрания пайщиков (объявление, до начала, начало, до конца, повторное, завершение)
+    expect: письмо каждому активному пайщику с почтой, обход всех страниц пайщиков; сценарий, кооператив, номер собрания и ссылка в каждом письме
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "рассылку запускает трекер собраний по расписанию; через API её не вызвать, а письма стенда наружу не перехватываются"
+
+  - id: meet.form.backend.happy.02
+    level: backend
+    kind: happy
+    scenario: Шесть оповещений собрания уполномоченных
+    expect: письма только председателям участков собрания; аккаунты читаются по имени, все пайщики не перебираются
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "рассылку запускает трекер собраний по расписанию; через API её не вызвать, а письма стенда наружу не перехватываются"
+
+  - id: meet.form.backend.side.01
+    level: backend
+    kind: side
+    scenario: Председатель участка без активации или без почты; аккаунт председателя не прочитался
+    expect: такой председатель письма не получает, остальные получают; сбой одного аккаунта записан в журнал
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "аккаунт председателя без почты или с ошибкой чтения через API стенда не создать"
+
+  - id: meet.form.backend.break.01
+    level: backend
+    kind: break
+    scenario: Состав голосующих пуст или не прочитался из цепи
+    expect: рассылка не выполнена (трекер повторит), всем пайщикам письмо не отправляется
+    test: components/controller/tests/unit/participant/meet-workflow-notification.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "сбой чтения цепи посреди рассылки через API не вызвать"
+
+  - id: meet.form.backend.happy.03
+    level: backend
+    kind: happy
+    scenario: Состав собрания уполномоченных по данным цепи
+    expect: председатели участков, созданных не позже одобрения; собрание пайщиков с формой цепь не читает; собрание без формы следует флагу кооператива
+    test: components/controller/tests/unit/meet/meet-voters.test.ts
+    status: passing
+    external: unreachable
+    external_reason: "участок, созданный после одобрения, и собрание без формы через API стенда не поставить; состав проверяется по правам пайщика в meet.form.backend.happy.04"
+
+  - id: meet.form.backend.happy.04
+    level: backend
+    kind: happy
+    scenario: Право пайщика на собрании для рабочего стола
+    expect: собрание пайщиков — голос и подтверждение у всех; председатель участка — голос и подтверждение; рядовой пайщик — без голоса, с председателем своего участка; участок проголосовал — голоса нет
+    test: components/controller/tests/unit/meet/meet-voters.test.ts
+    api: components/api-tests/src/meet/full-cycle.test.ts
+    status: passing
+
+  - id: meet.form.backend.break.02
+    level: backend
+    kind: break
+    scenario: Рядовой пайщик голосует или подтверждает уведомление на собрании уполномоченных; новый председатель голосует за проголосовавший участок
+    expect: отказ MEET_NOT_TRUSTEE или MEET_BRANCH_ALREADY_VOTED до обращения в цепь, транзакции нет
+    test: components/controller/tests/unit/meet/meet-voters.test.ts
+    api: components/api-tests/src/meet/full-cycle.test.ts
+    status: passing

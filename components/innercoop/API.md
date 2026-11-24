@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 346.
+Всего экспортов: 347.
 
 ## ACCOUNT_PORT
 
@@ -614,6 +614,7 @@
 - `getMeets(data: InnerGetMeetsInput, username?: string): Promise<InnerMeet[]>`
 - `getMeet(data: InnerGetMeetInput, username?: string): Promise<InnerMeet>`
 - `getMeetDraft(hash: string): Promise<InnerMeetDraft | null>`
+- `getMeetVoters(data: InnerGetMeetInput): Promise<string[] | null>`
 
 ## IMemberExitRegistryPort
 
@@ -764,6 +765,7 @@
 - `trusted: string[]`
 - `is_private?: boolean`
 - `whitelist?: string[]`
+- `created_at?: string`
 - `[key: string]: any`
 
 ## InnerCalendarEventWindow
@@ -1658,6 +1660,15 @@
 - `details?: string | null`
 - `[key: string]: any`
 
+## InnerMeetForm
+
+`interface` · core-ports
+
+- `is_branched: boolean`
+- `branches_count: number | string`
+- `fixed_at: string`
+- `voted_branches: string[]`
+
 ## InnerMeetProcessing
 
 `interface` · core-ports
@@ -1675,6 +1686,7 @@
 - `status: string`
 - `open_at: Date`
 - `close_at: Date`
+- `form?: InnerMeetForm`
 - `[key: string]: any`
 
 ## InnerMutationLogEntry
