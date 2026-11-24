@@ -18,9 +18,9 @@ const INSTALL = `mutation($d:ExtensionInput!){ installExtension(data:$d){ name i
 /** Открыто везде. */
 const EVERYWHERE = ['soviet', 'chairman', 'participant']
 /** Открыто только вне основной сети. */
-const NON_MAINNET_ONLY = ['market']
+const NON_MAINNET_ONLY = ['market', 'yookassa']
 /** Закрыто везде: ещё не открыто для установки. */
-const NOWHERE = ['yookassa', 'sberpoll']
+const NOWHERE = ['sberpoll']
 
 async function catalog(): Promise<Map<string, any>> {
   const d = await gql<any>(await tokenOf(CHAIRMAN), LIST, { d: {} })

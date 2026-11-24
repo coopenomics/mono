@@ -2658,11 +2658,15 @@ export type MessageKey =
   | 'errors.WALLET_REFUND_AMOUNT_EXCEEDS_BALANCE'
   | 'errors.WALLET_SUBSCRIPTION_MEMBER_ONLY'
   | 'errors.WALLET_SUBSCRIPTION_OWN_COOPERATIVE_ONLY'
+  | 'errors.YOOKASSA_API_FAILED'
   | 'errors.YOOKASSA_CONFIG_NOT_FOUND'
   | 'errors.YOOKASSA_NOTICE_MISSING_PAYMENT_ID'
   | 'errors.YOOKASSA_PAYMENT_NOT_CONFIRMED'
   | 'errors.YOOKASSA_PAYMENT_NOT_FOUND'
   | 'errors.YOOKASSA_PAYMENT_SECRET_MISSING'
+  | 'errors.YOOKASSA_REFUND_CANCELED'
+  | 'errors.YOOKASSA_REFUND_FOREIGN_PAYMENT'
+  | 'errors.YOOKASSA_REQUEST_REFUSED'
   | 'expenses.chassisConfig.advancePaymentMemo'
   | 'expenses.chassisConfig.advancePaymentPurpose'
   | 'expenses.chassisConfig.fundNameDative'
@@ -2728,6 +2732,7 @@ export type MessageKey =
   | 'gateway.createInitialPaymentInput.usernameMustBeString'
   | 'gateway.gatewayInteractor.entryAndMinShareMemo'
   | 'gateway.gatewayInteractor.paymentCreationErrorMessage'
+  | 'gateway.gatewayInteractor.providerRefundNote'
   | 'gateway.gatewayInteractor.shareRefundMemo'
   | 'gateway.gatewayInteractor.walletCppShareMemo'
   | 'gateway.payment.direction.incoming'
@@ -3551,7 +3556,17 @@ export type MessageKey =
   | 'wallet.walletActivity.pendingTitle.deposit'
   | 'wallet.walletActivity.pendingTitle.withdrawal'
   | 'wallet.walletNotification.paymentTypeShareContribution'
-  | 'yookassa.payment.defaultDescription';
+  | 'yookassa.config.clientLabel'
+  | 'yookassa.config.clientNote'
+  | 'yookassa.config.feePercentLabel'
+  | 'yookassa.config.feePercentNote'
+  | 'yookassa.config.ipnUrlLabel'
+  | 'yookassa.config.ipnUrlNoteMainnet'
+  | 'yookassa.config.ipnUrlNoteTest'
+  | 'yookassa.config.secretLabel'
+  | 'yookassa.config.secretNote'
+  | 'yookassa.payment.defaultDescription'
+  | 'yookassa.refund.description';
 
 export type MessageBranch =
   | 'accessRoles'
@@ -4397,6 +4412,8 @@ export type MessageBranch =
   | 'wallet.walletActivity.pendingTitle'
   | 'wallet.walletNotification'
   | 'yookassa'
-  | 'yookassa.payment';
+  | 'yookassa.config'
+  | 'yookassa.payment'
+  | 'yookassa.refund';
 
 export type DynamicMessageKey = `${MessageBranch}.${string}`;

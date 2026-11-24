@@ -3,11 +3,12 @@
 import { PowerupExtensionModule, PowerupExtension, Schema as PowerupSchema } from './powerup/powerup-extension.module';
 import { ChatCoopExtensionModule, ChatCoopExtension, Schema as ChatCoopSchema } from './chatcoop/chatcoop-extension.module';
 import fs from 'node:fs/promises';
-import { YookassaExtensionModule, YookassaExtension, Schema as YookassaSchema } from './yookassa/yookassa-extension.module';
+import { YookassaExtensionModule, YookassaExtension, buildSchema as buildYookassaSchema, IPN_PATH as YOOKASSA_IPN_PATH } from './yookassa/yookassa-extension.module';
 import { SberpollExtensionModule, SberpollExtension, Schema as SberpollSchema } from './sberpoll/sberpoll-extension.module';
 import { QrPayExtensionModule, QrPayExtension, Schema as QRPaySchema } from './qrpay/qrpay-extension.module';
 import { DadataExtensionModule, DadataExtension, Schema as DadataSchema } from './dadata/dadata-extension.module';
 import path from 'path';
+import appConfig from '~/config/config';
 import { BuiltinExtensionModule, BuiltinExtension, Schema as BuiltinSchema } from './builtin/builtin-extension.module';
 import { ChairmanExtensionModule, ChairmanExtension, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
 import { ParticipantExtensionModule } from './participant/participant-extension.module';
@@ -352,7 +353,9 @@ export const AppRegistry: INamedExtension = {
   },
   yookassa: {
     is_internal: true,
-    availability: ExtensionAvailability.NOWHERE,
+    // Проверка на тестовом магазине ЮKassa (24.11.2026): открыто вне основной
+    // сети; в основную сеть — отдельным решением после проверки.
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
     desktops: undefined, // Это не desktop расширение
     title: t('app.extensionsRegistry.yookassa.title'),
     description: t('app.extensionsRegistry.yookassa.description'),
@@ -361,7 +364,14 @@ export const AppRegistry: INamedExtension = {
     extensionClass: YookassaExtension,
     defaults: { enabled: false, config: yookassaDefaultConfig },
     ports: yookassaPorts,
-    schema: YookassaSchema,
+    // Реестр строит схему при каждом обращении: поле адреса уведомлений берёт
+    // адрес сервера и признак основной сети из конфига контура.
+    get schema() {
+      return buildYookassaSchema({
+        url: `${appConfig.backend_url}${YOOKASSA_IPN_PATH}`,
+        readonly: appConfig.blockchain.is_mainnet,
+      });
+    },
     // Реквизиты магазина ЮKassa принадлежат кооперативу, но значением наружу не
     // уходят: `getExtensions` отдаёт «задано»/«не задано». До этого секретный
     // ключ кассы возвращался председателю в открытом виде.

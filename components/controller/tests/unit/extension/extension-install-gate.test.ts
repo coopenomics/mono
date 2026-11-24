@@ -47,7 +47,7 @@ describe('ExtensionDomainListingService.assertInstallable', () => {
 
   it('закрытое расширение не ставится даже на тестовом контуре', () => {
     chainConfig.is_mainnet = false;
-    expect(() => service.assertInstallable('yookassa')).toThrow('недоступно для установки');
+    expect(() => service.assertInstallable('sberpoll')).toThrow('недоступно для установки');
   });
 
   it('неизвестное имя отвергается', () => {
@@ -69,7 +69,7 @@ describe('ext.avail.side.04: закрытие расширения в реест
     chainConfig.is_mainnet = true;
 
     // Закрытое расширение не ставится ни в одной сети.
-    expect(() => service.assertInstallable('yookassa')).toThrow('недоступно для установки');
+    expect(() => service.assertInstallable('sberpoll')).toThrow('недоступно для установки');
 
     // Никакого «остановить уже установленное» в этом гейте нет: он не знает
     // ни про установленные приложения, ни про их признак «включено».

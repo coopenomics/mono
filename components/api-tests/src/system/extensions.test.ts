@@ -114,8 +114,8 @@ describe('каталог расширений и рабочие столы', () 
   it(caseName('sys.ext.happy.03', 'каталог: установленные по умолчанию отмечены, закрытое везде — недоступно'), async () => {
     const powerup = await extension('powerup')
     expect(powerup).toMatchObject({ is_installed: true, enabled: true, is_available: true })
-    const yookassa = await extension('yookassa')
-    expect(yookassa).toMatchObject({ is_installed: false, is_available: false })
+    const sberpoll = await extension('sberpoll')
+    expect(sberpoll).toMatchObject({ is_installed: false, is_available: false })
     const probe = await extension(PROBE_EXT)
     expect(probe.is_installed, `${PROBE_EXT} не должен стоять на стенде до теста`).toBe(false)
     expect(probe.desktops.map((d: any) => d.name)).toContain(PROBE_EXT)
@@ -145,8 +145,8 @@ describe('каталог расширений и рабочие столы', () 
   })
 
   it(caseName('ext.avail.side.03', 'закрытое везде расширение на тестовом контуре не ставится'), async () => {
-    expectCode(await gqlError(chairToken, INSTALL, { d: { name: 'yookassa', enabled: false, config: { client: '', secret: '' } } }), 'EXTENSION_NOT_AVAILABLE_FOR_INSTALL')
-    expect((await extension('yookassa')).is_installed).toBe(false)
+    expectCode(await gqlError(chairToken, INSTALL, { d: { name: 'sberpoll', enabled: false, config: {} } }), 'EXTENSION_NOT_AVAILABLE_FOR_INSTALL')
+    expect((await extension('sberpoll')).is_installed).toBe(false)
   })
 
   it(caseName('ext.avail.break.01', 'прямой вызов установки закрытого приложения: пайщику — отказ по роли, председателю — отказ по сети'), async () => {

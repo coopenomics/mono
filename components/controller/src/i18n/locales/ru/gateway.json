@@ -33,7 +33,8 @@
       "entryAndMinShareMemo": "Вступительный и минимальный паевой взносы №{hashPrefix}. {vatExemptNote}",
       "paymentCreationErrorMessage": "Ошибка создания платежа: {errorMessage}",
       "shareRefundMemo": "Возврат паевого взноса №{hashPrefix}. {vatExemptNote}",
-      "walletCppShareMemo": "Паевой взнос по соглашению о ЦПП \"Цифровой Кошелёк\" №{hashPrefix}. {vatExemptNote}"
+      "walletCppShareMemo": "Паевой взнос по соглашению о ЦПП \"Цифровой Кошелёк\" №{hashPrefix}. {vatExemptNote}",
+      "providerRefundNote": "Деньги возвращены плательщику через платёжного провайдера: {amount}."
     },
     "payment": {
       "direction": {

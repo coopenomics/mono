@@ -129,6 +129,20 @@ export class GatewayInteractor implements GatewayInteractorPort {
         throw DomainError.conflict('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN', { status: payment.status });
       }
 
+      // Отклонение входящего платежа, который принял эквайринг: деньги уже у
+      // провайдера, и вернуть их плательщику обязан он. Возврат идёт ДО смены
+      // статуса: не удался — платёж не отклоняется, кассир видит причину.
+      let refundNote: string | undefined;
+      if (statusEnum === PaymentStatusEnum.CANCELLED && payment.direction === PaymentDirectionEnum.INCOMING) {
+        const provider = payment.provider ? this.providerPort.getProvider(payment.provider) : undefined;
+        if (provider && typeof provider.refundPayment === 'function') {
+          const refund = await provider.refundPayment(payment.hash);
+          if (refund?.refunded) {
+            refundNote = t('gateway.gatewayInteractor.providerRefundNote', { amount: refund.amount ?? '' });
+          }
+        }
+      }
+
       const result = await this.paymentRepository.setPaymentStatus(data.id, statusEnum);
 
       if (!result) {
@@ -137,8 +151,10 @@ export class GatewayInteractor implements GatewayInteractorPort {
 
       // Сохраняем причину изменения статуса (например, причину отклонения платежа),
       // чтобы пайщик увидел её на странице регистрации даже после перезагрузки/в другой вкладке.
-      if (data.message !== undefined && result.id) {
-        const updated = await this.paymentRepository.update(result.id, { message: data.message });
+      // Строка о возврате у провайдера дописывается к причине кассира.
+      const message = [data.message, refundNote].filter((part) => !!part).join(' ') || data.message;
+      if (message !== undefined && result.id) {
+        const updated = await this.paymentRepository.update(result.id, { message });
         if (updated) {
           result.message = updated.message;
         }

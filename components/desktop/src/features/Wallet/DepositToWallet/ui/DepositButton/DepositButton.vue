@@ -50,14 +50,17 @@ q-btn(
   )
     p {{ $t('wallet.depositButton.paymentInstructions', { amount: paymentOrder?.payment_details?.amount_without_fee, feePercent: paymentOrder?.payment_details?.fact_fee_percent, totalAmount: paymentOrder?.payment_details?.amount_plus_fee }) }}
 
-    p
+    //- Предупреждение о счёте плательщика — для перевода по реквизитам; оплату картой в форме ЮKassa оно не касается.
+    p(v-if='paymentOrder?.provider !== "yookassa"')
       span.text-bold {{ $t('wallet.depositButton.warningTitle') }}
       span.q-ml-xs {{ $t('wallet.depositButton.warningText') }}
 
+    p(v-if='waitingConfirmation') {{ $t('wallet.depositButton.waitingConfirmation') }}
     PayWithProvider.q-mb-md(
+      v-else,
       :payment-order='paymentOrder',
-      @payment-fail='paymentFail',
-      @payment-success='paymentSuccess'
+      @payment-fail='(message) => paymentFail(message)',
+      @payment-success='onProviderSuccess'
     )
 </template>
 
@@ -96,6 +99,9 @@ import { useSystemStore } from 'src/entities/System/model';
 import { env } from 'src/shared/config';
 import { useCreateDepositPayment } from 'src/features/Wallet/CreateDepositPayment';
 import { useDepositDialog } from '../../model/useDepositDialog';
+import { api as paymentApi } from 'src/entities/Payment/api';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { Zeus } from '@coopenomics/sdk';
 
 const { info } = useSystemStore();
 
@@ -114,6 +120,8 @@ const openDialog = (): void => {
 };
 const isSubmitting = ref(false);
 const paymentOrder = ref();
+// Форма провайдера сообщила об оплате, а кооператив ещё не зачислил взнос.
+const waitingConfirmation = ref(false);
 
 const isActive = computed(
   () => session.userAccount?.status === 'active',
@@ -127,6 +135,7 @@ const clear = (): void => {
   showDialog.value = false;
   isSubmitting.value = false;
   paymentOrder.value = null;
+  waitingConfirmation.value = false;
   quantity.value = 1000;
 };
 
@@ -148,9 +157,38 @@ const handlerSubmit = async (): Promise<void> => {
 
 const currency = computed(() => env.CURRENCY);
 
-const paymentFail = (): void => {
+const paymentFail = (message?: string): void => {
   clear();
-  FailAlert(t('wallet.depositButton.acceptError'));
+  FailAlert(message || t('wallet.depositButton.acceptError'));
+};
+
+const SUCCEEDED = [Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED];
+const DECLINED = [Zeus.PaymentStatus.FAILED, Zeus.PaymentStatus.CANCELLED, Zeus.PaymentStatus.EXPIRED];
+
+/**
+ * Исход платежа — по статусу у кооператива, а не по форме провайдера: форма
+ * ЮKassa показывает «Успешно» с рекламой и сообщает исход только после этого
+ * экрана, а взнос может быть и отклонён (поступило меньше заявленного).
+ * Окно закрывается по сигналу ленты о платеже, форма убирается вместе с ним.
+ */
+const checkPaymentStatus = async (): Promise<void> => {
+  const order = paymentOrder.value;
+  if (!order?.hash) return;
+  const result = await paymentApi.loadPayments(
+    { hash: order.hash, username: session.username },
+    { page: 1, limit: 1, sortOrder: 'DESC' },
+  );
+  const payment = result.items[0];
+  if (!payment || paymentOrder.value?.hash !== order.hash) return;
+  if (SUCCEEDED.includes(payment.status)) paymentSuccess();
+  else if (DECLINED.includes(payment.status)) paymentFail(payment.message || undefined);
+};
+
+useLiveReload([{ code: 'core', table: 'payments' }], checkPaymentStatus);
+
+const onProviderSuccess = (): void => {
+  waitingConfirmation.value = true;
+  void checkPaymentStatus();
 };
 
 const paymentSuccess = (): void => {

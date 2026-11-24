@@ -4,11 +4,29 @@
     "YOOKASSA_NOTICE_MISSING_PAYMENT_ID": "Уведомление ЮKassa без идентификатора платежа",
     "YOOKASSA_PAYMENT_NOT_CONFIRMED": "ЮKassa не подтвердила платёж {id}",
     "YOOKASSA_PAYMENT_NOT_FOUND": "Платеж с hash {hash} не найден",
-    "YOOKASSA_PAYMENT_SECRET_MISSING": "У платежа {hash} отсутствует secret"
+    "YOOKASSA_PAYMENT_SECRET_MISSING": "У платежа {hash} отсутствует secret",
+    "YOOKASSA_API_FAILED": "ЮKassa не ответила на запрос {path} (код {status})",
+    "YOOKASSA_REFUND_FOREIGN_PAYMENT": "Платёж ЮKassa не принадлежит платежу {hash}: возврат не оформлен",
+    "YOOKASSA_REFUND_CANCELED": "ЮKassa отказала в возврате по платежу {hash}. Причина — в личном кабинете ЮKassa",
+    "YOOKASSA_REQUEST_REFUSED": "ЮKassa отклонила запрос: {description}"
   },
   "yookassa": {
     "payment": {
       "defaultDescription": "Платеж для {username}"
+    },
+    "config": {
+      "clientLabel": "Идентификатор магазина",
+      "clientNote": "shopId из личного кабинета ЮKassa, раздел «Интеграция» → «Ключи API».",
+      "secretLabel": "Секретный ключ",
+      "secretNote": "Секретный ключ магазина из того же раздела личного кабинета ЮKassa. Для проверки подходит ключ тестового магазина.",
+      "ipnUrlLabel": "Адрес для уведомлений",
+      "ipnUrlNoteMainnet": "Скопируйте адрес в личный кабинет ЮKassa: «Интеграция» → «HTTP-уведомления», события payment.succeeded и payment.canceled. По этому адресу ЮKassa сообщает кооперативу об оплате, и взнос зачисляется автоматически.",
+      "ipnUrlNoteTest": "Скопируйте адрес в личный кабинет тестового магазина ЮKassa: «Интеграция» → «HTTP-уведомления», события payment.succeeded и payment.canceled. На стенде во внутреннем контуре замените адрес на публичный адрес уведомлений стенда.",
+      "feePercentLabel": "Наибольшая комиссия ЮKassa, %",
+      "feePercentNote": "ЮKassa не сообщает комиссию до оплаты, а у разных способов оплаты она разная. Пайщик видит все способы, включённые в магазине ЮKassa. Укажите наибольшую комиссию по договору среди этих способов: на неё увеличивается сумма к оплате, и пайщику зачисляется ровно заявленный взнос. Если поступит меньше, платёж отклоняется. Чтобы пайщик платил меньшую комиссию, попросите менеджера ЮKassa оставить в магазине способ с меньшей комиссией, например только СБП, и укажите его комиссию."
+    },
+    "refund": {
+      "description": "Возврат по отклонённому платежу №{hashPrefix}"
     }
   }
 }

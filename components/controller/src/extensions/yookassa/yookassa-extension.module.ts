@@ -1,8 +1,9 @@
 import './i18n';
 import { Module, Inject } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
-import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, IPNProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, describeConfigField, platformSettings, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, IPNProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -19,10 +20,69 @@ import {
 } from '@coopenomics/innercoop';
 import { t } from './i18n';
 
-export const Schema = z.object({
-  client: z.string(),
-  secret: z.string(),
-});
+/** Маршрут контроллера, на который ЮKassa шлёт HTTP-уведомления об оплате. */
+export const IPN_PATH = '/payment/ipn/yookassa';
+
+/**
+ * Схема настроек. Поле `ipn_url` наш сервер не использует: адрес уведомлений
+ * задаётся в личном кабинете ЮKassa, передать его через API ключами магазина
+ * нельзя. Поле показывает председателю, что вписать в кабинет. Реестр собирает
+ * схему в момент запроса: в основной сети адрес — от адреса сервера и только
+ * для чтения; на стенде и в тестовой сети его можно заменить (например, на
+ * публичный адрес реле до стенда во внутреннем контуре).
+ */
+export function buildSchema(ipn: { url: string; readonly: boolean } = { url: '', readonly: false }) {
+  // Подписи полей формы настроек: без них каталог показывал сырые «client» и
+  // «secret», а секретный ключ печатался в поле открытым текстом.
+  return z.object({
+    client: z.string().describe(
+      describeConfigField({
+        label: t('yookassa.config.clientLabel'),
+        note: t('yookassa.config.clientNote'),
+      })
+    ),
+    secret: z.string().describe(
+      describeConfigField({
+        label: t('yookassa.config.secretLabel'),
+        note: t('yookassa.config.secretNote'),
+        password: true,
+      })
+    ),
+    ipn_url: z
+      .string()
+      .default(ipn.url)
+      .describe(
+        describeConfigField({
+          label: t('yookassa.config.ipnUrlLabel'),
+          note: ipn.readonly ? t('yookassa.config.ipnUrlNoteMainnet') : t('yookassa.config.ipnUrlNoteTest'),
+          readonly: ipn.readonly,
+          copyable: true,
+          default: ipn.url,
+        })
+      ),
+    fee_percent: z
+      .number()
+      .min(0)
+      .max(30)
+      .default(DEFAULT_FEE_PERCENT)
+      .describe(
+        describeConfigField({
+          label: t('yookassa.config.feePercentLabel'),
+          note: t('yookassa.config.feePercentNote'),
+        })
+      ),
+  });
+}
+
+/**
+ * Комиссия по умолчанию — прежнее зашитое значение. Узнать комиссию магазина
+ * до оплаты ЮKassa не даёт (только после, в `income_amount`), поэтому
+ * председатель задаёт наибольшую по договору: зачислить пайщику меньше
+ * заявленного нельзя.
+ */
+const DEFAULT_FEE_PERCENT = 3.5;
+
+export const Schema = buildSchema();
 
 export const defaultConfig = {
   client: '',
@@ -116,6 +176,8 @@ export class YookassaExtension extends IPNProvider {
     if (!extensionData) throw DomainError.internal('YOOKASSA_CONFIG_NOT_FOUND');
 
     this.extension = extensionData;
+    const fee = Number(this.extension.config.fee_percent);
+    this.fee_percent = Number.isFinite(fee) ? fee : DEFAULT_FEE_PERCENT;
 
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
 
@@ -127,7 +189,8 @@ export class YookassaExtension extends IPNProvider {
   public defaultConfig = defaultConfig;
 
   public tolerance_percent = 0; /// (0.0005%) < Допустимая погрешность приёма платежей
-  public fee_percent = 3.5; ///%
+  /** Наибольшая комиссия магазина из настроек; задаётся в `initialize`. */
+  public fee_percent = DEFAULT_FEE_PERCENT;
 
   public async handleIPN(notice: IIpnRequest): Promise<void> {
     // Уведомления ЮKassa не подписаны — тело мог прислать кто угодно. Верим
@@ -271,11 +334,7 @@ export class YookassaExtension extends IPNProvider {
     const id = notice?.object?.id;
     if (!id || typeof id !== 'string') throw DomainError.internal('YOOKASSA_NOTICE_MISSING_PAYMENT_ID');
 
-    const checkout = new YooCheckout({
-      shopId: this.extension.config.client,
-      secretKey: this.extension.config.secret,
-    });
-    const actual = await checkout.getPayment(id);
+    const actual = await this.checkout().getPayment(id);
     if (!actual || actual.id !== id) throw DomainError.internal('YOOKASSA_PAYMENT_NOT_CONFIRMED', { id });
 
     const event =
@@ -316,10 +375,7 @@ export class YookassaExtension extends IPNProvider {
       throw DomainError.internal('YOOKASSA_PAYMENT_SECRET_MISSING', { hash });
     }
 
-    const checkout = new YooCheckout({
-      shopId: this.extension.config.client,
-      secretKey: this.extension.config.secret,
-    });
+    const checkout = this.checkout();
 
     const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
     const fee_amount = (parseFloat(amount_plus_fee) - amount).toFixed(2);
@@ -329,7 +385,7 @@ export class YookassaExtension extends IPNProvider {
 
     const description = payment.memo || t('yookassa.payment.defaultDescription', { username: payment.username });
 
-    const payment_result = await checkout.createPayment(
+    const payment_result = await yookassaCall(() => checkout.createPayment(
       {
         description,
         amount: {
@@ -345,10 +401,15 @@ export class YookassaExtension extends IPNProvider {
         capture: true,
       },
       payment.secret
-    );
+    ));
 
+    // Номер платежа ЮKassa хранится вместе с платежом: по нему кассир
+    // возвращает деньги, если платёж отклонён.
     return {
-      data: payment_result?.confirmation?.confirmation_token || '',
+      data: {
+        confirmation_token: payment_result?.confirmation?.confirmation_token || '',
+        payment_id: payment_result?.id || '',
+      },
       amount_plus_fee: `${amount_plus_fee} ${symbol}`,
       amount_without_fee: `${amount} ${symbol}`,
       fee_amount: `${fee_amount} ${symbol}`,
@@ -357,6 +418,110 @@ export class YookassaExtension extends IPNProvider {
       tolerance_percent: this.tolerance_percent,
     };
   }
+
+  /**
+   * Возврат денег плательщику отклоняемого платежа. Вызывает шлюз платежей,
+   * когда кассир отклоняет входящий платёж ЮKassa. Повтор безопасен: ключ
+   * идемпотентности — секрет платежа, повторный запрос второй возврат не создаёт.
+   */
+  public async refundPayment(hash: string): Promise<{ refunded: boolean; amount?: string }> {
+    const payment = await this.payments.findByHash(hash);
+    if (!payment) throw DomainError.notFound('YOOKASSA_PAYMENT_NOT_FOUND', { hash });
+    const secret = payment.secret;
+    if (!secret) throw DomainError.internal('YOOKASSA_PAYMENT_SECRET_MISSING', { hash });
+
+    const providerId = providerPaymentId(payment.payment_details?.data) ?? (await this.findProviderPaymentBySecret(payment));
+    if (!providerId) return { refunded: false };
+
+    const checkout = this.checkout();
+    const actual = await yookassaCall(() => checkout.getPayment(providerId));
+    // Оплаты не было (форма не оплачена, платёж отменён) — возвращать нечего.
+    if (actual.status !== 'succeeded') return { refunded: false };
+    if ((actual.metadata as Record<string, unknown> | undefined)?.secret !== payment.secret) {
+      throw DomainError.internal('YOOKASSA_REFUND_FOREIGN_PAYMENT', { hash });
+    }
+
+    const paid = Number(actual.amount.value);
+    const already = Number(actual.refunded_amount?.value ?? 0);
+    const amount = `${actual.amount.value} ${actual.amount.currency}`;
+    if (already >= paid) return { refunded: true, amount };
+
+    const refund = await yookassaCall(() => checkout.createRefund(
+      {
+        payment_id: providerId,
+        amount: { value: (paid - already).toFixed(2), currency: actual.amount.currency },
+        description: t('yookassa.refund.description', { hashPrefix: hash.slice(0, 8) }),
+      },
+      refundIdempotenceKey(secret)
+    ));
+    if (refund.status === 'canceled') throw DomainError.internal('YOOKASSA_REFUND_CANCELED', { hash });
+
+    this.logger.info('Возврат ЮKassa оформлен', { source: 'refundPayment', id: payment.id, refund: refund.id, amount });
+    return { refunded: true, amount };
+  }
+
+  private checkout(): YooCheckout {
+    return new YooCheckout({
+      shopId: this.extension.config.client,
+      secretKey: this.extension.config.secret,
+    });
+  }
+
+  /** Запрос к API ЮKassa, которого нет в библиотеке (список платежей). */
+  private async api<T>(path: string): Promise<T> {
+    const auth = Buffer.from(`${this.extension.config.client}:${this.extension.config.secret}`).toString('base64');
+    const response = await fetch(`https://api.yookassa.ru/v3${path}`, { headers: { Authorization: `Basic ${auth}` } });
+    if (!response.ok) throw DomainError.internal('YOOKASSA_API_FAILED', { path, status: response.status });
+    return (await response.json()) as T;
+  }
+
+  /**
+   * Платёж ЮKassa по секрету кооператива — для платежей, заведённых до того,
+   * как номер платежа ЮKassa начал храниться у нас. Ищется в пределах суток
+   * от создания.
+   */
+  private async findProviderPaymentBySecret(payment: { secret?: string; created_at: Date }): Promise<string | null> {
+    const from = new Date(new Date(payment.created_at).getTime() - 60 * 60 * 1000).toISOString();
+    const to = new Date(new Date(payment.created_at).getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const list = await this.api<{ items?: Array<{ id: string; metadata?: { secret?: string } }> }>(
+      `/payments?created_at.gte=${encodeURIComponent(from)}&created_at.lte=${encodeURIComponent(to)}&limit=100`
+    );
+    return list.items?.find((item) => item.metadata?.secret === payment.secret)?.id ?? null;
+  }
+}
+
+/**
+ * Ключ идемпотентности возврата. ЮKassa принимает ключ не длиннее 64 знаков,
+ * а секрет платежа сам занимает 64 — ключ строится из его хэша. Один платёж —
+ * один ключ: повторное отклонение второй возврат не создаёт.
+ */
+export function refundIdempotenceKey(secret: string): string {
+  return `refund-${createHash('sha256').update(secret).digest('hex').slice(0, 40)}`;
+}
+
+/**
+ * Вызов библиотеки ЮKassa с понятной ошибкой. Библиотека бросает ответ ЮKassa
+ * объектом без `message` ({ code, description }), и до кассира доходило
+ * «Internal Server Error» без причины.
+ */
+async function yookassaCall<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (error instanceof DomainError) throw error;
+    const e = (error ?? {}) as { description?: string; code?: string; message?: string };
+    throw DomainError.badRequest('YOOKASSA_REQUEST_REFUSED', {
+      description: e.description || e.message || String(e.code ?? 'unknown'),
+    });
+  }
+}
+
+/** Номер платежа ЮKassa из сохранённых реквизитов; у старых платежей там строка-токен. */
+function providerPaymentId(data: unknown): string | null {
+  if (data && typeof data === 'object' && typeof (data as { payment_id?: unknown }).payment_id === 'string') {
+    return (data as { payment_id: string }).payment_id || null;
+  }
+  return null;
 }
 
 @Module({
