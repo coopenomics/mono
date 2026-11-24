@@ -6,6 +6,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import { EventsService } from '~/infrastructure/events/events.service';
+import { emitParticipantProfileUpdated } from '~/application/account/lib/participant-profile-updated';
 import type { GetAccountsInputDomainInterface } from '~/domain/account/interfaces/get-accounts-input.interface';
 import {
   AccountVerificationFilter,
@@ -195,6 +196,9 @@ export class AccountInteractor {
       username: data.username,
       account,
     });
+    // Для расширений: контракт `account::updated` ядро держит у себя, а
+    // расширениям даёт событие из `@coopenomics/innercoop`.
+    emitParticipantProfileUpdated(this.eventsService, data.username, data);
 
     const result = new AccountDomainEntity(account);
     return result;

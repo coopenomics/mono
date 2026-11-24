@@ -41,6 +41,7 @@ import {
   mapPlatformAgreementIdToDocumentType,
 } from '~/domain/registration/utils/candidate-agreement.utils';
 import { EventsService } from '~/infrastructure/events/events.service';
+import { emitParticipantProfileUpdated } from '~/application/account/lib/participant-profile-updated';
 import { HttpApiError, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
@@ -375,6 +376,10 @@ export class ParticipantInteractor {
     const inviteUrl = `${config.frontend_url}/${config.coopname}/auth/invite?token=${token}`;
 
     await this.notificationSenderService.sendNotificationToUser(data.username, Workflows.Invite.id, { inviteUrl });
+
+    // Пайщик, загруженный списком, не проходит вступление и не порождает
+    // `participant::registered`; расширения узнают о его данных из этого события.
+    emitParticipantProfileUpdated(this.eventsService, data.username, data);
 
     return this.accountDomainService.getAccount(data.username);
   }
