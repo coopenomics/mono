@@ -7,7 +7,7 @@
       :key='desktop.name || index'
     )
       q-avatar.desktops-list__ico(size='32px')
-        q-icon(:name='desktop.icon || "fa-solid fa-desktop"', size='16px')
+        q-icon(:name='desktop.icon || "desktop_windows"', size='16px')
       span.desktops-list__label {{ desktop.title || $t('extensionDesktopsList.desktopsList.untitledFallback') }}
 </template>
 
@@ -38,16 +38,25 @@ defineProps<Props>()
   color: var(--p-ink-3);
   margin-bottom: var(--p-3, 12px);
 }
+// Список — блоком по центру карточки, строки внутри — от левого края блока:
+// иконки стоят одним столбцом, подписи начинаются с одной линии и не
+// «прыгают» от длины названия (замечание владельца 24.11.2026)
 .desktops-list__items {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--p-2, 8px);
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: left;
 }
 .desktops-list__row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--p-2, 8px);
+  min-width: 0;
 }
 .desktops-list__ico {
   color: var(--p-primary);
