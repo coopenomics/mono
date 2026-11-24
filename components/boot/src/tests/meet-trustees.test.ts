@@ -23,8 +23,10 @@ import { signedDocument } from './shared/fakeDocument'
  *   • повторное собрание закрепляет форму по составу на новое одобрение.
  *
  * Запускать на поднятом стенде тестовой сборки (порог пайщиков 0: система
- * участков включается тремя участками). Тест создаёт участки сам и удаляет
- * их в конце, кооператив возвращается в прежнюю форму.
+ * участков включается тремя участками). Тест создаёт свои участки, голосует
+ * их председателями и удаляет их в конце — кооператив возвращается в прежнюю
+ * форму. На стенде, уже работающем по системе участков (boot:extra, полигон
+ * Blackbox), часть «собрание пайщиков» пропускается.
  */
 const COOP = config.provider
 const CHAIRMAN = config.provider_chairman
@@ -114,15 +116,15 @@ async function newUser(): Promise<string> {
   return username
 }
 
+// Участки, созданные тестом, — удаляются в afterAll.
+const created: string[] = []
+
 async function createBranch(trustee: string): Promise<string> {
   const braname = generateRandomUsername()
   await push('branch', 'createbranch', COOP, { coopname: COOP, braname, trustee })
   created.push(braname)
   return braname
 }
-
-// Участки, созданные тестом, — удаляются в afterAll.
-const created: string[] = []
 
 // Отметка времени закрепления формы — секунды; участок, созданный в ту же
 // секунду, что и одобрение, считался бы существовавшим до одобрения. Пауза
@@ -131,13 +133,29 @@ const nextSecond = () => new Promise(resolve => setTimeout(resolve, 1100)) // ti
 
 let PARTICIPANT_A = ''
 let PARTICIPANT_B = ''
+// Председатели и участки, созданные тестом: на них он голосует и их удаляет.
 const trustees: string[] = []
 const branches: string[] = []
+// Стенд boot:extra (полигон Blackbox) уже работает по системе участков — там
+// собрание пайщиков не созвать, и эта часть пропускается. На чистом стенде
+// тест сам включает систему участков посреди собрания пайщиков.
+let STARTED_BRANCHED = false
+
+async function addOwnBranch(): Promise<void> {
+  const trustee = await newUser()
+  trustees.push(trustee)
+  branches.push(await createBranch(trustee))
+}
+
+/** Система участков включена, и у теста не меньше двух своих участков. */
+async function ensureTrusteesStand(): Promise<void> {
+  while (branches.length < 2 || !(await branched()))
+    await addOwnBranch()
+}
 
 beforeAll(async () => {
   await blockchain.update_pass_instance()
-  // Тест сам создаёт три участка и опирается на их председателей.
-  expect(await branchCount(), 'у кооператива стенда уже есть участки — тест рассчитан на кооператив без них').toBe(0)
+  STARTED_BRANCHED = await branched()
   PARTICIPANT_A = await newUser()
   PARTICIPANT_B = await newUser()
 }, 240_000)
@@ -150,7 +168,9 @@ afterAll(async () => {
 describe('собрание пайщиков', () => {
   let MEET = ''
 
-  it('одобрение советом закрепляет форму собрания пайщиков', async () => {
+  it('одобрение советом закрепляет форму собрания пайщиков', async (ctx) => {
+    if (STARTED_BRANCHED)
+      ctx.skip()
     MEET = await announceMeet()
     const meet = await meetOf(MEET)
     expect(flag(meet.form.is_branched)).toBe(false)
@@ -158,19 +178,19 @@ describe('собрание пайщиков', () => {
     expect(meet.form.voted_branches).toEqual([])
   }, 120_000)
 
-  it('голосует рядовой пайщик, кворум считается от активных пайщиков', async () => {
+  it('голосует рядовой пайщик, кворум считается от активных пайщиков', async (ctx) => {
+    if (STARTED_BRANCHED)
+      ctx.skip()
     await vote(MEET, PARTICIPANT_A)
     const meet = await meetOf(MEET)
     expect(Number(meet.signed_ballots)).toBe(1)
     expect(Number(meet.current_quorum_percent)).toBeCloseTo(100 / (await activeParticipants()), 6)
   }, 120_000)
 
-  it('система участков, включённая во время собрания, форму собрания не меняет', async () => {
-    for (let i = 0; i < 3; i++) {
-      const trustee = await newUser()
-      trustees.push(trustee)
-      branches.push(await createBranch(trustee))
-    }
+  it('система участков, включённая во время собрания, форму собрания не меняет', async (ctx) => {
+    if (STARTED_BRANCHED)
+      ctx.skip()
+    await ensureTrusteesStand()
     expect(await branched()).toBe(true)
 
     await vote(MEET, PARTICIPANT_B)
@@ -185,6 +205,7 @@ describe('собрание уполномоченных', () => {
   let MEET = ''
 
   it('новый участок получает дату создания и полный хвост расширений', async () => {
+    await ensureTrusteesStand()
     const rows = await blockchain.getTableRows('branch', COOP, 'branches', 1, branches[0], branches[0])
     expect(rows[0].created_at).toBeTruthy()
     expect(flag(rows[0].is_private)).toBe(false)
@@ -196,7 +217,7 @@ describe('собрание уполномоченных', () => {
     MEET = await announceMeet()
     const meet = await meetOf(MEET)
     expect(flag(meet.form.is_branched)).toBe(true)
-    expect(Number(meet.form.branches_count)).toBe(3)
+    expect(Number(meet.form.branches_count)).toBe(await branchCount())
   }, 120_000)
 
   it('рядовой пайщик не голосует', async () => {
