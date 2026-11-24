@@ -21,7 +21,7 @@
 ## Где что лежит
 
 - Сервер: `components/controller/src/extensions/participant/`. Подкаталоги: `i18n/`, `utils/`.
-- Файлы верхнего уровня: `meet-tracker.service.ts`, `meet-workflow-notification.service.ts`, `notification-sender.service.ts`, `participant-extension.module.ts`, `participant.ports.ts`, `types.ts`.
+- Файлы верхнего уровня: `meet-tracker.service.ts`, `meet-workflow-notification.service.ts`, `participant-extension.module.ts`, `participant.ports.ts`, `types.ts`.
 - Стол: `components/desktop/extensions/participant/` — маршруты и пункты меню в `install.ts`, тексты в `i18n/ru.json`.
 - Порты и их владельцы — `components/innercoop/PORTS.md`.
 

@@ -6,7 +6,6 @@ import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, type In
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema, ILog } from './types';
-import { NotificationSenderService } from './notification-sender.service';
 import { MeetTrackerService } from './meet-tracker.service';
 import { MeetWorkflowNotificationService } from './meet-workflow-notification.service';
 
@@ -19,8 +18,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(MEET_PORT) private readonly meetPort: IMeetPort,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
-    private readonly meetTracker: MeetTrackerService,
-    private readonly notificationSender: NotificationSenderService
+    private readonly meetTracker: MeetTrackerService
   ) {
     super();
     this.logger.setContext(ParticipantExtension.name);
@@ -35,23 +33,6 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
   // Получение всех аккаунтов с использованием пакетной загрузки
   async getAllAccounts(): Promise<InnerAccount[]> {
     return this.meetTracker.getAllAccounts();
-  }
-
-  // Получение всех email-адресов пользователей
-  async getAllUserEmails(): Promise<Array<{ email: string; subscriberId: string }>> {
-    // Получаем аккаунты через meetTracker
-    const accounts = await this.meetTracker.getAllAccounts();
-
-    // Извлекаем email и subscriberId из аккаунтов
-    return accounts
-      .map((account) => ({
-        email: account.provider_account?.email,
-        subscriberId: account.provider_account?.subscriber_id,
-      }))
-      .filter((user) => user.email && user.email.includes('@') && user.subscriberId) as Array<{
-      email: string;
-      subscriberId: string;
-    }>;
   }
 
   async initialize() {
@@ -72,9 +53,6 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
     }
 
     this.logger.info(`Инициализация ${this.name} с конфигурацией`, this.extension.config);
-
-    // Настраиваем сервис отправки уведомлений
-    this.notificationSender.setGetUserEmailsFunction(() => this.getAllUserEmails());
 
     // Инициализируем трекер собраний
     await this.meetTracker.initialize(this.extension);
@@ -101,7 +79,7 @@ export class ParticipantExtension extends BaseExtensionModule implements OnModul
 @Module({
   imports: [
   ],
-  providers: [NotificationSenderService, MeetTrackerService, MeetWorkflowNotificationService, ParticipantExtension],
+  providers: [MeetTrackerService, MeetWorkflowNotificationService, ParticipantExtension],
   exports: [ParticipantExtension],
 })
 export class ParticipantExtensionModule {
