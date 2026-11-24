@@ -30,6 +30,10 @@ export function buildDrawioEmbedIframeSrc(
   url.searchParams.set('noSaveBtn', '1');
   url.searchParams.set('saveAndExit', '0');
   url.searchParams.set('dark', dark ? '1' : '0');
+  // Без «вида страницы»: сетка на всю ширину, без белого листа A4 на сером
+  // поле (решение владельца 24.11.2026). По документации draw.io `pv`
+  // перекрывает атрибут page="1" из сохранённой схемы, правка XML не требуется.
+  url.searchParams.set('pv', '0');
   if (readonly) {
     url.searchParams.set('chrome', '0');
   } else {
