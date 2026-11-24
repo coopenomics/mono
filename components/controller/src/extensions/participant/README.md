@@ -1,16 +1,29 @@
-# Расширение для отслеживания общих собраний
+# Стол Пайщика — документация разработчика
 
-Расширение "Стол Пайщика" предназначено для автоматического отслеживания общих собраний кооператива и отправки уведомлений пайщикам по электронной почте в ключевые моменты.
+Рабочий стол каждого пайщика кооператива. На нём пайщик видит своё членство и ведёт свои дела с кооперативом.
 
-## Основная функциональность
+Текст страницы в каталоге приложений — `CATALOG.md`: его читают председатель и совет, технических подробностей в нём нет. Этот файл — для разработчика.
 
-- Отслеживание новых общих собраний
-- Отправка уведомлений пайщикам в следующие моменты:
-  - При создании нового собрания
-  - За 3 дня до начала собрания
-  - В момент начала собрания
-  - За 1 день до завершения собрания
-  - После завершения собрания
+## Запись реестра
+
+Запись — в `components/controller/src/extensions/extensions.registry.ts`. Что значит каждое поле — корневой `components/controller/CLAUDE.md`, раздел «Что расширение объявляет о себе».
+
+### `participant` — Стол Пайщика
+
+- Доступность в сети: везде.
+- Ставится новому кооперативу сразу, включённым (`defaults` в записи реестра).
+- Модуль: `ParticipantExtensionModule` — `participant/participant-extension.module.ts`.
+- Рабочие столы: `participant` («Стол Пайщика»).
+- Поля настроек (`Schema` модуля): `checkIntervalMinutes`, `lastCheckTimestamp`, `trackedMeets`, `minutesBeforeStartNotification`, `minutesBeforeEndNotification`, `closedMeetIds`.
+- Миграции схемы базы: 0; миграции настроек: 0.
+- Обязательные порты: `Account`, `Logger`, `Meet`, `Notification`.
+
+## Где что лежит
+
+- Сервер: `components/controller/src/extensions/participant/`. Подкаталоги: `i18n/`, `utils/`.
+- Файлы верхнего уровня: `meet-tracker.service.ts`, `meet-workflow-notification.service.ts`, `notification-sender.service.ts`, `participant-extension.module.ts`, `participant.ports.ts`, `types.ts`.
+- Стол: `components/desktop/extensions/participant/` — маршруты и пункты меню в `install.ts`, тексты в `i18n/ru.json`.
+- Порты и их владельцы — `components/innercoop/PORTS.md`.
 
 ## Технические детали
 

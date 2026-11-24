@@ -365,3 +365,30 @@ truth, `application/shared/ndfl.util.ts` здесь и `shared/lib/marketplace/n
   просрочен, и выносит его на решение совета.
 - **Через сколько дней после истечения срока годности списывать** — по
   умолчанию 7 дней; даёт время продать товар с уценкой до списания.
+
+---
+
+Текст страницы в каталоге приложений — `CATALOG.md`: его читают председатель и совет. Этот файл — для разработчика.
+
+## Запись реестра и состав расширения
+
+Запись — в `components/controller/src/extensions/extensions.registry.ts`. Что значит каждое поле — корневой `components/controller/CLAUDE.md`, раздел «Что расширение объявляет о себе».
+
+### `market` — Стол заказов
+
+- Доступность в сети: везде.
+- Ставит председатель из каталога приложений (`defaults` в записи реестра нет).
+- Модуль: `MarketplaceExtensionModule` — `marketplace/marketplace-extension.module.ts`.
+- Рабочие столы: `market` («Стол заказчика»), `market-supplier` («Стол поставщика»), `market-pvz` («Стол ПВЗ»), `market-admin` («Стол администратора»).
+- Поля настроек (`Schema` модуля): `issuance`, `coopAcceptance`, `writeoff`, `warehouse`.
+- Миграции схемы базы: 15; миграции настроек: 24.
+- Обязательные порты: `Account`, `AgreementCatalog`, `Branch`, `Chain`, `Council`, `DesktopGrantsRegistry`, `DocumentApproval`, `Document`, `ExpenseChassis`, `ExtensionConfig`, `ExtensionDatabase`, `FileStorage`, `IntegrationSettings`, `Ledger2History`, `Logger`, `Notification`, `DocumentDeclaration`, `OnboardingStepRegistry`, `Organization`, `PaymentDesk`, `PaymentMethod`, `ProgramAgreement`, `RegistrationDocumentParametersRegistry`, `UserCertificate`, `Verification`, `UserData`, `UserDirectory`, `UserWallet`, `Vault`.
+- Необязательные порты: `RegistrationRegistry`, `CooperativeLogo`, `UserAvatar`, `SovietRobot`, `ChainChanges`, `PowersOfAttorney`.
+
+### Где что лежит
+
+- Сервер: `components/controller/src/extensions/marketplace/`. Подкаталоги: `application/`, `constants/`, `domain/`, `i18n/`, `infrastructure/`, `migrations/`, `sync/`.
+- Файлы верхнего уровня: `marketplace-extension.module.ts`, `marketplace.database-migrations.ts`, `marketplace.migrations.ts`, `marketplace.ports.ts`, `marketplace.tables.ts`, `types.ts`.
+- Стол: `components/desktop/extensions/market/` — маршруты и пункты меню в `install.ts`, тексты в `i18n/ru.json`.
+- Таблицы базы (создают миграции расширения): `attributes`, `available_categories`, `categories`, `category_type_attributes`, `dictionaries`, `dictionary_values`, `marketplace_apl_reception`, `marketplace_branch_aid`, `marketplace_branch_period`, `marketplace_cart`, `marketplace_cart_item`, `marketplace_category`, `marketplace_consolidated_request`, `marketplace_container`, `marketplace_container_type`, `marketplace_handoff_code`, `marketplace_inventory`, `marketplace_inventory_movement`, `marketplace_issuance_saga`, `marketplace_ku_details`, `marketplace_moderation_log`, `marketplace_offer`, `marketplace_order`, `marketplace_outgoing_payment_request`, `marketplace_request_attribute_values`, `marketplace_request_images`, `marketplace_requests`, `marketplace_return_claim`, `marketplace_review`, `marketplace_secure_due`, `marketplace_shipment`, `marketplace_stock_proposal`, `marketplace_storage_cell`, `marketplace_supplier`, `marketplace_supplier_claim`, `marketplace_supplier_profile`, `marketplace_supplier_settings`, `marketplace_supply_validation_log`, `marketplace_ttn_document`, `marketplace_vitrine`, `marketplace_writeoff_proposal`, `types`.
+- Порты и их владельцы — `components/innercoop/PORTS.md`.

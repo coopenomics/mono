@@ -185,32 +185,3 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
 }
 </style>
 
-<style>
-.description h1 {
-  font-size: 1.7rem !important;
-  margin: 0px !important;
-}
-.description h2 {
-  font-size: 1.5rem !important;
-  margin: 0px !important;
-}
-.description h3 {
-  font-size: 1.4rem !important;
-  margin: 0px !important;
-}
-.description h4 {
-  font-size: 1.3rem !important;
-  margin: 0px !important;
-}
-.description h5 {
-  font-size: 1.2rem !important;
-  margin: 0px !important;
-}
-.description h6 {
-  font-size: 1.1rem !important;
-  margin: 0px !important;
-}
-.description ul {
-  margin: 0px !important;
-}
-</style>
