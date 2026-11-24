@@ -1,0 +1,129 @@
+feature: meet.assembly-form
+title: Форма общего собрания — собрание пайщиков или собрание уполномоченных
+
+# Компонент 76 «Общее собрание уполномоченных», задача A86-1 (24.11.2026).
+# Форма собрания закрепляется в записи собрания при одобрении советом
+# (meet::authmeet) и до закрытия не меняется. Собрание уполномоченных —
+# голосуют председатели участков, участок голосует один раз, кворум — от
+# числа участков на момент одобрения; порог 75 % и понижение при повторе
+# прежние. Собрания, одобренные до появления формы, работают по флагу
+# кооператива на момент голоса (поле формы в binary_extension).
+
+sources:
+  contract:
+    - components/contracts/cpp/meet/src/authmeet.cpp
+    - components/contracts/cpp/meet/src/vote.cpp
+    - components/contracts/cpp/meet/src/gmnotify.cpp
+    - components/contracts/cpp/meet/include/structs/meet_form.hpp
+    - components/contracts/cpp/meet/include/tables/meet.hpp
+    - components/contracts/cpp/lib/domain/table_branch_branches.hpp
+    - components/contracts/cpp/branch/src/createbranch.cpp
+    - components/contracts/cpp/branch/src/confirmdec.cpp
+    - components/contracts/cpp/meet/meet.hold.standard.yaml
+
+cases:
+  - id: meet.form.happy.01
+    level: contract
+    kind: happy
+    scenario: Совет одобряет собрание, кооператив без системы участков
+    expect: в записи собрания форма «собрание пайщиков», число участков 0, проголосовавших участков нет
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.happy.02
+    level: contract
+    kind: happy
+    scenario: На собрании пайщиков голосует рядовой пайщик
+    expect: бюллетень принят, кворум — доля от активных пайщиков
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.01
+    level: contract
+    kind: side
+    scenario: Во время собрания пайщиков создан третий участок, кооператив перешёл на систему участков
+    expect: форма собрания прежняя, рядовой пайщик голосует, кворум по-прежнему от пайщиков
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.happy.03
+    level: contract
+    kind: happy
+    scenario: Совет одобряет собрание кооператива с тремя участками
+    expect: форма «собрание уполномоченных», закреплено число участков 3
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.01
+    level: contract
+    kind: break
+    scenario: На собрании уполномоченных голосует рядовой пайщик
+    expect: отказ MEET_NOT_TRUSTEE
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.02
+    level: contract
+    kind: break
+    scenario: На собрании уполномоченных уведомление подтверждает рядовой пайщик
+    expect: отказ MEET_NOT_TRUSTEE; председатель участка подтверждает и попадает в список оповещённых
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.happy.04
+    level: contract
+    kind: happy
+    scenario: Председатель участка подаёт бюллетень на собрании уполномоченных
+    expect: участок в списке проголосовавших, кворум — один из трёх участков
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.03
+    level: contract
+    kind: break
+    scenario: Председатель участка сменён после голоса участка, новый председатель подаёт бюллетень
+    expect: отказ MEET_BRANCH_ALREADY_VOTED, число бюллетеней прежнее
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.break.04
+    level: contract
+    kind: break
+    scenario: Председатель участка, созданного после одобрения собрания, голосует и подтверждает уведомление
+    expect: оба действия — отказ MEET_BRANCH_NOT_IN_MEET
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.02
+    level: contract
+    kind: side
+    scenario: Собрание уполномоченных не собрало кворум, созвано повторно, во время созыва создан участок
+    expect: новое одобрение закрепляет число участков на момент одобрения, голоса участков прошлого цикла сброшены, участок голосует снова
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.03
+    level: contract
+    kind: side
+    scenario: Собрание одобрено до появления формы и голосует после обновления контракта
+    expect: голос и кворум по флагу кооператива на момент голоса, как до обновления
+    test: ~
+    status: missing
+    note: на стенде собрание без формы создать нельзя — новый контракт закрепляет форму при каждом одобрении; ветка проверена чтением кода
+
+  - id: meet.form.side.04
+    level: contract
+    kind: side
+    scenario: Председатель кооператива создаёт участок
+    expect: у нового участка задана дата создания, признак приватности и белый список заполнены значениями по умолчанию
+    test: components/boot/src/tests/meet-trustees.test.ts
+    status: passing
+
+  - id: meet.form.side.05
+    level: contract
+    kind: side
+    scenario: В белый список участка, созданного до появления признака приватности, добавляется аккаунт
+    expect: запись заполняет признак приватности перед белым списком, строка читается без порчи
+    test: ~
+    status: missing
+    note: строку старого формата на стенде не создать; ветка проверена чтением кода

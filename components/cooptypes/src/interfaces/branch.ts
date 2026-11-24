@@ -52,6 +52,8 @@ export interface ICoobranch {
   // binary_extension-поля: могут отсутствовать у строк, созданных до добавления приватности
   is_private?: boolean
   whitelist?: IName[]
+  /** Дата создания участка; у участков, созданных до появления поля, отсутствует. */
+  created_at?: ITimePointSec
 }
 
 export interface ICoodecision {

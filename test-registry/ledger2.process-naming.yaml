@@ -44,6 +44,11 @@ title: Имя нитки процесса ledger2
 # гарантийном возврате (feepend, payretfee) сняты. Случаи слайса,
 # описывавшие прежнюю модель, переписаны.
 
+# Правка 24.11.2026 (A86-1, компонент 76): в чтения участков добавлен поиск
+# участка по председателю (get_trustee_branch) для собрания уполномоченных.
+# Имена процессов и операций не менялись, набор случаев прежний; поиск
+# покрыт test-registry/meet.assembly-form.yaml.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/ledger2/processes.hpp

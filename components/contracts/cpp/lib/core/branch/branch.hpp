@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <tuple>
 
@@ -33,6 +34,17 @@ bool is_trustee(eosio::name coopname, eosio::name username) {
   auto trustee_itr = by_trustee_index.find(username.value);
 
   return trustee_itr != by_trustee_index.end();
+}
+
+/// Участок, председателем которого состоит пайщик; пусто — пайщик не председатель участка.
+/// На тестнете один пайщик может возглавлять несколько участков
+/// (ENFORCE_SINGLE_BRANCH_TRUSTEE): возвращается первый по индексу.
+inline std::optional<coobranch> get_trustee_branch(eosio::name coopname, eosio::name username) {
+  branch_index branches(_branch, coopname.value);
+  auto by_trustee_index = branches.get_index<"bytrustee"_n>();
+  auto itr = by_trustee_index.find(username.value);
+  if (itr == by_trustee_index.end()) return std::nullopt;
+  return *itr;
 }
 
 bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username) {

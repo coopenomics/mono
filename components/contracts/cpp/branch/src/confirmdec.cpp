@@ -37,6 +37,7 @@
   branches.emplace(RamPayer::of(branches, coopname), [&](auto &row) {
     row.braname = dec.braname;
     row.trustee = dec.chairman;
+    row.set_created_at(eosio::current_time_point());
   });
 
   action(

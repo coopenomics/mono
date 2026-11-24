@@ -210,6 +210,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
       decision1: decision1,
       decision2: decision2,
       notified_users: meetData.notified_users,
+      form: meetData.form,
     };
   }
 
