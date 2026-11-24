@@ -1726,6 +1726,58 @@ export interface GeneratedReports {
   year: number;
 }
 
+export interface GreetingsCalendar {
+  /**
+   * individual — физическое лицо, entrepreneur — индивидуальный предприниматель
+   */
+  account_type: string;
+  birth_day: number;
+  birth_month: number;
+  birth_year: number;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
+export interface GreetingsSends {
+  attempts: Generated<number>;
+  created_at: Generated<Timestamp>;
+  error: string | null;
+  id: Generated<string>;
+  /**
+   * no_template — нет действующего шаблона, not_active — пайщик не действующий, no_recipient — нет почты или подписки
+   */
+  reason: string | null;
+  /**
+   * sent — принято к доставке, skipped — не отправлено по причине reason, failed — ошибка, повтор в тот же день
+   */
+  status: string;
+  subject: string | null;
+  template_id: string | null;
+  template_title: string | null;
+  updated_at: Generated<Timestamp>;
+  username: string;
+  year: number;
+}
+
+export interface GreetingsTemplates {
+  /**
+   * Текст письма в Markdown с переменными в двойных фигурных скобках
+   */
+  body: string;
+  created_at: Generated<Timestamp>;
+  created_by: string;
+  id: Generated<string>;
+  period_end: Timestamp;
+  period_start: Timestamp;
+  /**
+   * draft — черновик, active — действует: рассылка берёт шаблон в дни периода
+   */
+  status: Generated<string>;
+  subject: string;
+  title: string;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface InvalidatedEntities {
   created_at: Generated<Timestamp>;
   data: Json;
@@ -3060,6 +3112,9 @@ export interface DB {
   factory_documents: FactoryDocuments;
   factory_records: FactoryRecords;
   generated_reports: GeneratedReports;
+  greetings_calendar: GreetingsCalendar;
+  greetings_sends: GreetingsSends;
+  greetings_templates: GreetingsTemplates;
   invalidated_entities: InvalidatedEntities;
   invalidated_entity_versions: InvalidatedEntityVersions;
   ipn: Ipn;

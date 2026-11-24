@@ -1133,6 +1133,17 @@ export const AllTypesProps: Record<string,any> = {
 	GlobalSearchInput:{
 
 	},
+	GreetingAccountType: "enum" as const,
+	GreetingPreviewInput:{
+
+	},
+	GreetingSendStatus: "enum" as const,
+	GreetingSkipReason: "enum" as const,
+	GreetingTemplateInput:{
+
+	},
+	GreetingTemplateStatus: "enum" as const,
+	GreetingVariable: "enum" as const,
 	ImportContributorInput:{
 
 	},
@@ -2535,6 +2546,15 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		greetingsDeleteTemplate:{
+
+		},
+		greetingsSaveTemplate:{
+			data:"GreetingTemplateInput"
+		},
+		greetingsSetTemplateStatus:{
+			status:"GreetingTemplateStatus"
+		},
 		initSystem:{
 			data:"Init"
 		},
@@ -3823,6 +3843,21 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		globalSearch:{
 			data:"GlobalSearchInput"
+		},
+		greetingsCalendar:{
+
+		},
+		greetingsJournal:{
+			options:"PaginationInput"
+		},
+		greetingsPreview:{
+			data:"GreetingPreviewInput"
+		},
+		greetingsTemplate:{
+
+		},
+		greetingsUpcoming:{
+
 		},
 		inviteRecipient:{
 			data:"InviteRecipientInput"
@@ -7323,6 +7358,56 @@ export const ReturnTypes: Record<string,any> = {
 		params:"JSON",
 		query:"JSON"
 	},
+	GreetingCalendarEntry:{
+		account_type:"GreetingAccountType",
+		age:"Int",
+		date:"String",
+		day:"Int",
+		displayName:"String",
+		month:"Int",
+		send_status:"GreetingSendStatus",
+		template_title:"String",
+		username:"String"
+	},
+	GreetingPreview:{
+		age:"Int",
+		bodyHtml:"String",
+		displayName:"String",
+		subject:"String",
+		unknownVariables:"String",
+		username:"String"
+	},
+	GreetingSend:{
+		attempts:"Int",
+		created_at:"DateTime",
+		displayName:"String",
+		error:"String",
+		id:"String",
+		reason:"GreetingSkipReason",
+		status:"GreetingSendStatus",
+		subject:"String",
+		template_title:"String",
+		updated_at:"DateTime",
+		username:"String",
+		year:"Int"
+	},
+	GreetingTemplate:{
+		body:"String",
+		created_at:"DateTime",
+		created_by:"String",
+		id:"String",
+		period_end:"String",
+		period_start:"String",
+		status:"GreetingTemplateStatus",
+		subject:"String",
+		title:"String",
+		updated_at:"DateTime"
+	},
+	GreetingVariableInfo:{
+		description:"String",
+		token:"String",
+		variable:"GreetingVariable"
+	},
 	InboxNotification:{
 		actorSubscriberId:"String",
 		body:"String",
@@ -9096,6 +9181,9 @@ export const ReturnTypes: Record<string,any> = {
 		generateSovietDecisionOnAnnualMeetDocument:"GeneratedDocument",
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
+		greetingsDeleteTemplate:"Boolean",
+		greetingsSaveTemplate:"GreetingTemplate",
+		greetingsSetTemplateStatus:"GreetingTemplate",
 		initSystem:"SystemInfo",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
@@ -9614,6 +9702,12 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedGatewayPaymentsPaginationResult:{
 		currentPage:"Int",
 		items:"GatewayPayment",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedGreetingSendsPaginationResult:{
+		currentPage:"Int",
+		items:"GreetingSend",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -10258,6 +10352,13 @@ export const ReturnTypes: Record<string,any> = {
 		getWithheldTaxPayments:"WithheldTaxPaymentPage",
 		getWithheldTaxState:"WithheldTaxState",
 		globalSearch:"GlobalSearchGroup",
+		greetingsCalendar:"GreetingCalendarEntry",
+		greetingsJournal:"PaginatedGreetingSendsPaginationResult",
+		greetingsPreview:"GreetingPreview",
+		greetingsTemplate:"GreetingTemplate",
+		greetingsTemplates:"GreetingTemplate",
+		greetingsUpcoming:"GreetingCalendarEntry",
+		greetingsVariables:"GreetingVariableInfo",
 		inviteRecipient:"InviteRecipient",
 		isEmailRegistered:"Boolean",
 		kuDecision:"KuDecision",

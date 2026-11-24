@@ -1,0 +1,57 @@
+{
+  "greetings": {
+    "letter": {
+      "age": "{n} год | {n} года | {n} лет",
+      "anniversary": "{n}-летием"
+    },
+    "variables": {
+      "lastName": {
+        "token": "Фамилия",
+        "description": "Фамилия пайщика"
+      },
+      "firstName": {
+        "token": "Имя",
+        "description": "Имя пайщика"
+      },
+      "middleName": {
+        "token": "Отчество",
+        "description": "Отчество пайщика; у пайщика без отчества — пусто"
+      },
+      "address": {
+        "token": "Обращение",
+        "description": "Имя и отчество для обращения: «Анна Петровна»"
+      },
+      "age": {
+        "token": "Возраст",
+        "description": "Сколько лет исполняется: «35 лет»"
+      },
+      "anniversary": {
+        "token": "Летие",
+        "description": "Форма для фразы «поздравляем вас с 35-летием»"
+      },
+      "cooperative": {
+        "token": "Кооператив",
+        "description": "Краткое название кооператива"
+      },
+      "chairman": {
+        "token": "Председатель",
+        "description": "Фамилия, имя и отчество председателя кооператива"
+      }
+    },
+    "settings": {
+      "sendHourLabel": "Час отправки поздравлений",
+      "sendHourNote": "С этого часа по времени кооператива приложение отправляет письма именинникам дня",
+      "sendHourAppend": "ч"
+    }
+  },
+  "errors": {
+    "GREETINGS_CONFIG_NOT_FOUND": "Конфигурация приложения «Поздравления» не найдена",
+    "GREETINGS_TEMPLATE_NOT_FOUND": "Шаблон поздравления не найден",
+    "GREETINGS_TEMPLATE_PERIOD_INVALID": "Период шаблона задан неверно: укажите даты начала и окончания, начало не позже окончания",
+    "GREETINGS_TEMPLATE_PERIOD_TAKEN": "Шаблон с таким же периодом уже действует: «{title}»",
+    "GREETINGS_TEMPLATE_UNKNOWN_VARIABLES": "В тексте шаблона есть неизвестные переменные: {variables}",
+    "GREETINGS_TEMPLATE_EMPTY": "Заполните тему и текст письма",
+    "GREETINGS_PREVIEW_NO_PARTICIPANT": "В календаре нет пайщиков с датой рождения: предпросмотр строится на данных пайщика",
+    "GREETINGS_PARTICIPANT_NOT_IN_CALENDAR": "Пайщика нет в календаре дней рождения"
+  }
+}

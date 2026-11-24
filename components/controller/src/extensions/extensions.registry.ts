@@ -1,6 +1,9 @@
 // ========== ./extensions.registry.ts ==========
 
 import { PowerupExtensionModule, PowerupExtension, Schema as PowerupSchema } from './powerup/powerup-extension.module';
+import { GreetingsExtensionModule, GreetingsExtension, Schema as GreetingsSchema } from './greetings/greetings-extension.module';
+import { greetingsDatabaseMigrations } from './greetings/greetings.database-migrations';
+import { greetingsPorts } from './greetings/greetings.ports';
 import { ChatCoopExtensionModule, ChatCoopExtension, Schema as ChatCoopSchema } from './chatcoop/chatcoop-extension.module';
 import fs from 'node:fs/promises';
 import { YookassaExtensionModule, YookassaExtension, buildSchema as buildYookassaSchema, IPN_PATH as YOOKASSA_IPN_PATH } from './yookassa/yookassa-extension.module';
@@ -347,6 +350,32 @@ export const AppRegistry: INamedExtension = {
     tags: [t('app.extensionsRegistry.powerup.tagUtilities'), t('app.extensionsRegistry.powerup.tagResources')],
     readme: getReadmeContent('./powerup'),
     instructions: getInstructionsContent('./powerup'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  greetings: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'greetings',
+        title: t('app.extensionsRegistry.greetings.windowTitle'),
+        icon: 'cake',
+      },
+    ],
+    title: t('app.extensionsRegistry.greetings.title'),
+    description: t('app.extensionsRegistry.greetings.description'),
+    image: '',
+    class: GreetingsExtensionModule,
+    extensionClass: GreetingsExtension,
+    databaseMigrations: greetingsDatabaseMigrations,
+    // Без defaults: приложение само не ставится, председатель выбирает его в каталоге.
+    ports: greetingsPorts,
+    schema: GreetingsSchema,
+    tags: [t('app.extensionsRegistry.greetings.tagDesk'), t('app.extensionsRegistry.greetings.tagNotifications')],
+    readme: getReadmeContent('./greetings'),
+    instructions: getInstructionsContent('./greetings'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

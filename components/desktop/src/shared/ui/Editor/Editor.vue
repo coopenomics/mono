@@ -264,7 +264,25 @@ onBeforeUnmount(() => {
   void destroyEditor();
 });
 
+/**
+ * Вставить текст в место курсора — так панель переменных шаблона кладёт
+ * `{{Имя}}` в позицию курсора председателя.
+ *
+ * Внешняя смена `modelValue` пересоздаёт редактор и сбрасывает курсор,
+ * поэтому вставка идёт командой ввода текста: ProseMirror разбирает её как
+ * набор с клавиатуры. Кнопка, которая зовёт метод, обязана не забирать фокус
+ * (`@mousedown.prevent`), иначе курсор окажется вне редактора.
+ */
+const insertText = (text: string): boolean => {
+  if (props.readonly || typeof document === 'undefined') return false;
+  const root = editorRef.value?.querySelector<HTMLElement>('.ProseMirror');
+  if (!root) return false;
+  if (!root.contains(document.activeElement)) root.focus();
+  return document.execCommand('insertText', false, text);
+};
+
 defineExpose({
+  insertText,
   getData: () => {
     if (!crepeRef.value || !isMounted.value || isDestroyed.value) {
       console.warn('Editor not initialized');

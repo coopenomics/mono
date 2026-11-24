@@ -7,7 +7,10 @@ import type { ProgramKey } from './registration.port';
  * само, нужно ли ему что-то завести под нового пайщика. Хэши подписанных оферт
  * приходят вместе с событием — расширению не нужно ходить за ними отдельно.
  */
-export const PARTICIPANT_REGISTERED_EVENT = 'participant.registered' as const;
+// Значение совпадает с именем, под которым ядро публикует событие
+// (`participant.interactor.ts`). До 24.11.2026 здесь стояло
+// 'participant.registered', и подписка по константе не срабатывала бы никогда.
+export const PARTICIPANT_REGISTERED_EVENT = 'participant::registered' as const;
 
 export interface InnerParticipantRegisteredEvent {
   username: string;

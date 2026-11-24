@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 347.
+Всего экспортов: 349.
 
 ## ACCOUNT_PORT
 
@@ -1898,6 +1898,14 @@
 - `sortBy?: string`
 - `sortOrder?: 'ASC' | 'DESC'`
 
+## InnerParticipantProfileUpdatedEvent
+
+`interface` · core-ports
+
+- `username: string`
+- `account_type: InnerAccountType`
+- `birthdate: string | null`
+
 ## InnerParticipantRegisteredEvent
 
 `interface` · core-ports
@@ -2759,6 +2767,11 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Organization')`
+
+## PARTICIPANT_PROFILE_UPDATED_EVENT
+
+`const` · core-ports
+
 
 ## PARTICIPANT_REGISTERED_EVENT
 
