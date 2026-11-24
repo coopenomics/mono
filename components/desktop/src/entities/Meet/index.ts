@@ -1,3 +1,4 @@
 export * from './model'
 export * from './types'
 export * from './lib/participation'
+export * from './lib/view'

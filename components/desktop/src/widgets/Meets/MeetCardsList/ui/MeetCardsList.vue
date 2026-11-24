@@ -12,7 +12,7 @@
       q-icon(name='event_busy', size='48px')
 
   .meet-cards-list__items(v-else)
-    MeetCompactCard(
+    MeetRow(
       v-for='meet in meets',
       :key='meet.hash',
       :meet='meet',
@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { MeetCompactCard } from 'src/shared/ui/MeetCompactCard';
+import MeetRow from './MeetRow.vue';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type { IMeet } from 'src/entities/Meet';
 import { useRouter } from 'vue-router';
@@ -29,6 +29,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 
 defineProps<{
   meets: IMeet[];
+  /** Сервер ещё не ответил на первый запрос: каркас вместо списка и вместо «нет собраний». */
   loading: boolean;
 }>();
 
@@ -56,12 +57,13 @@ const navigateToMeetDetails = (meet: IMeet) => {
 .meet-cards-list__items {
   display: flex;
   flex-direction: column;
-  gap: var(--p-5, 20px);
+  gap: var(--p-3, 12px);
 }
+// Каркас повторяет строку собрания по высоте и скруглению.
 .meet-cards-list__skel {
   display: block;
   width: 100%;
-  height: 168px;
-  border-radius: var(--p-r-lg, 16px);
+  height: 76px;
+  border-radius: var(--p-r-md, 12px);
 }
 </style>

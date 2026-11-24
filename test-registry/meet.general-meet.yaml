@@ -18,7 +18,8 @@ title: Общее собрание пайщиков — созыв по подп
 sources:
   ui:
     - components/desktop/src/features/Meet/CloseMeetWithDecision/**
-    - components/desktop/src/widgets/Meets/MeetDetailsActions/**
+    - components/desktop/src/widgets/Meets/**
+    - components/desktop/src/entities/Meet/lib/view.ts
   backend:
     - components/controller/src/application/meet/**
     - components/controller/src/domain/meet/**
@@ -99,4 +100,14 @@ cases:
     scenario: Секретарь открыл протокол и нажал «Назад»
     expect: окно закрывается, протокол не подписан, транзакции нет
     test: components/desktop/test/unit/meet-protocol-preview.test.ts
+    status: passing
+
+  # 24.11.2026 (A86-3): страницы собраний переделаны — строка списка и шапка
+  # собрания показывают шаг и того, кто действует сейчас.
+  - id: meet.gm.ui.03
+    level: ui
+    kind: happy
+    scenario: Пайщик открывает список собраний и собрание на каждом шаге — от решения совета до утверждения протокола
+    expect: бейдж шага и уточнение называют того, кто действует (секретарь или председатель собрания по фамилии); даты одной строкой; явка и кворум целыми процентами
+    test: components/desktop/test/unit/meet-view.test.ts
     status: passing

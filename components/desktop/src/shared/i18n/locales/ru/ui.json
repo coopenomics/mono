@@ -449,29 +449,6 @@
     "map": {
       "unavailableText": "Карта недоступна: не задан ключ Яндекс.Карт."
     },
-    "meetCompactCard": {
-      "closingLabel": "Закрытие",
-      "detailsLabel": "Подробнее",
-      "openingLabel": "Открытие",
-      "titleWithNumber": "Общее собрание № {meetId}"
-    },
-    "meetInfoCard": {
-      "attendanceLabel": "Явка",
-      "attendanceQuorumLabel": "Явка и кворум",
-      "chairmanLabel": "Председатель собрания",
-      "closingLabel": "Закрытие",
-      "datesLabel": "Даты проведения",
-      "hostsLabel": "Ведущие",
-      "notAssignedText": "Не назначен",
-      "openingLabel": "Открытие",
-      "quorumLabel": "Кворум",
-      "quorumRequirementText": "Собрание состоится при явке не менее {quorumPercent}% пайщиков",
-      "quorumRequirementTrusteesText": "Собрание уполномоченных состоится при явке не менее {quorumPercent}% уполномоченных кооперативных участков",
-      "secretaryLabel": "Секретарь собрания"
-    },
-    "meetStatusBanner": {
-      "unknownStatus": "Неизвестный статус"
-    },
     "notificationCenter": {
       "ariaLabel": "Уведомления",
       "categoryFinance": "Финансовые",

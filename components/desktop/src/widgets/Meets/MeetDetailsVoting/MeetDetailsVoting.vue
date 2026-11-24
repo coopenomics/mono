@@ -1,82 +1,50 @@
 <template lang="pug">
-.meet-voting
-  .meet-voting__voted(v-if='meet?.processing?.isVoted')
-    .meet-voting__voted-icon(aria-hidden='true')
-      q-icon(name='how_to_vote', size='24px')
-    .meet-voting__voted-text {{ $t('meet.meetDetailsVoting.alreadyVoted') }}
+//- Голосование: вопросы повестки с переключателем «За / Против / Воздержался».
+//- Кнопка и счётчик отмеченных — в прилипшем подвале. Кто не голосует или уже
+//- проголосовал, видит те же вопросы для чтения: с пояснением или своим ответом.
+section.meet-voting
+  .meet-voting__head {{ $t('meet.meetDetailsVoting.title') }}
 
-  //- Собрание уполномоченных: бюллетень подаёт председатель участка. Пайщик без
-  //- права голоса видит, кто голосует за его участок, а не форму с отказом цепи.
-  .banner.banner--info(v-else-if='noVote')
+  .banner.banner--info.meet-voting__note(v-if='noVote')
     .banner__icon
       q-icon(name='groups', size='20px')
     .banner__body {{ $t(noVote.key, noVote.params) }}
 
-  template(v-else)
-    .meet-voting__head
-      q-icon(name='how_to_vote', size='18px')
-      span.meet-voting__title {{ $t('meet.meetDetailsVoting.title') }}
+  .meet-voting__voted(v-else-if='isVoted')
+    q-icon(name='how_to_vote', size='18px')
+    span {{ $t('meet.meetDetailsVoting.votedAt') }}
 
-    .meet-voting__items
-      .meet-vote-card(
-        v-for='(item, index) in meetAgendaItems',
-        :key='index'
+  ol.meet-voting__items
+    MeetQuestion(
+      v-for='(item, index) in meetAgendaItems',
+      :key='item.id',
+      :number='index + 1',
+      :question='item'
+    )
+      BaseSegmented(
+        v-if='canVoteNow',
+        :model-value='votes[index] ?? null',
+        @update:model-value='(value) => setVote(index, value)',
+        :options='voteOptions',
+        :aria-label='$t("meet.meetDetailsVoting.yourVoteLabel")'
       )
-        .meet-vote-card__head
-          AgendaNumberAvatar(:number='index + 1')
-          span.meet-vote-card__title {{ item.title }}
+      BaseBadge(v-else-if='myVote(item)', :variant='voteVariant(myVote(item))')
+        | {{ $t('meet.meetDetailsVoting.yourVote', { vote: voteLabel(myVote(item)) }) }}
 
-        .meet-vote-card__context(
-          v-if='item.context',
-          v-html='parseLinks(item.context)'
-        )
-
-        .meet-vote-card__decision
-          span.meet-vote-card__decision-label {{ $t('meet.meetDetailsVoting.decisionLabel') }}
-          span.meet-vote-card__decision-text {{ item.decision }}
-
-        .meet-vote-card__prompt {{ $t('meet.meetDetailsVoting.yourVoteLabel') }}
-        .meet-vote-card__options
-          label.vote-option.vote-option--for
-            q-radio(
-              v-model='votes[index]',
-              val='for',
-              color='positive',
-              size='md',
-              :label='$t("meet.meetDetailsVoting.forOption")'
-            )
-          label.vote-option.vote-option--against
-            q-radio(
-              v-model='votes[index]',
-              val='against',
-              color='negative',
-              size='md',
-              :label='$t("meet.meetDetailsVoting.againstOption")'
-            )
-          label.vote-option.vote-option--abstain
-            q-radio(
-              v-model='votes[index]',
-              val='abstained',
-              color='grey',
-              size='md',
-              :label='$t("meet.meetDetailsVoting.abstainOption")'
-            )
-
-    .meet-voting__foot
-      BaseButton(
-        variant='primary',
-        size='lg',
-        :loading='isVoting',
-        :disabled='!allVotesSelected',
-        @click='submitVote'
-      )
-        span {{ $t('meet.meetDetailsVoting.submit') }}
+  .meet-voting__foot(v-if='canVoteNow')
+    span.meet-voting__count {{ $t('meet.meetDetailsVoting.selectedCount', { selected: selectedCount, total: meetAgendaItems.length }) }}
+    BaseButton(
+      variant='primary',
+      :loading='isVoting',
+      :disabled='!allVotesSelected',
+      @click='submitVote'
+    ) {{ $t('meet.meetDetailsVoting.submit') }}
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
-import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseBadge, BaseButton, BaseSegmented } from 'src/shared/ui/base';
+import { MeetQuestion } from 'src/widgets/Meets/MeetQuestion';
 import { noVoteMessage, type IMeet } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -85,7 +53,6 @@ import {
   useVoteOnMeet,
   type IVoteOnMeetInput,
 } from 'src/features/Meet/VoteOnMeet';
-import { parseLinks } from 'src/shared/lib/utils';
 import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
@@ -110,6 +77,47 @@ const sessionStore = useSessionStore();
 const noVote = computed(() => noVoteMessage(props.meet));
 
 const isVoting = ref(false);
+
+type Vote = 'for' | 'against' | 'abstained';
+
+const isVoted = computed(() => Boolean(props.meet?.processing?.isVoted));
+// Переключатели — только у того, кто голосует и ещё не голосовал.
+const canVoteNow = computed(() => !noVote.value && !isVoted.value);
+
+const voteOptions = computed(() => [
+  { value: 'for', label: t('meet.meetDetailsVoting.forOption') },
+  { value: 'against', label: t('meet.meetDetailsVoting.againstOption') },
+  { value: 'abstained', label: t('meet.meetDetailsVoting.abstainOption') },
+]);
+
+const selectedCount = computed(
+  () => meetAgendaItems.value.filter((_, index) => votes.value[index] !== undefined).length,
+);
+
+function setVote(index: number, value: string | number | null | undefined): void {
+  if (value === 'for' || value === 'against' || value === 'abstained') votes.value[index] = value;
+}
+
+// Ответ вошедшего по вопросу — из списков проголосовавших в цепи.
+function myVote(question: { voters_for?: string[]; voters_against?: string[]; voters_abstained?: string[] }): Vote | null {
+  const me = sessionStore.username;
+  if (question.voters_for?.includes(me)) return 'for';
+  if (question.voters_against?.includes(me)) return 'against';
+  if (question.voters_abstained?.includes(me)) return 'abstained';
+  return null;
+}
+
+function voteLabel(vote: Vote | null): string {
+  if (vote === 'for') return t('meet.meetDetailsVoting.forOption');
+  if (vote === 'against') return t('meet.meetDetailsVoting.againstOption');
+  return t('meet.meetDetailsVoting.abstainOption');
+}
+
+function voteVariant(vote: Vote | null): 'pos' | 'neg' | 'neutral' {
+  if (vote === 'for') return 'pos';
+  if (vote === 'against') return 'neg';
+  return 'neutral';
+}
 
 // Устанавливаем собрание из пропсов при монтировании
 onMounted(() => {
@@ -168,170 +176,56 @@ const submitVote = async () => {
 
 <style lang="scss" scoped>
 .meet-voting {
+  padding: var(--p-5, 20px);
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 16px);
-  padding: var(--p-5, 20px);
-}
-
-/* Уже проголосовали — спокойный позитивный баннер */
-.meet-voting__voted {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3, 12px);
-  padding: var(--p-4, 16px);
-  border-radius: var(--p-r-md, 12px);
-  background: var(--p-pos-soft);
-}
-.meet-voting__voted-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--p-r-sm, 8px);
-  background: var(--p-surface);
-  color: var(--p-pos);
-}
-.meet-voting__voted-text {
-  font-size: var(--p-fs-body, 14px);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--p-ink-1);
 }
 
 .meet-voting__head {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2, 8px);
-  color: var(--p-ink-2);
   margin-bottom: var(--p-4, 16px);
-}
-.meet-voting__title {
   font-size: var(--p-fs-h2, 18px);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--p-ink);
 }
 
-.meet-voting__items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
+.meet-voting__note {
+  margin-bottom: var(--p-4, 16px);
 }
 
-.meet-vote-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
-  padding: var(--p-4, 16px);
-  background: var(--p-surface);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md, 12px);
-}
-.meet-vote-card__head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--p-3, 12px);
-}
-.meet-vote-card__title {
-  font-size: var(--p-fs-body, 14px);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--p-ink-1);
-  padding-top: 6px;
-  overflow-wrap: anywhere;
-}
-.meet-vote-card__context {
-  font-size: var(--p-fs-body-sm, 13px);
-  line-height: 1.5;
-  color: var(--p-ink-2);
-  overflow-wrap: anywhere;
-
-  :deep(a) {
-    color: var(--p-primary);
-    word-break: break-word;
-  }
-}
-
-/* Проект решения — спокойный акцент */
-.meet-vote-card__decision {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: var(--p-3, 12px) var(--p-4, 16px);
-  border-radius: var(--p-r-sm, 8px);
-  background: var(--p-primary-soft);
-}
-.meet-vote-card__decision-label {
-  font-size: var(--p-fs-meta, 12px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--p-primary);
-}
-.meet-vote-card__decision-text {
-  font-size: var(--p-fs-body-sm, 13px);
-  line-height: 1.45;
-  color: var(--p-ink-1);
-  overflow-wrap: anywhere;
-}
-
-.meet-vote-card__prompt {
-  font-size: var(--p-fs-meta, 12px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--p-ink-3);
-}
-
-.meet-vote-card__options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--p-2, 8px);
-}
-@media (max-width: 599px) {
-  .meet-vote-card__options {
-    grid-template-columns: 1fr;
-  }
-}
-
-.vote-option {
+// После голоса — одна строка, а не карточка в карточке.
+.meet-voting__voted {
   display: flex;
   align-items: center;
-  width: 100%;
-  min-height: 48px;
-  padding: var(--p-2, 8px) var(--p-3, 12px);
-  border-radius: var(--p-r-sm, 8px);
-  border: 1px solid var(--p-line);
-  background: var(--p-surface-2);
-  cursor: pointer;
-  transition: border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
-}
-.vote-option:hover {
-  border-color: var(--p-line-2);
-}
-.vote-option--for:hover {
-  border-color: var(--p-pos);
-}
-.vote-option--against:hover {
-  border-color: var(--p-neg);
-}
-
-:deep(.vote-option .q-radio) {
-  width: 100%;
-  justify-content: flex-start;
-}
-:deep(.vote-option .q-radio__label) {
-  font-size: var(--p-fs-body-sm, 13px);
+  gap: var(--p-2, 8px);
+  margin-bottom: var(--p-4, 16px);
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--p-ink-1);
+  color: var(--p-pos);
 }
 
+.meet-voting__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Подвал прилипает к низу экрана: счётчик и кнопка видны без прокрутки.
 .meet-voting__foot {
+  position: sticky;
+  bottom: 0;
   display: flex;
-  justify-content: center;
-  margin-top: var(--p-5, 20px);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-4, 16px);
+  margin: var(--p-5, 20px) calc(-1 * var(--p-5, 20px)) calc(-1 * var(--p-5, 20px));
+  padding: var(--p-4, 16px) var(--p-5, 20px);
+  background: var(--p-surface);
+  border-top: 1px solid var(--p-line);
+  border-radius: 0 0 var(--p-r-lg, 16px) var(--p-r-lg, 16px);
+}
+
+.meet-voting__count {
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-3);
 }
 </style>
