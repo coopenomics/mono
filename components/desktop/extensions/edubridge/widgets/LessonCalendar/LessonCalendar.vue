@@ -13,6 +13,8 @@
           q-icon(name="chevron_right" size="20px")
       BaseButton(variant="ghost" size="sm" @click="today") {{ $t('edubridge.lessonCalendar.today') }}
     .edu-cal__legend
+      //- Время плиток — по часам кооператива, как в расписании курса
+      span.edu-cal__legend-item.edu-cal__zone {{ $t('edubridge.lessonCalendar.timezoneNote', { zone: COOP_TIMEZONE_LABEL }) }}
       span.edu-cal__legend-item(v-for="s in legend" :key="s.key")
         span.edu-cal__dot(:class="`edu-cal__dot--${s.key}`")
         | {{ s.label }}
@@ -30,7 +32,7 @@
 import { computed, ref, watch } from 'vue';
 import { asText } from 'src/shared/lib/utils';
 import { BaseButton } from 'src/shared/ui/base';
-import { WEEKDAY_OPTIONS, type ICalendarLesson } from '../../entities/Lesson';
+import { COOP_TIMEZONE_LABEL, WEEKDAY_OPTIONS, coopMoment, type ICalendarLesson } from '../../entities/Lesson';
 import { t } from '../../i18n';
 
 /**
@@ -62,10 +64,15 @@ function today(): void {
 }
 
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+/** День занятия по часам кооператива: занятие в 23:30 МСК стоит в своём дне и у ученика в другом поясе. */
+const lessonDayKey = (value: unknown): string => {
+  const m = coopMoment(value);
+  return `${m.year}-${m.month}-${m.day}`;
+};
 const byDay = computed(() => {
   const map = new Map<string, ICalendarLesson[]>();
   for (const l of props.lessons) {
-    const key = dayKey(new Date(String(l.held_at)));
+    const key = lessonDayKey(l.held_at);
     map.set(key, [...(map.get(key) ?? []), l]);
   }
   for (const list of map.values()) list.sort((a, b) => String(a.held_at).localeCompare(String(b.held_at)));
@@ -73,8 +80,8 @@ const byDay = computed(() => {
 });
 const monthLessons = computed(() =>
   props.lessons.filter((l) => {
-    const d = new Date(String(l.held_at));
-    return d.getFullYear() === month.value.getFullYear() && d.getMonth() === month.value.getMonth();
+    const m = coopMoment(l.held_at);
+    return m.year === month.value.getFullYear() && m.month === month.value.getMonth();
   }),
 );
 
@@ -83,7 +90,7 @@ const cells = computed(() => {
   const first = month.value;
   const start = new Date(first);
   start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
-  const todayKey = dayKey(new Date());
+  const todayKey = lessonDayKey(new Date());
   const out: { key: string; day: number; out: boolean; today: boolean; lessons: ICalendarLesson[] }[] = [];
   for (let i = 0; i < 42; i += 1) {
     const d = new Date(start);
@@ -96,7 +103,7 @@ const cells = computed(() => {
 });
 
 const stateKey = (l: ICalendarLesson): string => (l.overdue ? 'overdue' : String(l.status).toLowerCase());
-const timeOf = (l: ICalendarLesson): string => new Date(String(l.held_at)).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const timeOf = (l: ICalendarLesson): string => coopMoment(l.held_at).time;
 const titleOf = (l: ICalendarLesson): string => `${t('edubridge.lesson.numberShort', { number: l.lesson_number })} · ${props.labelOf(l)}`;
 const legend = [
   { key: 'planned', label: t('edubridge.lesson.state.planned') },
@@ -140,6 +147,10 @@ defineExpose({ month });
   display: inline-flex;
   align-items: center;
   gap: var(--p-1);
+}
+.edu-cal__zone {
+  font-weight: 600;
+  color: var(--p-ink-2);
 }
 .edu-cal__dot {
   width: 10px;

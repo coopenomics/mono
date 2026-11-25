@@ -343,7 +343,7 @@ defineExpose({ submit: requestSubmit, validate });
 .edu-course-form__section {
   display: flex;
   flex-direction: column;
-  gap: var(--p-8);
+  gap: var(--p-7);
   padding: var(--p-6) 0;
   border-top: 1px solid var(--p-line);
 }
@@ -360,7 +360,7 @@ defineExpose({ submit: requestSubmit, validate });
 .edu-course-form__group {
   display: flex;
   flex-direction: column;
-  gap: var(--p-4);
+  gap: var(--p-3);
 }
 .edu-course-form__group-title {
   font-size: var(--p-fs-body-sm);

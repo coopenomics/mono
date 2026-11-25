@@ -5,7 +5,8 @@ BaseDialog(:model-value="modelValue" :title="lesson ? $t('edubridge.planLesson.m
   BaseForm(:loading="busy" @submit="submit")
     .t-sm.t-muted.q-mb-md {{ lesson ? $t('edubridge.planLesson.moveNote') : $t('edubridge.planLesson.note') }}
     BaseSelect(v-if="!lesson && groupOptions.length !== 1" v-model="form.group_id" :label="$t('edubridge.planLesson.groupLabel')" :options="groupOptions" required)
-    BaseInput(v-model="form.held_at" :label="$t('edubridge.planLesson.momentLabel')" type="datetime-local" stack-label required)
+    //- Дата и время — по часам кооператива, как в расписании и календаре курса
+    BaseInput(v-model="form.held_at" :label="$t('edubridge.planLesson.momentLabelWithZone', { zone: COOP_TIMEZONE_LABEL })" type="datetime-local" stack-label required)
     BaseInput(v-model="form.minutes" :label="$t('edubridge.planLesson.minutesLabel')" type="number" min="5" step="5" required)
     BaseSelect(v-if="teacherOptions.length" v-model="form.assignment_id" :label="$t('edubridge.planLesson.teacherLabel')" :options="teacherChoices" clearable)
     BaseInput(v-model="form.topic" :label="$t('edubridge.planLesson.topicLabel')")
@@ -19,8 +20,9 @@ BaseDialog(:model-value="modelValue" :title="lesson ? $t('edubridge.planLesson.m
 import { computed, reactive, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText } from 'src/shared/lib/utils';
+import { convertLocalDateToUTC, formatDateToLocalTimezone, getCurrentLocalDateForForm } from 'src/shared/lib/utils/dates';
 import { BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
-import { moveLesson, planLesson, type ICalendarLesson } from '../../../entities/Lesson';
+import { COOP_TIMEZONE_LABEL, moveLesson, planLesson, type ICalendarLesson } from '../../../entities/Lesson';
 import { t } from '../../../i18n';
 
 const props = withDefaults(
@@ -42,10 +44,13 @@ const form = reactive({ group_id: '', held_at: '', minutes: '60' as string | num
 const teacherChoices = computed(() => [{ value: '', label: t('edubridge.scheduleSlots.teacherNone') }, ...props.teacherOptions]);
 
 
-/** Момент для поля «datetime-local» — местное время без секунд. */
+/**
+ * Момент для поля «datetime-local» — по часам кооператива, без секунд. Поле
+ * само пояса не знает: перевод в пояс кооператива и обратно делает стол,
+ * иначе администратор в другом поясе ставил бы занятие со сдвигом.
+ */
 function toLocalInput(value: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+  return formatDateToLocalTimezone(value.toISOString(), 'YYYY-MM-DDTHH:mm');
 }
 
 watch(
@@ -65,11 +70,9 @@ watch(
   { immediate: true },
 );
 
+/** Начало следующего часа — по часам кооператива. */
 function nextHour(): Date {
-  const d = new Date();
-  d.setMinutes(0, 0, 0);
-  d.setHours(d.getHours() + 1);
-  return d;
+  return new Date(convertLocalDateToUTC(getCurrentLocalDateForForm(60).slice(0, 13) + ':00'));
 }
 
 function close(open: boolean): void {
@@ -79,7 +82,7 @@ function close(open: boolean): void {
 async function submit(): Promise<void> {
   busy.value = true;
   try {
-    const held_at = new Date(form.held_at).toISOString();
+    const held_at = new Date(convertLocalDateToUTC(form.held_at)).toISOString();
     const minutes = Number(form.minutes || 0);
     const assignment_id = form.assignment_id || null;
     const saved = props.lesson

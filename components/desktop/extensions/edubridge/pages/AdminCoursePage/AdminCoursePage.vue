@@ -10,7 +10,7 @@
     CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url" :back-label="$t('edubridge.adminCoursePage.backToRegistry')" @back="goBack")
       template(#facts)
         BaseBadge(:variant="status.variant") {{ status.label }}
-        span(v-if="course.schedule") {{ course.schedule }}
+        span(v-if="course.schedule") {{ course.schedule }} {{ COOP_TIMEZONE_LABEL }}
         span(v-if="course.starts_at") {{ $t('edubridge.adminCoursePage.startsAtFact', { date: formatDate(course.starts_at) }) }}
       template(#actions)
         .edu-course__buttons(v-if="canManageCourses")
@@ -32,15 +32,13 @@
       //- Числа курса — те же и в том же порядке, что видит ученик в каталоге.
       //- У программы на месяц взнос один — «за курс». У длинной рядом с месячным стоит полный
       //- взнос за весь курс: разом со скидкой либо сумма помесячных.
-      DataRow(:label="Number(course.course_months) === 1 ? $t('edubridge.course.feeWholeCaption') : $t('edubridge.course.feeMonthCaption')" align="spread")
-        template(#value-override)
-          FeeAmount(:value="course.fee_month")
-      DataRow(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :label="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')" align="spread")
-        template(#value-override)
-          FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''")
-      DataRow(:value="lessonsPerMonth" :label="$t('edubridge.course.lessonsPerMonthCaption')" align="spread" mono)
-      DataRow(:value="hoursPerMonth" :label="$t('edubridge.course.hoursPerMonthCaption')" align="spread" mono)
-      DataRow(v-if="Number(course.program_months) > 0" :value="programSpanTile" :label="$t('edubridge.course.programSpanCaption')" align="spread" mono)
+      CourseFigure(:label="Number(course.course_months) === 1 ? $t('edubridge.course.feeWholeCaption') : $t('edubridge.course.feeMonthCaption')")
+        FeeAmount(:value="course.fee_month")
+      CourseFigure(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :label="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
+        FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''")
+      CourseFigure(v-if="Number(course.program_months) > 0" :value="programSpanTile" :label="$t('edubridge.course.programSpanCaption')")
+      CourseFigure(:value="lessonsPerMonth" :label="$t('edubridge.course.lessonsPerMonthCaption')")
+      CourseFigure(:value="hoursPerMonth" :label="$t('edubridge.course.hoursPerMonthCaption')")
 
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
@@ -144,7 +142,7 @@ import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState, FieldHelp } from 'src/shared/ui/base';
 import { AccountBadge, DataRow, DetailsDrawer } from 'src/shared/ui/domain';
-import { cancelLesson, fetchLessonCalendar, type ICalendarLesson } from '../../entities/Lesson';
+import { COOP_TIMEZONE_LABEL, cancelLesson, fetchLessonCalendar, type ICalendarLesson } from '../../entities/Lesson';
 import { fetchAssignments, type IAssignment } from '../../entities/Teacher';
 import { fetchCourseGroups, type IGroup } from '../../entities/Group';
 import { LessonCalendar } from '../../widgets/LessonCalendar';
@@ -162,7 +160,7 @@ import {
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { CourseGroups } from '../../widgets/CourseGroups';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
-import { CourseHero } from '../../widgets/CourseHero';
+import { CourseFigure, CourseHero } from '../../widgets/CourseHero';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { programSpanCompact } from '../../shared/lib/courseMonths';
