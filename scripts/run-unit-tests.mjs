@@ -44,6 +44,10 @@ const PACKAGES = [
   // Логика рабочего стола без DOM и сети; набор задаёт vitest.config.ts (test/unit).
   { title: 'desktop', filter: '@coopenomics/desktop', runner: 'vitest' },
   { title: 'controller', filter: '@coopenomics/controller', runner: 'jest' },
+  // Оркестратор узла: установка, обновление и снятие приложений каталога,
+  // шлюз федерации. Внешнее (docker, сеть, база) в тестах подменено. До
+  // 25.11.2026 набор в CI не входил — правки оркестратора никто не проверял.
+  { title: 'orchestrator', filter: '@coopenomics/orchestrator', runner: 'jest' },
 ];
 
 /** Аргументы раннера: JSON-отчёт в файл, читаемый лог — по-прежнему в консоль. */
