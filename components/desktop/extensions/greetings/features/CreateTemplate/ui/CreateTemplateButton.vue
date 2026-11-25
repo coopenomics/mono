@@ -1,7 +1,8 @@
 <template lang="pug">
 BaseButton(v-if='canManage' variant='primary' size='sm' @click='create')
-  q-icon(name='add' size='18px')
-  span {{ $t('greetings.templates.create') }}
+  template(#icon-left)
+    q-icon(name='add' size='18px')
+  | {{ $t('greetings.templates.create') }}
 </template>
 
 <script lang="ts" setup>

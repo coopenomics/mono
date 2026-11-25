@@ -2,6 +2,7 @@ import { client } from 'src/shared/api/client';
 import { Queries, Mutations } from '@coopenomics/sdk';
 import type {
   IJournalPage,
+  INotificationDetail,
   ILoadNotificationsInput,
   IResendOutput,
 } from '../model/types';
@@ -11,6 +12,15 @@ async function loadNotifications(data: ILoadNotificationsInput): Promise<IJourna
   const { [Queries.Notification.GetNotifications.name]: output } = await client.Query(
     Queries.Notification.GetNotifications.query,
     { variables: { filter: data.filter, pagination: data.pagination } }
+  );
+  return output;
+}
+
+/** Уведомление целиком: тема, текст и попытки доставки. */
+async function loadNotification(id: string): Promise<INotificationDetail> {
+  const { [Queries.Notification.GetNotification.name]: output } = await client.Query(
+    Queries.Notification.GetNotification.query,
+    { variables: { id } }
   );
   return output;
 }
@@ -26,5 +36,6 @@ async function resendNotification(id: string): Promise<IResendOutput> {
 
 export const api = {
   loadNotifications,
+  loadNotification,
   resendNotification,
 };

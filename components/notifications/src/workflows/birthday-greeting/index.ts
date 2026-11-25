@@ -19,6 +19,12 @@ export const birthdayGreetingPayloadSchema = z.object({
   bodyHtml: z.string(),
   /** Краткое название кооператива — для уведомления в интерфейсе. */
   coopShortName: z.string(),
+  /**
+   * Повод письма: `birthday:2026`, `test:<момент>`. В текст не выводится.
+   * Центр уведомлений отбрасывает повтор с теми же данными, и без повода
+   * письмо следующего года с тем же текстом не дошло бы до пайщика.
+   */
+  occasion: z.string(),
 });
 
 export type IPayload = z.infer<typeof birthdayGreetingPayloadSchema>;

@@ -13,6 +13,7 @@ import type { IMonoAccount } from '@coopenomics/innercoop';
 import { GreetingTemplateStatus } from '../../domain/greetings.enums';
 import {
   GreetingCalendarEntryDTO,
+  GreetingMailingOccurrenceDTO,
   GreetingPreviewDTO,
   GreetingPreviewInputDTO,
   GreetingSendDTO,
@@ -66,7 +67,7 @@ export class GreetingsResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Greetings', 'read')
   async preview(@Args('data') data: GreetingPreviewInputDTO): Promise<GreetingPreviewDTO> {
-    return this.letters.preview({ subject: data.subject, body: data.body }, data.username);
+    return this.letters.preview({ subject: data.subject, body: data.body }, data.username, data.kind);
   }
 
   @Query(() => [GreetingCalendarEntryDTO], { name: 'greetingsCalendar', description: 'Дни рождения пайщиков месяца' })
@@ -77,6 +78,16 @@ export class GreetingsResolver {
     @Args('month', { type: () => Int }) month: number
   ): Promise<GreetingCalendarEntryDTO[]> {
     return this.query.month(year, month);
+  }
+
+  @Query(() => [GreetingMailingOccurrenceDTO], { name: 'greetingsMailings', description: 'Рассылки месяца с итогом отправки' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Greetings', 'read')
+  async mailings(
+    @Args('year', { type: () => Int }) year: number,
+    @Args('month', { type: () => Int }) month: number
+  ): Promise<GreetingMailingOccurrenceDTO[]> {
+    return this.query.mailings(year, month);
   }
 
   @Query(() => [GreetingCalendarEntryDTO], { name: 'greetingsUpcoming', description: 'Ближайшие дни рождения пайщиков' })
@@ -117,6 +128,16 @@ export class GreetingsResolver {
     @Args('status', { type: () => GreetingTemplateStatus }) status: GreetingTemplateStatus
   ): Promise<GreetingTemplateDTO> {
     return this.templates.setStatus(id, status);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'greetingsSendTest',
+    description: 'Отправить председателю пробное письмо: текст для выбранного пайщика либо ближайшего именинника',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Greetings', 'manage')
+  async sendTest(@Args('data') data: GreetingPreviewInputDTO, @CurrentUser() user: IMonoAccount): Promise<boolean> {
+    return this.letters.sendTest({ subject: data.subject, body: data.body }, data.username, user.username, data.kind);
   }
 
   @Mutation(() => Boolean, { name: 'greetingsDeleteTemplate', description: 'Удалить шаблон поздравления' })

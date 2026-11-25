@@ -40,6 +40,8 @@ export const notificationSelector = Selector('Notification')(rawNotificationSele
 const rawNotificationDetailSelector = {
   ...rawNotificationSelector,
   deliveries: rawNotificationAttemptSelector,
+  subject: true,
+  body: true,
 }
 
 const _validateDetail: MakeAllFieldsRequired<ValueTypes['NotificationDetail']> = rawNotificationDetailSelector

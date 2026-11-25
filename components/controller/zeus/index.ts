@@ -10477,6 +10477,37 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on GreetingCalendarEntry']?: Omit<ValueTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
 }>;
+	/** Доставка письма по данным центра уведомлений */
+["GreetingDeliveryState"]:GreetingDeliveryState;
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: AliasType<{
+	/** Рассылка обошла всех пайщиков без ошибок */
+	completed?:boolean | `@${string}`,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date?:boolean | `@${string}`,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered?:boolean | `@${string}`,
+	/** Писем, отправка которых не удалась */
+	failed?:boolean | `@${string}`,
+	/** Писем, которые ждут доставки */
+	pending?:boolean | `@${string}`,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly?:boolean | `@${string}`,
+	/** Писем принято центром уведомлений к доставке */
+	sent?:boolean | `@${string}`,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status?:boolean | `@${string}`,
+	/** Тема письма */
+	subject?:boolean | `@${string}`,
+	/** Идентификатор шаблона рассылки */
+	template_id?:boolean | `@${string}`,
+	/** Название рассылки */
+	title?:boolean | `@${string}`,
+	/** Писем, которые доставить не удалось */
+	undelivered?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingMailingOccurrence']?: Omit<ValueTypes["GreetingMailingOccurrence"], "...on GreetingMailingOccurrence">
+}>;
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: AliasType<{
 	/** Сколько лет исполняется в ближайший день рождения */
@@ -10498,6 +10529,8 @@ export type ValueTypes = {
 ["GreetingPreviewInput"]: {
 	/** Текст письма в Markdown с переменными */
 	body: string | Variable<any, string>,
+	/** Повод письма; у рассылки возраст не подставляется */
+	kind?: ValueTypes["GreetingTemplateKind"] | undefined | null | Variable<any, string>,
 	/** Тема письма с переменными */
 	subject: string | Variable<any, string>,
 	/** Пайщик для предпросмотра; без него — ближайший именинник */
@@ -10509,12 +10542,18 @@ export type ValueTypes = {
 	attempts?:boolean | `@${string}`,
 	/** Когда поздравление записано в журнал впервые */
 	created_at?:boolean | `@${string}`,
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?:boolean | `@${string}`,
 	/** ФИО пайщика */
 	displayName?:boolean | `@${string}`,
 	/** Текст ошибки отправки */
 	error?:boolean | `@${string}`,
 	/** Идентификатор записи */
 	id?:boolean | `@${string}`,
+	/** Повод письма */
+	kind?:boolean | `@${string}`,
+	/** Дата рассылки, ГГГГ-ММ-ДД; у поздравления пусто */
+	occasion_date?:boolean | `@${string}`,
 	/** Почему поздравление не отправлено */
 	reason?:boolean | `@${string}`,
 	/** Итог поздравления */
@@ -10546,10 +10585,16 @@ export type ValueTypes = {
 	created_by?:boolean | `@${string}`,
 	/** Идентификатор шаблона */
 	id?:boolean | `@${string}`,
+	/** Повод: день рождения или рассылка в дату */
+	kind?:boolean | `@${string}`,
 	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
 	period_end?:boolean | `@${string}`,
 	/** Первый день периода действия, ГГГГ-ММ-ДД */
 	period_start?:boolean | `@${string}`,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly?:boolean | `@${string}`,
+	/** День, в который рассылка обошла всех пайщиков, ГГГГ-ММ-ДД */
+	sent_on?:boolean | `@${string}`,
 	/** Состояние шаблона */
 	status?:boolean | `@${string}`,
 	/** Тема письма с переменными */
@@ -10567,21 +10612,29 @@ export type ValueTypes = {
 	body: string | Variable<any, string>,
 	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
 	id?: string | undefined | null | Variable<any, string>,
-	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	/** Повод; без него — поздравление с днём рождения */
+	kind?: ValueTypes["GreetingTemplateKind"] | undefined | null | Variable<any, string>,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД; у рассылки не используется */
 	period_end: string | Variable<any, string>,
-	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	/** Первый день периода действия, у рассылки — дата отправки, ГГГГ-ММ-ДД */
 	period_start: string | Variable<any, string>,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly?: boolean | undefined | null | Variable<any, string>,
 	/** Тема письма с переменными */
 	subject: string | Variable<any, string>,
 	/** Название шаблона */
 	title: string | Variable<any, string>
 };
+	/** Повод шаблона: поздравление в день рождения пайщика или рассылка всем пайщикам в дату */
+["GreetingTemplateKind"]:GreetingTemplateKind;
 	/** Состояние шаблона поздравления: черновик или действует */
 ["GreetingTemplateStatus"]:GreetingTemplateStatus;
 	/** Переменная шаблона поздравления */
 ["GreetingVariable"]:GreetingVariable;
 	/** Переменная, которую можно вставить в шаблон */
 ["GreetingVariableInfo"]: AliasType<{
+	/** Значение есть только у поздравления с днём рождения */
+	birthdayOnly?:boolean | `@${string}`,
 	/** Что подставляется */
 	description?:boolean | `@${string}`,
 	/** Слово переменной в тексте шаблона, например «Имя» */
@@ -15753,6 +15806,7 @@ generateUserAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<
 generateWalletAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 greetingsDeleteTemplate?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 greetingsSaveTemplate?: [{	data: ValueTypes["GreetingTemplateInput"] | Variable<any, string>},ValueTypes["GreetingTemplate"]],
+greetingsSendTest?: [{	data: ValueTypes["GreetingPreviewInput"] | Variable<any, string>},boolean | `@${string}`],
 greetingsSetTemplateStatus?: [{	id: string | Variable<any, string>,	status: ValueTypes["GreetingTemplateStatus"] | Variable<any, string>},ValueTypes["GreetingTemplate"]],
 initSystem?: [{	data: ValueTypes["Init"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 installExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
@@ -16049,6 +16103,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["NotificationDetail"]: AliasType<{
 	/** Сделано попыток */
 	attempts?:boolean | `@${string}`,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?:boolean | `@${string}`,
 	/** Канал доставки */
 	channel?:boolean | `@${string}`,
 	/** Кооператив-владелец */
@@ -16067,6 +16123,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	recipientUsername?:boolean | `@${string}`,
 	/** Статус доставки */
 	status?:boolean | `@${string}`,
+	/** Тема уведомления, как её увидел получатель */
+	subject?:boolean | `@${string}`,
 	/** Когда обновлено */
 	updatedAt?:boolean | `@${string}`,
 	/** Тип уведомления */
@@ -18237,6 +18295,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, st
 globalSearch?: [{	data: ValueTypes["GlobalSearchInput"] | Variable<any, string>},ValueTypes["GlobalSearchGroup"]],
 greetingsCalendar?: [{	month: number | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GreetingCalendarEntry"]],
 greetingsJournal?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGreetingSendsPaginationResult"]],
+greetingsMailings?: [{	month: number | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GreetingMailingOccurrence"]],
 greetingsPreview?: [{	data: ValueTypes["GreetingPreviewInput"] | Variable<any, string>},ValueTypes["GreetingPreview"]],
 greetingsTemplate?: [{	id: string | Variable<any, string>},ValueTypes["GreetingTemplate"]],
 	/** Шаблоны поздравлений, новые периоды первыми */
@@ -30268,6 +30327,36 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Доставка письма по данным центра уведомлений */
+["GreetingDeliveryState"]:GreetingDeliveryState;
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: AliasType<{
+	/** Рассылка обошла всех пайщиков без ошибок */
+	completed?:boolean | `@${string}`,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date?:boolean | `@${string}`,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered?:boolean | `@${string}`,
+	/** Писем, отправка которых не удалась */
+	failed?:boolean | `@${string}`,
+	/** Писем, которые ждут доставки */
+	pending?:boolean | `@${string}`,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly?:boolean | `@${string}`,
+	/** Писем принято центром уведомлений к доставке */
+	sent?:boolean | `@${string}`,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status?:boolean | `@${string}`,
+	/** Тема письма */
+	subject?:boolean | `@${string}`,
+	/** Идентификатор шаблона рассылки */
+	template_id?:boolean | `@${string}`,
+	/** Название рассылки */
+	title?:boolean | `@${string}`,
+	/** Писем, которые доставить не удалось */
+	undelivered?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: AliasType<{
 	/** Сколько лет исполняется в ближайший день рождения */
@@ -30288,6 +30377,8 @@ export type ResolverInputTypes = {
 ["GreetingPreviewInput"]: {
 	/** Текст письма в Markdown с переменными */
 	body: string,
+	/** Повод письма; у рассылки возраст не подставляется */
+	kind?: ResolverInputTypes["GreetingTemplateKind"] | undefined | null,
 	/** Тема письма с переменными */
 	subject: string,
 	/** Пайщик для предпросмотра; без него — ближайший именинник */
@@ -30299,12 +30390,18 @@ export type ResolverInputTypes = {
 	attempts?:boolean | `@${string}`,
 	/** Когда поздравление записано в журнал впервые */
 	created_at?:boolean | `@${string}`,
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?:boolean | `@${string}`,
 	/** ФИО пайщика */
 	displayName?:boolean | `@${string}`,
 	/** Текст ошибки отправки */
 	error?:boolean | `@${string}`,
 	/** Идентификатор записи */
 	id?:boolean | `@${string}`,
+	/** Повод письма */
+	kind?:boolean | `@${string}`,
+	/** Дата рассылки, ГГГГ-ММ-ДД; у поздравления пусто */
+	occasion_date?:boolean | `@${string}`,
 	/** Почему поздравление не отправлено */
 	reason?:boolean | `@${string}`,
 	/** Итог поздравления */
@@ -30335,10 +30432,16 @@ export type ResolverInputTypes = {
 	created_by?:boolean | `@${string}`,
 	/** Идентификатор шаблона */
 	id?:boolean | `@${string}`,
+	/** Повод: день рождения или рассылка в дату */
+	kind?:boolean | `@${string}`,
 	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
 	period_end?:boolean | `@${string}`,
 	/** Первый день периода действия, ГГГГ-ММ-ДД */
 	period_start?:boolean | `@${string}`,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly?:boolean | `@${string}`,
+	/** День, в который рассылка обошла всех пайщиков, ГГГГ-ММ-ДД */
+	sent_on?:boolean | `@${string}`,
 	/** Состояние шаблона */
 	status?:boolean | `@${string}`,
 	/** Тема письма с переменными */
@@ -30355,21 +30458,29 @@ export type ResolverInputTypes = {
 	body: string,
 	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
 	id?: string | undefined | null,
-	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	/** Повод; без него — поздравление с днём рождения */
+	kind?: ResolverInputTypes["GreetingTemplateKind"] | undefined | null,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД; у рассылки не используется */
 	period_end: string,
-	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	/** Первый день периода действия, у рассылки — дата отправки, ГГГГ-ММ-ДД */
 	period_start: string,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly?: boolean | undefined | null,
 	/** Тема письма с переменными */
 	subject: string,
 	/** Название шаблона */
 	title: string
 };
+	/** Повод шаблона: поздравление в день рождения пайщика или рассылка всем пайщикам в дату */
+["GreetingTemplateKind"]:GreetingTemplateKind;
 	/** Состояние шаблона поздравления: черновик или действует */
 ["GreetingTemplateStatus"]:GreetingTemplateStatus;
 	/** Переменная шаблона поздравления */
 ["GreetingVariable"]:GreetingVariable;
 	/** Переменная, которую можно вставить в шаблон */
 ["GreetingVariableInfo"]: AliasType<{
+	/** Значение есть только у поздравления с днём рождения */
+	birthdayOnly?:boolean | `@${string}`,
 	/** Что подставляется */
 	description?:boolean | `@${string}`,
 	/** Слово переменной в тексте шаблона, например «Имя» */
@@ -35383,6 +35494,7 @@ generateUserAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	op
 generateWalletAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 greetingsDeleteTemplate?: [{	id: string},boolean | `@${string}`],
 greetingsSaveTemplate?: [{	data: ResolverInputTypes["GreetingTemplateInput"]},ResolverInputTypes["GreetingTemplate"]],
+greetingsSendTest?: [{	data: ResolverInputTypes["GreetingPreviewInput"]},boolean | `@${string}`],
 greetingsSetTemplateStatus?: [{	id: string,	status: ResolverInputTypes["GreetingTemplateStatus"]},ResolverInputTypes["GreetingTemplate"]],
 initSystem?: [{	data: ResolverInputTypes["Init"]},ResolverInputTypes["SystemInfo"]],
 installExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
@@ -35675,6 +35787,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["NotificationDetail"]: AliasType<{
 	/** Сделано попыток */
 	attempts?:boolean | `@${string}`,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?:boolean | `@${string}`,
 	/** Канал доставки */
 	channel?:boolean | `@${string}`,
 	/** Кооператив-владелец */
@@ -35693,6 +35807,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	recipientUsername?:boolean | `@${string}`,
 	/** Статус доставки */
 	status?:boolean | `@${string}`,
+	/** Тема уведомления, как её увидел получатель */
+	subject?:boolean | `@${string}`,
 	/** Когда обновлено */
 	updatedAt?:boolean | `@${string}`,
 	/** Тип уведомления */
@@ -37768,6 +37884,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | u
 globalSearch?: [{	data: ResolverInputTypes["GlobalSearchInput"]},ResolverInputTypes["GlobalSearchGroup"]],
 greetingsCalendar?: [{	month: number,	year: number},ResolverInputTypes["GreetingCalendarEntry"]],
 greetingsJournal?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGreetingSendsPaginationResult"]],
+greetingsMailings?: [{	month: number,	year: number},ResolverInputTypes["GreetingMailingOccurrence"]],
 greetingsPreview?: [{	data: ResolverInputTypes["GreetingPreviewInput"]},ResolverInputTypes["GreetingPreview"]],
 greetingsTemplate?: [{	id: string},ResolverInputTypes["GreetingTemplate"]],
 	/** Шаблоны поздравлений, новые периоды первыми */
@@ -49408,6 +49525,34 @@ export type ModelTypes = {
 	/** Имя аккаунта пайщика */
 	username: string
 };
+	["GreetingDeliveryState"]:GreetingDeliveryState;
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: {
+		/** Рассылка обошла всех пайщиков без ошибок */
+	completed: boolean,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date: string,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered: number,
+	/** Писем, отправка которых не удалась */
+	failed: number,
+	/** Писем, которые ждут доставки */
+	pending: number,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly: boolean,
+	/** Писем принято центром уведомлений к доставке */
+	sent: number,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status: ModelTypes["GreetingTemplateStatus"],
+	/** Тема письма */
+	subject: string,
+	/** Идентификатор шаблона рассылки */
+	template_id: string,
+	/** Название рассылки */
+	title: string,
+	/** Писем, которые доставить не удалось */
+	undelivered: number
+};
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: {
 		/** Сколько лет исполняется в ближайший день рождения */
@@ -49427,6 +49572,8 @@ export type ModelTypes = {
 ["GreetingPreviewInput"]: {
 	/** Текст письма в Markdown с переменными */
 	body: string,
+	/** Повод письма; у рассылки возраст не подставляется */
+	kind?: ModelTypes["GreetingTemplateKind"] | undefined | null,
 	/** Тема письма с переменными */
 	subject: string,
 	/** Пайщик для предпросмотра; без него — ближайший именинник */
@@ -49438,12 +49585,18 @@ export type ModelTypes = {
 	attempts: number,
 	/** Когда поздравление записано в журнал впервые */
 	created_at: ModelTypes["DateTime"],
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?: ModelTypes["GreetingDeliveryState"] | undefined | null,
 	/** ФИО пайщика */
 	displayName: string,
 	/** Текст ошибки отправки */
 	error?: string | undefined | null,
 	/** Идентификатор записи */
 	id: string,
+	/** Повод письма */
+	kind: ModelTypes["GreetingTemplateKind"],
+	/** Дата рассылки, ГГГГ-ММ-ДД; у поздравления пусто */
+	occasion_date?: string | undefined | null,
 	/** Почему поздравление не отправлено */
 	reason?: ModelTypes["GreetingSkipReason"] | undefined | null,
 	/** Итог поздравления */
@@ -49471,10 +49624,16 @@ export type ModelTypes = {
 	created_by: string,
 	/** Идентификатор шаблона */
 	id: string,
+	/** Повод: день рождения или рассылка в дату */
+	kind: ModelTypes["GreetingTemplateKind"],
 	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
 	period_end: string,
 	/** Первый день периода действия, ГГГГ-ММ-ДД */
 	period_start: string,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly: boolean,
+	/** День, в который рассылка обошла всех пайщиков, ГГГГ-ММ-ДД */
+	sent_on?: string | undefined | null,
 	/** Состояние шаблона */
 	status: ModelTypes["GreetingTemplateStatus"],
 	/** Тема письма с переменными */
@@ -49490,20 +49649,27 @@ export type ModelTypes = {
 	body: string,
 	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
 	id?: string | undefined | null,
-	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	/** Повод; без него — поздравление с днём рождения */
+	kind?: ModelTypes["GreetingTemplateKind"] | undefined | null,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД; у рассылки не используется */
 	period_end: string,
-	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	/** Первый день периода действия, у рассылки — дата отправки, ГГГГ-ММ-ДД */
 	period_start: string,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly?: boolean | undefined | null,
 	/** Тема письма с переменными */
 	subject: string,
 	/** Название шаблона */
 	title: string
 };
+	["GreetingTemplateKind"]:GreetingTemplateKind;
 	["GreetingTemplateStatus"]:GreetingTemplateStatus;
 	["GreetingVariable"]:GreetingVariable;
 	/** Переменная, которую можно вставить в шаблон */
 ["GreetingVariableInfo"]: {
-		/** Что подставляется */
+		/** Значение есть только у поздравления с днём рождения */
+	birthdayOnly: boolean,
+	/** Что подставляется */
 	description: string,
 	/** Слово переменной в тексте шаблона, например «Имя» */
 	token: string,
@@ -54530,6 +54696,8 @@ export type ModelTypes = {
 	greetingsDeleteTemplate: boolean,
 	/** Сохранить шаблон поздравления: без идентификатора создаётся черновик */
 	greetingsSaveTemplate: ModelTypes["GreetingTemplate"],
+	/** Отправить председателю пробное письмо: текст для выбранного пайщика либо ближайшего именинника */
+	greetingsSendTest: boolean,
 	/** Включить шаблон в рассылку либо вернуть в черновики */
 	greetingsSetTemplateStatus: ModelTypes["GreetingTemplate"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
@@ -55016,6 +55184,8 @@ export type ModelTypes = {
 	["NotificationDetail"]: {
 		/** Сделано попыток */
 	attempts: number,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?: string | undefined | null,
 	/** Канал доставки */
 	channel: ModelTypes["NotificationChannel"],
 	/** Кооператив-владелец */
@@ -55034,6 +55204,8 @@ export type ModelTypes = {
 	recipientUsername?: string | undefined | null,
 	/** Статус доставки */
 	status: ModelTypes["NotificationOutboxStatus"],
+	/** Тема уведомления, как её увидел получатель */
+	subject?: string | undefined | null,
 	/** Когда обновлено */
 	updatedAt: ModelTypes["DateTime"],
 	/** Тип уведомления */
@@ -57148,6 +57320,8 @@ export type ModelTypes = {
 	greetingsCalendar: Array<ModelTypes["GreetingCalendarEntry"]>,
 	/** Журнал поздравлений, свежие записи первыми */
 	greetingsJournal: ModelTypes["PaginatedGreetingSendsPaginationResult"],
+	/** Рассылки месяца с итогом отправки */
+	greetingsMailings: Array<ModelTypes["GreetingMailingOccurrence"]>,
 	/** Письмо по несохранённому тексту на выбранном пайщике либо на ближайшем имениннике */
 	greetingsPreview: ModelTypes["GreetingPreview"],
 	/** Шаблон поздравления */
@@ -69338,6 +69512,37 @@ export type GraphQLTypes = {
 	username: string,
 	['...on GreetingCalendarEntry']: Omit<GraphQLTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
 };
+	/** Доставка письма по данным центра уведомлений */
+["GreetingDeliveryState"]: GreetingDeliveryState;
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: {
+	__typename: "GreetingMailingOccurrence",
+	/** Рассылка обошла всех пайщиков без ошибок */
+	completed: boolean,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date: string,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered: number,
+	/** Писем, отправка которых не удалась */
+	failed: number,
+	/** Писем, которые ждут доставки */
+	pending: number,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly: boolean,
+	/** Писем принято центром уведомлений к доставке */
+	sent: number,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status: GraphQLTypes["GreetingTemplateStatus"],
+	/** Тема письма */
+	subject: string,
+	/** Идентификатор шаблона рассылки */
+	template_id: string,
+	/** Название рассылки */
+	title: string,
+	/** Писем, которые доставить не удалось */
+	undelivered: number,
+	['...on GreetingMailingOccurrence']: Omit<GraphQLTypes["GreetingMailingOccurrence"], "...on GreetingMailingOccurrence">
+};
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: {
 	__typename: "GreetingPreview",
@@ -69359,6 +69564,8 @@ export type GraphQLTypes = {
 ["GreetingPreviewInput"]: {
 		/** Текст письма в Markdown с переменными */
 	body: string,
+	/** Повод письма; у рассылки возраст не подставляется */
+	kind?: GraphQLTypes["GreetingTemplateKind"] | undefined | null,
 	/** Тема письма с переменными */
 	subject: string,
 	/** Пайщик для предпросмотра; без него — ближайший именинник */
@@ -69371,12 +69578,18 @@ export type GraphQLTypes = {
 	attempts: number,
 	/** Когда поздравление записано в журнал впервые */
 	created_at: GraphQLTypes["DateTime"],
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?: GraphQLTypes["GreetingDeliveryState"] | undefined | null,
 	/** ФИО пайщика */
 	displayName: string,
 	/** Текст ошибки отправки */
 	error?: string | undefined | null,
 	/** Идентификатор записи */
 	id: string,
+	/** Повод письма */
+	kind: GraphQLTypes["GreetingTemplateKind"],
+	/** Дата рассылки, ГГГГ-ММ-ДД; у поздравления пусто */
+	occasion_date?: string | undefined | null,
 	/** Почему поздравление не отправлено */
 	reason?: GraphQLTypes["GreetingSkipReason"] | undefined | null,
 	/** Итог поздравления */
@@ -69408,10 +69621,16 @@ export type GraphQLTypes = {
 	created_by: string,
 	/** Идентификатор шаблона */
 	id: string,
+	/** Повод: день рождения или рассылка в дату */
+	kind: GraphQLTypes["GreetingTemplateKind"],
 	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
 	period_end: string,
 	/** Первый день периода действия, ГГГГ-ММ-ДД */
 	period_start: string,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly: boolean,
+	/** День, в который рассылка обошла всех пайщиков, ГГГГ-ММ-ДД */
+	sent_on?: string | undefined | null,
 	/** Состояние шаблона */
 	status: GraphQLTypes["GreetingTemplateStatus"],
 	/** Тема письма с переменными */
@@ -69428,15 +69647,21 @@ export type GraphQLTypes = {
 	body: string,
 	/** Идентификатор шаблона при правке; без него создаётся новый черновик */
 	id?: string | undefined | null,
-	/** Последний день периода действия включительно, ГГГГ-ММ-ДД */
+	/** Повод; без него — поздравление с днём рождения */
+	kind?: GraphQLTypes["GreetingTemplateKind"] | undefined | null,
+	/** Последний день периода действия включительно, ГГГГ-ММ-ДД; у рассылки не используется */
 	period_end: string,
-	/** Первый день периода действия, ГГГГ-ММ-ДД */
+	/** Первый день периода действия, у рассылки — дата отправки, ГГГГ-ММ-ДД */
 	period_start: string,
+	/** Рассылка повторяется каждый год в тот же день */
+	repeat_yearly?: boolean | undefined | null,
 	/** Тема письма с переменными */
 	subject: string,
 	/** Название шаблона */
 	title: string
 };
+	/** Повод шаблона: поздравление в день рождения пайщика или рассылка всем пайщикам в дату */
+["GreetingTemplateKind"]: GreetingTemplateKind;
 	/** Состояние шаблона поздравления: черновик или действует */
 ["GreetingTemplateStatus"]: GreetingTemplateStatus;
 	/** Переменная шаблона поздравления */
@@ -69444,6 +69669,8 @@ export type GraphQLTypes = {
 	/** Переменная, которую можно вставить в шаблон */
 ["GreetingVariableInfo"]: {
 	__typename: "GreetingVariableInfo",
+	/** Значение есть только у поздравления с днём рождения */
+	birthdayOnly: boolean,
 	/** Что подставляется */
 	description: string,
 	/** Слово переменной в тексте шаблона, например «Имя» */
@@ -74850,6 +75077,8 @@ export type GraphQLTypes = {
 	greetingsDeleteTemplate: boolean,
 	/** Сохранить шаблон поздравления: без идентификатора создаётся черновик */
 	greetingsSaveTemplate: GraphQLTypes["GreetingTemplate"],
+	/** Отправить председателю пробное письмо: текст для выбранного пайщика либо ближайшего именинника */
+	greetingsSendTest: boolean,
 	/** Включить шаблон в рассылку либо вернуть в черновики */
 	greetingsSetTemplateStatus: GraphQLTypes["GreetingTemplate"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
@@ -75349,6 +75578,8 @@ export type GraphQLTypes = {
 	__typename: "NotificationDetail",
 	/** Сделано попыток */
 	attempts: number,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?: string | undefined | null,
 	/** Канал доставки */
 	channel: GraphQLTypes["NotificationChannel"],
 	/** Кооператив-владелец */
@@ -75367,6 +75598,8 @@ export type GraphQLTypes = {
 	recipientUsername?: string | undefined | null,
 	/** Статус доставки */
 	status: GraphQLTypes["NotificationOutboxStatus"],
+	/** Тема уведомления, как её увидел получатель */
+	subject?: string | undefined | null,
 	/** Когда обновлено */
 	updatedAt: GraphQLTypes["DateTime"],
 	/** Тип уведомления */
@@ -77702,6 +77935,8 @@ export type GraphQLTypes = {
 	greetingsCalendar: Array<GraphQLTypes["GreetingCalendarEntry"]>,
 	/** Журнал поздравлений, свежие записи первыми */
 	greetingsJournal: GraphQLTypes["PaginatedGreetingSendsPaginationResult"],
+	/** Рассылки месяца с итогом отправки */
+	greetingsMailings: Array<GraphQLTypes["GreetingMailingOccurrence"]>,
 	/** Письмо по несохранённому тексту на выбранном пайщике либо на ближайшем имениннике */
 	greetingsPreview: GraphQLTypes["GreetingPreview"],
 	/** Шаблон поздравления */
@@ -81203,6 +81438,12 @@ export enum GreetingAccountType {
 	ENTREPRENEUR = "ENTREPRENEUR",
 	INDIVIDUAL = "INDIVIDUAL"
 }
+/** Доставка письма по данным центра уведомлений */
+export enum GreetingDeliveryState {
+	DELIVERED = "DELIVERED",
+	FAILED = "FAILED",
+	PENDING = "PENDING"
+}
 /** Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась */
 export enum GreetingSendStatus {
 	FAILED = "FAILED",
@@ -81214,6 +81455,11 @@ export enum GreetingSkipReason {
 	NOT_ACTIVE = "NOT_ACTIVE",
 	NO_RECIPIENT = "NO_RECIPIENT",
 	NO_TEMPLATE = "NO_TEMPLATE"
+}
+/** Повод шаблона: поздравление в день рождения пайщика или рассылка всем пайщикам в дату */
+export enum GreetingTemplateKind {
+	BIRTHDAY = "BIRTHDAY",
+	MAILING = "MAILING"
 }
 /** Состояние шаблона поздравления: черновик или действует */
 export enum GreetingTemplateStatus {
@@ -82470,10 +82716,12 @@ type ZEUS_VARIABLES = {
 	["GlobalSearchGroupStatus"]: ValueTypes["GlobalSearchGroupStatus"];
 	["GlobalSearchInput"]: ValueTypes["GlobalSearchInput"];
 	["GreetingAccountType"]: ValueTypes["GreetingAccountType"];
+	["GreetingDeliveryState"]: ValueTypes["GreetingDeliveryState"];
 	["GreetingPreviewInput"]: ValueTypes["GreetingPreviewInput"];
 	["GreetingSendStatus"]: ValueTypes["GreetingSendStatus"];
 	["GreetingSkipReason"]: ValueTypes["GreetingSkipReason"];
 	["GreetingTemplateInput"]: ValueTypes["GreetingTemplateInput"];
+	["GreetingTemplateKind"]: ValueTypes["GreetingTemplateKind"];
 	["GreetingTemplateStatus"]: ValueTypes["GreetingTemplateStatus"];
 	["GreetingVariable"]: ValueTypes["GreetingVariable"];
 	["ImportContributorInput"]: ValueTypes["ImportContributorInput"];

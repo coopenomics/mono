@@ -20,6 +20,7 @@ import type {
   NotificationAttemptDTO,
 } from './graphql/notification.dto';
 import { DomainError } from '@coopenomics/extension-kit';
+import { renderOutboxContent } from './template.util';
 
 /**
  * Журнал уведомлений Центра (стол председателя, эпик 6).
@@ -75,9 +76,12 @@ export class NotificationJournalService {
 
     const deliveries = await this.deliveryRepository.findByOutboxId(id);
 
+    const content = renderOutboxContent(row);
     return {
       ...this.toNotificationDTO(row),
       deliveries: deliveries.map((d) => this.toAttemptDTO(d)),
+      subject: content?.subject ?? null,
+      body: content?.body ?? null,
     };
   }
 

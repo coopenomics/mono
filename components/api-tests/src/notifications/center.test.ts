@@ -33,7 +33,7 @@ const MARK_ALL = 'mutation($c:String!){ markAllNotificationsRead(coopname:$c){ c
 const TRIGGER = 'mutation($d:TriggerNotificationWorkflowInput!){ triggerNotificationWorkflow(data:$d) }'
 const JOURNAL = `query($f:NotificationsFilterInput!,$p:PaginationInput!){ getNotifications(filter:$f, pagination:$p){
   totalCount items{ id coopname workflowId channel recipientSubscriberId recipientUsername status attempts lastError } } }`
-const DETAIL = `query($id:String!){ getNotification(id:$id){ id channel status attempts recipientUsername
+const DETAIL = `query($id:String!){ getNotification(id:$id){ id channel status attempts recipientUsername subject body
   deliveries{ id attemptNumber status providerResponse error } } }`
 const RESEND = 'mutation($id:String!){ resendNotification(id:$id){ id status attempts channel recipientSubscriberId workflowId } }'
 
@@ -80,6 +80,8 @@ let otherToken: string
 const decisionId = `api-${crypto.randomBytes(6).toString('hex')}`
 const decisionTitle = `Проверка центра уведомлений ${decisionId}`
 let inboxItemId: string
+/** Отрисованные заголовок и текст строки инбокса — журнал обязан показать те же. */
+let inboxContent: { title: string, body: string }
 let inAppOutboxId: string
 
 function mine(items: any[]): any[] {
@@ -123,6 +125,7 @@ describe('центр уведомлений: очередь, журнал, ин�
       return found.length ? found : null
     }, { timeoutMs: 90_000, intervalMs: 1_500, label: 'уведомление в инбоксе пайщика' })
     inboxItemId = item.id
+    inboxContent = { title: item.title, body: item.body }
     expect(item.workflowId).toBe(WORKFLOW)
     expect(item.title).toBeTruthy()
     expect(item.body).toContain(decisionTitle)
@@ -149,6 +152,12 @@ describe('центр уведомлений: очередь, журнал, ин�
     const onlyInApp = await journal(chairToken, { recipientSubscriberId: subscriberId, channel: 'IN_APP' })
     expect(onlyInApp.length).toBeGreaterThan(0)
     expect(onlyInApp.every(r => r.channel === 'IN_APP')).toBe(true)
+  })
+
+  it(caseName('ntf.center.happy.07', 'журнал председателя показывает тему и текст уведомления, как их получил пайщик'), async () => {
+    const detail = (await gql<any>(chairToken, DETAIL, { id: inAppOutboxId })).getNotification
+    // Текст уведомления журнал восстанавливает из данных строки тем же шаблоном.
+    expect({ title: detail.subject, body: detail.body }).toEqual(inboxContent)
   })
 
   it(caseName('ntf.center.side.02', 'канал push без подписки у получателя гасится как отменённый, без попыток'), async () => {

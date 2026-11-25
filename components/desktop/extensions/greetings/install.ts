@@ -20,11 +20,11 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       workspace: 'greetings',
       extension_name: 'greetings',
       title: t('greetings.install.title'),
-      icon: 'cake',
+      icon: 'campaign',
       defaultRoute: 'greetings-templates',
       routes: [
         {
-          meta: { title: t('greetings.install.title'), icon: 'cake', requires: 'Greetings:read' },
+          meta: { title: t('greetings.install.title'), icon: 'campaign', requires: 'Greetings:read' },
           path: '/:coopname/greetings',
           name: 'greetings',
           children: [

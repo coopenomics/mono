@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DomainError, platformSettings } from '@coopenomics/extension-kit';
+import { NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
+import { Workflows } from '@coopenomics/notifications';
+import { t } from '../../i18n';
+import { GreetingTemplateKind } from '../../domain/greetings.enums';
 import { buildGreetingLetter, findUnknownVariables, greetingValues, type GreetingLetter } from '../../domain/greeting-letter';
 import { ageInYear, localDate } from '../../domain/birthday';
 import { GreetingsPeopleService, type GreetingPerson } from './greetings-people.service';
@@ -27,7 +31,8 @@ export interface GreetingPreview extends GreetingLetter {
 export class GreetingsLetterService {
   constructor(
     private readonly people: GreetingsPeopleService,
-    private readonly calendar: GreetingsCalendarService
+    private readonly calendar: GreetingsCalendarService,
+    @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort
   ) {}
 
   /** Письмо пайщику; `age` — сколько исполняется в год поздравления. */
@@ -40,7 +45,8 @@ export class GreetingsLetterService {
    * Предпросмотр несохранённого текста на пайщике. Без пайщика — на
    * ближайшем имениннике: так председатель сразу видит живое письмо.
    */
-  async preview(text: GreetingText, username?: string | null): Promise<GreetingPreview> {
+  async preview(text: GreetingText, username?: string | null, kind?: GreetingTemplateKind | null): Promise<GreetingPreview> {
+    const mailing = kind === GreetingTemplateKind.MAILING;
     const today = localDate(new Date(), platformSettings().timezone);
     const entry = username
       ? await this.calendar.find(username)
@@ -52,7 +58,8 @@ export class GreetingsLetterService {
     }
     // День рождения в этом году прошёл — ближайший будет в следующем.
     const passed = entry.birth_month < today.month || (entry.birth_month === today.month && entry.birth_day < today.day);
-    const age = ageInYear(entry.birth_year, today.year + (passed ? 1 : 0));
+    // В рассылке всем пайщикам возраст не считается — как и при отправке.
+    const age = mailing ? null : ageInYear(entry.birth_year, today.year + (passed ? 1 : 0));
     const person = await this.people.person(entry.username);
     const letter = await this.letter(person, text, age);
     return {
@@ -62,5 +69,28 @@ export class GreetingsLetterService {
       age,
       unknownVariables: findUnknownVariables(`${text.subject}\n${text.body}`),
     };
+  }
+
+  /**
+   * Пробное письмо председателю: тот же текст, что получит выбранный пайщик,
+   * по тому же сценарию уведомления, с пометкой в теме. Повод — момент
+   * отправки, поэтому повтор с тем же текстом центр уведомлений не отбросит.
+   */
+  async sendTest(
+    text: GreetingText,
+    username: string | null | undefined,
+    recipient: string,
+    kind?: GreetingTemplateKind | null
+  ): Promise<boolean> {
+    const preview = await this.preview(text, username, kind);
+    const signature = await this.people.signature();
+    const workflow = kind === GreetingTemplateKind.MAILING ? Workflows.InformationalMailing : Workflows.BirthdayGreeting;
+    await this.notifications.notifyUser(recipient, workflow.id, {
+      subject: t('greetings.letter.testSubject', { subject: preview.subject }),
+      bodyHtml: preview.bodyHtml,
+      coopShortName: signature.cooperative,
+      occasion: `test:${new Date().toISOString()}`,
+    });
+    return true;
   }
 }

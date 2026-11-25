@@ -3,6 +3,7 @@ import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import type {
   IGreetingCalendarEntry,
   IGreetingJournalPage,
+  IGreetingMailing,
   IGreetingPreview,
   IGreetingTemplate,
   IGreetingVariable,
@@ -43,6 +44,13 @@ async function loadCalendar(year: number, month: number): Promise<IGreetingCalen
   return output;
 }
 
+async function loadMailings(year: number, month: number): Promise<IGreetingMailing[]> {
+  const { [Queries.Greetings.GetMailings.name]: output } = await client.Query(Queries.Greetings.GetMailings.query, {
+    variables: { year, month },
+  });
+  return output;
+}
+
 async function loadUpcoming(limit: number): Promise<IGreetingCalendarEntry[]> {
   const { [Queries.Greetings.GetUpcoming.name]: output } = await client.Query(Queries.Greetings.GetUpcoming.query, {
     variables: { limit },
@@ -59,6 +67,13 @@ async function loadJournal(options: IJournalOptions): Promise<IGreetingJournalPa
 
 async function saveTemplate(data: ISaveTemplateInput): Promise<IGreetingTemplate> {
   const { [Mutations.Greetings.SaveTemplate.name]: output } = await client.Mutation(Mutations.Greetings.SaveTemplate.mutation, {
+    variables: { data },
+  });
+  return output;
+}
+
+async function sendTest(data: IPreviewInput): Promise<boolean> {
+  const { [Mutations.Greetings.SendTest.name]: output } = await client.Mutation(Mutations.Greetings.SendTest.mutation, {
     variables: { data },
   });
   return output;
@@ -86,9 +101,11 @@ export const greetingsApi = {
   loadVariables,
   loadPreview,
   loadCalendar,
+  loadMailings,
   loadUpcoming,
   loadJournal,
   saveTemplate,
+  sendTest,
   setTemplateStatus,
   deleteTemplate,
 };

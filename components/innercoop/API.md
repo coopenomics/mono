@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 349.
+Всего экспортов: 351.
 
 ## ACCOUNT_PORT
 
@@ -1737,6 +1737,24 @@
 - `subscriberId: string`
 - `email?: string`
 
+## InnerNotifyDelivery
+
+`interface` · core-ports
+
+- `outboxId: string`
+- `channel: string`
+- `state: InnerNotifyDeliveryState`
+
+## InnerNotifyDeliveryState
+
+`enum` · core-ports
+
+- `PENDING = 'pending',`
+- `SENDING = 'sending',`
+- `SENT = 'sent',`
+- `FAILED = 'failed',`
+- `CANCELED = 'canceled',`
+
 ## InnerNotifyInput
 
 `interface` · core-ports
@@ -2366,6 +2384,7 @@
 - `payload: T,`
 - `actor?: InnerNotifyActor`
 - `): Promise<InnerNotifyResult>`
+- `getDeliveries(outboxIds: string[]): Promise<InnerNotifyDelivery[]>`
 
 ## INTEGRATION_SETTINGS_PORT
 

@@ -6,6 +6,14 @@ export enum GreetingTemplateStatus {
   ACTIVE = 'active',
 }
 
+/** Повод шаблона. */
+export enum GreetingTemplateKind {
+  /** Поздравление каждому пайщику в его день рождения. */
+  BIRTHDAY = 'birthday',
+  /** Информационная рассылка всем действующим пайщикам в дату. */
+  MAILING = 'mailing',
+}
+
 /** Итог поздравления пайщика в конкретном году. */
 export enum GreetingSendStatus {
   /** Центр уведомлений принял письмо к доставке. */
@@ -14,6 +22,22 @@ export enum GreetingSendStatus {
   SKIPPED = 'skipped',
   /** Отправка упала; следующий запуск рассылки в тот же день повторит её. */
   FAILED = 'failed',
+}
+
+/** Доставка письма по данным центра уведомлений. */
+export enum GreetingDeliveryState {
+  /** Письмо ждёт отправки или отправляется. */
+  PENDING = 'pending',
+  /** Письмо передано почтовому провайдеру. */
+  DELIVERED = 'delivered',
+  /** Попытки исчерпаны или отправка отменена. */
+  FAILED = 'failed',
+}
+
+/** Канал строки очереди уведомлений, по которому считается доставка. */
+export enum GreetingDeliveryChannel {
+  EMAIL = 'email',
+  IN_APP = 'in_app',
 }
 
 /** Почему поздравление не отправлено. */

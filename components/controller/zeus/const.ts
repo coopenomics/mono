@@ -1134,14 +1134,16 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	GreetingAccountType: "enum" as const,
+	GreetingDeliveryState: "enum" as const,
 	GreetingPreviewInput:{
-
+		kind:"GreetingTemplateKind"
 	},
 	GreetingSendStatus: "enum" as const,
 	GreetingSkipReason: "enum" as const,
 	GreetingTemplateInput:{
-
+		kind:"GreetingTemplateKind"
 	},
+	GreetingTemplateKind: "enum" as const,
 	GreetingTemplateStatus: "enum" as const,
 	GreetingVariable: "enum" as const,
 	ImportContributorInput:{
@@ -2552,6 +2554,9 @@ export const AllTypesProps: Record<string,any> = {
 		greetingsSaveTemplate:{
 			data:"GreetingTemplateInput"
 		},
+		greetingsSendTest:{
+			data:"GreetingPreviewInput"
+		},
 		greetingsSetTemplateStatus:{
 			status:"GreetingTemplateStatus"
 		},
@@ -3849,6 +3854,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		greetingsJournal:{
 			options:"PaginationInput"
+		},
+		greetingsMailings:{
+
 		},
 		greetingsPreview:{
 			data:"GreetingPreviewInput"
@@ -7369,6 +7377,20 @@ export const ReturnTypes: Record<string,any> = {
 		template_title:"String",
 		username:"String"
 	},
+	GreetingMailingOccurrence:{
+		completed:"Boolean",
+		date:"String",
+		delivered:"Int",
+		failed:"Int",
+		pending:"Int",
+		repeat_yearly:"Boolean",
+		sent:"Int",
+		status:"GreetingTemplateStatus",
+		subject:"String",
+		template_id:"String",
+		title:"String",
+		undelivered:"Int"
+	},
 	GreetingPreview:{
 		age:"Int",
 		bodyHtml:"String",
@@ -7380,9 +7402,12 @@ export const ReturnTypes: Record<string,any> = {
 	GreetingSend:{
 		attempts:"Int",
 		created_at:"DateTime",
+		delivery:"GreetingDeliveryState",
 		displayName:"String",
 		error:"String",
 		id:"String",
+		kind:"GreetingTemplateKind",
+		occasion_date:"String",
 		reason:"GreetingSkipReason",
 		status:"GreetingSendStatus",
 		subject:"String",
@@ -7396,14 +7421,18 @@ export const ReturnTypes: Record<string,any> = {
 		created_at:"DateTime",
 		created_by:"String",
 		id:"String",
+		kind:"GreetingTemplateKind",
 		period_end:"String",
 		period_start:"String",
+		repeat_yearly:"Boolean",
+		sent_on:"String",
 		status:"GreetingTemplateStatus",
 		subject:"String",
 		title:"String",
 		updated_at:"DateTime"
 	},
 	GreetingVariableInfo:{
+		birthdayOnly:"Boolean",
 		description:"String",
 		token:"String",
 		variable:"GreetingVariable"
@@ -9183,6 +9212,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateWalletAgreement:"GeneratedDocument",
 		greetingsDeleteTemplate:"Boolean",
 		greetingsSaveTemplate:"GreetingTemplate",
+		greetingsSendTest:"Boolean",
 		greetingsSetTemplateStatus:"GreetingTemplate",
 		initSystem:"SystemInfo",
 		installExtension:"Extension",
@@ -9427,6 +9457,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	NotificationDetail:{
 		attempts:"Int",
+		body:"String",
 		channel:"NotificationChannel",
 		coopname:"String",
 		createdAt:"DateTime",
@@ -9436,6 +9467,7 @@ export const ReturnTypes: Record<string,any> = {
 		recipientSubscriberId:"String",
 		recipientUsername:"String",
 		status:"NotificationOutboxStatus",
+		subject:"String",
 		updatedAt:"DateTime",
 		workflowId:"String"
 	},
@@ -10354,6 +10386,7 @@ export const ReturnTypes: Record<string,any> = {
 		globalSearch:"GlobalSearchGroup",
 		greetingsCalendar:"GreetingCalendarEntry",
 		greetingsJournal:"PaginatedGreetingSendsPaginationResult",
+		greetingsMailings:"GreetingMailingOccurrence",
 		greetingsPreview:"GreetingPreview",
 		greetingsTemplate:"GreetingTemplate",
 		greetingsTemplates:"GreetingTemplate",

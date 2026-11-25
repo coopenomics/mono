@@ -1,6 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import { t } from '../i18n';
-import { GreetingVariable } from './greetings.enums';
+import { GreetingTemplateKind, GreetingVariable } from './greetings.enums';
 
 /**
  * Построение письма из шаблона председателя.
@@ -24,11 +24,19 @@ export interface GreetingSubject {
   lastName: string;
   firstName: string;
   middleName: string;
+  /**
+   * ФИО или название организации — обращение, когда имени нет: рассылка
+   * идёт и организациям, у них в данных только название.
+   */
+  displayName?: string;
   /** Сколько лет исполняется; `null`, если год рождения неизвестен. */
   age: number | null;
   cooperative: string;
   chairman: string;
 }
+
+/** Переменные, у которых значение есть только в день рождения пайщика. */
+export const BIRTHDAY_ONLY_VARIABLES: readonly GreetingVariable[] = [GreetingVariable.AGE, GreetingVariable.ANNIVERSARY];
 
 /** Переменная в тексте: `{{ Имя }}` — пробелы внутри скобок допустимы. */
 const TOKEN = /\{\{\s*([^{}]+?)\s*\}\}/g;
@@ -58,13 +66,29 @@ export function findUnknownVariables(text: string): string[] {
   return unknown;
 }
 
+/**
+ * Переменные текста, недоступные поводу шаблона: возраст в рассылке всем
+ * пайщикам не считается. Возвращает слова переменных в порядке появления.
+ */
+export function findVariablesNotForKind(text: string, kind: GreetingTemplateKind): string[] {
+  if (kind === GreetingTemplateKind.BIRTHDAY) return [];
+  const known = tokenIndex();
+  const found: string[] = [];
+  for (const match of text.matchAll(TOKEN)) {
+    const variable = known.get(match[1].toLowerCase());
+    if (variable && BIRTHDAY_ONLY_VARIABLES.includes(variable) && !found.includes(match[1])) found.push(match[1]);
+  }
+  return found;
+}
+
 export function greetingValues(subject: GreetingSubject): GreetingValues {
   const age = subject.age;
+  const address = [subject.firstName, subject.middleName].filter(Boolean).join(' ');
   return {
     [GreetingVariable.LAST_NAME]: subject.lastName,
     [GreetingVariable.FIRST_NAME]: subject.firstName,
     [GreetingVariable.MIDDLE_NAME]: subject.middleName,
-    [GreetingVariable.ADDRESS]: [subject.firstName, subject.middleName].filter(Boolean).join(' '),
+    [GreetingVariable.ADDRESS]: address || subject.displayName || '',
     [GreetingVariable.AGE]: age === null ? '' : t('greetings.letter.age', age),
     [GreetingVariable.ANNIVERSARY]: age === null ? '' : t('greetings.letter.anniversary', { n: age }),
     [GreetingVariable.COOPERATIVE]: subject.cooperative,

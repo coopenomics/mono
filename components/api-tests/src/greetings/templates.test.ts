@@ -13,7 +13,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COUNCIL, ROLES, caseName, expectCode, gql, gqlError, tokenOf } from '../core'
 
-const TEMPLATE = 'id title period_start period_end subject body status created_by'
+const TEMPLATE = 'id title period_start period_end subject body status kind repeat_yearly created_by'
 const SAVE = `mutation($d:GreetingTemplateInput!){ greetingsSaveTemplate(data:$d){ ${TEMPLATE} } }`
 const STATUS = `mutation($id:String!,$s:GreetingTemplateStatus!){ greetingsSetTemplateStatus(id:$id, status:$s){ ${TEMPLATE} } }`
 const DELETE = 'mutation($id:String!){ greetingsDeleteTemplate(id:$id) }'
@@ -21,6 +21,8 @@ const LIST = `query{ greetingsTemplates{ ${TEMPLATE} } }`
 const VARIABLES = 'query{ greetingsVariables{ variable token description } }'
 const PREVIEW = 'query($d:GreetingPreviewInput!){ greetingsPreview(data:$d){ username displayName age subject bodyHtml unknownVariables } }'
 const UPCOMING = 'query{ greetingsUpcoming(limit:5){ username displayName date age } }'
+const SEND_TEST = 'mutation($d:GreetingPreviewInput!){ greetingsSendTest(data:$d) }'
+const MAILINGS = 'query($y:Int!,$m:Int!){ greetingsMailings(year:$y, month:$m){ template_id title date repeat_yearly status completed sent failed } }'
 
 const YEAR = 2041
 
@@ -119,5 +121,51 @@ describe('поздравления: предпросмотр', () => {
   it(caseName('grt.prv.side.01', 'HTML в тексте шаблона в письмо не попадает'), async () => {
     const d = await gql<any>(chairman, PREVIEW, { d: { subject: 'Тема', body: '<script>alert(1)</script>Текст' } })
     expect(d.greetingsPreview.bodyHtml).not.toContain('<script>')
+  })
+})
+
+describe('поздравления: рассылки и пробное письмо', () => {
+  const mailing = (title: string, body: string) => ({
+    title,
+    kind: 'MAILING',
+    repeat_yearly: true,
+    period_start: `${YEAR}-03-08`,
+    period_end: `${YEAR}-12-31`,
+    subject: '{{Обращение}}, с праздником!',
+    body,
+  })
+
+  it(caseName('grt.mail.happy.01', 'рассылка хранит одну дату отправки и признак повтора'), async () => {
+    const saved = await save(mailing('8 Марта', '{{Кооператив}} поздравляет вас с праздником.'))
+    expect(saved.kind).toBe('MAILING')
+    expect(saved.repeat_yearly).toBe(true)
+    expect(saved.period_end).toBe(saved.period_start)
+    const on = await gql<any>(chairman, STATUS, { id: saved.id, s: 'ACTIVE' })
+    expect(on.greetingsSetTemplateStatus.status).toBe('ACTIVE')
+  })
+
+  it(caseName('grt.mail.cal.01', 'ежегодная рассылка стоит в календаре на свою дату в каждом году'), async () => {
+    const saved = await save(mailing('8 Марта в календаре', '{{Кооператив}} поздравляет вас.'))
+    for (const y of [YEAR, YEAR + 1]) {
+      const d = await gql<any>(chairman, MAILINGS, { y, m: 3 })
+      const row = (d.greetingsMailings as any[]).find(r => r.template_id === saved.id)
+      expect(row).toMatchObject({ date: `${y}-03-08`, repeat_yearly: true, sent: 0, failed: 0, completed: false })
+    }
+    const other = await gql<any>(chairman, MAILINGS, { y: YEAR, m: 4 })
+    expect((other.greetingsMailings as any[]).some(r => r.template_id === saved.id)).toBe(false)
+  })
+
+  it(caseName('grt.mail.side.01', 'рассылка с возрастом не включается'), async () => {
+    const saved = await save(mailing('Рассылка с возрастом', 'Вам исполняется {{Возраст}}.'))
+    expectCode(await gqlError(chairman, STATUS, { id: saved.id, s: 'ACTIVE' }), 'GREETINGS_TEMPLATE_VARIABLES_BIRTHDAY_ONLY')
+  })
+
+  it(caseName('grt.test.happy.01', 'председатель отправляет себе пробное письмо'), async () => {
+    const d = await gql<any>(chairman, SEND_TEST, { d: { subject: '{{Обращение}}, проверка', body: 'Пробный текст', kind: 'MAILING' } })
+    expect(d.greetingsSendTest).toBe(true)
+  })
+
+  it(caseName('grt.test.side.01', 'член совета пробное письмо не отправляет'), async () => {
+    expectCode(await gqlError(council, SEND_TEST, { d: { subject: 'Тема', body: 'Текст' } }), 'KIT_INSUFFICIENT_RIGHTS')
   })
 })

@@ -1,4 +1,10 @@
-import type { GreetingAccountType, GreetingSendStatus, GreetingSkipReason, GreetingTemplateStatus } from '../../domain/greetings.enums';
+import type {
+  GreetingAccountType,
+  GreetingSendStatus,
+  GreetingSkipReason,
+  GreetingTemplateKind,
+  GreetingTemplateStatus,
+} from '../../domain/greetings.enums';
 
 export const TEMPLATES_TABLE = 'greetings_templates';
 export const CALENDAR_TABLE = 'greetings_calendar';
@@ -16,6 +22,12 @@ export class GreetingTemplateRecord {
   /** Текст письма в Markdown с переменными `{{Имя}}`. */
   body!: string;
   status!: GreetingTemplateStatus;
+  /** Повод: день рождения или рассылка в дату `period_start`. */
+  kind!: GreetingTemplateKind;
+  /** Рассылка повторяется каждый год в тот же день. */
+  repeat_yearly!: boolean;
+  /** День, в который рассылка обошла всех пайщиков без ошибок. */
+  sent_on!: string | null;
   created_by!: string;
   created_at!: Date;
   updated_at!: Date;
@@ -40,6 +52,9 @@ export class GreetingSendRecord {
   id!: string;
   username!: string;
   year!: number;
+  kind!: GreetingTemplateKind;
+  /** Дата рассылки; у поздравления с днём рождения пусто. */
+  occasion_date!: string | null;
   status!: GreetingSendStatus;
   reason!: GreetingSkipReason | null;
   /** Текст ошибки отправки — для журнала председателя. */
@@ -50,6 +65,8 @@ export class GreetingSendRecord {
   /** Тема отправленного письма. */
   subject!: string | null;
   attempts!: number;
+  /** Строки очереди уведомлений письма — по ним читается доставка. */
+  outbox_ids!: string[];
   created_at!: Date;
   updated_at!: Date;
 }

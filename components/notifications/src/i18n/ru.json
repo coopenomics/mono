@@ -1274,5 +1274,17 @@
       "subject": "{{payload.subject}}"
     },
     "name": "Поздравление с днём рождения"
+  },
+  "informationalMailing": {
+    "description": "Информационная рассылка кооператива всем действующим пайщикам по шаблону председателя",
+    "email": {
+      "body": "{{payload.bodyHtml}}",
+      "subject": "{{payload.subject}}"
+    },
+    "inApp": {
+      "body": "{{payload.coopShortName}} направил вам письмо на электронную почту.",
+      "subject": "{{payload.subject}}"
+    },
+    "name": "Информационная рассылка кооператива"
   }
 }

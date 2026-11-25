@@ -16,6 +16,7 @@ const FROZEN_IDS = [
   'garantiynaya-pretenziya-postavschiku',
   'garantiyniy-vozvrat-zavershyon',
   'golosovanie-sobraniya-uchastka-nachalos',
+  'informatsionnaya-rassylka',
   'kassir-otkazal-v-vyplate-postavschiku',
   'kod-podtverzhdeniya-vkhoda',
   'kvota-paketov-dokumentooborota-ischerpana',

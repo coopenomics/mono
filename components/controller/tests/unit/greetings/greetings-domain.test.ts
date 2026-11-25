@@ -5,9 +5,11 @@ import {
   localDate,
   parseBirthdate,
 } from '~/extensions/greetings/domain/birthday';
-import { chooseTemplate, isValidPeriod } from '~/extensions/greetings/domain/template-choice';
-import { buildGreetingLetter, findUnknownVariables, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
-import { GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
+import { chooseTemplate, isValidPeriod, mailingDateInMonth, mailingsDue } from '~/extensions/greetings/domain/template-choice';
+import { buildGreetingLetter, findUnknownVariables, findVariablesNotForKind, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
+import { GreetingDeliveryState, GreetingTemplateKind, GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
+import { deliveryOf } from '~/extensions/greetings/domain/delivery';
+import { InnerNotifyDeliveryState } from '@coopenomics/innercoop';
 
 /**
  * Доменная часть приложения «Поздравления»: дата рождения, выбор шаблона на
@@ -50,9 +52,43 @@ describe('поздравления: дата рождения', () => {
 });
 
 describe('поздравления: шаблон на дату', () => {
-  const year = { id: 'year', status: GreetingTemplateStatus.ACTIVE, period_start: '2026-01-01', period_end: '2026-12-31' };
-  const june = { id: 'june', status: GreetingTemplateStatus.ACTIVE, period_start: '2026-06-01', period_end: '2026-06-30' };
-  const draft = { id: 'draft', status: GreetingTemplateStatus.DRAFT, period_start: '2026-06-10', period_end: '2026-06-10' };
+  const BIRTHDAY = GreetingTemplateKind.BIRTHDAY;
+  const MAILING = GreetingTemplateKind.MAILING;
+  const ACTIVE = GreetingTemplateStatus.ACTIVE;
+  const year = { id: 'year', kind: BIRTHDAY, status: ACTIVE, period_start: '2026-01-01', period_end: '2026-12-31' };
+  const june = { id: 'june', kind: BIRTHDAY, status: ACTIVE, period_start: '2026-06-01', period_end: '2026-06-30' };
+  const draft = { id: 'draft', kind: BIRTHDAY, status: GreetingTemplateStatus.DRAFT, period_start: '2026-06-10', period_end: '2026-06-10' };
+  const newYear = { id: 'ny', kind: MAILING, status: ACTIVE, repeat_yearly: true, period_start: '2026-12-31', period_end: '2026-12-31' };
+  const notice = { id: 'notice', kind: MAILING, status: ACTIVE, repeat_yearly: false, period_start: '2026-06-15', period_end: '2026-06-15' };
+  const leap = { id: 'leap', kind: MAILING, status: ACTIVE, repeat_yearly: true, period_start: '2024-02-29', period_end: '2024-02-29' };
+
+  it('рассылку поздравление не берёт, даже если её дата в периоде', () => {
+    expect(chooseTemplate([year, notice], '2026-06-15')?.id).toBe('year');
+  });
+
+  it('разовая рассылка — только в свою дату', () => {
+    expect(mailingsDue([notice, year], { year: 2026, month: 6, day: 15 }).map((t) => t.id)).toEqual(['notice']);
+    expect(mailingsDue([notice], { year: 2027, month: 6, day: 15 })).toEqual([]);
+  });
+
+  it('ежегодная рассылка повторяется с года первой даты', () => {
+    expect(mailingsDue([newYear], { year: 2027, month: 12, day: 31 }).map((t) => t.id)).toEqual(['ny']);
+    expect(mailingsDue([newYear], { year: 2025, month: 12, day: 31 })).toEqual([]);
+  });
+
+  it('календарь ставит рассылку на её дату в месяце', () => {
+    expect(mailingDateInMonth(notice, 2026, 6)).toBe('2026-06-15');
+    expect(mailingDateInMonth(notice, 2027, 6)).toBeNull();
+    expect(mailingDateInMonth(newYear, 2030, 12)).toBe('2030-12-31');
+    expect(mailingDateInMonth(newYear, 2030, 11)).toBeNull();
+    expect(mailingDateInMonth(leap, 2027, 2)).toBe('2027-02-28');
+    expect(mailingDateInMonth(year, 2026, 6)).toBeNull();
+  });
+
+  it('ежегодная рассылка на 29 февраля в невисокосный год — 28-го', () => {
+    expect(mailingsDue([leap], { year: 2027, month: 2, day: 28 }).map((t) => t.id)).toEqual(['leap']);
+    expect(mailingsDue([leap], { year: 2028, month: 2, day: 28 })).toEqual([]);
+  });
 
   it('берёт годовой шаблон вне коротких периодов', () => {
     expect(chooseTemplate([year, june], '2026-03-08')?.id).toBe('year');
@@ -129,7 +165,42 @@ describe('поздравления: письмо', () => {
     expect(letter.bodyHtml).toContain('<strong>Дорогой Анна</strong>');
   });
 
+  it('возраст в рассылке недоступен, в поздравлении — доступен', () => {
+    const text = 'С {{Летие}}! Вам {{Возраст}}, {{Имя}}';
+    expect(findVariablesNotForKind(text, GreetingTemplateKind.MAILING)).toEqual(['Летие', 'Возраст']);
+    expect(findVariablesNotForKind(text, GreetingTemplateKind.BIRTHDAY)).toEqual([]);
+  });
+
+  it('к организации обращается по названию', () => {
+    const org = greetingValues({ lastName: '', firstName: '', middleName: '', displayName: 'ООО «Ромашка»', age: null, cooperative: '', chairman: '' });
+    expect(org.address).toBe('ООО «Ромашка»');
+  });
+
   it('находит неизвестные переменные без повторов, регистр слова не важен', () => {
     expect(findUnknownVariables('{{имя}} {{Отчетсво}} {{ Отчетсво }} {{Кличка}}')).toEqual(['Отчетсво', 'Кличка']);
+  });
+});
+
+describe('поздравления: доставка письма', () => {
+  const S = InnerNotifyDeliveryState;
+  const rows = new Map([
+    ['e1', { outboxId: 'e1', channel: 'email', state: S.SENT }],
+    ['i1', { outboxId: 'i1', channel: 'in_app', state: S.FAILED }],
+    ['e2', { outboxId: 'e2', channel: 'email', state: S.SENDING }],
+    ['i2', { outboxId: 'i2', channel: 'in_app', state: S.CANCELED }],
+  ]);
+
+  it('доставку считает по почте, не по уведомлению в интерфейсе', () => {
+    expect(deliveryOf(['i1', 'e1'], rows)).toBe(GreetingDeliveryState.DELIVERED);
+    expect(deliveryOf(['e2'], rows)).toBe(GreetingDeliveryState.PENDING);
+  });
+
+  it('без почтовой строки берёт уведомление в интерфейсе', () => {
+    expect(deliveryOf(['i2'], rows)).toBe(GreetingDeliveryState.FAILED);
+  });
+
+  it('без строк очереди доставка неизвестна', () => {
+    expect(deliveryOf([], rows)).toBeNull();
+    expect(deliveryOf(['net'], rows)).toBeNull();
   });
 });

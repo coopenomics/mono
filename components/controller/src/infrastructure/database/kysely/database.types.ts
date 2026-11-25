@@ -1744,6 +1744,18 @@ export interface GreetingsSends {
   error: string | null;
   id: Generated<string>;
   /**
+   * birthday — поздравление с днём рождения, mailing — рассылка в дату
+   */
+  kind: Generated<string>;
+  /**
+   * Дата рассылки; у поздравления пусто — его ключ (пайщик, год)
+   */
+  occasion_date: Timestamp | null;
+  /**
+   * Строки очереди уведомлений письма — по каналам; по ним читается состояние доставки
+   */
+  outbox_ids: Generated<Json>;
+  /**
    * no_template — нет действующего шаблона, not_active — пайщик не действующий, no_recipient — нет почты или подписки
    */
   reason: string | null;
@@ -1767,8 +1779,20 @@ export interface GreetingsTemplates {
   created_at: Generated<Timestamp>;
   created_by: string;
   id: Generated<string>;
+  /**
+   * birthday — поздравление в день рождения пайщика, mailing — рассылка всем действующим пайщикам в дату period_start
+   */
+  kind: Generated<string>;
   period_end: Timestamp;
   period_start: Timestamp;
+  /**
+   * Рассылка повторяется каждый год в тот же день (праздник)
+   */
+  repeat_yearly: Generated<boolean>;
+  /**
+   * Дата, в которую рассылка обошла всех пайщиков без ошибок; повторный запуск в этот день пайщиков не перебирает
+   */
+  sent_on: Timestamp | null;
   /**
    * draft — черновик, active — действует: рассылка берёт шаблон в дни периода
    */

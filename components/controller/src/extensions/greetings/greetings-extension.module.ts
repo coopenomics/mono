@@ -24,6 +24,7 @@ import { GreetingsCalendarService } from './application/services/greetings-calen
 import { GreetingsTemplatesService } from './application/services/greetings-templates.service';
 import { GreetingsLetterService } from './application/services/greetings-letter.service';
 import { GreetingsSenderService } from './application/services/greetings-sender.service';
+import { GreetingsMailingService } from './application/services/greetings-mailing.service';
 import { GreetingsQueryService } from './application/services/greetings-query.service';
 import { GreetingsResolver } from './application/resolvers/greetings.resolver';
 
@@ -144,6 +145,7 @@ export class GreetingsExtension extends BaseExtensionModule implements OnModuleD
     GreetingsTemplatesService,
     GreetingsLetterService,
     GreetingsSenderService,
+    GreetingsMailingService,
     GreetingsQueryService,
     GreetingsRights,
     { provide: APP_RIGHTS, useExisting: GreetingsRights },

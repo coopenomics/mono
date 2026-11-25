@@ -27,9 +27,11 @@
         .journal__name {{ row.displayName }}
         .journal__meta {{ row.subject || skipReasonLabel(row.reason) }}
       template(#cell-template='{ row }')
-        span {{ row.template_title || '—' }}
+        div {{ row.template_title || '—' }}
+        .journal__meta {{ kindLabel(row.kind) }}
       template(#cell-status='{ row }')
         BaseBadge(:variant='sendStatusView(row.status).variant') {{ sendStatusView(row.status).label }}
+        .journal__meta(v-if='row.delivery') {{ deliveryView(row.delivery).label }}
     TablePager.q-mt-md(
       v-if='pager.rowsNumber > pager.rowsPerPage'
       :page='pager.page'
@@ -42,11 +44,14 @@
     template(v-if='selected')
       .journal__drawer-name {{ selected.displayName }}
       BaseBadge.q-mb-md(:variant='sendStatusView(selected.status).variant') {{ sendStatusView(selected.status).label }}
-      DataRow(:label='$t("greetings.journal.year")' :value='selected.year' align='spread')
+      DataRow(:label='$t("greetings.journal.kind")' :value='kindLabel(selected.kind)' align='spread')
+      DataRow(v-if='selected.occasion_date' :label='$t("greetings.journal.occasionDate")' :value='formatDay(selected.occasion_date)' align='spread')
+      DataRow(v-else :label='$t("greetings.journal.year")' :value='selected.year' align='spread')
       DataRow(v-if='selected.subject' :label='$t("greetings.journal.subject")' :value='selected.subject' align='vertical')
       DataRow(v-if='selected.template_title' :label='$t("greetings.journal.template")' :value='selected.template_title' align='vertical')
       DataRow(v-if='selected.reason' :label='$t("greetings.journal.columnStatus")' :value='skipReasonLabel(selected.reason)' align='vertical')
       DataRow(v-if='selected.error' :label='$t("greetings.journal.error")' :value='selected.error' align='vertical')
+      DataRow(v-if='selected.delivery' :label='$t("greetings.journal.delivery")' :value='deliveryView(selected.delivery).label' align='spread')
       DataRow(:label='$t("greetings.journal.attempts")' :value='selected.attempts' align='spread')
       DataRow(:label='$t("greetings.journal.updatedAt")' :value='formatMoment(selected.updated_at)' align='spread')
 </template>
@@ -60,7 +65,10 @@ import { BaseBadge, BaseTable, EmptyState, TablePager, type BaseTableColumn } fr
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import {
   GREETINGS_LIVE,
+  deliveryView,
+  formatDay,
   formatMoment,
+  kindLabel,
   greetingsApi,
   sendStatusView,
   skipReasonLabel,
@@ -69,7 +77,8 @@ import {
 import { t } from '../../../i18n';
 
 /**
- * Журнал поздравлений: одна запись на пайщика в год. Зоны строки: когда,
+ * Журнал писем: поздравление — одна запись на пайщика в год, рассылка —
+ * одна запись на пайщика в её дату. Зоны строки: когда,
  * кому и с какой темой, по какому шаблону, итог. Строка открывает панель
  * со всеми фактами записи.
  */

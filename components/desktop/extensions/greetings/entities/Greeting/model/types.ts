@@ -8,6 +8,8 @@ export type IGreetingVariable = Queries.Greetings.GetVariables.IOutput[typeof Qu
 export type IGreetingPreview = Queries.Greetings.GetPreview.IOutput[typeof Queries.Greetings.GetPreview.name];
 /** День рождения пайщика в календаре. */
 export type IGreetingCalendarEntry = Queries.Greetings.GetCalendar.IOutput[typeof Queries.Greetings.GetCalendar.name][number];
+/** Рассылка месяца в календаре. */
+export type IGreetingMailing = Queries.Greetings.GetMailings.IOutput[typeof Queries.Greetings.GetMailings.name][number];
 /** Страница журнала поздравлений. */
 export type IGreetingJournalPage = Queries.Greetings.GetJournal.IOutput[typeof Queries.Greetings.GetJournal.name];
 /** Запись журнала. */

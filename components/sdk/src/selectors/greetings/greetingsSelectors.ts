@@ -11,6 +11,9 @@ const rawGreetingTemplateSelector = {
   subject: true,
   body: true,
   status: true,
+  kind: true,
+  repeat_yearly: true,
+  sent_on: true,
   created_by: true,
   created_at: true,
   updated_at: true,
@@ -24,6 +27,7 @@ const rawGreetingVariableSelector = {
   variable: true,
   token: true,
   description: true,
+  birthdayOnly: true,
 }
 const _validateVariable: MakeAllFieldsRequired<ValueTypes['GreetingVariableInfo']> = rawGreetingVariableSelector
 export type greetingVariableModel = ModelTypes['GreetingVariableInfo']
@@ -64,12 +68,15 @@ const rawGreetingSendSelector = {
   username: true,
   displayName: true,
   year: true,
+  kind: true,
+  occasion_date: true,
   status: true,
   reason: true,
   error: true,
   template_title: true,
   subject: true,
   attempts: true,
+  delivery: true,
   created_at: true,
   updated_at: true,
 }
@@ -81,3 +88,22 @@ const rawGreetingSendsPaginationSelector = { ...paginationSelector, items: rawGr
 const _validateSends: MakeAllFieldsRequired<ValueTypes['PaginatedGreetingSendsPaginationResult']> = rawGreetingSendsPaginationSelector
 export type greetingSendsPaginationModel = ModelTypes['PaginatedGreetingSendsPaginationResult']
 export const greetingSendsPaginationSelector = Selector('PaginatedGreetingSendsPaginationResult')(rawGreetingSendsPaginationSelector)
+
+// Рассылка месяца в календаре
+const rawGreetingMailingOccurrenceSelector = {
+  template_id: true,
+  title: true,
+  subject: true,
+  date: true,
+  repeat_yearly: true,
+  status: true,
+  completed: true,
+  sent: true,
+  failed: true,
+  delivered: true,
+  pending: true,
+  undelivered: true,
+}
+const _validateMailing: MakeAllFieldsRequired<ValueTypes['GreetingMailingOccurrence']> = rawGreetingMailingOccurrenceSelector
+export type greetingMailingOccurrenceModel = ModelTypes['GreetingMailingOccurrence']
+export const greetingMailingOccurrenceSelector = Selector('GreetingMailingOccurrence')(rawGreetingMailingOccurrenceSelector)

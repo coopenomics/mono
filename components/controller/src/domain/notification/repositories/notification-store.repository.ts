@@ -23,6 +23,8 @@ export interface NotificationOutboxRepository {
   insertIgnoringDuplicates(rows: NotificationOutboxCreate[]): Promise<string[]>;
   create(row: NotificationOutboxCreate): Promise<NotificationOutboxDomainInterface>;
   findById(id: string): Promise<NotificationOutboxDomainInterface | null>;
+  /** Строки по списку идентификаторов — для ответа расширению о доставке его писем. */
+  findByIds(ids: string[]): Promise<NotificationOutboxDomainInterface[]>;
   /** К отправке: ожидающие со сроком не позже `now` и отправка, зависшая с `staleBefore`; по сроку, не больше `limit`. */
   findDue(now: Date, staleBefore: Date, limit: number): Promise<NotificationOutboxDomainInterface[]>;
   /** Журнал кооператива, новые сверху. */
