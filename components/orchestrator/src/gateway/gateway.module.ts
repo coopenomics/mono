@@ -24,6 +24,23 @@ import { loadAppConfig } from '../config/app-config';
  * прокидывает в каждый subgraph через willSendRequest. Subgraph'ы
  * валидируют JWT тем же секретом через @coopenomics/extension-sdk.
  */
+/** Отказ связи шлюза с частью схемы: в тексте — адрес контейнера и причина сети. */
+const SUBGRAPH_TRANSPORT_FAILURE = /request to https?:\/\/\S+ failed|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|socket hang up/i;
+
+/**
+ * Ошибку связи с ядром или приложением клиент получает без внутренних
+ * адресов. Отказы самих сервисов (права, проверка данных) проходят как есть:
+ * их текст и код предназначены пайщику.
+ */
+export function maskSubgraphFailure<T extends { message: string; extensions?: Record<string, unknown> }>(formatted: T): T {
+  if (!SUBGRAPH_TRANSPORT_FAILURE.test(formatted.message)) return formatted;
+  return {
+    ...formatted,
+    message: 'Часть сервиса временно недоступна. Повторите запрос позже.',
+    extensions: { code: 'SERVICE_UNAVAILABLE' },
+  };
+}
+
 @Module({
   imports: [
     SubgraphRegistryModule,
@@ -45,6 +62,11 @@ import { loadAppConfig } from '../config/app-config';
             path: '/v1/graphql',
             introspection: true,
             context: ({ req }: { req: unknown }) => ({ req }),
+            // Трассировка стека и адреса контейнеров наружу не отдаются: при
+            // упавшем приложении клиент получал «connect ECONNREFUSED
+            // 172.18.0.15:3011» вместе со стеком шлюза (25.11.2026).
+            includeStacktraceInErrorResponses: false,
+            formatError: maskSubgraphFailure,
           },
           gateway: {
             supergraphSdl: async ({ update }: { update: (sdl: string) => void }) => {

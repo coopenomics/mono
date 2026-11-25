@@ -37,6 +37,7 @@ import {
   InstallOutcome,
 } from '../orchestrator/install-orchestrator.service';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
+import type { SupergraphRefreshService } from '../gateway/supergraph-refresh.service';
 import { FrontendCacheService } from '../frontend-cache/frontend-cache.service';
 
 class FakeFrontendCache {
@@ -104,12 +105,14 @@ const buildHarness = (
   orchestrator: FakeOrchestrator;
   registry: FakeRegistryService;
   frontendCache: FakeFrontendCache;
+  refresh: { forced: boolean[] };
 } => {
   const stream = new FakeEventStream();
   const metadata = new FakeMetadata();
   const orchestrator = new FakeOrchestrator();
   const registry = new FakeRegistryService();
   const frontendCache = new FakeFrontendCache();
+  const refresh = { forced: [] as boolean[], trigger: async (force = false) => { refresh.forced.push(force); return { ready: true, recomposed: force }; } };
   const watcher = new OnChainWatcherService(
     stream,
     metadata,
@@ -117,8 +120,9 @@ const buildHarness = (
     orchestrator as unknown as InstallOrchestratorService,
     registry as unknown as SubgraphRegistryService,
     frontendCache as unknown as FrontendCacheService,
+    refresh as unknown as SupergraphRefreshService,
   );
-  return { watcher, stream, metadata, orchestrator, registry, frontendCache };
+  return { watcher, stream, metadata, orchestrator, registry, frontendCache, refresh };
 };
 
 const PACKAGE_ID = '@coopenomics/chatcoop';
@@ -310,6 +314,34 @@ describe('OnChainWatcherService', () => {
           blockNum: 300,
         }),
       ).rejects.toThrow(/docker-pull/);
+    });
+  });
+
+  // Обновление версии меняет схему приложения, а имя и адрес в реестре
+  // прежние: шлюз отдавал схему прежней версии, пока его не перезапустят.
+  describe('пересборка схемы шлюза', () => {
+    const activated = {
+      kind: 'subscription-activated' as const,
+      coopname: 'voskhod',
+      packageId: PACKAGE_ID,
+      expiresAtUnix: 0,
+      blockNum: 300,
+    };
+
+    it('happy: контейнер приложения заменён — схема пересобирается принудительно', async () => {
+      const h = buildHarness();
+      h.metadata.setSpec(PACKAGE_ID, '', SPEC);
+      h.orchestrator.outcome = { status: 'applied', packageId: '', healthAfterMs: 1, containerReplaced: true };
+      await h.watcher.handle(activated);
+      expect(h.refresh.forced).toEqual([true]);
+    });
+
+    it('break: контейнер оставлен как был — лишней пересборки нет', async () => {
+      const h = buildHarness();
+      h.metadata.setSpec(PACKAGE_ID, '', SPEC);
+      h.orchestrator.outcome = { status: 'applied', packageId: '', healthAfterMs: 1, containerReplaced: false };
+      await h.watcher.handle(activated);
+      expect(h.refresh.forced).toEqual([]);
     });
   });
 

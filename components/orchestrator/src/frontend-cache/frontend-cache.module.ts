@@ -58,7 +58,7 @@ import {
         if (!catalogDeliveryBaseUrl) return null;
         const cfg = loadAppConfig();
         return new CatalogDeliveryReleaseMetadata(
-          { catalogDeliveryBaseUrl, coopname: cfg.coopname, jwtSecret: cfg.jwtSecret },
+          { catalogDeliveryBaseUrl, coopname: cfg.coopname },
           token,
         );
       },

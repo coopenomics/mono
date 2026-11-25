@@ -3,9 +3,11 @@ import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
 import { AppsPublisherRecord } from '../records/apps-publisher.record';
 import { CatalogAppRecord } from '../records/catalog-app.record';
+import { AppPortGrantRecord } from '../records/app-port-grant.record';
 
 export const APPS_PUBLISHER_STORE = Symbol('AppsCatalogProxy.PublisherStore');
 export const CATALOG_APP_STORE = Symbol('AppsCatalogProxy.CatalogAppStore');
+export const APP_PORT_GRANT_STORE = Symbol('AppsCatalogProxy.AppPortGrantStore');
 
 export const appsCatalogProxyStoreProviders: Provider[] = [
   {
@@ -19,5 +21,15 @@ export const appsCatalogProxyStoreProviders: Provider[] = [
     inject: [KYSELY],
     useFactory: (db: Kysely<any>) =>
       new TableStore<CatalogAppRecord>(db, { table: 'apps_catalog_apps', primaryKey: ['packageId'], json: ['config'] }),
+  },
+  {
+    provide: APP_PORT_GRANT_STORE,
+    inject: [KYSELY],
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<AppPortGrantRecord>(db, {
+        table: 'apps_port_grants',
+        primaryKey: ['packageId'],
+        json: ['ports', 'chainActions'],
+      }),
   },
 ];

@@ -80,11 +80,21 @@ export class ShellDockerRunner implements DockerRunnerPort {
     network?: string;
     env?: Record<string, string>;
     labels?: Record<string, string>;
+    memoryMb?: number;
+    cpus?: number;
   }): Promise<void> {
     // Замещаем существующий контейнер с тем же именем: это и retry после
     // падения, и обновление версии одним и тем же путём.
     await this.removeContainer(opts.name);
     const args = ['run', '-d', '--restart', 'unless-stopped', '--name', opts.name];
+    // Приложение — чужой код на узле кооператива: без пределов оно займёт
+    // память и процессор ядра, а с привилегиями — выйдет за контейнер.
+    args.push('--security-opt', 'no-new-privileges', '--cap-drop', 'ALL', '--pids-limit', '256');
+    if (opts.memoryMb !== undefined) {
+      // Своп равен памяти: предел не обходится выгрузкой на диск.
+      args.push('--memory', `${opts.memoryMb}m`, '--memory-swap', `${opts.memoryMb}m`);
+    }
+    if (opts.cpus !== undefined) args.push('--cpus', String(opts.cpus));
     if (opts.network) {
       args.push('--network', opts.network);
     }

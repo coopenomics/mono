@@ -11,8 +11,11 @@
  *   - cross-extension references на core entity (Cooperator, Cooperative,
  *     Account) — через `SharedCooperator/SharedCooperative/SharedAccount`
  *     stub'ы (`@key + @external`).
- *   - JWT валидируется тем же секретом что и core; gateway forward'ит
- *     Authorization-header в subgraph.
+ *   - пайщика по токену опознаёт ядро (`ExtensionAccessGuard`, порт
+ *     `accessToken`); секрет ядра приложению не передаётся. Gateway
+ *     forward'ит Authorization-header в subgraph.
+ *   - порты ядра (`@coopenomics/innercoop`) приложение получает по сети через
+ *     `ExtensionPortsModule`; набор портов заявлен в манифесте пакета.
  *   - healthcheck `GET /_health` обязателен — orchestrator опрашивает.
  *
  * См. подробнее: docs/epics/E10-federation-runtime.md в репо apps-catalog
@@ -42,3 +45,13 @@ export {
   ExtensionConfigError,
   type ExtensionConfig,
 } from './config/extension-config';
+export { ExtensionAccessGuard, type ExtensionIdentity } from './auth/extension-access.guard';
+export { CorePortsClient, CorePortError, type CorePortsClientOptions } from './ports/core-ports.client';
+export {
+  ExtensionPortsModule,
+  REMOTE_PORT_METHODS,
+  REMOTE_PORT_TOKENS,
+  remotePort,
+  type ExtensionPortsOptions,
+  type RemotePortName,
+} from './ports/extension-ports.module';

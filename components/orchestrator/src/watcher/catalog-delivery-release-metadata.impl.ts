@@ -28,8 +28,6 @@ const REQUEST_TIMEOUT_MS = 10_000;
 export interface CatalogDeliveryReleaseMetadataConfig {
   catalogDeliveryBaseUrl: string;
   coopname: string;
-  /** JWT_SECRET стенда — прокидывается в контейнер расширения. */
-  jwtSecret: string;
   /** Docker-сеть, в которой поднимаются расширения (для containerEnv/DNS). */
   extensionsNetwork?: string;
 }
@@ -42,6 +40,10 @@ interface NpmVersionManifest {
       healthcheck?: string;
       env?: string[];
     };
+    /** Порты ядра, которые приложение вызывает по сети. */
+    ports?: string[];
+    /** Действия цепи, которые ядро подписывает по просьбе приложения: `контракт::действие`. */
+    chainActions?: string[];
     frontend?: {
       tarball?: string;
       installSha256?: string;
@@ -52,6 +54,11 @@ interface NpmVersionManifest {
 interface NpmPackumentLike {
   'dist-tags'?: Record<string, string>;
   versions?: Record<string, NpmVersionManifest>;
+}
+
+/** Массив строк из манифеста; всё прочее — пусто. */
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
 export class CatalogDeliveryReleaseMetadata
@@ -115,10 +122,16 @@ export class CatalogDeliveryReleaseMetadata
       imageRef: backend.image,
       containerName,
       pullJwt: jwt,
+      // Секрет ядра (JWT_SECRET) в контейнер не передаётся: с ним чужой код
+      // выпускал бы токен любого пайщика. Пайщика приложение опознаёт через
+      // порт ядра accessToken; токен приложения добавляет установка.
       containerEnv: {
         SUBGRAPH_PORT: String(port),
-        JWT_SECRET: this.cfg.jwtSecret,
         COOPNAME: this.cfg.coopname,
+      },
+      corePorts: {
+        ports: strings(manifest.coopenomics?.ports),
+        chainActions: strings(manifest.coopenomics?.chainActions),
       },
     };
   }

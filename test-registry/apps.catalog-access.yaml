@@ -30,12 +30,27 @@ title: Вход узла кооператива в каталог приложе
 # пересоздавал контейнеры всех приложений; приложение, отписанное при
 # выключенном оркестраторе, работало без срока; после перезапуска оркестратор
 # ждал токен каталога до 10 минут (теперь ядро передаёт его раз в минуту).
+#
+# Правка 25.11.2026 (487-17): порты ядра для приложений в своих контейнерах.
+# Приложение — чужой код на узле: секрет ядра и ключ кооператива ему не
+# передаются. Установка заводит в ядре заявку пакета (порты и действия цепи из
+# манифеста) и кладёт в контейнер токен приложения; вызов порта —
+# POST /v1/internal/ports/:port/:method. Открыт белый список портов и методов;
+# действия цепи подписывает ядро и только заявленные; пайщика по токену
+# опознаёт ядро (порт accessToken) — завершённая сессия приложением не
+# принимается. Проверено на стенде 4 пакетом @voskhod/exampleapp 0.2.0.
 sources:
   backend:
     - components/controller/src/application/auth-v2/certificate/catalog-key.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/apps-catalog-http.service.ts
     - components/orchestrator/src/watcher/**
     - components/orchestrator/src/orchestrator/**
+    - components/orchestrator/src/gateway/supergraph-manager.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/app-port-grants.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/remote-ports.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/remote-ports.catalog.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/controllers/app-ports.controller.ts
+    - components/controller/src/infrastructure/innercoop/access-token-innercoop.adapter.ts
     - components/controller/src/application/provider/dto/provider-app.dto.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/node-apps.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/catalog-apps-state.service.ts
@@ -235,6 +250,8 @@ cases:
       подписку установленной и повторяет установку
     test: components/orchestrator/src/watcher/on-chain-watcher.service.spec.ts
     status: written
+    external: unreachable
+    external_reason: "отказ docker pull и проверки здоровья внешний слой стенда не вызывает: образ и сеть на стенде исправны"
 
   - id: apps.access.side.10
     level: backend
@@ -246,6 +263,8 @@ cases:
       после удачи счётчик сброшен; отложенная подписка при отмене не даёт события снятия
     test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
     status: written
+    external: unreachable
+    external_reason: "серию отказов установки подряд внешний слой стенда не вызывает: образ и сеть на стенде исправны"
 
   - id: apps.access.break.11
     level: backend
@@ -257,6 +276,8 @@ cases:
       другой образ или остановленный контейнер — контейнер заменяется
     test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
     status: written
+    external: unreachable
+    external_reason: "перезапуск оркестратора — действие над контейнером стенда, внешний слой работает только через API"
 
   - id: apps.access.happy.10
     level: backend
@@ -268,6 +289,8 @@ cases:
       имя контейнера при снятии то же, что при установке
     test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
     status: written
+    external: unreachable
+    external_reason: "сценарий двух кооперативов ставит пакет без серверной части (demoapp): контейнера, который снимается, в нём нет"
 
   - id: apps.access.happy.11
     level: backend
@@ -280,3 +303,78 @@ cases:
       список установленного читается только первым опросом
     test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
     status: written
+    external: unreachable
+    external_reason: "остановка оркестратора на время отмены подписки — действие над контейнером стенда, внешний слой работает только через API"
+
+  # ── 25.11.2026 (487-17): порты ядра для приложений в контейнерах ────────
+  - id: apps.access.happy.12
+    level: backend
+    kind: happy
+    scenario: >
+      Установка заводит заявку пакета и получает токен приложения; приложение вызывает заявленный порт.
+    expect: >
+      в базе лежит только хэш токена; вызов доходит до реализации порта с теми же аргументами; undefined отдаётся как null
+    test: components/controller/tests/unit/apps-catalog-proxy/app-ports.test.ts
+    status: written
+    external: unreachable
+    external_reason: "вход портов принимает только токен установленного контейнерного приложения; сценарий двух кооперативов ставит пакет без серверной части"
+
+  - id: apps.access.break.12
+    level: backend
+    kind: break
+    scenario: >
+      Приложение вызывает порт без токена, с неизвестным токеном, незаявленный порт, метод вне белого списка, chain.initialize.
+    expect: >
+      отказы APPS_CATALOG_PROXY_APP_PORT_TOKEN_INVALID, APPS_CATALOG_PROXY_APP_PORT_NOT_GRANTED, APPS_CATALOG_PROXY_APP_PORT_UNKNOWN; реализация порта не вызывается; неизвестные порты манифеста в заявку не попадают
+    test: components/controller/tests/unit/apps-catalog-proxy/app-ports.test.ts
+    status: written
+    external: unreachable
+    external_reason: "вход портов принимает только токен установленного контейнерного приложения; сценарий двух кооперативов ставит пакет без серверной части"
+
+  - id: apps.access.break.13
+    level: backend
+    kind: break
+    scenario: >
+      Приложение просит провести действие цепи: заявленное, незаявленное, пачку с одним незаявленным, пустой список; ключа в хранилище нет.
+    expect: >
+      заявленное подписывает ядро ключом узла, подписантом ставит кооператив вместо присланного; незаявленное — APPS_CATALOG_PROXY_APP_CHAIN_ACTION_NOT_GRANTED, ключ не достаётся, пачка отклоняется целиком; broadcast=false доходит до цепи
+    test: components/controller/tests/unit/apps-catalog-proxy/app-ports.test.ts
+    status: written
+    external: unreachable
+    external_reason: "вход портов принимает только токен установленного контейнерного приложения; сценарий двух кооперативов ставит пакет без серверной части"
+
+  - id: apps.access.break.14
+    level: backend
+    kind: break
+    scenario: >
+      Заявку заводят без секрета узла, с чужим секретом, при незаданном секрете; приложение снято.
+    expect: >
+      отказ APPS_CATALOG_PROXY_APP_GRANT_SERVICE_ONLY; после снятия или повторной выдачи прежний токен не принимается
+    test: components/controller/tests/unit/apps-catalog-proxy/app-ports.test.ts
+    status: written
+    external: unreachable
+    external_reason: "вход портов принимает только токен установленного контейнерного приложения; сценарий двух кооперативов ставит пакет без серверной части"
+
+  - id: apps.access.happy.13
+    level: backend
+    kind: happy
+    scenario: >
+      Оркестратор ставит контейнер приложения с заявкой портов из манифеста пакета.
+    expect: >
+      в окружении контейнера адрес ядра и токен приложения, секрета ядра нет; пределы памяти и процессора заданы; работающий контейнер заявку не перевыпускает; снятие стирает заявку; ядро не завело заявку — контейнер не запускается
+    test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "вход портов принимает только токен установленного контейнерного приложения; сценарий двух кооперативов ставит пакет без серверной части"
+
+  - id: apps.access.happy.14
+    level: backend
+    kind: happy
+    scenario: >
+      Вышла новая версия приложения: контейнер заменён, имя и адрес в реестре прежние.
+    expect: >
+      шлюз пересобирает схему принудительно; контейнер оставлен как был — пересборки нет
+    test: components/orchestrator/src/watcher/on-chain-watcher.service.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "вход портов принимает только токен установленного контейнерного приложения; сценарий двух кооперативов ставит пакет без серверной части"

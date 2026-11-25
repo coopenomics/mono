@@ -41,6 +41,32 @@ function extractBearerToken(raw: unknown): string | null {
 }
 
 /**
+ * Учётная запись по токену доступа — общий путь ws-соединения и порта
+ * опознания для приложений каталога (`ACCESS_TOKEN_PORT`). Подпись, тип и
+ * живость сессии проверяются здесь; причина отказа возвращается текстом, чтобы
+ * вызывающий записал её в свой журнал.
+ */
+export async function resolveAccessTokenUser(
+  token: string,
+): Promise<{ user: unknown; payload: Record<string, unknown> } | { rejected: string }> {
+  let payload: any;
+  try {
+    payload = jwt.verify(token, config.jwt.secret);
+  } catch (e) {
+    return { rejected: `verify failed (${(e as Error).message})` };
+  }
+  // i18n-ignore: причина отказа пишется в журнал узла, пайщику не показывается
+  if (payload?.type !== tokenTypes.ACCESS) return { rejected: `тип токена "${payload?.type}" != ACCESS` };
+  // i18n-ignore: причина отказа пишется в журнал узла, пайщику не показывается
+  if (!resolver) return { rejected: 'опознание пайщика ещё не зарегистрировано' };
+  try {
+    return { user: await resolver(payload), payload };
+  } catch (e) {
+    return { rejected: `${(e as Error).message} (sub=${payload.sub})` };
+  }
+}
+
+/**
  * Проверка ws-соединения в `onConnect`. Токен подписан и это access-токен —
  * пайщика опознаёт стратегия HTTP (она же проверяет живость сессии), и в
  * `extra` соединения ложатся учётная запись и сам токен.
@@ -56,32 +82,18 @@ export async function authenticateWsConnection(context: any): Promise<boolean> {
     logger.warn('[mp-ws] onConnect ОТКЛОНЁН: нет токена в connectionParams');
     return false;
   }
-  let payload: any;
-  try {
-    payload = jwt.verify(token, config.jwt.secret);
-  } catch (e) {
-    logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: verify failed (${(e as Error).message})`);
+  const resolved = await resolveAccessTokenUser(token);
+  if ('rejected' in resolved) {
+    logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: ${resolved.rejected}`);
     return false;
   }
-  if (payload?.type !== tokenTypes.ACCESS) {
-    logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: тип токена "${payload?.type}" != ACCESS`);
-    return false;
-  }
-  if (!resolver) {
-    logger.warn('[mp-ws] onConnect ОТКЛОНЁН: опознание пайщика ещё не зарегистрировано');
-    return false;
-  }
-  try {
-    const user = await resolver(payload);
-    context.extra = context.extra ?? {};
-    context.extra.user = user;
-    context.extra.authorization = `Bearer ${token}`;
-    logger.info(`[mp-ws] onConnect ✅ принят: ${(user as { username?: string })?.username ?? payload.sub}`);
-    return true;
-  } catch (e) {
-    logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: ${(e as Error).message} (sub=${payload.sub})`);
-    return false;
-  }
+  context.extra = context.extra ?? {};
+  context.extra.user = resolved.user;
+  context.extra.authorization = `Bearer ${token}`;
+  logger.info(
+    `[mp-ws] onConnect ✅ принят: ${(resolved.user as { username?: string })?.username ?? resolved.payload.sub}`,
+  );
+  return true;
 }
 
 /**

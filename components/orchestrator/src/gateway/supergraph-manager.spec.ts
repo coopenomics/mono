@@ -184,6 +184,23 @@ describe('createDynamicSupergraphManager', () => {
     await lifecycle.cleanup();
   });
 
+  // Обновление версии приложения: имя и адрес в реестре прежние, схема другая.
+  it('forceRecompose(): пересобирает схему при неизменном составе реестра', async () => {
+    const registry = new FakeRegistry();
+    registry.current = [{ name: 'core', url: 'http://core:3000/graphql' }];
+    const composer = new FakeComposer();
+    const updates: string[] = [];
+    const lifecycle = await createDynamicSupergraphManager(
+      { registry, composer, pollIntervalMs: POLL_MS },
+      (sdl) => updates.push(sdl),
+    );
+    await expect(lifecycle.forceRefresh()).resolves.toBe(false);
+    await lifecycle.forceRecompose();
+    expect(updates).toHaveLength(1);
+    expect(composer.calls.length).toBe(2);
+    await lifecycle.cleanup();
+  });
+
   it('cleanup() останавливает таймер — composer перестаёт вызываться', async () => {
     const registry = new FakeRegistry();
     registry.current = [{ name: 'core', url: 'http://core:3000/graphql' }];

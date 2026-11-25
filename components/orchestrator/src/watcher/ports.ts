@@ -116,8 +116,10 @@ export interface ReleaseInstallSpec {
    * Идёт в docker login для pull'а из приватного registry.
    */
   pullJwt?: string;
-  /** Env-переменные контейнера расширения (SUBGRAPH_PORT, JWT_SECRET, COOPNAME). */
+  /** Env-переменные контейнера расширения (SUBGRAPH_PORT, COOPNAME). */
   containerEnv?: Record<string, string>;
+  /** Заявка приложения на порты ядра из манифеста пакета. */
+  corePorts?: { ports: string[]; chainActions: string[] };
 }
 
 export const RELEASE_METADATA_PORT = Symbol('ReleaseMetadataPort');

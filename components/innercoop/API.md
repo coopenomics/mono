@@ -9,7 +9,13 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 362.
+Всего экспортов: 365.
+
+## ACCESS_TOKEN_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.AccessToken')`
 
 ## ACCOUNT_PORT
 
@@ -254,6 +260,12 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.GlobalSearchRegistry')`
+
+## IAccessTokenPort
+
+`interface` · core-ports
+
+- `identify(token: string): Promise<InnerAccessIdentity | null>`
 
 ## IAccountingRegistryPort
 
@@ -693,6 +705,14 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Individual')`
+
+## InnerAccessIdentity
+
+`interface` · core-ports
+
+- `username: string`
+- `role: string`
+- `status: string`
 
 ## InnerAccount
 

@@ -13,7 +13,16 @@
  */
 export interface ExtensionConfig {
   subgraphPort: number;
-  jwtSecret: string;
+  /**
+   * Секрет подписи токенов ядра. Оставлен для приложений, собранных до входа
+   * портов; новому приложению секрет не передаётся — пайщика проверяет ядро
+   * (`ExtensionAccessGuard`).
+   */
+  jwtSecret?: string;
+  /** Адрес ядра для вызова портов (`CORE_PORTS_URL`). */
+  corePortsUrl?: string;
+  /** Токен приложения для вызова портов ядра (`CORE_PORTS_TOKEN`). */
+  corePortsToken?: string;
   coopname: string;
   databaseUrl?: string;
   coreGraphqlUrl?: string;
@@ -31,9 +40,11 @@ export function loadExtensionConfig(env: NodeJS.ProcessEnv = process.env): Exten
   if (!Number.isFinite(port) || port <= 0) {
     throw new ExtensionConfigError('SUBGRAPH_PORT не задан или некорректен');
   }
-  const jwtSecret = env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new ExtensionConfigError('JWT_SECRET не задан');
+  const jwtSecret = env.JWT_SECRET || undefined;
+  const corePortsUrl = env.CORE_PORTS_URL || undefined;
+  const corePortsToken = env.CORE_PORTS_TOKEN || undefined;
+  if (!jwtSecret && !(corePortsUrl && corePortsToken)) {
+    throw new ExtensionConfigError('не заданы CORE_PORTS_URL и CORE_PORTS_TOKEN (либо JWT_SECRET у приложения прежней сборки)');
   }
   const coopname = env.COOPNAME;
   if (!coopname) {
@@ -42,6 +53,8 @@ export function loadExtensionConfig(env: NodeJS.ProcessEnv = process.env): Exten
   return {
     subgraphPort: port,
     jwtSecret,
+    corePortsUrl,
+    corePortsToken,
     coopname,
     databaseUrl: env.DATABASE_URL,
     coreGraphqlUrl: env.CORE_GRAPHQL_URL,

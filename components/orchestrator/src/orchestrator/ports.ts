@@ -40,6 +40,10 @@ export interface DockerRunnerPort {
     env?: Record<string, string>;
     /** Метки контейнера: по ним оркестратор находит контейнеры приложений. */
     labels?: Record<string, string>;
+    /** Предел памяти контейнера, МБ. */
+    memoryMb?: number;
+    /** Предел процессора контейнера, ядер. */
+    cpus?: number;
   }): Promise<void>;
   /** Значения метки у всех контейнеров, где она стоит (работающих и остановленных). */
   listLabelValues(label: string): Promise<string[]>;
@@ -55,6 +59,22 @@ export interface DockerRunnerPort {
 }
 
 export const DOCKER_RUNNER = Symbol('DockerRunnerPort');
+
+/**
+ * Заявки приложений на порты ядра (487-17). Установка заводит заявку и
+ * получает токен приложения для окружения контейнера; снятие стирает заявку,
+ * и ядро перестаёт принимать токен.
+ */
+export interface AppGrantsPort {
+  /** Завести или заменить заявку пакета. Возвращает токен приложения. */
+  issue(opts: { packageId: string; ports: string[]; chainActions: string[] }): Promise<string>;
+  /** Стереть заявку пакета. Idempotent. */
+  revoke(packageId: string): Promise<void>;
+  /** Адрес ядра для вызова портов из контейнера приложения. */
+  readonly coreUrl: string;
+}
+
+export const APP_GRANTS = Symbol('AppGrantsPort');
 
 /**
  * Порт healthcheck'а subgraph'а. Делает GET к указанному URL и считает

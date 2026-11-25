@@ -13,6 +13,7 @@ import {
   ACCOUNT_PORT,
   AGREEMENT_CATALOG_PORT,
   BRANCH_PORT,
+  ACCESS_TOKEN_PORT,
   COOPERATIVE_VARS_PORT,
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
@@ -73,6 +74,7 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { RedisService } from '~/infrastructure/redis/redis.service';
 import { SystemDomainModule } from '~/domain/system/system-domain.module';
 import { CooperativeVarsInnercoopAdapter } from '~/infrastructure/innercoop/cooperative-vars-innercoop.adapter';
+import { AccessTokenInnercoopAdapter } from '~/infrastructure/innercoop/access-token-innercoop.adapter';
 import { DocumentInnercoopAdapter } from '~/infrastructure/innercoop/document-innercoop.adapter';
 import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-innercoop.adapter';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
@@ -226,6 +228,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
   ],
   providers: [
     CooperativeVarsInnercoopAdapter,
+    AccessTokenInnercoopAdapter,
     DocumentInnercoopAdapter,
     AccountInnercoopAdapter,
     NotificationInnercoopAdapter,
@@ -340,6 +343,11 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     {
       provide: COOPERATIVE_VARS_PORT,
       useExisting: CooperativeVarsInnercoopAdapter,
+    },
+    {
+      // Опознание пайщика для приложений каталога в своих контейнерах (487-17).
+      provide: ACCESS_TOKEN_PORT,
+      useExisting: AccessTokenInnercoopAdapter,
     },
     {
       provide: DOCUMENT_PORT,
@@ -599,6 +607,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     LOGGER_PORT,
     MESSAGE_CHANNEL_PORT,
     COOPERATIVE_VARS_PORT,
+    ACCESS_TOKEN_PORT,
     DOCUMENT_PORT,
     ACCOUNT_PORT,
     NOTIFICATION_PORT,

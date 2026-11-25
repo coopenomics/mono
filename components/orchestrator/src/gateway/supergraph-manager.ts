@@ -59,6 +59,12 @@ export interface SupergraphManagerLifecycle {
    * `false` — если состояние актуально. Ошибки composer'а пробрасываются.
    */
   forceRefresh(): Promise<boolean>;
+  /**
+   * Пересобрать схему, даже если состав реестра прежний. Обновление версии
+   * приложения меняет его схему, а имя и адрес остаются теми же — отпечаток
+   * реестра этого не видит, и шлюз отдавал схему прежней версии (25.11.2026).
+   */
+  forceRecompose(): Promise<void>;
   /** Освободить таймер — gateway вызовет при shutdown'е. */
   cleanup(): Promise<void>;
 }
@@ -114,6 +120,14 @@ export async function createDynamicSupergraphManager(
     return true;
   };
 
+  const forceRecompose = async (): Promise<void> => {
+    const subgraphs = await opts.registry.listForCompose();
+    const sdl = await opts.composer.compose(subgraphs);
+    lastFingerprint = fingerprintOf(subgraphs);
+    update(sdl);
+    logger.log(`supergraph пересобран принудительно (${subgraphs.length} subgraphs)`);
+  };
+
   const timer = setInterval(() => {
     void refreshIfChanged().catch((e) => {
       logger.error(`recompose tick failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -123,6 +137,7 @@ export async function createDynamicSupergraphManager(
   return {
     initialSdl,
     forceRefresh: refreshIfChanged,
+    forceRecompose,
     cleanup: async () => {
       clearInterval(timer);
     },

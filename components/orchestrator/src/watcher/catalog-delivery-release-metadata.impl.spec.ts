@@ -62,7 +62,6 @@ describe('CatalogDeliveryReleaseMetadata', () => {
       {
         catalogDeliveryBaseUrl: 'http://catalog-delivery:3001',
         coopname: 'voskhod',
-        jwtSecret: 'stand-secret',
       },
       token,
     );
@@ -83,11 +82,14 @@ describe('CatalogDeliveryReleaseMetadata', () => {
       imageRef: 'registry.coopenomics.world/voskhod/chatcoop:1.2.0',
       containerName: 'ext-chatcoop',
       pullJwt: 'per-package-jwt',
+      // Секрета ядра в окружении контейнера нет (487-17): пайщика приложение
+      // опознаёт через порт ядра, токен приложения добавляет установка.
       containerEnv: {
         SUBGRAPH_PORT: '3001',
-        JWT_SECRET: 'stand-secret',
         COOPNAME: 'voskhod',
       },
+      // Манифест пакета портов не заявляет — заявка пустая.
+      corePorts: { ports: [], chainActions: [] },
     });
 
     // токен пакета выдаётся по tenant JWT кооператива, подписи запроса нет

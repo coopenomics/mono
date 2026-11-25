@@ -21,17 +21,25 @@ export interface RefreshOutcome {
 
 @Injectable()
 export class SupergraphRefreshService {
-  private manager?: Pick<SupergraphManagerLifecycle, 'forceRefresh'>;
+  private manager?: Pick<SupergraphManagerLifecycle, 'forceRefresh' | 'forceRecompose'>;
 
-  attach(manager: Pick<SupergraphManagerLifecycle, 'forceRefresh'>): void {
+  attach(manager: Pick<SupergraphManagerLifecycle, 'forceRefresh' | 'forceRecompose'>): void {
     this.manager = manager;
   }
 
-  async trigger(): Promise<RefreshOutcome> {
+  /**
+   * @param force — пересобрать схему, даже если состав реестра не изменился:
+   *   контейнер приложения заменён (новая версия), его схема могла измениться.
+   */
+  async trigger(force = false): Promise<RefreshOutcome> {
     if (this.manager === undefined) {
       return { ready: false, recomposed: false };
     }
     try {
+      if (force) {
+        await this.manager.forceRecompose();
+        return { ready: true, recomposed: true };
+      }
       return { ready: true, recomposed: await this.manager.forceRefresh() };
     } catch (e) {
       return {

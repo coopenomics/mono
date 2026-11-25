@@ -6,7 +6,7 @@ import { ApolloFederationDriver, ApolloFederationDriverConfig } from '@nestjs/ap
  * Опции для базового федеративного subgraph'а расширения.
  *
  * @property path           — путь endpoint'а GraphQL (по умолчанию `/v1/graphql`).
- * @property schemaFile     — куда писать сгенерированную SDL (`schema.gql` по умолчанию).
+ * @property schemaFile     — куда писать сгенерированную SDL; не задан — схема только в памяти.
  * @property introspection  — оставлять true даже в проде: gateway пользуется
  *                            introspection'ом для пересборки supergraph'а.
  * @property playground     — Apollo Sandbox в development.
@@ -34,7 +34,7 @@ export interface ExtensionFederationOptions {
 export class ExtensionFederationModule {
   static forRoot(options: ExtensionFederationOptions = {}): DynamicModule {
     const path = options.path ?? '/v1/graphql';
-    const schemaFile = options.schemaFile ?? 'schema.gql';
+    const schemaFile = options.schemaFile;
     const introspection = options.introspection ?? true;
     const playground = options.playground ?? false;
 
@@ -46,10 +46,10 @@ export class ExtensionFederationModule {
           path,
           introspection,
           playground,
-          autoSchemaFile: {
-            path: schemaFile,
-            federation: 2,
-          },
+          // Схема по умолчанию держится в памяти. Файл пишется, только если
+          // приложение само задало путь: контейнер приложения работает без
+          // прав root, и запись в каталог приложения роняла его на старте.
+          autoSchemaFile: schemaFile === undefined ? { federation: 2 } : { path: schemaFile, federation: 2 },
           sortSchema: true,
         }),
       ],

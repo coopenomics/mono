@@ -9,6 +9,9 @@ import { DeveloperRights } from './application/access/developer-rights';
 import { appsCatalogProxyStoreProviders } from './infrastructure/database/apps-catalog-proxy-stores';
 import { AppsCatalogHttpService } from './infrastructure/apps-catalog-http.service';
 import { AppsCatalogInstallScriptController } from './application/controllers/install-script.controller';
+import { AppPortGrantsController, AppPortsController } from './application/controllers/app-ports.controller';
+import { AppPortGrantsService } from './application/services/app-port-grants.service';
+import { RemotePortsService } from './application/services/remote-ports.service';
 import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-proxy.resolver';
 
 /**
@@ -21,12 +24,14 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
  */
 @Module({
   imports: [ConfigModule],
-  controllers: [AppsCatalogInstallScriptController],
+  controllers: [AppsCatalogInstallScriptController, AppPortsController, AppPortGrantsController],
   providers: [
     AppsCatalogHttpService,
     AppsCatalogProxyResolver,
     AppsPublishersService,
     CatalogAppsStateService,
+    AppPortGrantsService,
+    RemotePortsService,
     DeveloperExtension,
     ...appsCatalogProxyStoreProviders,
     DeveloperRights,

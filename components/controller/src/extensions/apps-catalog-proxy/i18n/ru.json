@@ -21,5 +21,14 @@
       "cooperativesRequired": "Для охвата «кооперативы» укажите хотя бы один кооператив",
       "subnetsRequired": "Для охвата «подсети» укажите хотя бы одну подсеть"
     }
+  },
+  "errors": {
+    "APPS_CATALOG_PROXY_APP_CHAIN_ACTIONS_EMPTY": "Список действий цепи пуст",
+    "APPS_CATALOG_PROXY_APP_CHAIN_ACTION_NOT_GRANTED": "Приложение {package_id} не заявляло действие цепи {action}",
+    "APPS_CATALOG_PROXY_APP_COOP_KEY_NOT_FOUND": "Ключ кооператива {coopname} не найден в хранилище узла",
+    "APPS_CATALOG_PROXY_APP_GRANT_SERVICE_ONLY": "Заявки приложений заводит только оркестратор узла",
+    "APPS_CATALOG_PROXY_APP_PORT_NOT_GRANTED": "Приложение {package_id} не заявляло порт {port}",
+    "APPS_CATALOG_PROXY_APP_PORT_TOKEN_INVALID": "Токен приложения не принят: приложение не установлено или его доступ отозван",
+    "APPS_CATALOG_PROXY_APP_PORT_UNKNOWN": "Порт {port}.{method} приложениям каталога не открыт"
   }
 }

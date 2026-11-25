@@ -23,7 +23,7 @@
  * вызов с тем же `(packageId, version)` no-op. Uninstall переводит
  * запись в active=false; повторный uninstall тоже no-op.
  */
-import { Inject, Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown, Optional } from '@nestjs/common';
 import {
   APPS_CONTRACT_EVENT_STREAM,
   AppsContractEvent,
@@ -34,6 +34,7 @@ import {
 } from './ports';
 import { InstallOrchestratorService } from '../orchestrator/install-orchestrator.service';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
+import { SupergraphRefreshService } from '../gateway/supergraph-refresh.service';
 import { FrontendCacheService } from '../frontend-cache/frontend-cache.service';
 
 export interface OnChainWatcherConfig {
@@ -61,6 +62,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
     private readonly orchestrator: InstallOrchestratorService,
     private readonly registry: SubgraphRegistryService,
     private readonly frontendCache: FrontendCacheService,
+    @Optional() private readonly refresh?: SupergraphRefreshService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -206,6 +208,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       containerName: spec.containerName,
       containerNetwork: this.cfg.extensionsNetwork,
       containerEnv: spec.containerEnv,
+      corePorts: spec.corePorts,
       healthUrl: spec.healthUrl,
       cooperativeJwt: spec.pullJwt ?? this.cfg.cooperativeJwt,
       coopname: this.cfg.coopname,
@@ -220,5 +223,8 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       // до перезапуска оркестратора (найдено 25.11.2026 на exampleapp).
       throw new Error(`установка ${packageId} не удалась (${result.reason}): ${result.error}`);
     }
+    // Контейнер заменён — шлюз пересобирает схему сразу: у новой версии
+    // приложения она другая, а отпечаток реестра (имя и адрес) прежний.
+    if (result.containerReplaced === true) await this.refresh?.trigger(true);
   }
 }

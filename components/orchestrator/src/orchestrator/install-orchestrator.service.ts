@@ -20,9 +20,11 @@
  * {@link OciTokenClientPort}. Тесты гоняют сценарий через моки портов
  * без реального docker daemon'а.
  */
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
 import {
+  APP_GRANTS,
+  AppGrantsPort,
   DOCKER_RUNNER,
   DockerRunnerPort,
   HEALTH_PROBE,
@@ -84,9 +86,24 @@ export interface InstallExtensionInput {
   containerName?: string;
   /** Docker-сеть контейнера расширения (DNS-видимость для gateway/coopback). */
   containerNetwork?: string;
-  /** Env контейнера расширения (SUBGRAPH_PORT, JWT_SECRET, COOPNAME). */
+  /** Env контейнера расширения (SUBGRAPH_PORT, COOPNAME). */
   containerEnv?: Record<string, string>;
+  /**
+   * Заявка приложения на порты ядра из манифеста пакета
+   * (`coopenomics.ports`, `coopenomics.chainActions`). По ней ядро выдаёт
+   * токен приложения — он идёт в окружение контейнера.
+   */
+  corePorts?: { ports: string[]; chainActions: string[] };
 }
+
+/**
+ * Пределы контейнера приложения по умолчанию. Замер 25.11.2026 на
+ * `@voskhod/exampleapp`: 36–48 МБ в покое, 85 МБ под нагрузкой — 256 МБ дают
+ * трёхкратный запас; приложению, которому мало, предел поднимается
+ * переменными узла.
+ */
+const DEFAULT_MEMORY_MB = Number(process.env.EXTENSION_MEMORY_MB ?? 256);
+const DEFAULT_CPUS = Number(process.env.EXTENSION_CPUS ?? 1);
 
 /**
  * `GET <subgraph-origin>/_health` — канонический healthcheck расширения
@@ -119,7 +136,13 @@ export function extensionContainerName(packageId: string): string {
 export const EXTENSION_PACKAGE_LABEL = 'coop.extension.package';
 
 export type InstallOutcome =
-  | { status: 'applied'; packageId: string; healthAfterMs: number }
+  | {
+      status: 'applied';
+      packageId: string;
+      healthAfterMs: number;
+      /** Контейнер создан заново (первая установка или новая версия): шлюз пересобирает схему. */
+      containerReplaced?: boolean;
+    }
   | { status: 'failed'; packageId: string; reason: InstallFailureReason; error: string };
 
 export type InstallFailureReason =
@@ -138,6 +161,7 @@ export class InstallOrchestratorService {
     @Inject(HEALTH_PROBE) private readonly health: HealthProbePort,
     @Inject(OCI_TOKEN_CLIENT) private readonly oci: OciTokenClientPort,
     private readonly registry: SubgraphRegistryService,
+    @Optional() @Inject(APP_GRANTS) private readonly grants?: AppGrantsPort,
   ) {}
 
   async install(input: InstallExtensionInput): Promise<InstallOutcome> {
@@ -172,6 +196,7 @@ export class InstallOrchestratorService {
       }
     }
 
+    let containerReplaced = false;
     // 2. (опц.) запуск контейнера: compose-сервис, если описан заранее,
     //    иначе прямой docker run по containerName (путь auto-install'а).
     if (input.composeService !== undefined && input.composeFile !== undefined) {
@@ -191,15 +216,31 @@ export class InstallOrchestratorService {
         // проверки каждый его перезапуск пересоздавал все приложения узла,
         // и они теряли состояние в памяти и простаивали (25.11.2026).
         const state = await this.docker.containerState(input.containerName);
-        if (state?.running === true && state.imageRef === input.imageRef) {
+        containerReplaced = !(state?.running === true && state.imageRef === input.imageRef);
+        if (!containerReplaced) {
           this.logger.log(`контейнер ${input.containerName} уже работает на ${input.imageRef} — оставляем`);
-        } else await this.docker.runContainer({
-          imageRef: input.imageRef,
-          name: input.containerName,
-          network: input.containerNetwork,
-          env: input.containerEnv,
-          labels: { [EXTENSION_PACKAGE_LABEL]: input.packageId },
-        });
+        } else {
+          // Заявка заводится только вместе с новым контейнером: повторная
+          // выдача заменяет токен, а работающий контейнер держит прежний.
+          const env = { ...(input.containerEnv ?? {}) };
+          if (this.grants !== undefined) {
+            env.CORE_PORTS_URL = this.grants.coreUrl;
+            env.CORE_PORTS_TOKEN = await this.grants.issue({
+              packageId: input.packageId,
+              ports: input.corePorts?.ports ?? [],
+              chainActions: input.corePorts?.chainActions ?? [],
+            });
+          }
+          await this.docker.runContainer({
+            imageRef: input.imageRef,
+            name: input.containerName,
+            network: input.containerNetwork,
+            env,
+            labels: { [EXTENSION_PACKAGE_LABEL]: input.packageId },
+            memoryMb: DEFAULT_MEMORY_MB,
+            cpus: DEFAULT_CPUS,
+          });
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return this.failed(input.packageId, 'compose-up', msg);
@@ -229,7 +270,7 @@ export class InstallOrchestratorService {
     }
 
     this.logger.log(`install applied: ${input.packageId}@${input.version} (health ${health.elapsedMs}ms)`);
-    return { status: 'applied', packageId: input.packageId, healthAfterMs: health.elapsedMs };
+    return { status: 'applied', packageId: input.packageId, healthAfterMs: health.elapsedMs, containerReplaced };
   }
 
   /**
@@ -242,6 +283,8 @@ export class InstallOrchestratorService {
     await this.registry.deactivate(packageId);
     const container = extensionContainerName(packageId);
     await this.docker.removeContainer(container);
+    // Заявка стирается после контейнера: токен приложения больше не действует.
+    await this.grants?.revoke(packageId);
     this.logger.log(`uninstall: ${packageId} — запись выключена, контейнер ${container} снят`);
   }
 

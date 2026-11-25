@@ -58,7 +58,6 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
           {
             catalogDeliveryBaseUrl,
             coopname: cfg.coopname,
-            jwtSecret: cfg.jwtSecret,
             extensionsNetwork: process.env.EXTENSIONS_DOCKER_NETWORK,
           },
           token,

@@ -17,6 +17,7 @@ import {
   InstallExtensionInput,
 } from './install-orchestrator.service';
 import {
+  AppGrantsPort,
   DockerRunnerPort,
   HealthOutcome,
   HealthProbePort,
@@ -47,6 +48,8 @@ class FakeDockerRunner implements DockerRunnerPort {
     network?: string;
     env?: Record<string, string>;
     labels?: Record<string, string>;
+    memoryMb?: number;
+    cpus?: number;
   }> = [];
   removed: string[] = [];
   runError?: Error;
@@ -59,6 +62,8 @@ class FakeDockerRunner implements DockerRunnerPort {
     network?: string;
     env?: Record<string, string>;
     labels?: Record<string, string>;
+    memoryMb?: number;
+    cpus?: number;
   }): Promise<void> {
     this.runs.push(opts);
     if (this.runError) throw this.runError;
@@ -111,24 +116,45 @@ class FakeRegistryService {
   }
 }
 
-const buildHarness = (): {
+/** Заявки приложений в ядре: что выдано и что стёрто. */
+class FakeAppGrants implements AppGrantsPort {
+  readonly coreUrl = 'http://coopback:2998';
+  issued: Array<{ packageId: string; ports: string[]; chainActions: string[] }> = [];
+  revoked: string[] = [];
+  issueError?: Error;
+  async issue(opts: { packageId: string; ports: string[]; chainActions: string[] }): Promise<string> {
+    if (this.issueError) throw this.issueError;
+    this.issued.push(opts);
+    return `apt_token_${this.issued.length}`;
+  }
+  async revoke(packageId: string): Promise<void> {
+    this.revoked.push(packageId);
+  }
+}
+
+const buildHarness = (
+  withGrants = false,
+): {
   service: InstallOrchestratorService;
   docker: FakeDockerRunner;
   health: FakeHealthProbe;
   oci: FakeOciTokenClient;
   registry: FakeRegistryService;
+  grants: FakeAppGrants;
 } => {
   const docker = new FakeDockerRunner();
   const health = new FakeHealthProbe();
   const oci = new FakeOciTokenClient();
   const registry = new FakeRegistryService();
+  const grants = new FakeAppGrants();
   const service = new InstallOrchestratorService(
     docker,
     health,
     oci,
     registry as unknown as SubgraphRegistryService,
+    withGrants ? grants : undefined,
   );
-  return { service, docker, health, oci, registry };
+  return { service, docker, health, oci, registry, grants };
 };
 
 const baseInput: InstallExtensionInput = {
@@ -277,6 +303,9 @@ describe('InstallOrchestratorService', () => {
         network: 'mono-net',
         env: { SUBGRAPH_PORT: '3001' },
         labels: { 'coop.extension.package': '@coopenomics/chatcoop' },
+        // Пределы по умолчанию: приложение не занимает память и процессор ядра.
+        memoryMb: 256,
+        cpus: 1,
       },
     ]);
 
@@ -346,6 +375,72 @@ describe('InstallOrchestratorService', () => {
       const h = buildHarness();
       h.docker.labelValues = ['@voskhod/exampleapp'];
       expect(await h.service.installedPackages()).toEqual(['@voskhod/exampleapp']);
+    });
+  });
+
+  // Приложение обращается к ядру по сети со своим токеном (487-17). Секрет
+  // ядра в контейнер не передаётся; токен выдаётся вместе с новым контейнером.
+  describe('заявка приложения на порты ядра', () => {
+    const input = {
+      ...baseInput,
+      imageRef: 'registry.local/coopenomics/chatcoop:1.0.0',
+      cooperativeJwt: 'jwt-of-voskhod',
+      coopname: 'voskhod',
+      containerName: 'ext-chatcoop',
+      containerEnv: { SUBGRAPH_PORT: '3001', COOPNAME: 'voskhod' },
+      corePorts: { ports: ['document'], chainActions: ['soviet::createagenda'] },
+    };
+
+    it('happy: новый контейнер получает адрес ядра и токен приложения; заявка несёт порты и действия из манифеста', async () => {
+      const h = buildHarness(true);
+      const result = await h.service.install(input);
+      expect(result).toEqual(expect.objectContaining({ status: 'applied', containerReplaced: true }));
+      expect(h.grants.issued).toEqual([
+        { packageId: '@coopenomics/chatcoop', ports: ['document'], chainActions: ['soviet::createagenda'] },
+      ]);
+      expect(h.docker.runs[0]?.env).toEqual({
+        SUBGRAPH_PORT: '3001',
+        COOPNAME: 'voskhod',
+        CORE_PORTS_URL: 'http://coopback:2998',
+        CORE_PORTS_TOKEN: 'apt_token_1',
+      });
+      expect(h.docker.runs[0]?.env).not.toHaveProperty('JWT_SECRET');
+    });
+
+    it('break: работающий контейнер оставлен — заявка не перевыпускается, иначе его токен перестал бы действовать', async () => {
+      const h = buildHarness(true);
+      h.docker.states.set('ext-chatcoop', { running: true, imageRef: input.imageRef });
+      const result = await h.service.install(input);
+      expect(result).toEqual(expect.objectContaining({ status: 'applied', containerReplaced: false }));
+      expect(h.grants.issued).toEqual([]);
+      expect(h.docker.runs).toEqual([]);
+    });
+
+    it('side: манифест портов не заявляет — заявка пустая, токен всё равно выдан (опознание приложения)', async () => {
+      const h = buildHarness(true);
+      await h.service.install({ ...input, corePorts: undefined });
+      expect(h.grants.issued).toEqual([{ packageId: '@coopenomics/chatcoop', ports: [], chainActions: [] }]);
+    });
+
+    it('side: ядро не завело заявку — установка не удалась, контейнер без токена не запускается', async () => {
+      const h = buildHarness(true);
+      h.grants.issueError = new Error('ядро не завело заявку: HTTP 503');
+      const result = await h.service.install(input);
+      expect(result.status).toBe('failed');
+      expect(h.docker.runs).toEqual([]);
+    });
+
+    it('side: узел без секрета сервиса (заявок нет) — контейнер ставится без доступа к портам ядра', async () => {
+      const h = buildHarness(false);
+      await h.service.install(input);
+      expect(h.docker.runs[0]?.env).toEqual({ SUBGRAPH_PORT: '3001', COOPNAME: 'voskhod' });
+    });
+
+    it('happy: снятие приложения стирает его заявку', async () => {
+      const h = buildHarness(true);
+      await h.service.uninstall('@coopenomics/chatcoop');
+      expect(h.docker.removed).toEqual(['ext-chatcoop']);
+      expect(h.grants.revoked).toEqual(['@coopenomics/chatcoop']);
     });
   });
 });

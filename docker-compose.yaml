@@ -169,6 +169,13 @@ services:
       WATCHER_POLL_INTERVAL_MS: ${WATCHER_POLL_INTERVAL_MS:-15000}
       WATCHER_RELEASE_POLL_EVERY: ${WATCHER_RELEASE_POLL_EVERY:-20}
       EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-}
+      # Заявки приложений на порты ядра (487-17): оркестратор заводит их в
+      # ядре межсервисным секретом узла. Пусто — приложения ставятся без
+      # доступа к портам ядра.
+      SERVER_SECRET: ${SERVER_SECRET:-}
+      # Пределы контейнера одного приложения каталога.
+      EXTENSION_MEMORY_MB: ${EXTENSION_MEMORY_MB:-256}
+      EXTENSION_CPUS: ${EXTENSION_CPUS:-1}
       # E12-2: кэш фронт-частей. install.js активного релиза качается из
       # catalog-operator (admin API key контура — те же env-имена, что у coopback),
       # сверяется по sha256 и складывается в volume; coopback раздаёт его

@@ -34,7 +34,7 @@ export class InstallController {
     const outcome = await this.orchestrator.install(input);
     // Схема пересобирается сразу, а не на следующем опросе реестра: стол
     // перечитывает расширения после ответа установки.
-    if (outcome.status === 'applied') await this.refresh.trigger();
+    if (outcome.status === 'applied') await this.refresh.trigger(outcome.containerReplaced === true);
     return outcome;
   }
 
