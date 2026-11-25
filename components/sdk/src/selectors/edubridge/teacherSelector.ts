@@ -103,6 +103,7 @@ const rawLessonSelector = {
   reported_at: true,
   materials: true,
   contribution_id: true,
+  group_active: true,
 }
 const _validateLesson: MakeAllFieldsRequired<ValueTypes['EduLesson']> = rawLessonSelector
 export const eduLessonSelector = Selector('EduLesson')(rawLessonSelector)

@@ -138,14 +138,19 @@ const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, var
 /** Действие, которое сейчас за преподавателем по занятию: передать материалы либо подписать акт. */
 const actionOf = (row: ILessonRow): RowAction | null => (row.awaiting ? 'report' : lessonActionOf(row.contribution?.status));
 /**
- * Отчёт отклонён советом — его можно подать повторно: сервер освобождает
- * занятие и по новому отчёту заводит новый взнос (решение владельца
- * 25.11.2026). Это возможность, а не обязанность: в число дел на меню
+ * Отчёт отклонён советом — его можно подать повторно, пока группа идёт:
+ * сервер освобождает занятие и по новому отчёту заводит новый взнос
+ * (решение владельца 25.11.2026). Это возможность, а не обязанность: в число дел на меню
  * «Отчёты» повторная подача не входит. Взнос на несколько занятий
  * (гарантийный срок) подаётся заново по каждому занятию в журнале занятий.
  */
 const resubmittable = (row: ILessonRow): boolean =>
-  !row.awaiting && row.lessons.length === 1 && row.contribution?.status === Zeus.EduContributionStatus.DECLINED;
+  !row.awaiting &&
+  row.lessons.length === 1 &&
+  row.contribution?.status === Zeus.EduContributionStatus.DECLINED &&
+  // Группа держится открытой, пока идёт окно повторной подачи (срок на отчёт
+  // группы после отказа); окно вышло и группа завершена — подать уже нельзя.
+  Boolean(row.group_active);
 const byNumber = (a: ILesson, b: ILesson) => Number(a.lesson_number) - Number(b.lesson_number);
 /** Занятия одного взноса — одной записью; занятие без взноса — записью само по себе. */
 function packLessons(all: ILesson[]): ILesson[][] {

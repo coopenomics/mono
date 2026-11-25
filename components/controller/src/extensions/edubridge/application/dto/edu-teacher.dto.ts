@@ -282,10 +282,14 @@ export class EduLessonDTO {
   @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
+  // Повторный отчёт после отказа совета принимается, пока группа идёт: группа
+  // не завершается, пока по её занятию идёт процесс отчёта (окно повторной подачи)
+  @Field(() => Boolean, { description: 'Группа занятия идёт: по занятию принимается отчёт, в том числе повторный после отказа совета' })
+  group_active!: boolean;
 
   constructor(
     e: EdubridgeLessonRecord,
-    titles: { course: string; group?: string; reportDays?: number; learnersPaid?: number; expectedAmount?: string | null; guaranteeUntil?: Date | null },
+    titles: { course: string; group?: string; reportDays?: number; learnersPaid?: number; expectedAmount?: string | null; guaranteeUntil?: Date | null; groupActive?: boolean },
   ) {
     const reportDays = titles.reportDays ?? 7;
     this.id = e.id;
@@ -309,6 +313,7 @@ export class EduLessonDTO {
     this.learners_count = e.learners_count ?? null;
     this.materials = e.materials ?? [];
     this.contribution_id = e.contribution_id;
+    this.group_active = titles.groupActive === true;
   }
 
   /** Обучающиеся с оплаченным доступом, показ суммы взноса и просрочка отчёта — то, что зависит от расчёта по занятию. */

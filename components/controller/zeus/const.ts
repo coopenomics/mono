@@ -6838,6 +6838,7 @@ export const ReturnTypes: Record<string,any> = {
 		duration_minutes:"Int",
 		ends_at:"DateTime",
 		expected_amount:"String",
+		group_active:"Boolean",
 		group_id:"ID",
 		group_title:"String",
 		guarantee_until:"DateTime",

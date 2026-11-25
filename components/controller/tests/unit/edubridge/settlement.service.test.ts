@@ -4,21 +4,23 @@
  * по слову администратора.
  */
 import { EdubridgeSettlementService } from '~/extensions/edubridge/application/services/edubridge-settlement.service';
-import { EduEnrollmentStatus } from '~/extensions/edubridge/domain/enums';
+import { EduContributionStatus, EduEnrollmentStatus, EduLessonStatus } from '~/extensions/edubridge/domain/enums';
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 
 const pendingSub = (id: string, groupId = 'G1') => ({ id, sub_hash: `h${id}`, group_id: groupId, status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2026-01-01') }) as any;
 
-function make(opts: { pending: any[]; lessonsTotal?: number; lessonsOpened?: number; openLesson?: number }) {
+function make(opts: { pending: any[]; lessonsTotal?: number; lessonsOpened?: number; openLesson?: number; groupLessons?: any[]; contributions?: Record<string, any> }) {
   const enrollments = { findSettlementPending: jest.fn(async () => opts.pending), save: jest.fn(async (e: any) => e) } as any;
-  const groups = { findById: jest.fn(async (_c: string, id: string) => ({ id, title: 'Группа 1', chain_ref: '1004', minutes_total: (opts.lessonsTotal ?? 8) * 60 })) } as any;
+  const groups = { findById: jest.fn(async (_c: string, id: string) => ({ id, title: 'Группа 1', chain_ref: '1004', minutes_total: (opts.lessonsTotal ?? 8) * 60, report_days: 7 })) } as any;
+  const lessons = { findByGroup: jest.fn(async () => opts.groupLessons ?? []) } as any;
+  const teachers = { findContribution: jest.fn(async (_c: string, id: string) => opts.contributions?.[id] ?? null) } as any;
   const funds = { afterClosed: jest.fn(async () => undefined) } as any;
   const chain = {
     readTerms: jest.fn(async () => ({ minutes_opened: (opts.lessonsOpened ?? 0) * 60, charging: opts.openLesson ? 1 : 0 })),
     expireSubscription: jest.fn(async () => ({ transaction_id: 'TRX' })),
   } as any;
-  return { service: new EdubridgeSettlementService(enrollments, groups, funds, chain, logger), chain, funds, enrollments };
+  return { service: new EdubridgeSettlementService(enrollments, groups, funds, chain, logger, lessons, teachers), chain, funds, enrollments };
 }
 
 describe('EdubridgeSettlementService', () => {
@@ -65,5 +67,57 @@ describe('EdubridgeSettlementService', () => {
     chain.expireSubscription.mockRejectedValue(new Error('assertion failure with message: EDUBRIDGE_SUBSCRIPTION_NOT_FOUND: Подписка с указанным hash не найдена'));
     await expect(service.closeGroup('voskhod', 'G1')).resolves.toBe(1);
     expect(e.chain_close_after).toBeNull();
+  });
+
+  // Решение владельца 25.11.2026: подписки группы живут, пока по её занятию
+  // идёт процесс отчёта, — иначе отказ совета некуда вернуть, а повторный
+  // отчёт не по чему рассчитать (на стенде группа закрылась за 12 секунд до отказа).
+  describe('процесс отчёта по занятию держит расчёты открытыми', () => {
+    const held = (contribution_id: string | null, learners_count = 1) => ({ status: EduLessonStatus.HELD, contribution_id, learners_count });
+    const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
+
+    it('ext.edu.settle.side.01: заявление по занятию на рассмотрении совета — подписки не закрываются', async () => {
+      const e = pendingSub('7');
+      const { service, chain } = make({
+        pending: [e],
+        lessonsOpened: 8,
+        groupLessons: [held('K1')],
+        contributions: { K1: { status: EduContributionStatus.SUBMITTED, decided_at: null } },
+      });
+      await expect(service.closeReported('voskhod')).resolves.toBe(0);
+      expect(chain.expireSubscription).not.toHaveBeenCalled();
+    });
+
+    it('ext.edu.settle.side.02: совет отклонил недавно, повторного отчёта нет — подписки ждут повторной подачи', async () => {
+      const { service, chain } = make({
+        pending: [pendingSub('8')],
+        lessonsOpened: 8,
+        groupLessons: [held('K2')],
+        contributions: { K2: { status: EduContributionStatus.DECLINED, decided_at: minutesAgo(1) } },
+      });
+      await expect(service.closeReported('voskhod')).resolves.toBe(0);
+      expect(chain.expireSubscription).not.toHaveBeenCalled();
+    });
+
+    it('ext.edu.settle.side.03: отчёт гарантийного срока ждёт взноса — подписки не закрываются', async () => {
+      const { service, chain } = make({ pending: [pendingSub('9')], lessonsOpened: 8, groupLessons: [held(null, 2)] });
+      await expect(service.closeReported('voskhod')).resolves.toBe(0);
+      expect(chain.expireSubscription).not.toHaveBeenCalled();
+    });
+
+    it('ext.edu.settle.happy.01: окно повторной подачи вышло, остальные взносы приняты — подписки закрываются', async () => {
+      const { service, chain } = make({
+        pending: [pendingSub('10')],
+        lessonsOpened: 8,
+        groupLessons: [held('K3'), held('K4')],
+        contributions: {
+          K3: { status: EduContributionStatus.ACCEPTED, decided_at: minutesAgo(5) },
+          // 7 суток срока на отчёт давно прошли
+          K4: { status: EduContributionStatus.DECLINED, decided_at: new Date('2026-01-01') },
+        },
+      });
+      await expect(service.closeReported('voskhod')).resolves.toBe(1);
+      expect(chain.expireSubscription).toHaveBeenCalledTimes(1);
+    });
   });
 });

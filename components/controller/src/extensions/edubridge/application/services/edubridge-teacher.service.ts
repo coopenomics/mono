@@ -998,7 +998,7 @@ export class EdubridgeTeacherService {
       const expectedAmount = lessonAmountOf(l, group, rates.get(l.assignment_id ?? '') ?? null, learnersPaid);
       // Конец гарантийного срока — по группе: тот же момент, что решает, сохраняется ли отчёт без документов.
       const guaranteeUntil = group && group.guarantee_days > 0 ? guaranteeEndsAt({ starts_at: startMomentOf(group), guarantee_days: group.guarantee_days }) : null;
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount, guaranteeUntil });
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount, guaranteeUntil, groupActive: group?.status === EduGroupStatus.ACTIVE });
     });
   }
 

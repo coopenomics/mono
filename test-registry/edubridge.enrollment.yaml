@@ -18,6 +18,15 @@ title: Образовательный мост — обучающиеся, по�
 # окно «Доступ оформляется» о письме площадки вместо всплывающего сообщения;
 # страница узнаёт о подписке по «Понятно». Сервер не менялся.
 
+# Правка 25.11.2026 (487-28): расчёты по истёкшим подпискам группы не
+# закрываются, пока по её занятию идёт процесс отчёта: взнос в работе
+# (черновик, на хранении, в совете), отчёт гарантийного срока без взноса,
+# отклонённый взнос в окне повторной подачи (срок на отчёт группы после
+# отказа). Раньше подписки закрывались по минутам программы в цепи, и группа
+# на стенде 4 завершилась за 12 секунд до отказа совета — повторный отчёт
+# стал невозможен. Занятие на столе получило поле group_active: кнопка
+# «Подать повторно» видна, пока группа идёт. Контракт не менялся.
+
 sources:
   backend:
     - components/controller/src/extensions/edubridge/application/services/edubridge-enrollment.service.ts
@@ -633,3 +642,44 @@ cases:
 # 2026-11-10: плитки чисел StatStrip/StatTile удалены из системы по слову владельца.
 # Остатки кошельков экономики образования — карточками WalletCard по две в ряд, числа
 # курса в шапке и итоги формы курса — строками DataRow. Сценарии фичи и её проверки не менялись.
+
+  # 25.11.2026 (487-28): процесс отчёта держит расчёты группы открытыми
+  - id: ext.edu.settle.side.01
+    level: backend
+    kind: side
+    scenario: Все минуты программы отчитаны, но заявление по занятию на рассмотрении совета
+    expect: истёкшие подписки группы не закрываются в цепи — при отказе совета оплата вернётся ученикам
+    test: components/controller/tests/unit/edubridge/settlement.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: нужен совет стенда, голосующий по живому отчёту преподавателя; внешнего сценария голосования совета нет
+
+  - id: ext.edu.settle.side.02
+    level: backend
+    kind: side
+    scenario: Совет недавно отклонил взнос по занятию, повторного отчёта нет
+    expect: подписки ждут повторной подачи весь срок на отчёт группы после отказа; группа остаётся активной
+    test: components/controller/tests/unit/edubridge/settlement.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: то же — внешнего сценария голосования совета против отчёта нет
+
+  - id: ext.edu.settle.side.03
+    level: backend
+    kind: side
+    scenario: Отчёт гарантийного срока ждёт оформления взноса
+    expect: подписки группы не закрываются до оформления взноса
+    test: components/controller/tests/unit/edubridge/settlement.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: гарантийный срок группы на живом стенде — сутки на сжатой шкале, сценарий ждал бы его конца
+
+  - id: ext.edu.settle.happy.01
+    level: backend
+    kind: happy
+    scenario: Окно повторной подачи после отказа вышло, остальные взносы решены
+    expect: подписки закрываются в цепи как раньше, группа завершается
+    test: components/controller/tests/unit/edubridge/settlement.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: то же — нужен отказ совета и ожидание окна повторной подачи на живом стенде
