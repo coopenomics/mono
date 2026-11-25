@@ -14,7 +14,7 @@ jest.mock('@a2seven/yoo-checkout', () => ({
 }));
 
 import { configurePlatformSettings } from '@coopenomics/extension-kit';
-import { YookassaExtension, refundIdempotenceKey } from '~/extensions/yookassa/yookassa-extension.module';
+import { YookassaExtension, amountToPayKopecks, refundIdempotenceKey } from '~/extensions/yookassa/yookassa-extension.module';
 
 const HASH = 'a'.repeat(64);
 
@@ -81,9 +81,39 @@ describe('ЮKassa: платёж', () => {
 
     const details = await ext.createPayment(HASH);
 
-    // 900 / (1 − 0,043) = 940,44; ЮKassa удерживает 4,3 % — поступает не меньше 900.
-    expect(details.amount_plus_fee).toBe('940.44 RUB');
-    expect(940.44 * (1 - 0.043)).toBeGreaterThanOrEqual(900);
+    // 900 / (1 − 0,043) = 940,44 → вверх до рубля: 941; комиссия 40,47 — поступит 900,53.
+    expect(details.amount_plus_fee).toBe('941.00 RUB');
+    expect(details.fee_amount).toBe('41.00 RUB');
+  });
+});
+
+describe('ЮKassa: сумма к оплате', () => {
+  // Худший для кооператива случай: ЮKassa округляет комиссию до копейки вверх.
+  const received = (toPay: number, feePercent: number) => toPay - Math.ceil((toPay * Math.round(feePercent * 1000)) / 100_000);
+
+  it('100 000 ₽ при 4,27 %: прежний расчёт давал 104 460,46 и недобор в копейку', () => {
+    const toPay = amountToPayKopecks(10_000_000, 4.27);
+    expect(toPay).toBe(10_446_100);
+    expect(received(toPay, 4.27)).toBeGreaterThanOrEqual(10_000_000);
+    // Прежняя сумма на копейку меньше: после комиссии, округлённой вверх, — 99 999,99.
+    expect(received(10_446_046, 4.27)).toBe(9_999_999);
+  });
+
+  it('сумма — целые рубли, поступление не меньше взноса на любых суммах и ставках', () => {
+    for (const fee of [0, 0.4, 0.7, 2.8, 3.5, 4.25, 4.27, 4.3, 6, 29.999]) {
+      for (let amount = 1; amount <= 2_000_000; amount = Math.ceil(amount * 1.37) + 1) {
+        const toPay = amountToPayKopecks(amount, fee);
+        expect(toPay % 100).toBe(0);
+        expect(received(toPay, fee)).toBeGreaterThanOrEqual(amount);
+        // Лишнего рубля нет: на рубль меньше — уже недобор.
+        expect(received(toPay - 100, fee)).toBeLessThan(amount);
+      }
+    }
+  });
+
+  it('неверная комиссия отклоняется кодом YOOKASSA_FEE_INVALID', () => {
+    expect(() => amountToPayKopecks(100_000, 100)).toThrow(expect.objectContaining({ code: 'YOOKASSA_FEE_INVALID' }));
+    expect(() => amountToPayKopecks(100_000, -1)).toThrow(expect.objectContaining({ code: 'YOOKASSA_FEE_INVALID' }));
   });
 });
 

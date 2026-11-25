@@ -3,7 +3,7 @@ import { Module, Inject } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { z } from 'zod';
-import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, describeConfigField, platformSettings, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, IPNProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, EXTENSION_REPOSITORY, type ExtensionDomainRepository, describeConfigField, platformSettings, checkPaymentAmount, checkPaymentSymbol, IPNProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -380,8 +380,10 @@ export class YookassaExtension extends IPNProvider {
 
     const checkout = this.checkout();
 
-    const amount_plus_fee = getAmountPlusFee(amount, this.fee_percent).toFixed(2);
-    const fee_amount = (parseFloat(amount_plus_fee) - amount).toFixed(2);
+    const amountKopecks = Math.round(amount * 100);
+    const toPayKopecks = amountToPayKopecks(amountKopecks, this.fee_percent);
+    const amount_plus_fee = (toPayKopecks / 100).toFixed(2);
+    const fee_amount = ((toPayKopecks - amountKopecks) / 100).toFixed(2);
 
     // Фактический процент комиссии
     const fact_fee_percent = Math.round((parseFloat(fee_amount) / amount) * 100 * 100) / 100;
@@ -491,6 +493,34 @@ export class YookassaExtension extends IPNProvider {
     );
     return list.items?.find((item) => item.metadata?.secret === payment.secret)?.id ?? null;
   }
+}
+
+/**
+ * Сумма к оплате в копейках: после удержания комиссии ЮKassa поступает не
+ * меньше взноса, и сумма — целое число рублей.
+ *
+ * Счёт идёт в целых копейках. ЮKassa удерживает комиссию с суммы к оплате и
+ * округляет её до копейки — в худшем для кооператива случае вверх. 24.11.2026
+ * взнос 100 000 ₽ при 4,27 % дал недобор в копейку: сумма к оплате была
+ * округлена вниз (104 460,46), а комиссия — вверх (4 460,47). Поэтому берётся
+ * наименьшая сумма в копейках, при которой «сумма − комиссия, округлённая
+ * вверх» не меньше взноса, и она округляется вверх до рубля: пайщик платит
+ * целыми рублями, лишнее — копейки. Рост суммы только увеличивает поступление:
+ * комиссия с добавленных копеек меньше их самих.
+ *
+ * Комиссия задаётся в процентах с тремя знаками после запятой; счёт в
+ * тысячных долях процента — целыми числами, без ошибок дробной арифметики.
+ */
+export function amountToPayKopecks(amountKopecks: number, feePercent: number): number {
+  const SCALE = 100_000; // 100 % в тысячных долях процента
+  const fee = Math.round(feePercent * 1000);
+  if (!Number.isFinite(fee) || fee < 0 || fee >= SCALE) {
+    throw DomainError.badRequest('YOOKASSA_FEE_INVALID', { fee: String(feePercent) });
+  }
+  const commission = (toPay: number) => Math.ceil((toPay * fee) / SCALE);
+  let toPay = Math.ceil((amountKopecks * SCALE) / (SCALE - fee));
+  while (toPay - commission(toPay) < amountKopecks) toPay += 1;
+  return Math.ceil(toPay / 100) * 100;
 }
 
 /**

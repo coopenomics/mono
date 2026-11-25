@@ -8,7 +8,8 @@
     "YOOKASSA_API_FAILED": "ЮKassa не ответила на запрос {path} (код {status})",
     "YOOKASSA_REFUND_FOREIGN_PAYMENT": "Платёж ЮKassa не принадлежит платежу {hash}: возврат не оформлен",
     "YOOKASSA_REFUND_CANCELED": "ЮKassa отказала в возврате по платежу {hash}. Причина — в личном кабинете ЮKassa",
-    "YOOKASSA_REQUEST_REFUSED": "ЮKassa отклонила запрос: {description}"
+    "YOOKASSA_REQUEST_REFUSED": "ЮKassa отклонила запрос: {description}",
+    "YOOKASSA_FEE_INVALID": "Комиссия ЮKassa в настройках приложения указана неверно: {fee}. Укажите число от 0 до 30"
   },
   "yookassa": {
     "payment": {
