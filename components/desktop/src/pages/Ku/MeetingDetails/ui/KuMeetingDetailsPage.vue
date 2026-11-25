@@ -212,6 +212,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { useKuStore, KU_LIVE_TABLES } from 'src/entities/Ku/model';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
+import { previewAggregate } from 'src/entities/Document/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
@@ -325,12 +326,10 @@ const execPreviewDocs = computed(() => {
   // оборачиваем в минимальный агрегат для предпросмотра (BaseDocument рендерит rawDocument)
   const wrap = (gen: object, title: string) => ({
     title,
-    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate,
+    aggregate: previewAggregate(gen),
   });
   return [
     wrap(d.petition, t('ku.kuMeetingDetailsPage.docPetitionTitle')),
-    wrap(d.liability, t('ku.kuMeetingDetailsPage.docLiabilityTitle')),
-    wrap(d.authority, t('ku.kuMeetingDetailsPage.docAuthorityTitle')),
   ];
 });
 

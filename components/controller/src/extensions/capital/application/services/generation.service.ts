@@ -58,7 +58,7 @@ import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.
 import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.interface';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/generation-money-invest-statement-document.dto';
 import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '../documents-dto/capitalization-program-money-invest-statement-document.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import { IssuePermissionsService } from './issue-permissions.service';
 import { PermissionsService } from './permissions.service';
@@ -1567,7 +1567,7 @@ export class GenerationService {
     const document = await this.documentPort.generate({
       data: {
         ...enrichedData,
-        registry_id: Cooperative.Registry.GenerationMoneyInvestStatement.registry_id,
+        registry_id: Registry.GenerationMoneyInvestStatement.registry_id,
       },
       options,
     });
@@ -1586,7 +1586,7 @@ export class GenerationService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,
+        registry_id: Registry.CapitalizationMoneyInvestStatement.registry_id,
       },
       options,
     });

@@ -63,6 +63,17 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
 
   BaseDialog(:model-value="Boolean(newLearnerWho)" :title="$t('edubridge.subscribeDialog.newLearnerTitle')" size="md" @update:model-value="(v) => v || cancelNewLearner()")
     LearnerForm(v-if="newLearnerWho" :key="newLearnerWho" :fixed-who="newLearnerWho" @saved="onLearnerAdded" @cancel="cancelNewLearner")
+
+//- Взнос внесён, доступ на площадке открывается за минуту-две: вместо таблицы
+//- со статусом «Выдаётся» человек видит, что делать дальше — ждать письмо
+//- (замечание владельца 25.11.2026). Окно — вторым корнем: основное окно уже
+//- закрыто, а это остаётся на экране. Страница узнаёт о подписке по «Понятно».
+BaseDialog(:model-value="Boolean(done)" :title="$t('edubridge.subscribeDialog.doneTitle')" size="sm" @update:model-value="(v) => v || closeDone()")
+  .edu-subscribe__done
+    q-icon.edu-subscribe__done-icon(name="mark_email_unread" size="40px")
+    p {{ $t('edubridge.subscribeDialog.doneBody') }}
+  template(#footer)
+    BaseButton(variant="primary" @click="closeDone") {{ $t('edubridge.subscribeDialog.doneButton') }}
 </template>
 
 <script setup lang="ts">
@@ -70,7 +81,7 @@ import { fetchOpenGroups, type IGroup } from '../../../entities/Group';
 import { computed, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
@@ -313,14 +324,21 @@ async function ensureStatement(): Promise<DigitalDocument> {
 /** Сколько не хватает на главном кошельке — числом, для окна пополнения. */
 const shortfallAmount = computed(() => parseFloat(quote.value?.shortfall ?? '') || null);
 
+/** Подписка оформлена — окно о письме с доступом открыто до «Понятно». */
+const done = ref<IEnrollment | null>(null);
+function closeDone(): void {
+  const enrollment = done.value;
+  done.value = null;
+  if (enrollment) emit('subscribed', enrollment);
+}
+
 async function submit(): Promise<void> {
   if (!learnerId.value || !courseId.value) return;
   busy.value = true;
   try {
     const doc = await ensureStatement();
     const enrollment = await subscribe({ learner_id: learnerId.value, course_id: courseId.value, period: period.value, group_id: groupId.value }, doc);
-    SuccessAlert(t('edubridge.subscribeDialog.success'));
-    emit('subscribed', enrollment);
+    done.value = enrollment;
     emit('update:modelValue', false);
   } catch (e) {
     FailAlert(e);
@@ -331,6 +349,23 @@ async function submit(): Promise<void> {
 </script>
 
 <style scoped>
+.edu-subscribe__done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--p-3);
+  padding: var(--p-2) 0;
+  text-align: center;
+  color: var(--p-ink-1);
+}
+.edu-subscribe__done p {
+  margin: 0;
+  font-size: var(--p-fs-body);
+  line-height: var(--p-lh-body);
+}
+.edu-subscribe__done-icon {
+  color: var(--p-primary);
+}
 .edu-subscribe__options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

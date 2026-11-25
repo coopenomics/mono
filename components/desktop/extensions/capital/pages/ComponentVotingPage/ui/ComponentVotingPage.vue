@@ -366,9 +366,14 @@ onBeforeUnmount(() => {
 
 .voting-page__metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* По две карточки в ряд — широкие и невысокие (слово владельца 10.11.2026). */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--p-3);
   align-items: stretch;
+
+  @media (max-width: 899px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
   :deep(.wallet) {
     height: 100%;

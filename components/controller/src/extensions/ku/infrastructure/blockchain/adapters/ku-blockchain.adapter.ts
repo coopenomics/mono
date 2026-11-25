@@ -9,6 +9,8 @@ import type {
   CreateKuDecisionInputDomainInterface,
   DeclineKuTrustedInputDomainInterface,
   ExecKuDecisionInputDomainInterface,
+  SignKuTrusteeAuthorityInputDomainInterface,
+  SignKuTrusteeLiabilityInputDomainInterface,
   JoinKuDecisionInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
   StartKuDecisionInputDomainInterface,
@@ -110,10 +112,28 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       coopname: data.coopname,
       hash: data.hash,
       petition: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.petition),
-      liability: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.liability),
-      authority: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.authority),
     };
     return this.transactAs(data.coopname, BranchContract.Actions.Exec.actionName, blockchainData as any);
+  }
+
+  async signTrusteeAuthority(data: SignKuTrusteeAuthorityInputDomainInterface): Promise<InnerTransactResult> {
+    const blockchainData: BranchContract.Actions.SignAuth.ISignAuth = {
+      coopname: data.coopname,
+      braname: data.braname,
+      username: data.username,
+      authority: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.authority),
+    };
+    return this.transactAs(data.coopname, BranchContract.Actions.SignAuth.actionName, blockchainData as any);
+  }
+
+  async signTrusteeLiability(data: SignKuTrusteeLiabilityInputDomainInterface): Promise<InnerTransactResult> {
+    const blockchainData: BranchContract.Actions.SignLiab.ISignLiab = {
+      coopname: data.coopname,
+      braname: data.braname,
+      username: data.username,
+      liability: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.liability),
+    };
+    return this.transactAs(data.coopname, BranchContract.Actions.SignLiab.actionName, blockchainData as any);
   }
 
   async cancelDecision(data: CancelKuDecisionInputDomainInterface): Promise<InnerTransactResult> {

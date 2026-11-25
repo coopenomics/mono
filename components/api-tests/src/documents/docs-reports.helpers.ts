@@ -10,7 +10,6 @@
  * области `draft`) — работа оператора платформы: для теста это подготовка
  * состояния, проверяемое читается через API.
  */
-import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
@@ -20,8 +19,8 @@ import { docMeta, signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
-import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
-import { getOrder, pickOffer, placeOrder } from '../marketplace/flow'
+import { amount } from '../core/wallet'
+import { ensureAidFunds } from '../marketplace/mkt-flows.helpers'
 import { paymentByHash as paymentSeenBy } from '../payments/payments.helpers'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
@@ -251,110 +250,6 @@ export async function coopWallet(id: string): Promise<number> {
   return amount(rows.find(r => r.id === id)?.available)
 }
 
-async function branchEconomy(token: string): Promise<any> {
-  const d = await gql<any>(token, `query($b:String!){ marketplaceGetBranchEconomy(braname:$b){
-    common_balance reserve_amount available_to_distribute total_weight weights{ username weight personal_balance }
-  } }`, { b: KRG })
-  return d.marketplaceGetBranchEconomy
-}
-
-/**
- * Паевой взнос деньгами: заявка на приход (wallet::createdpst) и его
- * исполнение шлюзом (gateway::incomplete) — как платёжный провайдер.
- * Помощник ядра deposit() зовёт прежние имена действий (createdeposit /
- * completeincome), которых в контрактах больше нет.
- */
-async function depositShare(username: string, sum: number): Promise<void> {
-  const hash = crypto.randomBytes(32).toString('hex')
-  await transact(COOP_SIGNER, [{ account: 'wallet', name: 'createdpst', data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(sum) } }])
-  await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
-}
-
-/** Паевой остаток пайщика не меньше нужного, и зеркало контроллера это видит. */
-async function ensureShare(who: Who, minimumRub: number): Promise<void> {
-  const have = await availableShare(who.account)
-  if (have < minimumRub)
-    await depositShare(who.account, Math.ceil(minimumRub - have) + 10_000)
-  const token = await tokenOf(who)
-  await waitFor(async () => {
-    const d = await gql<any>(token, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
-    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
-    return row && amount(row.available) >= minimumRub ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${who.account} ≥ ${minimumRub} RUB` })
-}
-
-/** Пул членских взносов не меньше нужного: при нехватке — заказ пайщика. */
-async function ensureFeePool(need: number): Promise<void> {
-  let rate = 0.1
-  for (let round = 0; round < 4; round++) {
-    const pool = await coopWallet('w.mkt.fee')
-    if (pool >= need)
-      return
-    const member = ROLES.member()
-    const token = await tokenOf(member)
-    // Каталог целиком видит председатель кооператива, пайщику — только витрина.
-    const offer = await pickOffer(ROLES.supplier().account, KRG, 'Мёд цветочный')
-    const price = amount(offer.price_per_unit)
-    const qty = Math.max(1, Math.ceil((need - pool) / (price * rate)) + 1)
-    await ensureShare(member, price * qty * 2 + 1_000)
-    const { orderId } = await placeOrder({ who: member, offerId: offer.id, quantity: qty })
-    const order = await getOrder(token, orderId)
-    const fee = amount(order.membership_fee)
-    const cost = amount(order.total_cost)
-    if (fee > 0 && cost > 0)
-      rate = fee / cost
-  }
-  throw new Error(`пул членских взносов w.mkt.fee не набрал ${need} RUB`)
-}
-
-/**
- * Персональный кошелёк получателя на участке krg не меньше нужного. Вес в
- * распределении задаёт председатель участка; по умолчанию получатель — он сам.
- */
-async function ensurePersonalFunds(need: number, recipient: Who = ROLES.branchChairman()): Promise<void> {
-  const chair = ROLES.branchChairman()
-  const token = await tokenOf(chair)
-  for (let round = 0; round < 3; round++) {
-    const eco = await branchEconomy(token)
-    const mine = (eco.weights as any[]).find(w => w.username === recipient.account)
-    const have = amount(mine?.personal_balance)
-    if (have >= need)
-      return
-    if (!mine) {
-      await gql(token, 'mutation($d:MarketplaceSetTrusteeWeightInput!){ marketplaceSetTrusteeWeight(data:$d) }', {
-        d: { braname: KRG, username: recipient.account, weight: 1 },
-      })
-      continue
-    }
-    const total = Number(eco.total_weight) || Number(mine.weight)
-    const toDistribute = Math.ceil((need - have) * total / Number(mine.weight)) + 1
-    const reserve = amount(eco.reserve_amount)
-    const common = amount(eco.common_balance)
-    const shortage = toDistribute + reserve - common
-    if (shortage > 0) {
-      const topUp = Math.ceil(shortage) + 1
-      await ensureFeePool(topUp)
-      await transact(COOP_SIGNER, [{
-        account: 'branch',
-        name: 'accrue',
-        data: {
-          coopname: COOP,
-          braname: KRG,
-          source_contract: 'marketplace',
-          amount: rub(topUp),
-          process_type: 'p.brn.fees',
-          process_hash: crypto.randomBytes(32).toString('hex'),
-          memo: 'Внешний слой: членские взносы участка под материальную помощь',
-        },
-      }])
-    }
-    await gql(token, 'mutation($d:MarketplaceDistributeBranchFundsInput!){ marketplaceDistributeBranchFunds(data:$d) }', {
-      d: { braname: KRG, amount: toDistribute },
-    })
-  }
-  throw new Error(`персональный кошелёк ${recipient.account} на участке не набрал ${need} RUB`)
-}
-
 const paymentMethods = new Map<string, string>()
 
 /** Способ получения выплаты: банковский счёт получателя, заводится один раз. */
@@ -427,7 +322,7 @@ export interface AidPayout {
 export async function payAid(gross: number, recipient: Who = ROLES.branchChairman()): Promise<AidPayout> {
   const chair = recipient
   const token = await tokenOf(chair)
-  await ensurePersonalFunds(gross, recipient)
+  await ensureAidFunds(gross, recipient)
   const methodId = await paymentMethodOf(recipient)
 
   const pl = await gql<any>(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
@@ -475,12 +370,17 @@ export async function payAid(gross: number, recipient: Who = ROLES.branchChairma
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `выплата матпомощи ${aidHash} у кассира` })
   await cashierPaid(payment.id)
 
+  // Выплата на руки и налог — с фонда социально-экономического взаимодействия и социального обеспечения (o.brn.aid,
+  // o.brn.aidtax) либо из средств инициаторов участка (o.mkt.iaid, o.mkt.iaidtx,
+  // задача 99D-28): источник контракт выбрал при подаче заявления.
+  const AID = new Set(['o.brn.aid', 'o.mkt.iaid'])
+  const TAX = new Set(['o.brn.aidtax', 'o.mkt.iaidtx'])
   const ops = await waitFor(async () => {
     const rows = await applyOps(aidHash)
-    return rows.some(r => r.operationCode === 'o.brn.aid') ? rows : null
+    return rows.some(r => AID.has(r.operationCode ?? '')) ? rows : null
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `проводки выплаты матпомощи ${aidHash}` })
-  const aid = ops.find(r => r.operationCode === 'o.brn.aid')!
-  const taxOp = ops.find(r => r.operationCode === 'o.brn.aidtax')
+  const aid = ops.find(r => AID.has(r.operationCode ?? ''))!
+  const taxOp = ops.find(r => TAX.has(r.operationCode ?? ''))
   const net = amount(aid.quantity)
   const tax = amount(taxOp?.quantity)
   return { aidHash, username: aid.username ?? chair.account, gross: net + tax, tax, net, paidAt: aid.createdAt, decisionId: decision.id }

@@ -1,19 +1,22 @@
 <template lang="pug">
-q-btn.full-width(
+//- Подпись — действие («Выключить»); настройки при выключении сохраняются
+BaseButton(
   v-if='extension.enabled',
-  size='sm',
-  @click='disable',
-  flat,
+  variant='secondary',
+  block,
   :disabled='disabled',
-  :loading='isDisabling'
+  :loading='isDisabling',
+  @click='disable'
 )
-  q-icon(name='fa-solid fa-toggle-on')
-  span.q-ml-xs {{ $t('extension.disableButton.stateLabel') }}
+  template(#icon-left)
+    q-icon(name='toggle_off', size='18px')
+  | {{ $t('extension.disableButton.action') }}
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useDisableExtension } from '../model';
+import { BaseButton } from 'src/shared/ui/base';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import {
   extractGraphQLErrorMessages,

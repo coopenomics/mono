@@ -30,6 +30,17 @@ export class MarketplaceBranchOwnershipService {
     return branch.trusted?.includes(account) ?? false;
   }
 
+  /**
+   * Участок есть в кооперативе. Нужна там, где действует не оператор участка:
+   * право «по всем участкам» само имя участка не проверяет.
+   */
+  async assertBranchExists(coopname: string, braname: string): Promise<void> {
+    const branch = await this.branchPort.getBranch(coopname, braname);
+    if (!branch) {
+      throw DomainError.notFound('MARKETPLACE_BRANCH_NOT_FOUND_BY_NAME', { braname });
+    }
+  }
+
   async assertCanActAsBraname(
     coopname: string,
     account: string,

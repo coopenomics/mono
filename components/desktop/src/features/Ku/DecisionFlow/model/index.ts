@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -44,8 +44,8 @@ export function useKuDecisionFlow() {
       const hash = await generateUniqueHash();
       const digitalDocument = new DigitalDocument();
 
-      await digitalDocument.generate<Cooperative.Registry.BranchMeetingProposal.Action>({
-        registry_id: Cooperative.Registry.BranchMeetingProposal.registry_id,
+      await digitalDocument.generate<Registry.BranchMeetingProposal.Action>({
+        registry_id: Registry.BranchMeetingProposal.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         type: input.type,
@@ -58,7 +58,7 @@ export function useKuDecisionFlow() {
         })),
       });
 
-      const proposal = await digitalDocument.sign<Cooperative.Registry.BranchMeetingProposal.Meta>(session.username);
+      const proposal = await digitalDocument.sign<Registry.BranchMeetingProposal.Meta>(session.username);
 
       await api.createDecision({
         coopname: system.info.coopname,
@@ -132,8 +132,8 @@ export function useKuDecisionFlow() {
       const questions = decision.questions ?? [];
       const digitalDocument = new DigitalDocument();
 
-      await digitalDocument.generate<Cooperative.Registry.BranchMeetingBallot.Action>({
-        registry_id: Cooperative.Registry.BranchMeetingBallot.registry_id,
+      await digitalDocument.generate<Registry.BranchMeetingBallot.Action>({
+        registry_id: Registry.BranchMeetingBallot.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
@@ -151,7 +151,7 @@ export function useKuDecisionFlow() {
         })),
       });
 
-      const ballot = await digitalDocument.sign<Cooperative.Registry.BranchMeetingBallot.Meta>(session.username);
+      const ballot = await digitalDocument.sign<Registry.BranchMeetingBallot.Meta>(session.username);
 
       await api.voteOnDecision({
         coopname: system.info.coopname,
@@ -176,14 +176,24 @@ export function useKuDecisionFlow() {
       const participantsCount = decision.participants?.length || 0;
       const ballots = decision.signed_ballots || 0;
       const quorumPercent = participantsCount > 0 ? Math.round((ballots / participantsCount) * 100) : 0;
+      // «Присутствовали пайщики» протокола — подавшие бюллетень: голос стоит хотя бы по
+      // одному вопросу. Порядок — как участники присоединялись к собранию; ФИО резолвит фабрика
+      const votedUsernames = new Set(
+        questions.flatMap((question) => [
+          ...(question.voters_for ?? []),
+          ...(question.voters_against ?? []),
+          ...(question.voters_abstained ?? []),
+        ]),
+      );
+      const voters = (decision.participants ?? []).filter((username) => votedUsernames.has(username));
 
       const formatDateTime = (value?: string | null) =>
         value ? `${formatDateToLocalTimezone(value)} (${getTimezoneLabel()})` : '—';
 
       const digitalDocument = new DigitalDocument();
 
-      await digitalDocument.generate<Cooperative.Registry.BranchMeetingDecision.Action>({
-        registry_id: Cooperative.Registry.BranchMeetingDecision.registry_id,
+      await digitalDocument.generate<Registry.BranchMeetingDecision.Action>({
+        registry_id: Registry.BranchMeetingDecision.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
@@ -194,6 +204,7 @@ export function useKuDecisionFlow() {
         open_at_datetime: formatDateTime(decision.open_at),
         close_at_datetime: formatDateTime(decision.close_at),
         current_quorum_percent: quorumPercent,
+        voters,
         questions: questions.map((question) => {
           const votesFor = question.counter_votes_for ?? 0;
           const votesAgainst = question.counter_votes_against ?? 0;
@@ -216,7 +227,7 @@ export function useKuDecisionFlow() {
         }),
       });
 
-      const protocol = await digitalDocument.sign<Cooperative.Registry.BranchMeetingDecision.Meta>(session.username);
+      const protocol = await digitalDocument.sign<Registry.BranchMeetingDecision.Meta>(session.username);
 
       await api.closeDecision({
         coopname: system.info.coopname,
@@ -229,84 +240,39 @@ export function useKuDecisionFlow() {
   }
 
   /**
-   * Сгенерировать (без подписи) пакет документов председателя в совет для предпросмотра:
-   * заявление (324), договор о полной материальной ответственности (328) и доверенность
-   * председателю участка (329) — с уже подставленными паспортными данными. Пайщик читает
-   * их перед подписанием; подпись и отправка — отдельным шагом execDecision.
+   * Сгенерировать (без подписи) заявление председателя в совет об учреждении
+   * участка (324) для предпросмотра. Доверенность и договор о полной
+   * материальной ответственности председатель участка подписывает после решения
+   * совета на странице «Мой участок»: доверенность ссылается на протокол совета.
    */
-  async function prepareExecDocuments(decision: IKuDecision): Promise<{
-    petition: IGeneratedDocument;
-    liability: IGeneratedDocument;
-    authority: IGeneratedDocument;
-  }> {
+  async function prepareExecDocuments(decision: IKuDecision): Promise<{ petition: IGeneratedDocument }> {
     isSubmitting.value = true;
     try {
-      const branchName = decision.branch_name ?? '';
-
       // человекочитаемое наименование участка, служебный braname в документы не попадает
-      const petition = await new DigitalDocument().generate<Cooperative.Registry.BranchEstablishmentPetition.Action>({
-        registry_id: Cooperative.Registry.BranchEstablishmentPetition.registry_id,
+      const petition = await new DigitalDocument().generate<Registry.BranchEstablishmentPetition.Action>({
+        registry_id: Registry.BranchEstablishmentPetition.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
-        branch_name: branchName,
+        branch_name: decision.branch_name ?? '',
         address: decision.address ?? '',
         // username избранного председателя участка; ФИО резолвит фабрика
         chairman: decision.chairman ?? '',
       });
-
-      const liability = await new DigitalDocument().generate<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action>({
-        registry_id: Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id,
-        coopname: system.info.coopname,
-        username: session.username,
-        hash: decision.hash,
-        branch_name: branchName,
-      });
-
-      const authority = await new DigitalDocument().generate<Cooperative.Registry.BranchTrusteePowerOfAttorney.Action>({
-        registry_id: Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id,
-        coopname: system.info.coopname,
-        username: session.username,
-        hash: decision.hash,
-        branch_name: branchName,
-        branch_address: decision.address ?? '',
-      });
-
-      return { petition, liability, authority };
+      return { petition };
     } finally {
       isSubmitting.value = false;
     }
   }
 
-  /**
-   * Подписать предпросмотренный пакет и направить в совет (exec): заявление (324),
-   * договор матответственности (328) и доверенность (329) — все подписывает избранный
-   * собранием председатель участка. Договор и доверенность получат встречную подпись
-   * председателя совета после решения совета об учреждении участка.
-   */
-  async function execDecision(
-    decision: IKuDecision,
-    prepared: { petition: IGeneratedDocument; liability: IGeneratedDocument; authority: IGeneratedDocument },
-  ): Promise<void> {
+  /** Подписать предпросмотренное заявление и направить вопрос в совет (exec). */
+  async function execDecision(decision: IKuDecision, prepared: { petition: IGeneratedDocument }): Promise<void> {
     isSubmitting.value = true;
     try {
       const petition = await new DigitalDocument(prepared.petition).sign<
-        Cooperative.Registry.BranchEstablishmentPetition.Meta
+        Registry.BranchEstablishmentPetition.Meta
       >(session.username);
-      const liability = await new DigitalDocument(prepared.liability).sign<
-        Cooperative.Registry.BranchTrusteeLiabilityAgreement.Meta
-      >(session.username);
-      const authority = await new DigitalDocument(prepared.authority).sign<
-        Cooperative.Registry.BranchTrusteePowerOfAttorney.Meta
-      >(session.username);
-
-      await api.execDecision({
-        coopname: system.info.coopname,
-        hash: decision.hash,
-        petition,
-        liability,
-        authority,
-      });
+      await api.execDecision({ coopname: system.info.coopname, hash: decision.hash, petition });
     } finally {
       isSubmitting.value = false;
     }

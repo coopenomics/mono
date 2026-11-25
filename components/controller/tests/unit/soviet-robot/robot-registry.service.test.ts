@@ -4,7 +4,7 @@
  */
 import { RobotRegistryService, followCycles, isAutomationExpired, requiredVotes } from '~/extensions/soviet-robot/application/services/robot-registry.service';
 import { RobotVoteMode } from '~/extensions/soviet-robot/domain/enums/robot-vote-mode.enum';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 const NO_EXPIRY = '1970-01-01T00:00:00';
 
@@ -160,7 +160,7 @@ describe('RobotRegistryService.buildRegistry', () => {
     expect(registry.find((r) => r.type === 'freedecision')).toBeDefined();
     // Выдача имущества пайщику: с паевой моделью у неё появилась и повестка,
     // и протокол 1114, поэтому робот её ведёт наравне со свободным решением.
-    expect(registry.find((r) => r.type === 'mktissue')?.protocol_registry_id).toBe(Cooperative.Registry.MarketplaceShareReturnDecision.registry_id);
+    expect(registry.find((r) => r.type === 'mktissue')?.protocol_registry_id).toBe(Registry.MarketplaceShareReturnDecision.registry_id);
   });
 
   it('решения расширения приходят только тому, у кого расширение установлено', async () => {

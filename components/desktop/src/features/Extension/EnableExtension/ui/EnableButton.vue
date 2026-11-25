@@ -1,19 +1,23 @@
 <template lang="pug">
-q-btn.full-width(
-  size='sm',
-  @click='enable',
-  flat,
+//- Подпись — действие («Включить»), а не состояние: состояние показывает
+//- метка над кнопками в ExtensionActions
+BaseButton(
+  variant='primary',
+  block,
   :disabled='disabled',
-  :loading='isEnabling'
+  :loading='isEnabling',
+  @click='enable'
 )
-  q-icon.text-grey(name='fa-solid fa-toggle-off')
-  span.q-ml-xs {{ $t('extension.enableButton.stateLabel') }}
+  template(#icon-left)
+    q-icon(name='toggle_on', size='18px')
+  | {{ $t('extension.enableButton.action') }}
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useEnableExtension } from '../model';
+import { BaseButton } from 'src/shared/ui/base';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';

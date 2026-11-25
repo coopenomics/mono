@@ -2,7 +2,7 @@ import { Cooperative, DraftContract, SovietContract } from 'cooptypes'
 import { editTranslation } from '../src/utils/editTranslation'
 import type { Migration } from '../src/migration_interface'
 import { editDraft } from '../src/utils/editDraft'
-import { Registry } from '@coopenomics/factory'
+import { Registry } from '@coopenomics/docs-factory'
 import { api } from '../src/eos'
 
 export class InitialMigration implements Migration {

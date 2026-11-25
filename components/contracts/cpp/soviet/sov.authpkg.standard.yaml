@@ -343,6 +343,11 @@ related:
     relation: provides
     note: >
       Ставит вопрос в повестку совета и получает решение.
+  - process_type: p.mkt.invest
+    relation: provides
+    note: >
+      Вопрос о приёме имущества инициатора в кооперативный участок Стола
+      заказов; решение совета возвращается в процесс вложения.
   - process_type: p.mkt.supply
     relation: provides
     note: >

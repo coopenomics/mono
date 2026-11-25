@@ -1,7 +1,7 @@
 import './i18n';
 
 import { Inject, Module } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, getAmountPlusFee, PaymentProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, bankSafeText, platformSettings, getAmountPlusFee, PaymentProvider, type PaymentDetails, DomainError } from '@coopenomics/extension-kit';
 import {
   LOGGER_PORT,
   type ILoggerPort,
@@ -92,11 +92,12 @@ export class QrPayExtension extends PaymentProvider {
 
     const description = payment.memo || t('qrpay.payment.defaultDescription', { username: payment.username });
 
-    const invoice = `ST00012|Name=${cooperative?.full_name}|PersonalAcc=${bankAccount.account_number}|BankName=${
+    // Строку QR-кода читает банк пайщика: «ё» в назначении и названиях он не принимает.
+    const invoice = bankSafeText(`ST00012|Name=${cooperative?.full_name}|PersonalAcc=${bankAccount.account_number}|BankName=${
       bankAccount.bank_name
     }|BIC=${bankAccount.details.bik}|CorrespAcc=${bankAccount.details.corr}|Sum=${parseInt(
       amount_plus_fee
-    )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
+    )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`);
 
     const result: PaymentDetails = {
       data: invoice,

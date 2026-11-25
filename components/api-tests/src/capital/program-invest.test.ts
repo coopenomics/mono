@@ -55,4 +55,23 @@ describe('Благорост: паевой взнос в программу', ()
     expect(walletsAfter.share).toBeCloseTo(walletsBefore.share, 4)
     expect(walletsAfter.blago).toBeCloseTo(walletsBefore.blago, 4)
   })
+
+  it(caseName('cap.pinv.break.01', 'повтор того же заявления (двойной клик) — отказ до цепи, взнос проведён один раз'), async () => {
+    const statementFor = `${(100).toFixed(4)} RUB`
+    const gen = await gql<any>(token, `mutation($d:ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput!){
+      capitalGenerateProgramMoneyInvestStatement(data:$d){ full_title html hash meta binary }
+    }`, { d: { coopname: COOP, username: member.account, amount: statementFor } })
+    const statement = await signDocument(member.wif, gen.capitalGenerateProgramMoneyInvestStatement, member.account)
+    const send = () => gqlError(token, 'mutation($d:CreateProgramInvestInput!){ capitalCreateProgramInvest(data:$d){ transaction } }', {
+      d: { coopname: COOP, username: member.account, amount: statementFor, statement },
+    })
+    const walletsBefore = await capitalWallets(token, member.account)
+
+    expect(await send(), 'первая отправка проходит').toBeNull()
+    // Контракт истории взносов не хранит: повтор отсекает контроллер по хэшу заявления.
+    expectCode(await send(), 'CAPITAL_PROGRAM_INVEST_DUPLICATE')
+
+    const walletsAfter = await capitalWallets(token, member.account)
+    expect(walletsAfter.blago).toBeCloseTo(walletsBefore.blago + 100, 4)
+  })
 })

@@ -5,14 +5,16 @@ import { MeetProcessedRepository, MEET_PROCESSED_REPOSITORY } from '~/domain/mee
 import { MeetAggregate } from '~/domain/meet/aggregates/meet-domain.aggregate';
 import { GetMeetInputDomainInterface } from '~/domain/meet/interfaces/get-meet-input-domain.interface';
 import { GetMeetsInputDomainInterface } from '~/domain/meet/interfaces/get-meets-input-domain.interface';
-import type { IMeetPort } from '@coopenomics/innercoop';
+import type { IMeetPort, InnerGetMeetInput } from '@coopenomics/innercoop';
+import { MeetVotersDomainService } from '~/domain/meet/services/meet-voters-domain.service';
 
 @Injectable()
 export class MeetDataAdapter implements IMeetPort {
   constructor(
     @Inject(MEET_REPOSITORY) private readonly meetPreRepository: MeetPreProcessingRepository,
     @Inject(MEET_PROCESSED_REPOSITORY) private readonly meetProcessedRepository: MeetProcessedRepository,
-    @Inject(MEET_BLOCKCHAIN_PORT) private readonly meetBlockchainPort: MeetBlockchainPort
+    @Inject(MEET_BLOCKCHAIN_PORT) private readonly meetBlockchainPort: MeetBlockchainPort,
+    private readonly meetVoters: MeetVotersDomainService
   ) {}
 
   async getMeets(data: GetMeetsInputDomainInterface, username?: string): Promise<MeetAggregate[]> {
@@ -67,5 +69,16 @@ export class MeetDataAdapter implements IMeetPort {
   /** Черновик собрания по хэшу — реализация `IMeetPort.getMeetDraft`. */
   async getMeetDraft(hash: string) {
     return this.meetPreRepository.findByHash(hash);
+  }
+
+  /**
+   * Голосующие собрания — реализация `IMeetPort.getMeetVoters`. Собрания нет в
+   * цепи (закрыто и стёрто) — голосовать некому, оповещать по составу нечего:
+   * возвращается пустой список, а не «все пайщики».
+   */
+  async getMeetVoters(data: InnerGetMeetInput): Promise<string[] | null> {
+    const processing = await this.meetBlockchainPort.getMeet({ coopname: data.coopname, hash: data.hash });
+    if (!processing?.meet) return [];
+    return this.meetVoters.getVoters(processing.meet);
   }
 }

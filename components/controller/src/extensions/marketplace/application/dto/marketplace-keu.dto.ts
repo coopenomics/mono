@@ -1,0 +1,344 @@
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import type { MarketplaceBranchPeriodEntity } from '../../infrastructure/entities/marketplace-branch-period.entity';
+import type { PeriodBounds } from '../shared/period-bounds';
+import { MarketplacePeriodInvestPhase } from '../../domain/entities/marketplace-branch-period.types';
+import type {
+  MarketplaceBranchReservesView,
+  MarketplaceBranchReserveView,
+  MarketplaceEconomySettingsView,
+} from '../services/marketplace-branch-reserve.service';
+
+// ── Настройки экономики Стола заказов (стол администратора) ───────────────
+
+@ObjectType('MarketplaceAccumulationFund', { description: 'Фонд накопления кооператива: название, процент отчисления с членского взноса участка и разрез кошелька фондов.' })
+export class MarketplaceAccumulationFundDTO {
+  @Field({ description: 'Название фонда.' })
+  name!: string;
+
+  @Field(() => Float, { description: 'Процент отчисления, проценты.' })
+  percent!: number;
+
+  @Field({ description: 'Имя разреза кошелька фондов накопления; пусто до первого отчисления.' })
+  wallet_name!: string;
+}
+
+@ObjectType('MarketplaceEconomySettings', {
+  description:
+    'Настройки экономики Стола заказов: ставка обеспечительной части паевого взноса, доля пайщиков в экономии месяца, доля инициатора участка в остатке экономии, потолок резерва социально-экономического обеспечения на получателя в месяц и проценты фондов накопления кооператива.',
+})
+export class MarketplaceEconomySettingsDTO {
+  @Field(() => Float, { description: 'Ставка обеспечительной части паевого взноса, проценты от стоимости заказа.' })
+  membership_fee_percent!: number;
+
+  @Field(() => Float, {
+    description: 'Доля пайщиков в экономии месяца, проценты: первое деление экономии — эта доля возвращается пайщикам, остальное делится дальше.',
+  })
+  return_share_percent!: number;
+
+  @Field(() => Float, {
+    description:
+      'Доля инициатора участка, проценты: второе деление — доля остатка экономии после возврата пайщикам и фондов накопления; остальное зачисляется в фонд социального обеспечения по участку.',
+  })
+  initiator_share_percent!: number;
+
+  @Field({ description: 'Потолок резерва социально-экономического обеспечения на одного получателя в месяц. Ноль — резерв выключен.' })
+  aid_month_limit!: string;
+
+  @Field(() => Float, { description: 'Сумма процентов фондов накопления кооператива, удерживаемых с членского взноса участка.' })
+  funds_percent!: number;
+
+  @Field(() => [MarketplaceAccumulationFundDTO], { description: 'Фонды накопления по отдельности.' })
+  funds!: MarketplaceAccumulationFundDTO[];
+}
+
+@InputType('MarketplaceSetInitiatorShareInput')
+export class MarketplaceSetInitiatorShareInputDTO {
+  @Field(() => Float, { description: 'Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов накопления, проценты (от 0 до 100).' })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  initiator_share_percent!: number;
+}
+
+@InputType('MarketplaceSetReturnShareInput')
+export class MarketplaceSetReturnShareInputDTO {
+  @Field(() => Float, { description: 'Доля пайщиков в экономии месяца, проценты (от 0 до 100).' })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  return_share_percent!: number;
+}
+
+@InputType('MarketplaceSetAidLimitInput')
+export class MarketplaceSetAidLimitInputDTO {
+  @Field(() => Float, { description: 'Потолок резерва социально-экономического обеспечения на получателя в месяц. Ноль выключает резерв.' })
+  @IsNumber()
+  @Min(0)
+  aid_month_limit!: number;
+}
+
+// ── Резерв социально-экономического обеспечения пайщиков ─────────────────
+
+@ObjectType('MarketplaceBranchReserve', { description: 'Резерв социально-экономического обеспечения одного получателя участка на месяц.' })
+export class MarketplaceBranchReserveDTO {
+  @Field({ description: 'Получатель — председатель или доверенное лицо участка.' })
+  username!: string;
+
+  @Field({ description: 'Резерв в месяц.' })
+  amount!: string;
+
+  @Field({ description: 'Подано заявлений на материальную помощь за текущий месяц.' })
+  submitted!: string;
+
+  @Field({ description: 'Остаток резерва на текущий месяц.' })
+  remaining!: string;
+}
+
+@ObjectType('MarketplaceBranchReserves', {
+  description: 'Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям.',
+})
+export class MarketplaceBranchReservesDTO {
+  @Field({ description: 'Кооперативный участок.' })
+  braname!: string;
+
+  @Field({ description: 'Потолок резерва на получателя в месяц. Ноль — резерв выключен.' })
+  limit!: string;
+
+  @Field(() => [MarketplaceBranchReserveDTO], { description: 'Строки резерва по получателям.' })
+  rows!: MarketplaceBranchReserveDTO[];
+}
+
+@InputType('MarketplaceSetBranchReserveInput')
+export class MarketplaceSetBranchReserveInputDTO {
+  @Field({ description: 'Кооперативный участок.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field({ description: 'Получатель — председатель или доверенное лицо участка.' })
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
+
+  @Field(() => Float, { description: 'Резерв в месяц, не выше потолка кооператива.' })
+  @IsNumber()
+  @Min(0.0001)
+  amount!: number;
+}
+
+@InputType('MarketplaceDeleteBranchReserveInput')
+export class MarketplaceDeleteBranchReserveInputDTO {
+  @Field({ description: 'Кооперативный участок.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field({ description: 'Получатель, у которого снимается резерв.' })
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
+}
+
+// ── Итоги месяцев участка ─────────────────────────────────────────────────
+
+registerEnumType(MarketplacePeriodInvestPhase, {
+  name: 'MarketplacePeriodInvestPhase',
+  description:
+    'Фаза участка по паевым взносам инициаторов в месяце: взносов нет; недостача — обеспечительная часть целиком участку, недостачу покрывают взносы инициаторов; доля инициаторов возмещает взносы; взносы возвращены, доля инициаторов направляется участку.',
+});
+
+@ObjectType('MarketplaceBranchPeriod', {
+  description:
+    'Итог месяца кооперативного участка: факты прогона, расчёт контракта и ставки, по которым обеспечительная часть заказов разделена между участком, фондами накопления, инициатором и пайщиками.',
+})
+export class MarketplaceBranchPeriodDTO {
+  @Field({ description: 'Кооперативный участок.' })
+  braname!: string;
+
+  @Field(() => Int, { description: 'Номер месяца: год × 12 + месяц по часовому поясу кооператива.' })
+  period!: number;
+
+  @Field(() => Date, { description: 'Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца.' })
+  starts_at!: Date;
+
+  @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
+  ends_at!: Date;
+
+  @Field({ description: 'Стоимость заказов прогона, списанных по итогу месяца.' })
+  turnover!: string;
+
+  @Field({ description: 'Собранная обеспечительная часть по заказам прогона.' })
+  secured!: string;
+
+  @Field({ description: 'Оплачено по плану с общего кошелька участка за месяц (до расчёта по цели резерва — плановые расходы со сроком в месяце).' })
+  planned!: string;
+
+  @Field({ description: 'Служебные записки участка сверх плана с общего кошелька за месяц.' })
+  memos!: string;
+
+  @Field({ description: 'Материальная помощь с персонального кошелька, выплаченная за месяц.' })
+  aid_paid!: string;
+
+  @Field({ description: 'Накопленное право получателей помощи на следующий месяц (до расчёта по цели резерва — сумма строк резерва).' })
+  aid_reserve!: string;
+
+  @Field({ description: 'Невыплаченная часть прошлого резерва; при расчёте по цели резерва — ноль.' })
+  aid_unpaid!: string;
+
+  @Field(() => String, { nullable: true, description: 'Цель плановых расходов на следующий месяц: неоплаченные расходы со сроком до его конца. Пусто — итог посчитан до расчёта по цели резерва.' })
+  planned_target!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Цель резерва участка: плановые расходы и накопленное право получателей помощи.' })
+  target!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Собранная часть цели резерва прошлого месяца.' })
+  target_prev!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Собранная часть цели резерва этого месяца; несобранное переходит в следующий.' })
+  target_funded!: string | null;
+
+  @Field({ description: 'Расходы участка за месяц.' })
+  expenses!: string;
+
+  @Field({ description: 'Членский взнос участка за прогон.' })
+  membership!: string;
+
+  @Field({ description: 'В фонды накопления кооператива.' })
+  funds_amount!: string;
+
+  @Field({ description: 'Участку на расходы.' })
+  branch_amount!: string;
+
+  @Field({ description: 'Инициатору участка.' })
+  initiator_amount!: string;
+
+  @Field({ description: 'Пайщикам обратно на свободный паевой.' })
+  return_amount!: string;
+
+  @Field({ description: 'В фонд социально-экономического взаимодействия и социального обеспечения участка.' })
+  social_amount!: string;
+
+  @Field({ description: 'Дефицит участка: расходы без покрытия.' })
+  deficit!: string;
+
+  @Field({ description: 'Коэффициент экономического участия за месяц, проценты: участку, в фонды, инициатору и фонду социального обеспечения вместе.' })
+  rate_percent!: string;
+
+  @Field(() => MarketplacePeriodInvestPhase, { description: 'Фаза участка по паевым взносам инициаторов на момент расчёта итога.' })
+  invest_phase!: MarketplacePeriodInvestPhase;
+
+  @Field({ description: 'Возмещено инициаторам из доли инициаторов по заказам месяца, списанным на сегодня.' })
+  investor_repaid!: string;
+
+  @Field(() => Int, { description: 'Заказов в прогоне.' })
+  rows_total!: number;
+
+  @Field(() => Int, { description: 'Из них списано.' })
+  rows_charged!: number;
+
+  @Field(() => Date, { description: 'Когда рассчитан итог.' })
+  closed_at!: Date;
+
+  @Field(() => Boolean, { description: 'Строка уже стёрта из цепи; история хранится здесь.' })
+  archived!: boolean;
+}
+
+@ObjectType('MarketplaceBranchCurrentPeriod', {
+  description:
+    'Текущий месяц кооперативного участка, идёт: расходы на сегодня, резерв социально-экономического обеспечения и заказы, которые созреют к первому числу. Ставок нет — итог считает контракт первого числа.',
+})
+export class MarketplaceBranchCurrentPeriodDTO {
+  @Field({ description: 'Кооперативный участок.' })
+  braname!: string;
+
+  @Field(() => Int, { description: 'Номер текущего месяца: год × 12 + месяц по часовому поясу кооператива.' })
+  period!: number;
+
+  @Field(() => Date, { description: 'Начало месяца (включительно): полночь первого числа по часовому поясу кооператива; на стенде со сжатым временем — начало отрезка месяца.' })
+  starts_at!: Date;
+
+  @Field(() => Date, { description: 'Конец месяца (не включительно): начало следующего месяца.' })
+  ends_at!: Date;
+
+  @Field({ description: 'Оплачено по плану с общего кошелька участка за текущий месяц.' })
+  planned!: string;
+
+  @Field({ description: 'Служебные записки участка сверх плана с общего кошелька за текущий месяц.' })
+  memos!: string;
+
+  @Field({ description: 'Материальная помощь с персонального кошелька, выплаченная за текущий месяц.' })
+  aid_paid!: string;
+
+  @Field({ description: 'Накопленное право получателей помощи на следующий месяц — его соберёт итог текущего месяца.' })
+  aid_reserve!: string;
+
+  @Field({ description: 'Цель плановых расходов: неоплаченные расходы со сроком до конца следующего месяца.' })
+  planned_target!: string;
+
+  @Field({ description: 'Собранная часть цели резерва прошлого итога: она уже лежит на участке.' })
+  target_prev!: string;
+
+  @Field({ description: 'Ожидаемые расходы участка за месяц на сегодня: траты месяца плюс цель резерва минус собранное прошлым итогом.' })
+  expenses!: string;
+
+  @Field(() => Int, { description: 'Заказов, которые созреют к первому числу.' })
+  ripening_orders!: number;
+
+  @Field({ description: 'Стоимость заказов, которые созреют к первому числу.' })
+  ripening_turnover!: string;
+
+  @Field({ description: 'Обеспечительная часть по заказам, которые созреют к первому числу.' })
+  ripening_secured!: string;
+
+  @Field({ description: 'Распределено участком доверенным за текущий месяц.' })
+  distributed!: string;
+
+  @Field({ description: 'Получено текущим пайщиком распределением за текущий месяц.' })
+  received!: string;
+}
+
+// ── Преобразования ────────────────────────────────────────────────────────
+
+export function toMarketplaceEconomySettingsDTO(view: MarketplaceEconomySettingsView): MarketplaceEconomySettingsDTO {
+  return { ...view, funds: view.funds.map((f) => ({ ...f })) };
+}
+
+export function toMarketplaceBranchReservesDTO(view: MarketplaceBranchReservesView): MarketplaceBranchReservesDTO {
+  return { braname: view.braname, limit: view.limit, rows: view.rows.map((r: MarketplaceBranchReserveView) => ({ ...r })) };
+}
+
+export function toMarketplaceBranchPeriodDTO(row: MarketplaceBranchPeriodEntity, ratePercent: string, bounds: PeriodBounds): MarketplaceBranchPeriodDTO {
+  return {
+    braname: row.braname,
+    period: row.period,
+    starts_at: bounds.start,
+    ends_at: bounds.end,
+    turnover: row.turnover,
+    secured: row.secured,
+    planned: row.planned,
+    memos: row.memos,
+    aid_paid: row.aid_paid,
+    aid_reserve: row.aid_reserve,
+    aid_unpaid: row.aid_unpaid,
+    expenses: row.expenses,
+    planned_target: row.planned_target,
+    target: row.target,
+    target_prev: row.target_prev,
+    target_funded: row.target_funded,
+    membership: row.membership,
+    funds_amount: row.funds_amount,
+    branch_amount: row.branch_amount,
+    initiator_amount: row.initiator_amount,
+    return_amount: row.return_amount,
+    social_amount: row.social_amount ?? '0',
+    deficit: row.deficit,
+    rate_percent: ratePercent,
+    invest_phase: row.invest_phase,
+    investor_repaid: row.investor_repaid,
+    rows_total: row.rows_total,
+    rows_charged: row.rows_charged,
+    closed_at: row.closed_at,
+    archived: row.deleted_at !== null,
+  };
+}

@@ -5,7 +5,8 @@ jest.mock('@coopenomics/extension-kit', () => ({
 }));
 import { InvestsManagementService } from '~/extensions/capital/application/services/invests-management.service';
 
-const data = { coopname: 'voskhod', username: 'ant', amount: '1000.0000 RUB', statement: {} } as any;
+// Хэш взноса выводится из хэша подписанного заявления — у заявления он есть всегда.
+const data = { coopname: 'voskhod', username: 'ant', amount: '1000.0000 RUB', statement: { hash: 'AB'.repeat(32) } } as any;
 const tx = { response: { processed: { block_num: 777 } } };
 
 describe('InvestsManagementService.createProgramInvest — ответ после изменения из цепи', () => {

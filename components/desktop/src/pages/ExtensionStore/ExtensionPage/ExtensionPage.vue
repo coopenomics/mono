@@ -4,11 +4,12 @@
 //- справа. Путь один: открыл, прочитал, подписался или установил,
 //- настроил, включил.
 .extension-page(v-if='extension || catalogApp')
-  button.extension-page__back(type='button', @click='goBack')
-    q-icon(name='chevron_left' size='16px')
-    span {{ $t('common.action.back') }}
-
   .extension-page__panel
+    //- «Назад» — внутри карточки, в её левом верхнем углу: карточка стоит
+    //- сразу под шапкой и не сдвигается (замечание владельца 24.11.2026)
+    button.extension-page__back(type='button', @click='goBack')
+      q-icon(name='chevron_left' size='18px')
+      span {{ $t('common.action.back') }}
     .extension-page__grid
       aside.extension-page__side
         AutoAvatar.extension-page__logo(
@@ -142,7 +143,9 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
   display: inline-flex;
   align-items: center;
   gap: var(--p-1, 4px);
-  margin-bottom: var(--p-5, 20px);
+  // Над сеткой, у левого верхнего края карточки: отрицательные отступы
+  // подтягивают кнопку в угол, ближе к краю, чем поле карточки
+  margin: calc(-1 * var(--p-2, 8px)) 0 var(--p-3, 12px) calc(-1 * var(--p-2, 8px));
   padding: 0;
   border: 0;
   background: transparent;
@@ -215,32 +218,3 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
 }
 </style>
 
-<style>
-.description h1 {
-  font-size: 1.7rem !important;
-  margin: 0px !important;
-}
-.description h2 {
-  font-size: 1.5rem !important;
-  margin: 0px !important;
-}
-.description h3 {
-  font-size: 1.4rem !important;
-  margin: 0px !important;
-}
-.description h4 {
-  font-size: 1.3rem !important;
-  margin: 0px !important;
-}
-.description h5 {
-  font-size: 1.2rem !important;
-  margin: 0px !important;
-}
-.description h6 {
-  font-size: 1.1rem !important;
-  margin: 0px !important;
-}
-.description ul {
-  margin: 0px !important;
-}
-</style>

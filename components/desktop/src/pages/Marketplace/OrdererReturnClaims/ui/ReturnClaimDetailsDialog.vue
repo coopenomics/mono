@@ -3,9 +3,9 @@ import { computed } from 'vue';
 import { uiLocale } from 'src/shared/i18n';
 import { BaseCard } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
+import { HandoffCodeContent } from 'src/widgets/Marketplace/HandoffCode';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
-import { encodeReturnClaimCode } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 import {
   defectCategoryLabel,
   returnClaimStatusLabel,
@@ -72,13 +72,12 @@ TakeoverDialog(
 )
   template(#default v-if="claim")
     .mp-return-details
+      //- Один код у пайщика на всё: оператор сканирует его общим сканером,
+      //- сервер сам находит заявление на осмотр (598-62).
       BaseCard.q-mb-md(v-if="claim.status === 'APPROVED_FOR_VISIT'")
         .flex.flex-center.column
           .text-subtitle1.q-mb-sm {{ $t('marketplace.returnClaimDetailsDialog.showCodeHint') }}
-          HandoffQr(
-            :value="encodeReturnClaimCode(claim.coopname, claim.id)"
-            :caption="$t('marketplace.returnClaimDetailsDialog.scanCaption')"
-          )
+          HandoffCodeContent(:coopname="claim.coopname", :kind="HandoffTokenKind.Receive", :size="240")
 
       BaseCard.q-mb-md
         .text-subtitle1 {{ $t('marketplace.returnClaimDetailsDialog.reasonLabel') }}

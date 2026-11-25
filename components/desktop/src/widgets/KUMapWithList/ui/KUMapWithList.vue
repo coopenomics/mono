@@ -14,6 +14,11 @@
         q-item-section
           q-item-label.text-weight-medium {{ displayName(pvz) }}
           q-item-label(caption, v-if="pvz.name && pvz.addressFull") {{ pvz.addressFull }}
+          //- Режим работы: пайщик выбирает пункт выдачи по удобному времени.
+          q-item-label.ku-map-with-list__hours(caption, v-if="formatWorkingHours(pvz.workingHours).length")
+            q-icon(name="schedule", size="14px")
+            span
+              span(v-for="line in formatWorkingHours(pvz.workingHours)", :key="line") {{ line }}
           q-item-label(v-if="pvz.geocodeStatus !== 'OK'" caption :class="geocodeWarnClass(pvz)") {{ geocodeWarnText(pvz) }}
         q-item-section(side top v-if="$slots.cardAction")
           slot(name="cardAction" :pvz="pvz")
@@ -29,7 +34,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { env } from 'src/shared/config'
 import { BaseBanner } from 'src/shared/ui/base'
 import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
-import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
+import { formatWorkingHours, type IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
@@ -53,7 +58,19 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'select', pvz: IMarketplaceKUDetails): void
+  /** Повторное нажатие на уже выбранный участок — «выбрать и применить». */
+  (e: 'confirm', pvz: IMarketplaceKUDetails): void
 }>()
+
+/**
+ * Выбор участка из списка или по метке. Повторное нажатие на уже выбранный
+ * участок подтверждает выбор (замечание владельца 19.11.2026) без кнопки
+ * «Применить».
+ */
+function choose(pvz: IMarketplaceKUDetails): void {
+  if (props.selectedBraname === pvz.coreBraname) emit('confirm', pvz)
+  else emit('select', pvz)
+}
 
 const apiKey = (env as unknown as { YANDEX_MAPS_API_KEY?: string }).YANDEX_MAPS_API_KEY ?? ''
 
@@ -66,6 +83,29 @@ let placemarks: Map<string, any> = new Map()
 // за контейнером и рефлоуим карту.
 let resizeObserver: ResizeObserver | null = null
 
+/** Масштаб улиц для выбранного участка. */
+const SELECTED_ZOOM = 16
+
+/**
+ * Отпечаток меток и набора участков. Список участков перечитывается по
+ * каждому сигналу ленты изменений; без сравнения карта пересоздавала метки и
+ * заново подгоняла масштаб — вид «прыгал» сам (замечание владельца 19.11.2026).
+ * Метки перестраиваются, когда изменились их данные, масштаб подгоняется,
+ * когда изменился набор участков.
+ */
+let placemarksSignature = ''
+let boundsSignature = ''
+
+function placemarksKey(items: IMarketplaceKUDetails[]): string {
+  return items
+    .map((p) => [p.coreBraname, p.lat, p.lng, p.status, p.name, p.addressFull].join('|'))
+    .join(';')
+}
+
+function boundsKey(items: IMarketplaceKUDetails[]): string {
+  return items.map((p) => `${p.coreBraname}|${p.lat}|${p.lng}`).join(';')
+}
+
 const visibleItems = computed(() =>
   props.items.filter((pvz) => pvz.geocodeStatus === 'OK' && pvz.lat !== null && pvz.lng !== null)
 )
@@ -74,6 +114,11 @@ const visibleItems = computed(() =>
 // не показываем НИКОГДА — только настоящее имя участка, затем адрес как фолбэк.
 function displayName(pvz: IMarketplaceKUDetails): string {
   return pvz.name || pvz.addressFull || t('kUMapWithList.kUMapWithList.fallbackBranchName')
+}
+
+/** Экранирование текста для подсказки метки: её содержимое — HTML. */
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
 }
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
@@ -96,15 +141,12 @@ function geocodeWarnText(pvz: IMarketplaceKUDetails): string {
 }
 
 function onSelectFromList(pvz: IMarketplaceKUDetails) {
-  emit('select', pvz)
+  choose(pvz)
   if (mapInstance && pvz.lat !== null && pvz.lng !== null) {
-    // При выборе КУ приближаем на 2 единицы относительно текущего зума
-    // (центрируясь на участке), но не глубже 18.
-    const current = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 12
-    const zoom = Math.min(current + 2, 18)
-    mapInstance.setCenter([pvz.lat!, pvz.lng!], zoom, { duration: 300 })
-    const pm = placemarks.get(pvz.coreBraname)
-    pm?.balloon.open()
+    // Выбранный участок — в центре, масштаб улиц. Масштаб постоянный: прежнее
+    // «текущий + 2» копилось, и повторное нажатие на тот же участок уносило
+    // карту дальше (замечание владельца 19.11.2026).
+    mapInstance.setCenter([pvz.lat!, pvz.lng!], SELECTED_ZOOM, { duration: 300 })
   }
 }
 
@@ -136,14 +178,14 @@ async function initMap() {
 }
 
 /**
- * Вид метки на карте. Выбранный участок — крупная зелёная «капля», остальные —
- * маленькие синие точки, недействующие — серые. Раньше вид не менялся вовсе:
- * человек нажимал точку, внизу подставлялось название, а какая из точек
- * выбрана, на карте видно не было.
+ * Вид метки на карте. Каждый участок — метка с его названием (замечание
+ * владельца 19.11.2026: маленькая точка терялась на карте, а подсказка над
+ * ней «торчала из земли»). Выбранный — тёмно-зелёная, остальные — синие,
+ * недействующие — серые.
  */
 function placemarkPreset(pvz: IMarketplaceKUDetails): string {
-  if (pvz.coreBraname === props.selectedBraname) return 'islands#darkGreenIcon'
-  return pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon'
+  if (pvz.coreBraname === props.selectedBraname) return 'islands#darkGreenStretchyIcon'
+  return pvz.status === 'INACTIVE' ? 'islands#grayStretchyIcon' : 'islands#blueStretchyIcon'
 }
 
 /** Выбранная метка идёт поверх соседних — иначе крупная «капля» прячется за точками. */
@@ -153,28 +195,39 @@ function placemarkZIndex(pvz: IMarketplaceKUDetails): number {
 
 function syncPlacemarks(ymaps: any) {
   if (!mapInstance) return
+  const nextPlacemarks = placemarksKey(visibleItems.value)
+  if (nextPlacemarks === placemarksSignature) return
+  placemarksSignature = nextPlacemarks
   placemarks.forEach((pm) => mapInstance.geoObjects.remove(pm))
   placemarks = new Map()
   for (const pvz of visibleItems.value) {
     const pm = new ymaps.Placemark(
       [pvz.lat!, pvz.lng!],
-      {
-        balloonContent: `<strong>${displayName(pvz)}</strong><br>${pvz.addressFull ?? ''}`,
-        hintContent: displayName(pvz),
-      },
-      { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz) }
+      // Название на самой метке — единственная плашка участка на карте.
+      // Всплывающей подсказки нет: она ложилась поверх соседних меток, а
+      // адрес и режим работы стоят в списке рядом (замечание владельца 19.11.2026).
+      { iconContent: escapeHtml(displayName(pvz)) },
+      { preset: placemarkPreset(pvz), zIndex: placemarkZIndex(pvz), hasBalloon: false, hasHint: false }
     )
-    pm.events.add('click', () => emit('select', pvz))
+    pm.events.add('click', () => choose(pvz))
     mapInstance.geoObjects.add(pm)
     placemarks.set(pvz.coreBraname, pm)
   }
+  // Масштаб — только при первом показе и при смене набора участков: человек
+  // мог приблизить карту, и перечитывание списка не должно его сбрасывать.
+  const nextBounds = boundsKey(visibleItems.value)
+  if (nextBounds === boundsSignature) return
+  boundsSignature = nextBounds
   // Одна точка: setBounds на bbox из одной точки зумит в максимум («упёрся
-  // носом в дом») — центрируем на ней с городским зумом. Несколько точек —
-  // подгоняем границы под все. Ноль — оставляем дефолтный центр (Москва).
-  if (visibleItems.value.length === 1) {
+  // носом в дом») — центрируем на ней с городским зумом. То же, когда все
+  // участки стоят в одной точке: адрес «Москва» геокодер ставит в центр города,
+  // и рамка из совпавших точек тоже нулевая (замечание владельца 19.11.2026).
+  // Несколько разных точек — подгоняем границы под все. Ноль — дефолтный центр.
+  const distinctPoints = new Set(visibleItems.value.map((p) => `${p.lat}|${p.lng}`))
+  if (distinctPoints.size === 1) {
     const p = visibleItems.value[0]!
     mapInstance.setCenter([p.lat!, p.lng!], 12, { duration: 300 })
-  } else if (visibleItems.value.length > 1) {
+  } else if (distinctPoints.size > 1) {
     mapInstance.setBounds(mapInstance.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 40 })
   }
 }
@@ -219,6 +272,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+.ku-map-with-list__hours {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-1);
+  margin-top: 2px;
+}
+.ku-map-with-list__hours > span {
+  display: flex;
+  flex-direction: column;
+}
 .ku-map-with-list {
   display: grid;
   grid-template-columns: minmax(260px, 360px) 1fr;

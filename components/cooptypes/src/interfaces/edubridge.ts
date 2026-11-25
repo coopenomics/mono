@@ -249,12 +249,14 @@ export interface IAcceptrid {
   act: IDocument2
 }
 
-export interface IDeclinerid {
+/** Взнос не принят: материалы возвращаются преподавателю на доработку, запись материалов остаётся. */
+export interface IReturnrid {
   coopname: IName
   rid_hash: IChecksum256
-  decision: IDocument2
+  reason: string
 }
 
+/** Расчёт по материалам закрывается без приёма: запись стирается, взнос преподавателя из резерва курса — на кошелёк программы. */
 export interface IRecallrid {
   coopname: IName
   rid_hash: IChecksum256
@@ -465,8 +467,9 @@ export interface IEduLesson {
 }
 
 /**
- * edurids (scope = coopname) — заявления о взносе РИД в ожидании решения;
- * acceptrid / declinerid стирают запись.
+ * edurids (scope = coopname) — материалы преподавателя от приёма на хранение
+ * до приёма результата либо закрытия расчёта без приёма; acceptrid / recallrid
+ * стирают запись.
  */
 export interface IEduRid {
   id: IUint64

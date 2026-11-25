@@ -8,7 +8,7 @@ import {
   ChairmanOnboardingStateDTO,
 } from '../dto/onboarding.dto';
 import type { IConfig } from '../../chairman-extension.module';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { MEET_PORT, IMeetPort } from '@coopenomics/innercoop';
 import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
@@ -256,7 +256,7 @@ export class ChairmanOnboardingService {
         project_id,
         coopname: platformSettings().coopname,
         username: actor,
-        registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
+        registry_id: Registry.ProjectFreeDecision.registry_id,
         title: normalizedTitle,
       },
       {}

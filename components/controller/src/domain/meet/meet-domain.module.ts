@@ -1,10 +1,10 @@
-// domain/appstore/appstore-domain.module.ts
-
 import { Module } from '@nestjs/common';
+import { MeetVotersDomainService } from './services/meet-voters-domain.service';
 
+// Порты цепи участков и аккаунтов раздаёт глобальный BlockchainModule.
 @Module({
   imports: [],
-  providers: [],
-  exports: [],
+  providers: [MeetVotersDomainService],
+  exports: [MeetVotersDomainService],
 })
 export class MeetDomainModule {}

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from './extension-domain.service';
-import { ExtensionAvailability, ExtensionDomainEntity, isExtensionAvailable, mergeSecretConfig, type IResolvedRegistryExtension, DomainError } from '@coopenomics/extension-kit';
+import { ExtensionAvailability, ExtensionDomainEntity, isExtensionAvailable, mergeSecretConfig, redactSecretConfig, type IResolvedRegistryExtension, DomainError } from '@coopenomics/extension-kit';
 import { ExtensionDTO } from '~/application/appstore/dto/extension-graphql.dto';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import zodToJsonSchema from 'zod-to-json-schema';
@@ -27,13 +27,17 @@ export class ExtensionDomainListingService<TConfig = any> {
     const registryDataMap = await this.extractRegistryData();
     // 2) Список установленных
     const installedList = await this.extensionDomainService.getAppList();
+    // Удалённые председателем — неустановленные, но с прежними настройками
+    const savedConfigs = new Map(
+      (await this.extensionDomainService.getUninstalledAppList()).map((e) => [e.name, e.config] as const)
+    );
 
     // Создаём карту для объединённых
     const combined = new Map<string, ExtensionDTO<TConfig>>();
 
     // Сначала все из реестра (как неустановленные)
     for (const [key, regData] of Object.entries(registryDataMap)) {
-      const dto = await this.buildDTO(key, null, regData);
+      const dto = await this.buildDTO(key, null, regData, savedConfigs.get(key) ?? null);
       combined.set(key, dto);
     }
 
@@ -65,7 +69,8 @@ export class ExtensionDomainListingService<TConfig = any> {
     if (!regData) return null;
 
     const installed = await this.extensionDomainService.getAppByName(name);
-    return this.buildDTO(name, installed, regData);
+    const saved = installed ? null : await this.extensionDomainService.getUninstalledAppByName(name);
+    return this.buildDTO(name, installed, regData, saved?.config ?? null);
   }
 
   /**
@@ -94,7 +99,11 @@ export class ExtensionDomainListingService<TConfig = any> {
     const ext = AppRegistry[name];
     if (!ext?.configPolicy) return incoming;
 
-    const installed = await this.extensionDomainService.getAppByName(name);
+    // Секрет удалённого расширения тоже возвращается: форма шага установки
+    // показывает прежние настройки и присылает его маркером «задано»
+    const installed =
+      (await this.extensionDomainService.getAppByName(name)) ??
+      (await this.extensionDomainService.getUninstalledAppByName(name));
     return mergeSecretConfig(incoming, installed?.config as any, ext.configPolicy);
   }
 
@@ -121,9 +130,16 @@ export class ExtensionDomainListingService<TConfig = any> {
   private async buildDTO(
     name: string,
     installed: ExtensionDomainEntity<TConfig> | null,
-    registryData: IResolvedRegistryExtension
+    registryData: IResolvedRegistryExtension,
+    savedConfig: TConfig | null = null
   ): Promise<ExtensionDTO<TConfig>> {
     const dto = new ExtensionDTO(name, registryData, installed);
+    // Удалённое председателем: неустановленное, но шаг установки показывает
+    // прежние настройки, а повторная установка продолжает с них. Секреты —
+    // маркером «задано», как у установленного.
+    if (!installed && savedConfig) {
+      dto.config = redactSecretConfig(savedConfig as TConfig & Record<string, any>, registryData.configPolicy);
+    }
 
     // readme/instructions — это Promise<string>, дожидаемся
     dto.readme = await registryData.readme;

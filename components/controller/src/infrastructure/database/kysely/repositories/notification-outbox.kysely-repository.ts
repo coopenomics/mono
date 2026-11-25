@@ -78,6 +78,12 @@ export class NotificationOutboxKyselyRepository implements NotificationOutboxRep
     return row ? toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<NotificationOutboxDomainInterface[]> {
+    if (!ids.length) return [];
+    const rows = await this.db.selectFrom('notification_outbox').selectAll().where('id', 'in', ids).execute();
+    return rows.map(toDomain);
+  }
+
   async findDue(now: Date, staleBefore: Date, limit: number): Promise<NotificationOutboxDomainInterface[]> {
     const rows = await this.db
       .selectFrom('notification_outbox')

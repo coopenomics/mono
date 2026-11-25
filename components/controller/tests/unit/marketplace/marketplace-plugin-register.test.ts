@@ -21,7 +21,7 @@ import {
   MARKETPLACE_PROGRAM_KEY,
 } from '~/extensions/marketplace/constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from '~/extensions/marketplace/application/registration/register-marketplace-in-agreement-registry';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 function makePortStub() {
   return {
@@ -33,12 +33,12 @@ function makePortStub() {
 }
 
 describe('registerMarketplaceInAgreementRegistry', () => {
-  it(`оферта регистрируется на персональный инстанс (${Cooperative.Registry.MarketplaceOffer.registry_id}), applicable_account_types пуст, true`, () => {
+  it(`оферта регистрируется на персональный инстанс (${Registry.MarketplaceOffer.registry_id}), applicable_account_types пуст, true`, () => {
     const port = makePortStub();
 
     const ok = registerMarketplaceInAgreementRegistry(port as any);
 
-    expect(MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID).toBe(Cooperative.Registry.MarketplaceOffer.registry_id);
+    expect(MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID).toBe(Registry.MarketplaceOffer.registry_id);
     expect(ok).toBe(true);
     expect(port.registerAgreement).toHaveBeenCalledTimes(1);
     const spec = port.registerAgreement.mock.calls[0][0];

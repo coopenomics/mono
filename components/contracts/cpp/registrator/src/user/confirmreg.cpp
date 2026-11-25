@@ -83,6 +83,7 @@ void registrator::confirmreg(eosio::name coopname, checksum256 registration_hash
         coop.active_participants_count = 1;
       }
     });
+    sync_branched(cooperatives, coop_itr);
   }
   
   Registrator::candidates_index candidates(_registrator, coopname.value);

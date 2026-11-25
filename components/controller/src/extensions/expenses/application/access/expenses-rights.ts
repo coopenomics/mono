@@ -41,6 +41,9 @@ const MEMBER_RIGHTS = {
   ExpenseItem: ['report', 'return'],
   ExpenseFile: ['read', 'upload'],
   ExpensePlan: ['read', 'manage'],
+  // Контрагенты (99D-35): видят совет и операторы участков, ведут совет и
+  // операторы участка — кто именно, сверяет сервис по участку контрагента.
+  ExpenseCounterparty: ['read', 'manage'],
 };
 
 /**

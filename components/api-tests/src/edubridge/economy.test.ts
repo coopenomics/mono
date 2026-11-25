@@ -78,11 +78,12 @@ describe('Образование: экономика курса — взнос, 
     for (const field of ['cost_month', 'markup_month', 'fee_month']) expect(fee[field], field).toMatch(ASSET)
   })
 
-  it(caseName('edu.econ.happy.02', 'часы считаются из минут окон: одно окно по полтора часа в неделю — 390 минут в месяц'), async () => {
+  // Месяц — четыре недели (f1331ed6655, 13.10.2026): два занятия в неделю дают восемь в месяц.
+  it(caseName('edu.econ.happy.02', 'часы считаются из минут окон: одно окно по полтора часа в неделю — 360 минут в месяц'), async () => {
     const fee = await preview({ schedule_slots: courseSlots(90, 1), program_months: 8 })
-    expect(fee.hours_per_month).toBe(6.5)
-    expect(amount(fee.cost_month)).toBe(6500)
-    expect(amount(fee.fee_month)).toBe(7800)
+    expect(fee.hours_per_month).toBe(6)
+    expect(amount(fee.cost_month)).toBe(6000)
+    expect(amount(fee.fee_month)).toBe(7200)
   })
 
   it(caseName('edu.econ.happy.03', 'целевой членский взнос задаётся на весь кооператив, предельная скидка пересчитывается'), async () => {
@@ -94,7 +95,8 @@ describe('Образование: экономика курса — взнос, 
       expect((await gql<any>(chairman, SETTINGS)).edubridgeEconomySettings).toEqual(set)
       // Новое значение действует на расчёт сразу и для совета тоже.
       const fee = (await gql<any>(await tokenOf(COUNCIL), FEE_PREVIEW, { d: BASE })).edubridgeCourseFeePreview
-      expect(amount(fee.fee_month)).toBe(13000)
+      // 8 часов по 1000 и наценка 50%.
+      expect(amount(fee.fee_month)).toBe(12000)
       expect(fee.max_course_discount_percent).toBe(33)
     }
     finally {
@@ -131,7 +133,8 @@ describe('Образование: экономика курса — взнос, 
     const saved = (await gql<any>(chairman, CREATE_COURSE, { d })).edubridgeCreateCourse
     const fees = (await gql<any>(chairman, COURSE_FEES, { id: saved.id })).edubridgeCourse
     expect(fees.course_discount_percent).toBe(limit)
-    expect(amount(fees.fee_course)).toBeGreaterThanOrEqual(69333.33)
+    // Оплата часов преподавателей за курс — 64000 (8 месяцев по 8 часов по 1000, edu.econ.happy.10).
+    expect(amount(fees.fee_course)).toBeGreaterThanOrEqual(64000)
     expect(amount(fees.fee_course)).toBeLessThan(amount(fees.fee_course_base))
   })
 
@@ -155,10 +158,12 @@ describe('Образование: экономика курса — взнос, 
     expect(amount(fees.fee_course_base)).toBe(76800)
   })
 
-  it(caseName('edu.econ.break.04', 'курс без занятий в программе не сохраняется и не считается'), async () => {
+  it(caseName('edu.econ.break.04', 'программа без конца не принимает взнос за весь курс; курс без окон расписания не сохраняется'), async () => {
+    // Ноль месяцев — программа без конца (описание поля program_months): помесячный
+    // взнос есть, взноса за весь курс нет — его не из чего считать.
     const d = courseInput(section, { ...BASE, program_months: 0, course_payment_enabled: true })
-    expectCode(await gqlError(chairman, CREATE_COURSE, { d }), '422')
-    expectCode(await gqlError(chairman, FEE_PREVIEW, { d: { ...BASE, program_months: 0 } }), '422')
+    expectCode(await gqlError(chairman, CREATE_COURSE, { d }), 'EDUBRIDGE_COURSE_LESSONS_TOTAL_REQUIRED')
+    expect((await preview({ program_months: 0 })).course_months).toBe(0)
     // Без окон расписания курс не сохраняется: из окон считаются минуты и взнос.
     expectCode(await gqlError(chairman, CREATE_COURSE, { d: courseInput(section, { ...BASE, schedule_slots: [] }) }), 'EDUBRIDGE_SCHEDULE_REQUIRED')
   })
@@ -214,12 +219,14 @@ describe('Образование: экономика курса — взнос, 
       const running = await course(-70)
       const mid = await quote(running.id)
       expect(mid.months).toBe(6)
-      expect(amount(mid.base_amount)).toBe(62400)
-      expect(amount(mid.amount)).toBe(56160)
+      expect(amount(mid.base_amount)).toBe(57600)
+      expect(amount(mid.amount)).toBe(51840)
 
       // Программа закончилась: взнос за курс не принимается.
       const finished = await course(-70, { program_months: 1 })
-      expectCode(await gqlError(token, QUOTE, COURSE_QUOTE(self.id, finished.id)), 'EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID')
+      // Набор в группу закрывается сам с дня начала занятий (d6678aef1b6): у
+      // закончившейся программы отказ — закрытый набор.
+      expectCode(await gqlError(token, QUOTE, COURSE_QUOTE(self.id, finished.id)), 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED')
 
       // Только помесячный взнос: взнос за курс закрыт, помесячный открыт.
       const monthly = await publishCourse(chairman, section, 30, BASE)

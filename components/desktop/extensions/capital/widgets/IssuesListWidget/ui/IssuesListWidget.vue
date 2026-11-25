@@ -4,13 +4,9 @@
 // Вложенный compact — без --fill, белое-на-белом визуально невидимо.
 .list-surface(:class="{ 'list-surface--fill': !compact }")
   //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
-  .issues-scroll-area(v-if='!compact', ref='scrollAreaRef')
+  .issues-scroll-area(v-if='!compact && (onLoading || issues?.items?.length)', ref='scrollAreaRef')
     // Полоска-добавлялка — только мастеру (can_manage_issues)
-    CreateIssueButton(
-      v-if='canManageIssues',
-      :project-hash='projectHash',
-      row
-    )
+    CreateIssueButton(v-if='canManageIssues', :project-hash='projectHash', row)
 
     q-table(
       ref='tableRef',
@@ -39,11 +35,14 @@
               @click='handleIssueClick'
             )
 
-      // Канон-пустое состояние вместо дефолтного q-table no-data
-      template(#no-data)
-        .list-empty
-          q-icon(name='inbox', size='20px')
-          span {{ $t('capital.issuesListWidget.emptyText') }}
+  // Пустое состояние — канон EmptyState по центру экрана
+  .empty-fill(v-else-if='!compact')
+    EmptyState(
+      :title='$t("capital.issuesListWidget.emptyTitle")',
+      :body='$t("capital.issuesListWidget.emptyBody")'
+    )
+      template(#icon)
+        q-icon(name='task_alt')
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   template(v-else)
@@ -92,6 +91,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
 import { t } from '../../../i18n';
@@ -349,16 +349,19 @@ onBeforeUnmount(() => {
   background: var(--p-surface);
 }
 
-// На вкладке задач — заполняет page-surface, скролл внутри (не 100vh)
+// На вкладке задач — заполняет page-surface, скролл внутри
 .list-surface--fill {
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-// Высота от родителя (page-surface), не от 100vh — иначе лишний скролл
-// под топбаром + табами
+// Остаток экрана: таблица продолжает быть внутренним скроллом,
+// пустое состояние (.empty-fill) — канон, по центру
 .issues-scroll-area {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

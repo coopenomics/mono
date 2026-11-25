@@ -1,11 +1,11 @@
 import { InputType, Field, IntersectionType, OmitType } from '@nestjs/graphql';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 // интерфейс параметров для генерации
-type action = Cooperative.Registry.AnnualGeneralMeetingVotingBallot.Action;
+type action = Registry.AnnualGeneralMeetingVotingBallot.Action;
 
 // Упрощенный DTO для ответов, только необходимые поля
 @InputType('AnswerInput')

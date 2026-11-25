@@ -11,6 +11,7 @@ import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { getPaymentDirection, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 import type { DB, Payments } from '../database.types';
 import { KYSELY, type Database } from '../kysely.tokens';
+import { bankSafeText } from '@coopenomics/extension-kit';
 
 type PaymentExpression = ExpressionBuilder<DB, 'payments'>;
 type Condition = Expression<SqlBool>;
@@ -103,7 +104,8 @@ function toColumns(data: PaymentDomainInterface) {
     secret: orNull(data.secret),
     message: orNull(data.message),
     expired_at: orNull(data.expired_at),
-    memo: orNull(data.memo),
+    // Назначение платежа передаётся в банк — без «ё» (bankSafeText).
+    memo: orNull(bankSafeText(data.memo)),
     payment_details: json(data.payment_details),
     blockchain_data: json(data.blockchain_data),
     statement: json(data.statement),

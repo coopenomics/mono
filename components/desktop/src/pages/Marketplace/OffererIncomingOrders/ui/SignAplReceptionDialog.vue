@@ -4,7 +4,13 @@ import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { ensureSigningUnlocked } from 'src/shared/lib/document';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
-import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
+import {
+  ActDialogLayout,
+  ActLineItem,
+  ActLinesTable,
+  ActSummaryCard,
+  type ActLinesColumn,
+} from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
@@ -99,6 +105,41 @@ const kuAddr = computed(() => {
   return kuStore.details.find((d) => d.coreBraname === b)?.addressFull ?? '';
 });
 
+// Позиции поставки на общей таблице актов — со снимком товара, как в окнах
+// приёмки и закрывающей подписи (слово владельца 01.11.2026: «изображение
+// везде»). Снятые при приёмке позиции идут отдельным блоком ниже.
+const lineColumns = computed<ActLinesColumn[]>(() => [
+  { key: 'item', label: t('marketplace.signAplReceptionDialog.productColumnLabel'), wide: true },
+  { key: 'quantity', label: t('marketplace.signAplReceptionDialog.qtyColumnLabel'), width: '160px', align: 'right' },
+  { key: 'amount', label: t('marketplace.signAplReceptionDialog.amountColumnLabel'), width: '120px', align: 'right', strong: true },
+]);
+
+const lineRows = computed(() =>
+  acceptedLines.value.map((l) => ({
+    key: l.key,
+    title: l.productName,
+    imageUrl: l.imageUrl,
+    quantity: lineQuantityLabel(l),
+    amount: `${formatAsset2Digits(l.amount.toFixed(4))} ₽`,
+  })),
+);
+
+/** Под именем участка — адрес и способ доставки одной строкой. */
+const headMeta = computed(() => [kuAddr.value, variantLabel.value].filter(Boolean).join(' · '));
+
+/** Факты сводки: накладные и сколько позиций снято при приёмке. */
+const summaryFacts = computed(() => {
+  const facts: Array<{ label: string; value: string }> = [];
+  if (props.group?.ttnNumbers.length) {
+    facts.push({ label: t('marketplace.signAplReceptionDialog.ttnLabel'), value: props.group.ttnNumbers.join(', ') });
+  }
+  if (hasRejected.value) {
+    const count = rejectedItems.value.reduce((sum, r) => sum + r.count, 0);
+    facts.push({ label: t('marketplace.signAplReceptionDialog.rejectedFactLabel'), value: t('marketplace.signAplReceptionDialog.itemsCountLabel', { count }) });
+  }
+  return facts;
+});
+
 async function loadPreview(): Promise<void> {
   if (!props.group) return;
   previewLoading.value = true;
@@ -164,49 +205,32 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
+//- Рабочая страница акта на холсте, как приёмка у оператора и закрывающая
+//- подпись председателя: шапка (процесс → участок → адрес и способ), слева
+//- позиции со снимками либо текст актов, справа сводка с итогом и кнопками.
 BaseDialog(
   :model-value="modelValue"
-  :title="$t('marketplace.signAplReceptionDialog.dialogTitle')"
   maximized
-  @update:model-value="(v) => emit('update:modelValue', v)"
+  canvas
+  hide-close-button
+  @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  ActDialogLayout(v-if="group")
-    template(#head)
-      .sign-apl__top
-        .sign-apl__ident
-          span.sign-apl__name {{ $t('marketplace.signAplReceptionDialog.deliveryToLabel', { kuName }) }}
-          span.sign-apl__addr(v-if="kuAddr")
-            q-icon(name="place", size="14px")
-            | {{ kuAddr }}
-          span.sign-apl__sub {{ variantLabel }}
-        .sign-apl__meta(v-if="group.ttnNumbers.length")
-          span.sign-apl__ttn-label
-            q-icon(name="description", size="14px")
-            | {{ group.ttnNumbers.length > 1 ? $t('marketplace.signAplReceptionDialog.ttnLabel') : $t('marketplace.signAplReceptionDialog.ttnLabel') }}
-          .sign-apl__ttn-list
-            BaseChip(v-for="n in group.ttnNumbers", :key="n", variant="neutral", size="sm") {{ n }}
-
+  ActDialogLayout(
+    v-if="group",
+    :eyebrow="$t('marketplace.signAplReceptionDialog.dialogTitle')",
+    :title="$t('marketplace.signAplReceptionDialog.deliveryToLabel', { kuName })",
+    :meta="headMeta",
+    :panel-title="hasAccepted ? $t('marketplace.signAplReceptionDialog.acceptingLabel') : $t('marketplace.signAplReceptionDialog.rejectedLabel')",
+    closable,
+    @close="cancel"
+  )
     template(v-if="!showActs")
-      .sign-apl__section-head(v-if="hasRejected && hasAccepted") {{ $t('marketplace.signAplReceptionDialog.acceptingLabel') }}
-      table.act-table(v-if="hasAccepted")
-        thead
-          tr
-            th {{ $t('marketplace.signAplReceptionDialog.productColumnLabel') }}
-            th.num {{ $t('marketplace.signAplReceptionDialog.qtyColumnLabel') }}
-            th.num {{ $t('marketplace.signAplReceptionDialog.amountColumnLabel') }}
-        tbody
-          tr(v-for="l in acceptedLines", :key="l.key")
-            td {{ l.productName }}
-            td.num {{ lineQuantityLabel(l) }}
-            td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
-        tfoot
-          tr
-            td {{ $t('marketplace.signAplReceptionDialog.totalToAcceptLabel') }}
-            td.num
-            td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
+      ActLinesTable(v-if="hasAccepted", :columns="lineColumns", :rows="lineRows")
+        template(#cell-item="{ row }")
+          ActLineItem(:title="row.title", :image-url="row.imageUrl")
 
       .sign-apl__refuse(v-if="hasRejected")
-        .sign-apl__section-head.sign-apl__section-head--neg
+        .sign-apl__section-head.sign-apl__section-head--neg(v-if="hasAccepted")
           q-icon(name="block", size="16px")
           | {{ $t('marketplace.signAplReceptionDialog.rejectedLabel') }}
         ul.sign-apl__refuse-list
@@ -218,105 +242,62 @@ BaseDialog(
           | {{ $t('marketplace.signAplReceptionDialog.rejectedHintRefund') }}
           | {{ $t('marketplace.signAplReceptionDialog.rejectedHintNoCharge') }}
 
+    //- Канон загрузки: скелетон, а не спиннер поверх контента.
     .sign-apl__preview(v-else)
-      q-inner-loading(:showing="previewLoading")
-        q-spinner(size="28px")
-      div(v-if="previewHtml", v-html="sanitizeDocumentHtml(previewHtml)")
+      .sign-apl__preview-skel(v-if="previewLoading && !previewHtml")
+        .skel.skel--title
+        .skel.skel--text(v-for="n in 8", :key="n")
+      div(v-else-if="previewHtml", v-html="sanitizeDocumentHtml(previewHtml)")
 
-  template(#footer)
-    BaseButton(variant="ghost", :disabled="signing", @click="cancel") {{ $t('common.action.cancel') }}
-    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group || !hasAccepted", @click="toggleActs")
-      template(#icon-left)
-        q-icon(name="description", size="18px")
-      | {{ showActs ? $t('marketplace.signAplReceptionDialog.hideActsAction') : $t('marketplace.signAplReceptionDialog.showActsAction') }}
-    BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
-      template(#icon-left)
-        q-icon(name="draw", size="18px")
-      span(v-if="signing && group") {{ $t('marketplace.signAplReceptionDialog.signProgressLabel', { done, total: deliveriesCount }) }}
-      span(v-else) {{ confirmLabel }}
+    template(#aside)
+      ActSummaryCard(
+        :eyebrow="$t('marketplace.signAplReceptionDialog.asideTitle')",
+        :facts="summaryFacts",
+        :total-label="$t('marketplace.signAplReceptionDialog.totalToAcceptLabel')",
+        :total="`${formatAsset2Digits(group.totalAmount)} ₽`"
+      )
+        template(#actions)
+          BaseButton(block, variant="primary", :loading="signing", @click="confirm")
+            template(#icon-left)
+              q-icon(name="draw", size="18px")
+            span(v-if="signing") {{ $t('marketplace.signAplReceptionDialog.signProgressLabel', { done, total: deliveriesCount }) }}
+            span(v-else) {{ confirmLabel }}
+          BaseButton(block, variant="secondary", :loading="previewLoading", :disabled="!hasAccepted", @click="toggleActs")
+            template(#icon-left)
+              q-icon(name="description", size="18px")
+            | {{ showActs ? $t('marketplace.signAplReceptionDialog.hideActsAction') : $t('marketplace.signAplReceptionDialog.showActsAction') }}
+          BaseButton(block, variant="ghost", :disabled="signing", @click="cancel") {{ $t('common.action.cancel') }}
 </template>
 
 <style scoped lang="scss">
 .sign-apl {
-  &__top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    flex-wrap: wrap;
-  }
-
-  &__ident {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  &__name {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 600;
-    color: var(--p-ink);
-    overflow-wrap: break-word;
-  }
-
-  &__addr {
-    display: flex;
-    align-items: center;
-    gap: var(--p-1, 4px);
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    overflow-wrap: break-word;
-
-    .q-icon {
-      flex: 0 0 auto;
-      color: var(--p-ink-3);
-    }
-  }
-
-  &__sub {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-3);
-  }
-
-  &__meta {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-    align-items: flex-end;
-  }
-
-  &__ttn-label {
-    display: flex;
-    align-items: center;
-    gap: var(--p-1, 4px);
-    font-size: var(--p-fs-meta, 12px);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--p-ink-3);
-
-    .q-icon {
-      color: var(--p-ink-3);
-    }
-  }
-
-  &__ttn-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-1, 4px);
-    justify-content: flex-end;
-    font-variant-numeric: tabular-nums;
-  }
-
-  // Состав поставки — накладной в рамке, как на карточках у оператора: одна и
-  // та же поставка выглядит одинаково по обе стороны подписи (просьба
-  // владельца 2026-09-09). Количество идёт упаковками, как принимали.
+  // Текст актов на месте таблицы позиций — в той же карточке.
   &__preview {
     position: relative;
     min-height: 120px;
     max-height: 55vh;
     overflow: auto;
+  }
+
+  // Каркас документа держит высоту, пока акты загружаются.
+  &__preview-skel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) 0;
+
+    .skel--title {
+      width: 46%;
+      margin-bottom: var(--p-2, 8px);
+    }
+
+    .skel--text:nth-child(even) {
+      width: 92%;
+    }
+
+    .skel--text:nth-child(odd) {
+      width: 78%;
+    }
   }
 
   &__section-head {

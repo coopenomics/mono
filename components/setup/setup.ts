@@ -118,7 +118,6 @@ async function setupDevelopment(): Promise<void> {
   // 2. Сборка shared-библиотек
   step('Сборка shared-библиотек')
   await run(`pnpm --filter cooptypes run build`, 'cooptypes')
-  await run(`pnpm --filter @coopenomics/factory run build`, 'factory')
   await run(`pnpm --filter @coopenomics/sdk run build`, 'sdk')
   await run(`pnpm --filter @coopenomics/notifications run build`, 'notifications')
   ok('Shared-библиотеки собраны')
@@ -163,7 +162,6 @@ async function setupTestnet(): Promise<void> {
   // 2. Сборка библиотек
   step('Сборка shared-библиотек')
   await run(`pnpm --filter cooptypes run build`, 'cooptypes')
-  await run(`pnpm --filter @coopenomics/factory run build`, 'factory')
   await run(`pnpm --filter @coopenomics/sdk run build`, 'sdk')
   await run(`pnpm --filter @coopenomics/notifications run build`, 'notifications')
   ok('Shared-библиотеки собраны')
@@ -256,7 +254,6 @@ async function setupProduction(): Promise<void> {
 BASE_URL=https://${answers.domain}
 PORT=2998
 SERVER_SECRET=${answers.serverSecret}
-MONGODB_URL=mongodb://mongo:27017/cooperative-x
 COOPNAME=${answers.coopname}
 JWT_SECRET=${answers.jwtSecret}
 JWT_ACCESS_EXPIRATION_MINUTES=864000
@@ -303,7 +300,6 @@ BPACCOUNT=eosio
 PASSWORD=PW5JGe4WsTPGrjnMzkGd4wfVdzoHCEySgbyq2WBWGAxSfevbXqAG4
 SERVER_SECRET=${answers.serverSecret}
 SERVER_URL=http://coopback:2998
-MONGO_URI=mongodb://mongo:27017/cooperative-x
 SKIP_BLOCK_FETCH=TRUE
 POSTGRES_HOST=pg
 POSTGRES_PORT=5432
@@ -319,7 +315,6 @@ POSTGRES_DATABASE=${answers.coopname}
   // 2. Сборка
   step('Сборка shared-библиотек')
   await run(`pnpm --filter cooptypes run build`, 'cooptypes')
-  await run(`pnpm --filter @coopenomics/factory run build`, 'factory')
   await run(`pnpm --filter @coopenomics/sdk run build`, 'sdk')
   await run(`pnpm --filter @coopenomics/notifications run build`, 'notifications')
   ok('Shared-библиотеки собраны')

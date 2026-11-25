@@ -6,6 +6,9 @@ import { EntityName as ExpenseFilesTable } from '../../infrastructure/entities/e
 /** Имя таблицы плановых расходов (`ExpensePlanEntity`). */
 const EXPENSE_PLANS_TABLE = 'expense_plans';
 
+/** Имя таблицы контрагентов (`ExpenseCounterpartyRecord`). */
+const EXPENSE_COUNTERPARTIES_TABLE = 'expense_counterparties';
+
 /**
  * Таблицы расходов в ленте изменений: реестр служебных записок на столе совета
  * и столах участка перечитывается сам, когда предложение создано, утверждено,
@@ -24,6 +27,9 @@ export class ExpensesLiveFeedService implements OnModuleInit {
       { code: 'expenses', table: ExpenseFilesTable, owner_field: 'uploaded_by_username' },
       // Плановые расходы открыты пайщикам (резерв средств участка и кооператива).
       { code: 'expenses', table: EXPENSE_PLANS_TABLE },
+      // Контрагенты: реестр на столе совета и выбор получателя обновляются сами.
+      // Сигнал несёт только имя таблицы — реквизиты читаются запросом с проверкой прав.
+      { code: 'expenses', table: EXPENSE_COUNTERPARTIES_TABLE },
     ]);
   }
 }

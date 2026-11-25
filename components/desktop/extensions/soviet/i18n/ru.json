@@ -12,8 +12,9 @@
       "meetsRegistryTitle": "Реестр собраний",
       "participantTitle": "Пайщик",
       "participantsRegistryTitle": "Реестр пайщиков",
-      "paymentsRegistryTitle": "Реестр платежей",
-      "title": "Стол совета"
+      "title": "Стол совета",
+      "counterpartiesTitle": "Реестр контрагентов",
+      "powersOfAttorneyTitle": "Доверенности"
     }
   }
 }

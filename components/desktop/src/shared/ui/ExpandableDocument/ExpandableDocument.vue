@@ -33,14 +33,17 @@ defineProps({
 </script>
 
 <style lang="scss" scoped>
+// Волосяная рамка канона: прежний сырой #f0f0f0 в тёмной теме горел яркой
+// светлой обводкой вокруг документа.
 .expandable-document {
   width: 100%;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-lg);
 
   :deep(.document-header) {
     font-weight: 500;
-    border-radius: 8px;
+    border-radius: var(--p-r-lg);
 
     .q-icon {
       color: var(--q-primary);

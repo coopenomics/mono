@@ -43,9 +43,6 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       '@': path.resolve(rootDir, 'src'),
-      // Движок бланка фабрики документов: тот же, что собирает бланки для
-      // совета. Сайт берёт его как есть и шаблоны из cooptypes не меняет.
-      '@factory-templator': path.resolve(monoRoot, 'components', 'factory', 'src', 'Services', 'Templator', 'index.ts'),
     },
     dedupe: ['nunjucks'],
   },
@@ -67,7 +64,6 @@ export default defineConfig(({ command }) => ({
       allow: [
         rootDir,
         path.resolve(rootDir, '..', 'cpp'),
-        path.resolve(monoRoot, 'components', 'factory', 'src', 'Services', 'Templator'),
       ],
     },
   },

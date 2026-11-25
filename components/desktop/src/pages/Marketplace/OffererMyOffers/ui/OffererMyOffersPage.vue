@@ -319,11 +319,11 @@ q-page.my-offers(role="region", :aria-label="$t('marketplace.offererMyOffersPage
 
 <style scoped lang="scss">
 .my-offers {
-  padding: var(--p-6, 24px) var(--p-4, 16px);
+  padding: var(--p-6, 24px);
 
+  // Во всю ширину, как остальные страницы стола: колонка 1120 px по центру
+  // оставляла пустые поля по бокам (замечание владельца 19.11.2026).
   &__col {
-    max-width: 1120px;
-    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);

@@ -212,19 +212,10 @@ function useFeeLabels(fee: Ref<ICourseFee | null>, coursePayment: Ref<boolean>, 
       : COURSE_FORM_HELP.coursePayment,
   );
   const courseFeeShown = computed(() => coursePayment.value && (fee.value?.course_months ?? 0) > 0);
-  /** У программы с концом полная сумма для обучающегося видна всегда: разом со скидкой либо помесячно за всю программу. */
-  const programFeeShown = computed(() => (fee.value?.course_months ?? 0) > 0);
-  const courseFeeLabel = computed(() => {
-    if (courseFeeShown.value) return i18nT('edubridge.useCourseForm.courseFeeLabelWithMonths', { courseMonths: courseMonthsLabel.value });
-    if (programFeeShown.value) return i18nT('edubridge.useCourseForm.programFeeLabel', { courseMonths: courseMonthsLabel.value });
-    return i18nT('edubridge.useCourseForm.courseFeeLabel');
-  });
-  const courseFeeValue = computed(() => {
-    if (!fee.value || !programFeeShown.value) return '';
-    return courseFeeShown.value ? fee.value.fee_course : fee.value.fee_course_base;
-  });
+  /** У программы с концом полная сумма за всю программу видна всегда: помесячные взносы, сложенные за все месяцы. */
+  const programFeeValue = computed(() => ((fee.value?.course_months ?? 0) > 0 ? fee.value?.fee_course_base ?? '' : ''));
 
-  return { discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel, courseFeeValue };
+  return { discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, programFeeValue };
 }
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */

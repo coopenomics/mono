@@ -1,5 +1,6 @@
-import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
-import { Inject, Injectable } from '@nestjs/common';
+import { rethrowChainError, DomainError, standDaySeconds } from '@coopenomics/extension-kit';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { MARKETPLACE_SUPPLIER_REGISTRY_SERVICE, type MarketplaceSupplierRegistryService } from './marketplace-supplier-registry.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { LOGGER_PORT, type ILoggerPort,
@@ -128,9 +129,11 @@ export interface MarketplaceOrderPreparedLine {
  *      +consumed=lifetime сразу для UI каталога (Story 3.5 не должен
  *      показать Offer как «доступный K единиц» в момент гонки).
  *
- *   4. Chain submit `createorder` через canonical adapter. Один шаг
- *      в C++ `ledger2::apply`: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order,
- *      Дт 80 / Кт 86). Любой `eosio::check` фейл = exception → backend ловит,
+ *   4. Chain submit `createorder` через canonical adapter. Контракт берёт
+ *      обеспечительную часть (o.mkt.fee) и тело (o.mkt.lockp) только со
+ *      свободного паевого «Стола заказов»; с Цифрового кошелька средства
+ *      приходят только трансляцией по заявлению 1110 (задача 99D-18), поэтому
+ *      без неё заказ сверх свободного паевого отвергается. Любой `eosio::check` фейл = exception → backend ловит,
  *      выполняет compensating `onOrderRolledBack` и пробрасывает clean
  *      error пайщику.
  *
@@ -166,7 +169,12 @@ export class MarketplaceOrderCreateService {
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    // Новый заказ на приостановленного поставщика не оформляется: позиция,
+    // положенная в корзину до приостановки, получает понятный отказ.
+    @Optional()
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService | null = null
   ) {
     this.logger.setContext(MarketplaceOrderCreateService.name);
   }
@@ -217,6 +225,7 @@ export class MarketplaceOrderCreateService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw DomainError.badRequest('MARKETPLACE_ORDER_OFFER_NOT_ACTIVE', { status: offer.status });
     }
+    await this.supplierRegistry?.assertNotSuspended(input.coopname, offer.supplier_account, 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED');
     // Эпик 18: разрешаем способ отпуска в базовое количество/цену/упаковку.
     // По мере — quantity как базовое количество; упаковкой — quantity как число
     // упаковок, базовое = число × содержимое, цена — за упаковку.
@@ -237,7 +246,9 @@ export class MarketplaceOrderCreateService {
     const total_cost_amount = this.computeTotalCostAmount(resolved, offer.unit_of_measure);
     const unit_price_asset = this.formatAsset(resolved.unitPrice);
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
-    const warranty_period_secs = offer.warranty_days * 86_400;
+    // Сутки — по шкале времени стенда: в работе настоящие, на стенде разработки
+    // сжатые, чтобы гарантия и списание обеспечительной части проходились за минуты.
+    const warranty_period_secs = offer.warranty_days * standDaySeconds();
 
     // ── 3. Optimistic counter (синхронно ДО chain submit) ──────────
     const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity, packageDelta);

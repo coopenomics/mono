@@ -1,12 +1,12 @@
-import type { Cooperative } from 'cooptypes';
+import type { IBankAccount, IEntrepreneurData, IIndividualData } from '@coopenomics/docs-templates';
 import type { CreateOrganizationDataInputDomainInterface } from './create-organization-data-input-domain.interface';
 
 export interface RegisterAccountDomainInterface {
   email: string;
-  entrepreneur_data?: Omit<Cooperative.Users.IEntrepreneurData, 'username'> & {
-    bank_account: Cooperative.Payments.IBankAccount;
+  entrepreneur_data?: Omit<IEntrepreneurData, 'username'> & {
+    bank_account: IBankAccount;
   };
-  individual_data?: Omit<Cooperative.Users.IIndividualData, 'username'>;
+  individual_data?: Omit<IIndividualData, 'username'>;
   organization_data?: CreateOrganizationDataInputDomainInterface;
   public_key: string;
   referer?: string;

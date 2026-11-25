@@ -3,6 +3,7 @@ import { Mutations } from '@coopenomics/sdk';
 import type {
   IApproveKuTrustedInput,
   IDeclineKuTrustedInput,
+  IGenerateKuTrustedPowerOfAttorneyInput,
   IRequestKuTrustedInput,
 } from '../model/types';
 
@@ -27,7 +28,16 @@ async function declineTrusted(data: IDeclineKuTrustedInput) {
   return result;
 }
 
+async function generateTrustedPowerOfAttorney(data: IGenerateKuTrustedPowerOfAttorneyInput) {
+  const { [Mutations.Ku.GenerateTrustedPowerOfAttorney.name]: result } = await client.Mutation(
+    Mutations.Ku.GenerateTrustedPowerOfAttorney.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
 export const api = {
+  generateTrustedPowerOfAttorney,
   requestTrusted,
   approveTrusted,
   declineTrusted,

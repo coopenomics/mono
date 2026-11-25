@@ -24,6 +24,17 @@ void meet::gmnotify(name coopname, checksum256 hash, name username, document2 no
     auto meet_itr = meet_idx.find(hash);
     eosio::check(meet_itr != meet_idx.end(), "Собрание не найдено");
 
+    // Собрание уполномоченных по закреплённой форме: получение уведомления
+    // подтверждают председатели участков, входящих в собрание. Собрания без
+    // формы (одобрены до её появления) подтверждаются по прежним правилам.
+    if (meet_itr->form.has_value() && meet_itr->form.value().is_branched) {
+        auto branch = Branch::get_trustee_branch(coopname, username);
+        eosio::check(branch.has_value(),
+                     "MEET_NOT_TRUSTEE: Уведомление о собрании уполномоченных подтверждают только председатели кооперативных участков");
+        eosio::check(!branch->is_created_after(meet_itr->form.value().fixed_at),
+                     "MEET_BRANCH_NOT_IN_MEET: Кооперативный участок создан после объявления собрания и в собрании не участвует");
+    }
+
     // Проверяем, что пользователь ещё не уведомлял
     const auto& notified = meet_itr->notified_users;
     eosio::check(std::find(notified.begin(), notified.end(), username) == notified.end(), "Пользователь уже подписал уведомление");

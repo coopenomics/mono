@@ -28,6 +28,8 @@ export const rawIssuanceSagaSelector = {
   id: true,
   order_id: true,
   order_hash: true,
+  product_name: true,
+  image_url: true,
   proposal_id: true,
   member_account: true,
   operator_account: true,

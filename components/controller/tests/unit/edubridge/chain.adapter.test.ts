@@ -1,6 +1,6 @@
 /** Адаптер цепи edubridge: документы уходят в контракт с `meta` строкой JSON — иначе синхронизатор одобрений совета их не разбирает. */
 import { EdubridgeChainAdapter } from '~/extensions/edubridge/infrastructure/adapters/edubridge-chain.adapter';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 function make() {
   const chain = { initialize: jest.fn(), transact: jest.fn(async (a: any) => a), getSingleRow: jest.fn(async () => null) } as any;
@@ -13,10 +13,10 @@ const doc = (meta: unknown) => ({ version: '1.1.0', hash: 'H', doc_hash: 'D', me
 describe('EdubridgeChainAdapter — документ в цепь', () => {
   it('signcontract: meta-объект сериализуется в строку JSON, остальные поля не трогаются', async () => {
     const { adapter, chain } = make();
-    await adapter.signContract({ coopname: 'voskhod', username: 'ant', contract_hash: 'H', contract: doc({ title: 'Договор', registry_id: Cooperative.Registry.EducationParticipationContract.registry_id }) });
+    await adapter.signContract({ coopname: 'voskhod', username: 'ant', contract_hash: 'H', contract: doc({ title: 'Договор', registry_id: Registry.EducationParticipationContract.registry_id }) });
     const action = chain.transact.mock.calls[0][0];
     expect(action.name).toBe('signcontract');
-    expect(action.data.contract.meta).toBe(JSON.stringify({ title: 'Договор', registry_id: Cooperative.Registry.EducationParticipationContract.registry_id }));
+    expect(action.data.contract.meta).toBe(JSON.stringify({ title: 'Договор', registry_id: Registry.EducationParticipationContract.registry_id }));
     expect(action.data.contract.hash).toBe('H');
     expect(action.data.contract_hash).toBe('H');
   });

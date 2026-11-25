@@ -1,6 +1,6 @@
 {
   "name": "migrator",
-  "version": "2026.10.23",
+  "version": "2026.11.25",
   "description": "Утилита миграции данных между версиями",
   "private": true,
   "type": "module",
@@ -12,9 +12,10 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "@coopenomics/factory": "workspace:*",
+    "@coopenomics/docs-factory": "1.6.15",
+    "@coopenomics/docs-templates": "1.6.15",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",

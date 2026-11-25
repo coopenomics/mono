@@ -134,7 +134,7 @@ export class KuDecisionKyselyRepository
     if (filter?.status) where.status = filter.status;
     if (filter?.braname) where.braname = filter.braname;
     if (filter?.initiator) where.initiator = filter.initiator;
-    if (filter?.present !== undefined) where.present = filter.present;
+    if (filter?.present != null) where.present = filter.present;
 
     const totalCount = await this.repository.count(where);
 

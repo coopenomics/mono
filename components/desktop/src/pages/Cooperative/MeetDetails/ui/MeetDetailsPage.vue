@@ -5,9 +5,12 @@
     q-icon(name='arrow_back', size='18px')
     span {{ $t('cooperative.meetDetailsPage.backLabel') }}
 
+  //- Каркас повторяет раскладку: шапка, затем основное содержание и сведения.
   div(v-if='loading')
-    q-skeleton.q-mb-md.rounded-borders(type='rect', height='220px')
-    q-skeleton.q-mb-md.rounded-borders(type='rect', height='140px', v-for='i in 2', :key='i')
+    span.skel.meet-skel.meet-skel--header
+    .meet-layout
+      span.skel.meet-skel.meet-skel--main
+      span.skel.meet-skel.meet-skel--aside
 
   EmptyState(
     v-else-if='!meet',
@@ -17,42 +20,49 @@
     template(#icon)
       q-icon(name='search_off', size='48px')
 
-  div(v-else)
-    MeetDetailsInfo.q-mb-lg(:meet='meet')
+  template(v-else)
+    //- Шапка: шаг собрания и действие шага для вошедшего.
+    MeetHeader.meet-details-page__header(:meet='meet')
       template(#actions)
+        SignNotificationButton(
+          v-if='showAgenda && canNotify',
+          :coopname='coopname',
+          :meetHash='meetHash'
+        )
         MeetDetailsActions(
           :meet='meet',
           :coopname='coopname',
           :meet-hash='meetHash'
         )
-    template(v-if='isProcessed')
-      MeetDetailsResults.q-mb-lg(:meet='meet')
 
-    template(v-else)
-      MeetDetailsAgenda.q-mb-lg(
-        v-if='showAgenda',
-        :meet='meet',
-        :coopname='coopname',
-        :meet-hash='meetHash'
-      )
-      MeetDetailsVoting.q-mb-lg(
-        v-if='isVotingNow',
-        :meet='meet',
-        :coopname='coopname',
-        :meet-hash='meetHash'
-      )
+    //- Основное содержание слева — повестка, голосование или результаты;
+    //- сведения собрания справа. На узком экране — один столбец.
+    .meet-layout
+      .meet-layout__main
+        MeetDetailsResults(v-if='showResults', :meet='meet')
+        MeetDetailsVoting(
+          v-else-if='isVotingNow',
+          :meet='meet',
+          :coopname='coopname',
+          :meet-hash='meetHash'
+        )
+        MeetDetailsAgenda(v-else, :meet='meet')
+      aside.meet-layout__aside
+        MeetFacts(:meet='meet')
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, computed, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { MeetDetailsInfo } from 'src/widgets/Meets/MeetDetailsInfo';
+import { MeetHeader } from 'src/widgets/Meets/MeetHeader';
+import { MeetFacts } from 'src/widgets/Meets/MeetFacts';
+import { SignNotificationButton } from 'src/features/Meet/SignNotification/ui';
 import { MeetDetailsActions } from 'src/widgets/Meets/MeetDetailsActions';
 import { MeetDetailsAgenda } from 'src/widgets/Meets/MeetDetailsAgenda';
 import { MeetDetailsVoting } from 'src/widgets/Meets/MeetDetailsVoting';
 import { MeetDetailsResults } from 'src/widgets/Meets/MeetDetailsResults';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { useMeetStore, MEET_LIVE_TABLES } from 'src/entities/Meet';
+import { useMeetStore, MEET_LIVE_TABLES, canSignNotification, useMeetBoundaryReload } from 'src/entities/Meet';
 import { useDesktopStore } from 'src/entities/Desktop';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
@@ -78,6 +88,17 @@ const meetTitle = computed(() => {
 });
 
 const isProcessed = computed(() => !!meet.value?.processed);
+// После закрытия голосования главное содержание — результаты: счёт голосов
+// виден уже на подписании протокола, итог «принято» — после утверждения.
+const AFTER_VOTING: string[] = [
+  Zeus.ExtendedMeetStatus.VOTING_COMPLETED,
+  Zeus.ExtendedMeetStatus.PRECLOSED,
+  Zeus.ExtendedMeetStatus.EXPIRED_NO_QUORUM,
+  Zeus.ExtendedMeetStatus.CLOSED,
+];
+const showResults = computed(
+  () => isProcessed.value || AFTER_VOTING.includes(meet.value?.processing?.extendedStatus ?? ''),
+);
 
 const showAgenda = computed(
   () =>
@@ -86,6 +107,8 @@ const showAgenda = computed(
 );
 
 const { isVotingNow, setMeet } = useVoteOnMeet();
+// Подтверждение уведомления на собрании уполномоченных — только у председателей участков.
+const canNotify = computed(() => canSignNotification(meet.value));
 
 const loadMeetDetails = async (silent = false) => {
   try {
@@ -97,6 +120,11 @@ const loadMeetDetails = async (silent = false) => {
       { silent },
     );
     if (meet.value) setMeet(meet.value);
+    // Собрание созвано повторно: сервер вернул действующий созыв под новым
+    // хэшем — адрес страницы переводится на него, ссылка по старому не пустует.
+    const actualHash = meet.value?.hash;
+    if (actualHash && actualHash.toUpperCase() !== meetHash.value.toUpperCase())
+      void router.replace({ name: route.name ?? undefined, params: { ...route.params, hash: actualHash } });
   } catch (error: any) {
     // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
     if (!silent) FailAlert(error);
@@ -136,12 +164,63 @@ useLiveReload(
   () => loadMeetDetails(true),
 );
 
+// Открытие и закрытие голосования событием цепи не являются: страница сама
+// перечитывает собрание в эти моменты.
+useMeetBoundaryReload(
+  () => (meet.value ? [meet.value] : []),
+  () => loadMeetDetails(true),
+);
+
 onUnmounted(() => {
   desktopStore.clearPageTitleOverride();
 });
 </script>
 
 <style lang="scss" scoped>
+.meet-details-page__header {
+  margin-bottom: var(--p-5, 20px);
+}
+
+.meet-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--p-5, 20px);
+  align-items: start;
+}
+
+.meet-layout__aside {
+  position: sticky;
+  top: var(--p-4, 16px);
+}
+
+.meet-skel {
+  display: block;
+  width: 100%;
+  border-radius: var(--p-r-lg, 16px);
+}
+.meet-skel--header {
+  height: 96px;
+  margin-bottom: var(--p-5, 20px);
+}
+.meet-skel--main {
+  height: 360px;
+}
+.meet-skel--aside {
+  height: 280px;
+}
+
+@media (max-width: 1024px) {
+  .meet-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  // На узком экране сведения идут первыми: явка и ведущие важнее длинной повестки.
+  .meet-layout__aside {
+    position: static;
+    order: -1;
+  }
+}
+
 /* Полная ширина контента, как на canon-страницах документов/платежей. */
 .meet-details-page {
   padding: var(--p-6, 24px);

@@ -1,6 +1,8 @@
 <template lang="pug">
 .wallet-page
   WalletProgramWidget
+  //- Под кошельками — что в работе и история движений; карточка кошелька отбирает историю.
+  WalletActivityWidget
 
   //- Действия страницы в шапке — через canon Teleport в слот-host шапки.
   //- defer: target (#header-actions-host) живёт в layout-шапке, смонтированной
@@ -14,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-import { WalletProgramWidget } from 'src/widgets/Wallet';
+import { WalletActivityWidget, WalletProgramWidget } from 'src/widgets/Wallet';
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import { WithdrawButton } from 'src/features/Wallet/WithdrawFromWallet';
 import { useWindowSize } from 'src/shared/hooks';

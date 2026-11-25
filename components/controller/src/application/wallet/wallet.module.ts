@@ -13,6 +13,8 @@ import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastruct
 import { WalletDomainAdapter } from '~/infrastructure/wallet/adapters/wallet-domain.adapter';
 import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
 import { CoreRightsModule } from '../rights/core-rights.module';
+import { Ledger2Module } from '../ledger2/ledger2.module';
+import { WalletActivityService } from './services/wallet-activity.service';
 
 /**
  * Модуль wallet для управления выводом средств, депозитными платежами, генерацией документов и программными кошельками
@@ -25,6 +27,8 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     UserInfrastructureModule,
     UserDomainModule,
     AccountInfrastructureModule,
+    // История учётной книги для движений по кошелькам пайщика.
+    Ledger2Module,
   ],
   providers: [
     WalletResolver,
@@ -34,6 +38,7 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     ProgramWalletSyncService,
     ProgramWalletInitService,
     WalletEventsService,
+    WalletActivityService,
     {
       provide: WALLET_DOMAIN_PORT,
       useClass: WalletDomainAdapter,

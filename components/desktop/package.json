@@ -1,6 +1,7 @@
 {
   "name": "@coopenomics/desktop",
-  "version": "2026.10.23",
+  "license": "SEE LICENSE IN LICENSE",
+  "version": "2026.11.25",
   "description": "Рабочий стол кооператива — Vue 3 + Quasar Framework",
   "productName": "Desktop App",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
@@ -26,6 +27,7 @@
   },
   "dependencies": {
     "@coopenomics/auth": "workspace:*",
+    "@coopenomics/docs-templates": "1.6.15",
     "@coopenomics/i18n": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/sdk": "workspace:*",

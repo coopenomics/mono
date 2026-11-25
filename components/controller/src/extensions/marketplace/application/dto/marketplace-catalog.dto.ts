@@ -19,6 +19,14 @@ export class MarketplaceListCatalogInputDTO extends PaginationInputDTO {
   @IsOptional()
   @IsString()
   public delivery_braname?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Учётная запись поставщика. Если задана — в каталоге остаются только его предложения.',
+  })
+  @IsOptional()
+  @IsString()
+  public supplier_account?: string | null;
 }
 
 @ObjectType('MarketplaceCategoryOfferCount')

@@ -12,6 +12,7 @@ import { ProcessRegistryService } from '~/domain/process-registry/services/proce
 import { ProcessViewDTO } from '@coopenomics/extension-kit';
 import { ProcessSummaryDTO } from '@coopenomics/extension-kit';
 import { ProcessesFilterInput } from '@coopenomics/extension-kit';
+import { ProcessContentDTO, processContentRegistry } from '@coopenomics/extension-kit';
 
 const paginatedProcesses = PaginatedProcessSummary;
 
@@ -30,6 +31,23 @@ export class ProcessRegistryResolver {
     @Args('coopname') coopname: string
   ): Promise<ProcessViewDTO> {
     return this.processRegistryService.getProcess(hash, coopname) as unknown as Promise<ProcessViewDTO>;
+  }
+
+  @Query(() => ProcessContentDTO, {
+    name: 'processContent',
+    nullable: true,
+    description:
+      'Содержание процесса словами предметной области: имущество, стороны, суммы, состояние. Пусто, если приложение процесса содержание не описывает',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Process', 'read:all')
+  async getProcessContent(
+    @Args('hash') hash: string,
+    @Args('coopname') coopname: string,
+    @Args('process_type') processType: string
+  ): Promise<ProcessContentDTO | null> {
+    // Содержание описывает приложение процесса; иначе общее — из сводки процесса.
+    return processContentRegistry.describe(hash, coopname, processType);
   }
 
   @Query(() => paginatedProcesses, {

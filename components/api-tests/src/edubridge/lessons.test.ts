@@ -22,6 +22,10 @@ import { exitReturnPreview } from '../membership/exit-documents.helpers'
 import { addSbpMethod } from '../payments/payments.helpers'
 import {
   ALL_CONTRIBUTIONS,
+  CLOSE_CONTRIBUTION,
+  MY_ENROLLMENTS,
+  REFUND_PREVIEW,
+  REWORK_CONTRIBUTION,
   CLOSE_ASSIGNMENT,
   CREATE_ASSIGNMENT,
   CREATE_COURSE,
@@ -82,6 +86,8 @@ describe('Образование: занятия и взносы препода�
   /** Курс без гарантийного срока: заявление уходит совету сразу. */
   let now: any
   let nowAssignment: any
+  /** Ученик обоих курсов: по его подписке сверяется, что отказ совета расчёт занятия не меняет. */
+  let learnerToken = ''
   /** Курс с идущим гарантийным сроком: заявление держится. */
   let held: any
   let heldInput: Record<string, unknown>
@@ -117,7 +123,7 @@ describe('Образование: занятия и взносы препода�
     // Занятия оплачены учеником до отчётов: расчёт занятия контракт ведёт по
     // подпискам, оплаченным на дату занятия. Месяц — восемь часовых занятий.
     const learner = freshMember({ prefix: 'edun' })
-    const learnerToken = await login(learner)
+    learnerToken = await login(learner)
     await signOffer(learner, learnerToken, 'PARENT')
     const self = await addLearner(learnerToken, 'Ученик двух курсов', true)
     await fundShare(learner, learnerToken, amount(now.fee_month) * 3)
@@ -145,7 +151,8 @@ describe('Образование: занятия и взносы препода�
 
     it(caseName('edu.teach.break.04', 'повторный отчёт по занятию, отчёт по отменённому и по неизвестному занятию отклоняются'), async () => {
       const { group } = await groupOfAssignment(token, nowAssignment.id)
-      const mine = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id)
+      // Календарь заводит занятия группы заранее: отчитанное — то, что проведено.
+      const mine = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id && l.status === 'HELD')
       const report = (lessonId: string) => gqlError(token, REPORT_LESSON, { d: { lesson_id: lessonId, materials: ['https://example.org/x'] } })
       expectCode(await report(mine[0].id), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
       // Отменённое администратором занятие освобождает номер: отчёта по нему нет.
@@ -325,48 +332,80 @@ describe('Образование: занятия и взносы препода�
       expect(amount((await gql<any>(token, SETTLEMENT)).edubridgeMySettlement.program_share)).toBe(LESSON_COST - 400)
     })
 
-    it(caseName('edu.teach.side.11', 'отказ в приёме — только отказом совета: отдельной операции отказа у председателя нет, отказ совета контракт исполняет сам'), async () => {
+    // Решение владельца 25.11.2026: расчёт с преподавателем подписки обучающихся не
+    // затрагивает. Взнос не принят — он возвращён на доработку и ждёт повторной
+    // подачи без срока; без приёма расчёт закрывает только председатель.
+    it(caseName('edu.teach.side.11', 'отказ совета возвращает взнос преподавателю на доработку: отдельной операции отказа у председателя нет, расчёт с обучающимися не меняется'), async () => {
       expect((await mine(second.id)).status, 'заявление на рассмотрении совета').toBe('SUBMITTED')
+      const subscription = ((await gql<any>(learnerToken, MY_ENROLLMENTS)).edubridgeMyEnrollments as any[]).find(e => e.course_id === now.id)
+      const before = (await gql<any>(learnerToken, REFUND_PREVIEW, { id: subscription.id })).edubridgeRefundPreview
 
-      // Совет отклонил вопрос: обратный вызов контракта снял материалы с хранения, взнос закрыт без участия председателя.
       await councilDeclinesRid(await agendaWith(second.rid_hash))
-      const declined = await waitFor(async () => {
+      const returned = await waitFor(async () => {
         const c = await mine(second.id)
-        return c?.status === 'DECLINED' ? c : null
-      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'отказ совета исполнен' })
-      expect(declined).toMatchObject({ status: 'DECLINED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null })
-      expect(declined.decline_reason, 'основание — причина совета').toBeTruthy()
+        return c?.status === 'RETURNED' ? c : null
+      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'взнос возвращён на доработку' })
+      expect(returned).toMatchObject({ status: 'RETURNED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null, rid_hash: second.rid_hash })
+      expect(returned.decline_reason, 'основание — причина совета').toBeTruthy()
+      expect(amount(returned.amount), 'сумма взноса прежняя').toBe(LESSON_COST)
+
+      // Занятие осталось проведённым и оплаченным: возможный возврат обучающемуся прежний.
+      const after = (await gql<any>(learnerToken, REFUND_PREVIEW, { id: subscription.id })).edubridgeRefundPreview
+      expect(after.minutes_used, 'проведённые минуты подписки не изменились').toBe(before.minutes_used)
+      expect(after.refund, 'возможный возврат обучающемуся не вырос').toBe(before.refund)
     }, 480_000)
 
-    it(caseName('edu.teach.side.14', 'совет отказал в приёме — занятие отчитывается заново: строка журнала та же, взнос новый'), async () => {
-      const lessonBefore = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.lesson_number === 2)
-      const again = await reportLesson(token, nowAssignment.id, 2, { topic: 'Занятие проведено заново' })
-      expect(again.lesson.id).toBe(lessonBefore.id)
-      expect(again.lesson.topic).toBe('Занятие проведено заново')
-      expect(again.contribution.id).not.toBe(second.id)
-      expect(again.contribution.rid_hash).not.toBe(second.rid_hash)
-      expect(again.contribution.status).toBe('DRAFT')
-      expect(amount(again.contribution.amount), 'расчёт занятия проведён заново — по часу').toBe(LESSON_COST)
-      expect((await mine(second.id)).status, 'прежний взнос остался отклонённым').toBe('DECLINED')
-      // Материалы повторного занятия переданы на хранение — журнал курса открыт для следующего занятия.
-      expect((await holdMaterials(teacher, token, again.contribution.id)).status).toBe('HELD')
-    })
+    it(caseName('edu.teach.side.14', 'взнос на доработке подаётся повторно: тот же взнос, сумма прежняя, новый отчёт по занятию не принимается'), async () => {
+      const lesson = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.lesson_number === 2 && l.status === 'HELD')
+      // Новый отчёт по занятию взноса на доработке не принимается — путь один.
+      expectCode(await gqlError(token, REPORT_LESSON, { d: { lesson_id: lesson.id, materials: ['https://example.org/lesson-2-again'] } }), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
+      // Чужое занятие и пустые материалы.
+      const foreign = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === now.id && l.lesson_number === 1)
+      expectCode(await gqlError(token, REWORK_CONTRIBUTION, { d: { contribution_id: second.id, lessons: [{ lesson_id: foreign.id, materials: ['https://example.org/x'] }] } }), 'EDUBRIDGE_REWORK_FOREIGN_LESSON')
+      expectCode(await gqlError(token, REWORK_CONTRIBUTION, { d: { contribution_id: second.id, lessons: [{ lesson_id: lesson.id, materials: ['  '] }] } }), 'EDUBRIDGE_REWORK_MATERIALS_REQUIRED')
 
-    it(caseName('edu.teach.side.19', 'совет отклонил вопрос о приёме — взнос закрыт исходом совета, протокола нет'), async () => {
+      const draft = (await gql<any>(token, REWORK_CONTRIBUTION, { d: { contribution_id: second.id, lessons: [{ lesson_id: lesson.id, materials: ['https://example.org/lesson-2-fixed'], topic: 'Занятие, исправленные материалы' }] } })).edubridgeReworkContribution
+      expect(draft).toMatchObject({ id: second.id, rid_hash: second.rid_hash, status: 'DRAFT', links: ['https://example.org/lesson-2-fixed'], decline_reason: null, council_outcome: null })
+      expect(amount(draft.amount), 'расчёт с обучающимися не повторяется — сумма прежняя').toBe(LESSON_COST)
+      const lessonAfter = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.id === lesson.id)
+      expect(lessonAfter).toMatchObject({ topic: 'Занятие, исправленные материалы', materials: ['https://example.org/lesson-2-fixed'], contribution_id: second.id })
+      // Повторно — только взнос на доработке.
+      expectCode(await gqlError(token, REWORK_CONTRIBUTION, { d: { contribution_id: second.id, lessons: [{ lesson_id: lesson.id, materials: ['https://example.org/y'] }] } }), 'EDUBRIDGE_CONTRIBUTION_NOT_RETURNED')
+
+      // Дальше — те же шаги, что первая подача: акт хранения, заявление, совет.
+      expect((await holdMaterials(teacher, token, second.id)).status).toBe('HELD')
+      expect((await submitStatement(teacher, token, second.id)).status).toBe('SUBMITTED')
+      expect((await agendaWith(second.rid_hash)).id, 'вопрос снова в повестке совета').toBeTruthy()
+    }, 480_000)
+
+    it(caseName('edu.teach.side.19', 'взнос на доработке без приёма закрывает только председатель, с основанием'), async () => {
       const fourth = (await reportLesson(token, nowAssignment.id, 4)).contribution
       await holdMaterials(teacher, token, fourth.id)
       await submitStatement(teacher, token, fourth.id)
+      const close = (reason: string) => ({ d: { contribution_id: fourth.id, reason } })
+      // Взнос у совета: закрытие без приёма не разрешено.
+      expectCode(await gqlError(await tokenOf(CHAIRMAN), CLOSE_CONTRIBUTION, close('Повторной подачи не будет')), 'EDUBRIDGE_CONTRIBUTION_NOT_RETURNED')
       await councilDeclinesRid(await agendaWith(fourth.rid_hash))
 
-      const declined = await waitFor(async () => {
+      const returned = await waitFor(async () => {
         const c = await mine(fourth.id)
-        return c?.status === 'DECLINED' ? c : null
-      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'отказ совета исполнен' })
-      expect(declined).toMatchObject({ status: 'DECLINED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null })
+        return c?.status === 'RETURNED' ? c : null
+      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'взнос возвращён на доработку' })
+      expect(returned).toMatchObject({ status: 'RETURNED', council_outcome: 'DECLINED', council_decision_id: null, decision_hash: null })
       // Администратор видит взносы всех преподавателей, преподаватель — только свои.
       const all = (await gql<any>(await tokenOf(COUNCIL), ALL_CONTRIBUTIONS)).edubridgeContributions as any[]
       expect(all.map(c => c.id)).toContain(fourth.id)
       expectCode(await gqlError(token, ALL_CONTRIBUTIONS), NO_RIGHTS)
+
+      // Закрыть без приёма — решение председателя: преподаватель и член совета права не имеют.
+      expectCode(await gqlError(token, CLOSE_CONTRIBUTION, close('Повторной подачи не будет')), NO_RIGHTS)
+      expectCode(await gqlError(await tokenOf(COUNCIL), CLOSE_CONTRIBUTION, close('Повторной подачи не будет')), NO_RIGHTS)
+      const closed = (await gql<any>(await tokenOf(CHAIRMAN), CLOSE_CONTRIBUTION, close('Повторной подачи не будет'))).edubridgeCloseContribution
+      expect(closed).toMatchObject({ id: fourth.id, status: 'CLOSED', decline_reason: 'Повторной подачи не будет' })
+      // Закрытый расчёт повторно не подаётся и второй раз не закрывается.
+      const lesson = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.contribution_id === fourth.id)
+      expectCode(await gqlError(token, REWORK_CONTRIBUTION, { d: { contribution_id: fourth.id, lessons: [{ lesson_id: lesson.id, materials: ['https://example.org/z'] }] } }), 'EDUBRIDGE_CONTRIBUTION_NOT_RETURNED')
+      expectCode(await gqlError(await tokenOf(CHAIRMAN), CLOSE_CONTRIBUTION, close('Ещё раз')), 'EDUBRIDGE_CONTRIBUTION_NOT_RETURNED')
     }, 480_000)
   })
 
@@ -382,7 +421,8 @@ describe('Образование: занятия и взносы препода�
       const second = (await reportLesson(token, heldAssignment.id, 2, { materials: ['https://example.org/held-2'] })).lesson
       expect(second).toMatchObject({ lesson_number: 2, contribution_id: null })
       expectCode(await gqlError(token, REPORT_LESSON, { d: { lesson_id: first.id, materials: ['https://example.org/x'] } }), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
-      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === held.id).map(l => l.lesson_number).sort()).toEqual([1, 2])
+      // Отчитаны два занятия; остальные занятия календаря группы ещё запланированы.
+      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === held.id && l.status === 'HELD').map(l => l.lesson_number).sort()).toEqual([1, 2])
     })
 
     it(caseName('edu.teach.side.17', 'материалы на хранении без подписанного заявления держат выход преподавателя'), async () => {
@@ -413,7 +453,10 @@ describe('Образование: занятия и взносы препода�
     const ours = await planLesson(heldGroup.id, { assignment_id: heldAssignment.id })
     await gql(chairman, CLOSE_ASSIGNMENT, { id: early.id })
     await gql(chairman, CLOSE_ASSIGNMENT, { id: heldAssignment.id })
-    expectCode(await report(token, ours.id), 'EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE')
+    // Снятый допуск освобождает свои запланированные занятия: они переходят к
+    // оставшимся допускам курса (closeAssignment → syncCalendars). Действующего
+    // допуска у преподавателя к курсу нет — отчитываться не по чему.
+    expectCode(await report(token, ours.id), 'EDUBRIDGE_ASSIGNMENT_NOT_FOUND')
     // Пайщик без оферты преподавателя к отчётам не допущен вовсе.
     const plain = freshMember({ prefix: 'eduj' })
     expectCode(await report(await login(plain), ours.id), NO_RIGHTS)

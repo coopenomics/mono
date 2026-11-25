@@ -1,6 +1,12 @@
 <template lang="pug">
+//- no-route-dismiss: Quasar по умолчанию закрывает окно при любой смене
+//- адреса, в том числе одного параметра. Панели живут в адресе
+//- (`?item=`, `?order=`, `?offer=` — useQueryOverlay), и вторая панель поверх
+//- первой меняет адрес: без флага закрывались обе (19.11.2026). Уход на другую
+//- страницу панель всё равно снимает — страница размонтируется вместе с ней.
 q-dialog(
   :model-value='modelValue',
+  no-route-dismiss,
   position='right',
   :persistent='!clickOutsideClose',
   :maximized='isMobile',
@@ -22,7 +28,7 @@ q-dialog(
       )
         q-icon(name='close', size='20px')
 
-    .details-drawer__body
+    .details-drawer__body(:class='{ "details-drawer__body--flush": flush }')
       slot
 
     footer.details-drawer__footer(v-if='hasFooterSlot')
@@ -38,6 +44,7 @@ const props = withDefaults(defineProps<DetailsDrawerProps>(), {
   width: 480,
   closable: true,
   clickOutsideClose: true,
+  flush: false,
 });
 
 const emit = defineEmits<{
@@ -125,6 +132,11 @@ function close(): void {
   flex: 1 1 auto;
   overflow-y: auto;
   padding: var(--p-4, 16px);
+}
+.details-drawer__body--flush {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .details-drawer__footer {

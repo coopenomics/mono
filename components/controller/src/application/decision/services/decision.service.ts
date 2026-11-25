@@ -13,8 +13,8 @@ export class DecisionService {
     return result as TransactionDTO;
   }
 
-  public async declineDecision(data: DeclineDecisionInputDTO): Promise<TransactionDTO> {
-    const result = await this.decisionInteractor.declineDecision(data);
+  public async declineDecision(data: DeclineDecisionInputDTO, declinedBy: string | null = null): Promise<TransactionDTO> {
+    const result = await this.decisionInteractor.declineDecision(data, declinedBy);
     return result as TransactionDTO;
   }
 }

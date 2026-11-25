@@ -1,5 +1,6 @@
 /* eslint-disable node/prefer-global/process */
 import { Client } from 'pg'
+import { CAPITAL_PROGRAM_DOC_REGISTRY_ID, capitalProgramDocDataHash, capitalProgramPrivateData } from './capital-program-params'
 import { subscriberIdentity } from './subscriber-identity'
 
 /**
@@ -315,6 +316,17 @@ export async function initExtensionsInPostgres() {
     console.log('Подключение к PostgreSQL установлено для инициализации extensions')
 
     await requireTable(client, 'extensions')
+    await requireTable(client, 'factory_doc_private_data')
+
+    // Параметры документов ЦПП: без них подключение Благороста не завершено,
+    // вступление в программу отказывает, анкеты Генератора не объявляются.
+    // Строка та же, что сохранил бы стол подключения, — фабрика найдёт её по хэшу.
+    const capitalProgramHash = capitalProgramDocDataHash()
+    await client.query(
+      `INSERT INTO "factory_doc_private_data" (hash, registry_id, payload) VALUES ($1, $2, $3)
+       ON CONFLICT (hash) DO NOTHING`,
+      [capitalProgramHash, CAPITAL_PROGRAM_DOC_REGISTRY_ID, JSON.stringify(capitalProgramPrivateData)],
+    )
 
     // Вставляем запись для capital extension
     const capitalConfig = {
@@ -340,6 +352,7 @@ export async function initExtensionsInPostgres() {
       onboarding_generator_program_template_hash: 'E55564D8946C55C93490B5277968FC890FDCB10A049DB5B2E0FE9F67FDA80896',
       onboarding_generation_contract_template_done: true,
       onboarding_generation_contract_template_hash: 'A4BD579D6130CCE2D8C34337DFA591807C1F028A148DD53689881B12AC2627E2',
+      capital_program_doc_data_hash: capitalProgramHash,
       github_sync_branch: 'dev',
       github_sync_poll_interval_minutes: 5,
       github_api_token_encrypted: '',

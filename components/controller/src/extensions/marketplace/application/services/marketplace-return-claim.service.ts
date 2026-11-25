@@ -1,7 +1,8 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
-import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
+import { SovietContract, type MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import {
@@ -297,6 +298,21 @@ export class MarketplaceReturnClaimService {
    * его одной подписью (`signDocument(doc, operator, 1)`) и отправляет в
    * `acceptReturnAtVisit`. Ownership-проверка КУ — на резолвере.
    */
+  /**
+   * Заявление пайщика с текстом и подписями — для показа на странице
+   * заявления. Нет документа либо его тело не собралось — пусто: страница
+   * остаётся рабочей без текста.
+   */
+  async statementAggregate(claim: MarketplaceReturnClaimDomainEntity): Promise<InnerDocumentAggregate | null> {
+    if (!claim.statement) return null;
+    try {
+      return await this.documentPort.buildAggregate(claim.statement);
+    } catch (err) {
+      this.logger.warn(`Заявление на возврат ${claim.id}: текст заявления не собран (${(err as Error).message}).`);
+      return null;
+    }
+  }
+
   async getChairmanReturnSignablePayload(input: {
     coopname: string;
     claim_id: string;
@@ -715,7 +731,7 @@ export class MarketplaceReturnClaimService {
     inspection_result: string
   ): void {
     const sameClaim =
-      meta.registry_id === Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id &&
+      meta.registry_id === Registry.MarketplaceReturnCancelStatement.registry_id &&
       (!meta.order_hash || meta.order_hash === claim.order_hash) &&
       (!meta.request_hash || meta.request_hash === claim.request_hash);
     if (!sameClaim) {
@@ -843,50 +859,6 @@ export class MarketplaceReturnClaimService {
     }
   }
 
-  /**
-   * Совет «за», но общий кошелёк участка был уже распределён: имущество и
-   * паевой возвращены, членский взнос ждёт пополнения кошелька (заявка на
-   * цепи в `feepend`, задача 99D-15). Крон повторяет `payretfee`.
-   */
-  async markFeeRefundPending(input: { coopname: string; request_hash: string; tx_hash: string }): Promise<void> {
-    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
-    if (!claim || claim.fee_refund_pending_at) return;
-    const at = new Date();
-    await this.claimRepo.patchCouncil(claim.id, {
-      fee_refund_pending_at: at,
-      decision_entry: {
-        stage: 'council',
-        decision: 'fee_pending',
-        by_chairman_account: claim.coopname,
-        braname: claim.delivery_braname,
-        comment: t('marketplace.returnClaim.propertyAndShareReturned', { feeRefund: claim.fee_refund }),
-        at,
-        tx_hash: input.tx_hash,
-      },
-    });
-    this.logger.warn(
-      `Заявление на возврат ${claim.id}: взнос ${claim.fee_refund} ждёт пополнения общего кошелька участка ${claim.delivery_braname} — повтор по расписанию.`
-    );
-  }
-
-  /** `payretfee`: взнос довнесён после пополнения кошелька участка — ожидание снято. */
-  async onFeeRefundSettled(input: { coopname: string; request_hash: string; tx_hash: string; comment?: string }): Promise<void> {
-    const claim = await this.claimRepo.findByRequestHash(input.coopname, input.request_hash);
-    if (!claim || !claim.fee_refund_pending_at) return;
-    await this.claimRepo.patchCouncil(claim.id, {
-      fee_refund_pending_at: null,
-      decision_entry: {
-        stage: 'council',
-        decision: 'fee_settled',
-        by_chairman_account: claim.coopname,
-        braname: claim.delivery_braname,
-        comment: input.comment ?? t('marketplace.returnClaim.membershipFeeReturned', { feeRefund: claim.fee_refund }),
-        at: new Date(),
-        tx_hash: input.tx_hash,
-      },
-    });
-    this.logger.log(`Заявление на возврат ${claim.id}: членский взнос ${claim.fee_refund} довнесён (tx=${input.tx_hash}).`);
-  }
 
   /**
    * `onmktrtdecl`: совет «против» либо срок повестки истёк. Имущество ждёт
@@ -1271,8 +1243,8 @@ export class MarketplaceReturnClaimService {
     // (материализует их в null) — client-side canonicalize(meta) давал
     // разные meta_hash при подписи и при повторном чтении для со-подписи
     // председателя («Хэш метаданных не совпадает», см. review 2026-07-27).
-    const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
+    const action: Registry.MarketplaceReturnStatement.Action = {
+      registry_id: Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
       username: input.orderer,
       order_id: input.order.id,
@@ -1312,8 +1284,8 @@ export class MarketplaceReturnClaimService {
     const offer = await this.offerRepo.findById(order.offer_id);
     const fee_refund = claim.fee_refund ?? '0';
     const total_refund = sumMoney([claim.fact_cost, fee_refund], this.assetConfig.decimals);
-    const action: Cooperative.Registry.MarketplaceReturnCancelStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceReturnCancelStatement.registry_id,
+    const action: Registry.MarketplaceReturnCancelStatement.Action = {
+      registry_id: Registry.MarketplaceReturnCancelStatement.registry_id,
       coopname: claim.coopname,
       username: input.operator,
       order_id: order.id,

@@ -23,6 +23,7 @@ import { ActivityTimeline, DataRow, type ActivityEvent } from 'src/shared/ui/dom
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
+import { OrderSecurePartCard } from 'src/widgets/Marketplace/OrderSecurePartCard';
 import { fetchOrder, type MarketplaceOrderDetailView } from 'src/entities/MarketplaceOrder';
 
 const SUPPLY_PROCESS_TYPE = 'p.mkt.supply';
@@ -190,6 +191,10 @@ useLiveReload(marketLiveTables('order'), load);
               template(#icon-left)
                 q-icon(name="open_in_new", size="16px")
               | {{ $t('marketplace.orderRegistryDetail.openOfferButton') }}
+
+    //- Обеспечительная часть: сколько, в каком состоянии и когда станет
+    //- членским взносом участка — сразу под суммой заказа.
+    OrderSecurePartCard.order-registry-detail__card(v-if="order.secure_part", :part="order.secure_part")
 
     BaseCard.order-registry-detail__card
       template(#head)

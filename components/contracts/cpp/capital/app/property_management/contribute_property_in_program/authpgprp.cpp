@@ -24,7 +24,7 @@ void capital::authpgprp(eosio::name coopname, checksum256 property_hash, documen
   
   // Проверяем статус
   eosio::check(property.status == Capital::ProgramProperties::Status::APPROVED, 
-               "Предложение должно быть в статусе 'approved'");
+               "CAPITAL_PROPERTY_NOT_APPROVED: Совет принимает решение по предложению, одобренному председателем");
   
   // Сохраняем решение совета
   Capital::ProgramProperties::set_program_property_authorization(coopname, property.id, decision);

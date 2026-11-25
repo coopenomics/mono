@@ -25,6 +25,8 @@ export interface MeetRowProcessingDomainInterface {
   decision1?: ISignedDocument;
   decision2?: ISignedDocument;
   notified_users: string[];
+  /** Форма собрания, закреплённая при одобрении советом; нет у собраний, одобренных до её появления. */
+  form?: MeetContract.Tables.Meets.IOutput['form'];
 }
 
 assertType<AssertKeysMatch<MeetContract.Tables.Meets.IOutput, MeetRowProcessingDomainInterface>>();

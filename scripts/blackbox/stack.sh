@@ -12,7 +12,7 @@
 #   - контейнеры работают под uid раннера (docker-compose.blackbox.yml);
 #   - каждая фаза — отдельный подкоманд, чтобы workflow видел время каждой.
 #
-# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|apitests|rights|dbcov|collect|summary>
+# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|apitests|rights|keu|dbcov|collect|summary>
 #
 # Второй потребитель стенда — визуальные сценарии docs-harness (workflow
 # ui-docs.yaml): те же фазы до app, затем desktop (собранный SSR рабочий стол
@@ -69,8 +69,6 @@ NODE_HTTP_PORT=${CHAIN_PORT}
 COOPBACK_HOST_PORT=${API_PORT}
 CHAIN_URL=http://127.0.0.1:${CHAIN_PORT}
 API_URL=http://127.0.0.1:${API_PORT}/v1/graphql
-MONGODB_URL=mongodb://127.0.0.1:27017/?directConnection=true
-MONGO_URI=mongodb://127.0.0.1:27017/cooperative-x?directConnection=true
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=5532
 POSTGRES_USERNAME=postgres
@@ -96,7 +94,6 @@ EOF
   local ctl_env=components/controller/.env
   cp components/controller/.env-example "$ctl_env"
   set_env "$ctl_env" BACKEND_URL "http://127.0.0.1:${API_PORT}"
-  set_env "$ctl_env" MONGODB_URL "mongodb://mongo:27017/cooperative-x"
   set_env "$ctl_env" BLOCKCHAIN_RPC "http://node:8888"
   set_env "$ctl_env" REDIS_HOST monoredis
   set_env "$ctl_env" POSTGRES_HOST postgres
@@ -119,6 +116,13 @@ EOF
   # Короткие сутки гарантийного срока «Образования»: сценарии «срок вышел»
   # проходят за минуты. То же значение читают наборы (api_tests_env).
   set_env "$ctl_env" EDUBRIDGE_GUARANTEE_DAY_SECONDS "$GUARANTEE_DAY_SECONDS"
+  # Сжатое время стенда (extension-kit): задано снаружи — прогон первого числа
+  # (списание обеспечительной части, итог месяца участка) идёт по этой шкале, и
+  # набор marketplace/period-cycle ждёт его. По умолчанию время настоящее.
+  if [ -n "${STAND_MONTH_SECONDS:-}" ]; then
+    set_env "$ctl_env" STAND_DAY_SECONDS "${STAND_DAY_SECONDS:-60}"
+    set_env "$ctl_env" STAND_MONTH_SECONDS "$STAND_MONTH_SECONDS"
+  fi
   # Ход очереди отложенных заявлений, секунд; пусто — раз в десять минут.
   if [ -n "${EDUBRIDGE_WORKER_PACE_SECONDS:-}" ]; then
     set_env "$ctl_env" EDUBRIDGE_WORKER_PACE_SECONDS "$EDUBRIDGE_WORKER_PACE_SECONDS"
@@ -218,7 +222,10 @@ cmd_tests() {
   export TEST_EMAIL="${TEST_EMAIL:-ivanov@example.com}"
   cd components/boot
   # Файлы идут строго по очереди (vitest.config.ts): все пишут в одну цепь.
+  # Бак AXON (billing-tank) требует стенда reboot:extra с partner1 и провайдером —
+  # его гоняет свой сценарий scripts/blackbox/billing-e2e.sh, здесь его нет.
   pnpm exec vitest run \
+    --exclude 'src/tests/billing-tank.test.ts' \
     --reporter=default --reporter=junit \
     --outputFile.junit="$OUT/junit.xml" \
     ${BLACKBOX_TESTS:-}
@@ -240,6 +247,7 @@ api_tests_env() {
   export BLACKBOX_CARDCOOP_CLIENT_ID="$CARDCOOP_CLIENT_ID"
   export BLACKBOX_CARDCOOP_OIDC_ISSUER="$CARDCOOP_OIDC_ISSUER"
   export BLACKBOX_GUARANTEE_DAY_SECONDS="$GUARANTEE_DAY_SECONDS"
+  export BLACKBOX_STAND_MONTH_SECONDS="${STAND_MONTH_SECONDS:-}"
 }
 
 # Контроллер с включённой автоматикой: пересоздаётся, только если стенд
@@ -278,6 +286,96 @@ cmd_cardcoop() {
   pnpm exec vitest run src/cardcoop \
     --reporter=default --reporter=junit \
     --outputFile.junit="$OUT/junit-cardcoop.xml"
+}
+
+# Коэффициент экономического участия — сквозной прогон первого числа (решение
+# владельца 05.11.2026). Набор marketplace/period-cycle ждёт первое число:
+# заказ, выдача, расчёт итога месяца участка, списание по ставкам, карточка
+# заказа. На стенде в настоящем времени он пропускается, и путь целиком не
+# проходил ни разу — так ошибка учёта дожила до аудита. Здесь время стенда
+# сжимается отдельной фазой после сценарных наборов: они идут в настоящем
+# времени, и крон первого числа не списывает их заказы раньше них самих. После
+# набора время возвращается настоящим — отказы стенда и матрица прав от шкалы
+# зависеть не должны. Фаза стоит до матрицы прав: та оставляет стенд
+# непригодным для сценариев Стола заказов (поставщик теряет роль). Фаза идёт и
+# в ночном прогоне — у него тот же workflow.
+#
+# Месяц стенда — KEU_MONTH_SECONDS (по умолчанию десять минут), сутки —
+# KEU_DAY_SECONDS. Набор сам дожидается начала месяца, если до конца текущего
+# осталось меньше, чем нужно на два заказа.
+KEU_MONTH_SECONDS="${KEU_MONTH_SECONDS:-600}"
+KEU_DAY_SECONDS="${KEU_DAY_SECONDS:-60}"
+
+# Шкала времени стенда: длины суток и месяца в окружении контроллера и его
+# пересоздание. Пустые значения — настоящее время. Пятый аргумент — шаг фоновых
+# обходов (STAND_WORKER_PACE_SECONDS); пусто — минута.
+keu_stand_time() {
+  local day="$1" month="$2" label="$3" saved_log="$4" pace="${5:-}"
+  # Пересоздание контейнера стирает его журнал: сохраняем прожитое до него,
+  # иначе по артефактам прогона не разобрать ни сценарные наборы, ни саму фазу.
+  mkdir -p "$OUT/logs"
+  docker compose logs --no-color --timestamps coopback > "$OUT/logs/$saved_log" 2>&1 || true
+  set_env components/controller/.env STAND_DAY_SECONDS "$day"
+  set_env components/controller/.env STAND_MONTH_SECONDS "$month"
+  set_env components/controller/.env STAND_WORKER_PACE_SECONDS "$pace"
+  echo "▸ ${label} — пересоздаём контроллер..."
+  docker compose up -d --no-deps --force-recreate coopback
+  if ! stack_wait_for "API контроллера" 300 3 api_ready; then
+    docker compose logs --tail 200 coopback
+    exit 1
+  fi
+}
+
+cmd_keu() {
+  load_stack
+  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с)" coopback-before-keu.log
+  api_tests_env
+  export BLACKBOX_STAND_MONTH_SECONDS="$KEU_MONTH_SECONDS"
+  local failed=0
+  (
+    cd components/api-tests
+    # Возмещение паевых взносов инициаторов участка (99D-30) — тот же прогон первого числа.
+    # Экономика участка (economy) ждёт списания обеспечительной части по
+    # итогу периода (99D-33): в настоящем времени его не дождаться.
+    # Выплату поставщику пакетом (payouts) заводит обход в начале следующих
+    # суток стенда — в настоящем времени только после полуночи.
+    pnpm exec vitest run src/marketplace/period-cycle.test.ts src/marketplace/invest-cycle.test.ts src/marketplace/economy.test.ts src/marketplace/payouts.test.ts \
+      --reporter=default --reporter=junit \
+      --outputFile.junit="$OUT/junit-keu.xml"
+  ) || failed=1
+  # Контрактные тесты счётчиков списания (99D-33): итог участка и списание строки
+  # пайщика после окончания периода стенда — та же сжатая шкала. Тесты сами
+  # считают итог и списывают строку и сверяют кошельки до и после, поэтому
+  # крон списания узла на это время молчит: шаг обходов — год. Иначе узел
+  # списывает строку раньше теста, и проверять нечего.
+  keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Контрактные тесты — обходы узла остановлены" coopback-keu-api.log 31536000
+  (
+    CHAIN_ID="$(chain_id)"
+    export CHAIN_ID
+    export API_URL="http://127.0.0.1:${API_PORT}/v1/graphql"
+    export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
+    export SERVER_SECRET="${SERVER_SECRET:-SECRET}"
+    export TEST_EMAIL="${TEST_EMAIL:-ivanov@example.com}"
+    cd components/boot
+    pnpm exec vitest run src/tests/marketplace-period.test.ts src/tests/marketplace-invest.test.ts \
+      --reporter=default --reporter=junit \
+      --outputFile.junit="$OUT/junit-keu-boot.xml"
+  ) || failed=1
+  keu_stand_time "" "" "Возвращаем настоящее время стенда" coopback-keu.log
+  return $failed
+}
+
+# Шкала времени стенда отдельной командой — для сюиты документации «экономика
+# участка по итогу месяца» (ui marketplace-keu): итог месяца считает обход узла,
+# в настоящем времени его не дождаться. `standtime compress` сжимает время
+# теми же значениями, что фаза keu, `standtime real` возвращает настоящее.
+cmd_standtime() {
+  load_stack
+  case "${1:-}" in
+    compress) keu_stand_time "$KEU_DAY_SECONDS" "$KEU_MONTH_SECONDS" "Сжимаем время стенда (месяц ${KEU_MONTH_SECONDS} с)" coopback-before-standtime.log ;;
+    real) keu_stand_time "" "" "Возвращаем настоящее время стенда" coopback-standtime.log ;;
+    *) echo "использование: $0 standtime <compress|real>" >&2; exit 2 ;;
+  esac
 }
 
 cmd_rights() {
@@ -355,7 +453,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio mailpit stub authentik-server authentik-worker desktop nginx; do
+  for svc in node parser2 coopback postgres monoredis minio mailpit stub authentik-server authentik-worker desktop nginx; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true
@@ -396,13 +494,13 @@ cmd_summary() {
     echo "## Black-box: тесты"
     echo
     local junit found=0
-    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml"; do
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml" "$OUT/junit-keu.xml" "$OUT/junit-keu-boot.xml"; do
       # Пустой отчёт — набор не нашёл файлов или упал до старта.
       [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
-titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-keu.xml": "коэффициент экономического участия: прогон первого числа на сжатом времени", "junit-keu-boot.xml": "коэффициент экономического участия: счётчики списания в цепи (boot) на сжатом времени","junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0
@@ -462,6 +560,11 @@ cmd_desktop() {
   set_env "$env_file" CHAIN_ID "$(chain_id)"
   # Секрет сервера — тот же, что у контроллера: SSR спрашивает у него стол пайщика по cookie.
   set_env "$env_file" SERVER_SECRET "$(grep -E '^SERVER_SECRET=' components/controller/.env | cut -d= -f2-)"
+  # Ключ Яндекс.Карт — из секрета workflow (ui-docs): без него карты пунктов
+  # выдачи на кадрах пишут «Карта недоступна». Пустой ключ не пишем.
+  if [ -n "${YANDEX_MAPS_API_KEY:-}" ]; then
+    set_env "$env_file" YANDEX_MAPS_API_KEY "$YANDEX_MAPS_API_KEY"
+  fi
 
   if [ ! -f components/desktop/dist/ssr/index.js ]; then
     echo "▸ dist/ssr нет — собираем рабочий стол..."
@@ -504,6 +607,8 @@ cmd_ui() {
   cd "$HARNESS_DIR"
   case "$app" in
     marketplace) node bin/run-marketplace-all.mjs ;;
+    # Экономика участка по итогу месяца: стенд с засевом и сжатым временем.
+    marketplace-keu) node bin/run-marketplace-keu-all.mjs ;;
     edubridge) node bin/run-edubridge-all.mjs ;;
     ku) node bin/run-ku-all.mjs ;;
     robot) node bin/run-robot-all.mjs ;;
@@ -525,7 +630,8 @@ cmd_ui() {
 cmd_uidiff() {
   local app="${1:?приложение}"
   cd "$HARNESS_DIR"
-  node bin/diff-shots.mjs --app="$app" --summary
+  # Сценарии сюиты marketplace-keu лежат в каталоге приложения marketplace.
+  node bin/diff-shots.mjs --app="${app%-keu}" --summary
 }
 
 cmd_uisummary() {
@@ -569,6 +675,8 @@ case "${1:-}" in
   rights) cmd_rights ;;
   faults) cmd_faults ;;
   cardcoop) cmd_cardcoop ;;
+  keu) cmd_keu ;;
+  standtime) cmd_standtime "${2:-}" ;;
   dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
@@ -577,5 +685,5 @@ case "${1:-}" in
   ui) shift; cmd_ui "$@" ;;
   uidiff) shift; cmd_uidiff "$@" ;;
   uisummary) shift; cmd_uisummary "$@" ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|keu|standtime|dbcov|collect|summary|desktop|browser|ui|uidiff|uisummary>" >&2; exit 2 ;;
 esac

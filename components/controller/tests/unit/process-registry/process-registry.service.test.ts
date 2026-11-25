@@ -29,7 +29,7 @@ import type { DeltaDomainInterface as DeltaEntity } from '../../../src/domain/pa
 import type { ActionDomainInterface as ActionEntity } from '../../../src/domain/parser/interfaces/action-domain.interface';
 import type { ProcessDocumentActionsQuery } from '../../../src/domain/process-registry/ports/process-journal.port';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 // ---------- helpers ----------
 
@@ -84,6 +84,7 @@ function makeService({
   entityDeltasPerLocation,
   linkedActions = [],
   documentQueries = [],
+  deltasByTable,
 }: {
   actions: ActionEntity[];
   // Дельты по порядку локаций из PROCESS_HASH_LOCATOR[processType] —
@@ -94,11 +95,14 @@ function makeService({
   linkedActions?: ActionEntity[];
   // Сюда складываются запросы действий с документами — для проверки условий.
   documentQueries?: ProcessDocumentActionsQuery[];
+  // Дельты по таблице `code.table` — для поиска процесса до операций учётной книги.
+  deltasByTable?: Record<string, DeltaEntity[]>;
 }): ProcessRegistryService {
   let deltaCallIdx = 0;
   const journal: any = {
     findActionsByProcess: jest.fn(async () => actions),
-    findEntityDeltas: jest.fn(async () => {
+    findEntityDeltas: jest.fn(async (loc: { code: string; table: string }) => {
+      if (deltasByTable) return deltasByTable[`${loc.code}.${loc.table}`] ?? [];
       const rows = entityDeltasPerLocation[deltaCallIdx] ?? [];
       deltaCallIdx += 1;
       return rows;
@@ -275,7 +279,7 @@ describe('ProcessRegistryService.getProcess', () => {
       hash: docHash,
       doc_hash: docHash,
       meta_hash: 'm'.repeat(64),
-      meta: JSON.stringify({ registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id }),
+      meta: JSON.stringify({ registry_id: Registry.MarketplaceConvertStatement.registry_id }),
       signatures: Array.from({ length: signatures }, (_, i) => ({ id: i + 1, signer: `signer${i}` })),
     });
 
@@ -288,7 +292,7 @@ describe('ProcessRegistryService.getProcess', () => {
         global_sequence: '10',
       });
 
-    test(`(h1) заявление ${Cooperative.Registry.MarketplaceConvertStatement.registry_id} из marketplace::convert попадает в документы поставки`, async () => {
+    test(`(h1) заявление ${Registry.MarketplaceConvertStatement.registry_id} из marketplace::convert попадает в документы поставки`, async () => {
       // Заявление о переводе паевого взноса в Стол заказов живёт только в
       // параметре convert: в строку заказа оно не пишется, а хэш заказа лежит
       // в targets. Раньше бухгалтер видел перевод, но не видел заявления.
@@ -455,6 +459,27 @@ describe('ProcessRegistryService.getProcess', () => {
   test('(f3) 404, если apply-якоря нет (actions пусты)', async () => {
     const svc = makeService({ actions: [], entityDeltasPerLocation: [] });
     await expect(svc.getProcess(HASH, COOP)).rejects.toThrow(/не найден/);
+  });
+
+  test('(f4) до операций учётной книги процесс находится по таблице сущности: матпомощь на рассмотрении совета', async () => {
+    // Решение владельца 04.11.2026: последовательность процесса видна с подачи
+    // заявления. Операций ledger2 ещё нет — есть строка branch.aids и действия
+    // с хэшем заявления (подача, вопрос совету).
+    const aidRow = makeDelta({ code: 'branch', table: 'aids', block_num: 10 as any, value: { hash: HASH, coopname: COOP } });
+    const createAid = makeAction({ account: 'branch', name: 'createaid', block_num: 10 as any, data: { aid_hash: HASH, coopname: COOP } });
+    const agenda = makeAction({ account: 'soviet', name: 'createagenda', block_num: 10 as any, global_sequence: '2', data: { hash: HASH, coopname: COOP } });
+    const svc = makeService({
+      actions: [],
+      entityDeltasPerLocation: [],
+      deltasByTable: { 'branch.aids': [aidRow] },
+      linkedActions: [createAid, agenda],
+    });
+
+    const view = await svc.getProcess(HASH, COOP);
+
+    expect(view.process_type).toBe('p.brn.aid');
+    expect(view.actions.map((a) => `${a.account}::${a.name}`)).toEqual(['branch::createaid', 'soviet::createagenda']);
+    expect(view.delta_history).toHaveLength(1);
   });
 
   test('(g1) нитка поставки с инлайновым взносом КУ называется поставкой', async () => {

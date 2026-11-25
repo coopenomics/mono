@@ -38,16 +38,17 @@ q-dialog(
     .command-palette__columns(ref='resultsRef', :class='{ "is-search": isSearchMode }')
       //- слева — столы: сначала столы приложений с одним столом, ниже
       //- приложения с несколькими столами под своим заголовком
-      nav.command-palette__desks
+      nav.command-palette__desks(:style='{ "--desk-settle": `${DESK_HOVER_SETTLE_MS}ms` }')
         template(v-for='group in deskGroups', :key='group.key')
           .command-palette__group-title(v-if='group.title') {{ group.title }}
           button.command-palette__desk(
             v-for='ws in group.workspaces',
             :key='ws.name',
             type='button',
-            :class='{ "is-active": ws.isActive, "is-focused": focusedName === ws.name, "is-selected": !isSearchMode && column === "desks" && focusedName === ws.name }',
+            :class='{ "is-active": ws.isActive, "is-focused": focusedName === ws.name, "is-selected": !isSearchMode && column === "desks" && focusedName === ws.name, "is-pending": pendingName === ws.name }',
             @click='selectWorkspace(ws)',
-            @mouseenter='onDeskHover(ws)'
+            @mousemove='onDeskHover(ws)',
+            @mouseleave='cancelDeskHover'
           )
             q-icon.command-palette__desk-icon(:name='ws.icon', size='18px')
             span.command-palette__desk-title {{ ws.title }}
@@ -73,7 +74,7 @@ q-dialog(
                 type='button',
                 :class='{ "is-selected": column === "pages" && activeKey === pageKey(focusedWorkspace, page) }',
                 @click='selectPage(focusedWorkspace, page)',
-                @mouseenter='onPageHover(focusedWorkspace, page)'
+                @mousemove='onPageHover(focusedWorkspace, page)'
               )
                 q-icon.command-palette__page-icon(:name='page.icon ?? "circle"', size='18px')
                 span.command-palette__page-title {{ page.title }}
@@ -89,7 +90,7 @@ q-dialog(
                   type='button',
                   :class='{ "is-selected": column === "pages" && activeKey === commandKey(command) }',
                   @click='runCommand(command)',
-                  @mouseenter='onPaneHover(commandKey(command))'
+                  @mousemove='onPaneHover(commandKey(command))'
                 )
                   q-icon.command-palette__page-icon(:name='command.icon', size='18px')
                   span.command-palette__page-title {{ command.title }}
@@ -109,7 +110,7 @@ q-dialog(
                 role='option',
                 :aria-selected='activeKey === entry.key',
                 @click='executeEntry(entry)',
-                @mouseenter='activeKey = entry.key'
+                @mousemove='activeKey = entry.key'
               )
                 q-icon.command-palette__flat-icon(:name='entryIcon(entry)', size='18px')
                 span.command-palette__flat-title {{ entryTitle(entry) }}
@@ -145,7 +146,7 @@ q-dialog(
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { t } from 'src/shared/i18n';
 import type {
@@ -393,6 +394,7 @@ watch(query, () => {
 watch(
   () => props.modelValue,
   (next) => {
+    cancelDeskHover();
     if (next) {
       query.value = '';
       resetBrowse();
@@ -405,6 +407,8 @@ function clamp(index: number, length: number): number {
 }
 
 function moveSelection(delta: number): void {
+  // Клавиатура главнее мыши: отложенный выбор стола по наведению отменяется.
+  cancelDeskHover();
   if (isSearchMode.value) {
     const list = searchResults.value;
     if (!list.length) return;
@@ -444,12 +448,57 @@ function onArrowLeft(event: KeyboardEvent): void {
   activeKey.value = '';
 }
 
+/*
+ * Наведение на стол переключает правую колонку, только когда мышь
+ * остановилась на строке (слово владельца 12.11.2026). Путь к странице
+ * справа часто идёт по диагонали через соседний стол: мгновенное
+ * переключение подменяло колонку на чужую. Поэтому:
+ *  - наведение считается по движению мыши (mousemove), а не по mouseenter —
+ *    прокрутка списка стрелками под неподвижной мышью выбор не сбивает;
+ *  - стол выбирается через паузу после последнего движения; пока курсор
+ *    идёт, колонка стоит, уход с левой колонки отменяет выбор.
+ * Нажатие (и касание) по столу по-прежнему сразу открывает его.
+ */
+const DESK_HOVER_SETTLE_MS = 150;
+let deskHoverTimer: ReturnType<typeof setTimeout> | null = null;
+/**
+ * Стол, который ждёт выбора: строка заливается слева направо ровно за паузу
+ * (`--desk-settle`), и к концу заливки стол становится выбранным — видно, что
+ * выбор идёт и когда он случится (слово владельца 12.11.2026).
+ */
+const pendingName = ref('');
+
+function cancelDeskHover(): void {
+  if (deskHoverTimer) clearTimeout(deskHoverTimer);
+  deskHoverTimer = null;
+  pendingName.value = '';
+}
+
 function onDeskHover(ws: CommandPaletteWorkspace): void {
   if (isSearchMode.value) return;
-  focusedName.value = ws.name;
-  column.value = 'desks';
-  activeKey.value = '';
+  if (focusedName.value === ws.name) {
+    cancelDeskHover();
+    column.value = 'desks';
+    activeKey.value = '';
+    return;
+  }
+  // Отсчёт идёт от входа мыши на строку: движение внутри той же строки его
+  // не сбрасывает, иначе заливка дёргалась бы. Пролёт по диагонали короче
+  // паузы — уход со строки отменяет выбор.
+  if (pendingName.value === ws.name) return;
+  cancelDeskHover();
+  pendingName.value = ws.name;
+  // timing: ui — стол выбирается после паузы наведения, а не на пролёте по диагонали
+  deskHoverTimer = setTimeout(() => {
+    deskHoverTimer = null;
+    pendingName.value = '';
+    focusedName.value = ws.name;
+    column.value = 'desks';
+    activeKey.value = '';
+  }, DESK_HOVER_SETTLE_MS);
 }
+
+onBeforeUnmount(cancelDeskHover);
 
 function onPageHover(ws: CommandPaletteWorkspace, page: CommandPalettePage): void {
   onPaneHover(pageKey(ws, page));
@@ -648,7 +697,57 @@ function onHide(): void {
   transition: background var(--p-dur-fast) var(--p-ease-standard);
 }
 .command-palette__desk.is-focused {
-  background: var(--p-surface-2);
+  /* surface-3: в тёмной теме surface-2 почти не отличается от фона окна. */
+  background: var(--p-surface-3);
+}
+
+/* Ожидание выбора по наведению: заливка цветом выбранной строки идёт слева
+   направо за паузу и переходит в подсветку выбранного стола без скачка;
+   по нижнему краю за то же время бежит полоса акцента — её видно в обеих
+   темах. У активного стола (свой фон акцента) идёт только полоса. */
+.command-palette__desk {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.command-palette__desk::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, var(--p-surface-3) 0%, var(--p-surface-3) 82%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.command-palette__desk::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--p-primary);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.command-palette__desk.is-pending::before,
+.command-palette__desk.is-pending::after {
+  animation: command-palette-desk-settle var(--desk-settle, 150ms) linear forwards;
+}
+.command-palette__desk.is-active.is-pending::before {
+  animation: none;
+}
+@keyframes command-palette-desk-settle {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .command-palette__desk.is-pending::after {
+    animation: none;
+    transform: scaleX(1);
+  }
 }
 .command-palette__desk.is-active {
   background: var(--p-primary-soft);

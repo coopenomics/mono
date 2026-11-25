@@ -15,13 +15,14 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       workspace: 'trustee',
       extension_name: 'trustee',
       title: t('ku.install.title'),
-      icon: 'fa-solid fa-users-cog',
-      defaultRoute: 'ku-branches',
+      icon: 'home_work',
+      // Стол открывается на своём участке: реестр участков пайщик читает один раз, при выборе участка.
+      defaultRoute: 'ku-my-branch',
       routes: [
         {
           meta: {
             title: t('ku.install.title'),
-            icon: 'fa-solid fa-users-cog',
+            icon: 'home_work',
             requires: 'KuDecision:read',
           },
           path: '/:coopname/ku',
@@ -29,35 +30,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           children: [
             {
               meta: {
-                title: t('ku.install.branchesTitle'),
-                icon: 'fa-solid fa-map-location-dot',
+                title: t('ku.install.myBranchTitle'),
+                icon: 'home_work',
                 requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
               },
-              path: 'branches',
-              name: 'ku-branches',
-              component: markRaw(KuBranchesPage),
-              children: [],
-            },
-            {
-              meta: {
-                title: t('ku.install.branchTitle'),
-                icon: 'fa-solid fa-map-location-dot',
-                requires: 'KuDecision:read',
-                agreements: agreementsBase,
-                requiresAuth: true,
-                hidden: true,
-              },
-              path: 'branches/:braname',
-              name: 'ku-branch-details',
-              component: markRaw(KuBranchDetailsPage),
+              path: 'my-branch',
+              name: 'ku-my-branch',
+              component: markRaw(KuMyBranchPage),
               children: [],
             },
             {
               meta: {
                 title: t('ku.install.meetingsTitle'),
-                icon: 'fa-solid fa-people-group',
+                icon: 'groups',
                 requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
@@ -70,7 +57,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             {
               meta: {
                 title: t('ku.install.meetingTitle'),
-                icon: 'fa-solid fa-people-group',
+                icon: 'groups',
                 requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
@@ -83,15 +70,29 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               meta: {
-                title: t('ku.install.myBranchTitle'),
-                icon: 'fa-solid fa-house-user',
+                title: t('ku.install.branchesTitle'),
+                icon: 'map',
                 requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
               },
-              path: 'my-branch',
-              name: 'ku-my-branch',
-              component: markRaw(KuMyBranchPage),
+              path: 'branches',
+              name: 'ku-branches',
+              component: markRaw(KuBranchesPage),
+              children: [],
+            },
+            {
+              meta: {
+                title: t('ku.install.branchTitle'),
+                icon: 'map',
+                requires: 'KuDecision:read',
+                agreements: agreementsBase,
+                requiresAuth: true,
+                hidden: true,
+              },
+              path: 'branches/:braname',
+              name: 'ku-branch-details',
+              component: markRaw(KuBranchDetailsPage),
               children: [],
             },
           ],

@@ -6,7 +6,6 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
-  console.log('📨 [ChatCoop Install] Extension install function called');
   return [{
     workspace: 'chatcoop',
     extension_name: 'chatcoop',

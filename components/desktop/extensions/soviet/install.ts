@@ -19,11 +19,11 @@ import { ParticipantDetailsPage } from 'src/pages/Cooperative/ParticipantDetails
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { DocumentTemplatesPage } from 'src/pages/Cooperative/DocumentTemplates';
-import { PaymentsPage } from 'src/pages/Cooperative/Payments';
+import { PowersOfAttorneyPage } from 'src/pages/Cooperative/PowersOfAttorney';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
-import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
+import { ExpenseCounterpartiesPage, ExpensesRegistryPage } from 'app/extensions/expenses/pages';
 import { UnionPageCooperativeDetail } from 'src/pages/Union/CooperativeDetail';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { t, t as i18nT } from './i18n';
@@ -129,6 +129,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             children: [
               {
+                // Вкладка реестра: доверенности кооператива — номер, срок, состояние
+                // (решение владельца 18.11.2026). Учёт ведёт расширение участков.
+                path: 'powers-of-attorney',
+                name: 'document-powers-of-attorney',
+                component: markRaw(PowersOfAttorneyPage),
+                meta: {
+                  title: t('soviet.install.powersOfAttorneyTitle'),
+                  requires: 'KuAuthority:read:all',
+                  hidden: true,
+                },
+              },
+              {
                 // Вкладка реестра: шаблоны документов кооператива, их редакции и
                 // утверждение советом (фабрика утверждений документов). Стоит
                 // раньше `:hash`, иначе слово «templates» примется за хэш.
@@ -154,16 +166,8 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             ],
           },
-          {
-            path: 'payments/:username?',
-            name: 'payments',
-            component: markRaw(PaymentsPage),
-            meta: {
-              title: t('soviet.install.paymentsRegistryTitle'),
-              icon: 'fa-solid fa-file-invoice',
-              requires: 'Payment:read:all',
-            },
-          },
+          // Реестр платежей перенесён на стол кассира (`cashier-payments`), совет
+          // читает его там; на столе совета страницы нет (решение владельца 01.11.2026).
           {
             // Реестр расходов кооператива: единая таблица всех расходов по всем
             // пулам-кошелькам (без фильтра по кошельку — колонка «Кошелёк (пул)»
@@ -176,6 +180,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.expensesRegistryTitle'),
               icon: 'receipt_long',
+              requires: 'Expense:read:all',
+            },
+          },
+          {
+            // Реестр контрагентов (99D-35): организации и ИП, которым кооператив
+            // платит по реквизитам. Совет ведёт всех, участки видят и выбирают их
+            // в плановых расходах. Право страницы — то же, что у реестра расходов.
+            path: 'counterparties',
+            name: 'soviet-expense-counterparties',
+            component: markRaw(ExpenseCounterpartiesPage),
+            meta: {
+              title: t('soviet.install.counterpartiesTitle'),
+              icon: 'business',
               requires: 'Expense:read:all',
             },
           },

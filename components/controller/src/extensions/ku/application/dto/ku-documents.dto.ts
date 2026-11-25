@@ -1,5 +1,5 @@
 import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps, SafeMarkup } from '@coopenomics/extension-kit';
@@ -140,7 +140,7 @@ export class KuProtocolQuestionInputDTO {
 // 320 — Предложение повестки собрания пайщиков участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type proposalAction = Cooperative.Registry.BranchMeetingProposal.Action;
+type proposalAction = Registry.BranchMeetingProposal.Action;
 
 @InputType('BaseBranchMeetingProposalMetaDocumentInput')
 class BaseBranchMeetingProposalMetaDocumentInputDTO implements ExcludeCommonProps<proposalAction> {
@@ -205,7 +205,7 @@ export class BranchMeetingProposalSignedDocumentInputDTO extends SignedDigitalDo
 // 322 — Бюллетень голосования на собрании участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ballotAction = Cooperative.Registry.BranchMeetingBallot.Action;
+type ballotAction = Registry.BranchMeetingBallot.Action;
 
 @InputType('BaseBranchMeetingBallotMetaDocumentInput')
 class BaseBranchMeetingBallotMetaDocumentInputDTO implements ExcludeCommonProps<ballotAction> {
@@ -256,7 +256,7 @@ export class BranchMeetingBallotSignedDocumentInputDTO extends SignedDigitalDocu
 // 323 — Протокол решения собрания пайщиков участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type protocolAction = Cooperative.Registry.BranchMeetingDecision.Action;
+type protocolAction = Registry.BranchMeetingDecision.Action;
 
 @InputType('BaseBranchMeetingDecisionMetaDocumentInput')
 class BaseBranchMeetingDecisionMetaDocumentInputDTO implements ExcludeCommonProps<protocolAction> {
@@ -294,6 +294,18 @@ class BaseBranchMeetingDecisionMetaDocumentInputDTO implements ExcludeCommonProp
   @ValidateNested({ each: true })
   @Type(() => KuProtocolQuestionInputDTO)
   questions!: KuProtocolQuestionInputDTO[];
+
+  // Сборщик протокола 1.1 печатает «Присутствовали пайщики» по этому списку и
+  // кладёт его в мету документа; без поля во входе подписанный протокол
+  // отклонялся схемой. У протоколов версии 1.0 списка нет — поле необязательное.
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Пайщики, подавшие бюллетень (имена аккаунтов), — список «Присутствовали» в протоколе',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  voters?: string[];
 }
 
 @InputType('BranchMeetingDecisionGenerateDocumentInput')
@@ -325,7 +337,7 @@ export class BranchMeetingDecisionSignedDocumentInputDTO extends SignedDigitalDo
 // 324 — Заявление председателя собрания в совет об учреждении участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type petitionAction = Cooperative.Registry.BranchEstablishmentPetition.Action;
+type petitionAction = Registry.BranchEstablishmentPetition.Action;
 
 @InputType('BaseBranchEstablishmentPetitionMetaDocumentInput')
 class BaseBranchEstablishmentPetitionMetaDocumentInputDTO implements ExcludeCommonProps<petitionAction> {
@@ -379,7 +391,7 @@ export class BranchEstablishmentPetitionSignedDocumentInputDTO extends SignedDig
 // 325 — Решение совета об учреждении кооперативного участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type establishmentDecisionAction = Cooperative.Registry.BranchEstablishmentSovietDecision.Action;
+type establishmentDecisionAction = Registry.BranchEstablishmentSovietDecision.Action;
 
 @InputType('BaseBranchEstablishmentDecisionMetaDocumentInput')
 class BaseBranchEstablishmentDecisionMetaDocumentInputDTO implements ExcludeCommonProps<establishmentDecisionAction> {
@@ -418,7 +430,7 @@ export class BranchEstablishmentDecisionGenerateDocumentInputDTO
 // 326 — Заявление о приёме доверенным лицом участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type trustedStatementAction = Cooperative.Registry.BranchTrustedStatement.Action;
+type trustedStatementAction = Registry.BranchTrustedStatement.Action;
 
 @InputType('BaseBranchTrustedStatementMetaDocumentInput')
 class BaseBranchTrustedStatementMetaDocumentInputDTO implements ExcludeCommonProps<trustedStatementAction> {
@@ -462,7 +474,7 @@ export class BranchTrustedStatementSignedDocumentInputDTO extends SignedDigitalD
 // 327 — Договор о полной индивидуальной материальной ответственности доверенного лица
 // ─────────────────────────────────────────────────────────────────────────────
 
-type trustedLiabilityAction = Cooperative.Registry.BranchTrustedLiabilityAgreement.Action;
+type trustedLiabilityAction = Registry.BranchTrustedLiabilityAgreement.Action;
 
 @InputType('BaseBranchTrustedLiabilityAgreementMetaDocumentInput')
 class BaseBranchTrustedLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<trustedLiabilityAction> {
@@ -511,7 +523,7 @@ export class BranchTrustedLiabilityAgreementSignedDocumentInputDTO extends Signe
 // 328 — Договор о полной индивидуальной материальной ответственности председателя участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type trusteeLiabilityAction = Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action;
+type trusteeLiabilityAction = Registry.BranchTrusteeLiabilityAgreement.Action;
 
 @InputType('BaseBranchTrusteeLiabilityAgreementMetaDocumentInput')
 class BaseBranchTrusteeLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<trusteeLiabilityAction> {
@@ -555,7 +567,7 @@ export class BranchTrusteeLiabilityAgreementSignedDocumentInputDTO extends Signe
 // 329 — Доверенность председателю кооперативного участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type trusteePowerOfAttorneyAction = Cooperative.Registry.BranchTrusteePowerOfAttorney.Action;
+type trusteePowerOfAttorneyAction = Registry.BranchTrusteePowerOfAttorney.Action;
 
 @InputType('BaseBranchTrusteePowerOfAttorneyMetaDocumentInput')
 class BaseBranchTrusteePowerOfAttorneyMetaDocumentInputDTO implements ExcludeCommonProps<trusteePowerOfAttorneyAction> {
@@ -564,15 +576,42 @@ class BaseBranchTrusteePowerOfAttorneyMetaDocumentInputDTO implements ExcludeCom
   @IsNotEmpty()
   hash!: string;
 
-  @Field(() => String, { description: 'Наименование кооперативного участка' })
+  // Реквизиты доверенности вписывает узел по решению совета об учреждении участка
+  // (решение владельца 18.11.2026): значения из запроса генерации не берутся.
+  @Field(() => String, { nullable: true, description: 'Кооперативный участок — узел находит по нему решение совета' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
   branch_name!: string;
 
-  @Field(() => String, { description: 'Адрес привязки кооперативного участка' })
+  @Field(() => String, { nullable: true, description: 'Адрес привязки кооперативного участка (вписывает узел)' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   branch_address!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  poa_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер протокола совета об учреждении участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата протокола совета (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_date!: string;
+
+  @Field(() => String, { nullable: true, description: 'Последний день срока доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  valid_until!: string;
 }
 
 @InputType('BranchTrusteePowerOfAttorneyGenerateDocumentInput')
@@ -604,7 +643,7 @@ export class BranchTrusteePowerOfAttorneySignedDocumentInputDTO extends SignedDi
 // 330 — Доверенность доверенному лицу кооперативного участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type trustedPowerOfAttorneyAction = Cooperative.Registry.BranchTrustedPowerOfAttorney.Action;
+type trustedPowerOfAttorneyAction = Registry.BranchTrustedPowerOfAttorney.Action;
 
 @InputType('BaseBranchTrustedPowerOfAttorneyMetaDocumentInput')
 class BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO implements ExcludeCommonProps<trustedPowerOfAttorneyAction> {
@@ -622,6 +661,43 @@ class BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO implements ExcludeCom
   @IsString()
   @IsNotEmpty()
   trustee!: string;
+
+  // Реквизиты вписывает узел: протокол совета об учреждении участка и
+  // действующая доверенность председателя участка (решение владельца 18.11.2026).
+  @Field(() => String, { nullable: true, description: 'Кооперативный участок — узел находит по нему протокол и доверенность председателя' })
+  @IsOptional()
+  @IsString()
+  braname!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  poa_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер протокола совета об учреждении участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата протокола совета (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  protocol_date!: string;
+
+  @Field(() => String, { nullable: true, description: 'Номер доверенности председателя участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  trustee_poa_number!: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата доверенности председателя участка (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  trustee_poa_date!: string;
+
+  @Field(() => String, { nullable: true, description: 'Последний день срока доверенности (вписывает узел)' })
+  @IsOptional()
+  @IsString()
+  valid_until!: string;
 }
 
 @InputType('BranchTrustedPowerOfAttorneyGenerateDocumentInput')

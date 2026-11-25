@@ -16,6 +16,15 @@ title: Платформа — назначаемые роли приложени
 # здесь не добавляют: 23.10.2026 (487-34) в мост добавлен порт подписок на
 # приложения каталога PROVIDER_APPS_PORT — его ведёт apps.catalog-access.
 
+# 17.11.2026: резолвер стола бухгалтера (registries.resolver.ts) получил запрос
+# reportsProcessContent — содержание процесса под тем же правом Registry:read,
+# что и reportsProcess. Права и роли не менялись; случаи слайса без изменений
+# (слайс содержания — reports.process-content).
+
+# Правка 25.11.2026 (487-28): в мосту innercoop добавлена привязка порта
+# DECISION_DECLINE_REASON_PORT (пояснение председателя к отклонению решения
+# совета); роли и права не менялись.
+
 sources:
   backend:
     - components/controller/src/application/access-roles/**
@@ -82,6 +91,7 @@ cases:
     test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+    # 07.11.2026 (C28-80): у бухгалтера пятое полномочие ведения — FundSettings:manage (99D-24, 5ac3366cb31)
 
   - id: access.roles.happy.06
     level: backend
@@ -280,6 +290,19 @@ cases:
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+  - id: access.roles.side.20
+    level: backend
+    kind: side
+    scenario: >
+      Страница «Фонды» стола бухгалтера (задача 99D-24): бухгалтер и член совета
+      читают реестр и историю фондов; процент и описание фонда правит только
+      председатель совета.
+    expect: >
+      чтение — под правом реестров стола; правка — под правом FundSettings:manage,
+      которое в таблице прав стола есть только у председателя; контракт fund
+      дополнительно сверяет имя председателя
+    status: missing   # API-проба прав страницы фондов — вместе с внешним слоем стола бухгалтера
+
   - id: access.roles.break.06
     level: backend
     kind: break
@@ -345,3 +368,19 @@ cases:
 # кассы — оплата и доплата, отчёт и возврат за получателя, документы к любой записке,
 # закрытие расхода; совет кассу читает (cashier.edit.* в cashier.desk.yaml). Ревизор
 # читает и стол кассира.
+
+# 11.11.2026, 99D-35: расходы дают пайщику право ExpenseCounterparty (read, manage)
+# для реестра контрагентов; роли и назначения ролей не менялись. Кому именно
+# открыт реестр и правка, сверяет сервис контрагентов (expenses.counterparties).
+
+# 21.11.2026: в мост портов добавлен COOPERATIVE_LOGO_PORT (логотип кооператива
+# из настроек узла). Загрузка логотипа требует System:manage, как и правка других
+# настроек кооператива; чтение через порт доступно расширениям.
+
+  - id: access.roles.logo.01
+    level: backend
+    kind: break
+    scenario: логотип кооператива пытается загрузить пайщик без права System:manage
+    expect: отказ по праву System:manage; настройки кооператива не меняются
+    test:
+    status: missing

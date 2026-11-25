@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DocumentAggregateDTO, SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
@@ -174,7 +174,7 @@ export class EduContributionDTO {
   @Field(() => String, { nullable: true }) decision_hash!: string | null;
   @Field(() => String, { nullable: true, description: 'Акт передачи материалов на ответственное хранение' }) storage_act_hash!: string | null;
   @Field(() => String, { nullable: true }) act_hash!: string | null;
-  @Field(() => String, { nullable: true, description: 'Причина отклонения' }) decline_reason!: string | null;
+  @Field(() => String, { nullable: true, description: 'Причина, по которой взнос не принят, либо основание закрытия без приёма' }) decline_reason!: string | null;
   @Field(() => String, { nullable: true, description: 'Номер решения совета' }) council_decision_id!: string | null;
   @Field(() => EduCouncilOutcome, { nullable: true, description: 'Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок' }) council_outcome!: EduCouncilOutcome | null;
   @Field(() => Date, { nullable: true, description: 'Дата решения' }) decided_at!: Date | null;
@@ -208,6 +208,48 @@ export class EduHoldContributionInputDTO {
   @Field(() => ID, { description: 'Взнос (черновик по проведённому занятию)' }) @IsUUID() contribution_id!: string;
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный акт передачи материалов на ответственное хранение (3012)' })
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+}
+
+/** Занятие в повторной подаче: исправленные тема и материалы. */
+@InputType('EduReworkLessonInput')
+export class EduReworkLessonInputDTO {
+  @Field(() => ID, { description: 'Занятие взноса' })
+  @IsUUID()
+  lesson_id!: string;
+
+  @Field(() => [String], { description: 'Материалы занятия — ссылки на записи, конспекты, задания' })
+  @IsArray()
+  @IsString({ each: true })
+  materials!: string[];
+
+  @Field(() => String, { nullable: true, description: 'Тема занятия' })
+  @IsOptional()
+  @IsString()
+  topic?: string;
+}
+
+/** Повторная подача взноса, возвращённого на доработку: преподаватель правит материалы занятий. */
+@InputType('EduReworkContributionInput')
+export class EduReworkContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос, возвращённый на доработку' }) @IsUUID() contribution_id!: string;
+
+  @Field(() => [EduReworkLessonInputDTO], { description: 'Занятия взноса с исправленными материалами' })
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => EduReworkLessonInputDTO)
+  lessons!: EduReworkLessonInputDTO[];
+}
+
+/** Закрытие расчёта по взносу без приёма — решение кооператива с основанием. */
+@InputType('EduCloseContributionInput')
+export class EduCloseContributionInputDTO {
+  @Field(() => ID, { description: 'Взнос, возвращённый на доработку' }) @IsUUID() contribution_id!: string;
+
+  @Field(() => String, { description: 'Основание закрытия без приёма' })
+  @IsString()
+  @Length(1, 1000)
+  reason!: string;
 }
 
 @InputType('EduSubmitContributionInput')

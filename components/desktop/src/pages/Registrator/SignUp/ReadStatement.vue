@@ -23,7 +23,7 @@ div(v-show='registratorStore.isStep("ReadStatement")')
             :text='doc.link_text'
           )
             // eslint-disable-next-line vue/no-v-html
-            div(v-html='sanitizeDocumentHtml(doc.document.html)').q-mb-lg
+            div(v-html='sanitizeDocumentHtml(doc.document.html)').doc-html.q-mb-lg
 
       //- Устав кооператива (всегда показывается)
       BaseCheckbox(block v-model='registratorStore.state.agreements.ustav')

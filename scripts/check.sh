@@ -150,6 +150,10 @@ gate_timing() {
   node "$REPO_ROOT/scripts/check-timing.mjs"
 }
 
+gate_enum_literals() {
+  node "$REPO_ROOT/scripts/check-enum-literals.mjs"
+}
+
 gate_transact_fact() {
   node "$REPO_ROOT/scripts/check-transact-fact.mjs"
 }
@@ -168,6 +172,10 @@ gate_legacy_rights() {
 
 gate_typeorm() {
   node "$REPO_ROOT/scripts/check-typeorm-ratchet.mjs"
+}
+
+gate_docs_factory_version() {
+  node "$REPO_ROOT/scripts/check-docs-factory-version.mjs"
 }
 
 gate_vue_pug() {
@@ -201,6 +209,7 @@ case "$MODE" in
     run_gate "команды столов" gate_desk_commands
     run_gate "права на ролях" gate_legacy_rights
     run_gate "шаблоны только на pug" gate_vue_pug
+    run_gate "версия фабрики документов" gate_docs_factory_version
     ;;
   ledger2)
     run_gate "реестры процессов ledger2" gate_ledger2_processes
@@ -233,12 +242,14 @@ case "$MODE" in
     run_gate "плательщик памяти в контрактах" gate_ram_payer
     run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "факт: пауза вместо факта" gate_timing
+    run_gate "строка вместо перечисления" gate_enum_literals
     run_gate "факт: транзакция мимо факта" gate_transact_fact
     run_gate "факт: экран без зеркала" gate_live_mirror
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "команды столов" gate_desk_commands
     run_gate "права на ролях" gate_legacy_rights
     run_gate "шаблоны только на pug" gate_vue_pug
+    run_gate "версия фабрики документов" gate_docs_factory_version
     run_gate "TypeORM только вниз" gate_typeorm
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry

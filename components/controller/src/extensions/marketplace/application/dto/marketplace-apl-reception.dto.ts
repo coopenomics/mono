@@ -58,6 +58,12 @@ export class MarketplaceAplReceptionFactEntryDTO {
   })
   product_name!: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Ссылка на снимок товара по этой позиции — миниатюра в таблицах приёмки и подписи.',
+  })
+  image_url!: string | null;
+
   @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара по этой позиции (штука, килограмм, литр).',
@@ -383,6 +389,7 @@ export interface MarketplaceAplReceptionDisplayFields {
     string,
     {
       product_name: string | null;
+      image_url?: string | null;
       unit_of_measure: MarketplaceUnitOfMeasureEnum | null;
       package_size: number | null;
       orderer_account: string | null;
@@ -412,6 +419,7 @@ export function toMarketplaceAplReceptionDTO(
     entry.fact_unit_price = f.fact_unit_price ?? null;
     const line = display?.lineByOrderId?.get(f.order_id);
     entry.product_name = line?.product_name ?? null;
+    entry.image_url = line?.image_url ?? null;
     entry.unit_of_measure = line?.unit_of_measure ?? null;
     entry.package_size = line?.package_size ?? null;
     entry.orderer_account = line?.orderer_account ?? null;

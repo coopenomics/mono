@@ -32,11 +32,15 @@ void marketplace::rejretrem(eosio::name coopname,
   eosio::check(branch.is_user_authorized(signer),
                "Подписант не уполномочен принимать решения по заявлениям данного кооперативного участка");
 
-  // Запись реестра документов (создана newsubmitted в submretrn) доводится
-  // до «отклонён»; причина отказа остаётся в журнале действий (reason).
+  // Совета не было: рекламация — единственное заявление пакета возврата
+  // (package = хэш рекламации) с итогом «отклонено». Причина отказа остаётся в
+  // журнале действий (reason).
+  Action::send<newsubmitted_interface>(_soviet, "newsubmitted"_n, _marketplace,
+                                       coopname, r.orderer, "submretrn"_n,
+                                       r.hash, r.statement, uint64_t(0));
   Action::send<newdeclined_interface>(_soviet, "newdeclined"_n, _marketplace,
                                       coopname, r.orderer,
-                                      r.original_order_hash, r.statement);
+                                      r.hash, r.statement);
 
   Marketplace::erase_return_request(coopname, r.id);
 }

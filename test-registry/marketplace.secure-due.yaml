@@ -1,0 +1,218 @@
+feature: marketplace.secure-due
+title: Обеспечительная часть паевого взноса — учёт к списанию и списание в членский взнос первого числа месяца
+
+# Задача 99D-18, решение владельца 31.10.2026. При заказе пайщик сверх
+# стоимости имущества вносит обеспечительную часть паевого взноса по ставке
+# кооператива. На выдаче её факт ложится на кошелёк пайщика к списанию
+# w.mkt.due; на этот кошелёк ложится и удержание при отказе. Членским взносом
+# участка она становится только при списании по условиям ЦПП: первого числа
+# месяца после окончания гарантийного срока заказа, без подписи пайщика.
+# Правка 09.11.2026 (99D-33): сколько и за какой период списывать, контракт
+# знает из своих счётчиков (kudues, kucounters) — узел сумм в цепь не передаёт
+# и называет только пайщика, участок и период. Зеркало узла (строка на заказ)
+# остаётся для показа пайщику и закрывается операциями нитки списания p.mkt.due.
+
+
+# Правка 07.11.2026 (99D-30): списание строки по итогу месяца берёт
+# возмещение паевых взносов инициаторов участка разницей `invbranches.repaid_total`
+# до и после `chargeperiod` и прибавляет его к итогу месяца
+# (`noteCharged`, колонка `investor_repaid`); проход, который возместил
+# паевые взносы, шлёт событие `marketplace.invest.repaid` для уведомления
+# инициаторов. Суммы списания и возврата пайщику не менялись; случаи
+# возмещения — mkt.order.invest.istok.07 и .08 в marketplace.order.
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-secure-due.service.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1793880530030-secure-due-run.ts
+    - components/extension-kit/src/config/stand-time.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-secure-due.entity.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1793440000000-secure-due.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-order-secure-part.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-secure-part.dto.ts
+  ui:
+    - components/desktop/src/widgets/Marketplace/OrderSecurePartCard/**
+  contract:
+    - components/contracts/cpp/marketplace/src/p.mkt.due/chargeperiod.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.due/exitdue.cpp
+    - components/contracts/cpp/marketplace/src/p.mkt.due/migratedue.cpp
+    - components/contracts/cpp/lib/core/marketplace/dues.hpp
+
+cases:
+  - id: mkt.secure.due.side.1
+    level: backend
+    kind: side
+    scenario: Выданный заказ с гарантией и без неё — обеспечительная часть к списанию
+    expect: строка учёта с остатком; созревает к концу гарантийного срока, без гарантии — в момент выдачи
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.2
+    level: backend
+    kind: side
+    scenario: Отказ от получения после акцепта — удержание тела и обеспечительной части
+    expect: обе удержанные половины учтены одной строкой заказа и созревают сразу
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.3
+    level: backend
+    kind: break
+    scenario: Повторное событие той же операции цепи
+    expect: остаток не меняется второй раз
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "повтор события шины через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.secure.due.side.4
+    level: backend
+    kind: side
+    scenario: Гарантийный возврат по решению совета — обеспечительная часть за возвращённое
+    expect: остаток заказа уменьшен, в списанное не идёт; возврат всего закрывает строку
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.5
+    level: backend
+    kind: side
+    scenario: Выход пайщика с остатком к списанию
+    expect: все строки пайщика закрыты списанием немедленно
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.6
+    level: backend
+    kind: side
+    scenario: Операция цепи, не относящаяся к обеспечительной части
+    expect: учёт не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "учёт к списанию — внутренняя таблица узла, через API стенда не выведена"
+    status: passing
+
+  - id: mkt.secure.due.side.7
+    level: backend
+    kind: side
+    scenario: Окончание периода списания (UTC, как у контракта); гарантия кончилась в прошлом периоде либо ещё идёт
+    expect: строка счётчика закончившегося периода списывается действием chargeperiod без сумм — узел называет пайщика, участок и период; строка текущего периода ждёт
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
+    status: passing
+
+  - id: mkt.secure.due.side.8
+    level: backend
+    kind: side
+    scenario: По заказу строки пайщика открыт гарантийный возврат; у того же пайщика открыт возврат по заказу другого периода
+    expect: строку с заказом под возвратом контракт не списывает (MARKETPLACE_DUE_RETURN_PENDING), узел считает это нормой и ждёт решения совета; строку другого периода возврат не держит — она списывается
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
+    status: passing
+
+  - id: mkt.secure.due.side.9
+    level: backend
+    kind: side
+    scenario: Письмо пайщику о списании
+    expect: одно письмо за прогон с суммой и числом заказов; при отказе цепи письма нет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "списание идёт по расписанию в начале месяца; время стенда через API не сдвинуть"
+    status: passing
+
+  # 01.11.2026: общая шкала времени стенда (extension-kit). На стенде разработки
+  # сутки гарантии и «первое число» списания сжимаются переменными окружения,
+  # чтобы весь путь проходился за минуты; в работе время всегда настоящее.
+  - id: mkt.secure.due.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Стенд со сжатым временем (STAND_DAY_SECONDS, STAND_MONTH_SECONDS, STAND_WORKER_PACE_SECONDS)
+      и боевой узел с теми же переменными
+    expect: >
+      на стенде сутки и месяц из окружения, расчётный период — отрезок длины месяца, крон
+      списания ходит с шагом стенда; без переменных и в работе (NODE_ENV=production) время
+      настоящее, период — календарный месяц в часовом поясе кооператива
+    test: components/controller/tests/unit/extension-kit/stand-time.test.ts
+    external: unreachable
+    external_reason: "шкала времени задаётся окружением узла, через API стенда её не переключить"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  # 02.11.2026: обеспечительная часть в карточке заказа — у пайщика, в реестре
+  # заказов администратора и участка (решение владельца: без отдельной
+  # страницы учёта, обеспечительная часть принадлежит заказу).
+  - id: mkt.secure.due.side.11
+    level: backend
+    kind: side
+    scenario: >
+      Карточка заказа на каждом этапе: до получения, после выдачи, при открытом
+      гарантийном возврате, после списания, после возврата и у отменённого заказа
+    expect: >
+      в резерве — сумма заказа; после выдачи — ждёт списания с датой первого числа
+      месяца после гарантии (на стенде — начало следующего отрезка); при открытом
+      возврате — приостановлена без даты; списана — с моментом списания; возвращена —
+      у отменённого и возвращённого; у заказа прежней модели блока нет
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    api: components/api-tests/src/marketplace/economy.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  # 05.11.2026 (аудит коэффициента экономического участия): шина выпускает
+  # действия одного блока разом и слушателей не ждёт, а одна транзакция несёт по
+  # заказу две операции. Слушатель учёта ведёт их очередью в порядке цепи.
+  - id: mkt.secure.due.side.12
+    level: backend
+    kind: break
+    scenario: >
+      Две операции одного заказа приходят слушателю учёта одновременно: выдача —
+      стоимость заказа и постановка к списанию; списание по итогу месяца —
+      списанная и возвращённая части
+    expect: >
+      обе операции учтены по порядку цепи: строка получает и стоимость, и сумму к
+      списанию; после списания остаток ноль. Без очереди вторая вставка падала по
+      ключу строки, а второе обновление затирало первое
+    test: components/controller/tests/unit/marketplace/marketplace-keu-cycle.test.ts
+    external: unreachable
+    external_reason: "порядок доставки действий слушателю снаружи не задать; следствие проверяет набор period-cycle на стенде со сжатым временем"
+    status: passing
+
+  # 09.11.2026 (99D-33): переходный перенос зеркала в счётчики цепи при первом
+  # старте узла после обновления.
+  - id: mkt.secure.due.side.13
+    level: backend
+    kind: side
+    scenario: >
+      Первый старт после обновления: в цепи нет строк счётчиков, в зеркале —
+      незакрытые строки заказов
+    expect: >
+      каждая переносится действием migratedue: выданный заказ — стоимость и обеспечительная
+      часть в период конца гарантии, удержание — целиком участку; при счётчиках в цепи
+      переноса нет; отказ контракта по строке не роняет остальные
+    test: components/controller/tests/unit/marketplace/marketplace-secure-due.test.ts
+    external: unreachable
+    external_reason: "первый старт узла после обновления через API стенда не вызвать"
+    status: passing
+
+  - id: mkt.secure.due.side.14
+    level: contract
+    kind: side
+    scenario: >
+      Строка счётчика пайщика списывается по итогу месяца, посчитанному после
+      16.11.2026: у итога есть ставка фонда социально-экономического
+      взаимодействия и социального обеспечения участка
+    expect: >
+      chargeperiod проводит ногу o.mkt.social (w.mkt.fee → w.fnd.social участка,
+      по кошелькам без проводки с 17.11.2026) на долю фонда по ставке; кошелёк фонда участка растёт на эту
+      долю; у итога до 16.11.2026 без ставки фонда ноги нет; при нехватке остатка
+      доля фонда урезается первой после возврата; сумма o.mkt.charge включает
+      долю фонда (описание действия chargeperiod приведено к этому порядку);
+      ставки итога посчитаны по двум настройкам — доле пайщиков и доле инициатора
+    test: components/boot/src/tests/marketplace-period.test.ts
+    status: written

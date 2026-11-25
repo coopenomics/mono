@@ -1,12 +1,13 @@
 import { sql } from 'kysely';
 import { EXPENSES_PROPOSAL_STORE } from '../database/expenses-stores';
-import { oneOf, type TableStore } from '@coopenomics/extension-kit';
+import { expensePlanRecurrenceMonths, oneOf, type TableStore } from '@coopenomics/extension-kit';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   IExpenseChassisPort,
   InnerExpenseItem,
   InnerExpensePagination,
   InnerExpensePaginatedResult,
+  InnerExpensePlan,
   InnerExpensePlannedReserve,
   InnerExpenseProposalRead,
   InnerExpenseProposalStatus,
@@ -101,6 +102,26 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
 
   async attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void> {
     await this.plans.attachProposal(coopname, planId, proposalHash);
+  }
+
+  /** Записи реестра плановых расходов участка — для итога месяца участка Стола заказов (задача 99D-22). */
+  async listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]> {
+    const rows = await this.plans.listPlans(coopname, branchName);
+    return rows.map((r) => ({
+      id: r.id,
+      branchName: r.braname,
+      title: r.title,
+      amount: r.amount,
+      dueDate: r.due_date,
+      recurrenceMonths: expensePlanRecurrenceMonths(r.recurrence),
+      recipientType: r.recipient_type,
+      counterpartyId: r.counterparty_id,
+      recipient: r.recipient,
+      paymentMethodId: r.payment_method_id,
+      paymentPurpose: r.payment_purpose,
+      proposalHash: r.proposal_hash,
+      paidAt: r.paid_at,
+    }));
   }
 
   async validateRequisites(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {

@@ -42,7 +42,7 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
   const orderRow = (id: string) => ({ id, coopname: 'voskhod', order_hash: `hash-${id}`, orderer_account: 'ant' }) as any;
   const txOk = { response: { transaction_id: 'tx-1', processed: { id: 'tx-1', block_num: 42 } } };
 
-  function build(balances: { member: bigint; share: bigint }) {
+  function build(balances: { share: bigint }) {
     const cartRepo = {
       getOrCreate: jest.fn(async () => ({
         id: 'cart-1',
@@ -99,8 +99,8 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
     return { service, cartRepo, offerRepo, orderCreateService, stockService, chainPort, convertService };
   }
 
-  const withStatement = { member: 0n, share: 0n }; // кошельков программы нет — нужен перевод
-  const withoutStatement = { member: 1_000_0000n, share: 10_000_0000n }; // всё покрыто кошельками программы
+  const withStatement = { share: 0n }; // свободного паевого нет — нужна трансляция
+  const withoutStatement = { share: 11_000_0000n }; // всё покрыто свободным паевым
 
   it('перевод и заказы всех строк уходят одной транзакцией: перевод первым, строки в порядке корзины', async () => {
     const m = build(withStatement);
@@ -115,8 +115,9 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
         orderer: 'ant',
         convert_statement: { hash: 'doc-1110' },
         targets: [
-          { order_hash: expect.any(String), amount: '20.0000 RUB' },
-          { order_hash: expect.any(String), amount: '10.0000 RUB' },
+          // Трансляция по строке — недостающие стоимость и обеспечительная часть (задача 99D-18).
+          { order_hash: expect.any(String), amount: '220.0000 RUB' },
+          { order_hash: expect.any(String), amount: '110.0000 RUB' },
         ],
       })
     );
@@ -135,10 +136,10 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
   it('отказ цепи — отказ всего: брони всех строк сняты, заказы не записаны, корзина не тронута', async () => {
     const m = build(withStatement);
     m.chainPort.checkout.mockRejectedValue(
-      new Error('assertion failure with message: Недостаточно членских средств Стола заказов на членский взнос участка\n')
+      new Error('assertion failure with message: MARKETPLACE_SECURE_PART_SHORTFALL: Недостаточно свободного паевого Стола заказов на обеспечительную часть\n')
     );
 
-    await expect(m.service.execute(scope, { signed_convert: {} as any })).rejects.toThrow(/Недостаточно членских средств/);
+    await expect(m.service.execute(scope, { signed_convert: {} as any })).rejects.toThrow(/обеспечительную часть/);
 
     expect(m.orderCreateService.rollback).toHaveBeenCalledWith(preparedA);
     expect(m.stockService.rollbackStockOrder).toHaveBeenCalledWith(preparedB);

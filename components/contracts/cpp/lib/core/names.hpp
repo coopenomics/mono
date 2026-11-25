@@ -100,6 +100,13 @@ namespace Names {
     constexpr eosio::name DECLINE_RID_ACT = "dclridact"_n;
   }
 
+  namespace Marketplace {
+    // Коллбэки одобрений председателя: акт приёма имущества паевым взносом
+    // в кооперативный участок (p.mkt.invest, решение владельца 08.11.2026).
+    constexpr eosio::name APPROVE_PROPERTY_ACT = "apprvipact"_n;
+    constexpr eosio::name DECLINE_PROPERTY_ACT = "dclipact"_n;
+  }
+
   namespace External {
     // Внешние действия в других контрактах
     constexpr eosio::name CREATE_OUTPAY = "createoutpay"_n;
@@ -160,5 +167,9 @@ namespace Names {
   namespace Edubridge {
     constexpr eosio::name SIGN_CONTRACT = "signcontract"_n; // акцепт договора УХД преподавателя
     constexpr eosio::name SIGN_RID_ACT = "signridact"_n; // акт приёма-передачи РИД на вторую подпись председателя
+  }
+
+  namespace Marketplace {
+    constexpr eosio::name SIGN_PROPERTY_ACT = "act1iprop"_n; // акт приёма имущества в кооперативный участок на вторую подпись председателя
   }
 }

@@ -1,5 +1,5 @@
 import { Mutations, Queries } from '@coopenomics/sdk';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session/model';
@@ -59,7 +59,7 @@ export async function buildOnboardingOfferDocument(): Promise<DigitalDocument> {
 
   const document = new DigitalDocument();
   await document.generate({
-    registry_id: Cooperative.Registry.MarketplaceOffer.registry_id,
+    registry_id: Registry.MarketplaceOffer.registry_id,
     coopname,
     username,
     marketplace_agreement_number,

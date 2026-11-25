@@ -8,7 +8,8 @@ import { t } from '../../i18n';
 export function formatPaymentMethodRequisites(method: InnerPaymentMethod): string {
   if (method.method_type === 'sbp') {
     const data = method.data as InnerSbpData;
-    return t('expenses.requisites.sbpLine', { phone: data.phone });
+    const line = t('expenses.requisites.sbpLine', { phone: data.phone });
+    return data.bank_name ? `${line}, ${data.bank_name}` : line;
   }
 
   const data = method.data as InnerBankTransferData;

@@ -1,13 +1,14 @@
 {
   "name": "cooptypes",
   "type": "module",
-  "version": "2026.10.23",
+  "version": "2026.11.25",
   "description": "Shared TypeScript типы и интерфейсы экосистемы кооперативов",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/coopenomics/cooptypes.git"
+    "url": "git+https://github.com/coopenomics/mono.git",
+    "directory": "components/cooptypes"
   },
   "keywords": [],
   "exports": {
@@ -42,6 +43,7 @@
     "dev": "nodemon --watch src --ext ts --exec 'unbuild'"
   },
   "dependencies": {
+    "@coopenomics/docs-templates": "1.6.15",
     "@typescript-eslint/parser": "^7.8.0"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@ import { useBranchOverlayProcess } from '../watch-branch-overlay';
 import { useExitOverlayProcess } from '../watch-exit-overlay';
 import { setupNavigationGuard } from '../navigation-guard-setup';
 import { useInitExtensionsProcess } from 'src/processes/init-installed-extensions';
-import { registerDesktopLive } from 'src/processes/init-installed-extensions/desktopLive';
+import { registerDesktopLive, restoreDesktop } from 'src/processes/init-installed-extensions/desktopLive';
 import { applyThemeFromStorage } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { ensureSessionCookie } from 'src/entities/Session/lib/ensureSessionCookie';
@@ -207,10 +207,10 @@ export async function useInitAppProcess(router: Router, ssrContext?: unknown) {
       () => system.backendAvailable,
       (ok, was) => {
         if (!ok || was !== false || !session.isAuth) return;
-        bootrace('backend is back — reloading desktop & account');
-        desktops
-          .loadDesktop()
-          .catch((e) => console.warn('Reload desktop after backend recovery failed:', e));
+        bootrace('backend is back — restoring desktop & account');
+        // Стол целиком: если страница открылась при недоступном узле, у стола
+        // нет и маршрутов расширений, и меню — одного loadDesktop мало.
+        restoreDesktop(router).catch((e) => console.warn('Restore desktop after backend recovery failed:', e));
         useInitWalletProcess()
           .run(true)
           .catch((e) => console.warn('Reload account after backend recovery failed:', e));

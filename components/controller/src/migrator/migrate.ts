@@ -1,21 +1,7 @@
 import 'reflect-metadata';
-import mongoose from 'mongoose';
 import logger from '~/config/logger';
-import config from '~/config/config';
 import { MigrationManager } from './migrationManager';
 import { runDatabaseMigrations } from './database-migrations';
-
-// Настройка подключения к MongoDB
-const mongoConnect = async () => {
-  try {
-    logger.info('Подключение к MongoDB...');
-    await mongoose.connect(config.mongoose.url);
-    logger.info('Успешное подключение к MongoDB для миграции');
-  } catch (error) {
-    logger.error('Ошибка подключения к MongoDB:', error);
-    throw error;
-  }
-};
 
 /**
  * Запуск миграций данных
@@ -28,9 +14,6 @@ export const migrateData = async (): Promise<void> => {
 
     // Сначала схема: миграции данных работают с таблицами, которые она создаёт.
     await runDatabaseMigrations();
-
-    // Подключаемся к MongoDB
-    await mongoConnect();
 
     logger.info('Инициализация менеджера миграций...');
 
@@ -62,12 +45,6 @@ export const migrateData = async (): Promise<void> => {
       } catch (closeError) {
         logger.error('Ошибка при закрытии соединения с PostgreSQL:', closeError);
       }
-    }
-    try {
-      await mongoose.disconnect();
-      logger.info('Соединение с MongoDB закрыто');
-    } catch (mongoCloseError) {
-      logger.error('Ошибка при закрытии соединения с MongoDB:', mongoCloseError);
     }
     logger.info('===== Процесс миграции данных завершен =====');
   }

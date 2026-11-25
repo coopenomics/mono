@@ -92,13 +92,14 @@ namespace operations {
   }
 
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение 06.09.2026).
-  // Тело заказа от резерва до выдачи остаётся паевым взносом на счёте 80;
-  // единственный членский взнос процесса — взнос кооперативного участка, и он
-  // переходит из паевого в членский только по Заявлению о конвертации (1110)
-  // на членский кошелёк программы w.mkt.member, откуда и берётся под заказ.
+  // Тело заказа от резерва до выдачи остаётся паевым взносом на счёте 80.
+  // Сверх тела пайщик вносит обеспечительную часть паевого взноса — тоже на
+  // 80 (задача 99D-18, решение владельца 31.10.2026). Членским взносом она
+  // становится только при списании по условиям ЦПП (o.mkt.charge + o.brn.common,
+  // Дт 80 / Кт 86) — первого числа месяца после окончания гарантийного срока.
   namespace marketplace {
-    inline constexpr eosio::name CONVERT_TO_MEMBER      = "o.mkt.conv"_n;     ///< Перевод паевого взноса в членский кошелёк программы по заявлению 1110 отдельным действием convert до заказа (TRANSFER w.wal.share → w.mkt.member, Dr 80 / Cr 86). Сумма — недостающая до взноса участка часть: остаток w.mkt.member используется автоматически.
-    inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< Паевой резерв под конкретный Order (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2 при createorder.
+    inline constexpr eosio::name TRANSLATE_SHARE        = "o.mkt.conv"_n;     ///< Трансляция паевого взноса из ЦПП «Цифровой кошелёк» в ЦПП «Стол заказов» по заявлению 1110 отдельным действием convert до заказа (TRANSFER w.wal.share → w.mkt.share, без Dr/Cr — оба на 80; задача 99D-18). Сумма — недостающая в программе часть тела заказа и обеспечительной части.
+    inline constexpr eosio::name LOCK_ORDER             = "o.mkt.lock"_n;     ///< ИСТОРИЧЕСКАЯ: паевой резерв под Order прямо с главного паевого (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr). С задачи 99D-18 (решение владельца 31.10.2026) контракт её не проводит: с главного паевого средства приходят только трансляцией по заявлению 1110 (o.mkt.conv), резерв — только со свободного паевого (o.mkt.lockp). Строка реестра оставлена для журнала прежних заказов.
     inline constexpr eosio::name LOCK_FROM_SHARE        = "o.mkt.lockp"_n;    ///< Паевой резерв из свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80). Тело любого заказа и доплата по факту берутся отсюда в первую очередь (сюда возвращаются паевые средства при отменах, недовыдачах и гарантийных возвратах), остаток — LOCK_ORDER с w.wal.share.
     inline constexpr eosio::name UNLOCK_ORDER           = "o.mkt.unlock"_n;   ///< Возврат резерва при отмене Order'а или недовыдаче (TRANSFER w.mkt.order → w.mkt.share, без Dr/Cr — оба на 80). Средства остаются паевыми и остаются в программе: идут на тело следующих заказов (LOCK_FROM_SHARE); в общий паевой не выводятся, RECALL_SHARE — только при выходе из кооператива.
     inline constexpr eosio::name PURCHASE_FROM_SUPPLIER = "o.mkt.purch"_n;    ///< Приёмка имущества кооперативом по АПП приёмки (Dr 10 / Cr 76, ISSUE ∅ → w.mkt.topay по поставщику; имущество — аналитика по 10). Обязательство перед поставщиком на счёте расчётов с разными дебиторами и кредиторами (решение владельца 08.09.2026: 76 вместо 60) и сумма к оплате на кошельке поставщика (задача 99D-16).
@@ -108,14 +109,41 @@ namespace operations {
     inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Отмена сделки по гарантийному возврату по решению совета — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.mkt.share, Dr 10 / Cr 80 — восстановление паевого на свободном паевом «Стола заказов» и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
     inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 91 / Cr 10). По протоколу совета. Порча запаса выбывает в прочие расходы тем же путём, что уценка (решение владельца 10.09.2026, задача 99D-15): счёт 86 двигают только операции с кошельками, а закрытие 91 — отдельное решение.
     inline constexpr eosio::name MARKDOWN_LOSS          = "o.mkt.loss"_n;     ///< Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10): разница между ценой прибытия и фактической ценой выдачи выбывает со склада в прочие расходы. Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на счёте 10 ничего не зависает.
-    inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Членский взнос кооперативного участка под заказ из членского кошелька программы (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86). createorder, stockorder и довзнос по факту на issueact2; взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee.
-    inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Сторно неиспользованной части членского взноса участка на членский кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86). Отмена — полностью, недовыдача — пропорционально факту, гарантийный возврат — доля за возвращённое; членский остаётся членским и идёт в зачёт следующего заказа.
-    inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, Dr 80 / Cr 86 — паевой становится членским взносом участка; основание в положении о ЦПП — TBD-Standardization). Транзит через пул взносов: далее единым o.brn.common уходит в общий кошелёк КУ. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
+    inline constexpr eosio::name SECURE_PART_LOCK       = "o.mkt.fee"_n;      ///< Обеспечительная часть паевого взноса под заказ со свободного паевого «Стола заказов» (TRANSFER w.mkt.share → w.mkt.fee, без Dr/Cr — оба на 80). createorder, stockorder и доплата по факту на issueact2; сумма считается от единой ставки кооператива и фиксируется полем Order.membership_fee.
+    inline constexpr eosio::name SECURE_PART_REFUND     = "o.mkt.refund"_n;   ///< Возврат неиспользованной обеспечительной части на свободный паевой «Стола заказов» (TRANSFER w.mkt.fee → w.mkt.share, без Dr/Cr — оба на 80). Отмена — полностью, недовыдача — пропорционально факту, отказ после акцепта — половина.
+    inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% тела заказа при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.due, без Dr/Cr — оба на 80). Удержанное остаётся паевым до списания в членский взнос по условиям ЦПП (o.mkt.charge); имущество остаётся на складе участка; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
     inline constexpr eosio::name RECALL_SHARE           = "o.mkt.recall"_n;   ///< Консолидация свободного паевого «Стола заказов» в общий паевой Цифрового кошелька при выходе пайщика из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator (exit_helpers).
-    inline constexpr eosio::name EXIT_FEE_TO_POOL       = "o.mkt.exfee"_n;    ///< Остаток членского кошелька программы при выходе пайщика из кооператива (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86): членский взнос не возвращается и в паевой не транслируется (решение владельца 10.09.2026, задача 99D-15). Транзит: той же транзакцией o.brn.common зачисляет его в общий кошелёк участка, к которому прикреплён пайщик; без участка остаётся в пуле (задача 99D-16). Зовёт registrator, когда выход состоялся (completexit, confirmexit без выплаты).
+    inline constexpr eosio::name EXIT_DUE_TO_POOL       = "o.mkt.exfee"_n;    ///< Остаток обеспечительной части к списанию при выходе пайщика из кооператива (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr — оба на 80): по условиям ЦПП списывается в членский взнос немедленно (решение владельца 31.10.2026, задача 99D-18). Транзит: той же транзакцией o.brn.common (Дт 80 / Кт 86) зачисляет его в общий кошелёк участка, к которому прикреплён пайщик; без участка остаётся в пуле. Зовёт registrator, когда выход состоялся (completexit, confirmexit без выплаты).
     inline constexpr eosio::name CLAIM_SUPPLIER         = "o.mkt.claim"_n;    ///< Гарантийная претензия поставщику выставлена по решению совета об отмене сделки (ISSUE ∅ → w.mkt.claim по поставщику, без проводки — до признания претензия не актив). По умолчанию поставщик не согласен: сумма остаётся здесь как основание для иска. Сумма — стоимость возвращённого имущества.
     inline constexpr eosio::name ADMIT_CLAIM            = "o.mkt.admit"_n;    ///< Поставщик признал претензию: TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — дебиторка поставщика признана прочим доходом; далее гасится удержанием из выплат.
     inline constexpr eosio::name DEDUCT_DEBT            = "o.mkt.deduct"_n;   ///< Удержание признанного гарантийного долга из выплаты поставщику (BURN с w.mkt.debt, без проводки: обязательство перед поставщиком и его дебиторка на одном счёте 76 сворачиваются). Идёт в нитке заказа при инициации выплаты (`payout`) вместе с OFFSET_PAYABLE на ту же сумму.
+    inline constexpr eosio::name SECURE_TO_DUE          = "o.mkt.todue"_n;    ///< Обеспечительная часть к списанию (TRANSFER w.mkt.fee → w.mkt.due по заказчику, без Dr/Cr — оба на 80). issueact2 — факт обеспечительной части выданного заказа; отказ после акцепта — удержанная половина. Задача 99D-18.
+    inline constexpr eosio::name CHARGE_DUE             = "o.mkt.charge"_n;   ///< Списание обеспечительной части в членский взнос по условиям ЦПП (TRANSFER w.mkt.due → w.mkt.fee, без Dr/Cr). Первая нога действия chargeperiod — нитка p.mkt.due строки счётчика пайщика за период; вторая — o.brn.common (w.mkt.fee → w.brn.common, Дт 80 / Кт 86). Сколько списать, контракт берёт из своих счётчиков (задача 99D-33), узел называет только пайщика, участок и период.
+    inline constexpr eosio::name DUE_TO_SHARE           = "o.mkt.undue"_n;    ///< Возврат обеспечительной части за возвращённое имущество при гарантийном возврате (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Списания до конца гарантийного срока нет, поэтому сумма всегда на w.mkt.due.
+    inline constexpr eosio::name INITIATOR_SHARE        = "o.mkt.initr"_n;    ///< Вознаграждение инициатора участка из экономии месяца (TRANSFER w.mkt.fee → w.mkt.invest по инициатору, без Dr/Cr — паевой переходит между пайщиками внутри 80; решение владельца 03.11.2026). Третья нога chargeperiod после o.mkt.charge; получатель — из строки прогона kuperiods. Задача 99D-21.
+    inline constexpr eosio::name RETURN_DUE             = "o.mkt.retdue"_n;   ///< Возврат части обеспечительной части паевого взноса пайщику по итогу месяца участка (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Остаток после частей участку, фондам и инициатору по ставкам прогона; средства остаются паевыми в Столе заказов и идут на следующие заказы. Задача 99D-21.
+    // Инвестиционный этап участка (задача 99D-27, решения владельца 06–07.11.2026).
+    inline constexpr eosio::name INVEST_MONEY           = "o.mkt.inv"_n;      ///< Трансляция паевого взноса инициатора в договор участия в хозяйственной деятельности по участку (TRANSFER w.wal.share → w.mkt.invest, без Dr/Cr — оба на 80). По заявлению 1119.
+    inline constexpr eosio::name INVEST_PROPERTY        = "o.mkt.iprop"_n;    ///< Приём имущества паевым взносом инициатора в кооперативный участок (ISSUE w.mkt.invest, Дт 10 / Кт 80) по акту 1122 после решения совета.
+    inline constexpr eosio::name INVEST_POOL_FUND       = "o.mkt.ipool"_n;    ///< Выделение средств инициаторов под расход или материальную помощь участка (ISSUE w.mkt.ipool, без Dr/Cr — деньги на 51 с паевого взноса инициатора).
+    inline constexpr eosio::name INVEST_POOL_UNFUND     = "o.mkt.iunpl"_n;  ///< Возврат невыделенного остатка средств инициаторов из пула (BURN w.mkt.ipool, без Dr/Cr) — отклонение записки или остаток после расхода.
+    inline constexpr eosio::name INVEST_REPAY           = "o.mkt.repay"_n;    ///< Возмещение паевых взносов инициаторов из экономии месяца участка (TRANSFER w.mkt.fee → w.mkt.repay участка, Дт 80 / Кт 86): доля инициаторов в обеспечительной части становится членским взносом. Заменяет o.mkt.initr, пока паевые взносы участка не возвращены; нога chargeperiod.
+    inline constexpr eosio::name SOCIAL_FUND            = "o.mkt.social"_n;   ///< Вторые 38,2 % экономии месяца участка — в фонд социально-экономического взаимодействия и социального обеспечения по участку (TRANSFER w.mkt.fee → w.fnd.social участка, Дт 80 / Кт 86; username = braname): остаток после доли пайщиков, фондов накопления и доли инициатора становится членским взносом. Нога chargeperiod (решение владельца 16.11.2026).
+    inline constexpr eosio::name INVEST_REPAY_SURPLUS   = "o.mkt.rpsurp"_n;   ///< Переплата возмещения на границе завершения возврата — участку (TRANSFER w.mkt.repay → w.brn.common, без Dr/Cr — оба на 86, username = braname).
+    inline constexpr eosio::name INVEST_COST_COVER      = "o.mkt.icover"_n;   ///< Погашение расходов и помощи участка, оплаченных деньгами инициаторов, членскими взносами (только проводка Дт 86 / Кт 26, без кошельков). Доля денег в базе возврата из o.mkt.repay; имущество остаётся на 10 и не гасится. Решение владельца 09.11.2026, бухгалтер подтвердила 10.11.2026.
+    inline constexpr eosio::name INVEST_COST_UNCOVER    = "o.mkt.iuncov"_n;   ///< Сторно погашения 26 на денежную долю переплаты возмещения, переведённой участку (только проводка Дт 26 / Кт 86, без кошельков).
+    inline constexpr eosio::name INVEST_BACK            = "o.mkt.iback"_n;    ///< Трансляция возвращённого и неиспользованного паевого взноса инициатора в главный паевой (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80) по заявлению 1123.
+    inline constexpr eosio::name INVEST_EXIT            = "o.mkt.iexit"_n;    ///< Перенос паевого взноса инициатора на главный паевой при выходе из кооператива (TRANSFER w.mkt.invest → w.wal.share, без Dr/Cr — оба на 80); зовёт registrator.
+    // Оплата расходов и материальной помощи участка из пула средств инициаторов
+    // (задача 99D-28): счёт 26 «Общехозяйственные расходы» (решение владельца
+    // 09.11.2026, бухгалтер подтвердила 10.11.2026; прежде — 08).
+    inline constexpr eosio::name INVEST_EXPENSE_ADVANCE   = "o.mkt.iadv"_n;   ///< Выдача аванса под отчёт по расходу участка из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_EXPENSE_DIRECT    = "o.mkt.idir"_n;   ///< Оплата расхода участка из пула инициаторов по реквизитам (BURN w.mkt.ipool, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_EXPENSE_REPORT    = "o.mkt.irpt"_n;   ///< Закрытие подотчёта по расходу из пула инициаторов (BURN w.exp.adv, без проводки — Дт 26 / Кт 51 сделан при выдаче аванса).
+    inline constexpr eosio::name INVEST_EXPENSE_RETURN    = "o.mkt.iret"_n;   ///< Возврат неиспользованного аванса в пул инициаторов (TRANSFER w.exp.adv → w.mkt.ipool, Дт 51 / Кт 26).
+    inline constexpr eosio::name INVEST_EXPENSE_OVERSPEND = "o.mkt.iovr"_n;   ///< Доплата сверх аванса из пула инициаторов (TRANSFER w.mkt.ipool → w.exp.adv, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_AID               = "o.mkt.iaid"_n;   ///< Материальная помощь из пула инициаторов участка, сумма к выплате за вычетом налога (BURN w.mkt.ipool, Дт 26 / Кт 51).
+    inline constexpr eosio::name INVEST_AID_TAX           = "o.mkt.iaidtx"_n; ///< Удержание НДФЛ из материальной помощи, выплаченной из пула инициаторов (TRANSFER w.mkt.ipool → w.sov.ndfl, Дт 26 / Кт 68).
   }
 
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»).
@@ -136,6 +164,8 @@ namespace operations {
     inline constexpr eosio::name EXPENSE_REPORT        = "o.edu.exprpt"_n; ///< Закрытие подотчёта по расходу программы отчётом с чеками (BURN с w.exp.adv, без Dr/Cr — проводка сделана при выдаче аванса). Роль `report` в наборе шасси расходов программы.
     inline constexpr eosio::name EXPENSE_RETURN        = "o.edu.expret"_n; ///< Возврат неиспользованного аванса в пул расходов программы (TRANSFER w.exp.adv → w.edu.expns, Dr 51 / Cr 86 — деньги вернулись на расчётный счёт). Роль `refund` в наборе шасси расходов программы.
     inline constexpr eosio::name EXPENSE_OVERSPEND     = "o.edu.expovr"_n; ///< Доплата сверх выданного аванса по расходу программы (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend` в наборе шасси расходов программы.
+    inline constexpr eosio::name EXPENSE_TO_FUND       = "o.edu.tofund"_n; ///< Направление расхода программы «Образование» в фонд обеспечения хозяйственной деятельности (TRANSFER w.edu.expns → w.sov.expns, без Dr/Cr — внутри 86). Первая нога выплаты: расход выходит из кооператива только с кошелька фонда (задача 99D-25).
+    inline constexpr eosio::name EXPENSE_FROM_FUND     = "o.edu.fmfund"_n; ///< Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов программы (TRANSFER w.sov.expns → w.edu.expns, без Dr/Cr — внутри 86). Вторая нога возврата после o.edu.expret.
     inline constexpr eosio::name HOLD_EDU_RID          = "o.edu.hold"_n;  ///< Приём материалов занятия на ответственное хранение (ISSUE → w.edu.hold, Dr 08 / Cr 76). Материалы переданы кооперативу как объект и весь гарантийный срок курса числятся за преподавателем: актив лежит на 08, источник — обязательство перед ним на 76. Эталон — o.cap.commit «Благороста»: коммит встаёт на 08 против обязательства на 76, паевой фонд признаётся позже отдельной операцией.
     inline constexpr eosio::name ACCEPT_EDU_RID        = "o.edu.rid"_n;   ///< Приём результата интеллектуальной деятельности преподавателя в состав нематериальных активов по решению совета и акту (без кошельков, Dr 04 / Cr 08). Зеркало o.cap.accept: хранение на 08 закрывается, РИД встаёт на 04. Вторая нога приёма — o.edu.ridshr.
     inline constexpr eosio::name SETTLE_EDU_RID        = "o.edu.ridshr"_n; ///< Зачисление паевого взноса преподавателю по принятому РИД (TRANSFER w.edu.hold → w.edu.share, Dr 76 / Cr 80). Обязательство перед преподавателем гасится признанием паевого фонда; сумма ложится на паевой кошелёк программы — баланс договора участия в хозяйственной деятельности.
@@ -146,8 +176,8 @@ namespace operations {
   // branch — экономика кооперативного участка (requirement b6).
   namespace branch {
     inline constexpr eosio::name DISTRIBUTE_PERSONAL = "o.brn.person"_n;  ///< Распределение доверенному/председателю КУ при ручном распределении председателем (TRANSFER w.brn.pool → w.brn.person, без Dr/Cr — внутри 86). Доля = вес/Σвесов из реестра весов branch::weights; вторая нога двухходовки после o.brn.release.
-    inline constexpr eosio::name DISTRIBUTE_COMMON   = "o.brn.common"_n;  ///< Зачисление 100% членского взноса в общий кошелёк КУ при финализации заказа (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname КУ). Вызывается branch::accrue инлайн от контракта-источника.
-    inline constexpr eosio::name RETURN_FEE_FROM_COMMON = "o.brn.retfee"_n; ///< Возврат членского взноса из общего кошелька КУ при гарантийном возврате имущества (TRANSFER w.brn.common → w.mkt.fee, без Dr/Cr — внутри 86; username = braname КУ). Точная инверсия DISTRIBUTE_COMMON: взнос идёт обратно тем же путём, каким пришёл. Первая нога двухходовки возврата — вторая (w.mkt.fee → w.mkt.member заказчика, без Dr/Cr — оба на 86) выполняется существующей MEMBERSHIP_FEE_REFUND. Прямой TRANSFER w.brn.common[braname] → w.mkt.member[пайщик] невозможен: walletop держит один username на обе стороны, поэтому транзит через COOPERATIVE-пул w.mkt.fee (тот же приём, что в REFUSAL_PENALTY и RELEASE_FROM_COMMON). Вызывается branch::retfee инлайн от контракта-источника.
+    inline constexpr eosio::name DISTRIBUTE_COMMON   = "o.brn.common"_n;  ///< Зачисление членского взноса в общий кошелёк КУ (TRANSFER w.mkt.fee → w.brn.common, Дт 80 / Кт 86; username = braname КУ): обеспечительная часть паевого взноса «Стола заказов» становится членским взносом при списании по условиям ЦПП (chargedue) и при выходе пайщика. Вызывается branch::accrue инлайн от контракта-источника.
+    inline constexpr eosio::name RETURN_FEE_FROM_COMMON = "o.brn.retfee"_n; ///< Сторно зачисления из общего кошелька КУ в пул обеспечительной части (TRANSFER w.brn.common → w.mkt.fee, Дт 86 / Кт 80; username = braname КУ) — точная инверсия DISTRIBUTE_COMMON. С задачи 99D-18 Стол заказов её не вызывает: гарантийный возврат идёт до списания, обеспечительная часть возвращается с w.mkt.due. Вызывается branch::retfee инлайн от контракта-источника.
     inline constexpr eosio::name RELEASE_FROM_COMMON = "o.brn.release"_n; ///< Изъятие из общего кошелька КУ в транзитный пул ручного распределения (TRANSFER w.brn.common → w.brn.pool, без Dr/Cr — внутри 86; username = braname). Первая нога двухходовки распределения: один username на операцию — поэтому common→person идёт через COOPERATIVE-транзит w.brn.pool.
     inline constexpr eosio::name SPEND_COMMON        = "o.brn.spend"_n;   ///< Прямая оплата расхода кооперативного участка по реквизитам получателя (BURN с w.brn.expns, Dr 86 / Cr 51 — выплата с расчётного счёта после подтверждения кассиром). Роль `direct` в наборе шасси расходов для КУ; средства попадают в пул расходов при создании служебной записки (o.brn.expfnd).
     inline constexpr eosio::name EXPENSE_FUND        = "o.brn.expfnd"_n;  ///< Выделение средств участка под расход (TRANSFER w.brn.common → w.brn.expns, без Dr/Cr — внутри 86; username = braname). Выполняется при создании служебной записки: сумма расхода уходит из общего кошелька в пул расходов и перестаёт быть доступной распределению.
@@ -157,13 +187,37 @@ namespace operations {
     inline constexpr eosio::name EXPENSE_RETURN      = "o.brn.expret"_n;  ///< Возврат неиспользованного аванса под отчёт в пул расходов участка (TRANSFER w.exp.adv → w.brn.expns, Dr 51 / Cr 86 — деньги вернулись на расчётный счёт). Роль `refund` в наборе шасси расходов для КУ.
     inline constexpr eosio::name EXPENSE_OVERSPEND   = "o.brn.expovr"_n;  ///< Доплата сверх выданного аванса по расходу участка (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend` в наборе шасси расходов для КУ; сразу за ней шасси закрывает подотчёт отчётом.
     inline constexpr eosio::name FINANCIAL_AID       = "o.brn.aid"_n;     ///< Материальная помощь доверенному КУ, сумма К ВЫПЛАТЕ за вычетом налога (BURN с w.brn.person, Dr 86 / Cr 51 — выплата с расчётного счёта по заявлению, после подтверждения кассиром). Парная операция удержания — FINANCIAL_AID_TAX, применяется той же транзакцией.
-    inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки уходит остаток. Деньги при этом с расчётного счёта не уходят — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
+    inline constexpr eosio::name EXPENSE_TO_FUND     = "o.brn.tofund"_n;  ///< Направление расхода участка в фонд обеспечения хозяйственной деятельности (TRANSFER w.brn.expns → w.sov.expns, без Dr/Cr — внутри 86). Первая нога выплаты: расход выходит из кооператива только с кошелька фонда (задача 99D-25).
+    inline constexpr eosio::name EXPENSE_FROM_FUND   = "o.brn.fmfund"_n;  ///< Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов участка (TRANSFER w.sov.expns → w.brn.expns, без Dr/Cr — внутри 86). Вторая нога возврата после o.brn.expret.
+    inline constexpr eosio::name AID_REQUEST         = "o.brn.aidreq"_n;  ///< Заявление на материальную помощь подано: сумма заявления переходит с персонального кошелька на кошелёк заявлений (TRANSFER w.brn.person → w.brn.aidreq, без Dr/Cr — внутри 86). Свободные средства уменьшаются сразу (решение владельца 08.11.2026).
+    inline constexpr eosio::name AID_RETURN          = "o.brn.aidret"_n;  ///< Совет отказал в материальной помощи: сумма заявления возвращается на персональный кошелёк (TRANSFER w.brn.aidreq → w.brn.person, без Dr/Cr — внутри 86).
+    inline constexpr eosio::name AID_TO_FUND         = "o.brn.aidfnd"_n;  ///< Направление материальной помощи в фонд социально-экономического взаимодействия и социального обеспечения (TRANSFER w.brn.aidreq → w.fnd.mutual, без Dr/Cr — внутри 86). Первая нога выплаты: сумма на руки выходит из кооператива только с кошелька фонда (задача 99D-25); разрез по получателю остаётся на w.brn.person.
+    inline constexpr eosio::name FINANCIAL_AID_TAX   = "o.brn.aidtax"_n;  ///< Удержание НДФЛ из материальной помощи (TRANSFER w.brn.aidreq → w.sov.ndfl, Dr 86 / Cr 68). Кооператив — налоговый агент: с кошелька получателя списывается вся сумма заявления, на руки выплачивается остаток. Деньги при этом с расчётного счёта не списываются — обязательство висит на 68 до платежа в бюджет (TAX_PAYMENT).
+  }
+
+  // fund — фонды накопления кооператива (задачи 99D-19 и 99D-25, решения владельца 02–03.11.2026).
+  // Каждому фонду — своя операция и свой кошелёк: кошелёк и есть субсчёт фонда.
+  namespace fund {
+    inline constexpr eosio::name ACCRUE_INDIVISIBLE  = "o.fnd.indiv"_n;  ///< Отчисление в неделимый фонд из членского взноса участка (TRANSFER w.mkt.fee → w.fnd.indiv, Дт 80 / Кт 86). Зовёт только fund::accrue инлайн от контракта-источника, доля — по проценту фонда, в нитке процесса источника (списание обеспечительной части — p.mkt.supply по хэшу заказа).
+    inline constexpr eosio::name ACCRUE_RESERVE      = "o.fnd.resrv"_n;  ///< Отчисление в резервный фонд из членского взноса участка (TRANSFER w.mkt.fee → w.fnd.resrv, Дт 80 / Кт 86). Тот же путь.
+    inline constexpr eosio::name ACCRUE_DEVELOPMENT  = "o.fnd.devel"_n;  ///< Отчисление в фонд развития кооперации из членского взноса участка (TRANSFER w.mkt.fee → w.fnd.devel, Дт 80 / Кт 86). Тот же путь; остаток округления деления достаётся последнему фонду по порядку.
   }
 
   // soviet
   namespace soviet {
     inline constexpr eosio::name CONVERT_AXN      = "o.sov.axncnv"_n;   ///< Трансляция паевого взноса в членский (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → DELEGATE_FEES).
     inline constexpr eosio::name TAX_PAYMENT      = "o.sov.taxpay"_n;   ///< Перечисление удержанного НДФЛ в бюджет единым налоговым платежом (BURN с w.sov.ndfl, Dr 68 / Cr 51). Инициирует бухгалтер, подтверждает кассир; сумма не может превышать остаток кошелька — перечислить больше удержанного налоговый агент не вправе. Префикс кооперативный, а не программы-источника: в один кошелёк стекаются удержания любой программы, выплатившей доход физлицу.
+    // Расходы кооператива (не участка и не программы): деньги лежат в пуле
+    // расходов кооператива w.sov.budget, выплата идёт транзитом через фонд
+    // обеспечения хозяйственной деятельности w.sov.expns — как у участков и
+    // программ (решение владельца 05.11.2026, задача 99D-26: фонд — только транзит).
+    inline constexpr eosio::name EXPENSE_TO_FUND  = "o.sov.tofund"_n;   ///< Направление расхода кооператива в фонд обеспечения хозяйственной деятельности (TRANSFER w.sov.budget → w.sov.expns, без Dr/Cr — внутри 86). Первая нога выплаты.
+    inline constexpr eosio::name EXPENSE_FROM_FUND = "o.sov.fmfund"_n;  ///< Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооператива (TRANSFER w.sov.expns → w.sov.budget, без Dr/Cr — внутри 86). Вторая нога возврата после o.sov.expret.
+    inline constexpr eosio::name EXPENSE_SPEND    = "o.sov.spend"_n;    ///< Прямая оплата расхода кооператива по реквизитам получателя (BURN с w.sov.expns, Дт 86 / Кт 51). Роль `direct` в наборе шасси.
+    inline constexpr eosio::name EXPENSE_ADVANCE  = "o.sov.expadv"_n;   ///< Выдача аванса под отчёт по расходу кооператива (TRANSFER w.sov.expns → w.exp.adv, Дт 86 / Кт 51). Роль `advance`.
+    inline constexpr eosio::name EXPENSE_REPORT   = "o.sov.exprpt"_n;   ///< Закрытие подотчёта по расходу кооператива отчётом с чеками (BURN с w.exp.adv, без Dr/Cr). Роль `report`.
+    inline constexpr eosio::name EXPENSE_RETURN   = "o.sov.expret"_n;   ///< Возврат неиспользованного аванса по расходу кооператива (TRANSFER w.exp.adv → w.sov.expns, Дт 51 / Кт 86). Роль `refund`.
+    inline constexpr eosio::name EXPENSE_OVERSPEND = "o.sov.expovr"_n;  ///< Доплата сверх выданного аванса по расходу кооператива (TRANSFER w.sov.expns → w.exp.adv, Дт 86 / Кт 51). Роль `overspend`.
   }
 
   // expense — шасси расходов (MVP: только Благорост; хозрасходы из членских — отдельный эпик).
@@ -208,6 +262,8 @@ namespace operations {
     inline constexpr eosio::name MIN_SHARE        = "o.mig.minshr"_n;   ///< Перенос: минимальный паевой взнос (Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND).
     inline constexpr eosio::name SHARE            = "o.mig.share"_n;    ///< Перенос: остаток паевых деньгами (Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY).
     inline constexpr eosio::name ENTRY            = "o.mig.entry"_n;    ///< Перенос: вступительные (Dr 51 / Cr 86, ISSUE ENTRANCE_FEES).
+    inline constexpr eosio::name SPENT            = "o.mig.spent"_n;    ///< Списание с фонда обеспечения хозяйственной деятельности расходов, произведённых до цифрового учёта (BURN с w.sov.expns, без Dr/Cr). Сумма внесена миграцией 10.05.2026 остатком кошелька фонда, хотя уже потрачена; счета миграции сведены с бухгалтером и не меняются — операция только закрывает кошелёк и оставляет след расхода в истории фонда. Разовая, из ledger2::migrate (задача 99D-26, решение владельца 05.11.2026).
+    inline constexpr eosio::name SECURE_ORDER     = "o.mig.mktsec"_n;   ///< Перенос обеспечительной части невыданных заказов из общего пула w.mkt.fee на кошелёк пайщика w.mkt.secure (TRANSFER, без Dr/Cr — оба на 80); из marketplace::migrate.
     inline constexpr eosio::name SUPPLIER_PAYABLE = "o.mig.topay"_n;    ///< Перенос открытых обязательств перед поставщиками на кошелёк к оплате (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый, из marketplace::migrate (задача 99D-16).
   }
 
@@ -285,12 +341,12 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // 1. Вступительный взнос: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
   { operations::registrator::PAY_ENTRANCE, processes::registrator::ACCEPT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
-    "Вступительный взнос пайщика" },
+    "Внесение вступительного взноса пайщиком" },
 
   // 2. Минимальный паевой взнос (при регистрации): Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
   { operations::registrator::PUT_MINSHARE, processes::registrator::ACCEPT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MIN_SHARE_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Минимальный паевой взнос пайщика при регистрации" },
+    "Внесение минимального паевого взноса при регистрации" },
 
   // 2a. Приём регистрационного взноса кассой (поток через совет): Dr 51 / Cr 76, ISSUE REGISTRATION_PENDING.
   // Деньги получены, но взнос ещё не признан — висит на расчётах с пайщиком (76)
@@ -347,13 +403,13 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // Денежные взносы в Благорост идут через `o.cap.invest` (TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND).
   { operations::capital::IMPORT, processes::capital::IMPORT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос по целевой потребительской программе «Благорост» (офлайн-импорт)" },
+    "Перенос паевого взноса по ЦПП «Благорост» из офлайн-учёта" },
 
   // 6. Инвестиция из Цифрового Кошелька в Благорост: TRANSFER SHARE_FUND_PAY → BLAGOROST_FUND (без Dr/Cr — оба счёта 80)
   { operations::capital::INVEST, processes::capital::INVEST, WalletOp::TRANSFER,
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
-    "Инвестиция в ЦПП «Благорост»" },
+    "Внесение инвестиции в ЦПП «Благорост»" },
 
   // 7. Коммит РИД на ответственное хранение: Dr 08 / Cr 76, ISSUE GENERATOR_FUND
   // (ADR-009: единый кошелёк программы Генератор).
@@ -366,7 +422,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // (o.cap.ridshr, Dr 76 / Cr 80) — той же схемой, что и в ЦПП «Образование».
   { operations::capital::COMMIT_RID, processes::capital::RID, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::GENERATOR_FUND,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::OTHER_SETTLEMENTS,
-    "Коммит результата интеллектуальной деятельности по программе «Генератор»" },
+    "Приём коммита РИД на ответственное хранение по программе «Генератор»" },
 
   // 8. Приём РИД в НМА: Dr 04 / Cr 08, NONE — кошелёк остаётся на GENERATOR_FUND.
   // Семантика: подписан акт-2, РИД принят как НМА (закрылся 08-й). Перемещение
@@ -385,14 +441,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::SETTLE_RID, processes::capital::RID, WalletOp::NONE,
     eosio::name{}, eosio::name{},
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос результатом интеллектуальной деятельности по программе «Генератор»" },
+    "Внесение паевого взноса результатом интеллектуальной деятельности по программе «Генератор»" },
 
   // 9. Акт-2 имущественный паевой взнос: Dr 04 / Cr 80, ISSUE BLAGOROST_FUND (ADR-009).
-  // Имущественный (РИД) — Dr 04 (НМА), не Dr 51 (банк). Денежный паевой —
-  // через o.wal.depcpl или o.cap.invest.
+  // Сейчас кооператив принимает взносом имуществом только объекты авторских
+  // прав и ставит их сразу на нематериальные активы — Dr 04 (решение владельца
+  // 04.11.2026). Прочее имущество (вещи на 08, 01, 10) — отдельной задачей.
+  // Денежный паевой — через o.wal.depcpl или o.cap.invest.
   { operations::capital::ACCEPT_PROPERTY, processes::capital::PROPERTY, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::BLAGOROST_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос (не денежный) по программе «Благорост»" },
+    "Внесение имущественного паевого взноса по программе «Благорост»" },
 
   // 9a. Первичный учёт РИД-взноса: Dr 04 / Cr 80, ISSUE PREIMP_FUND.
   // Пайщик внёс РИД-имущество ДО перехода кооператива на электронный учёт.
@@ -401,7 +459,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // переоткрыть на полный объём через `o.cap.import` под единый Благорост-фонд.
   { operations::capital::PREIMP, processes::capital::PREIMP, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::PREIMP_FUND,
     ledger2_accounts::INTANGIBLE_ASSETS, ledger2_accounts::SHARE_FUND,
-    "Первичный учёт РИД-взноса до перехода на электронный учёт" },
+    "Постановка на учёт РИД-взноса до перехода на электронный учёт" },
 
   // 9b. Закрытие пред-импорт-учёта: Dr 80 / Cr 04, BURN PREIMP_FUND.
   // Вызывается из `capital::importcontr` ДО `o.cap.import`, если у пайщика
@@ -423,13 +481,15 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
 
-  // 12a. p.mkt.supply: Паевой резерв под Order (TRANSFER w.wal.share → w.mkt.order,
-  //      без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2
-  //      при createorder: паевой взнос остаётся паевым, только меняет кошелёк.
+  // 12a. p.mkt.supply: ИСТОРИЧЕСКАЯ — паевой резерв прямо с главного паевого
+  //      (TRANSFER w.wal.share → w.mkt.order, без Dr/Cr). С задачи 99D-18 не
+  //      проводится: резерв только со свободного паевого (o.mkt.lockp), а на
+  //      него средства приходят трансляцией по заявлению 1110. Строка — для
+  //      журнала прежних заказов.
   { operations::marketplace::LOCK_ORDER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,
-    "Паевой резерв под заказ" },
+    "Блокировка паевого взноса под заказ" },
 
   // 12a². p.mkt.supply: Паевой резерв из свободного паевого «Стола заказов»
   //       (TRANSFER w.mkt.share → w.mkt.order, без Dr/Cr — оба на 80).
@@ -437,7 +497,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::LOCK_FROM_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_ORDER_LOCK,
     0, 0,
-    "Паевой резерв из свободного паевого «Стола заказов»" },
+    "Блокировка паевого взноса под стоимость имущества заказа" },
 
   // 12b. p.mkt.supply: Возврат резерва (TRANSFER w.mkt.order → w.mkt.share,
   //      без Dr/Cr — оба на 80). cancelorder / declineorder / expireorder;
@@ -447,14 +507,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Возврат резерва на свободный паевой «Стола заказов»" },
 
-  // 12b². p.mkt.supply: Удержание 50% при отказе пайщика от получения после
-  //       акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, Dr 80 / Cr 86 —
-  //       паевой становится членским взносом участка). Транзит через пул взносов,
-  //       далее единым Branch::accrue (o.brn.common) в общий кошелёк КУ.
+  // 12b². p.mkt.supply: Удержание 50% тела при отказе пайщика от получения после
+  //       акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.due, без Dr/Cr — оба
+  //       на 80). Удержанное остаётся паевым до списания в членский взнос по
+  //       условиям ЦПП (chargedue: o.mkt.charge + o.brn.common). Задача 99D-18.
   { operations::marketplace::REFUSAL_PENALTY, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
-    "Удержание при отказе пайщика от получения после акцепта поставщиком" },
+    ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::MARKETPLACE_SECURE_DUE,
+    0, 0,
+    "Удержание части стоимости заказа при отказе пайщика от получения после акцепта поставщиком" },
 
   // 12c. p.mkt.supply: Приёмка имущества кооперативом по АПП приёмки
   //      (Dr 10 / Cr 76, ISSUE ∅ → w.mkt.topay по поставщику). Кооператив получил
@@ -494,7 +554,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::RETURN_BY_MEMBER, processes::marketplace::RETURN, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     ledger2_accounts::MATERIALS, ledger2_accounts::SHARE_FUND,
-    "Отмена сделки по гарантийному возврату — имущество на склад, паевой взнос восстановлен" },
+    "Отмена сделки по гарантийному возврату с возвратом имущества на склад и восстановлением паевого взноса" },
 
   // 12g. p.mkt.wroff: Утилизация скоропорта со склада (NONE Dr 91 / Cr 10).
   //      По протоколу совета. Порча запаса — прочий расход, как уценка
@@ -509,14 +569,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::marketplace::CLAIM_SUPPLIER, processes::marketplace::CLAIM, WalletOp::ISSUE,
     eosio::name{}, ledger2_wallets::MARKETPLACE_CLAIM_PENDING,
     0, 0,
-    "Гарантийная претензия поставщику по отменённой советом сделке (не признана)" },
+    "Предъявление поставщику гарантийной претензии после отмены сделки советом" },
 
   // 12n. p.mkt.claim: Поставщик признал претензию
   //      (TRANSFER w.mkt.claim → w.mkt.debt, Dr 76 / Cr 91 — TBD-Standardization).
   { operations::marketplace::ADMIT_CLAIM, processes::marketplace::CLAIM, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_CLAIM_PENDING, ledger2_wallets::MARKETPLACE_SUPPLIER_DEBT,
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::OTHER_INCOME_EXPENSES,
-    "Претензия признана поставщиком — долг к удержанию из выплат" },
+    "Признание поставщиком претензии и постановка долга к удержанию из выплат" },
 
   // 12p. p.mkt.supply: Удержание признанного гарантийного долга из выплаты
   //      поставщику (BURN с w.mkt.debt, без проводки — обе стороны на 76).
@@ -531,27 +591,158 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::OTHER_INCOME_EXPENSES, ledger2_accounts::MATERIALS,
     "Уценка имущества при выдаче со склада кооператива" },
 
-  // 12h. p.mkt.supply: Конвертация паевого взноса в членский по заявлению 1110
-  //      (TRANSFER w.wal.share → w.mkt.member, Dr 80 / Cr 86). createorder — на
-  //      недостающую до взноса участка сумму.
-  { operations::marketplace::CONVERT_TO_MEMBER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+  // 12h. p.mkt.supply: Трансляция паевого взноса из ЦПП «Цифровой кошелёк» в
+  //      ЦПП «Стол заказов» по заявлению 1110 (TRANSFER w.wal.share → w.mkt.share,
+  //      без Dr/Cr — оба на 80). Сумма — недостающая в программе часть тела и
+  //      обеспечительной части. Задача 99D-18.
+  { operations::marketplace::TRANSLATE_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_SHARE_FUND,
+    0, 0,
+    "Трансляция паевого взноса из Цифрового кошелька в Стол заказов по заявлению" },
+
+  // 12i. p.mkt.supply: Обеспечительная часть паевого взноса под заказ на
+  //      кошелёк пайщика «под заказы» (TRANSFER w.mkt.share → w.mkt.secure,
+  //      без Dr/Cr — оба на 80). До 05.11.2026 — в общий пул w.mkt.fee.
+  { operations::marketplace::SECURE_PART_LOCK, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SHARE_FUND, ledger2_wallets::MARKETPLACE_SECURE_ORDER,
+    0, 0,
+    "Блокировка обеспечительной части паевого взноса под заказ" },
+
+  // 12j. p.mkt.supply: Возврат неиспользованной обеспечительной части на
+  //      свободный паевой (TRANSFER w.mkt.secure → w.mkt.share, без Dr/Cr — оба на 80).
+  { operations::marketplace::SECURE_PART_REFUND, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SECURE_ORDER, ledger2_wallets::MARKETPLACE_SHARE_FUND,
+    0, 0,
+    "Возврат обеспечительной части на свободный паевой «Стола заказов»" },
+
+  // 12j². p.mkt.supply: Обеспечительная часть к списанию — факт выданного заказа
+  //       (issueact2) и удержанная половина при отказе (TRANSFER w.mkt.secure →
+  //       w.mkt.due, без Dr/Cr — оба на 80).
+  { operations::marketplace::SECURE_TO_DUE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SECURE_ORDER, ledger2_wallets::MARKETPLACE_SECURE_DUE,
+    0, 0,
+    "Постановка обеспечительной части паевого взноса на списание" },
+
+  // 12j³. p.mkt.due: Списание обеспечительной части по итогу периода — первая
+  //       нога chargeperiod (TRANSFER w.mkt.due → w.mkt.fee, Дт 80 / Кт 86).
+  //       Единственная проводка списания (решение владельца 17.11.2026): пул
+  //       w.mkt.fee — субсчёт 86, дальше доли участку, фондам, инициаторам и
+  //       фонду социального обеспечения идут по кошелькам внутри 86 без проводок.
+  //       Нитка — строка счётчика пайщика за период (задача 99D-33).
+  { operations::marketplace::CHARGE_DUE, processes::marketplace::DUE, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_FEE_POOL,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
-    "Конвертация паевого взноса в членский по заявлению" },
+    "Списание обеспечительной части паевого взноса в членский взнос по условиям ЦПП" },
 
-  // 12i. p.mkt.supply: Членский взнос кооперативного участка под заказ
-  //      (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба на 86).
-  { operations::marketplace::MEMBERSHIP_FEE_LOCK, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_MEMBER_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
+  // 12j⁴. p.mkt.return: Возврат обеспечительной части за возвращённое имущество
+  //       (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80).
+  { operations::marketplace::DUE_TO_SHARE, processes::marketplace::RETURN, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     0, 0,
-    "Членский взнос кооперативного участка под заказ" },
+    "Возврат обеспечительной части при гарантийном возврате имущества" },
 
-  // 12j. p.mkt.supply / p.mkt.return: Сторно членского взноса участка на членский
-  //      кошелёк программы (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба на 86).
-  { operations::marketplace::MEMBERSHIP_FEE_REFUND, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
+  // 12j⁵. p.mkt.supply: Доля инициатора участка из экономии месяца — третья
+  //       нога chargeperiod (TRANSFER w.mkt.fee → w.mkt.invest по инициатору,
+  //       без Dr/Cr — паевой переходит между пайщиками внутри 80). Задача 99D-21.
+  { operations::marketplace::INITIATOR_SHARE, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_INITIATOR,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
+    "Вознаграждение инициатора кооперативного участка из экономии месяца" },
+
+  // 12j⁶. p.mkt.due: Возврат части обеспечительной части пайщику по итогу
+  //       периода участка — остаток после частей участку, фондам и инициатору
+  //       (TRANSFER w.mkt.due → w.mkt.share, без Dr/Cr — оба на 80). Задачи 99D-21, 99D-33.
+  { operations::marketplace::RETURN_DUE, processes::marketplace::DUE, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_SHARE_FUND,
     0, 0,
-    "Сторно членского взноса участка на членский кошелёк программы" },
+    "Возврат части обеспечительной части паевого взноса по итогу месяца участка" },
+
+  // 12j⁷–12j¹⁴. p.mkt.invest: инвестиционный этап участка (задача 99D-27).
+  //   Паевой взнос инициатора на 80 операциями этапа не меняется: деньги
+  //   переходят между кошельками внутри 80, имущество приходит Дт 10 / Кт 80,
+  //   возмещение из экономии — членская часть Дт 80 / Кт 86 на кошелёк участка.
+  { operations::marketplace::INVEST_MONEY, processes::marketplace::INVEST, WalletOp::TRANSFER,
+    ledger2_wallets::SHARE_FUND_PAY, ledger2_wallets::MARKETPLACE_INITIATOR,
+    0, 0,
+    "Трансляция паевого взноса в договор участия в хозяйственной деятельности" },
+  { operations::marketplace::INVEST_PROPERTY, processes::marketplace::INVEST, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::MARKETPLACE_INITIATOR,
+    ledger2_accounts::MATERIALS, ledger2_accounts::SHARE_FUND,
+    "Приём имущества паевым взносом в кооперативный участок" },
+  { operations::marketplace::INVEST_POOL_FUND, processes::marketplace::INVEST, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::MARKETPLACE_INVEST_POOL,
+    0, 0,
+    "Выделение средств инициаторов под расход кооперативного участка" },
+  { operations::marketplace::INVEST_POOL_UNFUND, processes::marketplace::INVEST, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, eosio::name{},
+    0, 0,
+    "Возврат невыделенных средств инициаторов из пула" },
+  { operations::marketplace::INVEST_REPAY, processes::marketplace::DUE, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_INVEST_REPAY,
+    0, 0,
+    "Возмещение паевых взносов инициаторов из экономии месяца участка" },
+  { operations::marketplace::SOCIAL_FUND, processes::marketplace::DUE, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_SOCIAL_BRANCH,
+    0, 0,
+    "Отчисление в фонд социально-экономического взаимодействия и социального обеспечения из экономии месяца участка" },
+  { operations::marketplace::INVEST_REPAY_SURPLUS, processes::marketplace::DUE, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_REPAY, ledger2_wallets::BRANCH_COMMON,
+    0, 0,
+    "Перевод переплаты возмещения паевых взносов на общий кошелёк участка" },
+  // Погашение 26 (решение владельца 09.11.2026, бухгалтер подтвердила
+  // 10.11.2026): членские взносы, ставшие возмещением, гасят расходы и помощь,
+  // оплаченные деньгами инициаторов, — на долю денег в базе возврата. Имущество
+  // остаётся на 10 и не гасится: по нему движение только по кошелькам.
+  { operations::marketplace::INVEST_COST_COVER, processes::marketplace::DUE, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::GENERAL_EXPENSES,
+    "Погашение расходов участка из средств инициаторов членскими взносами" },
+  { operations::marketplace::INVEST_COST_UNCOVER, processes::marketplace::DUE, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::GENERAL_EXPENSES, ledger2_accounts::TARGET_RECEIPTS,
+    "Сторно погашения расходов участка на переплату возмещения, переведённую участку" },
+  { operations::marketplace::INVEST_BACK, processes::marketplace::INVEST_COMPENSATION, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
+    0, 0,
+    "Трансляция паевого взноса из договора участия в главный паевой кошелёк" },
+  { operations::marketplace::INVEST_EXIT, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INITIATOR, ledger2_wallets::SHARE_FUND_PAY,
+    0, 0,
+    "Перенос паевого взноса инициатора на главный паевой при выходе из кооператива" },
+
+  // 12j¹⁵–12j²¹. Расходы и материальная помощь участка из пула средств
+  //   инициаторов (задача 99D-28). Счёт расхода — INVEST_EXPENSE_ACCOUNT (26
+  //   «Общехозяйственные расходы»; решение владельца 09.11.2026, бухгалтер
+  //   подтвердила 10.11.2026). Транзита через фонд нет: средства инициаторов
+  //   не фондовые. Гасит 26 возмещение денежных паевых взносов (o.mkt.repay).
+  { operations::marketplace::INVEST_EXPENSE_ADVANCE, processes::expense::PROPOSAL, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Выдача аванса под отчёт по расходу участка из средств инициаторов" },
+  { operations::marketplace::INVEST_EXPENSE_DIRECT, processes::expense::PROPOSAL, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, eosio::name{},
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Оплата расхода участка из средств инициаторов по реквизитам" },
+  { operations::marketplace::INVEST_EXPENSE_REPORT, processes::expense::PROPOSAL, WalletOp::BURN,
+    ledger2_wallets::ADVANCE_HOLD, eosio::name{},
+    0, 0,
+    "Закрытие подотчёта по расходу участка из средств инициаторов" },
+  { operations::marketplace::INVEST_EXPENSE_RETURN, processes::expense::PROPOSAL, WalletOp::TRANSFER,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::MARKETPLACE_INVEST_POOL,
+    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::INVEST_EXPENSE_ACCOUNT,
+    "Возврат неиспользованного аванса в средства инициаторов участка" },
+  { operations::marketplace::INVEST_EXPENSE_OVERSPEND, processes::expense::PROPOSAL, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Доплата сверх аванса по расходу участка из средств инициаторов" },
+  { operations::marketplace::INVEST_AID, processes::branch::AID, WalletOp::BURN,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, eosio::name{},
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::BANK_ACCOUNT,
+    "Выплата материальной помощи из средств инициаторов участка" },
+  { operations::marketplace::INVEST_AID_TAX, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_INVEST_POOL, ledger2_wallets::NDFL_WITHHELD,
+    ledger2_accounts::INVEST_EXPENSE_ACCOUNT, ledger2_accounts::TAX_SETTLEMENTS,
+    "Удержание налога из материальной помощи, выплаченной из средств инициаторов" },
 
   // 12l. Консолидация свободного паевого «Стола заказов» в общий паевой при
   //      выходе из кооператива (TRANSFER w.mkt.share → w.wal.share, без Dr/Cr —
@@ -561,14 +752,14 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Вывод свободного паевого «Стола заказов» в общий паевой" },
 
-  // 12q. Остаток членского кошелька программы при выходе пайщика из
-  //      кооператива — в пул взносов программы (TRANSFER w.mkt.member →
-  //      w.mkt.fee, без Dr/Cr — оба на 86): членский взнос не возвращается;
-  //      зовёт registrator (confirmexit). Задача 99D-15.
-  { operations::marketplace::EXIT_FEE_TO_POOL, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_MEMBER_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
-    0, 0,
-    "Остаток членского кошелька Стола заказов в пул взносов при выходе из кооператива" },
+  // 12q. Остаток обеспечительной части к списанию при выходе пайщика из
+  //      кооператива — в пул (TRANSFER w.mkt.due → w.mkt.fee, Дт 80 / Кт 86 —
+  //      единственная проводка), далее o.brn.common в общий кошелёк участка
+  //      по кошелькам внутри 86; зовёт registrator. Задача 99D-18.
+  { operations::marketplace::EXIT_DUE_TO_POOL, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_SECURE_DUE, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::TARGET_RECEIPTS,
+    "Списание обеспечительной части в членский взнос при выходе пайщика из кооператива" },
 
   // 12e. p.edu.access: Конвертация паевого в членский взнос ЦПП «Образование»
   //      (TRANSFER w.wal.share → w.edu.member, Dr 80 / Cr 86). Зеркало 12a²
@@ -586,7 +777,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::edubridge::COLLECT_EDU_FEE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
     ledger2_wallets::EDU_MEMBER_FEE, ledger2_wallets::EDU_PROGRAM_FUND,
     0, 0,
-    "Членский взнос за курс в фонд ЦПП «Образование»" },
+    "Зачисление членского взноса за курс в фонд ЦПП «Образование»" },
 
   // 12e⁵. p.edu.access: Удержание взноса до конца гарантийного срока курса
   //      (TRANSFER w.edu.fund → w.edu.escrow, без Dr/Cr — оба на 86).
@@ -609,7 +800,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::edubridge::ALLOT_TEACHER_RESERVE, processes::edubridge::ACCESS, WalletOp::TRANSFER,
     ledger2_wallets::EDU_PROGRAM_FUND, ledger2_wallets::EDU_TEACHER_RESERVE,
     0, 0,
-    "Резерв выплат преподавателям из членского взноса по ЦПП «Образование»" },
+    "Резервирование выплат преподавателям из членского взноса по ЦПП «Образование»" },
 
   // 12e⁴. p.edu.access: Высвобождение резерва обратно в фонд при отмене
   //      подписки (TRANSFER w.edu.teach → w.edu.fund, без Dr/Cr — оба на 86).
@@ -652,17 +843,34 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Возврат неизрасходованных средств в фонд ЦПП «Образование»" },
 
+  // 12e⁵-0. p.edu.spend: Направление расхода программы в фонд обеспечения
+  //      хозяйственной деятельности (TRANSFER w.edu.expns → w.sov.expns, без
+  //      Dr/Cr — внутри 86). Первая нога любой выплаты шасси: деньги выходят из
+  //      кооператива только с кошелька фонда, и оборот фонда — расходы по факту
+  //      (решение владельца 03.11.2026, задача 99D-25).
+  { operations::edubridge::EXPENSE_TO_FUND, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::EDU_EXPENSE_POOL, ledger2_wallets::SOV_EXPENSES,
+    0, 0,
+    "Направление расхода ЦПП «Образование» в фонд обеспечения хозяйственной деятельности" },
+
+  // 12e⁵-1. p.edu.spend: Возврат из фонда в пул расходов программы после
+  //      возврата аванса (TRANSFER w.sov.expns → w.edu.expns, без Dr/Cr).
+  { operations::edubridge::EXPENSE_FROM_FUND, processes::edubridge::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::EDU_EXPENSE_POOL,
+    0, 0,
+    "Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов ЦПП «Образование»" },
+
   // 12e⁵. p.edu.spend: Прямая оплата расхода программы по реквизитам
-  //      (BURN с w.edu.expns, Dr 86 / Cr 51). Роль `direct` в наборе шасси.
+  //      (BURN с кошелька фонда w.sov.expns, Dr 86 / Cr 51). Роль `direct` в наборе шасси.
   { operations::edubridge::EXPENSE_SPEND, processes::edubridge::SPEND, WalletOp::BURN,
-    ledger2_wallets::EDU_EXPENSE_POOL, eosio::name{},
+    ledger2_wallets::SOV_EXPENSES, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Прямая оплата расхода ЦПП «Образование» по реквизитам" },
 
   // 12e⁶. p.edu.spend: Выдача аванса под отчёт по расходу программы
-  //      (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51). Роль `advance`.
+  //      (TRANSFER с кошелька фонда w.sov.expns → w.exp.adv, Dr 86 / Cr 51). Роль `advance`.
   { operations::edubridge::EXPENSE_ADVANCE, processes::edubridge::SPEND, WalletOp::TRANSFER,
-    ledger2_wallets::EDU_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Выдача аванса под отчёт по расходу ЦПП «Образование»" },
 
@@ -673,18 +881,19 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Закрытие подотчёта по расходу ЦПП «Образование»" },
 
-  // 12e⁸. p.edu.spend: Возврат неиспользованного аванса в пул расходов
-  //      (TRANSFER w.exp.adv → w.edu.expns, Dr 51 / Cr 86).
+  // 12e⁸. p.edu.spend: Возврат неиспользованного аванса на кошелёк фонда
+  //      (TRANSFER w.exp.adv → w.sov.expns, Dr 51 / Cr 86); следом o.edu.fmfund
+  //      возвращает сумму в пул программы.
   { operations::edubridge::EXPENSE_RETURN, processes::edubridge::SPEND, WalletOp::TRANSFER,
-    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::EDU_EXPENSE_POOL,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::SOV_EXPENSES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Возврат неиспользованного аванса по расходу ЦПП «Образование»" },
 
   // 12e⁹. p.edu.spend: Доплата сверх выданного аванса
-  //      (TRANSFER w.edu.expns → w.exp.adv, Dr 86 / Cr 51); сразу за ней
+  //      (TRANSFER с кошелька фонда w.sov.expns → w.exp.adv, Dr 86 / Cr 51); сразу за ней
   //      шасси закрывает подотчёт отчётом.
   { operations::edubridge::EXPENSE_OVERSPEND, processes::edubridge::SPEND, WalletOp::TRANSFER,
-    ledger2_wallets::EDU_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Доплата сверх аванса по расходу ЦПП «Образование»" },
 
@@ -716,7 +925,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::edubridge::SETTLE_EDU_RID, processes::edubridge::RID, WalletOp::TRANSFER,
     ledger2_wallets::EDU_RID_HOLD, ledger2_wallets::EDU_SHARE_FUND,
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::SHARE_FUND,
-    "Паевой взнос преподавателя результатом интеллектуальной деятельности" },
+    "Внесение преподавателем паевого взноса результатом интеллектуальной деятельности" },
 
   // 12f⁶. p.edu.rid: Трансляция паевого взноса преподавателя из ЦПП
   //      «Образование» в ЦПП «Цифровой Кошелёк» по его заявлению (TRANSFER
@@ -747,21 +956,42 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::NON_CURRENT_INVESTMENTS,
     "Снятие материалов занятия с ответственного хранения" },
 
-  // 13a. p.brn.fees: Зачисление 100% членского взноса в общий кошелёк КУ
-  //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname).
-  //      Вызывается branch::accrue инлайн от контракта-источника при финализации заказа.
+  // 13a. p.brn.fees: Зачисление членского взноса в общий кошелёк КУ
+  //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — оба на 86; username =
+  //      braname). Членским взносом обеспечительная часть становится раньше —
+  //      проводкой Дт 80 / Кт 86 на списании (o.mkt.charge, o.mkt.exfee);
+  //      решение владельца 17.11.2026. Задача 99D-18.
   { operations::branch::DISTRIBUTE_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::BRANCH_COMMON,
     0, 0,
-    "Членский взнос в общий кошелёк кооперативного участка" },
+    "Зачисление членского взноса в общий кошелёк кооперативного участка" },
 
-  // 13a². p.brn.fees: Возврат членского взноса из общего кошелька КУ при
-  //      гарантийном возврате имущества (TRANSFER w.brn.common → w.mkt.fee,
-  //      без Dr/Cr — внутри 86; username = braname). Точная инверсия
-  //      DISTRIBUTE_COMMON: взнос возвращается тем же путём, каким пришёл.
-  //      Вторую ногу (w.mkt.fee → w.mkt.share заказчика) делает существующая
-  //      MEMBERSHIP_FEE_REFUND — пайщику возвращается полная уплаченная сумма,
-  //      а не только стоимость имущества.
+  // 13a¹. p.fnd.accum: Отчисления в фонды накопления из членского взноса участка
+  //      (TRANSFER w.mkt.fee → кошелёк фонда, без Dr/Cr — оба на 86; проводку
+  //      Дт 80 / Кт 86 делает списание o.mkt.charge) — по одной операции
+  //      на каждый из трёх фондов: кошелёк и есть субсчёт фонда (решение
+  //      владельца 03.11.2026, задача 99D-25). Вторая из трёх ног списания
+  //      обеспечительной части (chargeperiod): участку (o.brn.common), в фонды,
+  //      инициатору (o.mkt.initr). Делит сумму по процентам фондов контракт fund
+  //      (fund::accrue инлайн); имя нитки — процесса источника. Задача 99D-19.
+  { operations::fund::ACCRUE_INDIVISIBLE, processes::fund::ACCUM, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_INDIVISIBLE,
+    0, 0,
+    "Отчисление в неделимый фонд из членского взноса кооперативного участка" },
+  { operations::fund::ACCRUE_RESERVE, processes::fund::ACCUM, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_RESERVE,
+    0, 0,
+    "Отчисление в резервный фонд из членского взноса кооперативного участка" },
+  { operations::fund::ACCRUE_DEVELOPMENT, processes::fund::ACCUM, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::FUND_DEVELOPMENT,
+    0, 0,
+    "Отчисление в фонд развития кооперации из членского взноса кооперативного участка" },
+
+  // 13a². p.brn.fees: Сторно зачисления — из общего кошелька КУ обратно в пул
+  //      обеспечительной части (TRANSFER w.brn.common → w.mkt.fee, без Dr/Cr —
+  //      оба на 86 с 17.11.2026;
+  //      username = braname). Точная инверсия DISTRIBUTE_COMMON. С задачи 99D-18
+  //      Стол заказов её не вызывает: гарантийный возврат идёт до списания.
   { operations::branch::RETURN_FEE_FROM_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
     ledger2_wallets::BRANCH_COMMON, ledger2_wallets::MARKETPLACE_FEE_POOL,
     0, 0,
@@ -804,21 +1034,38 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Возврат неизрасходованных средств в общий кошелёк кооперативного участка" },
 
+  // 13b-5-0. p.brn.spend: Направление расхода участка в фонд обеспечения
+  //      хозяйственной деятельности (TRANSFER w.brn.expns → w.sov.expns, без
+  //      Dr/Cr — внутри 86). Первая нога любой выплаты шасси: деньги выходят из
+  //      кооператива только с кошелька фонда, оборот фонда — расходы по факту
+  //      (решение владельца 03.11.2026, задача 99D-25).
+  { operations::branch::EXPENSE_TO_FUND, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_EXPENSE_POOL, ledger2_wallets::SOV_EXPENSES,
+    0, 0,
+    "Направление расхода кооперативного участка в фонд обеспечения хозяйственной деятельности" },
+
+  // 13b-5-1. p.brn.spend: Возврат из фонда в пул расходов участка после
+  //      возврата аванса (TRANSFER w.sov.expns → w.brn.expns, без Dr/Cr).
+  { operations::branch::EXPENSE_FROM_FUND, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::BRANCH_EXPENSE_POOL,
+    0, 0,
+    "Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооперативного участка" },
+
   // 13b-5. p.brn.spend: Прямая оплата расхода КУ по реквизитам получателя
-  //      (BURN с w.brn.expns, Dr 86 / Cr 51 — деньги уходят из системы
-  //      банковским переводом после подтверждения кассиром).
+  //      (BURN с кошелька фонда w.sov.expns, Dr 86 / Cr 51 — деньги списываются
+  //      с расчётного счёта банковским переводом после подтверждения кассиром).
   //      Роль `direct` в наборе шасси расходов для КУ.
   { operations::branch::SPEND_COMMON, processes::branch::SPEND, WalletOp::BURN,
-    ledger2_wallets::BRANCH_EXPENSE_POOL, eosio::name{},
+    ledger2_wallets::SOV_EXPENSES, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Прямая оплата расхода кооперативного участка по реквизитам" },
 
   // 13b-6. p.brn.spend: Выдача аванса под отчёт по расходу участка
-  //      (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51 — деньги ушли
-  //      получателю с расчётного счёта; username = получатель аванса).
+  //      (TRANSFER с кошелька фонда w.sov.expns → w.exp.adv, Dr 86 / Cr 51 — деньги
+  //      перечислены получателю с расчётного счёта; username = получатель аванса).
   //      Роль `advance` в наборе шасси расходов для КУ.
   { operations::branch::EXPENSE_ADVANCE, processes::branch::SPEND, WalletOp::TRANSFER,
-    ledger2_wallets::BRANCH_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Выдача аванса под отчёт по расходу кооперативного участка" },
 
@@ -830,42 +1077,71 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Закрытие подотчёта по расходу кооперативного участка" },
 
-  // 13b-8. p.brn.spend: Возврат неиспользованного аванса в пул расходов
-  //      (TRANSFER w.exp.adv → w.brn.expns, Dr 51 / Cr 86 — деньги вернулись
-  //      на расчётный счёт). Роль `refund` в наборе шасси расходов для КУ.
+  // 13b-8. p.brn.spend: Возврат неиспользованного аванса на кошелёк фонда
+  //      (TRANSFER w.exp.adv → w.sov.expns, Dr 51 / Cr 86 — деньги вернулись
+  //      на расчётный счёт); следом o.brn.fmfund возвращает сумму в пул участка.
+  //      Роль `refund` в наборе шасси расходов для КУ.
   { operations::branch::EXPENSE_RETURN, processes::branch::SPEND, WalletOp::TRANSFER,
-    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::BRANCH_EXPENSE_POOL,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::SOV_EXPENSES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
     "Возврат неиспользованного аванса по расходу кооперативного участка" },
 
   // 13b-9. p.brn.spend: Доплата сверх выданного аванса
-  //      (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend`
-  //      в наборе шасси расходов для КУ; сразу за ней закрывается подотчёт.
+  //      (TRANSFER с кошелька фонда w.sov.expns → w.exp.adv, Dr 86 / Cr 51). Роль
+  //      `overspend` в наборе шасси расходов для КУ; сразу за ней закрывается подотчёт.
   { operations::branch::EXPENSE_OVERSPEND, processes::branch::SPEND, WalletOp::TRANSFER,
-    ledger2_wallets::BRANCH_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
     "Доплата сверх аванса по расходу кооперативного участка" },
 
+  // 13c-0. p.brn.aid: Направление материальной помощи в фонд взаимного
+  //      обеспечения (TRANSFER w.brn.person → w.fnd.mutual, без Dr/Cr — внутри
+  //      86). Первая нога выплаты: сумма на руки выходит из кооператива только с
+  //      кошелька фонда, оборот фонда — выплаченная помощь по факту (решение
+  //      владельца 03.11.2026, задача 99D-25). Источник — кошелёк заявлений
+  //      w.brn.aidreq: сумма заявления лежит на нём с подачи (08.11.2026).
+  { operations::branch::AID_TO_FUND, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::FUND_MUTUAL,
+    0, 0,
+    "Направление материальной помощи в фонд социально-экономического взаимодействия и социального обеспечения" },
+
+  // 13a-bis. p.brn.aid: Заявление подано — сумма заявления переходит с
+  //      персонального кошелька на кошелёк заявлений (без Dr/Cr — оба 86).
+  //      Как резерв паевого под возврат (o.wal.wthreq): деньги двигаются
+  //      между кошельками, блокировки нет (решение владельца 08.11.2026).
+  { operations::branch::AID_REQUEST, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::BRANCH_AID_REQUEST,
+    0, 0,
+    "Перевод суммы заявления на материальную помощь на кошелёк заявлений" },
+
+  // 13a-ter. p.brn.aid: Отказ совета — сумма возвращается на персональный
+  //      кошелёк (зеркало AID_REQUEST).
+  { operations::branch::AID_RETURN, processes::branch::AID, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::BRANCH_PERSONAL,
+    0, 0,
+    "Возврат суммы заявления на материальную помощь после отказа совета" },
+
   // 13c. p.brn.aid: Материальная помощь доверенному КУ — сумма К ВЫПЛАТЕ
-  //      (BURN с w.brn.person, Dr 86 / Cr 51 — деньги уходят из системы
-  //      банковским переводом получателю после подтверждения кассиром).
+  //      (BURN с кошелька фонда w.fnd.mutual, Dr 86 / Cr 51 — деньги списываются
+  //      с расчётного счёта банковским переводом получателю после подтверждения кассиром).
   //      С 2026-08-13 кооператив удерживает НДФЛ, поэтому суммой операции
   //      идёт не всё заявление, а остаток за вычетом налога; удержание
-  //      проводится парной FINANCIAL_AID_TAX в той же транзакции.
+  //      проводится парной FINANCIAL_AID_TAX в той же транзакции и до ответа
+  //      бухгалтера (задача BB1-3) идёт напрямую с кошелька получателя.
   { operations::branch::FINANCIAL_AID, processes::branch::AID, WalletOp::BURN,
-    ledger2_wallets::BRANCH_PERSONAL, eosio::name{},
+    ledger2_wallets::FUND_MUTUAL, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
-    "Материальная помощь доверенному кооперативного участка" },
+    "Выплата материальной помощи доверенному кооперативного участка" },
 
   // 13c-bis. p.brn.aid: Удержание НДФЛ из материальной помощи
-  //      (TRANSFER w.brn.person → w.sov.ndfl, Dr 86 / Cr 68). Кооператив —
+  //      (TRANSFER w.brn.aidreq → w.sov.ndfl, Dr 86 / Cr 68). Кооператив —
   //      налоговый агент: с персонального кошелька списывается вся сумма
   //      заявления (выплата + налог), но с расчётного счёта уходит только
   //      выплата — удержанное повисает долгом перед бюджетом на счёте 68.
   //      Операция остаётся за программой-источником: удерживает тот, кто
   //      выплачивает доход, а кошелёк-получатель общий для кооператива.
   { operations::branch::FINANCIAL_AID_TAX, processes::branch::AID, WalletOp::TRANSFER,
-    ledger2_wallets::BRANCH_PERSONAL, ledger2_wallets::NDFL_WITHHELD,
+    ledger2_wallets::BRANCH_AID_REQUEST, ledger2_wallets::NDFL_WITHHELD,
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::TAX_SETTLEMENTS,
     "Удержание налога на доходы физических лиц из материальной помощи" },
 
@@ -884,6 +1160,39 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::NDFL_WITHHELD, eosio::name{},
     ledger2_accounts::TAX_SETTLEMENTS, ledger2_accounts::BANK_ACCOUNT,
     "Перечисление удержанного налога на доходы физических лиц в бюджет" },
+
+  // p.sov.spend: Расходы кооператива (не участка и не программы) — шасси расходов
+  //      с пулом w.sov.budget и транзитом через фонд обеспечения хозяйственной
+  //      деятельности w.sov.expns; проводки те же, что у расходов участка
+  //      (Дт 86 / Кт 51). Задачи 99D-25, 99D-26.
+  { operations::soviet::EXPENSE_TO_FUND, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_BUDGET, ledger2_wallets::SOV_EXPENSES,
+    0, 0,
+    "Направление расхода кооператива в фонд обеспечения хозяйственной деятельности" },
+  { operations::soviet::EXPENSE_FROM_FUND, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::SOV_BUDGET,
+    0, 0,
+    "Возврат неиспользованного аванса из фонда обеспечения хозяйственной деятельности в пул расходов кооператива" },
+  { operations::soviet::EXPENSE_SPEND, processes::soviet::SPEND, WalletOp::BURN,
+    ledger2_wallets::SOV_EXPENSES, eosio::name{},
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Прямая оплата расхода кооператива по реквизитам" },
+  { operations::soviet::EXPENSE_ADVANCE, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Выдача аванса под отчёт по расходу кооператива" },
+  { operations::soviet::EXPENSE_REPORT, processes::soviet::SPEND, WalletOp::BURN,
+    ledger2_wallets::ADVANCE_HOLD, eosio::name{},
+    0, 0,
+    "Закрытие подотчёта по расходу кооператива" },
+  { operations::soviet::EXPENSE_RETURN, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::SOV_EXPENSES,
+    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
+    "Возврат неиспользованного аванса по расходу кооператива" },
+  { operations::soviet::EXPENSE_OVERSPEND, processes::soviet::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::SOV_EXPENSES, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Доплата сверх аванса по расходу кооператива" },
 
   // 15. Запрос на возврат паевого: TRANSFER SHARE_FUND_PAY → WITHDRAW_PENDING
   // (без Dr/Cr — оба кошелька на счёте 80; резерв средств на время рассмотрения).
@@ -912,7 +1221,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::CONVERT_TO_SHARE, processes::capital::RID, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
-    "Конвертация сегмента: РИД → главный кошелёк" },
+    "Конвертация сегмента РИД в главный кошелёк" },
 
   // 19. Конвертация сегмента (часть в Благорост): TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr.
   // Финальная фаза процесса p.cap.rid (после signact2). Бухпроводка
@@ -921,7 +1230,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::capital::CONVERT_TO_BLAGO, processes::capital::RID, WalletOp::TRANSFER,
     ledger2_wallets::GENERATOR_FUND, ledger2_wallets::BLAGOROST_FUND,
     0, 0,
-    "Конвертация сегмента: РИД → ЦПП «Благорост»" },
+    "Конвертация сегмента РИД в ЦПП «Благорост»" },
 
   // 19a. Пополнение пула программных расходов: ISSUE PROGRAM_EXPENSE_POOL, без Dr/Cr.
   // Совет выделяет часть свободных инвестиций программы под целевые расходы:
@@ -987,7 +1296,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::expense::OVERSPEND, processes::expense::PROPOSAL, WalletOp::TRANSFER,
     ledger2_wallets::PROGRAM_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
     ledger2_accounts::NON_CURRENT_INVESTMENTS, ledger2_accounts::BANK_ACCOUNT,
-    "Доплата сверх подотчёта (перерасход)" },
+    "Доплата сверх подотчёта при перерасходе" },
 
   // 25. Биллинг — пополнение биллинг-кошелька: Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → BILLING_FUND_PAY.
   // Зеркало o.sov.axncnv (трансляция паевого в членский), но назначение —
@@ -1028,17 +1337,17 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   // 15. Миграция: минимальный паевой: Dr 51 / Cr 80, ISSUE MIN_SHARE_FUND
   { operations::migration::MIN_SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MIN_SHARE_FUND,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: минимальные паевые взносы при миграции" },
+    "Перенос минимальных паевых взносов из прежнего учёта" },
 
   // 16. Миграция: остаток паевых деньгами: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
   { operations::migration::SHARE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::SHARE_FUND,
-    "Транзитный перенос: остаток паевых взносов деньгами при миграции" },
+    "Перенос остатка паевых взносов деньгами из прежнего учёта" },
 
   // 17. Миграция: вступительные: Dr 51 / Cr 86, ISSUE ENTRANCE_FEES
   { operations::migration::ENTRY, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::ENTRANCE_FEES,
     ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
-    "Транзитный перенос: вступительные взносы при миграции" },
+    "Перенос вступительных взносов из прежнего учёта" },
 
   // 18. Миграция: открытые обязательства перед поставщиками на кошелёк к оплате
   //     (ISSUE w.mkt.topay, без Dr/Cr — Кт 76 уже проведён приёмкой). Разовый
@@ -1046,6 +1355,25 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
   { operations::migration::SUPPLIER_PAYABLE, processes::migration::TRANSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::MARKETPLACE_SUPPLIER_PAYABLE,
     0, 0,
     "Перенос открытых обязательств перед поставщиками на кошелёк к оплате" },
+
+  // 18b. Миграция: обеспечительная часть невыданных заказов — из общего пула на
+  //      кошелёк пайщика «под заказы» (TRANSFER w.mkt.fee → w.mkt.secure, без
+  //      Dr/Cr — оба на 80). Разовый перенос из marketplace::migrate (решение
+  //      владельца 05.11.2026: средства заказа видны пайщику на всём пути).
+  { operations::migration::SECURE_ORDER, processes::migration::TRANSIT, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_SECURE_ORDER,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::SHARE_FUND,
+    "Перенос обеспечительной части невыданных заказов на кошелёк пайщика" },
+
+  // 19. Миграция: хозяйственные расходы, произведённые до цифрового учёта, —
+  //     списание с кошелька фонда обеспечения хозяйственной деятельности (BURN
+  //     w.sov.expns, без Dr/Cr). Деньги потрачены вне цифры, счета миграции
+  //     10.05.2026 сведены с бухгалтером — проводки нет, как у закрытия
+  //     подотчёта (o.sov.exprpt). Разовая, из ledger2::migrate (задача 99D-26).
+  { operations::migration::SPENT, processes::migration::TRANSIT, WalletOp::BURN,
+    ledger2_wallets::SOV_EXPENSES, eosio::name{},
+    0, 0,
+    "Хозяйственные расходы, произведённые до цифрового учёта" },
 };
 
 static constexpr size_t OPERATION_REGISTRY_SIZE = sizeof(OPERATION_REGISTRY) / sizeof(OPERATION_REGISTRY[0]);
@@ -1169,6 +1497,74 @@ static_assert(ledger2_registry_detail::accounts_exist_in_map(),
 static_assert(ledger2_registry_detail::wallets_exist_in_registry(),
               "OPERATION_REGISTRY: ссылка на wallet id вне LEDGER2_WALLET_REGISTRY");
 
+// ── Кошелёк = субсчёт (задача 99D-25, решение владельца 03.11.2026) ─────────
+//
+// У каждого кошелька реестра указан счёт (`Ledger2WalletMeta::account`). Операция
+// с проводкой двигает кошелёк только по его счёту: у пассивного счёта кошелёк-
+// получатель стоит в кредите, кошелёк-источник — в дебете; у активного —
+// наоборот; активно-пассивный счёт допускает обе стороны. Перевод без проводки
+// допустим только между кошельками одного счёта: смена счёта — всегда проводка.
+// Кошельки без счёта (account == 0) — учётные, их проводки идут по другим
+// счетам, проверка их не касается.
+//
+// Исключения перечислены явно с причиной; новые не добавлять — чинить операцию.
+namespace ledger2_wallet_account_detail {
+  // o.cap.repay: возврат беспроцентного займа паевым взносом по акту-2 — заём (58)
+  // гасится, паевой фонд (80) уменьшается, а деньги возвращаются на кошелёк паевого:
+  // проводка исторически записана со стороны займа. o.cap.cnvshr / o.cap.cnvbl:
+  // сегмент «Генератора» (кошелёк на 76) конвертируется в паевой (80) без проводки —
+  // проводка Дт 76 / Кт 80 уже сделана при приёме результата (o.cap.setrid).
+  constexpr eosio::name EXEMPT[] = {
+    operations::capital::REPAY,
+    operations::capital::CONVERT_TO_SHARE,
+    operations::capital::CONVERT_TO_BLAGO,
+  };
+  constexpr bool is_exempt(eosio::name code) {
+    for (const auto& c : EXEMPT) if (c == code) return true;
+    return false;
+  }
+  // Сторона операции согласна со счётом кошелька.
+  constexpr bool side_matches(eosio::name wallet, bool is_to, uint64_t dr, uint64_t cr) {
+    const auto* meta = ledger2_find_wallet_meta(wallet);
+    if (meta == nullptr || meta->account == 0) return true;
+    const AccountType type = ledger2_get_account_type_by_id(meta->account);
+    if (type == AccountType::ACTIVE_PASSIVE) return meta->account == dr || meta->account == cr;
+    const uint64_t expected = (type == AccountType::PASSIVE) == is_to ? cr : dr;
+    return meta->account == expected;
+  }
+  constexpr bool wallets_match_accounts() {
+    for (size_t i = 0; i < OPERATION_REGISTRY_SIZE; ++i) {
+      const auto& e = OPERATION_REGISTRY[i];
+      if (is_exempt(e.code)) continue;
+      const bool posted = e.debit_account_id != 0;
+      if (!posted) {
+        // Без проводки: перевод не меняет счёт.
+        if (e.wallet_op != WalletOp::TRANSFER) continue;
+        const uint64_t from = ledger2_get_wallet_account(e.wallet_from);
+        const uint64_t to   = ledger2_get_wallet_account(e.wallet_to);
+        if (from != 0 && to != 0 && from != to) return false;
+        continue;
+      }
+      if (e.wallet_from.value != 0 && !side_matches(e.wallet_from, false, e.debit_account_id, e.credit_account_id)) return false;
+      if (e.wallet_to.value   != 0 && !side_matches(e.wallet_to,   true,  e.debit_account_id, e.credit_account_id)) return false;
+    }
+    return true;
+  }
+  // Каждый счёт кошелька существует в плане счетов.
+  constexpr bool wallet_accounts_exist() {
+    for (size_t i = 0; i < LEDGER2_WALLET_REGISTRY_SIZE; ++i) {
+      const uint64_t a = LEDGER2_WALLET_REGISTRY[i].account;
+      if (a != 0 && ledger2_find_account_meta(a) == nullptr) return false;
+    }
+    return true;
+  }
+}
+
+static_assert(ledger2_wallet_account_detail::wallet_accounts_exist(),
+              "LEDGER2_WALLET_REGISTRY: счёт кошелька отсутствует в LEDGER2_ACCOUNT_MAP");
+static_assert(ledger2_wallet_account_detail::wallets_match_accounts(),
+              "OPERATION_REGISTRY: операция двигает кошелёк по чужому счёту — кошелёк есть субсчёт своего счёта (99D-25)");
+
 /**
  * @brief Линейный поиск записи реестра по operation_code.
  */
@@ -1228,11 +1624,24 @@ inline constexpr const OperationAdjustmentEntry* find_adjustment(eosio::name ope
 // строку здесь. Контракт expense при этом не меняется.
 struct ExpenseOperationSet {
   eosio::name source_wallet;  ///< пул-источник средств (COOPERATIVE-кошелёк)
-  eosio::name advance;        ///< выдача аванса под отчёт (TRANSFER pool → подотчёт)
-  eosio::name direct;         ///< прямая оплата организации по счёту (BURN pool)
+  eosio::name advance;        ///< выдача аванса под отчёт (TRANSFER кошелёк выплаты → подотчёт)
+  eosio::name direct;         ///< прямая оплата организации по счёту (BURN с кошелька выплаты)
   eosio::name report;         ///< закрытие подотчёта по отчёту (BURN подотчёта)
-  eosio::name refund;         ///< возврат неиспользованного аванса (TRANSFER подотчёт → pool)
-  eosio::name overspend;      ///< доплата при перерасходе (TRANSFER pool → подотчёт)
+  eosio::name refund;         ///< возврат неиспользованного аванса (TRANSFER подотчёт → кошелёк выплаты)
+  eosio::name overspend;      ///< доплата при перерасходе (TRANSFER кошелёк выплаты → подотчёт)
+  // Транзит через фонд (задача 99D-25): деньги выходят из кооператива только с
+  // кошелька фонда. Пустое `fund_wallet` — выплата идёт прямо с пула (расходы
+  // «Благороста» на счёте 08 — до ответа бухгалтера, задача BB1-2); `fund_wallet`,
+  // равный пулу, — пул и есть фонд, транзита нет (сейчас таких наборов нет: с
+  // 99D-26 у расходов кооператива свой пул w.sov.budget).
+  eosio::name fund_wallet;    ///< кошелёк фонда, с которого идёт выплата (счёт 86); пусто — выплата с пула
+  eosio::name to_fund;        ///< перевод пул → фонд перед выплатой (TRANSFER без проводки); пусто, если транзита нет
+  eosio::name from_fund;      ///< перевод фонд → пул после возврата аванса (TRANSFER без проводки); пусто, если транзита нет
+
+  /// Кошелёк, с которого фактически списывается выплата и на который возвращается аванс.
+  constexpr eosio::name pay_wallet() const { return fund_wallet.value != 0 ? fund_wallet : source_wallet; }
+  /// Нужен ли транзит пул → фонд (фонд задан и отличается от пула).
+  constexpr bool has_transit() const { return fund_wallet.value != 0 && fund_wallet != source_wallet; }
 };
 
 static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
@@ -1243,13 +1652,14 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
     operations::expense::BLAGO_DIRECT,
     operations::expense::ADVANCE_REPORT,
     operations::expense::ADVANCE_RETURN,
-    operations::expense::OVERSPEND },
+    operations::expense::OVERSPEND,
+    eosio::name{}, eosio::name{}, eosio::name{} },
 
   // Пул расходов кооперативного участка — source_wallet заполняет служебная
   // записка расхода КУ. Пул наполняется из общего кошелька участка
   // (o.brn.expfnd) при создании записки; неизрасходованное возвращается туда
   // же (o.brn.expunf). Проводки идут по целевому финансированию участка
-  // (Дт 86 / Кт 51), а не по вложениям, как в «Благоросте».
+  // (Дт 86 / Кт 51), а не по счёту 08, как в «Благоросте».
   // Пул расходов ЦПП «Образование» — source_wallet заполняет
   // edubridge::createexp при создании служебной записки на расход программы.
   // Пул наполняется из фонда программы (o.edu.expfnd); неизрасходованное
@@ -1260,14 +1670,44 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
     operations::edubridge::EXPENSE_SPEND,
     operations::edubridge::EXPENSE_REPORT,
     operations::edubridge::EXPENSE_RETURN,
-    operations::edubridge::EXPENSE_OVERSPEND },
+    operations::edubridge::EXPENSE_OVERSPEND,
+    ledger2_wallets::SOV_EXPENSES,
+    operations::edubridge::EXPENSE_TO_FUND,
+    operations::edubridge::EXPENSE_FROM_FUND },
+
+  // Пул средств инициаторов участка Стола заказов (задача 99D-28): источник
+  // служебной записки участка, когда общего кошелька участка не хватает.
+  // Средства выделяет marketplace::fundipool при создании записки; проводки —
+  // по счёту 26 «Общехозяйственные расходы», без транзита через фонд.
+  { ledger2_wallets::MARKETPLACE_INVEST_POOL,
+    operations::marketplace::INVEST_EXPENSE_ADVANCE,
+    operations::marketplace::INVEST_EXPENSE_DIRECT,
+    operations::marketplace::INVEST_EXPENSE_REPORT,
+    operations::marketplace::INVEST_EXPENSE_RETURN,
+    operations::marketplace::INVEST_EXPENSE_OVERSPEND,
+    eosio::name{}, eosio::name{}, eosio::name{} },
 
   { ledger2_wallets::BRANCH_EXPENSE_POOL,
     operations::branch::EXPENSE_ADVANCE,
     operations::branch::SPEND_COMMON,
     operations::branch::EXPENSE_REPORT,
     operations::branch::EXPENSE_RETURN,
-    operations::branch::EXPENSE_OVERSPEND },
+    operations::branch::EXPENSE_OVERSPEND,
+    ledger2_wallets::SOV_EXPENSES,
+    operations::branch::EXPENSE_TO_FUND,
+    operations::branch::EXPENSE_FROM_FUND },
+  // Расходы кооператива — пул w.sov.budget, выплата транзитом через фонд
+  // w.sov.expns, как у участков (задача 99D-26). Служебную записку заводит
+  // председатель совета общей мутацией шасси с этим кошельком-источником.
+  { ledger2_wallets::SOV_BUDGET,
+    operations::soviet::EXPENSE_ADVANCE,
+    operations::soviet::EXPENSE_SPEND,
+    operations::soviet::EXPENSE_REPORT,
+    operations::soviet::EXPENSE_RETURN,
+    operations::soviet::EXPENSE_OVERSPEND,
+    ledger2_wallets::SOV_EXPENSES,
+    operations::soviet::EXPENSE_TO_FUND,
+    operations::soviet::EXPENSE_FROM_FUND },
 };
 
 static constexpr size_t EXPENSE_OPERATION_SETS_SIZE =
@@ -1303,19 +1743,36 @@ namespace ledger2_expense_sets_detail {
       const auto* ref = find_op(s.refund);
       const auto* ovr = find_op(s.overspend);
       if (!adv || !dir || !rep || !ref || !ovr) return false;
-      // Аванс: пул → кошелёк-подотчёт.
-      if (adv->wallet_op != WalletOp::TRANSFER || adv->wallet_from != s.source_wallet) return false;
+      // Кошелёк выплаты: фонд при транзите, иначе пул (99D-25).
+      const eosio::name pay = s.pay_wallet();
+      // Аванс: кошелёк выплаты → кошелёк-подотчёт.
+      if (adv->wallet_op != WalletOp::TRANSFER || adv->wallet_from != pay) return false;
       const eosio::name hold = adv->wallet_to;
-      // Прямая оплата: сжигание с пула (подотчёт не задействован).
-      if (dir->wallet_op != WalletOp::BURN || dir->wallet_from != s.source_wallet) return false;
+      // Прямая оплата: сжигание с кошелька выплаты (подотчёт не задействован).
+      if (dir->wallet_op != WalletOp::BURN || dir->wallet_from != pay) return false;
       // Отчёт: сжигание подотчёта.
       if (rep->wallet_op != WalletOp::BURN || rep->wallet_from != hold) return false;
-      // Возврат: подотчёт → пул.
+      // Возврат: подотчёт → кошелёк выплаты.
       if (ref->wallet_op != WalletOp::TRANSFER ||
-          ref->wallet_from != hold || ref->wallet_to != s.source_wallet) return false;
-      // Перерасход: пул → подотчёт (зеркало аванса на сумму доплаты).
+          ref->wallet_from != hold || ref->wallet_to != pay) return false;
+      // Перерасход: кошелёк выплаты → подотчёт (зеркало аванса на сумму доплаты).
       if (ovr->wallet_op != WalletOp::TRANSFER ||
-          ovr->wallet_from != s.source_wallet || ovr->wallet_to != hold) return false;
+          ovr->wallet_from != pay || ovr->wallet_to != hold) return false;
+      // Транзит через фонд: обе ноги заданы вместе с фондом и только с ним,
+      // переводы без проводки между пулом и фондом, фонд — на счёте 86.
+      if (s.has_transit()) {
+        const auto* to = find_op(s.to_fund);
+        const auto* fr = find_op(s.from_fund);
+        if (!to || !fr) return false;
+        if (to->wallet_op != WalletOp::TRANSFER || to->wallet_from != s.source_wallet ||
+            to->wallet_to != s.fund_wallet || to->debit_account_id != 0) return false;
+        if (fr->wallet_op != WalletOp::TRANSFER || fr->wallet_from != s.fund_wallet ||
+            fr->wallet_to != s.source_wallet || fr->debit_account_id != 0) return false;
+      } else if (s.to_fund.value != 0 || s.from_fund.value != 0) {
+        return false;
+      }
+      if (s.fund_wallet.value != 0 &&
+          ledger2_get_wallet_account(s.fund_wallet) != ledger2_accounts::TARGET_RECEIPTS) return false;
     }
     return true;
   }

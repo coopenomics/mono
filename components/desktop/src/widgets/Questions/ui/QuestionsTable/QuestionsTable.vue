@@ -26,7 +26,7 @@
       :is-voted-against='isVotedAgainst',
       :is-voted-any='isVotedAny',
       @authorize='onAuthorizeDecision(row)',
-      @decline='onDeclineDecision(row)',
+      @decline='(reason) => onDeclineDecision(row, reason)',
       @vote-for='onVoteFor(row)',
       @vote-against='onVoteAgainst(row)'
     )
@@ -84,8 +84,8 @@ const onAuthorizeDecision = (row: IAgenda) => {
   emit('authorize', row);
 };
 
-const onDeclineDecision = (row: IAgenda) => {
-  emit('decline', row);
+const onDeclineDecision = (row: IAgenda, reason = '') => {
+  emit('decline', row, reason);
 };
 
 const onVoteFor = (row: IAgenda) => {

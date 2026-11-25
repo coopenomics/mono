@@ -1,11 +1,10 @@
 <template lang="pug">
-q-btn.full-width(
+BaseButton(
   v-if='!isEmpty',
-  color='primary',
-  unelevated,
-  no-caps,
-  @click='save',
-  :loading='isSaving'
+  variant='primary',
+  block,
+  :loading='isSaving',
+  @click='save'
 ) {{ $t('common.action.save') }}
 </template>
 
@@ -13,6 +12,7 @@ q-btn.full-width(
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUpdateExtension } from '../model';
+import { BaseButton } from 'src/shared/ui/base';
 import {
   extractGraphQLErrorMessages,
   FailAlert,

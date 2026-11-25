@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 345.
+Всего экспортов: 362.
 
 ## ACCOUNT_PORT
 
@@ -109,6 +109,12 @@
 
 - `Symbol.for('Innercoop.CorePort.CoopCredential')`
 
+## COOPERATIVE_LOGO_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.CooperativeLogo')`
+
 ## COOPERATIVE_VARS_PORT
 
 `const` · core-ports
@@ -129,6 +135,12 @@
 - `event_type: DecisionEventType`
 - `vars_field: string`
 - `metadata: Record<string, any>`
+
+## DECISION_DECLINE_REASON_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DecisionDeclineReason')`
 
 ## DECISION_TRACKING_PORT
 
@@ -325,6 +337,18 @@
 - `initialize(username: string, wif: string): void`
 - `transact(action: InnerChainAction | InnerChainAction[], broadcast?: boolean): Promise<InnerTransactResult>`
 - `getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<T[]>`
+- `queryRows<T = any>(`
+- `code: string,`
+- `scope: string,`
+- `tableName: string,`
+- `options: {`
+- `indexPosition?: string`
+- `keyType?: string`
+- `from?: string | number`
+- `to?: string | number`
+- `maxRows?: number`
+- `}`
+- `): Promise<T[]>`
 - `getSingleRow<T = any>(`
 - `code: string,`
 - `scope: string,`
@@ -385,6 +409,14 @@
 - `getChainId(): Promise<string>`
 - `getPermissionKey(account: string, permission: string): Promise<string | null>`
 
+## ICooperativeLogoPort
+
+`interface` · core-ports
+
+- `getLogoUrl(): Promise<string | null>`
+- `upload(contentBase64: string, mimeType: string): Promise<string>`
+- `remove(): Promise<void>`
+
 ## ICooperativeVarsPort
 
 `interface` · core-ports
@@ -401,6 +433,12 @@
 - `ensureProgram(params: InnerEnsureProgramParams): Promise<InnerEnsureProgramResult>`
 - `cancelExpiredDecision(input: { coopname: string`
 - `decision_id: string | number }): Promise<InnerTransactResult>`
+
+## IDecisionDeclineReasonPort
+
+`interface` · core-ports
+
+- `getDeclineReason(coopname: string, decisionId: string | number): Promise<string | null>`
 
 ## IDecisionTrackingPort
 
@@ -484,6 +522,7 @@
 - `overspendItem(coopname: string, proposalHash: string, itemHash: string, overspendAmount: string): Promise<void>`
 - `reportItem(coopname: string, proposalHash: string, itemHash: string): Promise<void>`
 - `getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve>`
+- `listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]>`
 - `attachPlanToProposal(coopname: string, planId: number, proposalHash: string): Promise<void>`
 
 ## IExtensionConfigPort
@@ -587,6 +626,7 @@
 - `getMeets(data: InnerGetMeetsInput, username?: string): Promise<InnerMeet[]>`
 - `getMeet(data: InnerGetMeetInput, username?: string): Promise<InnerMeet>`
 - `getMeetDraft(hash: string): Promise<InnerMeetDraft | null>`
+- `getMeetVoters(data: InnerGetMeetInput): Promise<string[] | null>`
 
 ## IMemberExitRegistryPort
 
@@ -795,6 +835,7 @@
 - `trusted: string[]`
 - `is_private?: boolean`
 - `whitelist?: string[]`
+- `created_at?: string`
 - `[key: string]: any`
 
 ## InnerCalendarEventWindow
@@ -1203,6 +1244,7 @@
 - `mechanics: InnerExpenseMechanics`
 - `recipient_type: InnerExpenseRecipientType`
 - `recipient: string`
+- `recipient_name?: string`
 - `description: string`
 - `planned_amount: string`
 - `payment_method_id?: string`
@@ -1242,6 +1284,24 @@
 - `offset?: number`
 - `sortBy?: 'createdAt' | 'updatedAt'`
 - `sortOrder?: 'ASC' | 'DESC'`
+
+## InnerExpensePlan
+
+`interface` · cross-plugin-ports
+
+- `id: number`
+- `branchName: string | null`
+- `title: string`
+- `amount: string`
+- `dueDate: Date | null`
+- `recurrenceMonths?: number`
+- `recipientType?: InnerExpenseRecipientType | null`
+- `counterpartyId?: number | null`
+- `recipient?: string | null`
+- `paymentMethodId?: string | null`
+- `paymentPurpose?: string | null`
+- `proposalHash: string | null`
+- `paidAt: Date | null`
 
 ## InnerExpensePlannedReserve
 
@@ -1299,9 +1359,11 @@
 - `proposalHash: string`
 - `itemHash: string`
 - `recipient: string`
+- `recipientName?: string`
 - `isOrganization: boolean`
 - `mechanics: 'ADVANCE' | 'DIRECT'`
 - `paymentMethodId?: string`
+- `counterpartyId?: number`
 - `requisites?: string`
 - `paymentPurpose?: string`
 
@@ -1542,6 +1604,15 @@
 - `ACTIVE = 'active',`
 - `CATALOG = 'catalog',`
 
+## InnerLapsedAuthority
+
+`interface` · cross-plugin-ports
+
+- `braname: string`
+- `username: string`
+- `type: InnerPowerOfAttorneyType`
+- `valid_until: string`
+
 ## InnerLedger2Account
 
 `interface` · core-ports
@@ -1660,6 +1731,15 @@
 - `details?: string | null`
 - `[key: string]: any`
 
+## InnerMeetForm
+
+`interface` · core-ports
+
+- `is_branched: boolean`
+- `branches_count: number | string`
+- `fixed_at: string`
+- `voted_branches: string[]`
+
 ## InnerMeetProcessing
 
 `interface` · core-ports
@@ -1677,6 +1757,7 @@
 - `status: string`
 - `open_at: Date`
 - `close_at: Date`
+- `form?: InnerMeetForm`
 - `[key: string]: any`
 
 ## InnerMutationLogEntry
@@ -1726,6 +1807,24 @@
 
 - `subscriberId: string`
 - `email?: string`
+
+## InnerNotifyDelivery
+
+`interface` · core-ports
+
+- `outboxId: string`
+- `channel: string`
+- `state: InnerNotifyDeliveryState`
+
+## InnerNotifyDeliveryState
+
+`enum` · core-ports
+
+- `PENDING = 'pending',`
+- `SENDING = 'sending',`
+- `SENT = 'sent',`
+- `FAILED = 'failed',`
+- `CANCELED = 'canceled',`
 
 ## InnerNotifyInput
 
@@ -1888,6 +1987,14 @@
 - `sortBy?: string`
 - `sortOrder?: 'ASC' | 'DESC'`
 
+## InnerParticipantProfileUpdatedEvent
+
+`interface` · core-ports
+
+- `username: string`
+- `account_type: InnerAccountType`
+- `birthdate: string | null`
+
 ## InnerParticipantRegisteredEvent
 
 `interface` · core-ports
@@ -2024,6 +2131,41 @@
 - `accountNumber: string`
 - `statementDate: string`
 - `lastProcessedPage: number`
+
+## InnerPayoutRequest
+
+`interface` · core-ports
+
+- `hash: string`
+- `coopname: string`
+- `username: string`
+- `quantity: number`
+- `symbol: string`
+- `type: PaymentType`
+- `payment_method_id?: string | null`
+- `status: InnerPayoutRequestStatus`
+- `created_at: Date`
+- `decided_at?: Date | null`
+
+## InnerPayoutRequestStatus
+
+`enum` · core-ports
+
+- `AWAITING = 'awaiting',`
+- `RELEASED = 'released',`
+- `DECLINED = 'declined',`
+
+## InnerPowerOfAttorneyStatus
+
+`type` · cross-plugin-ports
+
+- `'pending' | 'active' | 'expired' | 'declined'`
+
+## InnerPowerOfAttorneyType
+
+`type` · cross-plugin-ports
+
+- `'branch_trustee' | 'branch_trusted'`
 
 ## InnerPrivateAccount
 
@@ -2207,6 +2349,7 @@
 `interface` · core-ports
 
 - `phone: string`
+- `bank_name?: string`
 
 ## InnerSetPaymentStatusInput
 
@@ -2329,6 +2472,7 @@
 - `payload: T,`
 - `actor?: InnerNotifyActor`
 - `): Promise<InnerNotifyResult>`
+- `getDeliveries(outboxIds: string[]): Promise<InnerNotifyDelivery[]>`
 
 ## INTEGRATION_SETTINGS_PORT
 
@@ -2372,6 +2516,11 @@
 - `getPayments(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
 - `setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>`
 - `createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>`
+- `registerPayoutRequest(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayoutRequest>`
+- `releasePayoutRequest(hash: string): Promise<InnerPayment | null>`
+- `declinePayoutRequest(hash: string): Promise<void>`
+- `dropPayoutRequest(hash: string): Promise<void>`
+- `getPayoutRequest(hash: string): Promise<InnerPayoutRequest | null>`
 - `confirmers(): Promise<string[]>`
 
 ## IPaymentMethodPort
@@ -2405,6 +2554,7 @@
 - `create(payment: InnerPaymentDraft): Promise<InnerPayment>`
 - `update(id: string, data: Partial<InnerPayment>): Promise<InnerPayment | null>`
 - `list(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>`
+- `findPayoutRequestByHash(hash: string): Promise<InnerPayoutRequest | null>`
 
 ## IPaymentProvider
 
@@ -2418,6 +2568,12 @@
 
 - `registerProvider(name: string, provider: IPaymentProvider): void`
 - `getProvider(name: string): IPaymentProvider | undefined`
+
+## IPowersOfAttorneyPort
+
+`interface` · cross-plugin-ports
+
+- `listLapsedAuthorities(coopname: string): Promise<InnerLapsedAuthority[]>`
 
 ## IProgramAgreementPort
 
@@ -2730,6 +2886,11 @@
 
 - `Symbol.for('Innercoop.CorePort.Organization')`
 
+## PARTICIPANT_PROFILE_UPDATED_EVENT
+
+`const` · core-ports
+
+
 ## PARTICIPANT_REGISTERED_EVENT
 
 `const` · core-ports
@@ -2807,6 +2968,12 @@
 - `EXPENSE_OVERSPEND = 'expense_overspend',`
 - `AID = 'aid',`
 - `TAX = 'tax',`
+
+## POWERS_OF_ATTORNEY_PORT
+
+`const` · cross-plugin-ports
+
+- `Symbol.for('Innercoop.CrossPlugin.PowersOfAttorney')`
 
 ## PROGRAM_AGREEMENT_PORT
 

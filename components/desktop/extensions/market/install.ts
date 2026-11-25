@@ -1,5 +1,11 @@
 import './i18n';
 import { markRaw } from 'vue'
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges'
+import { registerLiveReload } from 'src/shared/lib/realtime'
+import { useSessionStore } from 'src/entities/Session'
+import { useSystemStore } from 'src/entities/System/model'
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { getBranchInvestment, propertyActionsCount } from 'src/entities/MarketplaceInvestment'
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
@@ -11,6 +17,7 @@ import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 // route'а 'trusted-persons' ниже — импорт временно отключён, файл страницы не удалён.
 // import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorBranchEconomyPage } from 'src/pages/Marketplace/OperatorBranchEconomy'
+import { OperatorBranchInitiatorsPage } from 'src/pages/Marketplace/OperatorBranchInitiators'
 import { OperatorBranchOrdersPage } from 'src/pages/Marketplace/OperatorBranchOrders'
 import { OperatorBranchOrderDetailPage } from 'src/pages/Marketplace/OperatorBranchOrderDetail'
 import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy'
@@ -43,6 +50,10 @@ import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsRead
 import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
 import { SupplierOnboardingPage } from 'src/pages/Marketplace/SupplierOnboarding'
 import { SupplierRegistryPage } from 'src/pages/Marketplace/SupplierRegistry'
+import { SupplierProfilePage } from 'src/pages/Marketplace/SupplierProfile'
+import { SupplierMyProfilePage } from 'src/pages/Marketplace/SupplierMyProfile'
+import { CoopProfilePage } from 'src/pages/Marketplace/CoopProfile'
+import { AdminReviewsPage } from 'src/pages/Marketplace/AdminReviews'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerGlobalOverlay } from 'src/shared/lib/overlays'
@@ -50,7 +61,12 @@ import {
   OnsiteSignatureGateOverlay,
   registerOnsiteGateLive,
 } from 'src/widgets/Marketplace/OnsiteSignatureGate'
-import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
+import { registerBranchTab } from 'src/shared/lib/branch-tabs'
+import { BranchSummaryTab } from 'src/widgets/Marketplace/BranchSummaryTab'
+import { isBranchInvolved, useMarketplaceBranchSummaryStore } from 'src/entities/MarketplaceBranchSummary'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
+import { liveTable } from 'src/shared/lib/realtime'
+import { MarketContract } from 'cooptypes'
 import { t } from './i18n';
 
 /**
@@ -96,13 +112,40 @@ import { t } from './i18n';
  * отдельного гейта во фронте не требуется — всё из backend grants.
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
-  registerMarketplaceProcessInfoHandlers()
+
+  // Стол ПВЗ, «Инициаторы участка»: сколько заявлений на имущество ждут этого
+  // пайщика — одобрить (председатель участка), подписать акт (вносящий), подписать
+  // акт второй подписью (председатель совета) (слово владельца
+  // 08.11.2026: иначе по меню не догадаться, что есть что подписать).
+  registerMenuBadge('marketplace-pvz-initiators', async () => {
+    const branches = useOperatorBranchStore()
+    await branches.ensureLoaded(useSystemStore().info.coopname)
+    if (!branches.activeBraname) return 0
+    const view = await getBranchInvestment(branches.activeBraname)
+    const session = useSessionStore()
+    return propertyActionsCount(view.properties, { username: session.username, isTrustee: Boolean(branches.activeBranch?.isTrustee), isChairman: session.isChairman })
+  })
+  registerLiveReload([{ code: 'marketplace', table: 'invprops' }], () => refreshMenuBadges(['marketplace-pvz-initiators']))
 
   // Глобальный гейт подписи на месте (Фаза 1) — расширение само вкладывает свой
   // оверлей в универсальный реестр ядра, как и process-info-хендлеры выше. App
   // его не импортирует; он сам решает свою видимость (поставщик очно / заказчик
   // на получении).
   registerGlobalOverlay('marketplace:onsite-signature-gate', OnsiteSignatureGateOverlay)
+
+  // Вкладка «Стол заказов» на странице кооперативного участка: пункт выдачи,
+  // кошельки участка и взносы инициаторов. Стол «Кооперативный участок» о ней
+  // не знает и рисует общий реестр. Участок без пункта выдачи и без
+  // инициаторов вкладку не получает.
+  registerBranchTab({
+    id: 'market:summary',
+    extension: 'market',
+    label: t('market.install.branchTabTitle'),
+    icon: 'storefront',
+    component: BranchSummaryTab,
+    isInvolved: async (braname) => isBranchInvolved(await useMarketplaceBranchSummaryStore().load(braname)),
+    liveTables: [...marketLiveTables('ku'), liveTable(MarketContract, MarketContract.Tables.InvBranches)],
+  })
 
   // Гейт живёт по общей ленте изменений ядра (C28-83): ядро держит одну
   // подписку chainChanges и дочитывает после переподключения само.
@@ -187,6 +230,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 hidden: true,
                 // Меню подсвечивает раздел, из которого страница открыта: она
                 // сиблинг реестра, и без этого подсветка гасла целиком.
+                menuKey: 'marketplace-catalog',
+              },
+              children: [],
+            },
+            {
+              // Страница поставщика: кто он, что поставляет и что о нём говорят
+              // заказчики. Скрыта из меню — открывается с имени поставщика на
+              // карточке каталога и на странице предложения (задача 598-61).
+              path: 'supplier/:account',
+              name: 'marketplace-supplier-profile',
+              component: markRaw(SupplierProfilePage),
+              meta: {
+                title: t('market.install.supplierProfileTitle'),
+                icon: 'storefront',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
                 menuKey: 'marketplace-catalog',
               },
               children: [],
@@ -331,6 +392,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: t('market.install.myOffersTitle'),
                 icon: 'fa-solid fa-clipboard-list',
                 requires: 'Offer:create:own',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // «Мой профиль»: что заказчик увидит на странице поставщика —
+              // обложка, название, рассказ о себе (задача 598-61).
+              path: 'profile',
+              name: 'marketplace-supplier-my-profile',
+              component: markRaw(SupplierMyProfilePage),
+              meta: {
+                title: t('market.install.mySupplierProfileTitle'),
+                icon: 'storefront',
+                requires: 'SupplierProfile:update:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -642,6 +718,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Инициаторы участка (задача 99D-31, решение владельца
+              // 07.11.2026): договор участия, паевые взносы деньгами и имуществом,
+              // одобрение и акт председателя участка, возврат из экономии.
+              path: 'initiators',
+              name: 'marketplace-pvz-initiators',
+              component: markRaw(OperatorBranchInitiatorsPage),
+              meta: {
+                title: t('market.install.branchInitiatorsTitle'),
+                icon: 'volunteer_activism',
+                requires: 'Economy:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // requirement (2026-08-03): реестр заказов своего участка —
               // та же вёрстка, что у администратора, отфильтрованная по
               // своему КУ; «Экономика участка» (движения по кошельку)
@@ -846,6 +937,59 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
+              // Страница поставщика на столе администратора — та же, что у
+              // заказчика, только для чтения: без корзины, предложения ведут в
+              // реестр. Открывается из карточки поставщика и из реестра отзывов.
+              path: 'supplier/:account',
+              name: 'marketplace-admin-supplier-profile',
+              component: markRaw(SupplierProfilePage),
+              meta: {
+                title: t('market.install.supplierProfileTitle'),
+                icon: 'storefront',
+                // Право стола администратора, как у соседних страниц.
+                // `SupplierProfile:read` есть у каждого заказчика: со скрытой
+                // страницей на нём стол администратора попадал в список столов
+                // обычного пайщика (замечание владельца 19.11.2026).
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+                menuKey: 'marketplace-suppliers',
+                readonly: true,
+              },
+              children: [],
+            },
+            {
+              // Профиль кооператива: он поставщик имущества со своего склада,
+              // и заказчик открывает этот профиль с карточек «со склада».
+              path: 'coop-profile',
+              name: 'marketplace-coop-profile',
+              component: markRaw(CoopProfilePage),
+              meta: {
+                title: t('market.install.coopProfileTitle'),
+                icon: 'badge',
+                requires: 'SupplierProfile:manage',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Реестр отзывов заказчиков: все отзывы кооператива, в том числе
+              // скрытые; здесь их скрывают с причиной и возвращают в публикацию.
+              path: 'reviews',
+              name: 'marketplace-admin-reviews',
+              component: markRaw(AdminReviewsPage),
+              meta: {
+                title: t('market.install.adminReviewsTitle'),
+                icon: 'rate_review',
+                requires: 'Review:moderate',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               // Эпик 9 / Story 9.2: admin-стол склада кооператива — что лежит
               // на пунктах выдачи. «Сводный склад» переименован в «Склад»
               // (решение владельца 13.09.2026): сводный он и так, а слово
@@ -1008,13 +1152,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
 
 /**
  * Кошельки, которые «Стол заказов» приносит на стол пайщика (путь B).
- * Свободный паевой программы (`w.mkt.share`) — сюда возвращается паевой
- * взнос после выдачи, отказов и гарантийного возврата; отсюда резервируется
- * следующий заказ; в Кошелёк не отзывается. Членский
- * кошелёк программы (`w.mkt.member`) — сюда по заявлению о конвертации
- * переходит членский взнос участка и сюда же возвращается неиспользованная
- * его часть; остаток зачитывается при следующем заказе, обратно в паевой не
- * переводится. Паевой резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
+ * Свободный паевой программы (`w.mkt.share`) — на него возвращается паевой
+ * взнос после выдачи, отказов и гарантийного возврата; с него оплачиваются
+ * стоимость и обеспечительная часть следующего заказа. Обеспечительная часть
+ * паевого взноса к списанию (`w.mkt.due`, задача 99D-18) — после выдачи ждёт
+ * конца гарантийного срока и первого числа месяца по условиям программы
+ * списывается в членский взнос. Паевой резерв под заказы (`w.mkt.order`) —
+ * стоимость имущества заказов до их выдачи; обеспечительная часть под заказы
+ * (`w.mkt.secure`) — до выдачи отдельно от стоимости. Без них паевой взнос
+ * после оформления заказа не был виден ни на одном кошельке (владелец
+ * 05.11.2026). Порядок карточек — путь паевого взноса по заказу.
  */
 export const walletCards: DesktopWalletCard[] = [
   {
@@ -1025,10 +1172,33 @@ export const walletCards: DesktopWalletCard[] = [
     icon: 'savings',
   },
   {
-    wallet_name: 'w.mkt.member',
-    label: t('market.install.walletMemberLabel'),
+    wallet_name: 'w.mkt.order',
+    label: t('market.install.walletOrderLabel'),
     description: t('market.install.walletDescription'),
     accent: 'wallet',
-    icon: 'card_membership',
+    icon: 'shopping_bag',
+  },
+  {
+    wallet_name: 'w.mkt.secure',
+    label: t('market.install.walletSecureLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'verified_user',
+  },
+  {
+    wallet_name: 'w.mkt.due',
+    label: t('market.install.walletDueLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'lock_clock',
+  },
+  {
+    // Паевой взнос инициатора в кооперативные участки (99D-31) — только у инициаторов.
+    wallet_name: 'w.mkt.invest',
+    label: t('market.install.walletInvestLabel'),
+    description: t('market.install.walletDescription'),
+    accent: 'wallet',
+    icon: 'volunteer_activism',
+    hideWhenEmpty: true,
   },
 ]

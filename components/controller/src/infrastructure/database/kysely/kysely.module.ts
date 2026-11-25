@@ -2,9 +2,14 @@
 import { Global, Module } from '@nestjs/common';
 import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
 import { MAIN_DATABASE } from '@coopenomics/extension-kit';
+import { EXTENSION_UNINSTALLED_REPOSITORY } from '~/domain/extension/repositories/extension-uninstalled.repository';
+import { DECISION_DECLINE_REASON_REPOSITORY } from '~/domain/decision/repositories/decision-decline-reason.repository';
+import { DecisionDeclineReasonKyselyRepository } from './repositories/decision-decline-reason.kysely-repository';
 import { PG_POOL, kyselyProvider, mainDatabaseProvider, pgPoolProvider } from './kysely.provider';
 import { KYSELY } from './kysely.tokens';
 import { MEMBERSHIP_EXIT_REQUEST_REPOSITORY } from '~/domain/membership-exit/repositories/membership-exit-request.repository';
+import { PAYOUT_REQUEST_REPOSITORY } from '~/domain/gateway/repositories/payout-request.repository';
+import { PayoutRequestKyselyRepository } from './repositories/payout-request.kysely-repository';
 import { MembershipExitRequestKyselyRepository } from './repositories/membership-exit-request.kysely-repository';
 import { ExtensionKyselyRepository } from './repositories/extension.kysely-repository';
 import { LogExtensionKyselyRepository } from './repositories/log-extension.kysely-repository';
@@ -92,6 +97,7 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     mainDatabaseProvider,
     kyselyProvider,
     { provide: MEMBERSHIP_EXIT_REQUEST_REPOSITORY, useClass: MembershipExitRequestKyselyRepository },
+    { provide: PAYOUT_REQUEST_REPOSITORY, useClass: PayoutRequestKyselyRepository },
     { provide: NOTIFICATION_OUTBOX_REPOSITORY, useClass: NotificationOutboxKyselyRepository },
     { provide: NOTIFICATION_DELIVERY_REPOSITORY, useClass: NotificationDeliveryKyselyRepository },
     { provide: NOTIFICATION_INBOX_REPOSITORY, useClass: NotificationInboxKyselyRepository },
@@ -99,6 +105,11 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
       provide: EXTENSION_REPOSITORY,
       useClass: ExtensionKyselyRepository,
     },
+    // Удалённые расширения читает тот же экземпляр хранилища
+    { provide: EXTENSION_UNINSTALLED_REPOSITORY, useExisting: EXTENSION_REPOSITORY },
+    // Пояснения председателя к отклонению решений совета (и адаптер порта расширений)
+    DecisionDeclineReasonKyselyRepository,
+    { provide: DECISION_DECLINE_REASON_REPOSITORY, useExisting: DecisionDeclineReasonKyselyRepository },
     {
       provide: LOG_EXTENSION_REPOSITORY,
       useClass: LogExtensionKyselyRepository,
@@ -245,11 +256,15 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     MAIN_DATABASE,
     KYSELY,
     MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
+    PAYOUT_REQUEST_REPOSITORY,
     NOTIFICATION_OUTBOX_REPOSITORY,
     NOTIFICATION_DELIVERY_REPOSITORY,
     NOTIFICATION_INBOX_REPOSITORY,
     DraftRegistryKyselyRepository,
     EXTENSION_REPOSITORY,
+    EXTENSION_UNINSTALLED_REPOSITORY,
+    DecisionDeclineReasonKyselyRepository,
+    DECISION_DECLINE_REASON_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
     MEET_PROCESSED_REPOSITORY,

@@ -123,6 +123,7 @@
     "exitBlockers": {
       "courseFallbackTitle": "курс",
       "pendingReturnName": "Возврат членских взносов по действующим подпискам на курсы ({subscriptions}) по Положению программы",
+      "returnedContributions": "по вашим занятиям не закрыт расчёт: взносов на доработке — {count}. Подайте их повторно на столе преподавателя либо попросите председателя закрыть расчёт без приёма",
       "statementsInWork": "по вашим занятиям не закрыт расчёт: заявлений в работе — {count}, дождитесь их прохождения",
       "teachingCourse": "вы ведёте курс «{title}» — передайте его другому преподавателю либо дождитесь окончания программы",
       "unsignedStatements": "материалы ваших занятий на ответственном хранении без заявления о паевом взносе — {count}: подпишите заявление на столе преподавателя"
@@ -172,7 +173,7 @@
       }
     },
     "onsiteConnector": {
-      "pingOk": "Очным занятиям ключи не нужны"
+      "pingOk": "Очным занятиям ключи не требуются"
     },
     "sections": {
       "reorderItems": {
@@ -209,7 +210,8 @@
       "lessonContributionDescription": "Занятие № {lessonNumber} курса «{courseTitle}»",
       "guaranteePackDescription": "Занятия № {from}–{to} курса «{courseTitle}» за гарантийный срок",
       "guaranteePackTopic": "по № {to} включительно, занятия гарантийного срока",
-      "ridRecallReason": "совет не принял решение о приёме: {reason}",
+      "ridReturnReason": "взнос не принят, материалы возвращены на доработку: {reason}",
+      "ridCloseReason": "расчёт закрыт без приёма: {reason}",
       "councilDeclinedReason": "совет отказал в приёме",
       "actDeclinedReason": "председатель отказал в подписи акта приёма-передачи"
     },
@@ -243,6 +245,57 @@
           "queueManage": "Повтор задач очереди доступа и отметка удалённых аккаунтов"
         }
       }
+    },
+    "processContent": {
+      "access": {
+        "untitled": "Курс",
+        "amountLabel": "Внесено за курс",
+        "member": "Ученик",
+        "paidMonths": "Оплачено месяцев",
+        "paidUntil": "Доступ оплачен до",
+        "joinedAt": "Подписка оформлена",
+        "cancelledAt": "Подписка отменена",
+        "refunded": "Возвращено",
+        "refundReason": "Причина возврата"
+      },
+      "rid": {
+        "untitled": "Результат интеллектуальной деятельности",
+        "amountLabel": "Оценка результата",
+        "teacher": "Преподаватель",
+        "holdUntil": "Удержание до",
+        "decidedAt": "Совет решил",
+        "declineReason": "Причина отказа"
+      },
+      "teach": {
+        "title": "Договор преподавателя № {number}",
+        "teacher": "Преподаватель",
+        "hourlyRate": "Ставка часа",
+        "approvedAt": "Совет одобрил",
+        "signedAt": "Договор подписан",
+        "declineReason": "Причина отказа"
+      },
+      "accessStatus": {
+        "pending": "Ожидает оплаты",
+        "active": "Доступ открыт",
+        "expired": "Срок доступа истёк",
+        "revoked": "Доступ отозван",
+        "cancelled": "Подписка отменена"
+      },
+      "ridStatus": {
+        "draft": "Черновик",
+        "held": "Удерживается до проверки",
+        "submitted": "На решении совета",
+        "council_approved": "Совет принял",
+        "declined": "Совет отказал",
+        "accepted": "Принят",
+        "act_signed": "Акт подписан"
+      },
+      "teachStatus": {
+        "pending_approval": "На одобрении совета",
+        "active": "Действует",
+        "declined": "Отклонён",
+        "terminated": "Расторгнут"
+      }
     }
   },
   "errors": {
@@ -268,6 +321,10 @@
     "EDUBRIDGE_CONTRACT_TERMINATED": "Договор прекращён — подпишите его заново",
     "EDUBRIDGE_CONTRACT_TERMINATION_REASON_REQUIRED": "Укажите основание прекращения договора",
     "EDUBRIDGE_CONTRIBUTION_ALREADY_HELD": "Материалы занятия уже приняты на ответственное хранение",
+    "EDUBRIDGE_CONTRIBUTION_NOT_RETURNED": "Взнос не возвращён на доработку: повторная подача и закрытие без приёма недоступны",
+    "EDUBRIDGE_CLOSE_REASON_REQUIRED": "Укажите основание закрытия расчёта без приёма",
+    "EDUBRIDGE_REWORK_FOREIGN_LESSON": "Занятие не относится к этому взносу",
+    "EDUBRIDGE_REWORK_MATERIALS_REQUIRED": "Укажите материалы занятия",
     "EDUBRIDGE_CONTRIBUTION_ALREADY_SUBMITTED": "Взнос уже подан",
     "EDUBRIDGE_CONTRIBUTION_FOREIGN": "Взнос принадлежит другому преподавателю",
     "EDUBRIDGE_CONTRIBUTION_NOT_FOUND": "Взнос не найден",
@@ -303,7 +360,7 @@
     "EDUBRIDGE_ENROLLMENT_STATEMENT_STALE": "Условия оплаты изменились с момента формирования заявления — сформируйте и подпишите его заново",
     "EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED": "Взнос за год больше не принимается: выберите взнос помесячно или за весь курс",
     "EDUBRIDGE_EXTENSION_CONFIG_NOT_FOUND": "Конфиг расширения edubridge не найден",
-    "EDUBRIDGE_INSUFFICIENT_FUNDS": "Недостаточно средств: нужно {amount}, на кошельке программы {programBalance}, на главном паевом {mainBalance}. Пополните главный кошелёк.",
+    "EDUBRIDGE_INSUFFICIENT_FUNDS": "Недостаточно средств: требуется {amount}, на кошельке программы {programBalance}, на главном паевом {mainBalance}. Пополните главный кошелёк.",
     "EDUBRIDGE_INSUFFICIENT_RIGHTS": "Недостаточно прав доступа",
     "EDUBRIDGE_LEARNER_CONTACT_DUPLICATE": "У вас уже есть обучающийся с таким контактом — у каждого обучающегося свой адрес",
     "EDUBRIDGE_LEARNER_FOREIGN": "Обучающийся принадлежит другому пайщику",

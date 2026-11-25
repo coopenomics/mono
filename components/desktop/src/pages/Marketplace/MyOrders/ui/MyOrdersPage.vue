@@ -10,7 +10,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
-import { PageHint } from 'src/shared/ui/domain';
+import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, marketLiveTables } from 'src/shared/lib/marketplace';
@@ -43,6 +44,9 @@ const route = useRoute();
 const router = useRouter();
 const system = useSystemStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
+// «Мои заказы» показывают заказы выбранного пункта выдачи — того же, что в
+// каталоге и корзине (решение владельца 19.11.2026). Пункт не выбран — все заказы.
+const cartStore = useMarketplaceCartStore();
 
 const items = ref<MarketplaceOrderView[]>([]);
 const totalCount = ref(0);
@@ -65,25 +69,29 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 // Код получения (account-bound QR) — диалогом из шапки, в одном месте.
 const receiveDialogOpen = ref(false);
 
-// Фильтр по этапу. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
-// каждый статус заказа попадает хотя бы в одну вкладку. Иначе заказ молча
-// «растекается» — пропадает из всех вкладок, кроме «Все» (баг: молоко в статусе
-// SUPPLY_PREPARED не показывалось нигде). Вкладка может покрывать несколько
-// статусов: «Ждут поставщика» — сводные и индивидуальные (оба ждут акцепта);
-// «Готовятся» — принят → готовится → принят кооперативом (для заказчика это
-// единый этап «в работе»); «Отменены» — отмены, истёкшие циклы и возвраты.
+// Фильтр по состоянию. Покрытие ИСЧЕРПЫВАЮЩЕЕ по enum'у MarketplaceOrderStatusView:
+// каждый статус заказа попадает хотя бы в одну вкладку, иначе заказ молча
+// пропадает из всех списков, кроме «Все». Фильтров четыре (решение владельца
+// 10.11.2026): «Активные» — всё, что ещё впереди, от сбора партии до подписи
+// акта; стадию внутри показывает бейдж строки. Прежние «Активные» значили
+// только сбор партии и пересекались по смыслу с «Ждут поставщика» и «В работе».
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
   { key: 'all', label: t('marketplace.myOrdersPage.filterAll'), statuses: null },
-  { key: 'active', label: t('marketplace.myOrdersPage.filterActive'), statuses: ['ACTIVE'] },
   {
-    key: 'pending-supplier',
-    label: t('marketplace.myOrdersPage.filterAwaitingSupplier'),
-    statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
-  },
-  {
-    key: 'in-progress',
-    label: t('marketplace.myOrdersPage.filterInProgress'),
-    statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
+    key: 'active',
+    label: t('marketplace.myOrdersPage.filterActive'),
+    statuses: [
+      'ACTIVE',
+      'ACCEPTED_PENDING_SUPPLIER',
+      'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+      'ACCEPTED',
+      'SUPPLY_PREPARED',
+      'ACCEPTED_TO_COOP',
+      'READY_TO_RECEIVE',
+      'ISSUE_PENDING',
+      'ISSUE_AUTHORIZED',
+      'ISSUE_ACT1',
+    ],
   },
   { key: 'received', label: t('marketplace.myOrdersPage.filterReceived'), statuses: ['RECEIVED'] },
   {
@@ -228,6 +236,7 @@ async function load(page: number, append: boolean): Promise<void> {
   try {
     const result = await fetchMyOrders({
       statuses: activeStatuses.value,
+      delivery_braname: cartStore.currentBraname ?? undefined,
       page,
       limit: PAGE_SIZE,
       sortBy: 'updated_at',
@@ -266,9 +275,22 @@ function goReceive(): void {
   receiveDialogOpen.value = true;
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Пункт выдачи хранит корзина: без неё отбор по участку неизвестен.
+  if (!cartStore.cart) {
+    try {
+      await cartStore.load();
+    } catch {
+      // Корзина недоступна — показываем все заказы пайщика.
+    }
+  }
   void load(1, false);
 });
+
+/** Сменили пункт выдачи в плашке — список перечитывается под новый участок. */
+function onKUChanged(): void {
+  void load(1, false);
+}
 
 // Заказ сменил статус (председатель открыл выдачу → READY_TO_RECEIVE, поставщик
 // принял и т.п.) → персональный ws-сигнал, и список тихо перечитывается, чтобы
@@ -292,10 +314,8 @@ q-page.orders(role="region", :aria-label="$t('marketplace.myOrdersPage.ariaLabel
         q-icon(name="qr_code_2", size="16px")
       | {{ $t('marketplace.myOrdersPage.showQrAction') }}
 
-  PageHint(storage-key="mp:my-orders:banner-dismissed")
-    | {{ $t('marketplace.myOrdersPage.bannerHintIntro') }}
-    | {{ $t('marketplace.myOrdersPage.bannerHintCancelWindow') }}
-    | {{ $t('marketplace.myOrdersPage.bannerHintOperatorSign') }}
+  //- Пункт выдачи — тот же, что в каталоге и корзине: список показывает его заказы.
+  KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 

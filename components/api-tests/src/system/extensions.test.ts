@@ -114,8 +114,8 @@ describe('каталог расширений и рабочие столы', () 
   it(caseName('sys.ext.happy.03', 'каталог: установленные по умолчанию отмечены, закрытое везде — недоступно'), async () => {
     const powerup = await extension('powerup')
     expect(powerup).toMatchObject({ is_installed: true, enabled: true, is_available: true })
-    const yookassa = await extension('yookassa')
-    expect(yookassa).toMatchObject({ is_installed: false, is_available: false })
+    const sberpoll = await extension('sberpoll')
+    expect(sberpoll).toMatchObject({ is_installed: false, is_available: false })
     const probe = await extension(PROBE_EXT)
     expect(probe.is_installed, `${PROBE_EXT} не должен стоять на стенде до теста`).toBe(false)
     expect(probe.desktops.map((d: any) => d.name)).toContain(PROBE_EXT)
@@ -145,8 +145,8 @@ describe('каталог расширений и рабочие столы', () 
   })
 
   it(caseName('ext.avail.side.03', 'закрытое везде расширение на тестовом контуре не ставится'), async () => {
-    expectCode(await gqlError(chairToken, INSTALL, { d: { name: 'yookassa', enabled: false, config: { client: '', secret: '' } } }), 'EXTENSION_NOT_AVAILABLE_FOR_INSTALL')
-    expect((await extension('yookassa')).is_installed).toBe(false)
+    expectCode(await gqlError(chairToken, INSTALL, { d: { name: 'sberpoll', enabled: false, config: {} } }), 'EXTENSION_NOT_AVAILABLE_FOR_INSTALL')
+    expect((await extension('sberpoll')).is_installed).toBe(false)
   })
 
   it(caseName('ext.avail.break.01', 'прямой вызов установки закрытого приложения: пайщику — отказ по роли, председателю — отказ по сети'), async () => {
@@ -162,9 +162,15 @@ describe('каталог расширений и рабочие столы', () 
 
   it(caseName('sys.ext.side.03', 'обновить неустановленное нельзя; конфиг, не прошедший схему, не пишется'), async () => {
     expectCode(await gqlError(chairToken, UPDATE, { d: { name: PROBE_EXT, enabled: true, config: {} } }), 'DATABASE_EXTENSION_NOT_INSTALLED')
+    // ЮKassa с 24.11.2026 открыта вне основной сети и ставится стендом по
+    // умолчанию, выключенной (9dbe50ff876). Случай проверяет, что отказ схемы
+    // ничего не пишет: конфиг и состояние до и после совпадают.
+    const before = await extension('yookassa')
     expectCode(await gqlError(chairToken, UPDATE, { d: { name: 'yookassa', enabled: false, config: { client: 1 } } }), 'EXTENSION_CONFIG_VALIDATION_FAILED')
     expect((await extension(PROBE_EXT)).is_installed).toBe(false)
-    expect((await extension('yookassa')).is_installed).toBe(false)
+    const after = await extension('yookassa')
+    expect(after.config).toEqual(before.config)
+    expect({ installed: after.is_installed, enabled: after.enabled }).toEqual({ installed: before.is_installed, enabled: before.enabled })
   })
 
   it(caseName('sys.ext.happy.04', 'установка, выключение и удаление расширения — каталог и состав рабочих столов следуют'), async () => {
@@ -190,6 +196,33 @@ describe('каталог расширений и рабочие столы', () 
 
     // повтор удаления — ничего не удалено
     expect((await gql<any>(chairToken, UNINSTALL, { d: { name: PROBE_EXT } })).uninstallExtension).toBe(false)
+  })
+
+  // Удаление мягкое (24.11.2026): запись и config остаются, в config у
+  // расширений лежат отметки онбординга и служебное состояние. Маркер — лишний
+  // ключ: пустая схема «Кооперативного участка» его пропускает и сохраняет.
+  it(caseName('ext.soft.happy.01', 'удаление сохраняет настройки, повторная установка продолжает с них'), async () => {
+    const marker = `soft-${crypto.randomBytes(3).toString('hex')}`
+    expect((await extension(PROBE_EXT)).is_installed).toBe(false)
+
+    await gql<any>(chairToken, INSTALL, { d: { name: PROBE_EXT, enabled: true, config: { soft_probe: marker } } })
+    expect((await gql<any>(chairToken, UNINSTALL, { d: { name: PROBE_EXT } })).uninstallExtension).toBe(true)
+
+    // ext.soft.happy.03: удалённое — неустановленное, но с прежними настройками
+    const removed = await extension(PROBE_EXT)
+    expect(removed).toMatchObject({ is_installed: false, enabled: false })
+    expect(removed.config?.soft_probe).toBe(marker)
+    expect(await desktopExtensions(null)).not.toContain(PROBE_EXT)
+
+    // ext.soft.happy.02: форма прислала пустой config — сохранённый ключ остаётся
+    const again = (await gql<any>(chairToken, INSTALL, { d: { name: PROBE_EXT, enabled: true, config: {} } })).installExtension
+    expect(again).toMatchObject({ name: PROBE_EXT, is_installed: true, enabled: true })
+    expect(again.config?.soft_probe).toBe(marker)
+    expect(await desktopExtensions(null)).toContain(PROBE_EXT)
+
+    // стенд возвращается в исходное: расширение удалено
+    expect((await gql<any>(chairToken, UNINSTALL, { d: { name: PROBE_EXT } })).uninstallExtension).toBe(true)
+    expect((await extension(PROBE_EXT)).is_installed).toBe(false)
   })
 
   it(caseName('sys.ext.side.04', 'рабочий стол по негодному токену — отказ, а не гостевой ответ'), async () => {

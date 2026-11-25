@@ -20,6 +20,9 @@ export const marketplaceBranchEconomySelector = Selector('MarketplaceBranchEcono
   common_balance: true,
   reserve_amount: true,
   available_to_distribute: true,
+  initiators_free: true,
+  available_for_expenses: true,
+  social_fund_balance: true,
 })
 
 export const marketplacePersonalEconomySelector = Selector('MarketplacePersonalEconomy')({
@@ -34,6 +37,12 @@ export const marketplaceAidSelector = Selector('MarketplaceAid')({
   stage: true,
   payment_status: true,
   payment_destination: true,
+  ndfl_tax: true,
+  net_amount: true,
+  submitted_at: true,
+  decided_at: true,
+  payment_completed_at: true,
+  payment_failed_at: true,
 })
 
 export const rawMarketplaceBranchWalletOperationSelector = {
@@ -43,6 +52,7 @@ export const rawMarketplaceBranchWalletOperationSelector = {
   memo: true,
   order_hash: true,
   order_id: true,
+  username: true,
   created_at: true,
 }
 export const marketplaceBranchWalletOperationSelector = Selector('MarketplaceBranchWalletOperation')(

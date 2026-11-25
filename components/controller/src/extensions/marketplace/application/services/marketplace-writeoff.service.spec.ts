@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MarketplaceWriteoffService } from './marketplace-writeoff.service';
 import type {
   MarketplaceWriteoffItemInput,
@@ -147,7 +147,7 @@ function buildSignedStatement(proposalHash: string) {
   const doc = {
     hash: 'doc-hash',
     meta: {
-      registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
+      registry_id: Registry.MarketplaceWriteoffStatement.registry_id,
       proposal_hash: proposalHash,
     },
     signatures: [

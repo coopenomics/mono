@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { type IGenerate, Registry } from '@coopenomics/docs-templates';
 import httpStatus from 'http-status';
 import type { ISignedDocument, IMonoAccount } from '@coopenomics/innercoop';
 import type { GenerateDocumentOptionsInputDTO, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
@@ -27,6 +27,8 @@ import type {
   ExecKuDecisionInputDomainInterface,
   JoinKuDecisionInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
+  SignKuTrusteeAuthorityInputDomainInterface,
+  SignKuTrusteeLiabilityInputDomainInterface,
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../domain/interfaces/ku-action-inputs.interface';
@@ -38,6 +40,7 @@ import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT
   InnerAccountType,
 } from '@coopenomics/innercoop';
 import { TransactionDTO, DomainError } from '@coopenomics/extension-kit';
+import { KuPowersOfAttorneyService } from './ku-powers-of-attorney.service';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /** Роли, которым открыты все заявки в доверенные лица: совет и председатель. */
@@ -57,7 +60,8 @@ export class KuService {
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(ACCOUNT_PORT) private readonly accountPort: IAccountPort,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    private readonly powersOfAttorney: KuPowersOfAttorneyService
   ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -223,10 +227,36 @@ export class KuService {
     data: ExecKuDecisionInputDomainInterface,
     currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
-    // Заявление в совет и договор о материальной ответственности подписывает
-    // избранный собранием председатель участка (он же сторона договора)
+    // Заявление в совет подписывает избранный собранием председатель участка.
+    // Доверенность и договор он подписывает после решения совета (signTrustee*).
     await this.assertIsDecisionChairman(currentUser, data.hash);
     const result = await this.kuBlockchainPort.execDecision(data);
+    return result as unknown as TransactionDTO;
+  }
+
+  /**
+   * Доверенность председателя участка — после решения совета об учреждении
+   * участка и при ежегодном продлении. Подписывает сам председатель участка;
+   * встречно — председатель совета через одобрения.
+   */
+  async signTrusteeAuthority(
+    data: SignKuTrusteeAuthorityInputDomainInterface,
+    currentUser: IMonoAccount
+  ): Promise<TransactionDTO> {
+    this.assertSameUser(currentUser, data.username);
+    await this.powersOfAttorney.assertTrustee(data.coopname, data.braname, data.username);
+    const result = await this.kuBlockchainPort.signTrusteeAuthority(data);
+    return result as unknown as TransactionDTO;
+  }
+
+  /** Договор о полной материальной ответственности председателя участка — после решения совета. */
+  async signTrusteeLiability(
+    data: SignKuTrusteeLiabilityInputDomainInterface,
+    currentUser: IMonoAccount
+  ): Promise<TransactionDTO> {
+    this.assertSameUser(currentUser, data.username);
+    await this.powersOfAttorney.assertTrustee(data.coopname, data.braname, data.username);
+    const result = await this.kuBlockchainPort.signTrusteeLiability(data);
     return result as unknown as TransactionDTO;
   }
 
@@ -283,7 +313,7 @@ export class KuService {
   // ───────────────────────────────────────────────────────────────────────────
 
   private async generate(
-    data: Cooperative.Document.IGenerate,
+    data: IGenerate,
     registry_id: number,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
@@ -292,73 +322,80 @@ export class KuService {
   }
 
   async generateBranchMeetingProposal(
-    data: Cooperative.Registry.BranchMeetingProposal.Action,
+    data: Registry.BranchMeetingProposal.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingProposal.registry_id, options);
+    return this.generate(data, Registry.BranchMeetingProposal.registry_id, options);
   }
 
   async generateBranchMeetingBallot(
-    data: Cooperative.Registry.BranchMeetingBallot.Action,
+    data: Registry.BranchMeetingBallot.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingBallot.registry_id, options);
+    return this.generate(data, Registry.BranchMeetingBallot.registry_id, options);
   }
 
   async generateBranchMeetingDecision(
-    data: Cooperative.Registry.BranchMeetingDecision.Action,
+    data: Registry.BranchMeetingDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingDecision.registry_id, options);
+    return this.generate(data, Registry.BranchMeetingDecision.registry_id, options);
   }
 
   async generateBranchEstablishmentPetition(
-    data: Cooperative.Registry.BranchEstablishmentPetition.Action,
+    data: Registry.BranchEstablishmentPetition.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchEstablishmentPetition.registry_id, options);
+    return this.generate(data, Registry.BranchEstablishmentPetition.registry_id, options);
   }
 
   async generateBranchEstablishmentDecision(
-    data: Cooperative.Registry.BranchEstablishmentSovietDecision.Action,
+    data: Registry.BranchEstablishmentSovietDecision.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchEstablishmentSovietDecision.registry_id, options);
+    return this.generate(data, Registry.BranchEstablishmentSovietDecision.registry_id, options);
   }
 
   async generateBranchTrustedStatement(
-    data: Cooperative.Registry.BranchTrustedStatement.Action,
+    data: Registry.BranchTrustedStatement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrustedStatement.registry_id, options);
+    return this.generate(data, Registry.BranchTrustedStatement.registry_id, options);
   }
 
   async generateBranchTrustedLiabilityAgreement(
-    data: Cooperative.Registry.BranchTrustedLiabilityAgreement.Action,
+    data: Registry.BranchTrustedLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id, options);
+    return this.generate(data, Registry.BranchTrustedLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteeLiabilityAgreement(
-    data: Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action,
+    data: Registry.BranchTrusteeLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
+    return this.generate(data, Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
   }
 
   async generateBranchTrusteePowerOfAttorney(
-    data: Cooperative.Registry.BranchTrusteePowerOfAttorney.Action,
+    data: Registry.BranchTrusteePowerOfAttorney.Action & { braname?: string },
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id, options);
+    // Номер, протокол совета, название, адрес и срок вписывает узел — значения
+    // из запроса не берутся (решение владельца 18.11.2026).
+    if (!data.braname) throw DomainError.badRequest('KU_BRANCH_REQUIRED');
+    const requisites = await this.powersOfAttorney.trusteeAuthorityRequisites(data.coopname, data.braname, data.username);
+    return this.generate({ ...data, ...requisites }, Registry.BranchTrusteePowerOfAttorney.registry_id, options);
   }
 
   async generateBranchTrustedPowerOfAttorney(
-    data: Cooperative.Registry.BranchTrustedPowerOfAttorney.Action,
+    data: Registry.BranchTrustedPowerOfAttorney.Action & { braname?: string },
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<InnerGeneratedDocument> {
-    return this.generate(data, Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id, options);
+    // Основание — протокол совета и действующая доверенность председателя участка.
+    if (!data.braname) throw DomainError.badRequest('KU_BRANCH_REQUIRED');
+    const requisites = await this.powersOfAttorney.trustedAuthorityRequisites(data.coopname, data.braname);
+    return this.generate({ ...data, ...requisites }, Registry.BranchTrustedPowerOfAttorney.registry_id, options);
   }
 
   // ───────────────────────────────────────────────────────────────────────────

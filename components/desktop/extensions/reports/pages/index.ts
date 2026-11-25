@@ -1,8 +1,10 @@
 export { OperationsPage } from './OperationsPage'
 export { PostingsPage } from './PostingsPage'
 export { ProcessesPage } from './ProcessesPage'
+export { ProcessPage } from './ProcessPage'
 export { WalletsPage, CoopWalletsPage, ParticipantWalletsPage } from './WalletsPage'
 export { AccountsPage } from './AccountsPage'
+export { FundsPage } from './FundsPage'
 export {
   DocumentsPage,
   DocumentsCalendarPage,

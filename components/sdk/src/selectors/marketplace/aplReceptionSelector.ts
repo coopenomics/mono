@@ -19,6 +19,7 @@ const rawFactEntrySelector = {
   fact_quantity: true,
   fact_unit_price: true,
   product_name: true,
+  image_url: true,
   unit_of_measure: true,
   package_size: true,
   // Заказчик по позиции: этикетку клеят на конкретную единицу конкретного

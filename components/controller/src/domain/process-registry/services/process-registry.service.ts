@@ -112,15 +112,24 @@ export class ProcessRegistryService {
     // оба случая (ledger2-only и cross-account).
     const allActions = await this.journal.findActionsByProcess(normHash, coopname);
 
-    if (allActions.length === 0) {
-      throw DomainError.notFound('PROCESS_REGISTRY_NOT_FOUND', { hash: normHash });
-    }
-
-    const processType = this.resolveProcessTypeOrFail(allActions, normHash);
-
     // ---------- Phase B: fan-out scan по сущностным таблицам ----------
-    const locations: HashLocation[] = PROCESS_HASH_LOCATOR[processType] ?? [];
-    const entityDeltas = await this.scanEntityDeltas(locations, normHash, coopname);
+    // Процесс без операций учётной книги — ещё не дошёл до денег (заявление на
+    // материальную помощь на рассмотрении совета, решение 04.11.2026: «я уже
+    // должен понимать последовательность»). Его тип и дельты находятся по
+    // таблицам сущностей локатора, документы и шаги — по действиям с хэшем.
+    let processType: string;
+    let entityDeltas: DeltaDomainInterface[];
+    if (allActions.length > 0) {
+      processType = this.resolveProcessTypeOrFail(allActions, normHash);
+      const locations: HashLocation[] = PROCESS_HASH_LOCATOR[processType] ?? [];
+      entityDeltas = await this.scanEntityDeltas(locations, normHash, coopname);
+    } else {
+      const located = await this.locateBeforeLedger(normHash, coopname);
+      if (!located) {
+        throw DomainError.notFound('PROCESS_REGISTRY_NOT_FOUND', { hash: normHash });
+      }
+      ({ processType, entityDeltas } = located);
+    }
 
     // ---------- сборка delta_history (только entity-дельты) ----------
     const allDeltas = entityDeltas.map((d) => this.toDeltaView(d)).sort(this.compareByBlock);
@@ -146,8 +155,10 @@ export class ProcessRegistryService {
       ...this.collectActionDocumentCandidates(linkedActions),
     ]);
 
-    const firstAt = allActions[0].created_at;
-    const lastAt = allActions[allActions.length - 1].created_at;
+    // Первая и последняя отметка процесса: операции, а до денег — шаги процесса и дельты.
+    const steps = allActions.length > 0 ? allActions : linkedActions;
+    const firstAt = steps[0]?.created_at ?? entityDeltas[0]?.created_at;
+    const lastAt = steps[steps.length - 1]?.created_at ?? entityDeltas[entityDeltas.length - 1]?.created_at;
 
     const view: ProcessView = {
       process_type: processType,
@@ -155,7 +166,9 @@ export class ProcessRegistryService {
       coopname,
       first_seen_at: allDeltas[0]?.created_at ?? firstAt,
       last_seen_at: allDeltas[allDeltas.length - 1]?.created_at ?? lastAt,
-      actions: allActions.map(this.toActionView).sort(this.compareByBlock),
+      // До первой операции учётной книги шаги процесса — действия с его хэшем
+      // (заявление, вопрос совету, решение).
+      actions: steps.map(this.toActionView).sort(this.compareByBlock),
       delta_history: allDeltas,
       documents,
     };
@@ -519,6 +532,22 @@ export class ProcessRegistryService {
     if (count > HARD_LIMIT) {
       throw DomainError.badRequest('PROCESS_REGISTRY_LIMIT_EXCEEDED', { limit: HARD_LIMIT, collection, hash, count });
     }
+  }
+
+  /**
+   * Процесс по таблицам сущностей локатора, когда операций учётной книги ещё
+   * нет: первый тип, в чьей таблице есть строка с этим хэшем. Таблицы и поля
+   * локатора у процессов свои, хэш одного процесса в чужой таблице не лежит.
+   */
+  private async locateBeforeLedger(
+    hash: string,
+    coopname: string
+  ): Promise<{ processType: string; entityDeltas: DeltaDomainInterface[] } | null> {
+    for (const [processType, locations] of Object.entries(PROCESS_HASH_LOCATOR)) {
+      const entityDeltas = await this.scanEntityDeltas(locations, hash, coopname);
+      if (entityDeltas.length > 0) return { processType, entityDeltas };
+    }
+    return null;
   }
 
   private async scanEntityDeltas(

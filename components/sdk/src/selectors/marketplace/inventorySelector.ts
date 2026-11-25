@@ -13,6 +13,7 @@ const rawInventorySelector = {
   braname: true,
   status: true,
   product_name_snapshot: true,
+  image_url: true,
   quantity_per_label: true,
   orderer_account_snapshot: true,
   orderer_name: true,
@@ -48,4 +49,35 @@ export const marketplaceInventoryMutationResultSelector = Selector(
   'MarketplaceInventoryMutationResult',
 )({
   inventory: rawInventorySelector,
+})
+
+/** Шаг журнала движения позиции склада. */
+const rawInventoryMovementSelector = {
+  id: true,
+  kind: true,
+  at: true,
+  actor_account: true,
+  actor_name: true,
+  branch_name: true,
+  place_label: true,
+  quantity: true,
+  barcode_value: true,
+  order_id: true,
+  recipient_account: true,
+  recipient_name: true,
+}
+
+const _validateInventoryMovement: MakeAllFieldsRequired<ValueTypes['MarketplaceInventoryMovement']> =
+  rawInventoryMovementSelector
+
+export const marketplaceInventoryMovementSelector = Selector('MarketplaceInventoryMovement')(
+  rawInventoryMovementSelector,
+)
+
+/** Страница архива склада: выданное и списанное. */
+export const marketplaceInventoryArchiveSelector = Selector('MarketplaceInventoryArchivePaginationResult')({
+  items: rawInventorySelector,
+  totalCount: true,
+  totalPages: true,
+  currentPage: true,
 })

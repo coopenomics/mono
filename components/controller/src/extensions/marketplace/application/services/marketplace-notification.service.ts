@@ -1,6 +1,7 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
+import { MarketContract } from 'cooptypes';
 import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, type INotificationPort, VERIFICATION_PORT, type IVerificationPort } from '@coopenomics/innercoop';
@@ -14,6 +15,7 @@ import {
   MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+  MARKETPLACE_REVIEW_INVITE_EVENT,
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -37,6 +39,7 @@ import {
   type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
+  type MarketplaceReviewInviteEvent,
   type MarketplaceNewOrderForSupplierEvent,
   type MarketplaceOrderDeclinedBySupplierEvent,
   type MarketplaceReturnClaimDecidedEvent,
@@ -54,6 +57,8 @@ import {
   type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
 import { t } from '../../i18n';
+import { ordersDative } from '../shared/payout-batch.util';
+import { KU_DETAILS_DOMAIN_REPOSITORY, type KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
 
 /**
  * Story 5.4 / 5.6 / 5.7 — push-уведомления marketplace flow.
@@ -80,7 +85,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(VERIFICATION_PORT) private readonly verificationPort: IVerificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort
+    @Inject(PAYMENT_DESK_PORT) private readonly paymentDesk: IPaymentDeskPort,
+    @Inject(KU_DETAILS_DOMAIN_REPOSITORY) private readonly kuDetails: KuDetailsDomainRepository
   ) {
     this.logger.setContext(MarketplaceNotificationService.name);
   }
@@ -89,13 +95,48 @@ export class MarketplaceNotificationService implements OnModuleInit {
     this.logger.log('MarketplaceNotificationService инициализирован');
   }
 
+  /**
+   * Имя участка для текста уведомления. Участок — учётная запись со своим
+   * сертификатом; пайщику показывается его название, не учётное имя. Если
+   * сертификата нет, остаётся учётное имя — уведомление важнее формы.
+   */
+  private async branchDisplayName(braname: string): Promise<string> {
+    try {
+      return (await this.accountPort.getDisplayName(braname)) || braname;
+    } catch {
+      return braname;
+    }
+  }
+
+  /**
+   * Режим работы пункта выдачи для уведомления о готовности заказа (решение
+   * владельца 19.11.2026): пайщик узнаёт, когда участок выдаёт заказы, не
+   * открывая стол. Время — местное время участка, как его ввёл председатель;
+   * пояс не пересчитывается. Дни с одинаковым режимом объединены: «Пн–Пт
+   * 09:00–18:00; Сб–Вс выходной». Режим не задан или деталей нет — пустая
+   * строка: уведомление важнее подробностей.
+   */
+  private async workingHoursNote(coopname: string, braname: string): Promise<string> {
+    try {
+      const details = await this.kuDetails.findByCoreBraname(coopname, braname);
+      const hours = MarketContract.WorkingHours.formatWorkingHours(details?.workingHours, {
+        day: (day) => t(`marketplace.workingHours.day.${day}`),
+        breakWord: t('marketplace.workingHours.break'),
+        dayOff: t('marketplace.workingHours.dayOff'),
+      }).join('; ');
+      return hours ? t('marketplace.notification.workingHoursNote', { hours }) : '';
+    } catch {
+      return '';
+    }
+  }
+
   @OnEvent(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT)
   async handleAplSupplierSignRequest(event: MarketplaceAplSupplierSignRequestEvent): Promise<void> {
     try {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceAplSupplierSignRequest.IPayload = {
         supplierName,
-        kuName: event.ku_name,
+        kuName: await this.branchDisplayName(event.ku_name),
         ttnNumber: event.ttn_number,
         expeditorName: event.expeditor_name,
         coopname: event.coopname,
@@ -126,12 +167,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
     try {
       const operatorName = await this.accountPort.getDisplayName(event.operator_account);
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       const payload: Workflows.MarketplaceAplReceptionCancelledBySupplier.IPayload = {
         operatorName,
         supplierName,
@@ -180,7 +216,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         cashierName: await this.accountPort.getDisplayName(username),
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
         // Реестр платежей стола кассира, отфильтрованный по поставщику
@@ -262,8 +298,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         paymentReference: event.payment_reference,
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
+        itemName: event.item_name || t('marketplace.notification.paymentItemFallback'),
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
       };
@@ -286,12 +323,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       // Верификация личности (105-28): неверифицированному получателю напоминаем
       // взять паспорт — без базового уровня оператор не откроет выдачу.
       let passportReminder = '';
@@ -309,11 +341,14 @@ export class MarketplaceNotificationService implements OnModuleInit {
       }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
+        productName: event.product_name,
         kuName,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
+        // Нажатие на уведомление открывает страницу заказа (замечание владельца 20.11.2026).
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/orders/${event.order_id}`,
         passportReminder,
+        workingHoursNote: await this.workingHoursNote(event.coopname, event.braname),
       };
       await this.notificationSenderService.notifyUser(
         event.orderer_account,
@@ -326,6 +361,32 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Order ${event.order_id}: ошибка отправки push заказчику о готовности (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_REVIEW_INVITE_EVENT)
+  async handleReviewInvite(event: MarketplaceReviewInviteEvent): Promise<void> {
+    try {
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      const payload: Workflows.MarketplaceReviewInvite.IPayload = {
+        ordererName,
+        productName: event.product_name || t('marketplace.notification.reviewInviteProductFallback'),
+        coopname: event.coopname,
+        order_id: event.order_id,
+        reviewOrderId: event.order_id,
+        // Ссылка открывает заказ сразу с формой отзыва.
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/orders/${event.order_id}?review=1`,
+      };
+      await this.notificationSenderService.notifyUser(
+        event.orderer_account,
+        Workflows.MarketplaceReviewInvite.id,
+        payload
+      );
+      this.logger.log(`Order ${event.order_id}: приглашение оставить отзыв отправлено заказчику ${event.orderer_account}.`);
+    } catch (err: any) {
+      this.logger.warn(
+        `Order ${event.order_id}: ошибка отправки приглашения оставить отзыв (${err.message}) — flow не блокируется.`
       );
     }
   }
@@ -395,12 +456,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       const decisionHuman = t('marketplace.notification.inspectionInviteTitle', { kuName });
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
         ordererName,
@@ -489,12 +545,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleReturnCouncilDecided(event: MarketplaceReturnCouncilDecidedEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.delivery_braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.delivery_braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.delivery_braname);
       const payload: Workflows.MarketplaceReturnCouncilDecided.IPayload = {
         ordererName,
         kuName,
@@ -521,19 +572,16 @@ export class MarketplaceNotificationService implements OnModuleInit {
 
   /**
    * Совет решил по выдаче имущества не у стойки (решение шло вручную):
-   * пайщик уже ушёл — push «подпишите акт в приложении, заберёте при
-   * следующем визите» либо «совет отказал, паевой взнос остался на месте».
+   * «совет согласовал возврат» либо «совет отказал, паевой взнос остался на
+   * месте». При согласии следующего шага в тексте нет (решение владельца
+   * 19.11.2026): акт подписывается при визите пайщика на участок,
+   * призыв «подпишите акт в приложении» только путал.
    */
   @OnEvent(MARKETPLACE_ISSUANCE_DECIDED_OFFLINE_EVENT)
   async handleIssuanceDecidedOffline(event: MarketplaceIssuanceDecidedOfflineEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      let kuName = event.braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.braname);
       const payload: Workflows.MarketplaceIssuanceDecided.IPayload = {
         ordererName,
         kuName,
@@ -542,9 +590,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         outcomeText: event.authorized
           ? t('marketplace.notification.councilApprovedReturnBody')
           : t('marketplace.notification.councilRejectedIssuanceBody'),
-        nextStepText: event.authorized
-          ? t('marketplace.notification.signActPromptBody', { kuName })
-          : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
+        nextStepText: event.authorized ? '' : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
       await this.notificationSenderService.notifyUser(
@@ -566,7 +612,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reason: event.reason,
-        apl_reception_id: event.apl_reception_id,
+        ordersLabel: ordersDative(event.orders_count),
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-supplier/payments`,
@@ -678,12 +724,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       // КУ резолвится в человеческое имя участка (account_kind=branch); при сбое
       // деградируем к braname, чтобы текст не остался пустым.
-      let kuName = event.delivery_braname;
-      try {
-        kuName = await this.accountPort.getDisplayName(event.delivery_braname);
-      } catch {
-        /* оставляем braname */
-      }
+      const kuName = await this.branchDisplayName(event.delivery_braname);
       const reasonExcerpt =
         event.reason.length > 240 ? event.reason.slice(0, 240) + '…' : event.reason;
       const payload: Workflows.MarketplaceOrderDeclinedBySupplier.IPayload = {
@@ -718,8 +759,8 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const reasonExcerpt = reason.length > 240 ? reason.slice(0, 240) + '…' : reason;
       const payload: Workflows.MarketplaceSupplierClaimIssued.IPayload = {
         supplierName,
-        kuName: event.braname,
-        amount: event.amount,
+        kuName: await this.branchDisplayName(event.braname),
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reasonExcerpt,
         coopname: event.coopname,
         claim_id: event.claim_id,

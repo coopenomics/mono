@@ -52,6 +52,8 @@ export interface ICoobranch {
   // binary_extension-поля: могут отсутствовать у строк, созданных до добавления приватности
   is_private?: boolean
   whitelist?: IName[]
+  /** Дата создания участка; у участков, созданных до появления поля, отсутствует. */
+  created_at?: ITimePointSec
 }
 
 export interface ICoodecision {
@@ -143,6 +145,56 @@ export interface IDeltrusted {
   trusted: IName
 }
 
+export interface IBrnconfig {
+  /** Потолок резерва социально-экономического обеспечения на получателя в месяц; ноль — резерв выключен. */
+  aid_month_limit: IAsset
+  /** Длина периода, за который считается предел материальной помощи, секунд; нет или ноль — календарный месяц UTC. */
+  aid_period_seconds?: IUint32
+}
+
+export interface IBranchReserve {
+  id: IUint64
+  braname: IName
+  username: IName
+  /** Резерв социально-экономического обеспечения получателя в месяц. */
+  amount: IAsset
+  /** Период, по который начислено право на помощь (задача 99D-34); у строк до 99D-34 нет. */
+  accrued_period?: IUint32
+  /** Накопленное право на помощь на период `accrued_period`: начислено минус подано. */
+  outstanding?: IAsset
+}
+
+export interface IBranchAidmonth {
+  username: IName
+  /** Месяц по UTC: год × 12 + месяц. */
+  period: IUint32
+  /** Сумма поданных заявлений на материальную помощь за этот месяц. */
+  total: IAsset
+}
+
+export interface ISetaidlimit {
+  coopname: IName
+  limit: IAsset
+}
+
+export interface ISetaidperiod {
+  coopname: IName
+  seconds: IUint32
+}
+
+export interface ISetreserve {
+  coopname: IName
+  braname: IName
+  username: IName
+  amount: IAsset
+}
+
+export interface IDelreserve {
+  coopname: IName
+  braname: IName
+  username: IName
+}
+
 export interface ISetprivate {
   coopname: IName
   braname: IName
@@ -180,8 +232,6 @@ export interface IExec {
   coopname: IName
   hash: IChecksum256
   petition: IDocument2
-  liability: IDocument2
-  authority: IDocument2
 }
 
 export interface IApprliab {
@@ -395,6 +445,20 @@ export interface IBranchSpend {
   braname: IName
   amount: IAsset
   memo: string
+}
+
+export interface ISignauth {
+  coopname: IName
+  braname: IName
+  username: IName
+  authority: IDocument2
+}
+
+export interface ISignliab {
+  coopname: IName
+  braname: IName
+  username: IName
+  liability: IDocument2
 }
 
 export interface IStartdec {

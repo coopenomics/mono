@@ -72,3 +72,4 @@ export * as UploadAvatar from './uploadAvatar'
 
 /** Снять фотографию пайщика: в удостоверении остаются инициалы */
 export * as RemoveAvatar from './removeAvatar'
+

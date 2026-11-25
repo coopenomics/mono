@@ -3,5 +3,47 @@
     "PROCESS_REGISTRY_HASH_INVALID_FORMAT": "process_hash должен быть hex-64 (получено: \"{hash}\")",
     "PROCESS_REGISTRY_LIMIT_EXCEEDED": "Превышен лимит {limit} в {collection} для процесса {hash} (фактически: {count})",
     "PROCESS_REGISTRY_NOT_FOUND": "Процесс с хэшем {hash} не найден"
+  },
+  "processRegistry": {
+    "content": {
+      "payment": {
+        "untitled": "Платёж",
+        "memo": "Назначение",
+        "createdAt": "Платёж создан",
+        "completedAt": "Платёж проведён",
+        "failedAt": "Платёж отклонён",
+        "message": "Сообщение",
+        "type": {
+          "registration": "Вступительный и минимальный паевой взносы",
+          "deposit": "Внесение паевого взноса",
+          "withdrawal": "Возврат паевого взноса",
+          "payment": "Платёж",
+          "registration_refund": "Возврат регистрационного взноса"
+        },
+        "direction": {
+          "incoming": "Поступление",
+          "outgoing": "Выплата"
+        },
+        "status": {
+          "awaiting_authorization": "Ждёт решения",
+          "pending": "Ожидает оплаты",
+          "processing": "Обрабатывается",
+          "paid": "Оплачен",
+          "completed": "Проведён",
+          "failed": "Отклонён",
+          "expired": "Срок истёк",
+          "cancelled": "Отменён",
+          "refunded": "Возвращён"
+        }
+      },
+      "summary": {
+        "amountLabel": "Сумма процесса",
+        "memo": "Назначение",
+        "startedAt": "Начат",
+        "lastEventAt": "Последнее событие",
+        "participant": "Пайщик",
+        "branch": "Кооперативный участок"
+      }
+    }
   }
 }

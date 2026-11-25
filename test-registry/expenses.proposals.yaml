@@ -29,6 +29,15 @@ title: Служебная записка на расход — подача, р�
 # Отказы контракта в мутациях шасси приходят 500 без кода CHAIN_ASSERT —
 # тесты проверяют сам отказ и неизменность записки, не код.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
+# Правка 30.10.2026 (5A8-11): модель документа, данные кооператива, субъекты
+# и реквизиты (`IMetaDocument`, `IGenerate`, `UdataKey`, `IIndividualData`, …)
+# импортируются из @coopenomics/docs-templates вместо cooptypes. Поведение
+# не менялось: те же типы и значения, другой пакет.
+
 sources:
   backend:
     - components/controller/src/extensions/expenses/application/resolvers/expense-mutations.resolver.ts
@@ -98,7 +107,8 @@ cases:
     scenario: >
       Снимки реквизитов получателей после подачи
     expect: >
-      две строки: организация — реквизиты и назначение как введены; пайщик — метод СБП с телефоном и фиксированным назначением «аванс под отчёт»
+      две строки: организация — реквизиты как введены, назначение как введено, но без «ё»; пайщик — метод СБП с телефоном и фиксированным назначением «аванс под отчет»
+    # 07.11.2026 (C28-80): назначение платежа пишется без «ё» — банк её не принимает (c66afca91b6, 99D-20)
     test: components/controller/src/extensions/expenses/application/services/expenses-mutations.service.spec.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
@@ -485,6 +495,18 @@ cases:
     api: components/api-tests/src/expenses/proposals.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+  - id: exp.adv.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Реестр платежей на запрос доплаты перерасхода отдаёт все исходящие платежи, в том числе выдачу аванса с тем же хэшем строки
+    expect: >
+      открытой платёжкой расчёта считаются только возврат и доплата; выданный аванс стоит в «ждёт отчёта»
+    test: components/controller/tests/unit/expenses/expense-cashier-access.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+    # 2026-11-04 (C28-80): до правки выдача аванса считалась открытой доплатой — exp.prop.happy.04 падал с 16.10
+
 # 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
 # (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
 # полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.
@@ -498,6 +520,39 @@ cases:
     expect: до 60 сборок в минуту на пайщика проходят, сверх — отказ GRAPHQL_RATE_LIMITED
     status: missing
 
+  # 28.10.2026: получатель-организация и назначение аванса. Строка цепи у
+  # организации несёт пустого получателя — реестр и касса показывали прочерк;
+  # название из формы подачи теперь едет в снимок реквизитов. Назначение аванса
+  # пайщику — «Аванс под отчёт №<8 знаков хэша позиции>. НДС не облагается.».
+  - id: exp.prop.side.recipient-org
+    level: backend
+    kind: side
+    scenario: >
+      Записка со строкой оплаты по счёту организации: название введено, введено
+      с пробелами, из одних пробелов, не передано (старый клиент); у пайщика
+      передано чужое название
+    expect: >
+      получатель в снимке — название без пробелов по краям; без названия —
+      прежний пустой получатель, подача не падает; у пайщика — его аккаунт
+    test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: exp.prop.side.advance-memo
+    level: backend
+    kind: side
+    scenario: >
+      Совет утвердил записку с авансом пайщику, в том числе поданную до
+      введения номера (в снимке голое «Аванс под отчёт»), и со строкой
+      организации
+    expect: >
+      выплата пайщику с назначением «Аванс под отчет №<8 знаков хэша позиции в
+      нижнем регистре>. НДС не облагается.»; выплата организации — с введённым
+      назначением без «ё» (c66afca91b6, 07.11.2026) и названием получателя из снимка
+    test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
 # 2026-10-16 (7DD-25): выданные авансы под отчёт по кооперативу
 # expenseAdvancesByCooperative с отбором по состоянию (случаи exp.adv.*; страница
 # «Авансы» стола кассира). Запрос авансов пайщика expenseAdvancesByMember снят
@@ -510,3 +565,62 @@ cases:
 # записке, оплата строки и доплата (случаи exp.prop.side.09/10/12, exp.file.happy.01,
 # exp.file.side.06 переписаны; правила — cashier.edit.* в cashier.desk.yaml).
 
+# 2026-10-08 (367-3): строка реквизитов СБП в служебной записке дополняется банком
+# получателя, когда он указан в способе получения средств. Сценарии фичи не менялись.
+
+  # Решение владельца 11.11.2026 (99D-34): квартальный и годовой плановый расход
+  # резерв участка копит равными долями — шасси отдаёт Столу заказов шаг серии,
+  # срок следующего платежа считает общий календарь каркаса по UTC.
+  - id: exp.chassis.plan.01
+    level: backend
+    kind: happy
+    scenario: Стол заказов читает записи реестра планов участка через шасси расходов
+    expect: >
+      каждая запись несёт шаг серии в месяцах — разовый 0, месяц 1, квартал 3, год 12;
+      сумма, участок и отметки оплаты передаются как в реестре; следующий срок серии
+      считается по UTC от срока записи
+    test: components/controller/tests/unit/expenses/expense-plans.service.test.ts
+    external: unreachable
+    external_reason: "порт шасси — внутренний вызов между расширениями; снаружи шаг серии виден через резерв итога месяца и показ расхода (exp.plan.schedule.01)"
+    status: written
+
+  # Задача 99D-35: получатель-организация из реестра контрагентов.
+  - id: exp.chassis.cp.01
+    level: backend
+    kind: happy
+    scenario: Служебная записка на оплату организации из реестра контрагентов
+    expect: >
+      в документе записки и в снимке для кассира наименование и реквизиты — из
+      карточки контрагента; назначение из записки важнее назначения по умолчанию;
+      снимок помечен как реквизиты контрагента
+    test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    external: unreachable
+    external_reason: "подача записки в цепь требует подписи председателя ключом; сборку документа и снимок проверяют модульные тесты, связку — exp.cp.happy.04"
+    status: written
+
+  - id: exp.chassis.cp.02
+    level: backend
+    kind: break
+    scenario: Карточку контрагента поправили между составлением и подачей записки; контрагент в архиве
+    expect: >
+      EXPENSES_COUNTERPARTY_CHANGED — реквизиты подписанной записки разошлись с
+      карточкой, снимок не сохраняется; EXPENSES_COUNTERPARTY_ARCHIVED — до цепи
+    test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    external: unreachable
+    external_reason: "гонка правки карточки и подачи записки снаружи надёжно не воспроизводится"
+    status: written
+
+  # 13.11.2026 (598-63): реестр кассира показывал «[object Object]» в реквизитах
+  # оплаты контрагенту — выплата несла карточку контрагента с реквизитами-объектом.
+  - id: exp.chassis.cp.03
+    level: backend
+    kind: side
+    scenario: Совет утвердил записку с оплатой организации из реестра контрагентов
+    expect: >
+      выплата кассиру несёт имя получателя и реквизиты строкой из снимка записки
+      и номер контрагента; карточка контрагента с реквизитами-объектом в выплату
+      не попадает
+    test: components/controller/tests/unit/expenses/expense-requisite-recipient.test.ts
+    external: unreachable
+    external_reason: "вид поля «Реквизиты» в реестре кассира снимает сценарий docs-harness edubridge/admin/payments; состав выплаты проверяет модульный тест"
+    status: written

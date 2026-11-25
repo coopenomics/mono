@@ -18,7 +18,7 @@ import {
 } from '@coopenomics/innercoop';
 import axios from 'axios';
 import { Inject, Module } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, PollingProvider, type PaymentDetails, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, bankSafeText, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee, PollingProvider, type PaymentDetails, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import type { Cooperative } from 'cooptypes';
@@ -138,11 +138,12 @@ export class SberpollExtension extends PollingProvider {
 
     const description = payment.memo || t('sberpoll.payment.defaultDescription', { username: payment.username });
 
-    const invoice = `ST00012|Name=${cooperative?.full_name}|PersonalAcc=${bankAccount.account_number}|BankName=${
+    // Строку QR-кода читает банк пайщика: «ё» в назначении и названиях он не принимает.
+    const invoice = bankSafeText(`ST00012|Name=${cooperative?.full_name}|PersonalAcc=${bankAccount.account_number}|BankName=${
       bankAccount.bank_name
     }|BIC=${bankAccount.details.bik}|CorrespAcc=${bankAccount.details.corr}|Sum=${parseInt(
       amount_plus_fee
-    )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
+    )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`);
 
     const result: PaymentDetails = {
       data: invoice,
@@ -274,7 +275,7 @@ export class SberpollExtension extends PollingProvider {
               });
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+                { id: payment.id, status: PaymentStatus.FAILED }
               );
             }
             continue; // Переходим к следующей транзакции
@@ -296,7 +297,7 @@ export class SberpollExtension extends PollingProvider {
               });
               await this.messageChannel.publish(
                 `${platformSettings().coopname}:orderStatusUpdate`,
-                JSON.stringify({ id: payment.id, status: PaymentStatus.FAILED })
+                { id: payment.id, status: PaymentStatus.FAILED }
               );
             }
             continue; // Переходим к следующей транзакции
@@ -307,7 +308,7 @@ export class SberpollExtension extends PollingProvider {
             await this.payments.update(payment.id, { status: PaymentStatus.PAID });
             await this.messageChannel.publish(
               `${platformSettings().coopname}:orderStatusUpdate`,
-              JSON.stringify({ id: payment.id, status: PaymentStatus.PAID })
+              { id: payment.id, status: PaymentStatus.PAID }
             );
           }
 

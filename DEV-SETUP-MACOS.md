@@ -20,12 +20,11 @@ docker compose up -d                                                    # 1. п�
 docker compose up -d
 ```
 
-Поднимутся: `node` (NodeOS), `mongo`, `monoredis`, `postgres`, `coopback`, `parser2`. **MinIO** входит в дефолт. **OpenSearch** — нет (тяжёлый, см. опц. сервисы).
+Поднимутся: `node` (NodeOS), `monoredis`, `postgres`, `coopback`, `parser2`. **MinIO** входит в дефолт. **OpenSearch** — нет (тяжёлый, см. опц. сервисы).
 
 ### 2. Проверить чтоб .env'ы указывали на service-имена, а не localhost
 
 `components/controller/.env`:
-- `MONGODB_URL=mongodb://mongo:27017/cooperative-x`
 - `REDIS_HOST=monoredis`
 - `POSTGRES_HOST=postgres`, `POSTGRES_PASSWORD=postgres!23!23`
 - `BLOCKCHAIN_RPC=http://node:8888`

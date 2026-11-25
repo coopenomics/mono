@@ -1,5 +1,5 @@
 import type { IDocumentAggregate } from 'src/entities/Document/model';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
@@ -22,6 +22,8 @@ export type IContributionDocument = Queries.Edubridge.ContributionDocuments.IOut
 /** Сведения о взносе для вопроса совета: курс, группа, занятие, материалы и сумма. */
 export type IContributionBrief = NonNullable<Queries.Edubridge.ContributionBrief.IOutput['edubridgeContributionBrief']>;
 export type ILessonReportInput = Mutations.Edubridge.ReportLesson.IInput['data'];
+export type IReworkContributionInput = Mutations.Edubridge.ReworkContribution.IInput['data'];
+export type ICloseContributionInput = Mutations.Edubridge.CloseContribution.IInput['data'];
 export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data'];
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
@@ -41,6 +43,8 @@ export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant
   [Zeus.EduContributionStatus.ACT_SIGNED]: { label: t('edubridge.contribution.status.ACT_SIGNED'), variant: 'info' },
   [Zeus.EduContributionStatus.ACCEPTED]: { label: t('edubridge.contribution.status.ACCEPTED'), variant: 'pos' },
   [Zeus.EduContributionStatus.DECLINED]: { label: t('edubridge.contribution.status.DECLINED'), variant: 'neg' },
+  [Zeus.EduContributionStatus.RETURNED]: { label: t('edubridge.contribution.status.RETURNED'), variant: 'neg' },
+  [Zeus.EduContributionStatus.CLOSED]: { label: t('edubridge.contribution.status.CLOSED'), variant: 'neutral' },
 };
 
 export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
@@ -79,6 +83,12 @@ export async function fetchContributionBrief(rid_hash: string): Promise<IContrib
 }
 export const fetchMyLessons = () => q<ILesson[]>(Queries.Edubridge.MyLessons.query, Queries.Edubridge.MyLessons.name);
 export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.Edubridge.ReportLesson.mutation, Mutations.Edubridge.ReportLesson.name, { data });
+/** Повторная подача взноса, возвращённого на доработку: исправленные материалы; взнос снова ждёт передачи на хранение. */
+export const reworkContribution = (data: IReworkContributionInput) =>
+  m<IContribution>(Mutations.Edubridge.ReworkContribution.mutation, Mutations.Edubridge.ReworkContribution.name, { data });
+/** Председатель закрывает расчёт по взносу без приёма. */
+export const closeContribution = (data: ICloseContributionInput) =>
+  m<IContribution>(Mutations.Edubridge.CloseContribution.mutation, Mutations.Edubridge.CloseContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
 /** Строка моей выписки: зачисление по принятому результату или возврат с его состоянием. */
 export type ISettlementEntry = Queries.Edubridge.MySettlementJournal.IOutput['edubridgeMySettlementJournal'][number];
@@ -194,7 +204,7 @@ export async function buildContractDocument(): Promise<IContractDraft> {
   const { username, coopname } = who();
   const contract_number = number16();
   const document = new DigitalDocument();
-  await document.generate({ registry_id: Cooperative.Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
+  await document.generate({ registry_id: Registry.EducationParticipationContract.registry_id, coopname, username, contract_number, contract_created_at: today() });
   return { document, contract_number };
 }
 

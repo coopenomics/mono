@@ -16,6 +16,9 @@
       //- Система Быстрых Платежей
       template(v-if='method.method_type === "sbp" && isSBPData(method.data)')
         DataRow(:label='$t("user.paymentMethods.phoneLabel")', :value='method.data.phone', copyable)
+        DataRow(v-if='method.data.bank_name', :label='$t("user.paymentMethods.bankLabel")', :value='method.data.bank_name')
+        //- Реквизиты, сохранённые до появления поля банка: править их нечем, способ добавляют заново.
+        p.t-sm.t-muted.q-ma-none(v-else) {{ $t('user.paymentMethods.sbpBankMissingText') }}
 
       //- Банковский перевод
       template(

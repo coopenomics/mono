@@ -5,7 +5,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
@@ -22,6 +22,8 @@ import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDate
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 import { t } from 'src/shared/i18n';
+import { useHeaderActions } from 'src/shared/hooks';
+import AddRequisitesButton from './AddRequisitesButton.vue';
 
 /**
  * Стол поставщика «Выплаты»: настройка «выплаты получаю на…» + история выплат.
@@ -34,6 +36,7 @@ import { t } from 'src/shared/i18n';
  */
 
 const router = useRouter();
+const { registerAction } = useHeaderActions();
 const { info } = useSystemStore();
 const session = useSessionStore();
 const wallet = useWalletStore();
@@ -45,8 +48,10 @@ const savingMethod = ref(false);
 
 function methodLabel(method: { method_type: string; data: unknown }): string {
   if (method.method_type === 'sbp') {
-    const phone = (method.data as ISBPData).phone ?? '';
-    return phone ? t('marketplace.offererPaymentHistoryPage.sbpLabel', { phone }) : t('marketplace.offererPaymentHistoryPage.sbpMethodLabel');
+    const sbp = method.data as ISBPData;
+    const label = sbp.phone ? t('marketplace.offererPaymentHistoryPage.sbpLabel', { phone: sbp.phone }) : t('marketplace.offererPaymentHistoryPage.sbpMethodLabel');
+    const sbpBank = sbp.bank_name?.trim();
+    return sbpBank ? `${sbpBank}, ${label}` : label;
   }
   const bank = method.data as IBankTransferData;
   const tail = (bank.account_number ?? '').slice(-4);
@@ -60,17 +65,11 @@ const methodOptions = computed<BaseSelectOption[]>(() =>
 
 const hasMethods = computed(() => methodOptions.value.length > 0);
 
-// Выбранное значение селектора: явный выбор поставщика; если выбора не было —
-// показываем пусто, а действующий фолбэк (метод по умолчанию) описывает hint.
-const selectedMethodId = computed(() => settings.value?.payout_method_id ?? null);
-
-const selectHint = computed(() => {
-  if (!settings.value) return undefined;
-  if (!settings.value.payout_method_id && settings.value.has_payout_method) {
-    return t('marketplace.offererPaymentHistoryPage.defaultDetailsHint', { details: settings.value.payout_destination ?? '' });
-  }
-  return undefined;
-});
+// Выбранное значение селектора — реквизиты, на которые поступит следующая
+// выплата: явный выбор поставщика либо реквизиты по умолчанию (в том числе
+// когда выбранные удалены). Поле не пустует, пока реквизиты есть (замечание
+// владельца 20.11.2026).
+const selectedMethodId = computed(() => settings.value?.resolved_method_id ?? null);
 
 async function loadSettings(): Promise<void> {
   settingsLoading.value = true;
@@ -113,6 +112,7 @@ const firstLoad = useFirstLoad(loading);
 
 // Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
+  OPEN: { label: t('marketplace.payout.status.forming'), variant: 'info' },
   PENDING: { label: t('marketplace.offererPaymentHistoryPage.statusPending'), variant: 'warn' },
   COMPLETED: { label: t('marketplace.offererPaymentHistoryPage.statusPaid'), variant: 'pos' },
   DECLINED: { label: t('marketplace.offererPaymentHistoryPage.statusDeclined'), variant: 'neg' },
@@ -144,6 +144,14 @@ const reloadLive = debounce(() => {
 useLiveReload(marketLiveTables('payment', 'reception'), () => reloadLive());
 
 onMounted(() => {
+  // Добавление реквизитов — главное действие страницы, поэтому живёт в шапке
+  // (канон, решение владельца 01.11.2026): в карточке кнопка была мелкой и незаметной.
+  registerAction({
+    id: 'mp-offerer-payments-add-requisites',
+    component: AddRequisitesButton,
+    props: { onClick: goToRequisites },
+    order: 1,
+  });
   void load();
   void loadSettings();
   void wallet.loadUserWallet({ coopname: info.coopname, username: session.username });
@@ -157,19 +165,14 @@ q-page.offerer-payments
     | {{ $t('marketplace.offererPaymentHistoryPage.bannerHintProcessing') }}
 
   //- ───────── Куда получаю выплаты ─────────
+  //- Кнопка «Добавить реквизиты» — главное действие страницы, живёт в шапке (канон).
   BaseCard(:title='$t("marketplace.offererPaymentHistoryPage.payoutDestinationTitle")')
-    template(#actions)
-      BaseButton(variant='ghost', size='sm', @click='goToRequisites')
-        q-icon(name='add_card', size='16px')
-        span.q-ml-sm {{ $t('marketplace.offererPaymentHistoryPage.addDetailsAction') }}
-
     .payout-method(v-if='hasMethods')
       BaseSelect.payout-method__select(
         :model-value='selectedMethodId',
         :options='methodOptions',
         :label='$t("marketplace.offererPaymentHistoryPage.detailsSelectLabel")',
         :placeholder='$t("marketplace.offererPaymentHistoryPage.detailsSelectPlaceholder")',
-        :hint='selectHint',
         :disabled='savingMethod || settingsLoading',
         @update:model-value='onPickMethod'
       )
@@ -191,6 +194,10 @@ q-page.offerer-payments
           .payout-card__amount {{ formatAsset2Digits(`${row.amount} ${row.symbol}`) }}
           BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
         .payout-card__date {{ formatDateToHumanDateTime(row.created_at) }}
+        //- Одна выплата на заказы поставщика за день (решение владельца 19.11.2026).
+        .payout-card__row
+          q-icon(name='receipt_long', size='14px')
+          span {{ $t('marketplace.offererPaymentHistoryPage.ordersCountLabel', { count: row.orders_count }) }}
         .payout-card__row(v-if='row.payout_destination')
           q-icon(name='account_balance', size='14px')
           span {{ row.payout_destination }}

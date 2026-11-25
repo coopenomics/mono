@@ -18,13 +18,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, confirmIdentityIfAsked, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { scanButton, scanOnPvz } from '../../../lib/marketplace-scan.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
-const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ekaterina`;
+// Код получателя — логин пайщика: ручной ввод общего сканера стола (598-62).
+const RECEIVER_CODE = 'ekaterina';
 
 export const meta = {
   title: 'Стол ПВЗ — правка количества и цены при выдаче',
@@ -54,11 +56,18 @@ const parseMoney = (text) =>
       .replace(',', '.')
   );
 
-/** Значение строки итогов по её подписи. */
+/**
+ * Значение строки сводки акта по её подписи. Сводка — общая ActSummaryCard:
+ * строки расчёта `.act-summary__line`, итог крупно — `.act-summary__total`.
+ */
 async function sumByLabel(dialog, label) {
-  const row = dialog.locator('.issue-act__sum').filter({ hasText: label }).first();
+  const total = dialog.locator('.act-summary__total').filter({ hasText: label }).first();
+  if ((await total.count()) > 0) {
+    return parseMoney(await total.locator('.act-summary__total-amount').innerText());
+  }
+  const row = dialog.locator('.act-summary__line').filter({ hasText: label }).first();
   if ((await row.count()) === 0) return null;
-  return parseMoney(await row.locator('.issue-act__sum-value').innerText());
+  return parseMoney(await row.locator('.act-summary__line-value').innerText());
 }
 
 /**
@@ -69,7 +78,7 @@ async function sumByLabel(dialog, label) {
  * читать сумму сразу после ввода значит читать доредактированное состояние.
  */
 async function setFactField(dialog, index, value, prevTotal) {
-  const input = dialog.locator('.correction-table__row input[type="number"]').nth(index);
+  const input = dialog.locator('.act-lines__cell input[type="number"]').nth(index);
   await input.click();
   await input.fill(String(value));
   await input.blur();
@@ -92,31 +101,21 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('text=Сканировать QR', { timeout: 60000 });
+  await scanButton(page).waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
 
   // Открываем выдачу тем же штатным путём, что и обычный сценарий: по коду
   // получателя. Камеры в harness нет — используется ручной ввод.
-  await page.getByText('Сканировать QR').first().click({ force: true });
-  await page.waitForSelector('text=Или введите код вручную', { timeout: 20000 });
-  const scanDialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Сканирование QR' }).first();
-  const codeInput = scanDialog.locator('input').first();
-  await codeInput.click();
-  await codeInput.type(RECEIVER_CODE, { delay: 20 });
-  await page.waitForTimeout(400);
-  await scanDialog.locator('button:has-text("Применить")').first().click();
-  await page.waitForTimeout(8000);
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await cleanViteOverlays(page);
+  await scanOnPvz(page, RECEIVER_CODE, { matter: 'issuance' });
   await confirmIdentityIfAsked(page, { shot });
 
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Открытие выдачи пайщику' }).first();
   await expect(dialog.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 20000 });
 
-  const qtyInput = dialog.locator('.correction-table__row input[type="number"]').first();
-  const priceInput = dialog.locator('.correction-table__row input[type="number"]').nth(1);
+  const qtyInput = dialog.locator('.act-lines__cell input[type="number"]').first();
+  const priceInput = dialog.locator('.act-lines__cell input[type="number"]').nth(1);
   const plannedQty = Number.parseFloat(await qtyInput.inputValue());
   const unitPrice = Number.parseFloat(await priceInput.inputValue());
   const baseTotal = await sumByLabel(dialog, 'Итого к оплате');
@@ -156,8 +155,17 @@ export default async ({ page, shot, expect }) => {
   // Форма обрезает цену до цены приёмки: поднять её при выдаче нельзя, отказали
   // бы и сервер, и контракт. Набранное вдвое большее значение возвращается к
   // потолку, итог — к исходному.
-  const dearerTotal = await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
+  await setFactField(dialog, 1, (unitPrice * 2).toFixed(2), cheaperTotal);
+  // Потолок форма применяет после ввода, на реактивности: итог успевает
+  // сдвинуться от уценённого раньше, чем цена вернётся к потолку. Читать поле
+  // сразу значит прочесть набранное (съёмка 43891637144: ждали 200, прочли
+  // 400), поэтому ждём, пока поле покажет цену приёмки, и только тогда берём итог.
+  for (let i = 0; i < 40; i++) {
+    if (Number.parseFloat(await priceInput.inputValue()) === unitPrice) break;
+    await page.waitForTimeout(250);
+  }
   const cappedPrice = Number.parseFloat(await priceInput.inputValue());
+  const dearerTotal = await sumByLabel(dialog, 'Итого к оплате');
 
   await shot(
     page,
@@ -204,17 +212,18 @@ export default async ({ page, shot, expect }) => {
   // заказа, имущество — на складе участка. Возврат — это другая ситуация:
   // позиция выдаётся, но на меньшую сумму (следующий шаг).
   await setFactField(dialog, 0, plannedQty);
-  await dialog.locator('.correction-table__check .q-checkbox').first().click();
+  await dialog.locator('.act-lines__cell .q-checkbox').first().click();
   await page.waitForTimeout(2000);
 
   const droppedTotal = await sumByLabel(dialog, 'Итого к оплате');
   const droppedRefund = await sumByLabel(dialog, 'Вернётся в кошелёк Стола заказов');
-  const leftOnStock = dialog.locator('.issue-act__sum').filter({ hasText: 'Остаётся на складе' });
+  // «Остаётся на складе» — факт сводки (ActSummaryCard.facts), не строка расчёта.
+  const leftOnStock = dialog.locator('.act-summary__facts').filter({ hasText: 'Остаётся на складе' });
 
   await shot(
     page,
     '05-position-dropped',
-    'Позиция снята с выдачи: к оплате не остаётся ничего, и в итогах появляется строка «Остаётся на складе». Возврата здесь нет — снятая позиция просто не выдаётся сегодня, деньги пайщика остаются в резерве заказа.',
+    'Позиция снята с выдачи: к оплате не остаётся ничего, и в сводке акта появляется строка «Остаётся на складе». Возврата здесь нет — снятая позиция просто не выдаётся сегодня, деньги пайщика остаются в резерве заказа.',
     {
       preserveNotifications: true,
       expect: async () => {
@@ -231,7 +240,7 @@ export default async ({ page, shot, expect }) => {
   // Вот это уже возврат: позиция в выдаче, а забрать по ней нечего — вся
   // сумма уходит обратно в кошелёк Стола заказов. Подписать такой акт нельзя,
   // и форма об этом честно предупреждает.
-  await dialog.locator('.correction-table__check .q-checkbox').first().click();
+  await dialog.locator('.act-lines__cell .q-checkbox').first().click();
   await page.waitForTimeout(2000);
   await setFactField(dialog, 0, 0);
   await page.waitForTimeout(1500);
@@ -242,13 +251,15 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '06-zero-quantity',
-    'Позиция остаётся в выдаче, но количество нулевое: к оплате ничего, а вся сумма показана как возврат в кошелёк Стола заказов. Подписать акт на ноль нельзя — внизу об этом сказано прямо.',
+    'Позиция остаётся в выдаче, но количество нулевое: к оплате ничего. Подписать акт на ноль нельзя — окно закрывает отправку на подпись.',
     {
       preserveNotifications: true,
       expect: async () => {
         expect(zeroTotal).toBe(0);
-        // Деньги не должны раствориться: они обязаны быть названы возвратом.
-        expect(zeroRefund).toBeGreaterThan(0);
+        // Строка возврата в сводке скрыта по слову владельца 02.11.2026
+        // (SHOW_MONEY_FLOW_LINES); акт на ноль отправить на подпись нельзя.
+        expect(zeroRefund).toBeNull();
+        await expect(dialog.locator('button:has-text("Отправить пайщику на подпись")').first()).toBeDisabled({ timeout: 10000 });
       },
     },
   );

@@ -1,3 +1,3 @@
-import type { Cooperative } from 'cooptypes';
+import type { IMetaDocument } from '@coopenomics/docs-templates';
 
-export type DocumentMetaDomainInterface = Cooperative.Document.IMetaDocument;
+export type DocumentMetaDomainInterface = IMetaDocument;

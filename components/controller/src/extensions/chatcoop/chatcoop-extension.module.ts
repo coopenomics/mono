@@ -149,7 +149,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
         );
       });
 
-      // Отложенная инициализация (MongoDB/Generator могут быть ещё не готовы)
+      // Отложенная инициализация (генератор документов может быть ещё не готов)
       // timing: schedule — настройка пространства Matrix после старта узла; сигнала готовности генератора нет, заменить на него — отдельная задача
       setTimeout(async () => {
         try {

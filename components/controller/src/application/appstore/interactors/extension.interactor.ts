@@ -102,7 +102,12 @@ export class ExtensionInteractor<TConfig = any> {
     for (const app of defaultApps) {
       if (!app.name) throw DomainError.badRequest('APPSTORE_EXTENSION_NAME_REQUIRED');
       const a = await this.extensionDomainService.getAppByName(app.name);
-      if (!a) await this.extensionDomainService.installApp(app);
+      if (a) continue;
+      // Удалённое председателем расширение из набора по умолчанию при старте
+      // не возвращается: удаление — его решение, запись с настройками ждёт
+      // повторной установки
+      const uninstalled = await this.extensionDomainService.getUninstalledAppByName(app.name);
+      if (!uninstalled) await this.extensionDomainService.installApp(app);
     }
   }
 }

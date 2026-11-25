@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import type { Mutations } from '@coopenomics/sdk';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSessionStore } from 'src/entities/Session';
@@ -19,7 +19,7 @@ export function useAuthorizeAndExecDecision() {
   ) {
     const session = useSessionStore();
 
-    const document = await new DigitalDocument().generate<Cooperative.Registry.DecisionOfParticipantApplication.Action>({
+    const document = await new DigitalDocument().generate<Registry.DecisionOfParticipantApplication.Action>({
       registry_id: registry_id,
       coopname: info.coopname,
       username,

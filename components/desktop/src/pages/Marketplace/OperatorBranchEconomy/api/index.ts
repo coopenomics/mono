@@ -47,6 +47,20 @@ export async function getBranchWalletHistory(
   return result;
 }
 
+export type MarketplaceBranchMovementPartsView =
+  Queries.Marketplace.GetBranchMovementParts.IOutput['marketplaceGetBranchMovementParts'];
+
+/** Движения участка в одном процессе — получатели распределения, взнос по заказу. */
+export async function getBranchMovementParts(
+  data: Queries.Marketplace.GetBranchMovementParts.IInput,
+): Promise<MarketplaceBranchMovementPartsView> {
+  const { [Queries.Marketplace.GetBranchMovementParts.name]: result } = await client.Query(
+    Queries.Marketplace.GetBranchMovementParts.query,
+    { variables: data },
+  );
+  return result;
+}
+
 export async function getPersonalEconomy(): Promise<MarketplacePersonalEconomyView> {
   const { [Queries.Marketplace.GetPersonalEconomy.name]: result } = await client.Query(
     Queries.Marketplace.GetPersonalEconomy.query,
@@ -99,14 +113,6 @@ export async function listExpensePlans(braname: string): Promise<ExpensePlanView
     { variables: { data: { braname } } },
   );
   return result;
-}
-
-export type ICreateExpensePlanInput = Mutations.Expenses.CreateExpensePlan.IInput['data'];
-
-export async function createExpensePlan(data: ICreateExpensePlanInput): Promise<void> {
-  await client.Mutation(Mutations.Expenses.CreateExpensePlan.mutation, {
-    variables: { data },
-  });
 }
 
 export type IDeleteExpensePlanInput = Mutations.Expenses.DeleteExpensePlan.IInput['data'];
@@ -174,3 +180,64 @@ export async function createBranchExpense(data: ICreateBranchExpenseInput): Prom
   );
   return String(result);
 }
+
+// ─── Коэффициент экономического участия (99D-23): резерв, инициатор, итоги месяцев ───
+
+export type MarketplaceBranchReservesView =
+  Queries.Marketplace.GetBranchReserves.IOutput['marketplaceGetBranchReserves'];
+export type MarketplaceBranchReserveRow = MarketplaceBranchReservesView['rows'][number];
+
+export async function getBranchReserves(braname: string): Promise<MarketplaceBranchReservesView> {
+  const { [Queries.Marketplace.GetBranchReserves.name]: result } = await client.Query(
+    Queries.Marketplace.GetBranchReserves.query,
+    { variables: { braname } },
+  );
+  return result;
+}
+
+export type ISetBranchReserveInput = Mutations.Marketplace.SetBranchReserve.IInput['data'];
+
+export async function setBranchReserve(data: ISetBranchReserveInput): Promise<MarketplaceBranchReservesView> {
+  const { [Mutations.Marketplace.SetBranchReserve.name]: result } = await client.Mutation(
+    Mutations.Marketplace.SetBranchReserve.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
+export type IDeleteBranchReserveInput = Mutations.Marketplace.DeleteBranchReserve.IInput['data'];
+
+export async function deleteBranchReserve(data: IDeleteBranchReserveInput): Promise<MarketplaceBranchReservesView> {
+  const { [Mutations.Marketplace.DeleteBranchReserve.name]: result } = await client.Mutation(
+    Mutations.Marketplace.DeleteBranchReserve.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
+export type MarketplaceBranchPeriodsView =
+  Queries.Marketplace.ListBranchPeriods.IOutput['marketplaceListBranchPeriods'];
+export type MarketplaceBranchPeriodRow = MarketplaceBranchPeriodsView['items'][number];
+
+export async function listBranchPeriods(
+  braname: string,
+  options?: Queries.Marketplace.ListBranchPeriods.IInput['options'],
+): Promise<MarketplaceBranchPeriodsView> {
+  const { [Queries.Marketplace.ListBranchPeriods.name]: result } = await client.Query(
+    Queries.Marketplace.ListBranchPeriods.query,
+    { variables: { braname, options } },
+  );
+  return result;
+}
+
+export type MarketplaceBranchCurrentPeriodView =
+  Queries.Marketplace.GetBranchCurrentPeriod.IOutput['marketplaceGetBranchCurrentPeriod'];
+
+export async function getBranchCurrentPeriod(braname: string): Promise<MarketplaceBranchCurrentPeriodView> {
+  const { [Queries.Marketplace.GetBranchCurrentPeriod.name]: result } = await client.Query(
+    Queries.Marketplace.GetBranchCurrentPeriod.query,
+    { variables: { braname } },
+  );
+  return result;
+}
+

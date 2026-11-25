@@ -15,7 +15,7 @@
   cooperatives2_index coops(_registrator, _registrator.value);
   auto coop = coops.find(coopname.value);
   
-  coops.modify(coop, RamPayer::of(coops, coopname), [&](auto &c){
-    c.is_branched = true;
-  });
+  // Сигнал контракта участков: участков стало не меньше MIN_BRANCHES_COUNT.
+  // Флаг ставит пересчёт: он учитывает и число активных пайщиков.
+  sync_branched(coops, coop);
 };

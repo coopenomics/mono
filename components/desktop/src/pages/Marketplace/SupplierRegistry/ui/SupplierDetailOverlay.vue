@@ -24,6 +24,11 @@ DetailsDrawer(
     )
     DataRow(:label='$t("marketplace.supplierDetailOverlay.accountLabel")', :value='supplier.member_account', copyable, mono)
 
+    //- Страница поставщика: рассказ о себе, его предложения и отзывы заказчиков
+    .supplier-detail__actions
+      BaseButton(variant='secondary', size='sm', @click='openProfile')
+        | {{ $t('marketplace.supplierDetailOverlay.openProfileButton') }}
+
     //- Решение председателя по заявке — здесь же, не возвращаясь в реестр
     .supplier-detail__actions(v-if='canModerate')
       BaseButton(
@@ -36,10 +41,26 @@ DetailsDrawer(
         :disabled='acting',
         @click='emit("reject", supplier)'
       ) {{ $t('marketplace.supplierDetailOverlay.rejectButton') }}
+
+    //- Действие договора: председатель приостанавливает и возобновляет допуск
+    //- поставщика к работе (решение владельца 19.11.2026).
+    .supplier-detail__actions(v-if='canSuspend')
+      BaseButton(
+        variant='danger',
+        :loading='acting',
+        @click='emit("suspend", supplier)'
+      ) {{ $t('marketplace.supplierDetailOverlay.suspendButton') }}
+    .supplier-detail__actions(v-if='canResume')
+      BaseButton(
+        variant='primary',
+        :loading='acting',
+        @click='emit("resume", supplier)'
+      ) {{ $t('marketplace.supplierDetailOverlay.resumeButton') }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { DetailsDrawer, DataRow, IdentityCell } from 'src/shared/ui/domain';
 import { BaseBadge, BaseButton } from 'src/shared/ui/base';
@@ -71,9 +92,21 @@ const props = defineProps<{
 const emit = defineEmits<{
   approve: [supplier: MarketplaceSupplierView];
   reject: [supplier: MarketplaceSupplierView];
+  suspend: [supplier: MarketplaceSupplierView];
+  resume: [supplier: MarketplaceSupplierView];
 }>();
 
 const overlay = useQueryOverlay('supplier');
+const route = useRoute();
+const router = useRouter();
+
+function openProfile(): void {
+  if (!supplier.value) return;
+  void router.push({
+    name: 'marketplace-admin-supplier-profile',
+    params: { coopname: String(route.params.coopname ?? ''), account: supplier.value.member_account },
+  });
+}
 
 const supplier = computed<MarketplaceSupplierView | null>(() => {
   const account = overlay.value.value;
@@ -96,6 +129,10 @@ const contractLabel = computed(() => {
 const canModerate = computed(
   () => !!props.canModerate && supplier.value?.status === 'PENDING',
 );
+
+// GraphQL отдаёт статус именем перечисления (APPROVED, SUSPENDED).
+const canSuspend = computed(() => !!props.canModerate && supplier.value?.status === 'APPROVED');
+const canResume = computed(() => !!props.canModerate && supplier.value?.status === 'SUSPENDED');
 </script>
 
 <style lang="scss" scoped>

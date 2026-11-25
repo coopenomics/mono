@@ -42,9 +42,9 @@ export interface InnerSystemOutgoingPaymentInput {
   /** По умолчанию обычная покупка. */
   type?: PaymentType;
   /**
-   * По умолчанию платёж сразу виден кассиру. Если выплата ждёт решения совета,
-   * расширение заводит её ожидающей решения — кассиру она скрыта, пока решение
-   * не принято.
+   * Платёж сразу виден кассиру. Выплату, которую решает совет, расширение
+   * заводит заявкой (`registerPayoutRequest`), а не платежом: статус «ожидает
+   * решения совета» здесь отклоняется.
    */
   status?: PaymentStatus;
   /** Кто инициировал выплату — по нему кассирский стол отделяет её от обычных. */
@@ -58,6 +58,35 @@ export interface InnerSystemOutgoingPaymentInput {
   payment_details?: InnerPaymentDetails;
 }
 
+/** Состояние заявки на выплату. */
+export enum InnerPayoutRequestStatus {
+  /** Совет ещё не решил — платежа кассиру нет. */
+  AWAITING = 'awaiting',
+  /** Совет разрешил — платёж кассиру создан. */
+  RELEASED = 'released',
+  /** Совет отказал — платежа не будет. */
+  DECLINED = 'declined',
+}
+
+/**
+ * Заявка на выплату до решения совета: сумма и реквизиты, выбранные при
+ * подаче. Реквизиты живут в базе узла, в цепь не попадают. Хэш заявки станет
+ * хэшем платежа.
+ */
+export interface InnerPayoutRequest {
+  hash: string;
+  coopname: string;
+  username: string;
+  quantity: number;
+  symbol: string;
+  type: PaymentType;
+  payment_method_id?: string | null;
+  status: InnerPayoutRequestStatus;
+  created_at: Date;
+  /** Когда совет решил; пусто — решения ещё нет. */
+  decided_at?: Date | null;
+}
+
 export interface IPaymentDeskPort {
   /** Страница платежей кассирского реестра по отбору. */
   getPayments(filters: InnerPaymentFilters, page: InnerPageRequest): Promise<InnerPage<InnerPayment>>;
@@ -66,6 +95,27 @@ export interface IPaymentDeskPort {
   setPaymentStatus(input: InnerSetPaymentStatusInput): Promise<InnerPayment>;
 
   createSystemOutgoingPayment(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayment>;
+
+  /**
+   * Выплата, которую решает совет: сохранить заявку с суммой и реквизитами.
+   * Платежа кассиру до решения нет. Хэш занят — отказ.
+   */
+  registerPayoutRequest(input: InnerSystemOutgoingPaymentInput): Promise<InnerPayoutRequest>;
+
+  /**
+   * Совет разрешил выплату — создать платёж кассиру из заявки. Повтор события
+   * второго платежа не создаёт. Null — заявки нет либо она отклонена.
+   */
+  releasePayoutRequest(hash: string): Promise<InnerPayment | null>;
+
+  /** Совет отказал — заявка закрывается, платежа не будет. */
+  declinePayoutRequest(hash: string): Promise<void>;
+
+  /** Подача в цепь не удалась — снять заявку, не дошедшую до совета. */
+  dropPayoutRequest(hash: string): Promise<void>;
+
+  /** Заявка по хэшу; null — заявки нет. */
+  getPayoutRequest(hash: string): Promise<InnerPayoutRequest | null>;
 
   /**
    * Учётные имена тех, кто подтверждает платежи в реестре: председатель и

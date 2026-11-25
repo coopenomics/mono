@@ -26,8 +26,6 @@ void soviet::exec(eosio::name executer, eosio::name coopname, uint64_t decision_
   
   if (decision -> type == _withdraw_action){//операция возврата паевого взноса из кошелька (вывод)
     soviet::withdraw_effect(executer, coopname, decision->id, decision->batch_id);
-  } else if (decision -> type == _afund_withdraw_action) {//операция использования фонда накопления
-    soviet::subaccum_effect(executer, coopname, decision->id, decision->batch_id);
   } else if (decision -> type == _free_decision_action) {//операция свободного решения
     soviet::freedecision_effect(executer, coopname, decision->id);
   } else {

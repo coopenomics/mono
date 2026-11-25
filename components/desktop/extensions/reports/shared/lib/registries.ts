@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { Queries } from '@coopenomics/sdk';
+import { Mutations, Queries, type Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useLedger2Store, type ILedger2HistoryFilterInput, type ILedger2PostingsFilterInput } from 'src/entities/Ledger2';
 import { useProcessStore, type IProcessListInput } from 'src/entities/Process';
@@ -94,6 +94,40 @@ export async function loadDeskParticipantWallets(coopname: string): Promise<IDes
     { variables: { coopname } },
   );
   return rows ?? [];
+}
+
+/** Фонд кооператива на кошельке учётной книги (страница «Фонды», задача 99D-24). */
+export type IDeskFund = Zeus.ModelTypes['ReportsFund'];
+/** Реестр фондов с суммой процентов и справкой о вложениях «Благороста». */
+export type IDeskFundsRegistry = Zeus.ModelTypes['ReportsFundsRegistry'];
+/** Движение по фонду — одна операция учётной книги со знаком относительно фонда. */
+export type IDeskFundMovement = Zeus.ModelTypes['ReportsFundMovement'];
+export type IDeskFundsInput = Queries.Reports.ReportsFunds.IInput['input'];
+export type IDeskFundHistoryInput = Queries.Reports.ReportsFundHistory.IInput['input'];
+export type IDeskEditFundInput = Mutations.Reports.ReportsEditFund.IInput['input'];
+
+/** Фонды кооператива с остатками и оборотами за период. */
+export async function loadDeskFunds(input: IDeskFundsInput): Promise<IDeskFundsRegistry> {
+  const { [Queries.Reports.ReportsFunds.name]: registry } = await client.Query(Queries.Reports.ReportsFunds.query, {
+    variables: { input },
+  });
+  return registry;
+}
+
+/** Движения по фонду за период, страница `page` по `limit` строк. */
+export async function loadDeskFundHistory(input: IDeskFundHistoryInput, page: number, limit: number) {
+  const { [Queries.Reports.ReportsFundHistory.name]: result } = await client.Query(Queries.Reports.ReportsFundHistory.query, {
+    variables: { input, options: { page, limit, sortOrder: 'DESC' } },
+  });
+  return result;
+}
+
+/** Правка описания и процента фонда председателем; правила проверяет сервер до цепи. */
+export async function editDeskFund(input: IDeskEditFundInput): Promise<IDeskFund> {
+  const { [Mutations.Reports.ReportsEditFund.name]: fund } = await client.Mutation(Mutations.Reports.ReportsEditFund.mutation, {
+    variables: { input },
+  });
+  return fund;
 }
 
 /**

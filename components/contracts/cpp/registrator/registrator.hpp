@@ -150,5 +150,7 @@ public:
   
   // Уменьшение счетчика активных пайщиков при блокировке
   [[eosio::action]] void decparticpnt(eosio::name coopname, eosio::name username);
+  // Увеличение счетчика активных пайщиков при разблокировке (зеркало decparticpnt)
+  [[eosio::action]] void incparticpnt(eosio::name coopname, eosio::name username);
 
 };

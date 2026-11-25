@@ -8,7 +8,7 @@ import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-statu
 import { ExpenseProposalRecord } from '../../infrastructure/entities/expense-proposal.record';
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
 import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record';
-import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
+import { advancePaymentMemo, EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
 const RECIPIENT_ORG = 2;
@@ -30,6 +30,23 @@ const RECIPIENT_ORG = 2;
  * OnModuleInit — heal для AUTHORIZED СЗ без платежей (в т.ч. после бага
  * `if (entity.id)` / id=0, когда listener не видел items).
  */
+/**
+ * Реквизиты получателя для реестра кассира. Для пайщика — снимок данных
+ * платёжного метода (банк/СБП — рендерится в реестре как обычные реквизиты).
+ * Для организации — имя получателя и реквизиты СТРОКОЙ из снимка: у контрагента
+ * из реестра `snapshot.data` хранит карточку с реквизитами-объектом, и реестр
+ * кассира печатал его как «[object Object]» без имени получателя (598-63).
+ */
+function recipientPaymentData(
+  snapshot: { recipient?: string | null; requisites?: string | null; data?: Record<string, unknown> | null },
+  isOrganization: boolean
+): Record<string, unknown> {
+  const free = { recipient_name: snapshot.recipient, requisites: snapshot.requisites };
+  if (!isOrganization) return snapshot.data ?? free;
+  const counterpartyId = snapshot.data?.counterparty_id;
+  return counterpartyId != null ? { ...free, counterparty_id: counterpartyId } : free;
+}
+
 @Injectable()
 export class ExpensePaymentsListener implements OnModuleInit {
   constructor(
@@ -113,19 +130,18 @@ export class ExpensePaymentsListener implements OnModuleInit {
         direction: PaymentDirection.OUTGOING,
         // Совет уже решил — платёж сразу готов к выплате кассиром.
         status: PaymentStatus.PENDING,
-        // Назначение платежа из снимка: пайщику — всегда «Аванс под отчёт»,
-        // организации — введённый при создании СЗ текст. Кассир копирует as-is.
-        memo: snapshot.payment_purpose ?? EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose,
+        // Назначение платежа: организации — введённый при создании СЗ текст из
+        // снимка; пайщику — «Аванс под отчёт №… НДС не облагается.» по хэшу
+        // позиции. Пайщику текст собирается здесь, а не берётся из снимка:
+        // снимки СЗ, поданных до введения номера, хранят голое «Аванс под отчёт».
+        // Кассир копирует назначение as-is.
+        memo: isOrganization
+          ? snapshot.payment_purpose ?? EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose
+          : advancePaymentMemo(itemHash),
         secret: generateUniqueHash(),
         payment_method_id: snapshot.method_id ?? undefined,
         payment_details: {
-          // Для пайщика — снимок данных платёжного метода (банк/СБП — рендерится
-          // в реестре как обычные реквизиты); для организации — свободные
-          // реквизиты строкой + имя получателя.
-          data: snapshot.data ?? {
-            recipient_name: snapshot.recipient,
-            requisites: snapshot.requisites,
-          },
+          data: recipientPaymentData(snapshot, isOrganization),
           amount_plus_fee: String(amount),
           amount_without_fee: String(amount),
           fee_amount: '0',

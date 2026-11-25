@@ -284,3 +284,34 @@ describe('MarketplaceReturnClaimService.submitReturnClaim: право на во�
     expect(claimRepo.findActiveByOrderId).toHaveBeenCalled();
   });
 });
+
+describe('текст заявления для страницы заявления', () => {
+  function withDocumentPort(buildAggregate: jest.Mock) {
+    const { service } = makeService();
+    (service as unknown as { documentPort: { buildAggregate: jest.Mock } }).documentPort = { buildAggregate };
+    return service;
+  }
+
+  // mkt.return.side.statement.01
+  it('собирается из подписанного заявления пайщика', async () => {
+    const aggregate = { hash: 'h1', document: { signatures: [] }, rawDocument: { html: '<p>Заявление</p>' } };
+    const buildAggregate = jest.fn().mockResolvedValue(aggregate);
+    const statement = { doc_hash: 'h1' };
+
+    const result = await withDocumentPort(buildAggregate).statementAggregate({ id: 'c1', statement } as never);
+
+    expect(buildAggregate).toHaveBeenCalledWith(statement);
+    expect(result).toBe(aggregate);
+  });
+
+  // mkt.return.side.statement.02
+  it('заявления без документа и сбой сборки дают пустой текст, страница остаётся рабочей', async () => {
+    const never = jest.fn();
+    expect(await withDocumentPort(never).statementAggregate({ id: 'c1', statement: null } as never)).toBeNull();
+    expect(never).not.toHaveBeenCalled();
+
+    const broken = jest.fn().mockRejectedValue(new Error('storage down'));
+    expect(await withDocumentPort(broken).statementAggregate({ id: 'c1', statement: { doc_hash: 'h1' } } as never)).toBeNull();
+  });
+});
+

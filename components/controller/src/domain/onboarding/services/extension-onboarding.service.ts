@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { v4 as uuid } from 'uuid';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '../constants/onboarding-ttl';
@@ -224,7 +224,7 @@ export class ExtensionOnboardingService {
           project_id,
           coopname: config.coopname,
           username,
-          registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
+          registry_id: Registry.ProjectFreeDecision.registry_id,
           title: normalizedTitle,
         },
         {}

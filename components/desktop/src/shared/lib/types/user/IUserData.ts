@@ -1,27 +1,25 @@
 import type { Mutations } from '@coopenomics/sdk';
-import { Cooperative } from 'cooptypes';
+import type { IBankAccount, IEntrepreneurData, IIndividualData, IOrganizationData } from '@coopenomics/docs-templates';
 
-export type IEntrepreneurData = Cooperative.Users.IEntrepreneurData;
-export type IIndividualData = Cooperative.Users.IIndividualData;
-export type IOrganizationData = Cooperative.Users.IOrganizationData;
+export type { IEntrepreneurData, IIndividualData, IOrganizationData };
 
 type OmitUsernameAndEmail<T> = Omit<T, 'username' | 'email'>;
 
 export type ICreateEntrepreneurData =
-  OmitUsernameAndEmail<Cooperative.Users.IEntrepreneurData>;
+  OmitUsernameAndEmail<IEntrepreneurData>;
 export type ICreateIndividualData =
-  OmitUsernameAndEmail<Cooperative.Users.IIndividualData>;
+  OmitUsernameAndEmail<IIndividualData>;
 export type ICreateOrganizationData =
-  OmitUsernameAndEmail<Cooperative.Users.IOrganizationData>;
+  OmitUsernameAndEmail<IOrganizationData>;
 
 export interface IUserData {
   type: 'individual' | 'entrepreneur' | 'organization' | null;
   entrepreneur_data?: ICreateEntrepreneurData & {
-    bank_account: Cooperative.Payments.IBankAccount;
+    bank_account: IBankAccount;
   };
   individual_data?: ICreateIndividualData;
   organization_data?: ICreateOrganizationData & {
-    bank_account: Cooperative.Payments.IBankAccount;
+    bank_account: IBankAccount;
   };
   email?: string;
   username?: string;

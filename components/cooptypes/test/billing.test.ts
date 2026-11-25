@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { BillingContract, Cooperative, Interfaces } from '../src'
+import { BillingContract, Interfaces } from '../src'
 import { LEDGER2_PROCESS_REGISTRY } from '../src/ledger2/processes'
 import { LEDGER2_OPERATION_REGISTRY } from '../src/ledger2/operations'
 
 /**
  * Тесты cooptypes под Epic 12 Single-Hub v5:
  *  - IConvert содержит convert_hash (детерминированный process-якорь);
- *  - 1095.BillingConversionStatement зарегистрирован в Cooperative.Registry;
  *  - ledger2 processes p.bil.fund + p.bil.pay присутствуют;
  *  - ledger2 operations o.bil.fund + o.bil.pay привязаны к правильным процессам;
  *  - в реестре нет Tables.Payments (v5 контракт billing без своих таблиц).
@@ -43,17 +42,6 @@ describe('cooptypes — Epic 12 Single-Hub v5', () => {
         },
       }
       expect(convertInput.convert_hash).toHaveLength(64)
-    })
-  })
-
-  describe('Cooperative.Registry.BillingConversionStatement', () => {
-    it('registry_id = 1095', () => {
-      expect(Cooperative.Registry.BillingConversionStatement.registry_id).toBe(1095)
-    })
-
-    it('имеет title и description (DTO для desktop)', () => {
-      expect(Cooperative.Registry.BillingConversionStatement.title).toBeTruthy()
-      expect(Cooperative.Registry.BillingConversionStatement.description).toBeTruthy()
     })
   })
 

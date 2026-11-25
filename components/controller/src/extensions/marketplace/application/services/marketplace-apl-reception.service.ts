@@ -1,17 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate, USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
+import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT,
-  MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   type MarketplaceAplReceptionStatusChangedEvent,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceAplSupplierOnsiteSignRequestEvent,
   type MarketplaceAplReceptionCancelledBySupplierEvent,
-  type MarketplaceCashierNewPaymentEvent,
 } from '../events/marketplace-notification.events';
 import {
   MARKETPLACE_SHIPMENT_REPOSITORY,
@@ -29,11 +27,6 @@ import {
   MARKETPLACE_APL_RECEPTION_REPOSITORY,
   type MarketplaceAplReceptionDomainRepository,
 } from '../../domain/repositories/marketplace-apl-reception.repository';
-import {
-  MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY,
-  type MarketplaceOutgoingPaymentRequestDomainRepository,
-} from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
-import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -60,12 +53,12 @@ import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
-import type { InnerPaymentMethod } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
 import { Cooperative, type MarketContract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import type { ISignedDocument } from '@coopenomics/innercoop';
@@ -82,23 +75,13 @@ import {
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
-import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
 import { MARKETPLACE_QUANTITY_EPSILON, toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount, sumMoney } from '../shared/cost.util';
-import {
-  MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
-  MarketplaceSupplierSettingsService,
-} from './marketplace-supplier-settings.service';
 import { MarketplaceWarehouseSettingsService } from './marketplace-warehouse-settings.service';
-import {
-  MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
-  MarketplaceSupplierRegistryService,
-} from './marketplace-supplier-registry.service';
 import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
   MarketplaceOrderSupplierActionService,
 } from './marketplace-order-supplier-action.service';
-import { formatPayoutDestination } from '../shared/payout-destination.util';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
@@ -246,6 +229,14 @@ export interface MarketplaceExpressPickupCandidate {
  * PENDING_SUPPLIER_SIGN. MVP не автоматизирует разрешение; кооператив
  * решает через свои процедуры. Compensating-транзакций нет.
  */
+/**
+ * Сколько держится захват подписи приёмки. Подпись ставят кнопкой: отправка
+ * в цепь занимает секунды, и захват старше двадцати секунд считается
+ * брошенным — повторное нажатие проходит (слово владельца 02.11.2026: ручное
+ * действие должно работать всегда).
+ */
+const RECEPTION_CLAIM_LEASE_MS = 20 * 1000;
+
 @Injectable()
 export class MarketplaceAplReceptionService {
   constructor(
@@ -259,8 +250,6 @@ export class MarketplaceAplReceptionService {
     private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
-    @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY)
-    private readonly paymentRepo: MarketplaceOutgoingPaymentRequestDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
@@ -272,16 +261,9 @@ export class MarketplaceAplReceptionService {
     private readonly warehouseSettings: MarketplaceWarehouseSettingsService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    @Inject(PAYMENT_DESK_PORT)
-    private readonly coreGateway: IPaymentDeskPort,
-    @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
-    private readonly supplierSettings: MarketplaceSupplierSettingsService,
-    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
-    private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
     private readonly eventBus: EventEmitter2,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -386,8 +368,8 @@ export class MarketplaceAplReceptionService {
       packageSize: input.order.package_size,
       decimals: this.assetConfig.decimals,
     });
-    const action: Cooperative.Registry.MarketplaceAplReception.Action = {
-      registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
+    const action: Registry.MarketplaceAplReception.Action = {
+      registry_id: Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
       username: input.reception.offerer_account,
       order_id: input.order.id,
@@ -665,6 +647,36 @@ export class MarketplaceAplReceptionService {
     return { apl_receptions: receptions };
   }
 
+  /**
+   * Захват подписи приёмки перед отправкой в цепь. Подпись ставят кнопкой,
+   * и нажатие на двух устройствах сразу — у поставщика на телефоне и
+   * компьютере, у двух операторов участка — отправило бы две транзакции, а
+   * вторая получила бы отказ цепи. Подпись берёт один стол; другой получает
+   * `MARKETPLACE_RECEPTION_STEP_IN_PROGRESS`. Захват старше
+   * `RECEPTION_CLAIM_LEASE_MS` считается брошенным, и кнопка снова работает.
+   *
+   * Возвращает приёмку, если подпись уже поставил другой стол, иначе `null`.
+   */
+  private async claimSignature(
+    reception: MarketplaceAplReceptionDomainEntity,
+    by: string
+  ): Promise<MarketplaceAplReceptionDomainEntity | null> {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - RECEPTION_CLAIM_LEASE_MS);
+    if (await this.receptionRepo.claimStep(reception.id, reception.status, by, now, staleBefore)) return null;
+    const advanced = await this.signedElsewhere(reception);
+    if (advanced) return advanced;
+    throw DomainError.conflict('MARKETPLACE_RECEPTION_STEP_IN_PROGRESS');
+  }
+
+  /** Статус приёмки сменился — подпись сделал другой стол; иначе `null`. */
+  private async signedElsewhere(
+    reception: MarketplaceAplReceptionDomainEntity
+  ): Promise<MarketplaceAplReceptionDomainEntity | null> {
+    const fresh = await this.receptionRepo.findById(reception.id);
+    return fresh && fresh.status !== reception.status ? fresh : null;
+  }
+
   async signAsSupplier(
     input: MarketplaceAplReceptionSignSupplierInputDto
   ): Promise<MarketplaceAplReceptionResult> {
@@ -675,6 +687,8 @@ export class MarketplaceAplReceptionService {
     if (!reception.awaits_supplier) {
       throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_WRONG_STATUS', { status: reception.status });
     }
+    const signedElsewhere = await this.claimSignature(reception, input.supplier_account);
+    if (signedElsewhere) return { apl_reception: signedElsewhere };
 
     // Разнос позиций: оператор на стойке снял некондицию (факт = 0). Поставщик
     // подтверждает приёмку целиком — подписывает акт по принятым позициям и тем
@@ -716,6 +730,10 @@ export class MarketplaceAplReceptionService {
         input.supplier_account
       );
     } catch (err: any) {
+      // Подпись мог поставить другой стол: тогда отказ цепи — не ошибка.
+      const advanced = await this.signedElsewhere(reception);
+      if (advanced) return { apl_reception: advanced };
+      await this.receptionRepo.releaseStep(reception.id);
       this.logger.warn(
         `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
       );
@@ -787,6 +805,9 @@ export class MarketplaceAplReceptionService {
       input.placements ?? []
     );
 
+    const closedElsewhere = await this.claimSignature(reception, input.chairman_account);
+    if (closedElsewhere) return await this.completeAcceptedReception(closedElsewhere, input);
+
     let txHash: string;
     try {
       txHash = await this.submitOnChainSignChair(
@@ -796,6 +817,12 @@ export class MarketplaceAplReceptionService {
         input.chairman_account
       );
     } catch (err: any) {
+      // Приёмку мог закрыть другой стол: тогда доводим склад и выплаты, как при повторе.
+      const advanced = await this.signedElsewhere(reception);
+      if (advanced?.status === MarketplaceAplReceptionStatuses.ACCEPTED_TO_COOP) {
+        return await this.completeAcceptedReception(advanced, input);
+      }
+      await this.receptionRepo.releaseStep(reception.id);
       this.logger.warn(
         `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
       );
@@ -832,25 +859,12 @@ export class MarketplaceAplReceptionService {
     // раскладки и маркировки: и то, и другое опционально.
     await this.materializeInventory(updated, acceptedOrders, placementByOrderId);
 
-    // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
-    // через gateway. Кассир увидит каждую выплату в общем реестре
-    // платежей кооператива и подтвердит/отклонит её там.
-    const orderHashByOrderId = new Map(acceptedOrders.map((o) => [o.id, o.order_hash] as const));
-    await this.initiatePayouts(updated, acceptedOrders, orderHashByOrderId);
-
-    // Story 598-20: push кассиру о новой партии выплат — одно
-    // суммарное уведомление на АПП с агрегатом по поставщику.
-    const event: MarketplaceCashierNewPaymentEvent = {
-      coopname: updated.coopname,
-      apl_reception_id: updated.id,
-      payment_request_id: updated.id,
-      supplier_account: updated.offerer_account,
-      amount: `${updated.total_amount} ${this.assetConfig.symbol}`,
-    };
-    this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
-
+    // Выплата поставщику при приёмке не заводится (решение владельца
+    // 19.11.2026): долг перед поставщиком записан на счёте 76, а заказы
+    // поставщика за день обход выплат объединяет в один пакет — один платёж
+    // кассиру (MarketplaceSupplierPayoutService).
     this.logger.log(
-      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${acceptedOrders.length} заказам инициированы через gateway.`
+      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); ${acceptedOrders.length} заказов ждут пакета выплаты поставщику.`
     );
 
     this.emitReceptionStatusChanged(updated);
@@ -859,12 +873,12 @@ export class MarketplaceAplReceptionService {
   }
 
   /**
-   * Доводит уже закрытую приёмку: оприходование склада и выплаты поставщику.
+   * Доводит уже закрытую приёмку: оприходование склада.
    *
-   * Подпись на цепи повторно не отправляется — она там уже есть. Оба шага
-   * идемпотентны: позиция склада не создаётся по заказу, где она уже есть, а
-   * выплата заводится через `createIfNotExists`. Поэтому повторный вызов
-   * безопасен и просто добирает то, чего не хватает.
+   * Подпись на цепи повторно не отправляется — она там уже есть. Шаг
+   * идемпотентен: позиция склада не создаётся по заказу, где она уже есть.
+   * Повторный вызов безопасен и добирает то, чего не хватает. Выплату
+   * поставщику ведёт обход пакетов выплаты.
    */
   private async completeAcceptedReception(
     reception: MarketplaceAplReceptionDomainEntity,
@@ -881,11 +895,8 @@ export class MarketplaceAplReceptionService {
 
     await this.materializeInventory(reception, acceptedOrders, placementByOrderId);
 
-    const orderHashByOrderId = new Map(acceptedOrders.map((o) => [o.id, o.order_hash] as const));
-    await this.initiatePayouts(reception, acceptedOrders, orderHashByOrderId);
-
     this.logger.log(
-      `АПП ${reception.id}: приёмка уже была закрыта на цепи — довели оприходование и выплаты по ${acceptedOrders.length} заказам.`
+      `АПП ${reception.id}: приёмка уже была закрыта на цепи — довели оприходование по ${acceptedOrders.length} заказам.`
     );
 
     return { apl_reception: reception };
@@ -954,280 +965,6 @@ export class MarketplaceAplReceptionService {
       supplier_account: reception.offerer_account,
     };
     this.eventBus.emit(MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT, event);
-  }
-
-  /**
-   * Story 5.6 + 598-16 (L12) + AR35: per-Order инициирует выплату поставщику.
-   *
-   * Для каждого Order'а группы:
-   *   1. создаёт audit-projection marketplace_outgoing_payment_request
-   *      в статусе PENDING (идемпотентно по order_hash);
-   *   2. регистрирует системный платёж в core-реестре gateway —
-   *      кассир увидит выплату в общей ленте;
-   *   3. отправляет on-chain `marketplace::payout` → inline
-   *      `gateway::createoutpay` (gateway::outcomes pending). Кассир в
-   *      своём столе подтверждает/отказывает; callback'и
-   *      `marketplace::payconfirm` / `paydecline` дойдут до listener'а
-   *      в `MarketplacePayoutSyncService` и обновят статус projection +
-   *      core payment + emit push поставщику.
-   *
-   * Ошибки на отдельной выплате не блокируют АПП и другие выплаты —
-   * statement остаётся ACCEPTED_TO_COOP, кооператив может повторить
-   * через ручной retry (отдельный API-шаг).
-   */
-  /**
-   * Назначение платежа выплаты поставщику — по его договору. Дата заключения
-   * (`ГГГГ-ММ-ДД`) приводится к человеческому виду `ДД.ММ.ГГГГ`. Если у
-   * поставщика номер договора не задан — обобщённая формулировка без акта.
-   */
-  private buildPayoutPurpose(contractNumber: string | null, contractDate: string | null): string {
-    if (!contractNumber) return t('marketplace.aplReception.contractPaymentLabel');
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(contractDate ?? '');
-    const datePart = m ? t('marketplace.aplReception.contractDatePart', { day: m[3], month: m[2], year: m[1] }) : '';
-    return t('marketplace.aplReception.contractNumberLabel', { contractNumber, datePart });
-  }
-
-  private async initiatePayouts(
-    reception: MarketplaceAplReceptionDomainEntity,
-    allOrders: MarketplaceOrderDomainEntity[],
-    orderHashByOrderId: Map<string, string>
-  ): Promise<void> {
-    const factByOrderId = new Map(reception.fact_quantity_per_order.map((f) => [f.order_id, f]));
-    const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
-
-    // Реквизиты поставщика резолвятся один раз на всю группу: снапшот на
-    // момент создания выплат — последующая смена «выплаты получаю на…»
-    // уже созданные выплаты не трогает. Отсутствие реквизитов выплату не
-    // блокирует (деньги поставщику должны уйти) — кассир увидит платёж
-    // без реквизитов и запросит их у поставщика.
-    let payoutMethod: InnerPaymentMethod | null = null;
-    try {
-      payoutMethod = await this.supplierSettings.resolvePayoutMethod(
-        reception.coopname,
-        reception.offerer_account
-      );
-    } catch (err: any) {
-      this.logger.warn(
-        `initiatePayouts: резолв реквизитов поставщика ${reception.offerer_account} упал: ${err.message}; выплаты создаются без реквизитов.`
-      );
-    }
-    if (!payoutMethod) {
-      this.logger.warn(
-        `initiatePayouts: у поставщика ${reception.offerer_account} нет реквизитов для выплат — кассир увидит платежи без реквизитов.`
-      );
-    }
-
-    // Назначение платежа — по договору поставщика (номер + дата заключения),
-    // одинаковое для всех заказов группы: оплата поставки как обычной покупки.
-    // Номер акта приёма-передачи в назначение НЕ выносим — основанием выступает
-    // договор. Режим налогообложения поставщика (НДС) пока не настраивается.
-    const supplier = await this.supplierRegistry.findByMember(
-      reception.coopname,
-      reception.offerer_account
-    );
-    const purpose = this.buildPayoutPurpose(
-      supplier?.contract_number ?? null,
-      supplier?.contract_date ?? null
-    );
-
-    // Признанный гарантийный долг поставщика (99D-13) удерживается из выплат:
-    // контракт `payout` уменьшает перевод на остаток долга, проекция должна
-    // показывать ту же сумму. Остаток списывается по заказам в порядке обхода.
-    let debtLeft = await this.supplierAdmittedDebt(reception.coopname, reception.offerer_account);
-
-    for (const order of groupOrders) {
-      const orderHash = orderHashByOrderId.get(order.id);
-      if (!orderHash) {
-        this.logger.warn(
-          `initiatePayouts: у заказа ${order.id} нет order_hash — выплата невозможна.`
-        );
-        continue;
-      }
-      // Сумма выплаты — принятая стоимость по акту: то же количество и та же
-      // цена, что ушли в закрывающую подпись приёмки и в проводку Дт 10 / Кт 76.
-      // Цена заказа здесь не годится: оператор мог принять со скидкой, и
-      // контракт тогда проведёт выплату на одну сумму, а кассир переведёт
-      // другую (задача 99D-14).
-      const amount = this.factEntryAmount(factByOrderId.get(order.id), order);
-
-      const full = Number.parseFloat(amount);
-      const withheldNum = Math.min(debtLeft, full);
-      debtLeft = Math.max(0, debtLeft - withheldNum);
-      const withheld = withheldNum.toFixed(this.assetConfig.decimals);
-      const toPay = (full - withheldNum).toFixed(this.assetConfig.decimals);
-
-      await this.initiatePayoutForOrder({
-        coopname: reception.coopname,
-        order_hash: orderHash,
-        order_id: order.id,
-        apl_reception_id: reception.id,
-        payee_account: reception.offerer_account,
-        amount: toPay,
-        withheld_amount: withheld,
-        purpose,
-        payout_method: payoutMethod,
-      });
-    }
-  }
-
-  /** Остаток признанного гарантийного долга поставщика (`w.mkt.debt`) из PG-кеша кошельков; нет записи — 0. */
-  private async supplierAdmittedDebt(coopname: string, supplier: string): Promise<number> {
-    try {
-      const row = await this.userWallets.findByWalletAndUsername(coopname, 'w.mkt.debt', supplier);
-      const num = Number.parseFloat(String(row?.available ?? '0').split(' ')[0]);
-      return Number.isFinite(num) && num > 0 ? num : 0;
-    } catch (err) {
-      this.logger.warn(`initiatePayouts: остаток долга поставщика ${supplier} не прочитан (${(err as Error).message}) — считаю 0.`);
-      return 0;
-    }
-  }
-
-  private async initiatePayoutForOrder(input: {
-    coopname: string;
-    order_hash: string;
-    order_id: string;
-    apl_reception_id: string;
-    payee_account: string;
-    amount: string;
-    withheld_amount: string;
-    purpose: string;
-    payout_method: InnerPaymentMethod | null;
-  }): Promise<void> {
-    const payoutDestination = input.payout_method
-      ? formatPayoutDestination(input.payout_method)
-      : null;
-    let projection: MarketplaceOutgoingPaymentRequestDomainEntity;
-    try {
-      projection = await this.paymentRepo.createIfNotExists({
-        coopname: input.coopname,
-        order_hash: input.order_hash,
-        order_id: input.order_id,
-        apl_reception_id: input.apl_reception_id,
-        payee_account: input.payee_account,
-        amount: input.amount,
-        withheld_amount: input.withheld_amount,
-        symbol: this.assetConfig.symbol,
-        purpose: input.purpose,
-        payout_destination: payoutDestination,
-      });
-    } catch (err: any) {
-      this.logger.warn(
-        `initiatePayouts: создание projection для order ${input.order_id} упало: ${err.message}; пропускаю.`
-      );
-      return;
-    }
-    await this.deliverPayout(projection, input.payout_method, { createCorePayment: true, submitChain: true });
-  }
-
-  /**
-   * Повтор доставки выплаты по уже созданной проекции (крон, задача 99D-15):
-   * платёж в общем реестре кооператива, если его ещё нет, и `marketplace::payout`,
-   * если цепь его ещё не приняла. Какие шаги нужны, решает вызывающий по
-   * состоянию проекции и зеркала заказа; реквизиты поставщика резолвятся
-   * заново — снапшот в проекции маскирован и для платежа не годится.
-   */
-  async redeliverPayout(
-    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
-    steps: { createCorePayment: boolean; submitChain: boolean }
-  ): Promise<void> {
-    let payoutMethod: InnerPaymentMethod | null = null;
-    if (steps.createCorePayment && !projection.core_payment_id) {
-      try {
-        payoutMethod = await this.supplierSettings.resolvePayoutMethod(projection.coopname, projection.payee_account);
-      } catch (err: any) {
-        this.logger.warn(
-          `redeliverPayout: резолв реквизитов поставщика ${projection.payee_account} упал: ${err.message}; платёж создаётся без реквизитов.`
-        );
-      }
-    }
-    await this.deliverPayout(projection, payoutMethod, steps);
-  }
-
-  /**
-   * Довоз выплаты до кассы и до цепи. Обе части best-effort: сбой пишется в
-   * журнал, проекция остаётся PENDING, и крон повторяет недостающий шаг.
-   */
-  private async deliverPayout(
-    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
-    payoutMethod: InnerPaymentMethod | null,
-    steps: { createCorePayment: boolean; submitChain: boolean }
-  ): Promise<void> {
-    // Долг покрыл всю выплату: банковского перевода нет, контракт в `payout`
-    // сразу проводит удержание и закрывает выплату — платёж кассиру не нужен.
-    const nothingToPay = Number.parseFloat(projection.amount) <= 0;
-    if (steps.createCorePayment && !projection.core_payment_id && !nothingToPay) {
-      await this.createCorePayment(projection, payoutMethod);
-    }
-    if (!steps.submitChain) return;
-    try {
-      const tx = await this.chainPort.payOut({
-        coopname: projection.coopname,
-        order_hash: projection.order_hash,
-      });
-      if (nothingToPay) await this.completeWithheldPayout(projection.coopname, projection.order_hash, tx);
-    } catch (err: any) {
-      this.logger.warn(
-        `initiatePayouts: on-chain payOut для order ${projection.order_id} упал: ${err.message}; projection остаётся PENDING, gateway::outcomes не создан — повтор по расписанию.`
-      );
-    }
-  }
-
-  /**
-   * Платёж поставщику в общем реестре кооператива — его видит кассир.
-   * payment_hash обязан совпадать с on-chain gateway::outcomes.outcome_hash,
-   * который marketplace::payout регистрирует как сам order_hash. Иначе
-   * кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
-   * падает с «Объект возврата не существует с указанным хэшем».
-   * Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
-   * прямо в развороте платежа общего реестра (как у обычного withdraw).
-   */
-  private async createCorePayment(
-    projection: MarketplaceOutgoingPaymentRequestDomainEntity,
-    payoutMethod: InnerPaymentMethod | null
-  ): Promise<void> {
-    try {
-      const corePayment = await this.coreGateway.createSystemOutgoingPayment({
-        coopname: projection.coopname,
-        username: projection.payee_account,
-        quantity: Number.parseFloat(projection.amount),
-        symbol: this.assetConfig.symbol,
-        memo: projection.purpose,
-        related_extension: 'marketplace',
-        related_entity_id: projection.id,
-        payment_hash: projection.order_hash,
-        payment_method_id: payoutMethod?.method_id,
-        payment_details: payoutMethod
-          ? {
-              data: payoutMethod.data,
-              amount_plus_fee: projection.amount,
-              amount_without_fee: projection.amount,
-              fee_amount: '0',
-              fee_percent: 0,
-              fact_fee_percent: 0,
-              tolerance_percent: 0,
-            }
-          : undefined,
-      });
-      if (corePayment.id) {
-        await this.paymentRepo.applyCorePaymentId(projection.coopname, projection.order_hash, corePayment.id);
-      }
-    } catch (err: any) {
-      this.logger.warn(
-        `initiatePayouts: core createSystemOutgoingPayment для order ${projection.order_id} упал: ${err.message}; кассирский стол core не увидит выплату до повтора по расписанию.`
-      );
-    }
-  }
-
-  /**
-   * Долг покрыл всю выплату: контракт закрыл её удержанием в той же транзакции,
-   * `payconfirm` не придёт — проекция закрывается здесь.
-   */
-  private async completeWithheldPayout(coopname: string, order_hash: string, tx: unknown): Promise<void> {
-    const txId = (tx as { response?: { transaction_id?: string } } | undefined)?.response?.transaction_id ?? null;
-    await this.paymentRepo.applyCompletion(coopname, order_hash, {
-      completed_at: new Date(),
-      payout_tx_hash: txId,
-    });
   }
 
   // ── private ──
@@ -1761,8 +1498,11 @@ export class MarketplaceAplReceptionService {
         if (fact > o.quantity) {
           throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED', { orderId: o.id, factQuantity: fact, orderedQuantity: o.quantity });
         }
-        // Цена за единицу: оператор может скорректировать (привезли хуже —
-        // принимаем со скидкой). По умолчанию — цена заказа.
+        // Цена за единицу: оператор может снизить её (привезли хуже —
+        // принимаем со скидкой), но не поднять выше цены заказа: поставщик
+        // привёз по заказу пайщика, и основания платить ему больше нет (слово
+        // владельца 02.11.2026). Тот же потолок стоит на выдаче. По умолчанию —
+        // цена заказа.
         let fact_unit_price = o.price_per_unit;
         if (entry.fact_unit_price !== undefined) {
           const priceNum = Number.parseFloat(entry.fact_unit_price);
@@ -1770,6 +1510,13 @@ export class MarketplaceAplReceptionService {
             throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_INVALID', { orderId: o.id, factUnitPrice: entry.fact_unit_price });
           }
           fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
+          if (Number.parseFloat(fact_unit_price) > Number.parseFloat(o.price_per_unit)) {
+            throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_EXCEEDS_ORDERED', {
+              orderId: o.id,
+              factUnitPrice: fact_unit_price,
+              orderedUnitPrice: o.price_per_unit,
+            });
+          }
         }
         out.push({ order_id: o.id, fact_quantity: fact, fact_unit_price });
       } else {

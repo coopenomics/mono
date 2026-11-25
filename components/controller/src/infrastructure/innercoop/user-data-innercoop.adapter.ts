@@ -6,7 +6,7 @@ import type {
   InnerUserDataRecord,
 } from '@coopenomics/innercoop';
 import { UDATA_REPOSITORY, type UdataRepository } from '~/domain/common/repositories/udata.repository';
-import type { Cooperative } from 'cooptypes';
+import { UdataKey } from '@coopenomics/docs-templates';
 
 /**
  * Реализация `IUserDataPort` поверх хранилища пользовательских данных ядра.
@@ -52,7 +52,7 @@ export class UserDataInnercoopAdapter implements IUserDataPort {
    * здесь, на границе: репозиторий и раньше принимал произвольную строку
    * наравне с перечнем, а тащить `cooptypes` в контракт нельзя (INV-014).
    */
-  private toKey(key: string): Cooperative.Model.UdataKey {
-    return key as Cooperative.Model.UdataKey;
+  private toKey(key: string): UdataKey {
+    return key as UdataKey;
   }
 }

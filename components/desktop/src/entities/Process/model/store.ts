@@ -3,6 +3,8 @@ import type { RegistrySource } from 'src/shared/lib/registry-source'
 import { ref, type Ref } from 'vue'
 import { processApi } from '../api'
 import type {
+  IProcessContent,
+  IProcessContentInput,
   IProcessGetInput,
   IProcessListInput,
   IProcessListResult,
@@ -17,6 +19,7 @@ interface IProcessStore {
   loadProcess: (input: IProcessGetInput, source?: RegistrySource) => Promise<IProcessView | undefined>
   loadLatestSnapshot: (input: IProcessGetInput) => Promise<IProcessSnapshot | null>
   loadProcesses: (input: IProcessListInput, source?: RegistrySource) => Promise<IProcessListResult | undefined>
+  loadProcessContent: (input: IProcessContentInput, source?: RegistrySource) => Promise<IProcessContent | null>
 }
 
 export const useProcessStore = defineStore(namespace, (): IProcessStore => {
@@ -50,8 +53,14 @@ export const useProcessStore = defineStore(namespace, (): IProcessStore => {
     }
   }
 
+  // Содержание процесса грузится вместе с процессом и не трогает общий признак загрузки.
+  function loadProcessContent(input: IProcessContentInput, source?: RegistrySource): Promise<IProcessContent | null> {
+    return processApi.getProcessContent(input, source)
+  }
+
   return {
     loading,
+    loadProcessContent,
     loadProcess,
     loadLatestSnapshot,
     loadProcesses,

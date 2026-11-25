@@ -60,7 +60,10 @@ const rawCheckoutResultSelector = {
   cart: rawCartSelector,
 }
 
-const _validateCheckoutResult: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutResult']> =
+// Созданные заказы — тот же rawOrderSelector: его полноту проверяет
+// orderSelector.ts, без обеспечительной части, которую просит только
+// карточка одного заказа.
+const _validateCheckoutResult: MakeAllFieldsRequired<Omit<ValueTypes['MarketplaceCheckoutResult'], 'created_orders'>> =
   rawCheckoutResultSelector
 
 export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutResult')(
@@ -69,8 +72,8 @@ export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutRe
 
 /**
  * Строка превью оформления по позиции корзины: суммы по частям — что покрыто
- * кошельками программы (членский взнос — членским, тело — свободным паевым
- * «Стола заказов») и что уйдёт с Цифрового кошелька по заявлению.
+ * свободным паевым «Стола заказов» и что транслируется из Цифрового кошелька
+ * по заявлению.
  */
 const rawCheckoutSignableLineSelector = {
   offer_id: true,
@@ -78,7 +81,6 @@ const rawCheckoutSignableLineSelector = {
   order_hash: true,
   amount: true,
   membership_fee: true,
-  from_member: true,
   from_program: true,
   from_wallet: true,
 }
@@ -91,8 +93,8 @@ export const marketplaceCheckoutSignableLineSelector = Selector('MarketplaceChec
 )
 
 /**
- * Заявление 1110 к подписи — сумма перевода с Цифрового кошелька (то, чего не
- * хватило в кошельках программы) и её членская часть; null — переводить нечего.
+ * Заявление 1110 к подписи — сумма трансляции из Цифрового кошелька (то, чего не
+ * хватило на свободном паевом) и обеспечительная часть в ней; null — транслировать нечего.
  */
 export const rawConvertPayloadSelector = {
   amount: true,

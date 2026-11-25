@@ -17,6 +17,32 @@ import { IndividualCertificateDTO } from '~/application/common/dto/individual-ce
 import { EntrepreneurCertificateDTO } from '~/application/common/dto/entrepreneur-certificate.dto';
 import { OrganizationCertificateDTO } from '~/application/common/dto/organization-certificate.dto';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { MeetParticipationDTO } from './meet-participation.dto';
+import type { MeetParticipation } from '~/domain/meet/utils/meet-voters';
+
+/** Сертификат пайщика в DTO по типу аккаунта. */
+const createCertificateDTO = (
+  certificate: UserCertificateDomainInterface | null
+): IndividualCertificateDTO | EntrepreneurCertificateDTO | OrganizationCertificateDTO | null => {
+  if (!certificate) return null;
+
+  switch (certificate.type) {
+    case AccountType.individual:
+      return new IndividualCertificateDTO(certificate);
+    case AccountType.entrepreneur:
+      return new EntrepreneurCertificateDTO(certificate);
+    case AccountType.organization:
+      return new OrganizationCertificateDTO(certificate);
+    default:
+      return null;
+  }
+};
+
+/** Право текущего пайщика на собрании с сертификатом председателя его участка. */
+export interface MeetParticipationInput {
+  value: MeetParticipation;
+  branchTrusteeCertificate: UserCertificateDomainInterface | null;
+}
 
 @ObjectType('MeetAggregate', { description: 'Агрегат данных о собрании, содержащий информацию о разных этапах' })
 export class MeetAggregateDTO {
@@ -56,7 +82,8 @@ export class MeetAggregateDTO {
     secretaryCertificate?: UserCertificateDomainInterface | null,
     initiatorCertificate?: UserCertificateDomainInterface | null,
     processedPresiderCertificate?: UserCertificateDomainInterface | null,
-    processedSecretaryCertificate?: UserCertificateDomainInterface | null
+    processedSecretaryCertificate?: UserCertificateDomainInterface | null,
+    participation?: MeetParticipationInput | null
   ) {
     this.hash = data.hash;
     this.pre = data.pre
@@ -77,24 +104,6 @@ export class MeetAggregateDTO {
 
     // Создаем processing DTO с обогащенными данными, если они предоставлены
     if (data.processing && processingDocuments) {
-      // Вспомогательная функция для создания сертификата DTO
-      const createCertificateDTO = (
-        certificate: UserCertificateDomainInterface | null
-      ): IndividualCertificateDTO | EntrepreneurCertificateDTO | OrganizationCertificateDTO | null => {
-        if (!certificate) return null;
-
-        switch (certificate.type) {
-          case AccountType.individual:
-            return new IndividualCertificateDTO(certificate);
-          case AccountType.entrepreneur:
-            return new EntrepreneurCertificateDTO(certificate);
-          case AccountType.organization:
-            return new OrganizationCertificateDTO(certificate);
-          default:
-            return null;
-        }
-      };
-
       // Создаем объект MeetDTO с документами
       const meetDTO = new MeetDTO({
         id: data.processing.meet.id,
@@ -143,6 +152,12 @@ export class MeetAggregateDTO {
         questions: questionsDTO,
         isVoted: data.processing.isVoted,
         extendedStatus: data.processing.extendedStatus as ExtendedMeetStatus,
+        participation: participation
+          ? new MeetParticipationDTO({
+              ...participation.value,
+              branchTrusteeCertificate: createCertificateDTO(participation.branchTrusteeCertificate),
+            })
+          : null,
       });
     } else {
       this.processing = null;

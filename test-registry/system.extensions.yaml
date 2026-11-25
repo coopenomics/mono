@@ -19,6 +19,15 @@ title: Система и расширения — сводка системы, �
 # сверяются с тем же признаком. Случаи — в extensions.availability
 # (ext.avail.side.09, ext.avail.side.10); здешние случаи не менялись.
 
+# Правка 24.11.2026 (487-28): удаление расширения мягкое. «Удалить» ставит
+# extensions.uninstalled_at и выключает расширение, запись и config остаются:
+# в config лежат отметки онбординга (решения совета), учёт собраний и
+# служебные даты. Для каркаса удалённой записи нет — «строка есть —
+# установлено» верно по-прежнему; повторная установка снимает отметку и
+# сливает сохранённый config с пришедшим; доустановка по умолчанию при старте
+# удалённое не возвращает. sys.ext.happy.04 верен без изменений: после
+# удаления is_installed = false, повторное удаление отвечает false.
+
 sources:
   backend:
     - components/controller/src/application/system/resolvers/system.resolver.ts
@@ -84,7 +93,10 @@ cases:
     level: backend
     kind: side
     scenario: Обновляют неустановленное расширение; присылают конфиг, не прошедший схему
-    expect: DATABASE_EXTENSION_NOT_INSTALLED и EXTENSION_CONFIG_VALIDATION_FAILED, записи в каталоге не появляется
+    expect: >
+      DATABASE_EXTENSION_NOT_INSTALLED и EXTENSION_CONFIG_VALIDATION_FAILED; неустановленное
+      не появляется в каталоге, у установленного конфиг и состояние после отказа прежние
+      (правка 25.11.2026: ЮKassa вне основной сети ставится по умолчанию, 9dbe50ff876)
     test: components/api-tests/src/system/extensions.test.ts
     api: components/api-tests/src/system/extensions.test.ts
     status: passing
@@ -144,4 +156,64 @@ cases:
     # Пишет любая мутация прогона; читает журнал только Благорост (журнал проекта):
     # события успешных мутаций в журнале проекта, отказанные туда не попадают.
     test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  # 01.11.2026 (C28-80): выключение расширения, пришедшее во время его запуска,
+  # не находило расширение среди работающих — запуск завершался, и выключенное
+  # Образование работало со своими шаблонами (blackbox 31.10.2026).
+  - id: sys.ext.side.08
+    level: backend
+    kind: side
+    scenario: Расширение выключают, пока идёт его запуск (перезапуск после правки настроек не дождались)
+    expect: остановка дожидается запуска и снимает расширение — декларации документов сняты, расширение не числится работающим; запуск, остановка и перезапуск одного расширения идут по очереди, отказ запуска очередь не держит
+    test: components/controller/tests/unit/extension/extension-lifecycle-queue.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  # 24.11.2026 (487-28): мягкое удаление расширения
+  - id: ext.soft.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель удаляет расширение
+    expect: запись не стирается — ставится uninstalled_at, расширение выключается, config сохраняется; повторное удаление отвечает false
+    test: components/controller/tests/unit/extension/extension-soft-uninstall.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: written   # запуск — CI на полигоне ci/tests
+
+  - id: ext.soft.side.01
+    level: backend
+    kind: side
+    scenario: Расширения читают и правят свою запись после удаления (findByName, find, update, patchConfig)
+    expect: удалённой записи для них нет — чтение пустое, правка отказывает DATABASE_EXTENSION_NOT_INSTALLED
+    test: components/controller/tests/unit/extension/extension-soft-uninstall.test.ts
+    status: written
+    external: unreachable
+    external_reason: правку записи изнутри расширения (findByName/update/patchConfig) делает код расширения, через API её не вызвать
+
+  - id: ext.soft.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель снова ставит удалённое расширение
+    expect: отметка снимается, config = сохранённый || пришедший с формы (отметки онбординга остаются), версия схемы настроек прежняя — миграции настроек доводят её при запуске
+    test: components/controller/tests/unit/extension/extension-soft-uninstall.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: written
+
+  - id: ext.soft.side.02
+    level: backend
+    kind: side
+    scenario: Сервер стартует, а расширение из набора по умолчанию удалено председателем
+    expect: доустановка по умолчанию его не возвращает; ставит только те, у которых нет ни установленной, ни удалённой записи
+    test: components/controller/tests/unit/extension/extension-soft-uninstall.test.ts
+    status: written
+    external: unreachable
+    external_reason: доустановка по умолчанию идёт при старте сервера; перезапустить узел из сценария — сломать стенд для остальных файлов
+
+  - id: ext.soft.happy.03
+    level: backend
+    kind: happy
+    scenario: Каталог и шаг установки для удалённого расширения
+    expect: расширение неустановленное, но config — сохранённый (секреты маркером «задано»); у никогда не ставившегося config пустой
+    test: components/controller/tests/unit/extension/extension-soft-uninstall.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
     status: written

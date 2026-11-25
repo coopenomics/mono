@@ -1,4 +1,5 @@
 import './i18n';
+import { ExpenseProcessContentService } from './application/services/expense-process-content.service';
 import { Module } from '@nestjs/common';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
@@ -28,6 +29,9 @@ import {
   ExpensePlansService,
 } from './application/services/expense-plans.service';
 import { ExpensePlansResolver } from './application/resolvers/expense-plans.resolver';
+import { ExpenseBranchOperatorsService } from './application/services/expense-branch-operators.service';
+import { ExpenseCounterpartiesService } from './application/services/expense-counterparties.service';
+import { ExpenseCounterpartiesResolver } from './application/resolvers/expense-counterparties.resolver';
 import { ExpensesLiveFeedService } from './application/services/expenses-live-feed.service';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { ExpensesRights } from './application/access/expenses-rights';
@@ -94,7 +98,13 @@ import { ExpenseAdvancesService } from './application/services/expense-advances.
     ExpensesInnercoopExpenseChassisAdapter,
     ExpensePlansService,
     { provide: EXPENSE_PLANS_SERVICE, useExisting: ExpensePlansService },
+    // Содержание расходов шасси для стола бухгалтера (реестр processContent).
+    ExpenseProcessContentService,
     ExpensePlansResolver,
+    // Реестр контрагентов (99D-35): организации и ИП для оплаты по реквизитам.
+    ExpenseBranchOperatorsService,
+    ExpenseCounterpartiesService,
+    ExpenseCounterpartiesResolver,
     ExpensesLiveFeedService,
   ],
   exports: [

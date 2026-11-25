@@ -11,9 +11,11 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  ACCOUNT_PORT,
   CHAIN_CHANGES_PORT,
   CHAIRMAN_APPROVALS_PORT,
   CHAIN_PORT,
+  DECISION_DECLINE_REASON_PORT,
   COUNCIL_PORT,
   EXPENSE_CHASSIS_PORT,
   DOCUMENT_DECLARATION_PORT,
@@ -46,6 +48,8 @@ import {
 
 export const edubridgePorts = {
   required: [
+    // Имя пайщика в содержании процесса на столе бухгалтера (доступ к курсу, работа преподавателя).
+    ACCOUNT_PORT,
     // Администратора образования назначает председатель на общей странице управления доступом.
     ROLE_ASSIGNMENTS_PORT,
     CHAIN_PORT,
@@ -94,5 +98,8 @@ export const edubridgePorts = {
     // Лента изменений для живого обновления столов; без неё столы дочитывают
     // данные только при открытии.
     CHAIN_CHANGES_PORT,
+    // Пояснение председателя к отклонению отчёта советом; без порта в отказе
+    // остаётся основание из цепи.
+    DECISION_DECLINE_REASON_PORT,
   ],
 };

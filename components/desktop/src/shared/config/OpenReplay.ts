@@ -40,10 +40,15 @@ export function updateOpenReplayUser(config: OpenReplayTrackerConfig): void {
  * Инициализирует OpenReplay tracker с конфигурацией для захвата сетевых запросов
  * и санитаризацией чувствительных данных
  *
- * Пустой OPENREPLAY_PROJECT_KEY штатно выключает трекер — это и есть рубильник:
- * сессии пишутся с телами запросов, поэтому приёмник должен стоять в нашем
- * контуре, а состав данных — совпадать с опубликованной политикой обработки.
- * Пока приёмник не развёрнут у нас, ключ на прод-контуре держится пустым.
+ * Пустой OPENREPLAY_PROJECT_KEY штатно выключает трекер — это и есть рубильник.
+ *
+ * События трекер шлёт на адрес своего же кооператива (/replay). Приёмник
+ * кооператива пересылает их дальше (mono/templates/nginx/receiver.conf в
+ * playbooks), поэтому браузер пайщика обращается только к своему кооперативу.
+ * Сейчас пересылка идёт на мост в облако OpenReplay; при своём приёмнике в
+ * контуре меняется только адрес моста в приёмнике, кабинет не трогается
+ * (C28-94, 23.10.2026). Адрес абсолютный: пачки событий трекер отправляет из
+ * Web Worker, а относительный путь в нём считался бы от адреса самого воркера.
  */
 export async function initOpenReplayTracker(config: OpenReplayTrackerConfig = {}): Promise<void> {
   // Проверяем условия для инициализации
@@ -57,7 +62,7 @@ export async function initOpenReplayTracker(config: OpenReplayTrackerConfig = {}
     // Конфигурируем tracker
     tracker.configure({
       projectKey: env.OPENREPLAY_PROJECT_KEY,
-      ingestPoint: 'https://replay.coopenomics.world/api',
+      ingestPoint: `${window.location.origin}/replay`,
       network: {
         capturePayload: true,
         failuresOnly: false,

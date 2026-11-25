@@ -4,7 +4,7 @@ import { Mutations } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 
 export type IGenerateReturnByMoneyStatementData =
@@ -125,7 +125,7 @@ export function useReturnByMoney() {
     // 3. Подписываем документ
     const digitalDocument = new DigitalDocument(document);
     const signedDocument =
-      await digitalDocument.sign<Cooperative.Registry.ReturnByMoney.Meta>(
+      await digitalDocument.sign<Registry.ReturnByMoney.Meta>(
         session.username,
       );
 

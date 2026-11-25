@@ -145,6 +145,22 @@ describe('условия строк таблицы', () => {
     });
   });
 
+  // mkt.rights.side.11
+  it('завести боксы на любом участке вправе председатель кооператива; совет и оператор такого права не имеют', async () => {
+    const on = { containers: true };
+    await expect(run({ resource: 'Container', action: 'create:all' }, chairman, on)).resolves.toBeDefined();
+    for (const actor of [council, operator]) {
+      await expect(run({ resource: 'Container', action: 'create:all' }, actor, on)).rejects.toMatchObject({
+        code: 'KIT_INSUFFICIENT_RIGHTS',
+      });
+    }
+    // Ставит боксы в ячейки и правит их участок: право заведения на любом
+    // участке перемещения и правки не даёт (решение владельца 07.11.2026).
+    await expect(run({ resource: 'Container', action: 'manage:own-KU' }, chairman, on)).rejects.toMatchObject({
+      code: 'KIT_INSUFFICIENT_RIGHTS',
+    });
+  });
+
   // mkt.rights.side.04
   it('боксы и ячейки отвечают только при включённом хранении', async () => {
     const off = { containers: false, cells: false };

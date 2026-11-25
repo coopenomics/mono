@@ -11,7 +11,6 @@ BaseDialog(
         v-model='amount',
         :label='$t("capital.topupProgramExpensePoolDialog.amountLabel")',
         :symbol='symbol',
-        :precision='precision',
         :placeholder='placeholder'
       )
     .topup-form__note.t-sm.t-muted {{ $t('capital.topupProgramExpensePoolDialog.description') }}
@@ -50,7 +49,6 @@ const amount = ref<number | null>(null);
 const submitting = ref(false);
 
 const symbol = computed(() => system.info?.symbols?.root_govern_symbol ?? 'RUB');
-const precision = computed(() => system.info?.symbols?.root_govern_precision ?? 2);
 const placeholder = computed(() => '10000');
 
 const canSubmit = computed(() => amount.value != null && amount.value > 0);

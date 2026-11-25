@@ -26,6 +26,11 @@ export class DocumentService {
       after_block: data.after_block,
       before_block: data.before_block,
       actions: data.actions,
+      view: data.view,
+      signed_from: data.signed_from,
+      signed_to: data.signed_to,
+      registry_ids: data.registry_ids,
+      search: data.search,
     });
   }
 

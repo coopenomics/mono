@@ -101,6 +101,7 @@ import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { DeleteStoryButton } from 'app/extensions/capital/features/Story/DeleteStory';
 import { RequirementOverlay } from 'app/extensions/capital/features/Story/EditRequirement';
+import { isComponent } from 'app/extensions/capital/shared/lib/project-utils';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
@@ -265,7 +266,7 @@ const loadSourceTitle = async (requirement: IStory) => {
       });
 
       if (projectData?.title) {
-        const prefix = projectData.parent_hash ? t('capital.requirementsListWidget.componentFallback') : t('capital.requirementsListWidget.projectFallback');
+        const prefix = isComponent(projectData) ? t('capital.requirementsListWidget.componentFallback') : t('capital.requirementsListWidget.projectFallback');
         projectTitles.value[requirement.project_hash] = `${prefix}${projectData.title}`;
       }
     }
@@ -363,8 +364,8 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
       });
 
       if (projectData) {
-        // Если у проекта есть parent_hash, это компонент - используем component-issue
-        const routeName = projectData.parent_hash
+        // Компонент — проект с ненулевым parent_hash (isComponent) - используем component-issue
+        const routeName = isComponent(projectData)
           ? capitalRouteName('component-issue-description', route)
           : 'project-issue';
 
@@ -395,8 +396,8 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
       });
 
       if (projectData) {
-        // Если у проекта есть parent_hash, это компонент
-        const routeName = projectData.parent_hash
+        // Компонент — проект с ненулевым parent_hash (isComponent)
+        const routeName = isComponent(projectData)
           ? capitalRouteName('component-description', route)
           : capitalRouteName('project-description', route);
 

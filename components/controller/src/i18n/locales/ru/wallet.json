@@ -7,6 +7,13 @@
   "wallet": {
     "walletNotification": {
       "paymentTypeShareContribution": "Паевой взнос по соглашению о ЦПП \"Цифровой Кошелёк\""
+    },
+    "walletActivity": {
+      "pendingTitle": {
+        "deposit": "Паевой взнос",
+        "withdrawal": "Возврат паевого взноса",
+        "aid": "Материальная помощь"
+      }
     }
   }
 }

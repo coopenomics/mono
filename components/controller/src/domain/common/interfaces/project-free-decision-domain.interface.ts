@@ -1,3 +1,3 @@
-import type { Cooperative } from 'cooptypes';
+import type { IProjectData } from '@coopenomics/docs-templates';
 
-export type ProjectFreeDecisionDomainInterface = Cooperative.Document.IProjectData;
+export type ProjectFreeDecisionDomainInterface = IProjectData;

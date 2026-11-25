@@ -7,7 +7,6 @@ import { PaymentMethodService } from '../services/payment-method.service';
 import { UpdateBankAccountInputDTO } from '../dto/update-bank-account-input.dto';
 import { DeletePaymentMethodDTO } from '../dto/delete-payment-method-input.dto';
 import { AddPaymentMethodInputDTO } from '../dto/add-payment-method-input.dto';
-import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import { PaymentMethodDTO } from '../dto/payment-method.dto';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 const PaymentMethodPaginationResult = createPaginationResult(PaymentMethodDTO, 'PaymentMethod');
@@ -24,7 +23,7 @@ export class PaymentMethodResolver {
   @RequireRight('PaymentMethod', ['manage:own', 'manage:all'], { owner: 'data.username' })
   async getPaymentMethods(
     @Args('data', { type: () => GetPaymentMethodsInputDTO, nullable: true }) data?: GetPaymentMethodsInputDTO
-  ): Promise<PaginationResultDomainInterface<PaymentMethodDomainEntity>> {
+  ): Promise<PaginationResultDomainInterface<PaymentMethodDTO>> {
     return this.paymentMethodService.listPaymentMethods(data);
   }
 

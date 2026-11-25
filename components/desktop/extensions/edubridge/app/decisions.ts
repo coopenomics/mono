@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
@@ -23,13 +23,13 @@ export function registerEdubridgeDecisionHandlers(): void {
       if (!row.table?.statement?.meta) {
         throw new Error(t('edubridge.decision.ridMetaMissing'));
       }
-      const statementMeta = JSON.parse(row.table.statement.meta) as Cooperative.Registry.EducationRidStatement.Action;
+      const statementMeta = JSON.parse(row.table.statement.meta) as Registry.EducationRidStatement.Action;
       if (!statementMeta.rid_hash || !statementMeta.amount) {
         throw new Error(t('edubridge.decision.ridMetaInvalid'));
       }
       const { info } = useSystemStore();
-      const protocolAction: Cooperative.Registry.EducationRidDecision.Action = {
-        registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
+      const protocolAction: Registry.EducationRidDecision.Action = {
+        registry_id: Registry.EducationRidDecision.registry_id,
         coopname: info.coopname,
         username: String(row.table.username),
         lang: 'ru',
@@ -51,13 +51,13 @@ export function registerEdubridgeDecisionHandlers(): void {
       if (!row.table?.statement?.meta) {
         throw new Error(t('edubridge.decision.guaranteeMetaMissing'));
       }
-      const statementMeta = JSON.parse(row.table.statement.meta) as Cooperative.Registry.EducationGuaranteeStatement.Action;
+      const statementMeta = JSON.parse(row.table.statement.meta) as Registry.EducationGuaranteeStatement.Action;
       if (!statementMeta.claim_hash || !statementMeta.amount) {
         throw new Error(t('edubridge.decision.guaranteeMetaInvalid'));
       }
       const { info } = useSystemStore();
-      const protocolAction: Cooperative.Registry.EducationGuaranteeDecision.Action = {
-        registry_id: Cooperative.Registry.EducationGuaranteeDecision.registry_id,
+      const protocolAction: Registry.EducationGuaranteeDecision.Action = {
+        registry_id: Registry.EducationGuaranteeDecision.registry_id,
         coopname: info.coopname,
         username: String(row.table.username),
         lang: 'ru',

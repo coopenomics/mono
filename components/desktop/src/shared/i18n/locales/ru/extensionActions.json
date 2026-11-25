@@ -1,7 +1,11 @@
 {
   "extensionActions": {
     "extensionActions": {
-      "installButton": "Установить"
+      "disabledHint": "Столы расширения скрыты от пайщиков. Настройки сохранены.",
+      "installButton": "Установить",
+      "installPending": "Установка не завершена",
+      "statusDisabled": "Установлено, выключено",
+      "statusEnabled": "Установлено и включено"
     }
   }
 }

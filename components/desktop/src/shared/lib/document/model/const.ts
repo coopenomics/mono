@@ -1,5 +1,5 @@
 import type { IDocument } from '../../types/document';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 export const fakeDocument: IDocument = {
   version: '1.0.0',
@@ -13,7 +13,7 @@ export const fakeDocument: IDocument = {
     generator: 'generator',
     lang: 'ru',
     links: [],
-    registry_id: Cooperative.Registry.WalletAgreement.registry_id,
+    registry_id: Registry.WalletAgreement.registry_id,
     timezone: 'Europe/Moscow',
     // i18n-ignore: тестовые данные-заглушка (фикстура), не текст интерфейса
     title: 'Фейковый документ',

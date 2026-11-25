@@ -1,6 +1,6 @@
-import { Cooperative } from 'cooptypes';
-import { decisionFactory } from 'src/shared/lib/decision-factory';
-import { DigitalDocument } from 'src/shared/lib/document';
+import { Registry, decisionTypesRegistry } from '@coopenomics/docs-templates';
+import { decisionFactory, type IGenerateDecisionData } from 'src/shared/lib/decision-factory';
+import { DigitalDocument, type IGeneratedDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
 import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecision';
 import {
@@ -12,12 +12,76 @@ import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateRe
 import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstablishmentDecision';
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 import { t } from 'src/shared/i18n';
+import { InvestPropertyDecisionInfo } from 'src/widgets/Marketplace/InvestPropertyDecisionInfo';
+import { BranchAidDecisionInfo } from 'src/widgets/Marketplace/BranchAidDecisionInfo';
+
+/** Поля метаданных заявления, которые фабрика документов проставляет сама. */
+const META_SERVICE_KEYS = new Set([
+  'title', 'registry_id', 'lang', 'generator', 'version', 'coopname', 'username', 'created_at', 'block_num', 'timezone', 'links',
+  // Версия сборщика принадлежит виду документа: заявление 1120 собрано
+  // сборщиком 1.1, а у протокола 1121 есть только 1.0. Перенесённая в данные
+  // протокола, она заставляла фабрику искать сборщик 1.1 у протокола
+  // (UnknownBuilderVersionError), и протокол не собирался — так робот совета
+  // застревал на Blackbox 13.11.2026, список полей у него тот же. Версию
+  // протокола выбирает фабрика сама.
+  'builder',
+]);
+
+/**
+ * Протокол решения из реестра типов решений, собранный из заявления: номер
+ * шаблона протокола — из реестра, прикладные поля — из метаданных
+ * подписанного заявления, автор и номер — из самого решения. Тот же способ,
+ * которым протокол собирает робот совета (`RobotDecisionService.protocolData`):
+ * ручное утверждение и робот обязаны давать один и тот же документ.
+ *
+ * Работает для любого решения реестра, чьи поля протокола выводятся из
+ * заявления, — так утверждаются выдача имущества пайщику (`mktissue`) и отмена
+ * сделки по гарантийному возврату (`mktretrn`). Тип вне реестра не его забота.
+ */
+async function generateProtocolFromStatement(
+  decisionType: string,
+  { decision_id, username, row }: IGenerateDecisionData,
+): Promise<IGeneratedDocument | null> {
+  const typeInfo = decisionTypesRegistry[decisionType];
+  if (!typeInfo) return null;
+
+  const rawMeta = row.table?.statement?.meta;
+  if (!rawMeta) {
+    throw new Error(t('processDecisions.error.statementMetaMissing'));
+  }
+  const statementMeta = (typeof rawMeta === 'string' ? JSON.parse(rawMeta) : rawMeta) as Record<string, unknown>;
+  const business = Object.fromEntries(
+    Object.entries(statementMeta).filter(([key]) => !META_SERVICE_KEYS.has(key)),
+  );
+
+  const { info } = useSystemStore();
+  const hash = row.table?.hash ? String(row.table.hash) : '';
+  const data: Record<string, unknown> = {
+    ...business,
+    registry_id: typeInfo.protocol_registry_id,
+    coopname: info.coopname,
+    username,
+    lang: 'ru',
+    decision_id,
+    decision_hash: hash,
+  };
+  // Поля протокола, которых в заявлении нет буквально, но они выводятся из него
+  // или из самого решения.
+  if (Array.isArray(business.items) && data.items_count === undefined) data.items_count = business.items.length;
+  if (data.receiver === undefined) data.receiver = username;
+  if (data.meet_hash === undefined && hash) data.meet_hash = hash;
+
+  return await new DigitalDocument().generate(data as never, { lang: 'ru' });
+}
 
 /**
  * Регистрация обработчиков базовых решений
  * Этот файл содержит регистрацию всех встроенных обработчиков решений
  */
 export function registerBaseDecisionHandlers() {
+  // Решение из реестра без собственного обработчика утверждается по заявлению.
+  decisionFactory.registerFallback(generateProtocolFromStatement);
+
   // Обработчик для FreeDecision (свободное решение)
   decisionFactory.registerHandler('freedecision', {
     generateHandler: async ({ decision_id, username, row }) => {
@@ -27,7 +91,7 @@ export function registerBaseDecisionHandlers() {
 
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.FreeDecision.Action;
+      ) as Registry.FreeDecision.Action;
 
       if (!parsedDocumentMeta.project_id) {
         throw new Error(t('processDecisions.error.projectIdMissing'));
@@ -52,7 +116,7 @@ export function registerBaseDecisionHandlers() {
       // в мете заявления (петиции 324) — реквизиты учреждаемого участка
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.BranchEstablishmentPetition.Action;
+      ) as Registry.BranchEstablishmentPetition.Action;
 
       const { generateEstablishmentDecision } = useGenerateEstablishmentDecision();
       return await generateEstablishmentDecision({
@@ -96,7 +160,7 @@ export function registerBaseDecisionHandlers() {
         useGenerateSovietDecisionOnAnnualMeet();
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.AnnualGeneralMeetingAgenda.Action;
+      ) as Registry.AnnualGeneralMeetingAgenda.Action;
       const is_repeated = parsedDocumentMeta.is_repeated || false;
 
       return await generateSovietDecisionOnAnnualMeet({
@@ -120,7 +184,7 @@ export function registerBaseDecisionHandlers() {
 
       const parsedDocumentMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.ReturnByMoney.Action;
+      ) as Registry.ReturnByMoney.Action;
 
       if (!parsedDocumentMeta.payment_hash || !parsedDocumentMeta.quantity || !parsedDocumentMeta.currency) {
         throw new Error(t('processDecisions.error.createwthdMetaInvalid'));
@@ -150,7 +214,7 @@ export function registerBaseDecisionHandlers() {
 
       const statementMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.MarketplaceWriteoffStatement.Action;
+      ) as Registry.MarketplaceWriteoffStatement.Action;
 
       if (!statementMeta.proposal_hash || !Array.isArray(statementMeta.items)) {
         throw new Error(t('processDecisions.error.mktwroffMetaInvalid'));
@@ -158,10 +222,10 @@ export function registerBaseDecisionHandlers() {
 
       const { info } = useSystemStore();
 
-      const protocolAction: Cooperative.Registry.MarketplaceWriteoffProtocol.Action =
+      const protocolAction: Registry.MarketplaceWriteoffProtocol.Action =
         {
           registry_id:
-            Cooperative.Registry.MarketplaceWriteoffProtocol.registry_id,
+            Registry.MarketplaceWriteoffProtocol.registry_id,
           coopname: info.coopname,
           username,
           lang: 'ru',
@@ -178,6 +242,54 @@ export function registerBaseDecisionHandlers() {
     },
   });
 
+  // Обработчик для MarketplaceInvestPropertyDecision (протокол совета о приёме
+  // имущества паевым взносом в кооперативный участок, 1121). Протокол
+  // собирается из заявления 1120, которое одобрил председатель участка, плюс
+  // decision_id — так же, как его собирает робот совета. Карточка вопроса
+  // показывает имущество, участок и одобрившего председателя без открытия
+  // документа (слово владельца 08.11.2026).
+  decisionFactory.registerHandler('mktiprop', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error(t('processDecisions.error.mktipropMetaMissing'));
+      }
+
+      const statementMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Registry.MarketplaceInvestPropertyStatement.Action;
+
+      if (!statementMeta.property_hash || !statementMeta.braname || !statementMeta.property_amount) {
+        throw new Error(t('processDecisions.error.mktipropMetaInvalid'));
+      }
+
+      const { info } = useSystemStore();
+
+      const protocolAction: Registry.MarketplaceInvestPropertyDecision.Action = {
+        registry_id: Registry.MarketplaceInvestPropertyDecision.registry_id,
+        coopname: info.coopname,
+        username,
+        lang: 'ru',
+        decision_id,
+        braname: statementMeta.braname,
+        branch_name: statementMeta.branch_name,
+        agreement_number: statementMeta.agreement_number,
+        agreement_created_at: statementMeta.agreement_created_at,
+        property_form: statementMeta.property_form,
+        property_hash: statementMeta.property_hash,
+        property_name: statementMeta.property_name,
+        property_description: statementMeta.property_description,
+        property_quantity: statementMeta.property_quantity,
+        property_unit: statementMeta.property_unit,
+        property_amount: statementMeta.property_amount,
+      };
+
+      return await new DigitalDocument().generate(protocolAction, {
+        lang: 'ru',
+      });
+    },
+    infoComponent: InvestPropertyDecisionInfo,
+  });
+
   // Обработчик для BranchFinancialAidProtocol (протокол совета о выплате
   // материальной помощи доверенному кооперативного участка).
   // Документ-Решение совета (registry 1112) генерируется из метаданных
@@ -192,7 +304,7 @@ export function registerBaseDecisionHandlers() {
 
       const statementMeta = JSON.parse(
         row.table.statement.meta,
-      ) as Cooperative.Registry.BranchFinancialAidStatement.Action;
+      ) as Registry.BranchFinancialAidStatement.Action;
 
       if (
         !statementMeta.aid_hash ||
@@ -205,10 +317,10 @@ export function registerBaseDecisionHandlers() {
 
       const { info } = useSystemStore();
 
-      const protocolAction: Cooperative.Registry.BranchFinancialAidProtocol.Action =
+      const protocolAction: Registry.BranchFinancialAidProtocol.Action =
         {
           registry_id:
-            Cooperative.Registry.BranchFinancialAidProtocol.registry_id,
+            Registry.BranchFinancialAidProtocol.registry_id,
           coopname: info.coopname,
           username,
           lang: 'ru',
@@ -223,6 +335,8 @@ export function registerBaseDecisionHandlers() {
         lang: 'ru',
       });
     },
+    // Основание, участок, получатель и сумма — в карточке вопроса (слово владельца 08.11.2026).
+    infoComponent: BranchAidDecisionInfo,
   });
 
   // Обработчик для DecisionOfParticipantExit (решение о выходе пайщика)

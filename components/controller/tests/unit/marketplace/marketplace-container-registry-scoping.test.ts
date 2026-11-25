@@ -26,7 +26,9 @@ const branches = (...kus: string[]): IGrantedScope => ({ scopes: ['own-KU'], kus
 
 const makeContainerResolver = () => {
   const containerService = { list: jest.fn().mockResolvedValue([]) } as any;
-  return { resolver: new MarketplaceContainerResolver(containerService), containerService };
+  // Справочник участков нужен только заведению партии боксов; отбор по охвату его не зовёт.
+  const branches = { assertBranchExists: jest.fn() } as any;
+  return { resolver: new MarketplaceContainerResolver(containerService, branches), containerService };
 };
 
 const makeCellResolver = () => {

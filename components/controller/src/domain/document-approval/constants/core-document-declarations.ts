@@ -1,5 +1,5 @@
 import type { InnerDocumentDeclaration } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 /** Имя, под которым ядро объявляет базовый набор документов кооператива. */
 export const CORE_DOCUMENTS_OWNER = 'core';
@@ -16,7 +16,7 @@ export const documentsOwnerOf = (extension_name: string): string =>
 export const onboardingExtensionOf = (owner: string): string =>
   owner === CORE_DOCUMENTS_OWNER ? CORE_STEPS_EXTENSION : owner;
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 /**
  * Оператор платформы. Оферту о присоединении к платформе (50) утверждает его

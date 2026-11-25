@@ -112,7 +112,6 @@ export const useDesktopStore = defineStore(namespace, () => {
     // Столы приложений из каталога сервер не знает — возвращаем их на место.
     mergeRemoteWorkspaces();
 
-    console.log('🏠 [DesktopStore] Desktop updated, active workspace:', activeWorkspaceName.value);
     // Сбрасываем состояние загрузки после загрузки рабочего стола
     isWorkspaceChanging.value = false;
   }

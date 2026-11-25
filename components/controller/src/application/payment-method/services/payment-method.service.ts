@@ -6,7 +6,6 @@ import type { UpdateBankAccountInputDTO } from '../dto/update-bank-account-input
 import type { DeletePaymentMethodDTO } from '../dto/delete-payment-method-input.dto';
 import type { CreateBankAccountInputDTO } from '../dto/create-bank-account-input.dto';
 import type { AddPaymentMethodInputDTO } from '../dto/add-payment-method-input.dto';
-import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { PaymentMethodDTO } from '../dto/payment-method.dto';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -15,10 +14,17 @@ import { DomainError } from '@coopenomics/extension-kit';
 export class PaymentMethodService {
   constructor(private readonly paymentMethodInteractor: PaymentMethodInteractor) {}
 
+  /**
+   * Список проходит через DTO, как и одиночный ответ: у реквизитов СБП,
+   * сохранённых до появления поля банка, DTO подставляет пустую строку.
+   * Доменная запись без DTO отдавала в обязательное поле `SbpAccount.bank_name`
+   * пустоту, и запрос реквизитов на столе падал целиком (задача 367-3).
+   */
   async listPaymentMethods(
     data?: GetPaymentMethodsInputDTO
-  ): Promise<PaginationResultDomainInterface<PaymentMethodDomainEntity>> {
-    return this.paymentMethodInteractor.listPaymentMethods(data);
+  ): Promise<PaginationResultDomainInterface<PaymentMethodDTO>> {
+    const page = await this.paymentMethodInteractor.listPaymentMethods(data);
+    return { ...page, items: page.items.map((item) => new PaymentMethodDTO(item)) };
   }
 
   async createBankAccount(data: CreateBankAccountInputDTO): Promise<PaymentMethodDTO> {

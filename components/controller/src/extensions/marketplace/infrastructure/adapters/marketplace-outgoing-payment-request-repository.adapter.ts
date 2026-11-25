@@ -1,15 +1,25 @@
-import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { TableStore, isNull, oneOf } from '@coopenomics/extension-kit';
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceOutgoingPaymentRequestStatuses } from '../../domain/entities/marketplace-outgoing-payment-request.types';
 import type {
+  MarketplaceOutgoingPaymentLine,
+  MarketplaceOutgoingPaymentRequestStatus,
+} from '../../domain/entities/marketplace-outgoing-payment-request.types';
+import type {
+  MarketplaceOutgoingPaymentChainState,
   MarketplaceOutgoingPaymentRequestCreateInput,
   MarketplaceOutgoingPaymentRequestDomainRepository,
 } from '../../domain/repositories/marketplace-outgoing-payment-request.repository';
-import type { MarketplaceOutgoingPaymentRequestStatus } from '../../domain/entities/marketplace-outgoing-payment-request.types';
 import { MarketplaceOutgoingPaymentRequestEntity } from '../entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceOutgoingPaymentRequestMapper } from '../mappers/marketplace-outgoing-payment-request.mapper';
+
+/** Конечные состояния пакета: дельта цепи их не откатывает. */
+const FINAL_STATUSES: MarketplaceOutgoingPaymentRequestStatus[] = [
+  MarketplaceOutgoingPaymentRequestStatuses.COMPLETED,
+  MarketplaceOutgoingPaymentRequestStatuses.DECLINED,
+];
 
 @Injectable()
 export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
@@ -17,31 +27,29 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
 {
   constructor(
     @Inject(MARKETPLACE_OUTGOING_PAYMENT_REQUEST_STORE)
-private readonly repo: TableStore<MarketplaceOutgoingPaymentRequestEntity>,
+    private readonly repo: TableStore<MarketplaceOutgoingPaymentRequestEntity>,
     private readonly mapper: MarketplaceOutgoingPaymentRequestMapper
   ) {}
 
-  async createIfNotExists(
+  async create(
     input: MarketplaceOutgoingPaymentRequestCreateInput
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity> {
-    const existing = await this.repo.findOne({ coopname: input.coopname, order_hash: input.order_hash });
-    if (existing) return this.mapper.toDomain(existing);
     const row = this.repo.create({
       coopname: input.coopname,
-      order_hash: input.order_hash,
-      order_id: input.order_id,
-      apl_reception_id: input.apl_reception_id,
+      payment_hash: input.payment_hash,
+      lines: input.lines,
       payee_account: input.payee_account,
-      amount: input.amount,
+      amount: '0',
       symbol: input.symbol,
       purpose: input.purpose,
       payout_destination: input.payout_destination ?? null,
-      withheld_amount: input.withheld_amount ?? '0',
-      status: MarketplaceOutgoingPaymentRequestStatuses.PENDING,
+      withheld_amount: '0',
+      status: MarketplaceOutgoingPaymentRequestStatuses.OPEN,
       completed_at: null,
       decline_reason: null,
-      payout_tx_hash: input.payout_tx_hash ?? null,
-      core_payment_id: input.core_payment_id ?? null,
+      payout_tx_hash: null,
+      core_payment_id: null,
+      settled_at: null,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
@@ -52,20 +60,12 @@ private readonly repo: TableStore<MarketplaceOutgoingPaymentRequestEntity>,
     return row ? this.mapper.toDomain(row) : null;
   }
 
-  async findByOrderHash(
+  async findByPaymentHash(
     coopname: string,
-    order_hash: string
+    payment_hash: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
-    const row = await this.repo.findOne({ coopname, order_hash });
+    const row = await this.repo.findOne({ coopname, payment_hash });
     return row ? this.mapper.toDomain(row) : null;
-  }
-
-  async findByAplReceptionId(
-    coopname: string,
-    apl_reception_id: string
-  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]> {
-    const rows = await this.repo.find({ coopname, apl_reception_id }, { order: { created_at: 'DESC' } });
-    return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async listByPayee(
@@ -93,63 +93,92 @@ private readonly repo: TableStore<MarketplaceOutgoingPaymentRequestEntity>,
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
+  async applyLines(
+    coopname: string,
+    payment_hash: string,
+    lines: MarketplaceOutgoingPaymentLine[]
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    return this.patch(coopname, payment_hash, () => ({ lines }));
+  }
+
+  async applyChainState(
+    coopname: string,
+    payment_hash: string,
+    state: MarketplaceOutgoingPaymentChainState
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    return this.patch(coopname, payment_hash, (row) => ({
+      amount: state.amount,
+      withheld_amount: state.withheld_amount,
+      // Конечное состояние ставят подтверждение и отказ кассира — дельта
+      // того же блока его не откатывает.
+      status: FINAL_STATUSES.includes(row.status) ? row.status : state.status,
+    }));
+  }
+
   async applyCompletion(
     coopname: string,
-    order_hash: string,
-    patch: {
-      completed_at: Date;
-      core_payment_id?: string | null;
-      payout_tx_hash?: string | null;
-    }
+    payment_hash: string,
+    patch: { completed_at: Date; payout_tx_hash?: string | null }
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
-    const row = await this.repo.findOne({ coopname, order_hash });
-    if (!row) return null;
-    if (row.status === MarketplaceOutgoingPaymentRequestStatuses.COMPLETED) {
-      return this.mapper.toDomain(row);
-    }
-    await this.repo.update(
-      { id: row.id },
-      {
-        status: MarketplaceOutgoingPaymentRequestStatuses.COMPLETED,
-        completed_at: patch.completed_at,
-        core_payment_id: patch.core_payment_id ?? row.core_payment_id,
-        payout_tx_hash: patch.payout_tx_hash ?? row.payout_tx_hash,
-      }
+    // Признак первого подтверждения — отметка времени: состояние COMPLETED
+    // дельта таблицы `payouts` могла поставить раньше действия кассира.
+    return this.patch(coopname, payment_hash, (row) =>
+      row.completed_at
+        ? null
+        : {
+            status: MarketplaceOutgoingPaymentRequestStatuses.COMPLETED,
+            completed_at: patch.completed_at,
+            payout_tx_hash: patch.payout_tx_hash ?? row.payout_tx_hash,
+          }
     );
-    const updated = await this.repo.findOneOrFail({ id: row.id });
-    return this.mapper.toDomain(updated);
   }
 
   async applyDecline(
     coopname: string,
-    order_hash: string,
+    payment_hash: string,
     reason: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
-    const row = await this.repo.findOne({ coopname, order_hash });
-    if (!row) return null;
-    if (row.status === MarketplaceOutgoingPaymentRequestStatuses.DECLINED) {
-      return this.mapper.toDomain(row);
-    }
-    await this.repo.update(
-      { id: row.id },
-      {
-        status: MarketplaceOutgoingPaymentRequestStatuses.DECLINED,
-        decline_reason: reason,
-      }
+    // Признак первого отказа — записанная причина: состояние DECLINED дельта
+    // таблицы `payouts` могла поставить раньше действия кассира.
+    return this.patch(coopname, payment_hash, (row) =>
+      row.decline_reason
+        ? null
+        : { status: MarketplaceOutgoingPaymentRequestStatuses.DECLINED, decline_reason: reason }
     );
-    const updated = await this.repo.findOneOrFail({ id: row.id });
-    return this.mapper.toDomain(updated);
   }
 
   async applyCorePaymentId(
     coopname: string,
-    order_hash: string,
+    payment_hash: string,
     core_payment_id: string
   ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
-    const row = await this.repo.findOne({ coopname, order_hash });
+    return this.patch(coopname, payment_hash, () => ({ core_payment_id }));
+  }
+
+  async listUnsettled(coopname: string): Promise<MarketplaceOutgoingPaymentRequestDomainEntity[]> {
+    const rows = await this.repo.find({ coopname, settled_at: isNull() }, { order: { created_at: 'ASC' } });
+    return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async markSettled(coopname: string, payment_hash: string, at: Date): Promise<void> {
+    await this.patch(coopname, payment_hash, (row) => (row.settled_at ? null : { settled_at: at }));
+  }
+
+  async deleteByPaymentHash(coopname: string, payment_hash: string): Promise<void> {
+    await this.repo.delete({ coopname, payment_hash });
+  }
+
+  /** Правка пакета по хэшу; `null` из правила — запись не меняется. */
+  private async patch(
+    coopname: string,
+    payment_hash: string,
+    build: (row: MarketplaceOutgoingPaymentRequestEntity) => Partial<MarketplaceOutgoingPaymentRequestEntity> | null
+  ): Promise<MarketplaceOutgoingPaymentRequestDomainEntity | null> {
+    const row = await this.repo.findOne({ coopname, payment_hash });
     if (!row) return null;
-    await this.repo.update({ id: row.id }, { core_payment_id });
-    const updated = await this.repo.findOneOrFail({ id: row.id });
-    return this.mapper.toDomain(updated);
+    const changes = build(row);
+    if (!changes) return this.mapper.toDomain(row);
+    await this.repo.update({ id: row.id }, changes);
+    return this.mapper.toDomain(await this.repo.findOneOrFail({ id: row.id }));
   }
 }

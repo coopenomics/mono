@@ -21,7 +21,7 @@ function build(createMeet: jest.Mock) {
   };
   const chain = { createMeet, getMeet: jest.fn(async () => null) };
   const aggregator = { buildDocumentAggregate: jest.fn(async () => null) };
-  const interactor = new MeetInteractor({} as any, pre as any, {} as any, chain as any, aggregator as any);
+  const interactor = new MeetInteractor({} as any, pre as any, {} as any, chain as any, aggregator as any, {} as any);
   return { interactor, pre, rows };
 }
 

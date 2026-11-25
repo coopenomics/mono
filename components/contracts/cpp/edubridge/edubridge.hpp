@@ -37,9 +37,9 @@ using namespace Edubridge;
  *    курс — рабочее состояние в RAM, стирается по истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (15 actions): openlesson, chargelesson, closecharge, droplesson,
+ *  - **p.edu.rid** (16 actions): openlesson, chargelesson, closecharge, droplesson,
  *    holdrid, submitrid, onridauth, onriddecl, signridact, apprvridact,
- *    dclridact, acceptrid, declinerid, recallrid,
+ *    dclridact, acceptrid, returnrid, recallrid,
  *    wthshare — преподаватель отчитывается по занятию, контракт по одной
  *    подписке за действие считает его взнос (оплата занятия уходит из
  *    резерва подписки), и преподаватель передаёт материалы на
@@ -409,18 +409,22 @@ public:
                                    document2 act);
 
   /**
-   * @brief Отказ совета в приёме РИД по Протоколу (3009). Материалы снимаются
-   * с ответственного хранения (o.edu.retrid, Дт 76 / Кт 08), запись стирается.
+   * @brief Взнос не принят — материалы возвращаются преподавателю на
+   * доработку (o.edu.retrid, Дт 76 / Кт 08). Один путь для отказа совета,
+   * истёкшего срока вопроса и отказа председателя в подписи акта. Запись
+   * материалов остаётся и ждёт повторной передачи (`holdrid`); подписки
+   * участников не затрагиваются.
    * @ingroup public_edubridge_actions
    */
-  [[eosio::action]] void declinerid(eosio::name coopname,
-                                    checksum256 rid_hash,
-                                    document2 decision);
+  [[eosio::action]] void returnrid(eosio::name coopname,
+                                   checksum256 rid_hash,
+                                   std::string reason);
 
   /**
-   * @brief Снятие материалов занятия с ответственного хранения по рекламации
-   * внутри гарантийного срока (o.edu.retrid, Дт 76 / Кт 08). Материалы
-   * возвращаются преподавателю, паевой взнос по ним не оформляется.
+   * @brief Расчёт по материалам закрывается без приёма — решением
+   * кооператива, с основанием. Материалы на хранении снимаются (o.edu.retrid,
+   * Дт 76 / Кт 08), взнос преподавателя из резерва курса переходит на кошелёк
+   * программы (o.edu.free). Паевой взнос не оформляется, запись стирается.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void recallrid(eosio::name coopname,

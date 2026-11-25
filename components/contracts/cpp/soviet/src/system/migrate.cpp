@@ -71,6 +71,41 @@ void soviet::migrate() {
     }
 
 
+    // ────────────────────────────────────────────────────────────────────────
+    // Разовое удаление ТЕСТОВОГО пайщика ВОСХОДа hwpzzazaupgh (C28-42,
+    // 09.11.2026). Учётная запись «Тестер Тест Тестович» принята советом на
+    // боевой цепи 07.08.2024 при проверке регистрации, денег не вносила и
+    // участвовала в счёте кворума общего собрания. Решение председателя: убрать
+    // из реестра пайщиков целиком, проводок не делать.
+    //
+    // Счётчик активных пайщиков живёт в registrator: если тестер был принят и с
+    // правом голоса, вычитаем его тем же decparticpnt, что и блокировка. Раскатка
+    // вызывает registrator::migrate раньше soviet::migrate, и пересчёт там видит
+    // тестера ещё в реестре — вычитание здесь доводит счётчик до верного числа.
+    //
+    // Список синхронизирован с registrator::migrate и ledger2::migrate.
+    // Идемпотентно: при повторном прогоне строки нет → no-op.
+    {
+        const eosio::name TEST_COOP = "voskhod"_n;
+        const eosio::name TEST_PARTICIPANT = "hwpzzazaupgh"_n;
+
+        participants_index participants(_soviet, TEST_COOP.value);
+        auto it = participants.find(TEST_PARTICIPANT.value);
+        if (it != participants.end()) {
+            const bool counted = it->is_active() && it->has_vote;
+            participants.erase(it);
+
+            if (counted) {
+                action(
+                    permission_level{_soviet, "active"_n},
+                    _registrator,
+                    "decparticpnt"_n,
+                    std::make_tuple(TEST_COOP, TEST_PARTICIPANT)
+                ).send();
+            }
+        }
+    }
+
     // Старый код миграции (закомментирован)
     // cooperatives2_index coops(_registrator, _registrator.value);
 

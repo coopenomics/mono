@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { type IGenerationOptions, type IProjectData, Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -20,24 +20,24 @@ export class FreeDecisionInteractor {
     @Inject(SOVIET_BLOCKCHAIN_PORT) private readonly SovietBlockchainPort: SovietBlockchainPort
   ) {}
 
-  async createProjectOfFreeDecision(data: Cooperative.Document.IProjectData): Promise<ProjectFreeDecisionDomainEntity> {
+  async createProjectOfFreeDecision(data: IProjectData): Promise<ProjectFreeDecisionDomainEntity> {
     await this.projectDecisionRepository.create(data);
     return new ProjectFreeDecisionDomainEntity(data);
   }
 
   async generateProjectOfFreeDecisionDocument(
-    data: Cooperative.Registry.ProjectFreeDecision.Action,
-    options?: Cooperative.Document.IGenerationOptions
+    data: Registry.ProjectFreeDecision.Action,
+    options?: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.ProjectFreeDecision.registry_id;
+    data.registry_id = Registry.ProjectFreeDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateFreeDecisionDocument(
-    data: Cooperative.Registry.FreeDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.FreeDecision.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.FreeDecision.registry_id;
+    data.registry_id = Registry.FreeDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
@@ -46,9 +46,9 @@ export class FreeDecisionInteractor {
 
     if (!document) throw DomainError.badRequest('DOCUMENT_NOT_FOUND');
 
-    if (data.document.meta.registry_id != Cooperative.Registry.ProjectFreeDecision.registry_id)
+    if (data.document.meta.registry_id != Registry.ProjectFreeDecision.registry_id)
       throw DomainError.badRequest('FREE_DECISION_WRONG_REGISTRY', {
-        expected: Cooperative.Registry.ProjectFreeDecision.registry_id,
+        expected: Registry.ProjectFreeDecision.registry_id,
       });
 
     if (data.coopname != config.coopname)

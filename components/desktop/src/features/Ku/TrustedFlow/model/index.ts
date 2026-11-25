@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
@@ -29,7 +29,7 @@ export function useKuTrustedFlow() {
    * доверенному лицу/оператору (330) — с подставленными паспортными данными заявителя.
    * Якорь процесса (hash) фиксируется здесь и переиспользуется при подписании.
    */
-  async function prepareTrustedDocuments(input: { branchName: string; trustee: string }): Promise<{
+  async function prepareTrustedDocuments(input: { branchName: string; trustee: string; braname: string }): Promise<{
     hash: string;
     application: IGeneratedDocument;
     authority: IGeneratedDocument;
@@ -38,8 +38,8 @@ export function useKuTrustedFlow() {
     try {
       const hash = await generateUniqueHash();
 
-      const application = await new DigitalDocument().generate<Cooperative.Registry.BranchTrustedLiabilityAgreement.Action>({
-        registry_id: Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id,
+      const application = await new DigitalDocument().generate<Registry.BranchTrustedLiabilityAgreement.Action>({
+        registry_id: Registry.BranchTrustedLiabilityAgreement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash,
@@ -47,14 +47,16 @@ export function useKuTrustedFlow() {
         trustee: input.trustee,
       });
 
-      const authority = await new DigitalDocument().generate<Cooperative.Registry.BranchTrustedPowerOfAttorney.Action>({
-        registry_id: Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id,
+      // Доверенность собирает узел: номер, протокол совета и доверенность
+      // председателя участка — основание полномочий — он вписывает сам.
+      const authority = (await api.generateTrustedPowerOfAttorney({
         coopname: system.info.coopname,
         username: session.username,
         hash,
         branch_name: input.branchName,
         trustee: input.trustee,
-      });
+        braname: input.braname,
+      })) as unknown as IGeneratedDocument;
 
       return { hash, application, authority };
     } finally {
@@ -74,10 +76,10 @@ export function useKuTrustedFlow() {
     isSubmitting.value = true;
     try {
       const application = await new DigitalDocument(prepared.application).sign<
-        Cooperative.Registry.BranchTrustedLiabilityAgreement.Meta
+        Registry.BranchTrustedLiabilityAgreement.Meta
       >(session.username);
       const authority = await new DigitalDocument(prepared.authority).sign<
-        Cooperative.Registry.BranchTrustedPowerOfAttorney.Meta
+        Registry.BranchTrustedPowerOfAttorney.Meta
       >(session.username);
 
       await api.requestTrusted({

@@ -8,7 +8,9 @@
     .edu-slots__fields
       BaseSelect(:model-value="slot.weekday" :label="$t('edubridge.scheduleSlots.weekdayLabel')" :options="dayChoices" :disabled="disabled" @update:model-value="patch(i, { weekday: Number($event) })")
       //- Резервное окно дня и времени не имеет: его минуты администратор ставит в календарь внеочередным занятием.
-      BaseInput(v-if="slot.weekday !== RESERVE_WEEKDAY" :model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabel')" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
+      //- Время окна — местное время кооператива: пояс стоит в подписи поля, чтобы
+      //- администратор и ученики понимали, по какому времени идут занятия.
+      BaseInput(v-if="slot.weekday !== RESERVE_WEEKDAY" :model-value="slot.time" :label="$t('edubridge.scheduleSlots.timeLabelWithZone', { zone: timezoneLabel })" type="time" stack-label :disabled="disabled" @update:model-value="patch(i, { time: String($event ?? '') })")
       .t-sm.t-muted.edu-slots__reserve-note(v-else) {{ $t('edubridge.scheduleSlots.reserveNote') }}
       BaseInput(:model-value="slot.minutes" :label="$t('edubridge.scheduleSlots.minutesLabel')" type="number" min="5" step="5" :disabled="disabled" @update:model-value="patch(i, { minutes: Number($event || 0) })")
       //- Стоимость часа преподавателя в окне: из неё и минут окна складывается стоимость занятия для участника; членский взнос кооператива сверх неё.
@@ -29,6 +31,7 @@
 
 <script setup lang="ts">
 import { BaseButton, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
+import { getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import { RESERVE_WEEKDAY, WEEKDAY_OPTIONS, type IScheduleSlot } from '../../entities/Lesson';
 import { t } from '../../i18n';
 
@@ -53,6 +56,9 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [IScheduleSlot[]] }>();
 
 /** Дни недели и резерв: минуты резерва входят в программу, в календарь их ставит администратор сам. */
+/** Часовой пояс кооператива — тот же, по которому сервер строит календарь занятий («МСК»). */
+const timezoneLabel = getTimezoneLabel();
+
 const dayChoices = [...WEEKDAY_OPTIONS, { value: RESERVE_WEEKDAY, label: t('edubridge.scheduleSlots.reserve') }];
 
 function patch(i: number, change: Partial<IScheduleSlot>): void {

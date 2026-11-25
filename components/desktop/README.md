@@ -103,4 +103,4 @@ extensions/                # Подключаемые расширения
 
 ## Лицензия
 
-[BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru)
+[MIT](LICENSE), кроме приложений «Стол заказов», «Благорост» и «Образование» (`extensions/market`, `extensions/capital`, `extensions/edubridge`, а также каталоги и файлы Стола заказов в `src/` — `pages/Marketplace`, `widgets/Marketplace`, `entities/Marketplace*`, `features/Marketplace*`, `shared/lib/marketplace`): закрытая лицензия, все права защищены, условия — [LICENSES/VOSKHOD-PROPRIETARY.md](../../LICENSES/VOSKHOD-PROPRIETARY.md).

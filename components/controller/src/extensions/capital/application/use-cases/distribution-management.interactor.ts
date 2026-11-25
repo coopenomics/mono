@@ -5,7 +5,7 @@ import type { RefreshProgramDomainInput } from '../../domain/actions/refresh-pro
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '../documents-dto/generation-convert-statement-document.dto';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import type { InnerTransactResult } from '@coopenomics/innercoop';
 import { DomainError } from '@coopenomics/extension-kit';
 
@@ -46,7 +46,7 @@ export class DistributionManagementInteractor {
   async prepareGenerationConvertStatementData(
     data: GenerationConvertStatementGenerateDocumentInputDTO,
     currentUser: IMonoAccount
-  ): Promise<Cooperative.Registry.GenerationConvertStatement.Action> {
+  ): Promise<Registry.GenerationConvertStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
       throw DomainError.badRequest('CAPITAL_CONVERSION_PROJECT_HASH_REQUIRED');
@@ -64,6 +64,6 @@ export class DistributionManagementInteractor {
     return {
       ...data,
       appendix_hash: userAppendix.appendix_hash,
-    } as Cooperative.Registry.GenerationConvertStatement.Action;
+    } as Registry.GenerationConvertStatement.Action;
   }
 }

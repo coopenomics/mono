@@ -115,7 +115,8 @@ export const defaultConfig: IConfig = {
 };
 
 // Схема валидации конфигурации. Описания полей (label/note) — на русском, для
-// формы установки расширения; системное состояние ЦПП скрыто (`visible: false`).
+// формы установки расширения; системное состояние ЦПП и служебная
+// одновременность выдачи скрыты (`visible: false`).
 export const Schema = z.object({
   issuance: z
     .object({
@@ -138,6 +139,10 @@ export const Schema = z.object({
       describeConfigField({
         label: t('marketplace.types.issueSectionTitle'),
         note: t('marketplace.types.issueSectionHint'),
+        // Служебный параметр узла, а не выбор кооператива: председатель при
+        // установке не знает, что такое бандл и подача в цепь. Значение по
+        // умолчанию рабочее (решение владельца 01.11.2026).
+        visible: false,
       })
     ),
   coopAcceptance: z

@@ -1,0 +1,154 @@
+feature: expenses.counterparties
+title: Реестр контрагентов шасси расходов — организации и ИП для оплаты по реквизитам
+
+# Задача 99D-35, решение владельца 11.11.2026. Контрагент — организация или
+# ИП, которым кооператив платит по реквизитам. Совет (председатель и члены
+# совета) ведёт всех контрагентов на столе совета; председатель участка и его
+# доверенные лица видят всех и добавляют контрагентов с пометкой своего
+# участка прямо из поля выбора получателя. Реквизиты проверяются правилами
+# страны кооператива из пакета юрисдикций (длины, контрольные суммы ИНН, ОГРН,
+# ключ счёта по БИК); заполнение по ИНН — через DaData, где расширение
+# подключено. Записка шасси берёт наименование и реквизиты организации из
+# карточки и сверяет их с текстом подписанной записки.
+
+sources:
+  backend:
+    - components/controller/src/extensions/expenses/application/services/expense-counterparties.service.ts
+    - components/controller/src/extensions/expenses/application/services/expense-branch-operators.service.ts
+    - components/controller/src/extensions/expenses/application/resolvers/expense-counterparties.resolver.ts
+    - components/controller/src/extensions/expenses/application/dto/expense-counterparty.dto.ts
+    - components/controller/src/extensions/expenses/domain/enums/expense-counterparty-kind.enum.ts
+    - components/controller/src/extensions/expenses/infrastructure/entities/expense-counterparty.record.ts
+    - components/controller/src/extensions/expenses/migrations/database/1794383900891-counterparties.ts
+    - components/jurisdictions/src/requisites.ts
+    - components/jurisdictions/src/ru/requisites.ts
+  ui:
+    - components/desktop/src/shared/ui/domain/ExpenseCounterpartyFormDialog/**
+    - components/desktop/src/shared/ui/domain/ExpenseCounterpartySelect/**
+    - components/desktop/src/shared/lib/expenses/counterparties.ts
+    - components/desktop/extensions/expenses/pages/ExpenseCounterpartiesPage.vue
+
+cases:
+  - id: exp.cp.happy.01
+    level: backend
+    kind: happy
+    scenario: Форма контрагента строится по стране кооператива
+    expect: у юрлица ИНН из 10 цифр первым полем и КПП, у ИП ИНН из 12 и без КПП, ОГРН у ИП — ОГРНИП; неизвестная страна — отказ
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.happy.02
+    level: backend
+    kind: happy
+    scenario: Совет добавляет контрагента кооператива
+    expect: >
+      реквизиты строкой — в порядке платёжного поручения, как в служебной записке;
+      лишние поля формы отбрасываются; участки видят контрагента и не правят его;
+      член совета добавляет так же, как председатель
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.happy.03
+    level: backend
+    kind: happy
+    scenario: Председатель участка добавляет контрагента своего участка
+    expect: >
+      контрагент помечен участком; другой участок видит его и не правит,
+      не архивирует и не удаляет; совет правит, пометка участка сохраняется
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.happy.04
+    level: backend
+    kind: happy
+    scenario: Плановый расход по реквизитам контрагента; контрагент в работе
+    expect: >
+      из неоплаченной записи плана контрагента не удалить (EXPENSES_COUNTERPARTY_IN_USE),
+      только в архив; архивный контрагент скрыт из выбора и не принимается для новой записи
+      (EXPENSES_COUNTERPARTY_ARCHIVED); возврат из архива снова открывает оплату
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.side.01
+    level: backend
+    kind: break
+    scenario: Опечатка в ИНН, ОГРН, КПП или счёте; пустое наименование
+    expect: >
+      EXPENSES_COUNTERPARTY_REQUISITES_INVALID с названиями полей либо
+      EXPENSES_COUNTERPARTY_NAME_REQUIRED; контрагент не создаётся. Любая замена
+      одной цифры ИНН юрлица ловится контрольной суммой; счёт и корр. счёт
+      сверяются с БИК
+    test: components/jurisdictions/src/requisites.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.side.02
+    level: backend
+    kind: side
+    scenario: Второй контрагент с тем же ИНН и тем же счётом; тот же ИНН с другим счётом
+    expect: повтор отклоняется EXPENSES_COUNTERPARTY_DUPLICATE; другой счёт той же организации принимается
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.side.03
+    level: backend
+    kind: side
+    scenario: Пайщик без участка, гость и оператор участка без пометки участка
+    expect: >
+      пайщику реестр закрыт (EXPENSES_COUNTERPARTY_READ_FORBIDDEN), гостю — 401;
+      оператор участка не добавляет контрагента кооператива и контрагента чужого
+      участка (EXPENSES_COUNTERPARTY_MANAGE_FORBIDDEN); несуществующий участок —
+      EXPENSES_BRANCH_NOT_FOUND
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    api: components/api-tests/src/expenses/counterparties.test.ts
+    status: written
+
+  - id: exp.cp.side.04
+    level: backend
+    kind: side
+    scenario: Поиск контрагента и показ архива
+    expect: поиск по наименованию или налоговому номеру одним запросом с лимитом; архив по умолчанию скрыт
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    external: unreachable
+    external_reason: "форма запроса к базе (условие «или», лимит) снаружи не видна; результат поиска проверяет exp.cp.happy.02"
+    status: written
+
+  # 11.11.2026 (замечание владельца): условные номера проходили по длине, а
+  # отказ сервера был общим сообщением. Теперь нарушения видны у полей сразу.
+  - id: exp.cp.side.05
+    level: backend
+    kind: side
+    scenario: Председатель вводит реквизиты с ошибкой в цифрах; КПП длиннее 9 знаков
+    expect: >
+      проверка до сохранения возвращает нарушение по каждому полю (CHECKSUM у ИНН,
+      ОГРН, расчётного и корр. счёта при условных номерах); форма показывает его
+      у поля; маска КПП — 9 знаков, буквы только в пятом и шестом; проверка закрыта
+      тем, кому закрыт реестр
+    test: components/controller/tests/unit/expenses/expense-counterparties.service.test.ts
+    external: unreachable
+    external_reason: "запрос показа без записи; те же правила при сохранении проверяет exp.cp.side.01"
+    status: written
+
+  - id: exp.cp.ui.01
+    level: ui
+    kind: happy
+    scenario: Председатель открывает «Реестр контрагентов» на столе совета и добавляет контрагента
+    expect: >
+      реестр с поиском и показом архива; форма по стране кооператива; ИНН с
+      опечаткой форма отмечает у поля до сохранения; верные реквизиты
+      сохраняются, контрагент — строкой реестра
+    test: components/docs-harness/scenarios/expenses/counterparties.mjs
+    status: written
+
+  - id: exp.cp.ui.02
+    level: ui
+    kind: happy
+    scenario: Председатель открывает контрагента из реестра
+    expect: панель справа — реквизиты в порядке платёжного поручения, назначение по умолчанию, «Изменить», «В архив», «Удалить»
+    test: components/docs-harness/scenarios/expenses/counterparties.mjs
+    status: written

@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GqlJwtAuthGuard,
@@ -13,7 +14,6 @@ import {
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceFixIssuanceFactInputDTO,
@@ -39,15 +39,6 @@ import {
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * Выдача имущества в паевой модели (компонент 68): оператор фиксирует факт,
@@ -161,7 +152,7 @@ export class MarketplaceIssuanceResolver {
     @Args('data') data: MarketplaceSignIssuanceActInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
     const coopname = platformSettings().coopname;
-    const saga = await this.service.closeIssuance({ coopname, operator_account: member.username, order_id: data.order_id, signed_act: data.signed_act });
+    const saga = await this.service.closeIssuance({ coopname, operator_account: member.username, order_id: data.order_id, signed_act: data.signed_act, manual: data.manual ?? false });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
 
@@ -196,23 +187,6 @@ export class MarketplaceIssuanceResolver {
     return toGeneratedDocumentDTO(doc);
   }
 
-  @Query(() => GeneratedDocumentDTO, {
-    nullable: true,
-    name: 'marketplaceIssuanceConvertPayload',
-    description:
-      'Заявление 1110 на доплату по факту (разница тела и довзнос участка) — к подписи заказчиком вместе ' +
-      'с заявлением о выдаче, только если факт больше заказа и членского кошелька «Стола заказов» не хватает на довзнос; иначе null.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
-  @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
-  async marketplaceIssuanceConvertPayload(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceIssuanceOrderInputDTO
-  ): Promise<GeneratedDocumentDTO | null> {
-    const doc = await this.service.getConvertSignablePayload(platformSettings().coopname, data.order_id, member.username);
-    return doc ? toGeneratedDocumentDTO(doc) : null;
-  }
-
   @Mutation(() => MarketplaceIssuanceSagaDTO, {
     name: 'marketplaceSignIssuanceStatement',
     description: 'Заказчик подписал заявление: оно уходит совету. Если робот решений совета ответил сразу, в ответе уже есть протокол и акт к подписи; иначе выдача ждёт решение — придёт уведомление.',
@@ -223,7 +197,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceStatementInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
-    const saga = await this.service.submitStatement({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_statement: data.signed_statement, signed_convert: data.signed_convert ?? null });
+    const saga = await this.service.submitStatement({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_statement: data.signed_statement });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
 
@@ -251,7 +225,7 @@ export class MarketplaceIssuanceResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceActInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
-    const saga = await this.service.signAct1({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_act: data.signed_act });
+    const saga = await this.service.signAct1({ coopname: platformSettings().coopname, member_account: member.username, order_id: data.order_id, signed_act: data.signed_act, manual: data.manual ?? false });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
 

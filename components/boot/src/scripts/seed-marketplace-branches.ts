@@ -17,8 +17,9 @@
  *     src/scripts/seed-marketplace-branches.ts
  */
 import { randomUUID } from 'node:crypto'
-import { BranchContract, type Cooperative } from 'cooptypes'
-import { Generator } from '@coopenomics/factory'
+import { BranchContract } from 'cooptypes'
+import type { IOrganizationData } from '@coopenomics/docs-templates'
+import { connectGenerator } from '../init/factory-storage'
 import Blockchain from '../blockchain'
 import config from '../configs'
 
@@ -80,13 +81,10 @@ async function main() {
   const coopname = config.provider
 
   // === 1. Mongo organization upsert для каждого КУ ===
-  const mongoUri = process.env.MONGO_URI
-  if (!mongoUri) throw new Error('MONGO_URI не задан')
-  const generator = new Generator()
-  await generator.connect(mongoUri)
+  const generator = await connectGenerator()
 
   for (const b of BRANCHES) {
-    const orgData: Cooperative.Users.IOrganizationData = {
+    const orgData: IOrganizationData = {
       username: b.braname,
       type: 'coop',
       short_name: b.short_name,

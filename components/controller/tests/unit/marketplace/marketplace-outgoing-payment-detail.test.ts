@@ -5,10 +5,11 @@
  * отсутствовать. Инварианты:
  *   - выплата чужого кооператива для совета не существует (null, а не отказ:
  *     чужой идентификатор не должен подтверждаться ответом);
- *   - заказ не найден → order = null, разворот всё равно отдаётся;
+ *   - заказы выплаты: один на каждый заказ пакета; не найденный заказ
+ *     пропускается, разворот всё равно отдаётся;
  *   - кассирский порт упал → core_payment = null, marketplace-статус остаётся;
- *   - платёж ищется по order_hash — marketplace заводит его с
- *     payment_hash = order_hash, другого ключа у порта нет.
+ *   - платёж ищется по хэшу выплаты — обход выплат заводит его с
+ *     payment_hash = хэш пакета, другого ключа у порта нет.
  */
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -21,9 +22,11 @@ const paymentOf = (overrides: Record<string, unknown> = {}) =>
   ({
     id: 'pay-1',
     coopname: 'voskhod',
-    order_hash: 'abc123',
-    order_id: 'order-1',
-    apl_reception_id: 'apl-1',
+    payment_hash: 'abc123',
+    lines: [
+      { order_id: 'order-1', order_hash: 'h1' },
+      { order_id: 'order-2', order_hash: 'h2' },
+    ],
     payee_account: 'ant',
     amount: '1000.0000',
     symbol: 'RUB',
@@ -54,7 +57,7 @@ const orderOf = (overrides: Record<string, unknown> = {}) =>
 
 const makeResolver = (opts: {
   payment?: any;
-  order?: any;
+  orders?: any[];
   corePage?: any;
   coreThrows?: boolean;
 }) => {
@@ -62,7 +65,7 @@ const makeResolver = (opts: {
     findById: jest.fn().mockResolvedValue(opts.payment ?? null),
   } as any;
   const orderRepo = {
-    findById: jest.fn().mockResolvedValue(opts.order ?? null),
+    findByIds: jest.fn().mockResolvedValue(opts.orders ?? []),
   } as any;
   const coreGateway = {
     getPayments: opts.coreThrows
@@ -70,11 +73,15 @@ const makeResolver = (opts: {
       : jest.fn().mockResolvedValue(opts.corePage ?? { items: [], totalCount: 0, totalPages: 0, currentPage: 1 }),
   } as any;
   const displayService = {
-    enrichOne: jest.fn().mockResolvedValue({
-      product_name: 'Молоко',
-      orderer_name: 'Петров Пётр Петрович',
-      delivery_point_name: 'Курганский',
-    }),
+    // Реквизиты всех заказов выплаты читаются одним проходом.
+    enrich: jest.fn(async (orders: any[]) =>
+      new Map(
+        orders.map((o) => [
+          o.id,
+          { product_name: 'Молоко', orderer_name: 'Петров Пётр Петрович', delivery_point_name: 'Курганский' },
+        ])
+      )
+    ),
   } as any;
   const resolver = new MarketplaceOutgoingPaymentResolver(
     paymentRepo,
@@ -86,10 +93,10 @@ const makeResolver = (opts: {
 };
 
 describe('marketplaceGetOutgoingPayment', () => {
-  it('собирает выплату, заказ и запись кассирского реестра', async () => {
-    const { resolver, coreGateway } = makeResolver({
+  it('собирает выплату, заказы пакета и запись кассирского реестра', async () => {
+    const { resolver, coreGateway, orderRepo } = makeResolver({
       payment: paymentOf(),
-      order: orderOf(),
+      orders: [orderOf(), orderOf({ id: 'order-2', quantity: 5 })],
       corePage: {
         items: [
           {
@@ -112,10 +119,12 @@ describe('marketplaceGetOutgoingPayment', () => {
     const detail = await resolver.marketplaceGetOutgoingPayment('pay-1');
 
     expect(detail?.payment.id).toBe('pay-1');
-    expect(detail?.order?.product_name).toBe('Молоко');
-    expect(detail?.order?.quantity).toBe(3);
+    expect(orderRepo.findByIds).toHaveBeenCalledWith(['order-1', 'order-2']);
+    expect(detail?.orders.map((o) => o.id)).toEqual(['order-1', 'order-2']);
+    expect(detail?.orders[0].product_name).toBe('Молоко');
+    expect(detail?.orders[1].quantity).toBe(5);
     expect(detail?.core_payment?.status).toBe('completed');
-    // Платёж ищется по order_hash: marketplace заводит его с этим payment_hash.
+    // Платёж ищется по хэшу выплаты: обход заводит его с этим payment_hash.
     expect(coreGateway.getPayments).toHaveBeenCalledWith(
       { coopname: 'voskhod', hash: 'abc123' },
       expect.objectContaining({ page: 1, limit: 1 })
@@ -125,11 +134,11 @@ describe('marketplaceGetOutgoingPayment', () => {
   it('выплату чужого кооператива не показывает и не подтверждает', async () => {
     const { resolver, orderRepo, coreGateway } = makeResolver({
       payment: paymentOf({ coopname: 'other' }),
-      order: orderOf(),
+      orders: [orderOf()],
     });
 
     await expect(resolver.marketplaceGetOutgoingPayment('pay-1')).resolves.toBeNull();
-    expect(orderRepo.findById).not.toHaveBeenCalled();
+    expect(orderRepo.findByIds).not.toHaveBeenCalled();
     expect(coreGateway.getPayments).not.toHaveBeenCalled();
   });
 
@@ -138,26 +147,27 @@ describe('marketplaceGetOutgoingPayment', () => {
     await expect(resolver.marketplaceGetOutgoingPayment('нет-такой')).resolves.toBeNull();
   });
 
-  it('заказ не найден — разворот отдаётся без него', async () => {
-    const { resolver } = makeResolver({ payment: paymentOf(), order: null });
+  it('заказы не найдены — разворот отдаётся без них', async () => {
+    const { resolver } = makeResolver({ payment: paymentOf(), orders: [] });
     const detail = await resolver.marketplaceGetOutgoingPayment('pay-1');
-    expect(detail?.order).toBeNull();
+    expect(detail?.orders).toEqual([]);
     expect(detail?.payment.id).toBe('pay-1');
+    expect(detail?.payment.orders_count).toBe(2);
   });
 
   it('кассирский порт упал — разворот остаётся, core_payment пуст', async () => {
     const { resolver } = makeResolver({
       payment: paymentOf(),
-      order: orderOf(),
+      orders: [orderOf()],
       coreThrows: true,
     });
     const detail = await resolver.marketplaceGetOutgoingPayment('pay-1');
     expect(detail?.core_payment).toBeNull();
-    expect(detail?.order?.product_name).toBe('Молоко');
+    expect(detail?.orders[0].product_name).toBe('Молоко');
   });
 
   it('платежа в реестре кассира ещё нет — core_payment пуст', async () => {
-    const { resolver } = makeResolver({ payment: paymentOf(), order: orderOf() });
+    const { resolver } = makeResolver({ payment: paymentOf(), orders: [orderOf()] });
     const detail = await resolver.marketplaceGetOutgoingPayment('pay-1');
     expect(detail?.core_payment).toBeNull();
   });

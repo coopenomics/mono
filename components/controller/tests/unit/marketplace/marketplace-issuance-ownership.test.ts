@@ -4,7 +4,7 @@
  * чужая подпись не создаёт ни заявления, ни акта.
  */
 import { ForbiddenException } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { COOP, buildMocks, buildOrder, buildSaga, buildService, signedDoc, stubSignatureChecks } from './issuance-saga.fixture';
 
@@ -13,8 +13,8 @@ const OWNER = 'ekaterina';
 /** Другой пайщик того же кооператива — посторонний этому заказу. */
 const STRANGER = 'orderer2';
 
-const ACT_ID = Cooperative.Registry.MarketplaceShareReturnAct.registry_id;
-const STATEMENT_ID = Cooperative.Registry.MarketplaceShareReturnStatement.registry_id;
+const ACT_ID = Registry.MarketplaceShareReturnAct.registry_id;
+const STATEMENT_ID = Registry.MarketplaceShareReturnStatement.registry_id;
 
 function setup(stage: 'statement' | 'act') {
   const order = buildOrder({ orderer_account: OWNER });

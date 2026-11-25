@@ -340,7 +340,7 @@ describe('документы: фабрика утверждений редакц
     const row = await draftRow(RETURN_BY_MONEY)
     originalContext = row.context
     // Заготовка для doc.appr.side.14: реквизиты получателя и блок до правок шаблона.
-    statementMethod = (await gql<any>(council, ADD_METHOD, { d: { username: COUNCIL.account, is_default: false, sbp_data: { phone: randomPhone() } } })).addPaymentMethod.method_id
+    statementMethod = (await gql<any>(council, ADD_METHOD, { d: { username: COUNCIL.account, is_default: false, sbp_data: { phone: randomPhone(), bank_name: 'Т-Банк' } } })).addPaymentMethod.method_id
     blockBeforeEdits = await chainHead()
     const m1 = `<p>API-TESTS-EDIT-${marker}-A</p>`
     const m2 = `<p>API-TESTS-EDIT-${marker}-B</p>`

@@ -40,6 +40,14 @@ title: Паевой взнос в программу «Благорост»
 # «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
 # такие отказы больше не попадают в журнал ошибок сервера как поломки.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
+# Правка 30.10.2026: в contributors.hpp добавлен помощник накопленной суммы
+# взносов имуществом (capital.program-property). Денежный взнос и его учёт
+# не менялись, набор случаев прежний.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/invest_to_program/createpinv.cpp
@@ -138,14 +146,21 @@ cases:
     test: components/boot/src/tests/capital-program-invest.test.ts
     status: passing
 
+  # 02.11.2026: контракт истории принятых взносов не хранит (решение владельца —
+  # RAM цепи экономится, проверка только по живым строкам). Повтор того же
+  # заявления цепь проводит вторым взносом; прежний тест проходил, лишь когда
+  # повтор совпадал с первой транзакцией по id. Отсекать повтор должен контроллер.
   - id: cap.pinv.break.01
-    level: contract
+    level: backend
     kind: break
     scenario: >
-      Повторная отправка того же заявления (двойной клик, повтор транзакции).
-    expect: второй взнос не проходит — заявление уже зафиксировано в реестре
-    test: components/boot/src/tests/capital-program-invest.test.ts
-    status: passing
+      Повторная отправка того же заявления (двойной клик, повтор запроса).
+    expect: >
+      второй взнос не проходит — CAPITAL_PROGRAM_INVEST_DUPLICATE до цепи: хэш взноса выводится
+      из подписанного заявления, недавно отправленное держит контроллер, проведённое видно по журналу ledger2
+    test: components/api-tests/src/capital/program-invest.test.ts
+    api: components/api-tests/src/capital/program-invest.test.ts
+    status: written
 
   # ── Уровень бэкенда ───────────────────────────────────────────────────────
 

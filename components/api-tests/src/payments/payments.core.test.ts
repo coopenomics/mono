@@ -255,13 +255,14 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(sbp.username).toBe(payer.account)
     expect(sbp.method_type).toBe('sbp')
     expect(sbp.data.phone).toBe(phone)
+    expect(sbp.data.bank_name).toBe('Т-Банк')
     const mine = await methodsOf(payerToken, payer.account)
     expect(mine.find(m => m.method_id === sbp.method_id)?.data?.phone).toBe(phone)
   })
 
   it(caseName('pay.core.side.15', 'чужой пайщик не читает, не добавляет, не меняет и не удаляет реквизиты пайщика'), async () => {
     expect((await gqlError(otherToken, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
-    expect((await gqlError(otherToken, ADD_METHOD, { d: { username: payer.account, is_default: true, sbp_data: { phone: randomPhone() } } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, ADD_METHOD, { d: { username: payer.account, is_default: true, sbp_data: { phone: randomPhone(), bank_name: 'Т-Банк' } } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect((await gqlError(otherToken, UPDATE_BANK, { d: { username: payer.account, method_id: sbp.method_id, is_default: true, data: bankAccount({ bank_name: 'Чужой банк' }) } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect((await gqlError(otherToken, DELETE_METHOD, { d: { username: payer.account, method_id: sbp.method_id } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect(String((await gqlError(null, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code)).toBe('401')

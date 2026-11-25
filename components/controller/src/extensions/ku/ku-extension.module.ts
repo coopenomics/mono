@@ -35,6 +35,8 @@ import { KuEventsService } from './application/services/ku-events.service';
 import { KuResolver } from './application/resolvers/ku.resolver';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { KuRights } from './application/access/ku-rights';
+import { KuPowerOfAttorneyKyselyRepository } from './infrastructure/repositories/ku-power-of-attorney.kysely-repository';
+import { KuPowersOfAttorneyService } from './application/services/ku-powers-of-attorney.service';
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
@@ -94,6 +96,7 @@ export class KuExtension extends BaseExtensionModule {
     KuDecisionKyselyRepository,
     KuDecisionQuestionKyselyRepository,
     KuTrustRequestKyselyRepository,
+    KuPowerOfAttorneyKyselyRepository,
 
     // Blockchain
     {
@@ -117,9 +120,17 @@ export class KuExtension extends BaseExtensionModule {
     // Application
     KuService,
     KuEventsService,
+    // Доверенности: учёт по событиям цепи, порт POWERS_OF_ATTORNEY_PORT
+    KuPowersOfAttorneyService,
     KuResolver,
   ],
-  exports: [KuExtension, KuDecisionSyncService, KuDecisionQuestionSyncService, KuTrustRequestSyncService],
+  exports: [
+    KuExtension,
+    KuDecisionSyncService,
+    KuDecisionQuestionSyncService,
+    KuTrustRequestSyncService,
+    KuPowersOfAttorneyService,
+  ],
 })
 export class KuExtensionModule {
   constructor(private readonly kuExtension: KuExtension) {}

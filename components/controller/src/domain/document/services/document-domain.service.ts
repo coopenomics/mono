@@ -10,7 +10,7 @@ import { DocumentPackageAggregator } from '../aggregators/document-package.aggre
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { toDotNotation } from '~/utils/toDotNotation';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import type { IGenerateBlank, IGeneratedBlank } from '@coopenomics/factory';
+import type { IGenerateBlank, IGeneratedBlank } from '@coopenomics/docs-factory';
 import type { GenerateDocumentWithPrivateDataDomainInterface } from '../interfaces/generate-document-with-private-data.interface';
 
 @Injectable()

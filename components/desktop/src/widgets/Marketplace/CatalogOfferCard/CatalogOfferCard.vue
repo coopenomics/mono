@@ -26,14 +26,21 @@
 
       <div class="mp-catalog-offer-card__title">{{ offer.title }}</div>
 
-      <div v-if="offer.coopStock" class="mp-catalog-offer-card__supplier">
-        <q-icon name="warehouse" size="13px" />
-        <span>{{ $t('marketplace.catalogOfferCard.fromStockBadge') }}</span>
-      </div>
-      <div v-else-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
-        <q-icon name="storefront" size="13px" />
-        <span>{{ offer.supplierName }}</span>
-      </div>
+      <!-- Поставщик — ссылка на его страницу там, где экран её открывает
+           (слушает supplier-click); на остальных экранах остаётся подписью. -->
+      <component
+        :is="supplierLink ? 'button' : 'div'"
+        v-if="offer.coopStock || offer.supplierName"
+        :type="supplierLink ? 'button' : undefined"
+        class="mp-catalog-offer-card__supplier"
+        :class="{ 'mp-catalog-offer-card__supplier--link': supplierLink }"
+        @click="openSupplier"
+      >
+        <q-icon :name="offer.coopStock ? 'warehouse' : 'storefront'" size="13px" />
+        <span>{{ offer.coopStock ? $t('marketplace.catalogOfferCard.fromStockBadge') : offer.supplierName }}</span>
+      </component>
+
+      <ReviewStars :rating="offer.ratingAvg" :count="offer.reviewsCount" compact />
 
       <div class="mp-catalog-offer-card__meta">
         <span class="mp-catalog-offer-card__price" v-if="offer.unitCost != null">
@@ -94,6 +101,7 @@
 import { computed, type PropType } from 'vue'
 import { uiLocale, t } from 'src/shared/i18n';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
+import { ReviewStars } from 'src/widgets/Marketplace/ReviewStars'
 import { applyMembershipFee } from 'src/shared/lib/marketplace'
 import type { CatalogOfferStatus, CatalogOffer } from './CatalogOfferCard.types'
 
@@ -110,11 +118,24 @@ const props = defineProps({
   // Разбивка «своя / для заказчика» — только на столе поставщика.
   // Всем остальным (каталог, ПВЗ, админ) — просто полная цена с взносом.
   showFeeNote: { type: Boolean, default: false },
+  // Экран открывает страницу поставщика по нажатию на его имя.
+  onSupplierClick: { type: Function as PropType<(offer: CatalogOffer) => void>, default: undefined },
 })
 
 const emit = defineEmits<{
   (e: 'click', offer: CatalogOffer): void
 }>()
+
+// Имя поставщика становится ссылкой, только когда экран слушает
+// `supplier-click` и у предложения известна учётная запись поставщика.
+const supplierLink = computed(() => Boolean(props.onSupplierClick && props.offer.supplierAccount))
+
+function openSupplier(event: Event) {
+  if (!supplierLink.value) return
+  // Нажатие на имя открывает поставщика, а не предложение.
+  event.stopPropagation()
+  props.onSupplierClick?.(props.offer)
+}
 
 // Источник картинок: массив images (если есть) или одиночный preview.
 // Карусель листается свайпом/стрелками; точки-навигацию не показываем.
@@ -310,6 +331,22 @@ function onClick() {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    // Ссылка на страницу поставщика: кнопка без оформления кнопки.
+    &--link {
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      max-width: 100%;
+
+      &:hover span {
+        color: var(--p-primary);
+        text-decoration: underline;
+      }
     }
   }
 

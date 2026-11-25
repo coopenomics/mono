@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DraftContract, MeetContract } from 'cooptypes';
-import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
+import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/docs-factory';
 import { KYSELY, type Database } from '~/infrastructure/database/kysely/kysely.tokens';
 import { rawQuery } from '@coopenomics/extension-kit';
 import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';

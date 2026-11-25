@@ -117,13 +117,16 @@ useLiveReload(
   () => (step.value === currentStep ? pollPaymentStatus() : undefined),
 );
 
+// Переход только с шага оплаты. Форма ЮKassa сообщает об успехе после своего
+// экрана успеха, а сигнал о платеже лента обычно публикует раньше, и он уже перевёл
+// пайщика на ожидание решения совета: `next()` с ожидания показывал «Добро
+// пожаловать» до приёма советом (24.11.2026).
 watch(
   () => store.state.is_paid,
   (newValue) => {
-    if (newValue === true) {
-      store.state.agreements.self_paid = true;
-      store.next();
-    }
+    if (newValue !== true) return;
+    store.state.agreements.self_paid = true;
+    if (step.value === currentStep) store.next();
   },
 );
 

@@ -1,14 +1,16 @@
 <template lang="pug">
-q-card.column.no-wrap.edit-req-panel(
+//- Корень — плоская колонка без карточки: панель уже стоит в оверлее или на
+//- странице, вторая рамка карточки вокруг текста только отнимает место
+.column.no-wrap.edit-req-panel(
   ref='panelRootRef'
   :class='{ "edit-req-panel--dialog": variant === "dialog", "edit-req-panel--page": variant === "page" }'
-  flat
 )
   //- Шапка — тот же паттерн, что ProjectTitleEditor/IssueTitleEditor: outline-textarea
   //- с иконкой типа в prepend; при изменениях слева undo; close в диалоге справа.
   //- Сохранение/редакции/избранное — в EditorSaveBar ниже, как у проекта и компонента
   //- Обёртка и отступы — как у заголовка задачи на IssuePage: .q-px-md.q-pb-sm
-  .edit-req-panel__head.q-px-md.q-pb-sm
+  //- В оверлее тело панели без отступов (DetailsDrawer flush) — верхнее поле даёт сама шапка
+  .edit-req-panel__head.q-px-md.q-pb-sm(:class='{ "q-pt-md": variant === "dialog" }')
     q-input.full-width.capital-title-editor-input(
       v-model='localTitle'
       :label='$t("capital.editRequirementPanel.titleFieldLabel")'
@@ -34,6 +36,18 @@ q-card.column.no-wrap.edit-req-panel(
           q-tooltip {{ $t('capital.editRequirementPanel.cancelChanges') }}
         q-icon(v-else :name='formatIcon' size='24px' color='primary')
       template(#append)
+        //- «Открыть» — как у оверлея задачи: полная страница артефакта с
+        //- постоянной ссылкой; кнопку показывает только хост, знающий адрес
+        BaseButton(
+          v-if='variant === "dialog" && expandable'
+          variant='ghost'
+          size='sm'
+          :aria-label='$t("capital.editRequirementPanel.openFullPageAriaLabel")'
+          @click='emit("expand")'
+        )
+          template(#icon-left)
+            q-icon(name='open_in_full' size='16px')
+          | {{ $t('capital.editRequirementPanel.openFullPage') }}
         BaseButton(
           v-if='variant === "dialog"'
           variant='ghost'
@@ -44,28 +58,35 @@ q-card.column.no-wrap.edit-req-panel(
         )
           template(#icon-left)
             q-icon(name='close' size='18px')
-    //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте
-    EditorSaveBar(
-      v-if='requirement'
-      :entity-type='Zeus.CapitalContentEntityType.STORY'
-      :entity-hash='requirement.story_hash'
-      :current-title='localTitle'
-      :current-description='localDescription'
-      :current-rev='currentRev'
-      :can-edit='canEdit'
-      :has-changes='hasChanges && titleOk'
-      :saving='isSaving'
-      :note='saveNote'
-      @save='handleSave'
-      @restored='handleRestored'
-    )
-      template(#actions)
-        FavoriteStarButton(
-          :target-type='FavoriteTargetType.ARTIFACT'
-          :target-hash='requirement.story_hash'
-        )
+    //- Как у проекта/компонента: состояние слева, справа «Редакции», избранное и «Сохранить» — всегда на месте.
+    //- На полной странице команды стоят в строке разделов проекта вместо «+ Артефакт»
+    //- (решение владельца 24.11.2026): телепорт в хост оболочки, без хоста — на месте
+    Teleport(:to='tabActionsHost' :disabled='!saveBarInTabs')
+      EditorSaveBar(
+        v-if='requirement'
+        :inline='saveBarInTabs'
+        :entity-type='Zeus.CapitalContentEntityType.STORY'
+        :entity-hash='requirement.story_hash'
+        :current-title='localTitle'
+        :current-description='localDescription'
+        :current-rev='currentRev'
+        :can-edit='canEdit'
+        :has-changes='hasChanges && titleOk'
+        :saving='isSaving'
+        :note='saveNote'
+        @save='handleSave'
+        @restored='handleRestored'
+      )
+        template(#actions)
+          FavoriteStarButton(
+            :target-type='FavoriteTargetType.ARTIFACT'
+            :target-hash='requirement.story_hash'
+          )
 
-  q-card-section.col.scroll.column.no-wrap.edit-req-panel__body
+  //- Диаграммы встают вплотную к краям панели; у текста — обычные поля
+  .col.scroll.column.no-wrap.edit-req-panel__body(
+    :class='isDiagramFormat ? "edit-req-panel__body--diagram" : "q-pa-md"'
+  )
     template(v-if='requirement && isBpmnFormat')
       ClientOnly
         template(#fallback)
@@ -100,7 +121,6 @@ q-card.column.no-wrap.edit-req-panel(
         :placeholder='canEdit ? $t("capital.editRequirementPanel.descriptionPlaceholder") : $t("capital.editRequirementPanel.descriptionEmpty")'
         :minHeight='markdownViewportMinHeight'
         :padded='false'
-        :show-focus-ring="variant === 'dialog'"
       )
   ConflictDialog(v-model='conflictOpen' :conflict='conflict' @resolve='applyConflictResolution')
 
@@ -113,6 +133,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { Editor } from 'src/shared/ui';
 import { BaseButton } from 'src/shared/ui/base';
+import { useEntityTabActionsHost } from 'app/extensions/capital/shared/lib/entityTabActions';
 import { FavoriteStarButton } from 'app/extensions/capital/features/Favorite/ToggleFavorite';
 import { storyContentIcon } from 'app/extensions/capital/shared/lib/storyContentIcon';
 import { BpmnStoryEditor } from 'app/extensions/capital/features/Story/BpmnStoryEditor';
@@ -137,13 +158,16 @@ const props = withDefaults(
   defineProps<{
     requirement?: IStory | null;
     canEdit?: boolean;
-    /** dialog — полноэкранный режим в q-dialog; page — встроенная карточка на странице */
+    /** dialog — панель в оверлее поверх списка (своя шапка с крестиком); page — полная страница артефакта */
     variant?: EditRequirementPanelVariant;
+    /** Показать в шапке оверлея кнопку «Открыть» на полную страницу */
+    expandable?: boolean;
   }>(),
   {
     requirement: null,
     canEdit: true,
     variant: 'page',
+    expandable: false,
   },
 );
 
@@ -151,9 +175,15 @@ const emit = defineEmits<{
   /** Запрос закрыть (только для variant dialog; родитель снимает диалог) */
   close: [];
   updated: [requirement: IStory];
+  /** Запрос открыть артефакт на полной странице (кнопка «Открыть» в оверлее) */
+  expand: [];
 }>();
 
 const FavoriteTargetType = Zeus.CapitalFavoriteTargetType;
+
+// Хост строки разделов проекта/компонента; вне оболочки — null, команды на месте
+const tabActionsHost = useEntityTabActionsHost();
+const saveBarInTabs = computed(() => props.variant === 'page' && !!tabActionsHost.value);
 
 const formatIcon = computed(() =>
   props.requirement ? storyContentIcon(props.requirement) : 'description',
@@ -197,6 +227,10 @@ const isDrawioFormat = computed(() => {
   const fmt = props.requirement?.content_format;
   return fmt === Zeus.CapitalStoryContentFormat.DRAWIO;
 });
+
+const isDiagramFormat = computed(
+  () => isBpmnFormat.value || isMermaidFormat.value || isDrawioFormat.value,
+);
 
 const hasChanges = computed(() => {
   return (
@@ -328,11 +362,15 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.edit-req-panel--dialog.q-card {
-  height: 100vh;
+.edit-req-panel--dialog {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  background: var(--p-surface);
 }
 
-.edit-req-panel--page.q-card {
+.edit-req-panel--page {
+  background: var(--p-surface);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -356,6 +394,20 @@ defineExpose({
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Холст диаграммы без своей рамки: от шапки его отделяет одна линия */
+.edit-req-panel__body--diagram {
+  padding: 0;
+  border-top: 1px solid var(--p-line);
+}
+.edit-req-panel__body--diagram > :deep(.bpmn-story-editor),
+.edit-req-panel__body--diagram > :deep(.drawio-story-embed-editor) {
+  border: 0;
+  border-radius: 0;
+}
+.edit-req-panel__body--diagram > :deep(.mermaid-story-editor) {
+  padding: var(--p-4);
 }
 
 /* Растягиваем редактор на оставшуюся высоту карточки (страница не 100vh, в отличие от диалога) */

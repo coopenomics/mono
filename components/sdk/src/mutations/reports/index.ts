@@ -15,3 +15,6 @@ export * as MarkReportPeriod from './markReportPeriod'
 
 /** Отправить удержанный налог на оплату кассиру */
 export * as PayWithheldTax from './payWithheldTax'
+
+/** Председатель совета меняет описание и процент отчислений фонда */
+export * as ReportsEditFund from './reportsEditFund'

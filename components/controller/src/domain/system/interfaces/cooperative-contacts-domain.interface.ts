@@ -1,3 +1,3 @@
-import type { Cooperative } from 'cooptypes';
+import type { IContacts } from '@coopenomics/docs-templates';
 
-export type CooperativeContactsDomainInterface = Cooperative.Model.IContacts;
+export type CooperativeContactsDomainInterface = IContacts;

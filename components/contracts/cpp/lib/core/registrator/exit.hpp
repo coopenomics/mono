@@ -60,13 +60,23 @@ inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
   }
 
   Marketplace::check_member_can_exit(coopname, username);
+  MarketInvest::check_member_can_exit(coopname, username);
 }
 
-/// Выход состоялся: программы закрывают членские кошельки пайщика. `actor` —
-/// контракт, проводящий выход.
+/// Выход одобрен советом: перед консолидацией кошельков на главный паевой
+/// программы снимают пайщика со своих учётных строк. Стол заказов вычитает
+/// паевые взносы инициатора из базы возврата участков (задача 99D-27); сам перенос
+/// паевого взноса на главный паевой делает политика выхода (o.mkt.iexit).
+inline void release_program_rows_on_exit(eosio::name actor, eosio::name coopname,
+                                         eosio::name username) {
+  Marketplace::release_investments_on_exit(actor, coopname, username);
+}
+
+/// Выход состоялся: программы закрывают кошельки пайщика, которые выход
+/// оставляет кооперативу (политика FORFEIT). `actor` — контракт, проводящий выход.
 inline void settle_program_wallets_on_exit(eosio::name actor, eosio::name coopname,
                                            eosio::name username, const eosio::checksum256& exit_hash) {
-  Marketplace::settle_member_fund_on_exit(actor, coopname, username, exit_hash);
+  Marketplace::settle_due_on_exit(actor, coopname, username, exit_hash);
 }
 
 } // namespace Core::Registrator

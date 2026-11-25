@@ -106,6 +106,8 @@ const GROUPS = [
       // раскладывать нечего. Боксы заведены выше, до приёмки.
       'marketplace/operator/warehouse-cells',
       'marketplace/operator/warehouse',
+      // Карточка «Имущество на складе» с историей и сканер склада (19.11.2026).
+      'marketplace/operator/warehouse-item',
     ],
   },
   {
@@ -161,11 +163,13 @@ const GROUPS = [
     ],
   },
   {
-    // После всех возвратов: приём возврата снимает членский взнос обратно из
-    // того же пула участка, который здесь распределяется. Распределив его
-    // раньше, мы обрушили бы возврат на пустом кошельке.
-    name: 'Экономика участка',
-    scenarios: ['marketplace/operator/branch-economy'],
+    // Инвестиционный этап участка (99D-31): договор участия и паевой взнос
+    // деньгами раньше имущества — имущество вносится по подписанному договору.
+    name: 'Инициаторы участка',
+    scenarios: [
+      'marketplace/branch-chairman/initiators-money',
+      'marketplace/branch-chairman/initiators-property',
+    ],
   },
   {
     name: 'Обзорные экраны (состояние не меняют)',
@@ -174,14 +178,18 @@ const GROUPS = [
       'marketplace/chairman/market-tour',
       'marketplace/chairman/ecosystem',
       'marketplace/chairman/warehouse-summary',
+      // Архив склада: выданное и списанное после групп выдачи, возврата и списания.
+      'marketplace/operator/warehouse-archive',
+      'marketplace/chairman/issuance-points',
       'marketplace/branch-chairman/pvz-list',
-      'marketplace/board/payouts-readonly',
-      'marketplace/offerer/payments',
       'marketplace/orderer/marketplace-tour',
       'marketplace/chairman/suppliers-registry',
       'marketplace/chairman/offers-registry',
       'marketplace/chairman/economy',
       'marketplace/operator/orders-history',
+      // Плановые расходы участка (99D-34, 99D-35): только смотрит раздел и окно,
+      // расход не заводит.
+      'marketplace/branch-chairman/expense-plans',
     ],
   },
 ];
@@ -189,4 +197,16 @@ const GROUPS = [
 
 // Фазы засева ждут всех председателей участков и пул гейта (chairmyt — участок
 // Мытищи, petrova — первый кандидат пула), хотя сценарии их по имени не зовут.
-process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2), extraFixtures: ['chairmyt', 'petrova'] }));
+// Экономика участка по итогу месяца снимается отдельной сюитой на стенде со
+// сжатым временем (bin/run-marketplace-keu-all.mjs): участок получает членский
+// взнос первого числа, в настоящем времени общий кошелёк участка пуст. Там же
+// выплаты поставщику: пакет выплаты собирает обход узла в начале суток.
+const KEU_SUITE = [
+  'marketplace/operator/branch-economy',
+  'marketplace/branch-chairman/economy-reserve-periods',
+  'marketplace/orderer/order-secure-part-charged',
+  'marketplace/offerer/payments',
+  'marketplace/board/payouts-readonly',
+];
+
+process.exit(await runSuite({ app: 'marketplace', groups: GROUPS, args: process.argv.slice(2), extraFixtures: ['chairmyt', 'petrova'], elsewhere: KEU_SUITE }));

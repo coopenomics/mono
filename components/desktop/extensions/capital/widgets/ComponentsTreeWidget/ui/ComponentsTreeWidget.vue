@@ -1,34 +1,38 @@
 <template lang="pug">
 .components-tree-widget
-  // Скелетон первичной загрузки (догрузка страниц идёт молча)
-  .components-skeleton(v-if='isInitialLoading')
-    .skel(v-for='i in 8', :key='i')
+  // Плоскость списка — та же (page-shell + surface), что у задач/артефактов:
+  // скелетон, лента или пустое состояние
+  .page-surface.list-surface
+    // Скелетон первичной загрузки (догрузка страниц идёт молча)
+    .components-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
 
-  .components-scroll-area(v-else, ref='scrollAreaRef')
-    // Список — плоские строки компонентов; таблица здесь не нужна:
-    // строка одна на всех уровнях дерева, а под ней раскрывается контент
-    // переменной высоты (задачи компонента)
-    template(v-for='component in components.items', :key='component.project_hash')
-      ComponentListRow.component-row--root(
-        :component='component',
-        :expanded='expanded[component.project_hash]',
-        :is-private='component.origin === "local"',
-        show-parent,
-        @toggle='emit("toggleExpand", component.project_hash)',
-        @open='emit("openComponent", component.project_hash)',
-        @open-parent='emit("openParent", component.parent_hash || "")'
-      )
-      .component-row__nested(v-if='expanded[component.project_hash]')
-        slot(name='component-content', :component='component')
+    .components-scroll-area(v-else-if='components.items.length', ref='scrollAreaRef')
+      // Список — плоские строки компонентов; таблица здесь не нужна:
+      // строка одна на всех уровнях дерева, а под ней раскрывается контент
+      // переменной высоты (задачи компонента)
+      template(v-for='component in components.items', :key='component.project_hash')
+        ComponentListRow.component-row--root(
+          :component='component',
+          :expanded='expanded[component.project_hash]',
+          :is-private='component.origin === "local"',
+          show-parent,
+          @toggle='emit("toggleExpand", component.project_hash)',
+          @open='emit("openComponent", component.project_hash)',
+          @open-parent='emit("openParent", component.parent_hash || "")'
+        )
+        .component-row__nested(v-if='expanded[component.project_hash]')
+          slot(name='component-content', :component='component')
 
-    // Канон-пустое состояние
-    .list-empty(v-if='!components.items.length')
-      q-icon(name='inbox', size='20px')
-      span {{ hasFiltersApplied ? $t('capital.componentsTreeWidget.noFilterResults') : $t('capital.componentsTreeWidget.emptyText') }}
+      // Сентинел догрузки: попал в вид — тянем следующую страницу
+      .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
+        q-spinner(v-if='loading', size='18px', color='primary')
 
-    // Сентинел догрузки: попал в вид — тянем следующую страницу
-    .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
-      q-spinner(v-if='loading', size='18px', color='primary')
+    // Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasFiltersApplied ? "search_off" : "account_tree"')
 </template>
 
 <script lang="ts" setup>
@@ -37,6 +41,7 @@ import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realt
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IGetProjectsInput } from 'app/extensions/capital/entities/Project/model';
 import { ComponentListRow } from 'app/extensions/capital/widgets/ComponentsListWidget';
@@ -103,6 +108,14 @@ const hasFiltersApplied = computed(
 
 const isInitialLoading = computed(
   () => loading.value && components.value.items.length === 0,
+);
+
+// Пустой список и пустой результат фильтра — разные подсказки
+const emptyTitle = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterTitle') : t('capital.componentsTreeWidget.emptyTitle'),
+);
+const emptyBody = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterBody') : t('capital.componentsTreeWidget.emptyBody'),
 );
 
 const hasMorePages = computed(() => nextPage.value <= lastPage.value);
@@ -239,22 +252,33 @@ watch(
   flex-direction: column;
   gap: var(--p-3);
   padding: var(--p-4);
-  background: var(--p-surface);
 
   .skel {
     height: var(--p-7);
   }
 }
 
-.components-tree-widget {
-  height: 100%;
+// Плоскость списка — та же (page-shell + surface), что у задач/артефактов
+.page-surface.list-surface {
+  flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--p-surface);
 }
 
-.components-scroll-area {
+// Колонка на высоту, которую даёт страница: лента скроллится внутри,
+// пустое состояние (.empty-fill) забирает всё место и центрируется
+.components-tree-widget {
   height: 100%;
-  max-height: calc(100vh - 55px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.components-scroll-area {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -287,13 +311,5 @@ watch(
   min-height: var(--p-6);
 }
 
-.list-empty {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  width: 100%;
-  padding: var(--p-3) var(--p-4);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
-}
+
 </style>

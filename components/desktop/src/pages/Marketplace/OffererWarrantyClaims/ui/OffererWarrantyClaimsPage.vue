@@ -108,7 +108,7 @@ q-page.offerer-claims
     | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintCourt') }}
     | {{ $t('marketplace.offererWarrantyClaimsPage.bannerHintRepayment') }}
 
-  .offerer-claims__cards
+  .wallet-grid
     WalletCard(
       neutral,
       icon='gavel',
@@ -178,12 +178,6 @@ q-page.offerer-claims
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--p-4, 16px);
-  }
 
   &__title {
     display: flex;

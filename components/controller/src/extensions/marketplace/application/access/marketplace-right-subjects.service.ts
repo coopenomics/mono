@@ -33,6 +33,10 @@ import {
   type MarketplaceReturnClaimDomainRepository,
 } from '../../domain/repositories/marketplace-return-claim.repository';
 import {
+  MARKETPLACE_REVIEW_REPOSITORY,
+  type MarketplaceReviewDomainRepository,
+} from '../../domain/repositories/marketplace-review.repository';
+import {
   MARKETPLACE_SHIPMENT_REPOSITORY,
   type MarketplaceShipmentDomainRepository,
 } from '../../domain/repositories/marketplace-shipment.repository';
@@ -72,6 +76,7 @@ export const MARKETPLACE_SUBJECT_KINDS = [
   'StockProposal',
   'IssuanceSaga',
   'WriteoffProposal',
+  'Review',
 ] as const;
 
 export type MarketplaceSubjectKind = (typeof MARKETPLACE_SUBJECT_KINDS)[number];
@@ -129,7 +134,9 @@ export class MarketplaceRightSubjects {
     @Inject(MARKETPLACE_ISSUANCE_SAGA_REPOSITORY)
     private readonly sagaRepo: MarketplaceIssuanceSagaDomainRepository,
     @Inject(MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY)
-    private readonly writeoffRepo: MarketplaceWriteoffProposalDomainRepository
+    private readonly writeoffRepo: MarketplaceWriteoffProposalDomainRepository,
+    @Inject(MARKETPLACE_REVIEW_REPOSITORY)
+    reviewRepo: MarketplaceReviewDomainRepository
   ) {
     this.locators = {
       Order: byId(orderRepo, (order) => ({
@@ -150,6 +157,7 @@ export class MarketplaceRightSubjects {
       StockProposal: byId(proposalRepo, (proposal) => ({ owner: proposal.member_account, ku: proposal.braname })),
       IssuanceSaga: (coopname, order_id) => this.sagaOfOrder(coopname, order_id),
       WriteoffProposal: (coopname, id) => this.writeoffBranches(coopname, id),
+      Review: byId(reviewRepo, (review) => ({ owner: review.author_account })),
     };
   }
 

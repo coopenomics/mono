@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { CooperativeContactsDomainInterface } from '~/domain/system/interfaces/cooperative-contacts-domain.interface';
-import { RegistratorContract, type Cooperative } from 'cooptypes';
+import { RegistratorContract } from 'cooptypes';
+import type { IAccountMeta, ICooperativeData } from '@coopenomics/docs-templates';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import config from '~/config/config';
 import logger from '~/config/logger';
@@ -16,7 +17,7 @@ export class LoadContactsInteractor {
   ) {}
 
   async execute(): Promise<CooperativeContactsDomainInterface> {
-    const cooperative: Cooperative.Model.ICooperativeData | null = await this.generatorPort.constructCooperative(
+    const cooperative: ICooperativeData | null = await this.generatorPort.constructCooperative(
       config.coopname
     );
 
@@ -31,7 +32,7 @@ export class LoadContactsInteractor {
 
     if (!coopAccount) throw DomainError.badRequest('SYSTEM_ACCOUNT_NOT_FOUND');
 
-    let meta: Cooperative.Users.IAccountMeta = { phone: cooperative?.phone, email: cooperative?.email };
+    let meta: IAccountMeta = { phone: cooperative?.phone, email: cooperative?.email };
 
     if (coopAccount.meta) {
       try {

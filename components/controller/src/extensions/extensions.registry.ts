@@ -1,13 +1,17 @@
 // ========== ./extensions.registry.ts ==========
 
 import { PowerupExtensionModule, PowerupExtension, Schema as PowerupSchema } from './powerup/powerup-extension.module';
+import { GreetingsExtensionModule, GreetingsExtension, Schema as GreetingsSchema } from './greetings/greetings-extension.module';
+import { greetingsDatabaseMigrations } from './greetings/greetings.database-migrations';
+import { greetingsPorts } from './greetings/greetings.ports';
 import { ChatCoopExtensionModule, ChatCoopExtension, Schema as ChatCoopSchema } from './chatcoop/chatcoop-extension.module';
 import fs from 'node:fs/promises';
-import { YookassaExtensionModule, YookassaExtension, Schema as YookassaSchema } from './yookassa/yookassa-extension.module';
+import { YookassaExtensionModule, YookassaExtension, buildSchema as buildYookassaSchema, IPN_PATH as YOOKASSA_IPN_PATH } from './yookassa/yookassa-extension.module';
 import { SberpollExtensionModule, SberpollExtension, Schema as SberpollSchema } from './sberpoll/sberpoll-extension.module';
 import { QrPayExtensionModule, QrPayExtension, Schema as QRPaySchema } from './qrpay/qrpay-extension.module';
 import { DadataExtensionModule, DadataExtension, Schema as DadataSchema } from './dadata/dadata-extension.module';
 import path from 'path';
+import appConfig from '~/config/config';
 import { BuiltinExtensionModule, BuiltinExtension, Schema as BuiltinSchema } from './builtin/builtin-extension.module';
 import { ChairmanExtensionModule, ChairmanExtension, Schema as ChairmanSchema } from './chairman/chairman-extension.module';
 import { ParticipantExtensionModule } from './participant/participant-extension.module';
@@ -87,8 +91,17 @@ interface INamedExtension {
 }
 
 // Асинхронные функции для чтения Markdown
+/**
+ * Текст страницы расширения в каталоге — для председателя и совета.
+ * `CATALOG.md` главнее `README.md`: у расширения, где README — документация
+ * для разработчиков (Стол заказов), текст каталога лежит отдельно.
+ */
 function getReadmeContent(dirPath: string): Promise<string> {
-  return fs.readFile(path.join(__dirname, dirPath, 'README.md'), 'utf-8').catch(() => '');
+  const dir = path.join(__dirname, dirPath);
+  return fs
+    .readFile(path.join(dir, 'CATALOG.md'), 'utf-8')
+    .catch(() => fs.readFile(path.join(dir, 'README.md'), 'utf-8'))
+    .catch(() => '');
 }
 function getInstructionsContent(dirPath: string): Promise<string> {
   return fs.readFile(path.join(__dirname, dirPath, 'INSTALL.md'), 'utf-8').catch(() => '');
@@ -148,8 +161,8 @@ export const AppRegistry: INamedExtension = {
     schema: BuiltinSchema,
     ports: builtinPorts,
     tags: [t('app.extensionsRegistry.soviet.tagDesk'), t('app.extensionsRegistry.soviet.tagManagement')],
-    readme: getReadmeContent('./yookassa'),
-    instructions: getInstructionsContent('./yookassa'),
+    readme: getReadmeContent('./builtin/soviet'),
+    instructions: getInstructionsContent('./builtin/soviet'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
@@ -372,9 +385,37 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
+  greetings: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'greetings',
+        title: t('app.extensionsRegistry.greetings.windowTitle'),
+        icon: 'campaign',
+      },
+    ],
+    title: t('app.extensionsRegistry.greetings.title'),
+    description: t('app.extensionsRegistry.greetings.description'),
+    image: '',
+    class: GreetingsExtensionModule,
+    extensionClass: GreetingsExtension,
+    databaseMigrations: greetingsDatabaseMigrations,
+    // Без defaults: приложение само не ставится, председатель выбирает его в каталоге.
+    ports: greetingsPorts,
+    schema: GreetingsSchema,
+    tags: [t('app.extensionsRegistry.greetings.tagDesk'), t('app.extensionsRegistry.greetings.tagNotifications')],
+    readme: getReadmeContent('./greetings'),
+    instructions: getInstructionsContent('./greetings'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
   yookassa: {
     is_internal: true,
-    availability: ExtensionAvailability.NOWHERE,
+    // Проверка на тестовом магазине ЮKassa (24.11.2026): открыто вне основной
+    // сети; в основную сеть — отдельным решением после проверки.
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
     desktops: undefined, // Это не desktop расширение
     title: t('app.extensionsRegistry.yookassa.title'),
     description: t('app.extensionsRegistry.yookassa.description'),
@@ -383,7 +424,14 @@ export const AppRegistry: INamedExtension = {
     extensionClass: YookassaExtension,
     defaults: { enabled: false, config: yookassaDefaultConfig },
     ports: yookassaPorts,
-    schema: YookassaSchema,
+    // Реестр строит схему при каждом обращении: поле адреса уведомлений берёт
+    // адрес сервера и признак основной сети из конфига контура.
+    get schema() {
+      return buildYookassaSchema({
+        url: `${appConfig.backend_url}${YOOKASSA_IPN_PATH}`,
+        readonly: appConfig.blockchain.is_mainnet,
+      });
+    },
     // Реквизиты магазина ЮKassa принадлежат кооперативу, но значением наружу не
     // уходят: `getExtensions` отдаёт «задано»/«не задано». До этого секретный
     // ключ кассы возвращался председателю в открытом виде.
@@ -542,9 +590,9 @@ export const AppRegistry: INamedExtension = {
   },
   market: {
     is_internal: true,
-    // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
-    // остаётся закрытым, пока здесь не поставят EVERYWHERE.
-    availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    // Стол заказов открыт в основной сети (решение владельца 22.11.2026):
+    // ограничение тестовым контуром снято, приложение ставится и в проде.
+    availability: ExtensionAvailability.EVERYWHERE,
     // Расширение «Стол заказов» предоставляет ЧЕТЫРЕ рабочих стола, разнесённых
     // по ролям пайщика. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
     // `extensions/market/install.ts`: фронт привязывает маршруты только к тем

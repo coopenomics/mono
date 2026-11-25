@@ -1,5 +1,7 @@
 <template lang="pug">
-.component-tasks-page
+//- Высоту экрана задаёт канон-оболочка .page-shell; IssuesListWidget сам
+//- центрирует пустое состояние и держит скролл внутри таблицы
+.component-tasks-page.page-shell
   // Таблица задач компонента
   IssuesListWidget(
     :project-hash='projectHash',
@@ -84,9 +86,8 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// Заполняет page-surface, чтобы IssuesListWidget мог взять height: 100%
 .component-tasks-page {
-  height: 100%;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>

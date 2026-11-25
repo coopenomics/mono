@@ -7,10 +7,10 @@
  * рабочий стол не мог вручную утвердить ни одно решение по чужому заявлению —
  * например, материальную помощь доверенному участка (нашёл внешний слой).
  */
-import { Cooperative } from 'cooptypes';
+import { decisionTypesRegistry } from '@coopenomics/docs-templates';
 import { DocumentResolver } from '~/application/document/resolvers/document.resolver';
 
-const AID_PROTOCOL = Cooperative.Document.decisionTypesRegistry.brnaid.protocol_registry_id;
+const AID_PROTOCOL = decisionTypesRegistry.brnaid.protocol_registry_id;
 
 function makeResolver() {
   const documentService = { generateAnyDocument: jest.fn(async () => ({ hash: 'doc' })) } as any;

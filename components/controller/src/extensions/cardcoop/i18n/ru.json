@@ -10,7 +10,7 @@
       "deliveryFailedHint": "Сеть не приняла запрос раскрытия — попробуйте позже либо заполните анкету руками"
     },
     "membership": {
-      "revokeMissingAttestationId": "Сеть не назвала идентификатор подтверждения — отзыв нужно провести вручную"
+      "revokeMissingAttestationId": "Сеть не назвала идентификатор подтверждения — проведите отзыв вручную"
     },
     "settings": {
       "apiUrlFormatHint": "Адрес должен быть ссылкой вида https://id.card.coop",

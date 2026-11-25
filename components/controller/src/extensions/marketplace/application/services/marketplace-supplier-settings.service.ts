@@ -14,6 +14,12 @@ export const MARKETPLACE_SUPPLIER_SETTINGS_SERVICE = Symbol(
 export interface SupplierPaymentSettingsView {
   /** Явный выбор поставщика; null — выбора не было (работает фолбэк). */
   payout_method_id: string | null;
+  /**
+   * Реквизиты, на которые поступит следующая выплата: явный выбор либо
+   * реквизиты по умолчанию; null — реквизитов нет. Стол показывает их
+   * выбранными в поле, даже если поставщик выбор не делал.
+   */
+  resolved_method_id: string | null;
   /** Есть ли реквизиты, на которые реально уйдёт выплата (выбор или фолбэк). */
   has_payout_method: boolean;
   /** Маскированная подпись резолвнутых реквизитов, например «Сбербанк •1234». */
@@ -45,6 +51,7 @@ export class MarketplaceSupplierSettingsService {
     const resolved = await this.resolvePayoutMethod(coopname, username);
     return {
       payout_method_id,
+      resolved_method_id: resolved?.method_id ?? null,
       has_payout_method: resolved != null,
       payout_destination: resolved ? formatPayoutDestination(resolved) : null,
     };

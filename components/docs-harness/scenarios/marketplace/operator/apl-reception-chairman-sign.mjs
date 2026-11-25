@@ -59,18 +59,19 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '01-waiting-chairman',
-    'Акт приёмки после подписи поставщика: на карточке видно время приёмки и время подписи поставщика, статус — «Ждёт подписи оператора». Имущество ещё не на складе участка.',
+    'Акт приёмки после подписи поставщика: на карточке видно время приёмки и время подписи поставщика, статус — «Ждёт оприходования». Имущество ещё не на складе участка.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Ждёт подписи оператора').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Ждёт оприходования').first()).toBeVisible({ timeout: 20000 });
         await expect(p.locator('text=Поставщик подписал').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );
 
-  // Действие на карточке подписано как «Подписать оператором»; смешивать
+  // Действие на карточке подписано как «Оприходовать» (до 17.11.2026 — «Подписать
+  // оператором»: подпись оператора и есть оприходование имущества); смешивать
   // text= и CSS в одном селекторе нельзя — Playwright такой список не разбирает.
-  await page.getByText('Подписать оператором').first().click();
+  await page.getByText('Оприходовать', { exact: true }).first().click();
   await page.waitForTimeout(5000);
   await cleanViteOverlays(page);
 
@@ -108,7 +109,7 @@ export default async ({ page, shot, expect }) => {
       preserveNotifications: true,
       expect: async (p) => {
         // Ожидание подписи оператора обязано исчезнуть.
-        await expect(p.locator('text=Ждёт подписи оператора')).toHaveCount(0, { timeout: 20000 });
+        await expect(p.locator('text=Ждёт оприходования')).toHaveCount(0, { timeout: 20000 });
       },
     },
   );

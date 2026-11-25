@@ -5,7 +5,7 @@ name: Tests
 #
 # Разделение на два job'а намеренное:
 #  - unit  — ничему внешнему не нужен, быстрая обратная связь;
-#  - component — нужен MongoDB, поэтому отдельно: падение сервиса не должно
+#  - component — нужен PostgreSQL, поэтому отдельно: падение сервиса не должно
 #    выглядеть как падение unit-тестов.
 #
 # test:integration (sdk + boot) сюда НЕ входит: ему нужен поднятый стек —
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Postgres — для гейта схемы: база собирается одними миграциями и
-    # сверяется с сущностями (scripts/schema-check.ts). Как и mongo ниже,
+    # сверяется с сущностями (scripts/schema-check.ts). Как и у component ниже,
     # сервис доступен по проброшенному порту на 127.0.0.1.
     services:
       postgres:
@@ -122,83 +122,3 @@ jobs:
           # Типы таблиц для Kysely собираются из тех же миграций (C28-81): миграция
           # без пересборки типов оставила бы запросы проверенными по старой схеме.
           pnpm run schema:types --verify
-
-  component:
-    runs-on: ubuntu-latest
-
-    # Тесты factory пишут документы в MongoDB (test/utils/index.ts →
-    # MongoDBConnector), хост берётся из MONGO_HOST.
-    #
-    # Обращаться к сервису ПО ИМЕНИ (`mongo`) нельзя: job выполняется прямо на
-    # VM раннера, а не в контейнере, поэтому DNS-имени сервиса не существует —
-    # получаем `getaddrinfo EAI_AGAIN mongo`. Имя резолвится только у job'ов
-    # с `container:`. Здесь сервис доступен по проброшенному порту на
-    # 127.0.0.1, поэтому MONGO_HOST оставляем локальным.
-    #
-    # health-опции обязательны: без них шаг стартует раньше, чем mongo примет
-    # соединения, и падение выглядит как ошибка тестов.
-    services:
-      mongo:
-        image: mongo:6
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install workspace
-        run: pnpm install --frozen-lockfile
-
-      - name: Build all workspace packages
-        run: pnpm lerna run build
-
-      # Генератор документов спавнит `/venv/bin/python3` и импортирует weasyprint
-      # (components/factory/src/Services/Generator/index.ts, pythonBin()).
-      # На ubuntu-latest его нет, поэтому повторяем ровно то, что делает образ
-      # controller'а (components/controller/Dockerfile) — включая системный
-      # шрифт Arial: он влияет на вёрстку PDF, а base64-встраивание в html
-      # намеренно не используется.
-      # timeout-minutes и ретраи — из практики: шаг штатно занимает пару минут,
-      # но зеркала apt на раннере периодически залипают, и прогон висел по
-      # 20–40 минут вместо того, чтобы упасть и быть перезапущенным (кейс
-      # 2026-08-19, три залипания за ночь).
-      - name: WeasyPrint и шрифт Arial (как в образе controller)
-        timeout-minutes: 8
-        run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
-            python3-venv \
-            libpango-1.0-0 \
-            libpangoft2-1.0-0 \
-            libjpeg-dev \
-            libopenjp2-7-dev \
-            libffi-dev \
-            libharfbuzz-dev \
-            libcairo2 \
-            fontconfig
-          sudo python3 -m venv /venv
-          sudo /venv/bin/pip install --no-cache-dir --retries 3 --timeout 60 WeasyPrint==67
-          sudo install -D components/controller/assets/fonts/arial.ttf \
-            /usr/share/fonts/truetype/arial/arial.ttf
-          sudo fc-cache -f
-
-      # SKIP_BLOCK_FETCH=TRUE отключает поход в блокчейн за номером блока
-      # (src/Utils/getCurrentBlock.ts) — без него набор требовал бы живую ноду.
-      - name: Component-тесты (factory)
-        env:
-          MONGO_HOST: 127.0.0.1
-        run: pnpm run test:component

@@ -1,3 +1,6 @@
+import { useSessionStore } from 'src/entities/Session'
+import { BranchContract } from 'cooptypes'
+import { liveTable, registerLiveReload } from 'src/shared/lib/realtime'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useBranchStore } from 'src/entities/Branch/model'
@@ -32,6 +35,9 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
   const loading = ref(false)
   const loaded = ref(false)
   const activeBraname = ref<string | null>(null)
+  // Пайщик, для которого загружены участки: при входе под другим пайщиком в
+  // той же вкладке список перечитывается.
+  const loadedFor = ref<string | null>(null)
 
   const operatorBranames = computed<string[]>(() => who.value?.branches ?? [])
   const isOperator = computed(() => operatorBranames.value.length > 0)
@@ -105,14 +111,56 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
       if (!activeBraname.value || !list.includes(activeBraname.value)) {
         activeBraname.value = list[0] ?? null
       }
+      loadedFor.value = who.value?.username ?? null
       loaded.value = true
     } finally {
       loading.value = false
     }
   }
 
+  /**
+   * Перечитать настройки складского контура и список участков. Настройки
+   * расширения председатель меняет во время работы; окна, где от них зависит
+   * ход (оприходование при закрывающей подписи), зовут это при открытии —
+   * иначе стол держит прежние флаги до перезагрузки страницы, а сервер уже
+   * требует место хранения (случай 01.11.2026). Упавший запрос оставляет
+   * прежние данные.
+   */
+  async function refreshSettings(): Promise<void> {
+    try {
+      who.value = await fetchWhoAmI()
+    } catch {
+      /* прежние настройки остаются */
+    }
+  }
+
+  /**
+   * Участки оператора загружаются один раз за вход, но перечитываются, когда
+   * (а) в вкладке вошёл другой пайщик или (б) участков нет: пайщик мог стать
+   * оператором позже — совет назначил председателем, встречно подписана
+   * доверенность. Без этого стол ПВЗ показывал «Вы не оператор» до
+   * перезагрузки страницы (замечание владельца 19.11.2026). Запрос лёгкий.
+   */
+  // Состав участков и доверенности живут по ленте изменений: назначили
+  // председателем, добавили доверенное лицо, встречно подписали доверенность —
+  // стол ПВЗ перечитывает «мои участки» сам, на всех открытых вкладках
+  // (замечание владельца 19.11.2026). Подписка одна на приложение: хранилище
+  // живёт, пока открыт стол.
+  let liveCoopname: string | null = null
+  registerLiveReload(
+    [
+      liveTable(BranchContract, BranchContract.Tables.Branches),
+      { code: 'trustee', table: 'ku_powers_of_attorney' },
+    ],
+    () => (loaded.value && liveCoopname ? load(liveCoopname) : undefined),
+  )
+
   async function ensureLoaded(coopname: string): Promise<void> {
-    if (!loaded.value && !loading.value) await load(coopname)
+    liveCoopname = coopname
+    if (loading.value) return
+    const me = useSessionStore().username
+    const stale = !loaded.value || loadedFor.value !== me || !isOperator.value
+    if (stale) await load(coopname)
   }
 
   function setActive(braname: string): void {
@@ -128,6 +176,7 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
     isOperator,
     hasMultiple,
     warehouseSettings,
+    refreshSettings,
     addressedStorageEnabled,
     branches,
     activeBranch,

@@ -16,10 +16,12 @@
 
     BaseCard
       .expense-details__summary
+        DataRow(v-if='header?.description', :label='$t("ui.expenseProposalDetails.purposeLabel")', :value='header.description')
         DataRow(:label='$t("ui.expenseProposalDetails.memoNumberLabel")', :value='shortExpenseId(proposal.proposal_hash)', mono, copyable)
         DataRow(:label='$t("ui.expenseProposalDetails.initiatorLabel")', :value='creatorName || proposal.username')
         DataRow(:label='$t("ui.expenseProposalDetails.createdLabel")', :value='formatDate(proposal.created_at)')
         DataRow(:label='$t("ui.expenseProposalDetails.plannedAmountLabel")', :value='formatAsset2Digits(proposal.total_planned)')
+        DataRow(v-if='header?.deadline', :label='$t("ui.expenseProposalDetails.deadlineLabel")', :value='header.deadline')
         DataRow(v-if='hasAmount(proposal.total_actual)', :label='$t("ui.expenseProposalDetails.actualSpentLabel")', :value='formatAsset2Digits(proposal.total_actual)')
 
     //- Документы расхода — заявление (СЗ) и протокол решения совета.
@@ -82,7 +84,7 @@ import { DataRow } from '../DataRow';
 import { ActivityTimeline, type ActivityEvent } from '../ActivityTimeline';
 import { ExpenseProposalDocuments } from '../ExpenseProposalDocuments';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { fileKindLabel, itemStatusLabel, itemStatusVariant, mechanicsLabel, proposalStatusLabel, proposalStatusVariant, shortExpenseId, type ExpenseBadgeVariant } from 'src/shared/lib/expenses';
+import { fileKindLabel, itemStatusLabel, itemStatusVariant, mechanicsLabel, proposalHeaderOf, proposalStatusLabel, proposalStatusVariant, shortExpenseId, type ExpenseBadgeVariant } from 'src/shared/lib/expenses';
 import type { ExpenseProposalAggregate, ExpenseProposalDetailsProps, ExpenseProposalFile, ExpenseProposalItem, ExpenseProposalRequisite } from './ExpenseProposalDetails.types';
 
 const props = defineProps<ExpenseProposalDetailsProps>();
@@ -134,6 +136,9 @@ watch(() => props.expenseHash, () => void refresh());
 
 const hasAmount = (v: string | null | undefined) => Number.parseFloat(v ?? '0') > 0;
 
+// Цель расходов и срок — из заявления: в таблице цепи их нет.
+const header = computed(() => proposalHeaderOf(proposal.value?.statement_doc?.rawDocument?.meta));
+
 // Документы показываются, когда пришёл их html — иначе открывать нечего.
 const hasDocuments = computed(() => Boolean(proposal.value?.statement_doc?.rawDocument?.html) || Boolean(proposal.value?.decision_doc?.rawDocument?.html));
 
@@ -168,7 +173,8 @@ function itemChip(item: ExpenseProposalItem): { label: string; variant: ExpenseB
 
 // Имена получателей ищутся по хэшу без учёта регистра — пулы отдают его по-разному.
 const recipientNamesByHash = computed<Record<string, string>>(() => Object.fromEntries(Object.entries(props.recipientNames ?? {}).map(([hash, name]) => [normalizeHash(hash), name])));
-const recipientOf = (item: ExpenseProposalItem): string => recipientNamesByHash.value[normalizeHash(item.item_hash)] ?? item.recipient;
+// У организации аккаунта нет — её название хранит снимок реквизитов позиции.
+const recipientOf = (item: ItemRow): string => recipientNamesByHash.value[normalizeHash(item.item_hash)] ?? (item.recipient || item.requisite?.recipient || '');
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '______';

@@ -80,7 +80,10 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
    * Проверить, может ли статус быть изменен
    */
   canChangeStatus(): boolean {
+    // Платёж «ожидает решения совета» (заведённый до заявок на выплату) кассир
+    // не трогает: перевести его дальше может только решение совета.
     return (
+      this.status !== PaymentStatusEnum.AWAITING_AUTHORIZATION &&
       this.status !== PaymentStatusEnum.COMPLETED &&
       this.status !== PaymentStatusEnum.CANCELLED &&
       this.status !== PaymentStatusEnum.REFUNDED

@@ -26,6 +26,7 @@
 </template>
 
 <script lang="ts" setup>
+import { isComponent } from 'app/extensions/capital/shared/lib/project-utils';
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
@@ -72,7 +73,7 @@ const goToCurrentItem = (projectHash?: string) => {
   // Для текущего элемента: если есть parent_hash — это компонент, иначе — проект.
   // Со страницы задачи компонента чаще нужен список задач, а не описание.
   const routeNameRaw = String(route.name ?? '');
-  const routeName = props.project?.parent_hash
+  const routeName = props.project && isComponent(props.project)
     ? routeNameRaw.includes('component-issue') || routeNameRaw.includes('my-task-issue')
       ? capitalRouteName('component-tasks', route)
       : capitalRouteName('component-description', route)

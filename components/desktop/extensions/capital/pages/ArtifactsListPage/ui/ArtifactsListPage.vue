@@ -1,33 +1,38 @@
 <template lang="pug">
-.artifacts-list-page
+.artifacts-list-page.page-shell
   .page-surface.list-surface.list-surface--fill
-    .artifacts-scroll-area
-      template(v-if='items.length')
-        .row.items-center.artifact-row(
-          v-for='story in items',
-          :key='story._id',
-          role='button',
-          tabindex='0',
-          @click='openStory(story)',
-          @keydown.enter='openStory(story)'
-        )
-          // Избранное — слева, до иконки типа и наименования
-          .col-auto.row-favorite
-            FavoriteStarButton(
-              :target-type='FavoriteTargetType.ARTIFACT',
-              :target-hash='story.story_hash'
-            )
-          .col-auto.artifact-row__icon
-            q-icon(:name='storyContentIcon(story)', size='sm')
-          .col.artifact-row__title-col
-            span.list-item-title {{ story.title }}
+    // Скелетон первичной загрузки — как на проектах и компонентах
+    .artifacts-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
 
-      .artifacts-loading(v-else-if='loading')
-        q-spinner(size='24px')
+    .artifacts-scroll-area(v-else-if='items.length')
+      .row.items-center.artifact-row(
+        v-for='story in items',
+        :key='story._id',
+        role='button',
+        tabindex='0',
+        @click='openStory(story)',
+        @keydown.enter='openStory(story)'
+      )
+        // Избранное — слева, до иконки типа и наименования
+        .col-auto.row-favorite
+          FavoriteStarButton(
+            :target-type='FavoriteTargetType.ARTIFACT',
+            :target-hash='story.story_hash'
+          )
+        .col-auto.artifact-row__icon
+          q-icon(:name='storyContentIcon(story)', size='sm')
+        .col.artifact-row__title-col
+          span.list-item-title {{ story.title }}
 
-      .list-empty(v-else)
-        q-icon(name='inbox', size='20px')
-        span {{ $t('capital.artifactsListPage.emptyText') }}
+    //- Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(
+        :title='$t("capital.artifactsListPage.emptyTitle")',
+        :body='$t("capital.artifactsListPage.emptyBody")'
+      )
+        template(#icon)
+          q-icon(name='article')
 
   //- Просмотр/правка — оверлей поверх списка (?story= в адресе), тот же,
   //- что на вкладках «Артефакты»: список не размонтируется, «назад»
@@ -36,12 +41,13 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
@@ -58,6 +64,9 @@ const { info } = useSystemStore();
 // (совет — всё, остальные — свои проекты, допуски и свободные задачи)
 const loading = ref(false);
 const items = ref<IStory[]>([]);
+
+// Скелетон только при первичной загрузке — как на проектах и компонентах
+const isInitialLoading = computed(() => loading.value && items.value.length === 0);
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -95,9 +104,10 @@ function onStoryUpdated(updated: IStory): void {
 </script>
 
 <style lang="scss" scoped>
+// Высоту экрана задаёт канон-оболочка .page-shell; список забирает остаток
 .artifacts-list-page {
-  height: 100%;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-surface,
@@ -106,8 +116,8 @@ function onStoryUpdated(updated: IStory): void {
 }
 
 .list-surface--fill {
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -119,11 +129,17 @@ function onStoryUpdated(updated: IStory): void {
   padding: 0;
 }
 
-.artifacts-loading {
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.artifacts-skeleton {
   display: flex;
-  justify-content: center;
-  padding: var(--p-5);
-  color: var(--p-ink-3);
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+  background: var(--p-surface);
+
+  .skel {
+    height: var(--p-7);
+  }
 }
 
 .artifact-row {

@@ -13,9 +13,8 @@ q-page.expenses-registry
   )
     template(#cell-purpose='{ row }')
       .cell-purpose__text {{ proposalPurpose(row) || $t('expenses.expensesRegistryPage.noDescriptionLabel') }}
-      //- Кошелёк-источник — мета-строкой под назначением: отдельная колонка
-      //- не помещается в окно 1120px с меню.
-      .cell-purpose__meta {{ walletLabel(row.source_wallet) }}
+    template(#cell-source='{ row }')
+      .cell-source {{ walletLabel(row.source_wallet) }}
     template(#cell-member='{ row }')
       .cell-payer__fio {{ proposalAuthorName(row) }}
       button.cell-payer__acc(
@@ -59,6 +58,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { copyToClipboard, Notify } from 'quasar';
 import { api, type IExpenseProposalRow } from 'src/entities/ExpenseProposal';
 import { listExpenseWallets } from 'src/shared/lib/expense-wallets';
+import { getWalletHumanName } from 'src/shared/lib/ledger2';
 import {
   formatProposalAmount,
   formatProposalDate,
@@ -89,6 +89,7 @@ const { items, loading, firstLoad, totalCount, hasMore, loadMore } = useLiveProp
 // Дата переносится в две строки, кошелёк идёт мета-строкой под назначением.
 const columns = computed<BaseTableColumn<IExpenseProposalRow>[]>(() => [
   { key: 'purpose', label: t('expenses.expensesRegistryPage.column.purpose') },
+  { key: 'source', label: t('expenses.expensesRegistryPage.column.source'), width: '220px' },
   { key: 'member', label: t('expenses.expensesRegistryPage.column.member'), width: '150px' },
   { key: 'created_at', label: t('expenses.expensesRegistryPage.column.createdAt'), width: '120px' },
   { key: 'total_planned', label: t('expenses.expensesRegistryPage.column.amountPlan'), width: '110px', numeric: true, nowrap: true },
@@ -98,10 +99,16 @@ const columns = computed<BaseTableColumn<IExpenseProposalRow>[]>(() => [
 
 // Код кошелька-пула (`w.cap.pgexp`) → человеческое имя из реестра пулов; если
 // расширение не зарегистрировало пул — показываем сам код, не пустоту.
+/**
+ * Источник средств расхода — кошелёк-пул, с которого шасси платит по записке.
+ * Название берётся из реестра кошельков ledger2: он собирается из контракта
+ * генератором cooptypes, поэтому новый пул получает имя без ручной правки.
+ * Имя, объявленное расширением при подключении пула, — запасное.
+ */
 const walletTitles = new Map(listExpenseWallets().map((e) => [e.wallet, e.title]));
 function walletLabel(code?: string | null): string {
   if (!code) return '—';
-  return walletTitles.get(code) ?? code;
+  return getWalletHumanName(code) ?? walletTitles.get(code) ?? code;
 }
 
 async function copyAccount(username?: string | null): Promise<void> {
@@ -152,10 +159,11 @@ function openDetail(hash: string): void {
   overflow-wrap: break-word;
 }
 
-.cell-purpose__meta {
-  margin-top: var(--p-1);
+/* Источник средств — кошелёк-пул расхода, второстепенный к назначению. */
+.cell-source {
   font-size: var(--p-fs-body-sm);
-  color: var(--p-ink-3);
+  color: var(--p-ink-2);
+  overflow-wrap: break-word;
 }
 
 /* Пайщик: ФИО первой строкой, имя аккаунта ниже — кликом копируется. */

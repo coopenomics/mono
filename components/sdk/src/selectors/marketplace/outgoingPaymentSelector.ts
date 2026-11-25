@@ -4,9 +4,9 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 const rawOutgoingPaymentSelector = {
   id: true,
   coopname: true,
-  order_hash: true,
-  order_id: true,
-  apl_reception_id: true,
+  payment_hash: true,
+  orders_count: true,
+  order_ids: true,
   payee_account: true,
   payee_name: true,
   amount: true,
@@ -67,6 +67,6 @@ export const marketplaceOutgoingPaymentDetailSelector = Selector(
   'MarketplaceOutgoingPaymentDetail',
 )({
   payment: rawOutgoingPaymentSelector,
-  order: rawOutgoingPaymentOrderSummarySelector,
+  orders: rawOutgoingPaymentOrderSummarySelector,
   core_payment: rawOutgoingPaymentCoreRecordSelector,
 })

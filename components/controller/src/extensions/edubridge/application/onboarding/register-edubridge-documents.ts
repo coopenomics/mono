@@ -1,9 +1,9 @@
 import type { IDocumentDeclarationPort, InnerDocumentDeclaration } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EDU_ONBOARDING_STEPS } from '../../constants/edubridge-agreement-ids';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const doc = (
   registry_id: number,

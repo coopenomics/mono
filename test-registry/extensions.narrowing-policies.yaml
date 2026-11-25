@@ -13,6 +13,10 @@ title: Сужающие политики — одно приложение су�
 # сузить можно только grant-стол; набор зеркалит прежние meta.roles, поведение
 # пайщиков не меняется.
 
+# Правка 31.10.2026: в install.ts Благороста добавлен маршрут «Мои взносы»
+# (capital-contributions) с тем же правом стола CapitalDesk:use. Политики
+# сужения не менялись.
+
 sources:
   backend:
     - components/innercoop/src/hooks/desktop-grants-filter.hook.ts

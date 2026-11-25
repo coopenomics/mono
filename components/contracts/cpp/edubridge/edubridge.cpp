@@ -31,7 +31,7 @@
 #include "src/p.edu.rid/apprvridact.cpp"
 #include "src/p.edu.rid/dclridact.cpp"
 #include "src/p.edu.rid/acceptrid.cpp"
-#include "src/p.edu.rid/declinerid.cpp"
+#include "src/p.edu.rid/returnrid.cpp"
 #include "src/p.edu.rid/recallrid.cpp"
 #include "src/p.edu.rid/wthshare.cpp"
 

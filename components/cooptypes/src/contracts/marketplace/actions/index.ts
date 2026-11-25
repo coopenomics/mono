@@ -6,8 +6,9 @@
 // ── p.mkt.supply — Stories Эпиков 4-5-6 + E11 техдолг 598-16 ──
 
 /**
- * Заказчик размещает заказ на товар из каталога: o.mkt.lock (паевой резерв) +
- * o.mkt.fee (членский взнос участка). Отдельного заявления нет.
+ * Заказчик размещает заказ на товар из каталога: o.mkt.fee (обеспечительная часть
+ * паевого взноса) и o.mkt.lockp (паевой резерв) со свободного паевого «Стола
+ * заказов». Отдельного заявления нет: недостающее транслирует convert.
  */
 export * as CreateOrder from './createOrder'
 export * as Convert from './convert'
@@ -15,8 +16,8 @@ export * as Convert from './convert'
 /**
  * Заказ имущества из обезличенного остатка склада кооператива. Продавец —
  * кооператив; Order рождается сразу в acceptcoop. Фондируется из свободного
- * паевого «Стола заказов»: взнос с членского кошелька (o.mkt.fee), тело — o.mkt.lockp и
- * o.mkt.lock; недостающая часть взноса переведена заранее действием convert.
+ * паевого «Стола заказов»: обеспечительная часть (o.mkt.fee) и тело (o.mkt.lockp);
+ * недостающее транслировано заранее действием convert по заявлению 1110.
  */
 export * as StockOrder from './stockOrder'
 
@@ -56,7 +57,7 @@ export * as SignSupp from './signSupp'
 
 /**
  * Председатель / trustee приёмного КУ ставит закрывающую подпись на АПП приёмки (Story 5.3/5.4).
- * Per-Order: только o.mkt.purch (Дт 10 / Кт 86). Выплата поставщику отделена в `PayOut`
+ * Per-Order: только o.mkt.purch (Дт 10 / Кт 86). Выплата поставщику — пакетом в конце дня (`AddPayout`, `SendPayout`, `ClosePayout`)
  * (Locked Decision L12, E11 техдолг 598-16).
  */
 export * as SignChair from './signChair'
@@ -67,7 +68,10 @@ export * as SignChair from './signChair'
  * gateway::outcomes со статусом pending; ledger2 здесь не двигается — Дт 86 / Кт 51
  * применится позже в callback'е `PayConfirm` после действия кассира.
  */
-export * as PayOut from './payOut'
+export * as AddPayout from './addPayout'
+export * as SendPayout from './sendPayout'
+export * as ClosePayout from './closePayout'
+export * as ReleasePay from './releasePay'
 
 /**
  * Callback gateway::outcomplete — кассир подтвердил банковский перевод поставщику.
@@ -114,6 +118,57 @@ export * as CancelIssue from './cancelIssue'
 export * as SetFee from './setFee'
 
 /**
+ * Доля инициатора участка в экономии месяца (задача 99D-21).
+ */
+export * as SetShares from './setShares'
+
+/**
+ * Доля пайщиков в экономии месяца — первое деление экономии (задача 99D-35).
+ */
+export * as SetRetShare from './setRetShare'
+
+/**
+ * Инициатор кооперативного участка Стола заказов (задача 99D-21).
+ */
+
+// ── Списание обеспечительной части по итогу периода (процесс p.mkt.due; задачи 99D-21, 99D-33) ──
+/**
+ * Расчёт итога периода участка: T и C из счётчика цепи, от узла — факты о расходах.
+ */
+export * as ClosePeriod from './closePeriod'
+
+/**
+ * Стереть строку прогона участка (задача 99D-21).
+ */
+export * as DelPeriod from './delPeriod'
+
+/**
+ * Списание строки счётчика пайщика за период по ставкам итога (задача 99D-33).
+ */
+export * as ChargePeriod from './chargePeriod'
+
+/**
+ * Выход пайщика состоялся: остаток к списанию — участку, строки счётчиков стираются (зовёт registrator).
+ */
+export * as ExitDue from './exitDue'
+
+/**
+ * Переходный перенос строки зеркала узла в счётчики списания (задача 99D-33, п. 6).
+ */
+export * as MigrateDue from './migrateDue'
+
+// ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
+export * as SignInvAgr from './signInvAgr'
+export * as InvestMoney from './investMoney'
+export * as CreateIProp from './createIProp'
+export * as ApproveIProp from './approveIProp'
+export * as DeclineIProp from './declineIProp'
+export * as Act1IProp from './act1IProp'
+export * as ApprvIpAct from './apprvIpAct'
+export * as DclIpAct from './dclIpAct'
+export * as ClaimInv from './claimInv'
+
+/**
  * Отсечка персонального распределения членского взноса КУ (requirement b6).
  * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
  */
@@ -149,9 +204,6 @@ export * as OnMktRtDecl from './onMktRtDecl'
 
 /** Оператор выдал имущество обратно (после отказа совета или по истечении срока ожидания). */
 export * as HandBack from './handBack'
-
-/** Довнесение членского взноса по возврату, ждавшему пополнения общего кошелька участка (feepend → ∅). */
-export * as PayRetFee from './payRetFee'
 
 // p.mkt.claim — гарантийная претензия поставщику (99D-13): признание; несогласие в цепь не пишется
 export * as AdmitClaim from './admitClaim'

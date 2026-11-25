@@ -5,6 +5,7 @@ import {
   type SignedDocumentRepository,
 } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';
+import { SignedDocumentRole } from '~/domain/document/enums/signed-document-role.enum';
 import { SignedDocumentIngestionService } from './signed-document-ingestion.service';
 import config from '~/config/config';
 import type { IAction } from '~/types/common';
@@ -19,6 +20,8 @@ export interface BackfillStats {
 interface BackfillPass {
   type: string;
   status: SignedDocumentStatus;
+  /** Документ процесса (решение, акт, связь) — своя строка журнала с этой ролью. */
+  role?: SignedDocumentRole;
 }
 
 // Порядок важен: сперва базовые записи (submitted/resolved), затем смена статусов поверх.
@@ -29,20 +32,30 @@ const PASSES: BackfillPass[] = [
   { type: 'newdeclined', status: SignedDocumentStatus.Declined },
 ];
 
+/**
+ * Журнал документов: решения, акты и связанные документы — по строке на документ.
+ * Проход идёт после заявлений, чтобы строка заявления того же документа имела приоритет.
+ */
+const PART_PASSES: BackfillPass[] = [
+  { type: 'newdecision', status: SignedDocumentStatus.Resolved, role: SignedDocumentRole.Decision },
+  { type: 'newact', status: SignedDocumentStatus.Resolved, role: SignedDocumentRole.Act },
+  { type: 'newlink', status: SignedDocumentStatus.Resolved, role: SignedDocumentRole.Link },
+];
+
 const PAGE_LIMIT = 100;
 
 /**
  * Разовый backfill реестра подписанных документов (C28-21).
  *
  * Сканирует все действия soviet (newsubmitted/newresolved/newdeclined) через explorer-источник,
- * для каждого достаёт документ из factory-Mongo и складывает в Postgres-проекцию.
+ * для каждого достаёт документ из хранилища фабрики и складывает в Postgres-проекцию.
  * Идемпотентен по (coopname, doc_hash) — повторный прогон безопасен (package НЕ уникален:
  * в одном процессе несколько разных документов, поэтому ключ записи — doc_hash).
  *
  * Запуск автоматически ОДИН РАЗ при первом старте с этой фичей: если реестр по кооперативу пуст —
  * затягиваем всю историю. Принудительный повторный прогон — флагом `SIGNED_DOCS_BACKFILL_ON_BOOT=true`.
  * Выполняется детачем в onApplicationBootstrap (после инициализации всех модулей — генератор уже
- * подключён к Mongo), чтобы не блокировать старт. Метод `run()` пригоден и для отдельного CLI.
+ * подключён к хранилищу), чтобы не блокировать старт. Метод `run()` пригоден и для отдельного CLI.
  */
 @Injectable()
 export class SignedDocumentBackfillService implements OnApplicationBootstrap {
@@ -66,6 +79,13 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
     if (!forced) {
       const existing = await this.repository.count(config.coopname);
       if (existing > 0) {
+        // Узел ведёт журнал документов после реестра заявлений: строки документов процесса
+        // дописываются один раз, пакеты прежних строк не меняются.
+        if ((await this.repository.countParts(config.coopname)) === 0) {
+          // i18n-ignore: подпись прохода в журнале узла — текст для оператора, не для пайщика
+          await this.runPasses(PART_PASSES, 'журнала документов процесса');
+          return;
+        }
         this.logger.log(`Реестр подписанных документов не пуст (${existing}) — авто-backfill пропущен.`);
         return;
       }
@@ -73,11 +93,22 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
     await this.run();
   }
 
+  /** Проход по набору типов действий с итогом в журнале узла. */
+  private async runPasses(passes: BackfillPass[], label: string): Promise<BackfillStats> {
+    const stats: BackfillStats = { scanned: 0, created: 0, updated: 0, skipped: 0 };
+    this.logger.log(`Старт прохода ${label}...`);
+    for (const pass of passes) await this.runPass(pass, stats);
+    this.logger.log(
+      `Проход ${label} завершён. scanned=${stats.scanned} created=${stats.created} updated=${stats.updated} skipped=${stats.skipped}`
+    );
+    return stats;
+  }
+
   async run(): Promise<BackfillStats> {
     const stats: BackfillStats = { scanned: 0, created: 0, updated: 0, skipped: 0 };
     this.logger.log('Старт backfill реестра подписанных документов...');
 
-    for (const pass of PASSES) {
+    for (const pass of [...PASSES, ...PART_PASSES]) {
       await this.runPass(pass, stats);
     }
 
@@ -113,7 +144,9 @@ export class SignedDocumentBackfillService implements OnApplicationBootstrap {
       for (const action of results) {
         stats.scanned++;
         try {
-          const result = await this.ingestion.ingestAction(action, pass.status);
+          const result = pass.role
+            ? await this.ingestion.ingestPart(action, pass.role)
+            : await this.ingestion.ingestAction(action, pass.status);
           stats[result === 'created' ? 'created' : result === 'updated' ? 'updated' : 'skipped']++;
         } catch (error: any) {
           // Одна битая запись (напр. не-парсибельная дата у legacy-документа) не должна ронять

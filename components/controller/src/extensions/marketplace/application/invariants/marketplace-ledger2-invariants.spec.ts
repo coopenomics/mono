@@ -26,6 +26,7 @@ import {
   checkInvariantI5ReserveConsistency,
   checkInvariantI6NoOrphanedReserves,
   checkInvariantI7SupplierSettlements,
+  checkInvariantI8PeriodConsistency,
   checkAllMarketplaceLedger2Invariants,
   type MarketplaceOpenSettlementRow,
   parseAssetToBigInt,
@@ -817,7 +818,7 @@ describe('checkAllMarketplaceLedger2Invariants — батч', () => {
   })
 })
 
-describe('I2 — счёт 86: только перевод в членский, удержание при отказе и списание скоропорта', () => {
+describe('I2 — счёт 86: только списание обеспечительной части в членский взнос участка', () => {
   beforeEach(() => {
     seq = 100n
   })
@@ -830,32 +831,83 @@ describe('I2 — счёт 86: только перевод в членский, �
     expect(res.expected).toBe('dr=0.0000 RUB / cr=0.0000 RUB')
   })
 
-  it('happy path: перевод в членский и удержание при отказе (Кт 86) — законные проводки; списание скоропорта 86 не задевает', () => {
+  it('happy path: списание обеспечительной части в членский взнос участка (Кт 86) — законная проводка; списание скоропорта 86 не задевает', () => {
+    // Задача 99D-18: трансляция, обеспечительная часть и удержание при отказе
+    // остаются на 80; на 86 нитка заказа выходит только списанием (chargedue).
     const orderHash = newProcessHash()
     const rows: MarketplaceLedger2OperationRow[] = [
       ...writeoffFlow(40),
       ...buildApplyTrio({
         processHash: orderHash,
-        operationCode: 'o.mkt.conv',
-        amount: 100,
-        walletFrom: 'w.wal.share',
-        walletTo: 'w.mkt.member',
+        operationCode: 'o.mkt.charge',
+        amount: 150,
+        walletFrom: 'w.mkt.due',
+        walletTo: 'w.mkt.fee',
+        // С 17.11.2026 проводка одна — на списании; доля участку идёт по кошелькам.
         debitAccount: 80,
         creditAccount: 86,
       }),
       ...buildApplyTrio({
         processHash: orderHash,
-        operationCode: 'o.mkt.penal',
-        amount: 50,
-        walletFrom: 'w.mkt.order',
-        walletTo: 'w.mkt.fee',
-        debitAccount: 80,
-        creditAccount: 86,
+        operationCode: 'o.brn.common',
+        amount: 150,
+        walletFrom: 'w.mkt.fee',
+        walletTo: 'w.brn.common',
+        debitAccount: null,
+        creditAccount: null,
       }),
     ]
     const res = checkInvariantI2Account86Usage(rows)
     expect(res.ok).toBe(true)
     expect(res.expected).toBe('dr=0.0000 RUB / cr=150.0000 RUB')
+  })
+
+  it('happy path: возмещение паевых взносов инициаторов при списании по итогу месяца (Кт 86) — законная проводка', () => {
+    // Задача 99D-27: доля инициаторов из списания заказа ложится на кошелёк
+    // возмещения участка. До 17.11.2026 — с проводкой Дт 80 / Кт 86: такие
+    // записи остаются в истории и законны.
+    const res = checkInvariantI2Account86Usage(
+      buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.repay',
+        amount: 30,
+        walletFrom: 'w.mkt.fee',
+        walletTo: 'w.mkt.repay',
+        debitAccount: 80,
+        creditAccount: 86,
+      }),
+    )
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=0.0000 RUB / cr=30.0000 RUB')
+  })
+
+  it('happy path: погашение 26 членскими взносами (Дт 86) и его сторно на переплату (Кт 86) — законные проводки', () => {
+    // Решение владельца 09.11.2026: доля денег в возмещении гасит расходы
+    // участка из средств инициаторов — Дт 86 / Кт 26, только проводка; денежная
+    // доля переплаты, переведённой участку, — сторно Дт 26 / Кт 86.
+    const hash = newProcessHash()
+    const res = checkInvariantI2Account86Usage([
+      ...buildApplyTrio({ processHash: hash, operationCode: 'o.mkt.icover', amount: 12, walletFrom: null, walletTo: null, debitAccount: 86, creditAccount: 26 }),
+      ...buildApplyTrio({ processHash: hash, operationCode: 'o.mkt.iuncov', amount: 2, walletFrom: null, walletTo: null, debitAccount: 26, creditAccount: 86 }),
+    ])
+    expect(res.ok).toBe(true)
+    expect(res.expected).toBe('dr=12.0000 RUB / cr=2.0000 RUB')
+  })
+
+  it('violation: трансляция с проводкой на 86 — прежняя конвертация в членский при заказе', () => {
+    const res = checkInvariantI2Account86Usage(
+      buildApplyTrio({
+        processHash: newProcessHash(),
+        operationCode: 'o.mkt.conv',
+        amount: 100,
+        walletFrom: 'w.wal.share',
+        walletTo: 'w.mkt.share',
+        debitAccount: 80,
+        creditAccount: 86,
+      }),
+    )
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.message).toMatch(/кредит 86/)
   })
 
   it('violation: дебет 86 в нитке Стола заказов — у программы такого движения нет', () => {
@@ -876,7 +928,7 @@ describe('I2 — счёт 86: только перевод в членский, �
     expect(res.details?.[0]?.message).toMatch(/дебет 86/)
   })
 
-  it('violation: проводка по 86 в нитке Стола заказов вне трёх допустимых операций', () => {
+  it('violation: проводка по 86 в нитке Стола заказов вне списания обеспечительной части', () => {
     // Приёмка легла на 86 вместо 76 — так выглядел бы реестр до перевода
     // закупки на счёт расчётов.
     const res = checkInvariantI2Account86Usage(
@@ -900,10 +952,79 @@ describe('I2 — счёт 86: только перевод в членский, �
     const processHash = newProcessHash()
     const applySeq = nextSeq()
     const rows: MarketplaceLedger2OperationRow[] = [
-      { globalSequence: applySeq, action: 'apply', operationCode: 'o.mkt.penal', processHash, quantity: '40.0000 RUB' },
+      // Нитка заказа: операция Стола заказов делает её ниткой программы.
+      { globalSequence: nextSeq(), action: 'apply', operationCode: 'o.mkt.charge', processHash, quantity: '40.0000 RUB' },
+      { globalSequence: applySeq, action: 'apply', operationCode: 'o.brn.common', processHash, quantity: '40.0000 RUB' },
       { globalSequence: nextSeq(), action: 'debit', processHash, accountId: 80, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
       { globalSequence: nextSeq(), action: 'credit', processHash, accountId: 86, quantity: '40.0000 RUB', parentApplyGlobalSequence: applySeq },
     ]
     expect(checkInvariantI2Account86Usage(rows).ok).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// I8 — итог месяца участка сходится (задача 99D-22, случаи mkt.order.keu.*)
+// ---------------------------------------------------------------------------
+describe('I8 — итог месяца участка: части членского взноса и экономии сходятся', () => {
+  const period = (over: Record<string, unknown> = {}) => ({
+    braname: 'krg',
+    period: 24323,
+    secured: '1140000.0000 RUB',
+    membership: '632911.3924 RUB',
+    funds_amount: '132911.3924 RUB',
+    branch_amount: '500000.0000 RUB',
+    initiator_amount: '313380.7594 RUB',
+    return_amount: '193707.8482 RUB',
+    rows_total: 2,
+    rows_charged: 2,
+    ...over,
+  })
+
+  it('пример участка Б из документа модели — сходится', () => {
+    const res = checkInvariantI8PeriodConsistency([period()])
+    expect(res.ok).toBe(true)
+    expect(res.invariant).toBe('I8')
+  })
+
+  it('фонды + участку ≠ членский взнос — нарушение с указанием строки', () => {
+    const res = checkInvariantI8PeriodConsistency([period({ funds_amount: '132911.3925 RUB' })])
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.processHash).toBe('krg/24323')
+    expect(res.details?.[0]?.message).toContain('членский взнос')
+  })
+
+  it('инициатору + пайщикам ≠ экономия — нарушение', () => {
+    const res = checkInvariantI8PeriodConsistency([period({ return_amount: '193707.8481 RUB' })])
+    expect(res.ok).toBe(false)
+    expect(res.details?.length).toBe(1)
+  })
+
+  // Дележ по модели методолога 13.11.2026 (решение владельца 16.11.2026): часть
+  // экономии копится в фонде социального обеспечения участка.
+  it('доля фонда социального обеспечения входит в экономию: инициатору + фонду + пайщикам = собрано − членский взнос', () => {
+    const split = period({ initiator_amount: '200000.0000 RUB', social_amount: '113380.7594 RUB' })
+    expect(checkInvariantI8PeriodConsistency([split]).ok).toBe(true)
+    const lost = checkInvariantI8PeriodConsistency([period({ initiator_amount: '200000.0000 RUB' })])
+    expect(lost.ok).toBe(false)
+    expect(lost.details?.[0]?.message).toContain('фонду социального обеспечения')
+  })
+
+  it('списано строк больше, чем в прогоне — нарушение; пустой перечень — порядок', () => {
+    expect(checkInvariantI8PeriodConsistency([period({ rows_charged: 3 })]).ok).toBe(false)
+    expect(checkInvariantI8PeriodConsistency([]).ok).toBe(true)
+  })
+
+  it('дефицит: членский взнос равен собранному, экономии нет — сходится', () => {
+    const res = checkInvariantI8PeriodConsistency([
+      period({
+        secured: '380000.0000 RUB',
+        membership: '380000.0000 RUB',
+        funds_amount: '79800.0000 RUB',
+        branch_amount: '300200.0000 RUB',
+        initiator_amount: '0.0000 RUB',
+        return_amount: '0.0000 RUB',
+      }),
+    ])
+    expect(res.ok).toBe(true)
   })
 })

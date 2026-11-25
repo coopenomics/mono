@@ -1,7 +1,7 @@
 # Цифровой Кооператив
 
 <!-- badges -->
-![License](https://img.shields.io/badge/license-BY--NC--SA%204.0-blue)
+![License](https://img.shields.io/badge/license-MIT%20%7C%20CC%20BY--NC--SA%204.0%20%7C%20закрытая-blue)
 ![Node](https://img.shields.io/badge/node-22-green)
 ![pnpm](https://img.shields.io/badge/pnpm-10-orange)
 
@@ -19,7 +19,7 @@
 | [controller](components/controller) | `@coopenomics/controller` | GraphQL API сервер (NestJS) |
 | [cooptypes](components/cooptypes) | `cooptypes` | Общие типы и интерфейсы блокчейн-контрактов |
 | [desktop](components/desktop) | `@coopenomics/desktop` | Рабочий стол кооператива (Vue 3 + Quasar) |
-| [factory](components/factory) | `@coopenomics/factory` | Генератор юридических документов |
+| [docs-factory](https://git.coopenomics.world/C9S/docs-factory) | `@coopenomics/docs-factory` | Фабрика документов — отдельный репозиторий, ставится из npm |
 | [migrator](components/migrator) | `migrator` | Утилита миграции данных |
 | [notifications](components/notifications) | `@coopenomics/notifications` | Библиотека уведомлений на основе Novu |
 | [sdk](components/sdk) | `@coopenomics/sdk` | TypeScript SDK для GraphQL API |
@@ -126,6 +126,10 @@ pnpm --filter @coopenomics/desktop run build
 
 ## Лицензия
 
-Продукт Потребительского Кооператива «ВОСХОД» распространяется по лицензии [BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru).
+Правообладатель — Потребительский кооператив «ВОСХОД». Части репозитория распространяются на разных условиях, полная карта лицензий — в файле [LICENSE](LICENSE).
 
-Разрешено делиться, копировать и распространять материал, адаптировать и создавать производные произведения при условии указания авторства и сохранения той же лицензии. Коммерческое использование запрещено.
+| Часть | Лицензия |
+|---|---|
+| Приложения «Стол заказов», «Благорост» и «Образование» | закрытая лицензия, все права защищены; использование — только по лицензионному договору с ПК «ВОСХОД» ([условия и перечень каталогов](LICENSES/VOSKHOD-PROPRIETARY.md)) |
+| Смарт-контракты, `components/contracts` | [CC BY-NC-SA 4.0](components/contracts/LICENSE), только некоммерческое использование |
+| Остальной код: ядро контроллера и рабочего стола, SDK, cooptypes, служебные пакеты | [MIT](LICENSE) |

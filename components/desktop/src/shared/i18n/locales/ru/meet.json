@@ -78,10 +78,11 @@
     },
     "meetDetailsActions": {
       "approveProtocol": "Утвердить протокол",
+      "protocolPreviewNotice": "Прочитайте протокол перед подписью. Если в нём ошибка, вернитесь и не подписывайте.",
+      "protocolPreviewTitle": "Протокол общего собрания",
       "signProtocol": "Подписать протокол"
     },
     "meetDetailsAgenda": {
-      "contextLabel": "Приложения",
       "decisionLabel": "Проект решения",
       "title": "Повестка"
     },
@@ -89,21 +90,23 @@
       "abstainedLabel": "Воздержались",
       "accepted": "Принято",
       "againstLabel": "Против",
-      "decisionLabel": "Решение",
       "forLabel": "За",
-      "protocolTitle": "Протокол решения общего собрания пайщиков",
-      "rejected": "Отклонено",
+      "rejected": "Не принято",
       "title": "Результаты"
     },
     "meetDetailsVoting": {
       "abstainOption": "ВОЗДЕРЖАЛСЯ",
       "againstOption": "ПРОТИВ",
-      "alreadyVoted": "Вы уже приняли участие в голосовании.",
-      "decisionLabel": "Проект решения",
+      "branchVoted": "Ваш кооперативный участок уже принял участие в голосовании на этом собрании.",
       "forOption": "ЗА",
+      "noBranchTrustee": "Собрание уполномоченных. Голосуют председатели кооперативных участков.",
+      "selectedCount": "Отмечено {selected} из {total}",
       "submit": "Голосовать",
       "title": "Голосование",
+      "trusteeVotes": "Собрание уполномоченных. Голосует председатель вашего участка — {name}.",
       "voteSuccess": "Ваш голос успешно отправлен",
+      "votedAt": "Вы проголосовали",
+      "yourVote": "Ваш голос: {vote}",
       "yourVoteLabel": "Ваш голос"
     },
     "meetsTable": {
@@ -157,6 +160,44 @@
       "votingCompleted": "Собрание успешно завершено. Ожидаем подписи секретаря на протоколе.",
       "votingInProgress": "Собрание идет и завершится",
       "waitingForOpening": "Собрание открывается"
+    },
+    "statusView": {
+      "closedDetail": "Протокол утверждён",
+      "closedLabel": "Завершено",
+      "createdDetail": "Совет рассматривает созыв собрания",
+      "createdLabel": "Решение совета",
+      "formMembers": "собрание пайщиков",
+      "formTrustees": "собрание уполномоченных",
+      "noQuorumDetail": "Инициатор может созвать повторное собрание",
+      "noQuorumLabel": "Кворум не собран",
+      "presiderDetail": "Председатель собрания {name} утверждает протокол",
+      "protocolLabel": "Подписание протокола",
+      "restartDetail": "Совет рассматривает новые даты собрания",
+      "restartLabel": "Повторный созыв",
+      "secretaryDetail": "Секретарь {name} подписывает протокол",
+      "title": "Общее собрание № {number}",
+      "turnoutBallots": "Подано бюллетеней: {ballots}",
+      "turnoutLabel": "Явка",
+      "turnoutRequired": "кворум — {required}%",
+      "typeExtra": "внеочередное",
+      "typeRegular": "очередное",
+      "votingDetail": "Голосование завершится {when}",
+      "votingLabel": "Голосование",
+      "waitingDetail": "Голосование откроется {when}",
+      "waitingLabel": "Ожидает открытия",
+      "youVoted": "Вы проголосовали"
+    },
+    "meetFacts": {
+      "authorizationDoc": "Решение совета о созыве",
+      "closeLabel": "Закрытие",
+      "documentsLabel": "Документы",
+      "openLabel": "Открытие",
+      "presiderLabel": "Председатель",
+      "proposalDoc": "Предложение повестки",
+      "protocolDoc": "Протокол собрания",
+      "quorumLabel": "Кворум",
+      "quorumReached": "Кворум набран",
+      "secretaryLabel": "Секретарь"
     }
   }
 }

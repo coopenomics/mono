@@ -84,20 +84,29 @@ public:
   [[eosio::action]] void closedec(eosio::name coopname, eosio::checksum256 hash, document2 protocol);
 
   // Расширение автоматизируемого решения (L2): создание кооперативного участка через совет.
-  // Председатель участка подписывает пакетом заявление, договор о полной материальной
-  // ответственности (liability) и доверенность председателю участка (authority).
-  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability, document2 authority);
+  // Председатель участка подписывает заявление в совет. Доверенность и договор о полной
+  // материальной ответственности он подписывает после решения совета (signauth, signliab):
+  // доверенность ссылается на протокол совета, до решения протокола нет.
+  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition);
   [[eosio::action]] void confirmdec(eosio::name coopname, eosio::checksum256 hash, document2 authorization);
   [[eosio::action]] void declinedec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
   [[eosio::action]] void canceldec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
 
+  // Документы председателя КУ после решения совета (слово владельца 18.11.2026): председатель
+  // участка подписывает доверенность (срок — год, продление — тем же действием) и договор о полной
+  // материальной ответственности на своём участке; оба направляются председателю совета на
+  // встречную подпись через одобрения. Учёт доверенностей (номер, срок, состояние) ведёт узел.
+  [[eosio::action]] void signauth(eosio::name coopname, eosio::name braname, eosio::name username, document2 authority);
+  [[eosio::action]] void signliab(eosio::name coopname, eosio::name braname, eosio::name username, document2 liability);
+
   // Договор о полной материальной ответственности председателя КУ: встречная подпись председателя совета
-  // (callback'и одобрения совета; отклонение заблокировано — решение об учреждении участка уже принято)
+  // (callback'и одобрения совета; отказ председателя совета документ не фиксирует — председатель
+  // участка подписывает исправленный)
   [[eosio::action]] void apprliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
   [[eosio::action]] void declliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
 
   // Доверенность председателя КУ: встречная подпись председателя совета
-  // (отдельное одобрение совета рядом с договором матответственности; отклонение заблокировано)
+  // (отказ председателя совета доверенность не фиксирует — председатель участка подписывает новую)
   [[eosio::action]] void apprauth(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
   [[eosio::action]] void declauth(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
 
@@ -168,6 +177,35 @@ public:
                                      std::string memo);
 
 
+  /**
+   * @brief Потолок резерва социально-экономического обеспечения на одного
+   * получателя в месяц — один на все участки кооператива; ноль — резерв
+   * выключен (задача 99D-20).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void setaidlimit(eosio::name coopname, eosio::asset limit);
+
+  /**
+   * @brief Длина периода, за который считается предел материальной помощи,
+   * секунд; ноль — календарный месяц UTC. Стенд со сжатым временем ставит
+   * длину своего месяца.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void setaidperiod(eosio::name coopname, uint32_t seconds);
+  /**
+   * @brief Резерв социально-экономического обеспечения получателя на участке:
+   * сумма материальной помощи в месяц, записанная председателем участка; предел
+   * заявлений получателя за месяц и слагаемое расходов участка (задача 99D-20).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void setreserve(eosio::name coopname, eosio::name braname,
+                                     eosio::name username, eosio::asset amount);
+  /**
+   * @brief Снять резерв получателя на участке (задача 99D-20).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void delreserve(eosio::name coopname, eosio::name braname,
+                                     eosio::name username);
   /**
    * @brief Заявление на материальную помощь доверенного из его персонального
    * кошелька: подписанное заявление вносится на повестку совета (type=brnaid).

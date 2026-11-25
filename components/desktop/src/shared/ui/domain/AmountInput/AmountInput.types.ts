@@ -8,6 +8,12 @@ export interface AmountInputProps {
   hint?: string;
   error?: string;
   placeholder?: string;
+  /**
+   * Подпись всегда поднята над полем — как у `BaseInput stack-label`. Нужна,
+   * когда сумма стоит в ряду с полем даты: Quasar поднимает метку даты всегда,
+   * и без этого две рамки в одном ряду выглядят по-разному.
+   */
+  stackLabel?: boolean;
   min?: number;
   max?: number;
   /** Показать кнопку «макс» */

@@ -42,15 +42,21 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.exp.expns',    contract: 'expense',      name: 'PROPOSAL',    human_name: 'Расход по служебной записке' },
 
   // marketplace
-  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка и приобретение имущества пайщика' },
+  { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка-приобретение имущества пайщиком' },
   { type: 'p.mkt.return',   contract: 'marketplace',  name: 'RETURN',      human_name: 'Гарантийный возврат имущества пайщиком' },
   { type: 'p.mkt.wroff',    contract: 'marketplace',  name: 'WRITEOFF',    human_name: 'Утилизация скоропорта со склада кооператива' },
   { type: 'p.mkt.claim',    contract: 'marketplace',  name: 'CLAIM',       human_name: 'Гарантийная претензия поставщику' },
+  { type: 'p.mkt.invest',   contract: 'marketplace',  name: 'INVEST',      human_name: 'Паевой взнос инициатора в кооперативный участок' },
+  { type: 'p.mkt.icomp',    contract: 'marketplace',  name: 'INVEST_COMPENSATION', human_name: 'Возмещение паевого взноса инициатору кооперативного участка' },
+  { type: 'p.mkt.due',      contract: 'marketplace',  name: 'DUE',         human_name: 'Списание обеспечительной части по итогу периода участка' },
 
   // branch — экономика кооперативного участка (requirement b6)
   { type: 'p.brn.fees',     contract: 'branch',       name: 'FEES',        human_name: 'Членские взносы кооперативного участка' },
   { type: 'p.brn.aid',      contract: 'branch',       name: 'AID',         human_name: 'Материальная помощь доверенного кооперативного участка' },
   { type: 'p.brn.spend',    contract: 'branch',       name: 'SPEND',       human_name: 'Оплата расхода кооперативного участка' },
+
+  // fund — фонды накопления кооператива (задачи 99D-19, 99D-25: кошелёк на каждый фонд)
+  { type: 'p.fnd.accum',    contract: 'fund',         name: 'ACCUM',       human_name: 'Отчисления в фонды накопления кооператива' },
 
   // edubridge — ЦПП «Образование» (приложение «Образовательный мост»)
   { type: 'p.edu.access',   contract: 'edubridge',    name: 'ACCESS',      human_name: 'Доступ к курсу по ЦПП «Образование»' },
@@ -65,6 +71,7 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.bil.fund',     contract: 'billing',      name: 'CONVERT',     human_name: 'Пополнение биллинг-кошелька пайщика' },
   { type: 'p.bil.pay',      contract: 'billing',      name: 'PAY',         human_name: 'Оплата инфраструктурной подписки' },
   { type: 'p.sov.tax',      contract: 'soviet',       name: 'TAX',         human_name: 'Перечисление удержанного налога в бюджет' },
+  { type: 'p.sov.spend',    contract: 'soviet',       name: 'SPEND',       human_name: 'Расход кооператива из фонда обеспечения хозяйственной деятельности' },
 
   // migration
   { type: 'p.mig.trans',    contract: 'migration',    name: 'TRANSIT',     human_name: 'Миграция legacy → ledger2' },

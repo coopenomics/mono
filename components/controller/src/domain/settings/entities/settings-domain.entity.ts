@@ -13,6 +13,9 @@ export class SettingsDomainEntity implements SettingsDomainInterface {
   non_authorized_default_route: string;
   extra_settings?: Record<string, any>;
   onboarding_completed_at?: Date | null;
+  /** Логотип кооператива: ключ файла в хранилище и его тип. */
+  logo_key: string | null;
+  logo_mime: string | null;
   created_at: Date;
   updated_at: Date;
 
@@ -24,6 +27,8 @@ export class SettingsDomainEntity implements SettingsDomainInterface {
     this.non_authorized_default_workspace = data.non_authorized_default_workspace;
     this.non_authorized_default_route = data.non_authorized_default_route;
     this.onboarding_completed_at = data.onboarding_completed_at ?? null;
+    this.logo_key = data.logo_key ?? null;
+    this.logo_mime = data.logo_mime ?? null;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -50,6 +55,12 @@ export class SettingsDomainEntity implements SettingsDomainInterface {
     }
     if (updates.non_authorized_default_route !== undefined) {
       this.non_authorized_default_route = updates.non_authorized_default_route;
+    }
+    if (updates.logo_key !== undefined) {
+      this.logo_key = updates.logo_key;
+    }
+    if (updates.logo_mime !== undefined) {
+      this.logo_mime = updates.logo_mime;
     }
     this.updated_at = new Date();
   }

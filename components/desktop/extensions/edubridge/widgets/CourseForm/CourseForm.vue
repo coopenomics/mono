@@ -37,12 +37,12 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       .edu-course-form__group-title {{ $t('edubridge.courseForm.scheduleLabel') }}
         FieldHelp.q-ml-xs(:text="COURSE_FORM_HELP.schedule")
       ScheduleSlotsEditor(v-model="form.schedule_slots" :default-minutes="Number(form.schedule_slots[0]?.minutes || 60)" :symbol="symbol")
-      //- Что расписание даёт за месяц: занятия, часы и стоимость часов преподавателей — считает сервер, как и взнос.
+      //- Что расписание даёт за месяц: занятия и часы — считает сервер, как и взнос.
+      //- Стоимость часов преподавателей — одной строкой в расчёте взноса ниже.
       .edu-course-form__breakdown(v-if="fee")
         DataRow(:label="$t('edubridge.courseForm.summary.lessonsPerMonth')" :value="formatNumber(fee.lessons_per_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.summary.hoursPerMonth')" :value="formatNumber(fee.hours_per_month)" align="spread")
         DataRow(v-if="fee.reserve_hours_per_month > 0" :label="$t('edubridge.courseForm.summary.reserveHours')" :value="formatNumber(fee.reserve_hours_per_month)" align="spread")
-        DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.program') }}
       //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
@@ -54,20 +54,21 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.guaranteeDays")
     .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
+      .edu-course-form__group-title {{ programIsLong ? $t('edubridge.courseForm.group.terms') : $t('edubridge.courseForm.group.termsShort') }}
       //- Способ расчёта с преподавателем задаётся при создании курса; при
       //- действующих подписках контракт его менять не даёт.
       .edu-course-form__check
         BaseCheckbox(v-model="payPerLearner")
           | {{ $t('edubridge.courseForm.payPerLearnerCheckbox') }}
         FieldHelp(:text="COURSE_FORM_HELP.payPerLearner")
-      .edu-course-form__check
-        //- Взнос за весь курс — для программ длиннее месяца: у месячной он равен помесячному, переключатель недоступен.
-        BaseCheckbox(v-model="coursePayment" :disabled="!programIsLong && !coursePayment")
+      //- Взнос за весь курс — только у программ длиннее месяца: у месячной он равен
+      //- помесячному, и выбора нет — переключатель скрыт (замечание владельца 25.11.2026).
+      .edu-course-form__check(v-if="programIsLong")
+        BaseCheckbox(v-model="coursePayment")
           | {{ $t('edubridge.courseForm.coursePaymentCheckbox') }}
-        FieldHelp(:text="programIsLong ? coursePaymentHint : COURSE_FORM_HELP.coursePaymentShort")
+        FieldHelp(:text="coursePaymentHint")
       BaseInput(
-        v-if="coursePayment"
+        v-if="programIsLong && coursePayment"
         v-model="courseDiscount"
         :label="$t('edubridge.courseForm.courseDiscountLabel')"
         type="number"
@@ -77,19 +78,20 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           span.edu-course-form__limit.t-num(v-if="discountLimit") {{ discountLimit }}
           FieldHelp(:text="discountHint")
 
-    //- Итог расчёта: две суммы плитками, под ними — из чего складывается взнос.
-    //- Белая карточка на фоне страницы, как остальные числа образования.
+    //- Итог расчёта: два слагаемых месяца и под ними итог. «Взнос в месяц» —
+    //- всегда; у программы длиннее месяца — «За всю программу», а при взносе
+    //- разом — сумма со скидкой. У месячной программы вторая строка повторяла
+    //- бы первую, поэтому её нет (замечание владельца 25.11.2026).
     .edu-course-form__group(v-if="fee")
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.total') }}
-      .edu-course-form__tiles
-        StatTile(:caption="$t('edubridge.courseForm.total.feeMonth')" :value="formatAsset2Digits(fee.fee_month)")
-        StatTile(:caption="courseFeeLabel" :value="courseFeeValue ? formatAsset2Digits(courseFeeValue) : '______'")
       .edu-course-form__breakdown
         DataRow(:label="$t('edubridge.courseForm.summary.costMonth')" :value="formatAsset2Digits(fee.cost_month)" align="spread")
         DataRow(:label="$t('edubridge.courseForm.total.markup', { percent: fee.markup_percent })" :value="formatAsset2Digits(fee.markup_month)" align="spread")
-        template(v-if="courseFeeShown")
-          DataRow(:label="$t('edubridge.courseForm.total.feeCourseBase')" :value="formatAsset2Digits(fee.fee_course_base)" align="spread")
-          DataRow(:label="$t('edubridge.courseForm.total.courseDiscount')" :value="formatAsset2Digits(fee.course_discount_amount)" align="spread")
+        .edu-course-form__total
+          DataRow(:label="$t('edubridge.courseForm.total.feeMonth')" :value="formatAsset2Digits(fee.fee_month)" align="spread")
+          template(v-if="programIsLong && programFeeValue")
+            DataRow(:label="$t('edubridge.courseForm.total.feeProgram')" :value="formatAsset2Digits(programFeeValue)" align="spread")
+            DataRow(v-if="courseFeeShown" :label="$t('edubridge.courseForm.total.feeCourseOnce')" :value="formatAsset2Digits(fee.fee_course)" align="spread")
     //- Расчёта нет: причина названа — ошибка ввода либо отказ сервера; без причины — параметры ещё не заполнены.
     BaseBanner(v-else-if="feeError" variant="warn")
       template(#icon)
@@ -220,7 +222,6 @@ import { computed, ref, watch } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { DataRow, IdentityCell } from 'src/shared/ui/domain';
-import { StatTile } from '../../shared/ui/StatStrip';
 import { ScheduleSlotsEditor } from '../ScheduleSlotsEditor';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
@@ -266,8 +267,7 @@ const {
   discountLimit,
   coursePaymentHint,
   courseFeeShown,
-  courseFeeLabel,
-  courseFeeValue,
+  programFeeValue,
   platformCourses,
   skillspaceCourseId,
   skillspaceGroupId,
@@ -343,7 +343,7 @@ defineExpose({ submit: requestSubmit, validate });
 .edu-course-form__section {
   display: flex;
   flex-direction: column;
-  gap: var(--p-6);
+  gap: var(--p-7);
   padding: var(--p-6) 0;
   border-top: 1px solid var(--p-line);
 }
@@ -422,14 +422,17 @@ defineExpose({ submit: requestSubmit, validate });
 .edu-course-form__file {
   display: none;
 }
-/* Итог расчёта: две суммы белыми плитками, слагаемые — строками сведений в белой карточке. */
-.edu-course-form__tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--p-3);
+/* Итоговые суммы — под слагаемыми, крупнее и полужирным. Линию между
+   слагаемыми и итогом даёт сама строка сведений: своей линии у итога нет,
+   иначе две линии шли подряд (замечание владельца 25.11.2026). */
+.edu-course-form__total {
+  margin-top: var(--p-2);
+  font-weight: 600;
+  font-size: var(--p-fs-h3);
+  color: var(--p-ink);
 }
 .edu-course-form__breakdown {
-  padding: var(--p-1) var(--p-4);
+  padding: var(--p-2) var(--p-5);
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);

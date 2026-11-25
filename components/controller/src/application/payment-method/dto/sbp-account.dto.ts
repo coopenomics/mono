@@ -11,6 +11,13 @@ export class SBPDataDTO {
   @IsString()
   phone!: string;
 
+  // Тип совпадает с банком у банковского счёта: поля одного имени в объединении
+  // обязаны отдавать один тип, иначе запрос к обоим вариантам сервер отклоняет.
+  @Field(() => String, {
+    description: 'Банк получателя. У реквизитов, сохранённых до появления поля, пустая строка',
+  })
+  bank_name!: string;
+
   /**
    * Конструктор для SBPDataDTO
    *
@@ -18,5 +25,6 @@ export class SBPDataDTO {
    */
   constructor(domainData: SBPDataDomainInterface) {
     this.phone = domainData.phone;
+    this.bank_name = domainData.bank_name ?? '';
   }
 }

@@ -60,7 +60,7 @@
     "documentCardsList": {
       "downloadArchiveError": "Не удалось подготовить архив пакета документов",
       "downloadPackageAriaLabel": "Скачать пакет",
-      "emptyBody": "Здесь появятся ваши документы и подписанные соглашения.",
+      "emptyBody": "Здесь отображаются ваши документы и подписанные соглашения.",
       "emptyTitle": "Документы не найдены",
       "loadMoreLabel": "Загрузить ещё",
       "rangeEmptyLabel": "0 из {total}",
@@ -96,7 +96,7 @@
       "approvedVersionLabel": "Редакция № {version}",
       "bannerLine1": "Здесь все шаблоны документов, которыми пользуется кооператив: базовый набор и документы установленных приложений.",
       "bannerLine2": "Пайщикам предъявляется только редакция, утверждённая советом. Когда оператор платформы выпускает новую редакцию,",
-      "bannerLine3": "её нужно вынести на совет — до решения кооператив продолжает работать по прежней.",
+      "bannerLine3": "её необходимо вынести на совет — до решения кооператив продолжает работать по прежней.",
       "bundleLabelPrefix": " · пакет «",
       "cardTitle": "Кооператив",
       "column": {
@@ -135,7 +135,7 @@
       "documentHeader": "Документ",
       "downloadArchiveError": "Не удалось подготовить архив пакета документов",
       "downloadPackageAriaLabel": "Скачать пакет",
-      "emptyBody": "Здесь появятся ваши документы и подписанные соглашения.",
+      "emptyBody": "Здесь отображаются ваши документы и подписанные соглашения.",
       "emptyTitle": "Документы не найдены",
       "expandAriaLabel": "Развернуть",
       "loadMoreLabel": "Загрузить ещё",
@@ -157,11 +157,19 @@
     },
     "listOfDocumentsPage": {
       "documentsTab": "Документы",
-      "templatesTab": "Шаблоны документов"
+      "templatesTab": "Шаблоны документов",
+      "powersOfAttorneyTab": "Доверенности"
     },
     "listOfDocumentsWidget": {
       "allIncomingOption": "Все входящие",
-      "onlyApprovedOption": "Только утверждённые"
+      "onlyApprovedOption": "Только утверждённые",
+      "viewAriaLabel": "Вид реестра",
+      "viewPackage": "Пакеты",
+      "viewFlat": "Документы",
+      "signedFromLabel": "Подписан с",
+      "signedToLabel": "Подписан по",
+      "typeLabel": "Тип документа",
+      "typeAll": "Все типы"
     },
     "listOfParticipantsPage": {
       "filterAll": "Все",
@@ -186,7 +194,7 @@
       "createdAtHeader": "Дата создания {sortMark}",
       "directionIncoming": "Входящий",
       "directionOutgoing": "Исходящий",
-      "emptyBody": "Здесь появятся ваши платежи и взносы.",
+      "emptyBody": "Здесь отображаются ваши платежи и взносы.",
       "emptyTitle": "Платежи не найдены",
       "expandAriaLabel": "Развернуть",
       "hintIncomingOther": "В кооператив",
@@ -253,7 +261,7 @@
         "status": "Статус",
         "type": "Тип"
       },
-      "emptyBody": "Здесь появятся отправленные кооперативом уведомления.",
+      "emptyBody": "Здесь отображаются отправленные кооперативом уведомления.",
       "emptyTitle": "Уведомления не найдены",
       "loadMoreLabel": "Загрузить ещё",
       "rangeEmptyLabel": "0 из {totalCount}",
@@ -264,7 +272,11 @@
       "statusFailed": "Ошибка",
       "statusPending": "В очереди",
       "statusSending": "Отправляется",
-      "statusSent": "Доставлено"
+      "statusSent": "Доставлено",
+      "detailsTitle": "Уведомление",
+      "contentTitle": "Что получил пайщик",
+      "contentMissing": "Текст уведомления не найден: сценария уведомления больше нет в каталоге.",
+      "attemptsTitle": "Попытки доставки"
     },
     "personnelPage": {
       "addRoleLabel": "Добавить роль",
@@ -287,6 +299,32 @@
       "revokeAriaLabel": "Снять роль",
       "revokeSuccess": "Роль снята",
       "rolesButtonLabel": "Роли"
+    },
+    "powersOfAttorney": {
+      "emptyTitle": "Доверенностей нет",
+      "emptyBody": "Реестр добавляет доверенность председателя участка, когда он подписывает её после решения совета об учреждении участка.",
+      "pagerLabel": "Доверенности",
+      "drawerTitle": "Доверенность № {number}",
+      "basisValue": "Протокол № {number} от {date}",
+      "column": {
+        "number": "Номер",
+        "type": "Тип",
+        "holder": "Доверенное лицо",
+        "branch": "Участок",
+        "basis": "Основание",
+        "term": "Срок",
+        "status": "Состояние"
+      },
+      "type": {
+        "trustee": "Председателю участка",
+        "trusted": "Доверенному лицу участка"
+      },
+      "status": {
+        "active": "Действует",
+        "pending": "На подписи",
+        "expired": "Срок истёк",
+        "declined": "Отклонена"
+      }
     }
   }
 }

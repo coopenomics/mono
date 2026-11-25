@@ -4,7 +4,7 @@ import type { CreateDebtInputDTO } from '../dto/debt_management/create-debt-inpu
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DOCUMENT_PORT, type IDocumentPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
@@ -68,7 +68,7 @@ export class DebtManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.GetLoanStatement.registry_id,
+        registry_id: Registry.GetLoanStatement.registry_id,
       },
       options,
     });
@@ -85,7 +85,7 @@ export class DebtManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.GetLoanDecision.registry_id,
+        registry_id: Registry.GetLoanDecision.registry_id,
       },
       options,
     });

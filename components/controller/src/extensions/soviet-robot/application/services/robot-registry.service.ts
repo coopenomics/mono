@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EXTENSION_CONFIG_PORT, type IExtensionConfigPort } from '@coopenomics/innercoop';
-import { Cooperative } from 'cooptypes';
+import { IDecisionTypeInfo, decisionTypeExtensions, decisionTypesForExtensions, decisionTypesRegistry } from '@coopenomics/docs-templates';
 import { RobotChainService, type AutomatorRow, type BoardRow } from './robot-chain.service';
 import { RobotKeyService } from './robot-key.service';
 import { RobotVoteMode } from '../../domain/enums/robot-vote-mode.enum';
@@ -179,12 +179,12 @@ export class RobotRegistryService {
    * расширение установлено. Настройка расширения читается портом — установка
    * соседа напрямую из базы не проверяется.
    */
-  private async availableTypes(): Promise<Cooperative.Document.IDecisionTypeInfo[]> {
-    const names = Cooperative.Document.decisionTypeExtensions();
+  private async availableTypes(): Promise<IDecisionTypeInfo[]> {
+    const names = decisionTypeExtensions();
     const installed = await Promise.all(
       names.map(async (name) => ((await this.extensions.get(name)) === null ? null : name))
     );
-    return Cooperative.Document.decisionTypesForExtensions(installed.filter((name): name is string => name !== null));
+    return decisionTypesForExtensions(installed.filter((name): name is string => name !== null));
   }
 
   buildRegistry(
@@ -192,7 +192,7 @@ export class RobotRegistryService {
     board: BoardRow | null,
     withKeys: Set<string>,
     viewer?: string,
-    types: Cooperative.Document.IDecisionTypeInfo[] = Object.values(Cooperative.Document.decisionTypesRegistry)
+    types: IDecisionTypeInfo[] = Object.values(decisionTypesRegistry)
   ): RobotDecisionTypeView[] {
     const now = new Date();
     const members = board?.members ?? [];

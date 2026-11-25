@@ -15,15 +15,20 @@
       "documentsEmpty": "Документы не приложены",
       "documentsTitle": "Документы",
       "opNumberColumn": "№ операции",
-      "openInOperationsRegistry": "Открыть в реестре операций",
-      "openInPostingsRegistry": "Открыть в реестре проводок",
       "operationColumn": "Операция",
       "operationsEmpty": "Операций нет",
       "operationsTitle": "Операции",
       "postingNumberColumn": "№ проводки",
       "postingsEmpty": "Проводок нет",
-      "postingsTitle": "Проводки",
-      "processIdLabel": "ID процесса:"
+      "postingsTitle": "Проводки"
+    },
+    "processContentCard": {
+      "linesTitle": "Состав процесса",
+      "column": {
+        "operation": "Операция",
+        "subject": "Пайщик или участок",
+        "amount": "Сумма"
+      }
     }
   }
 }

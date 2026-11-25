@@ -123,7 +123,7 @@ private readonly repo: TableStore<MarketplaceContainerEntity>,
 
   async list(filter: MarketplaceContainerListFilter): Promise<MarketplaceContainerDomainEntity[]> {
     const where: Record<string, unknown> = { coopname: filter.coopname };
-    if (filter.braname !== undefined) {
+    if (filter.braname != null) {
       where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
     }
     if (filter.is_active != null) where.is_active = filter.is_active;

@@ -14,4 +14,7 @@ export const KU_LIVE_TABLES: ChainTableRef[] = [
     (table) => liveTable(BranchContract, table),
   ),
   liveTable(SovietContract, SovietContract.Tables.Participants),
+  // Учёт доверенностей и договоров председателей участков на узле (код расширения — trustee)
+  { code: 'trustee', table: 'ku_powers_of_attorney' },
+  { code: 'trustee', table: 'ku_trustee_liabilities' },
 ];

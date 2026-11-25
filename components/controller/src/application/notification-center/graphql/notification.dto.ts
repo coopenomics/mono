@@ -70,4 +70,13 @@ export class NotificationDTO {
 export class NotificationDetailDTO extends NotificationDTO {
   @Field(() => [NotificationAttemptDTO], { description: 'История попыток доставки' })
   deliveries!: NotificationAttemptDTO[];
+
+  @Field(() => String, { nullable: true, description: 'Тема уведомления, как её увидел получатель' })
+  subject?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст',
+  })
+  body?: string | null;
 }

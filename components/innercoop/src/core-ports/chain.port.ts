@@ -54,8 +54,34 @@ export interface IChainPort {
    */
   transact(action: InnerChainAction | InnerChainAction[], broadcast?: boolean): Promise<InnerTransactResult>;
 
-  /** Прочитать таблицу контракта целиком в пределах области видимости. */
+  /**
+   * Прочитать таблицу контракта целиком в пределах области видимости. Только
+   * для таблиц, число строк в которых не растёт с числом пайщиков, заказов и
+   * участков: настройки, справочники. Остальное читается по индексу — `queryRows`.
+   */
   getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<T[]>;
+
+  /**
+   * Прочитать строки таблицы по индексу в пределах ключей `from`…`to`
+   * включительно. Узел отдаёт только строки с этими ключами — чтение не
+   * зависит от размера таблицы. Вид индекса и тип ключа описаны широко, как у
+   * `getSingleRow`: их представление задаёт SDK узла, приведение делает
+   * адаптер ядра.
+   */
+  queryRows<T = any>(
+    code: string,
+    scope: string,
+    tableName: string,
+    options: {
+      /** Номер индекса: `primary`, `secondary`, `tertiary`, `fourth`… — по порядку объявления в таблице контракта. */
+      indexPosition?: string;
+      /** Тип ключа индекса: `name`, `i64`, `sha256`. */
+      keyType?: string;
+      from?: string | number;
+      to?: string | number;
+      maxRows?: number;
+    }
+  ): Promise<T[]>;
 
   /**
    * Прочитать одну строку таблицы по ключу. `null` — строки нет.

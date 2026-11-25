@@ -33,4 +33,11 @@ export interface UpdateSettingsInputDomainInterface {
    * через общую форму настроек она не меняется.
    */
   onboarding_completed_at?: Date;
+
+  /**
+   * Логотип кооператива: ключ файла в хранилище и его тип. `null` снимает логотип.
+   * Ставит его отдельная операция загрузки, через общую форму настроек поле не правится.
+   */
+  logo_key?: string | null;
+  logo_mime?: string | null;
 }

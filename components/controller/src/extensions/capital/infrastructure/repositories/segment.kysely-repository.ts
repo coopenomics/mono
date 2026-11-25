@@ -78,12 +78,12 @@ export class SegmentKyselyRepository
     }
     const flags = ['is_author', 'is_creator', 'is_coordinator', 'is_investor', 'is_propertor', 'is_contributor', 'has_vote'] as const;
     for (const field of flags) {
-      if (filter[field] !== undefined) queryBuilder.andWhere(`s.${field} = :${field}`, { [field]: filter[field] });
+      if (filter[field] != null) queryBuilder.andWhere(`s.${field} = :${field}`, { [field]: filter[field] });
     }
-    if (filter.parent_hash !== undefined) {
+    if (filter.parent_hash != null) {
       queryBuilder.andWhere('project.parent_hash = :parent_hash', { parent_hash: filter.parent_hash });
     }
-    if (filter.is_component !== undefined) {
+    if (filter.is_component != null) {
       // Результат приходуется по компоненту: у проекта верхнего уровня своего
       // результата нет, он складывается из результатов компонентов
       queryBuilder = filter.is_component

@@ -44,6 +44,15 @@ title: Фабрика утверждений документов — утвер
 # (двойник 995 и подобные), отвечает кодом GENERATOR_DOCUMENT_TYPE_UNKNOWN, а не
 # общим «не удалось собрать» с причиной только в журнале.
 
+# Правка 30.10.2026 (5A8-11): шаблоны документов импортируются из пакета
+# @coopenomics/docs-templates (`Registry`) вместо `Cooperative.Registry` из
+# cooptypes. Поведение не менялось: тот же реестр шаблонов, другой пакет.
+
+# Правка 30.10.2026 (5A8-11): модель документа, данные кооператива, субъекты
+# и реквизиты (`IMetaDocument`, `IGenerate`, `UdataKey`, `IIndividualData`, …)
+# импортируются из @coopenomics/docs-templates вместо cooptypes. Поведение
+# не менялось: те же типы и значения, другой пакет.
+
 sources:
   contract:
     - components/contracts/cpp/draft/**
@@ -52,9 +61,9 @@ sources:
     - components/contracts/cpp/wallet/src/agreement/signagree.cpp
   backend:
     - components/controller/src/infrastructure/decision-tracking/**
-    - components/factory/src/Templates/registry.ts
-    - components/factory/src/Factory/index.ts
-    - components/factory/src/Services/Templator/index.ts
+    - C9S/docs-factory:src/Templates/registry.ts
+    - C9S/docs-factory:src/Factory/index.ts
+    - C9S/docs-factory:src/Services/Templator/index.ts
     - components/controller/src/domain/document-approval/**
     - components/controller/src/application/document-approval/**
     - components/controller/src/domain/common/ports/draft-blockchain.port.ts
@@ -76,6 +85,18 @@ sources:
     - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/api/index.ts
 
 cases:
+  - id: doc.appr.invest.01
+    level: backend
+    kind: side
+    scenario: >
+      В реестре шаблонов кооператива появляются документы инвестиционного этапа участка Стола заказов (1118–1123, задача 99D-29).
+    expect: >
+      договор участия и бланки требуют утверждения редакции советом, протокол 1121 — служебный и утверждения не требует
+    test: components/controller/tests/unit/onboarding/onboarding-keys-consistency.test.ts
+    status: passing
+    external: unreachable
+    external_reason: объявление документов — вызов порта реестра шаблонов при запуске расширения; снаружи видно только через утверждение редакций советом, его покрывает набор фабрики утверждений
+
   - id: doc.appr.happy.01
     level: contract
     kind: happy
@@ -432,7 +453,7 @@ cases:
     kind: happy
     scenario: Бланк оферты ЦПП (Благорост, Генератор) для совета с хэшем параметров программы
     expect: параметры программы подставлены из приватных данных по хэшу, поля пайщика и дата — прочерк; без хэша параметры остаются прочерком
-    test: components/factory/test/blagorost.test.ts
+    test: C9S/docs-factory:test/blagorost.test.ts
     api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
@@ -441,7 +462,7 @@ cases:
     kind: side
     scenario: Шаблоны-двойники «для утверждения» (995, 997, 999, 1101) выведены из реестра
     expect: генератор их не знает, синхронизатор шаблонов записи в сети не трогает и сообщает о них как «в сети, но не в реестре»; рабочие документы 996, 1000, 1001, 1102 собираются как прежде
-    test: components/factory/test/documents-1000-plus.test.ts
+    test: C9S/docs-factory:test/documents-1000-plus.test.ts
     api: components/api-tests/src/documents/approvals.test.ts
     status: written
   - id: doc.appr.side.21
@@ -460,7 +481,7 @@ cases:
     kind: happy
     scenario: Заявление об аннулировании соглашений ЦПП (190) объявлено формой рядом с заявлением на выход (200)
     expect: документ входит в набор core_forms и предлагается к подписи вместе с заявлением на выход; порядковые номера форм ядра не пересекаются
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: written
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из

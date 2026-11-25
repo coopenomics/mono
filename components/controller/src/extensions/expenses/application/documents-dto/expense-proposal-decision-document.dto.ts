@@ -1,13 +1,13 @@
 import { InputType, Field, IntersectionType, OmitType, Int } from '@nestjs/graphql';
 import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO } from '@coopenomics/extension-kit';
 
-type Action = Cooperative.Registry.ExpenseProposalDecision.Action;
-type ItemAction = Cooperative.Registry.ExpenseProposalStatement.IExpenseItem;
-type HeaderAction = Cooperative.Registry.ExpenseProposalStatement.IExpenseProposalHeader;
-type DecisionBody = Cooperative.Registry.ExpenseProposalDecision.IExpenseProposalDecisionBody;
+type Action = Registry.ExpenseProposalDecision.Action;
+type ItemAction = Registry.ExpenseProposalStatement.IExpenseItem;
+type HeaderAction = Registry.ExpenseProposalStatement.IExpenseProposalHeader;
+type DecisionBody = Registry.ExpenseProposalDecision.IExpenseProposalDecisionBody;
 
 @InputType('ExpenseProposalDecisionItemInput')
 class ExpenseProposalDecisionItemInputDTO implements ItemAction {

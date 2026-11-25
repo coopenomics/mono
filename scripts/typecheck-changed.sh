@@ -35,7 +35,6 @@ BASELINE="$REPO_ROOT/scripts/lib/typecheck-baseline.json"
 # пакет|каталог|команда
 PACKAGES=(
   "cooptypes|components/cooptypes|npx tsc --noEmit"
-  "factory|components/factory|npx tsc --noEmit"
   "sdk|components/sdk|npx tsc --noEmit"
   "controller|components/controller|npx tsc --noEmit"
   "boot|components/boot|npx tsc --noEmit"

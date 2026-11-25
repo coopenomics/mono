@@ -1,6 +1,6 @@
 // infrastructure/repositories/organization.repository.ts
 import { Injectable, Inject } from '@nestjs/common';
-import type { Cooperative } from 'cooptypes';
+import type { IProjectData } from '@coopenomics/docs-templates';
 import httpStatus from 'http-status';
 import { ProjectFreeDecisionDomainEntity } from '~/domain/branch/entities/project-free-decision.entity';
 import type { ProjectFreeDecisionRepository } from '~/domain/common/repositories/project-free-decision.repository';
@@ -15,7 +15,7 @@ export class ProjectFreeDecisionRepositoryImplementation implements ProjectFreeD
     // Используем генератор для извлечения данных из базы
 
     //TODO присвоение убрать после реализации нормальной типизации в модуле генератора
-    const project = (await this.generatorPort.get('project', { id })) as Cooperative.Document.IProjectData;
+    const project = (await this.generatorPort.get('project', { id })) as IProjectData;
     if (!project) throw DomainError.badRequest('DATABASE_FREE_DECISION_PROJECT_NOT_FOUND', { id });
     else return new ProjectFreeDecisionDomainEntity(project);
   }

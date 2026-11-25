@@ -8,6 +8,7 @@ const rawPaymentMethodSelector = {
     '...on BankAccount': rawBankAccountSelector,
     '...on SbpAccount': {
       phone: true,
+      bank_name: true,
     },
   },
   is_default: true,

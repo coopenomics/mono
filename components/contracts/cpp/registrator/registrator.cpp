@@ -1,5 +1,6 @@
 #include "registrator.hpp"
 
+#include "src/coop/sync_branched.hpp"
 #include "src/system/init.cpp"
 #include "src/system/migrate.cpp"
 #include "src/system/cleanup.cpp"
@@ -35,6 +36,7 @@
 #include "src/coop/disbranches.cpp"
 #include "src/coop/updatecoop.cpp"
 #include "src/coop/decparticpnt.cpp"
+#include "src/coop/incparticpnt.cpp"
 
 #include "src/verification/verificate.cpp"
 #include "src/verification/verifyacc.cpp"

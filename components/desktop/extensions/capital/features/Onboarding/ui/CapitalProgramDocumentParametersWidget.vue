@@ -55,7 +55,7 @@ BaseCard.capital-doc-params(:title='$t("capital.capitalProgramDocumentParameters
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { BaseButton, BaseCard } from 'src/shared/ui/base';
@@ -149,7 +149,7 @@ function getMissingCount(registryId: number): number {
   return fields.filter((key) => !String(form[key] ?? '').trim()).length;
 }
 
-function getPreviewPayload(): Cooperative.Registry.CapitalProgramPrivateData {
+function getPreviewPayload(): Registry.CapitalProgramPrivateData {
   return Object.fromEntries(
     ALL_DOC_FIELDS.map((key) => [key, String(form[key] ?? '').trim() || PREVIEW_PLACEHOLDER]),
   ) as Record<EditableFieldKey, string>;

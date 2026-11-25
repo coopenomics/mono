@@ -2,7 +2,7 @@
 //- Родитель раздела «Компоненты»: плоский список на корне, компонент/задача —
 //- children через router-view (подсветка рейла живёт на name components-list).
 router-view(v-if='!isListRoot')
-.components-list-page(v-else)
+.components-list-page.page-shell(v-else)
   ComponentsTreeWidget(
     :key='reloadKey',
     :expanded='expanded',
@@ -149,20 +149,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-// Flex-колонка: список занимает остаток вьюпорта, скролл живёт внутри
-// списка (virtual-scroll), низ не уезжает за экран
+// Flex-колонка на высоту экрана (.page-shell): список занимает остаток,
+// скролл живёт внутри списка (virtual-scroll), низ не уезжает за экран
 .components-list-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 55px);
 
   :deep(.components-tree-widget) {
     flex: 1;
     min-height: 0;
-  }
-
-  :deep(.components-scroll-area) {
-    max-height: none;
   }
 }
 </style>

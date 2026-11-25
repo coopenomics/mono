@@ -32,7 +32,7 @@
       BaseButton(variant='ghost', size='sm', @click='openDetails')
         q-icon.q-mr-xs(name='open_in_new', size='16px')
         | {{ $t('questions.questionCard.details') }}
-      ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='$emit("decline")')
+      ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='(reason) => $emit("decline", reason)')
 
   //- Подробности вопроса: сведения по нему — первыми, ниже документы пакета
   //- строками. Содержимое панели рисуется только открытой: сведения грузятся по
@@ -62,7 +62,7 @@
           @vote-for='$emit("vote-for")',
           @vote-against='$emit("vote-against")'
         )
-        ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='$emit("decline")')
+        ChairmanDecisionButton(:agenda='agenda', :is-processing='isProcessing', @authorize='$emit("authorize")', @decline='(reason) => $emit("decline", reason)')
 </template>
 
 <script setup lang="ts">

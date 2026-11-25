@@ -45,6 +45,10 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
   eosio::check(e->has_annulment() || !Core::Registrator::has_program_agreements(coopname, username),
                "К заявлению на выход не приложено заявление об аннулировании соглашений ЦПП");
 
+  // Программы снимают пайщика со своих учётных строк до консолидации:
+  // вложение инициатора участка вычитается из базы возврата (задача 99D-27).
+  Core::Registrator::release_program_rows_on_exit(_registrator, coopname, username);
+
   eosio::asset total_return = eosio::asset(0, _root_govern_symbol);
   for (size_t i = 0; i < EXIT_WALLET_POLICY_SIZE; ++i) {
     const auto &rule = EXIT_WALLET_POLICY[i];

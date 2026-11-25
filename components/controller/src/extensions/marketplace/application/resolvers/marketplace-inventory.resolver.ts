@@ -3,6 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GqlJwtAuthGuard,
   GrantedScope,
+  PaginationInputDTO,
   platformSettings,
   RequireRight,
   RightsGuard,
@@ -17,8 +18,11 @@ import {
   MarketplaceBindInventoryBarcodeInputDTO,
   MarketplaceClearInventoryLabelInputDTO,
   MarketplaceGenerateInventoryLabelInputDTO,
+  MarketplaceInventoryArchivePaginationResultDTO,
   MarketplaceInventoryItemDTO,
+  MarketplaceInventoryMovementDTO,
   MarketplaceInventoryMutationResultDTO,
+  MarketplaceListInventoryArchiveInputDTO,
   MarketplaceListInventoryInputDTO,
   MarketplaceSplitInventoryInputDTO,
   toMarketplaceInventoryItemDTO,
@@ -31,7 +35,22 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
   type MarketplaceInventoryListFilter,
+  type MarketplaceInventoryMovement,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import type { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
+import {
+  MARKETPLACE_ISSUANCE_SAGA_REPOSITORY,
+  type MarketplaceIssuanceSagaDomainRepository,
+} from '../../domain/repositories/marketplace-issuance-saga.repository';
+import { MARKETPLACE_ORDER_REPOSITORY, type MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_CONTAINER_REPOSITORY,
+  type MarketplaceContainerDomainRepository,
+} from '../../domain/repositories/marketplace-container.repository';
+import {
+  MARKETPLACE_STORAGE_CELL_REPOSITORY,
+  type MarketplaceStorageCellDomainRepository,
+} from '../../domain/repositories/marketplace-storage-cell.repository';
 import type {
   MarketplaceBarcodeFormat,
   MarketplaceInventoryStatus,
@@ -45,7 +64,15 @@ export class MarketplaceInventoryResolver {
     private readonly labelService: MarketplaceInventoryLabelService,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    private readonly orderDisplay: MarketplaceOrderDisplayService
+    private readonly orderDisplay: MarketplaceOrderDisplayService,
+    @Inject(MARKETPLACE_ISSUANCE_SAGA_REPOSITORY)
+    private readonly sagaRepo: MarketplaceIssuanceSagaDomainRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_CONTAINER_REPOSITORY)
+    private readonly containerRepo: MarketplaceContainerDomainRepository,
+    @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
+    private readonly cellRepo: MarketplaceStorageCellDomainRepository
   ) {}
 
   @Mutation(() => MarketplaceInventoryMutationResultDTO, {
@@ -189,6 +216,136 @@ export class MarketplaceInventoryResolver {
         : undefined,
     };
     const list = await this.inventoryRepo.list(filter);
+    return this.toItemDTOs(list);
+  }
+
+  @Query(() => MarketplaceInventoryArchivePaginationResultDTO, {
+    name: 'marketplaceListInventoryArchive',
+    description: 'Архив склада: выданное и списанное имущество, свежее сверху, постранично.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Warehouse', 'read:own-KU', { list: 'data.braname' })
+  async marketplaceListInventoryArchive(
+    @GrantedScope() scope: IGrantedScope,
+    @Args('data', { nullable: true }) data?: MarketplaceListInventoryArchiveInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<MarketplaceInventoryArchivePaginationResultDTO> {
+    const page = Math.max(1, options?.page ?? 1);
+    const limit = Math.min(100, Math.max(1, options?.limit ?? 50));
+    if (scope.kus && scope.kus.length === 0) {
+      return { items: [], totalCount: 0, totalPages: 0, currentPage: page };
+    }
+    const result = await this.inventoryRepo.listArchive(
+      { coopname: platformSettings().coopname, braname: scope.kus ?? undefined },
+      { limit, offset: (page - 1) * limit }
+    );
+    return {
+      items: await this.toItemDTOs(result.items),
+      totalCount: result.totalCount,
+      totalPages: Math.ceil(result.totalCount / limit),
+      currentPage: page,
+    };
+  }
+
+  @Query(() => [MarketplaceInventoryMovementDTO], {
+    name: 'marketplaceInventoryMovements',
+    description: 'Журнал движения позиции склада: приёмка, размещение, маркировка, выдача, возврат, списание — кто, когда, где.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Warehouse', 'read:own-KU', { of: 'Inventory', id: 'inventory_id' })
+  async marketplaceInventoryMovements(
+    @Args('inventory_id', { type: () => String }) inventory_id: string
+  ): Promise<MarketplaceInventoryMovementDTO[]> {
+    const coopname = platformSettings().coopname;
+    const movements = await this.inventoryRepo.listMovements(coopname, inventory_id);
+    if (!movements.length) return [];
+
+    const [issuedBy, places] = await Promise.all([
+      this.issueActsOf(coopname, movements),
+      this.placeLabelsOf(movements),
+    ]);
+    const accounts = new Set<string>();
+    for (const m of movements) {
+      const issue = this.issueOf(m, issuedBy);
+      const actor = m.actor_account ?? issue?.operator;
+      if (actor) accounts.add(actor);
+      if (issue) accounts.add(issue.member);
+    }
+    const [names, branchNames] = await Promise.all([
+      this.orderDisplay.resolveAccountNames([...accounts]),
+      this.orderDisplay.resolveAccountNames([...new Set(movements.map((m) => m.braname).filter((b): b is string => !!b))]),
+    ]);
+    const nameOf = (account: string | null | undefined): string | null => (account ? names.get(account) ?? null : null);
+
+    return movements.map((m) => {
+      const issue = this.issueOf(m, issuedBy);
+      const actor = m.actor_account ?? issue?.operator ?? null;
+      return {
+        id: m.id,
+        kind: m.kind,
+        at: m.at,
+        actor_account: actor,
+        actor_name: nameOf(actor),
+        branch_name: m.braname ? branchNames.get(m.braname) ?? m.braname : null,
+        place_label: places(m),
+        quantity: m.quantity,
+        barcode_value: m.barcode_value,
+        order_id: m.order_id,
+        recipient_account: issue?.member ?? null,
+        recipient_name: nameOf(issue?.member),
+      };
+    });
+  }
+
+  /** Акт выдачи шага «выдано»: кто выдал и кому; у прочих шагов акта нет. */
+  private issueOf(
+    m: MarketplaceInventoryMovement,
+    issuedBy: Map<string, { operator: string; member: string }>
+  ): { operator: string; member: string } | undefined {
+    return m.kind === 'ISSUED' && m.order_id ? issuedBy.get(m.order_id) : undefined;
+  }
+
+  /** Выдача: кто выдал и кому — из акта выдачи по заказу, один акт на заказ. */
+  private async issueActsOf(
+    coopname: string,
+    movements: MarketplaceInventoryMovement[]
+  ): Promise<Map<string, { operator: string; member: string }>> {
+    const issuedBy = new Map<string, { operator: string; member: string }>();
+    for (const m of movements) {
+      const orderId = m.kind === 'ISSUED' ? m.order_id : null;
+      if (!orderId || issuedBy.has(orderId)) continue;
+      const order = await this.orderRepo.findById(orderId);
+      const saga = order?.order_hash ? await this.sagaRepo.findByOrderHash(coopname, order.order_hash) : null;
+      if (saga) issuedBy.set(orderId, { operator: saga.operator_account, member: saga.member_account });
+    }
+    return issuedBy;
+  }
+
+  /**
+   * Подпись места шага: коды бокса и ячейки. Шагов у позиции единицы,
+   * справочник читается по ключу.
+   */
+  private async placeLabelsOf(
+    movements: MarketplaceInventoryMovement[]
+  ): Promise<(m: MarketplaceInventoryMovement) => string | null> {
+    const containerCodes = new Map<string, string>();
+    const cellCodes = new Map<string, string>();
+    for (const m of movements) {
+      if (m.container_id && !containerCodes.has(m.container_id)) {
+        containerCodes.set(m.container_id, (await this.containerRepo.findById(m.container_id))?.code ?? '');
+      }
+      if (m.cell_id && !cellCodes.has(m.cell_id)) {
+        cellCodes.set(m.cell_id, (await this.cellRepo.findById(m.cell_id))?.code ?? '');
+      }
+    }
+    return (m) => {
+      const parts = [m.container_id ? containerCodes.get(m.container_id) : '', m.cell_id ? cellCodes.get(m.cell_id) : ''];
+      return parts.filter(Boolean).join(' · ') || null;
+    };
+  }
+
+  /** Позиции склада с полями показа: ФИО заказчика, единица, пункт выдачи, предложение. */
+  private async toItemDTOs(list: MarketplaceInventoryDomainEntity[]): Promise<MarketplaceInventoryItemDTO[]> {
     // ФИО заказчиков, единицу измерения и реквизиты ПВЗ добираем батчем на
     // read-path (как лента заказов): по аккаунтам — имена заказчиков, по
     // заказам — наименование/адрес КУ и единица измерения из предложения.

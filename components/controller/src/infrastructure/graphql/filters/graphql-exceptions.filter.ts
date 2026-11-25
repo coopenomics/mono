@@ -1,7 +1,6 @@
 import { Catch, HttpException, HttpStatus, ExecutionContext } from '@nestjs/common';
 import { GqlExceptionFilter, GqlExecutionContext } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
-import mongoose from 'mongoose';
 import { RpcError } from 'eosjs';
 import { postgresErrorCode, PG_INVALID_TEXT_REPRESENTATION } from '~/infrastructure/database/postgres-error';
 import { AuthV2Error, authV2HttpStatus } from '~/domain/auth-v2/errors/auth-v2.error';
@@ -167,9 +166,6 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       statusCode = authV2HttpStatus(exception.code);
       errorCode = exception.code;
       message = exception.message;
-    } else if (exception instanceof mongoose.Error) {
-      statusCode = HttpStatus.BAD_REQUEST;
-      message = exception.message;
     } else if (exception instanceof Error) {
       message = exception.message;
     }
@@ -183,8 +179,14 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     // предупреждением: всплеск 401 виден там, а журнал ошибок снова про ошибки.
     const isExpectedRefusal = statusCode < HttpStatus.INTERNAL_SERVER_ERROR;
 
+    // «Цепь временно недоступна» (503) — состояние связи узла с цепью, а не
+    // ошибка кода. Один перерыв 26–27.10.2026 дал 1 892 одинаковых события —
+    // 99 % журнала за две недели. Перерыв ловит тревога CoopNodeNotSynced, а
+    // причину пишет пул RPC в журнал контроллера (C28-95).
+    const isChainOutage = errorCode === 'BLOCKCHAIN_UNAVAILABLE';
+
     // Отправка ошибки в Sentry для отслеживания
-    if (!isExpectedRefusal) {
+    if (!isExpectedRefusal && !isChainOutage) {
       Sentry.withScope((scope) => {
         // Добавляем дополнительную информацию в scope
         scope.setTag('error_type', 'graphql');

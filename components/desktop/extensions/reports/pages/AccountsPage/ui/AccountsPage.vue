@@ -41,6 +41,14 @@
         )
           q-td(colspan='100%')
             .q-pa-sm
+              //- Кошелёк и есть субсчёт (задача 99D-24): счёт раскрывается по
+              //- кошелькам реестра, у которых указан этот счёт.
+              .accounts-page__wallets(v-if='walletsOfAccount(props.row.id).length')
+                .text-caption.t-faint.q-mb-xs {{ $t('reports.accountsPage.walletsTitle') }}
+                .accounts-page__wallet-row(v-for='wallet in walletsOfAccount(props.row.id)' :key='wallet.id')
+                  WalletIdCell(:wallet-name='wallet.id')
+                  span.accounts-page__wallet-name {{ wallet.name }}
+                  span.accounts-page__wallet-sum {{ formatAsset2Digits(wallet.available) }}
               .row.items-center.q-mb-sm
                 .col
                   .text-caption.t-faint {{ $t('reports.accountsPage.postingsHistoryTitle') }}
@@ -60,6 +68,8 @@
                 :pagination='{ rowsPerPage: 0 }'
                 :loading='childLoading.has(props.row.id)'
                 :no-data-label='$t("reports.accountsPage.postingsEmptyLabel")'
+                class='movement-rows'
+                @row-click='(_evt, row) => openOperation(row)'
               )
                 template(#body-cell-action='cp')
                   q-td(:props='cp')
@@ -86,15 +96,6 @@
                   q-td.text-right(:props='cp') {{ cp.row.quantity ? formatAsset2Digits(cp.row.quantity) : '—' }}
                 template(#body-cell-createdAt='cp')
                   q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
-                template(#body-cell-open='cp')
-                  q-td.text-right(:props='cp')
-                    q-btn(
-                      v-if='cp.row.parentApplyGlobalSequence'
-                      flat dense round size='sm' color='primary'
-                      icon='fa-solid fa-arrow-right'
-                      :to='{ name: "reports-operations", query: { operation_id: cp.row.parentApplyGlobalSequence } }'
-                    )
-                      q-tooltip {{ $t('reports.accountsPage.toOperationLabel') }}
 
       template(#item='props')
         .col-12
@@ -123,6 +124,13 @@
               .col-4
                 .text-caption.t-faint {{ $t('reports.accountsPage.balanceLabel') }}
                 .text-body2.text-weight-bold {{ formatAsset2Digits(props.row.balance) }}
+
+  //- Операция проводки в правой панели (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='openedOperation'
+    @close='openedOperation = null'
+  )
 </template>
 
 <script setup lang="ts">
@@ -135,14 +143,29 @@ import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { useSystemStore } from 'src/entities/System/model'
-import type { ILedger2Account, ILedger2Operation } from 'src/entities/Ledger2'
+import type { ILedger2Account, ILedger2Operation, ILedger2Wallet } from 'src/entities/Ledger2'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
-import { AccountIdCell } from '../../../shared/ui'
+import { getWalletAccount } from 'src/shared/lib/ledger2'
+import { AccountIdCell, OperationDetailsDrawer, WalletIdCell, type OperationRef } from '../../../shared/ui'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
+
+// Операция проводки по счёту в правой панели — без перехода в реестр операций.
+const openedOperation = ref<OperationRef | null>(null)
+function openOperation(row: { parentApplyGlobalSequence?: string | null; processHash?: string | null; operationCode?: string | null; memo?: string | null; quantity?: string | null; createdAt?: string | Date | null }): void {
+  if (!row.parentApplyGlobalSequence) return
+  openedOperation.value = {
+    globalSequence: String(row.parentApplyGlobalSequence),
+    processHash: row.processHash,
+    operationCode: row.operationCode,
+    memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
+  }
+}
 const { isMobile } = useWindowSize()
 const registries = useDeskRegistries()
 
@@ -194,12 +217,11 @@ const columns: any[] = [
 ]
 
 const childColumns: any[] = [
-  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
   { name: 'postingId', align: 'left', label: t('reports.accountsPage.column.postingId'), field: 'globalSequence' },
   { name: 'processHash', align: 'left', label: t('reports.accountsPage.column.processId'), field: 'processHash' },
-  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
   { name: 'createdAt', align: 'left', label: t('reports.accountsPage.column.date'), field: 'createdAt' },
-  { name: 'open', align: 'right', label: '', field: 'parentApplyGlobalSequence' },
+  { name: 'action', align: 'left', label: t('reports.accountsPage.column.type'), field: 'action' },
+  { name: 'quantity', align: 'right', label: t('reports.accountsPage.column.amount'), field: 'quantity' },
 ]
 
 async function toggleExpand(id: number) {
@@ -226,10 +248,22 @@ async function toggleExpand(id: number) {
   }
 }
 
+// Кошельки кооператива — субсчета: раскрытый счёт показывает свои кошельки с остатками.
+const wallets = ref<ILedger2Wallet[]>([])
+
+function walletsOfAccount(accountId: number): ILedger2Wallet[] {
+  return wallets.value.filter((w) => getWalletAccount(w.id) === accountId)
+}
+
 async function loadAccounts(): Promise<void> {
   try {
     loading.value = true
-    accounts.value = await registries.loadAccounts(info.coopname)
+    const [rows, walletRows] = await Promise.all([
+      registries.loadAccounts(info.coopname),
+      registries.loadWallets(info.coopname),
+    ])
+    accounts.value = rows
+    wallets.value = walletRows
   } catch (e) {
     FailAlert(e)
   } finally {
@@ -244,6 +278,10 @@ useLiveReload(LEDGER_LIVE_TABLES, loadAccounts)
 </script>
 
 <style scoped lang="scss">
+/* Строка истории проводок открывает операцию в правой панели. */
+.movement-rows :deep(tbody tr) {
+  cursor: pointer;
+}
 .accounts-page {
   padding: var(--p-6, 24px);
   @media (max-width: 768px) {
@@ -253,6 +291,22 @@ useLiveReload(LEDGER_LIVE_TABLES, loadAccounts)
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
+}
+// Кошельки счёта — субсчета: имя, название, остаток в одну строку.
+.accounts-page__wallets {
+  margin-bottom: var(--p-3);
+}
+.accounts-page__wallet-row {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  padding: var(--p-1) 0;
+}
+.accounts-page__wallet-name {
+  flex: 1;
+}
+.accounts-page__wallet-sum {
+  font-variant-numeric: tabular-nums;
 }
 // Тип счёта (Активный/Пассивный) и сторона проводки (Дебет/Кредит):
 // различие словом + спокойный канон-контраст. Активный/Дебет — основной

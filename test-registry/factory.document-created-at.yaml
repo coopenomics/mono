@@ -15,8 +15,8 @@ title: Дата создания документа и уникальность 
 
 sources:
   backend:
-    - components/factory/src/Utils/documentCreatedAt.ts
-    - components/factory/src/Services/Generator/index.ts
+    - C9S/docs-factory:src/Utils/documentCreatedAt.ts
+    - C9S/docs-factory:src/Services/Generator/index.ts
 
 cases:
   - id: factory.docdate.happy.01
@@ -24,7 +24,7 @@ cases:
     kind: happy
     scenario: дата меты в ISO показывается в документе и в реквизитах решения
     expect: «ДД.ММ.ГГГГ ЧЧ:ММ» в поясе документа, дата и время по отдельности
-    test: components/factory/test/document-created-at.test.ts
+    test: C9S/docs-factory:test/document-created-at.test.ts
     api: components/api-tests/src/factory/document-created-at.test.ts
     status: written
 
@@ -33,7 +33,7 @@ cases:
     kind: side
     scenario: документ со старой датой «ДД.ММ.ГГГГ ЧЧ:ММ» пересобирается или разбирается
     expect: дата показывается как есть, разбирается в поясе документа, отпечатка в файле нет
-    test: components/factory/test/document-created-at.test.ts
+    test: C9S/docs-factory:test/document-created-at.test.ts
     api: components/api-tests/src/factory/document-created-at.test.ts
     status: written
 
@@ -42,7 +42,7 @@ cases:
     kind: break
     scenario: две генерации одного документа в одну минуту — повтор подписи, двойной клик
     expect: хэши файлов разные, поиск черновика по хэшу находит свою версию
-    test: components/factory/test/document-created-at.test.ts
+    test: C9S/docs-factory:test/document-created-at.test.ts
     api: components/api-tests/src/factory/document-created-at.test.ts
     status: written
 
@@ -51,7 +51,7 @@ cases:
     kind: side
     scenario: документ перегенерируется из своей же меты (проверка документа в кабинете)
     expect: тот же хэш файла, в свойствах файла — отпечаток этой меты
-    test: components/factory/test/document-created-at.test.ts
+    test: C9S/docs-factory:test/document-created-at.test.ts
     api: components/api-tests/src/factory/document-created-at.test.ts
     status: written
 
@@ -60,6 +60,6 @@ cases:
     kind: break
     scenario: в мету передана непонятная дата
     expect: разбор отказывает, дата не выдумывается
-    test: components/factory/test/document-created-at.test.ts
+    test: C9S/docs-factory:test/document-created-at.test.ts
     api: components/api-tests/src/factory/document-created-at.test.ts
     status: written

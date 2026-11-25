@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import {
   DOCUMENT_PORT,
   LOGGER_PORT,
@@ -264,8 +264,8 @@ export class EdubridgeEnrollmentService {
   async statement(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod, groupId?: string | null): Promise<InnerGeneratedDocument> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period, groupId);
     const funding = await this.planFunding(coopname, member, plan);
-    const action: Cooperative.Registry.EducationConvertStatement.Action = {
-      registry_id: Cooperative.Registry.EducationConvertStatement.registry_id,
+    const action: Registry.EducationConvertStatement.Action = {
+      registry_id: Registry.EducationConvertStatement.registry_id,
       coopname,
       username: member,
       lang: 'ru',

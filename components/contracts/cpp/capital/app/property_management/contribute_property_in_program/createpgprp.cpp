@@ -23,25 +23,25 @@ void capital::createpgprp(eosio::name coopname, eosio::name username,
   require_auth(coopname);
   
   // Проверяем документ-заявление
-  verify_document_or_fail(statement);
+  verify_document_or_fail(statement, { username });
   // Заявление о передаче имущества подписывает сам пайщик. Транзакцию шлёт кооператив, поэтому ключ сверяется с аккаунтом.
   verify_signer_keys_or_fail(statement, username);
   
   // Проверяем основной договор УХД
   auto contributor = Capital::Contributors::get_contributor(coopname, username);
-  eosio::check(contributor.has_value(), "Пайщик не подписывал основной договор УХД");
-  eosio::check(contributor->status == Capital::Contributors::Status::ACTIVE, "Основной договор УХД не активен");
+  eosio::check(contributor.has_value(), "CAPITAL_PROPERTY_NO_CONTRACT: Пайщик не подписывал основной договор УХД");
+  eosio::check(contributor->status == Capital::Contributors::Status::ACTIVE, "CAPITAL_PROPERTY_CONTRACT_INACTIVE: Основной договор УХД не активен");
   
   // Проверяем, что предложение с указанным хэшем не существует
   auto property = Capital::ProgramProperties::get_program_property(coopname, property_hash);
-  eosio::check(!property.has_value(), "Предложение с указанным хэшем уже существует");
+  eosio::check(!property.has_value(), "CAPITAL_PROPERTY_EXISTS: Предложение с указанным хэшем уже существует");
   
   // Валидация суммы имущества
   Wallet::validate_asset(property_amount);
-  eosio::check(property_amount.amount > 0, "Стоимость имущества должна быть положительной");
+  eosio::check(property_amount.amount > 0, "CAPITAL_PROPERTY_AMOUNT_INVALID: Стоимость имущества должна быть положительной");
   
   // Проверяем описание имущества
-  eosio::check(!property_description.empty(), "Описание имущества не может быть пустым");
+  eosio::check(!property_description.empty(), "CAPITAL_PROPERTY_DESCRIPTION_REQUIRED: Описание имущества не может быть пустым");
   
   // Создаем предложение и отправляем на approve
   Capital::ProgramProperties::create_program_property_with_approve(

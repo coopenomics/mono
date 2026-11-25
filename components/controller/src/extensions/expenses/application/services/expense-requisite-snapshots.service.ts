@@ -2,11 +2,22 @@ import { TableStore } from '@coopenomics/extension-kit';
 import { EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database/expenses-stores';
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
-import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
+import { advancePaymentMemo } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record'
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
-import { DomainError } from '@coopenomics/extension-kit';
+import { DomainError, bankSafeText } from '@coopenomics/extension-kit';
+import { ExpenseCounterpartiesService } from './expense-counterparties.service';
+
+/**
+ * Получатель в снимке. У организации аккаунта нет (recipient пуст) — её
+ * называет введённое при подаче название; без него реестр и кассир видят
+ * прочерк. Старый клиент названия не шлёт — тогда получатель прежний.
+ */
+function snapshotRecipient(it: InnerExpenseRequisiteItemInput): string {
+  if (!it.isOrganization) return it.recipient
+  return it.recipientName?.trim() || it.recipient
+}
 
 /**
  * Снимки реквизитов получателей по строкам СЗ. Канон gateway prepareWithdraw →
@@ -22,7 +33,8 @@ export class ExpenseRequisiteSnapshotsService {
     @Inject(PAYMENT_METHOD_PORT)
     private readonly paymentMethods: IPaymentMethodPort,
     @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
-    private readonly repository: TableStore<ExpenseRequisiteSnapshotRecord>
+    private readonly repository: TableStore<ExpenseRequisiteSnapshotRecord>,
+    private readonly counterparties: ExpenseCounterpartiesService
   ) {}
 
   async validate(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
@@ -88,6 +100,31 @@ export class ExpenseRequisiteSnapshotsService {
     }
   }
 
+  /**
+   * Организация из реестра контрагентов (задача 99D-35): наименование и
+   * реквизиты для кассира — из карточки контрагента, а не из текста формы.
+   * Текст реквизитов в подписанной записке обязан совпасть с карточкой: если
+   * контрагента поправили между составлением и подачей, записку составляют
+   * заново — иначе совет утвердил бы одни реквизиты, а кассир заплатил бы по
+   * другим.
+   */
+  private async fromCounterparty(
+    coopname: string,
+    it: InnerExpenseRequisiteItemInput,
+    snapshot: ExpenseRequisiteSnapshotRecord
+  ): Promise<void> {
+    const { record, requisitesText } = await this.counterparties.forPayment(coopname, it.counterpartyId as number)
+    if (it.requisites?.trim() && it.requisites.trim() !== requisitesText) {
+      throw DomainError.badRequest('EXPENSES_COUNTERPARTY_CHANGED')
+    }
+    snapshot.recipient = record.name
+    snapshot.method_id = String(record.id)
+    snapshot.method_type = 'counterparty'
+    snapshot.data = { counterparty_id: record.id, kind: record.kind, name: record.name, requisites: record.requisites }
+    snapshot.requisites = requisitesText
+    snapshot.payment_purpose = bankSafeText(it.paymentPurpose || record.payment_purpose || undefined) ?? null
+  }
+
   private async resolve(
     coopname: string,
     items: InnerExpenseRequisiteItemInput[]
@@ -108,21 +145,24 @@ export class ExpenseRequisiteSnapshotsService {
           coopname,
           proposal_hash: it.proposalHash.toLowerCase(),
           item_hash: it.itemHash.toLowerCase(),
-          recipient: it.recipient,
+          recipient: snapshotRecipient(it),
           method_id: null,
           method_type: null,
           data: null,
           requisites: it.requisites ?? '',
-          payment_purpose: it.paymentPurpose ?? null,
+          // Назначение платежа организации кассир копирует в банк — без «ё».
+          payment_purpose: bankSafeText(it.paymentPurpose) ?? null,
         })
 
         if (it.isOrganization) {
+          if (it.counterpartyId) await this.fromCounterparty(coopname, it, snapshot)
           return snapshot
         }
 
         // Пайщику назначение платежа фиксированное — кассир в платёжке всегда
-        // указывает «Аванс под отчёт» (суть расхода — в описании позиции)
-        snapshot.payment_purpose = EXPENSES_CHASSIS_CONFIG.advancePaymentPurpose
+        // указывает «Аванс под отчёт №… НДС не облагается.» (суть расхода — в
+        // описании позиции); то же назначение показывают детали служебной записки
+        snapshot.payment_purpose = advancePaymentMemo(snapshot.item_hash)
 
         if (!it.paymentMethodId) {
           throw DomainError.badRequest('EXPENSES_RECIPIENT_REQUISITES_MISSING', { recipient: it.recipient })

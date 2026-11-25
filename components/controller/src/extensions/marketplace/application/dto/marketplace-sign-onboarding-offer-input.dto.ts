@@ -12,7 +12,7 @@ import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
  *    `MarketplaceMembershipGuard` (JWT-пайщик), чтобы исключить подделку
  *    подписи за другого пайщика.
  *  - `document` — уже подписанный фронтом инстанс оферты ЦПП «Стол заказов»
- *    (`Cooperative.Registry.MarketplaceOffer`). Backend проверяет подпись через on-chain
+ *    (`Registry.MarketplaceOffer` из `@coopenomics/docs-templates`). Backend проверяет подпись через on-chain
  *    `verify_document_or_fail` внутри `wallet::signagree`.
  */
 @InputType('MarketplaceSignOnboardingOfferInput')

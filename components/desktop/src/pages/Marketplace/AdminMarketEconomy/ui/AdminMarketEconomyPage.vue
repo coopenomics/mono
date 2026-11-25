@@ -4,42 +4,210 @@ import { useLiveReload } from 'src/shared/lib/realtime'
 import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
-import { AmountInput, PageHint } from 'src/shared/ui/domain'
+import { AmountInput, PageHint, WalletCard } from 'src/shared/ui/domain'
+import { useFirstLoad } from 'src/shared/lib/composables'
 import { TurnoverTop } from 'src/widgets/Marketplace/TurnoverTop'
+import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
+import { useSystemStore } from 'src/entities/System/model'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 import {
   fetchOrdersForTurnover,
   type MarketplaceOrderListView,
 } from 'src/entities/MarketplaceOrder'
-import { getEconomyConfig, setMembershipFee } from '../api'
+import { formatAsset2Digits } from 'src/shared/lib/utils'
+import {
+  getEconomySettings,
+  type MarketplaceEconomySettingsView,
+  setAidLimit,
+  setInitiatorShare,
+  setReturnShare,
+  setMembershipFee,
+} from '../api'
 import { t } from 'src/shared/i18n';
 
 /**
- * Стол администратора → «Экономика» (requirement b6): единая ставка
- * членского взноса кооператива. Одна ставка на все кооперативные участки —
- * против спекуляций и конкуренции между ними; задаётся транзакцией и
- * применяется к заказам, созданным после установки.
+ * Стол администратора → «Экономика» (requirement b6; коэффициент
+ * экономического участия — задача 99D-23). Три настройки модели кооператива,
+ * единые для всех участков:
  *
- * Паттерн «настройка-значение» как в банковских приложениях: значение
- * показывается статичным крупным числом (не полем-инпутом), правка — в
- * отдельном сфокусированном диалоге. Так экран не «прыгает» при переходе
- * просмотр↔правка и не притворяется формой там, где меняют одну цифру.
+ *  - ставка обеспечительной части паевого взноса — доля от стоимости заказа;
+ *  - доля инициатора участка в экономии месяца — остальное возвращается
+ *    пайщикам на свободный паевой Стола заказов;
+ *  - потолок резерва социально-экономического обеспечения пайщиков на одного
+ *    получателя в месяц — предел строки, которую задаёт председатель участка.
+ *
+ * Проценты фондов накопления здесь только читаются: ими распоряжается совет.
+ *
+ * Раскладка: настройки и фонды — карточками кошельков, как «Оборот» ниже
+ * (канон столов Стола заказов, слово владельца 10.11.2026): значок, название,
+ * короткая подпись, подробности — подсказкой у названия, число справа.
+ * Правка — кнопкой «Изменить» в карточке, в отдельном диалоге: экран не
+ * притворяется формой там, где меняют одну цифру.
  */
 
-const loading = ref(false)
+type SettingKey = 'fee' | 'returnShare' | 'initiator' | 'aidLimit'
+
+const { info } = useSystemStore()
+
+const loading = ref(true)
+const firstLoad = useFirstLoad(loading)
 const saving = ref(false)
 const dialogOpen = ref(false)
-const currentPercent = ref(0)
-const draftPercent = ref<number>(0)
+const editing = ref<SettingKey>('fee')
+const settings = ref<MarketplaceEconomySettingsView | null>(null)
+const draft = ref<number>(0)
 
-const displayValue = computed(() => currentPercent.value.toFixed(2).replace('.', ','))
-const changed = computed(() => Number(draftPercent.value) !== currentPercent.value)
+function assetAmount(asset: string | undefined): number {
+  return Number.parseFloat(asset?.split(' ')[0] ?? '0') || 0
+}
+
+function assetSymbol(asset: string | undefined): string {
+  return asset?.split(' ')[1] ?? ''
+}
+
+/** Полное название настройки — заголовок и подпись поля диалога правки. */
+const SETTING_LABELS: Record<SettingKey, string> = {
+  fee: t('marketplace.marketEconomy.feeLabel'),
+  returnShare: t('marketplace.marketEconomy.returnShareLabel'),
+  initiator: t('marketplace.marketEconomy.initiatorShareLabel'),
+  aidLimit: t('marketplace.marketEconomy.aidLimitLabel'),
+}
+
+/** Процент без лишних нулей: 38 → «38», 61,80 → «61,8». */
+function percentShort(value: number | undefined): string {
+  return Number(value ?? 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+}
+
+/** Состав фондов накопления для подсказки: «Неделимый фонд 1 %, Резервный фонд 15 %, …». */
+const fundsHint = computed(() => {
+  const funds = settings.value?.funds ?? []
+  if (!funds.length) return t('marketplace.marketEconomy.fundsEmpty')
+  const parts = funds.map((f) => `${f.name} ${percentShort(f.percent)} %`)
+  return t('marketplace.marketEconomy.fundsHint', { funds: parts.join(', ') })
+})
+
+/** Карточка настройки: число справа, кнопка правки — у настраиваемых. */
+interface SettingCard {
+  key: string
+  caption: string
+  value: string
+  symbol: string
+  sub: string
+  hint: string
+  icon: string
+  label: string
+  editable: boolean
+}
+
+/**
+ * Два деления экономии участка — две карточки с правкой: доля пайщиков
+ * (первое деление) и доля инициатора в остатке после фондов (второе деление).
+ * Подсказка каждой называет, что делит доля и когда она применяется.
+ */
+const shareTiles = computed<SettingCard[]>(() => {
+  const s = settings.value
+  const applied = t('marketplace.marketEconomy.periodSettingsHint')
+  return [
+    {
+      key: 'returnShare',
+      caption: t('marketplace.marketEconomy.returnTileCaption'),
+      value: percentShort(s?.return_share_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.returnShareSubtitle'),
+      hint: `${t('marketplace.marketEconomy.returnTileHint')} ${applied}`,
+      icon: 'undo',
+      label: t('marketplace.marketEconomy.cardShare'),
+      editable: true,
+    },
+    {
+      key: 'initiator',
+      caption: t('marketplace.marketEconomy.initiatorTileCaption'),
+      value: percentShort(s?.initiator_share_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.initiatorShareSubtitle'),
+      hint: `${t('marketplace.marketEconomy.initiatorTileHint')} ${applied}`,
+      icon: 'trending_up',
+      label: t('marketplace.marketEconomy.cardShare'),
+      editable: true,
+    },
+  ]
+})
+
+/**
+ * Карточки по пути денег заказа: ставка → доля пайщиков в экономии (первое
+ * деление) → доля инициатора в остатке (второе деление) → потолок резерва →
+ * фонды. Два деления — две настройки (решение владельца 16.11.2026).
+ */
+const tiles = computed<SettingCard[]>(() => {
+  const s = settings.value
+  const limitOn = assetAmount(s?.aid_month_limit) > 0
+  return [
+    {
+      key: 'fee',
+      caption: t('marketplace.marketEconomy.feeTileCaption'),
+      value: percentShort(s?.membership_fee_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.feeTileSub'),
+      hint: t('marketplace.marketEconomy.feeTileHint'),
+      icon: 'receipt_long',
+      label: t('marketplace.marketEconomy.cardRate'),
+      editable: true,
+    },
+    ...shareTiles.value,
+    {
+      key: 'aidLimit',
+      caption: t('marketplace.marketEconomy.aidLimitTileCaption'),
+      value: formatAsset2Digits(s?.aid_month_limit ?? '0.0000 RUB').split(' ')[0] || '0,00',
+      symbol: assetSymbol(s?.aid_month_limit),
+      sub: limitOn ? t('marketplace.marketEconomy.aidLimitTileSub') : t('marketplace.marketEconomy.aidLimitTileOffSub'),
+      hint: t('marketplace.marketEconomy.aidLimitTileHint'),
+      icon: 'volunteer_activism',
+      label: t('marketplace.marketEconomy.cardPerMonth'),
+      editable: true,
+    },
+    {
+      key: 'funds',
+      caption: t('marketplace.marketEconomy.fundsTileCaption'),
+      value: percentShort(s?.funds_percent),
+      symbol: '%',
+      sub: t('marketplace.marketEconomy.fundsTileSub'),
+      hint: fundsHint.value,
+      icon: 'account_balance',
+      label: t('marketplace.marketEconomy.cardTotal'),
+      editable: false,
+    },
+  ]
+})
+
+function onEditTile(key: string): void {
+  if (key === 'fee' || key === 'initiator' || key === 'aidLimit') openDialog(key)
+}
+
+const currentValue = computed<number>(() => {
+  const s = settings.value
+  if (!s) return 0
+  switch (editing.value) {
+    case 'fee': return s.membership_fee_percent
+    case 'returnShare': return s.return_share_percent
+    case 'initiator': return s.initiator_share_percent
+    default: return assetAmount(s.aid_month_limit)
+  }
+})
+
+const changed = computed(() => Number(draft.value) !== currentValue.value)
+const dialogTitle = computed(() => SETTING_LABELS[editing.value])
+const dialogSymbol = computed(() => (editing.value === 'aidLimit' ? assetSymbol(settings.value?.aid_month_limit) : '%'))
+const dialogMax = computed(() => (editing.value === 'aidLimit' ? undefined : 100))
+const dialogHint = computed(() =>
+  editing.value === 'fee'
+    ? t('marketplace.marketEconomy.dialogHint')
+    : t('marketplace.marketEconomy.periodSettingsHint'),
+)
 
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const config = await getEconomyConfig()
-    currentPercent.value = config.membership_fee_percent
+    settings.value = await getEconomySettings()
   } catch (e) {
     FailAlert(e, t('marketplace.marketEconomy.loadFailedError'))
   } finally {
@@ -47,18 +215,36 @@ async function load(): Promise<void> {
   }
 }
 
-function openDialog(): void {
-  draftPercent.value = currentPercent.value
+function openDialog(key: SettingKey): void {
+  editing.value = key
+  draft.value = currentValue.value
   dialogOpen.value = true
 }
 
 async function onSave(): Promise<void> {
   saving.value = true
+  const value = Number(draft.value)
   try {
-    const config = await setMembershipFee({ membership_fee_percent: Number(draftPercent.value) })
-    currentPercent.value = config.membership_fee_percent
+    switch (editing.value) {
+      case 'fee': {
+        const config = await setMembershipFee({ membership_fee_percent: value })
+        if (settings.value) settings.value = { ...settings.value, membership_fee_percent: config.membership_fee_percent }
+        SuccessAlert(t('marketplace.marketEconomy.setSuccess'))
+        break
+      }
+      case 'returnShare':
+        settings.value = await setReturnShare({ return_share_percent: value })
+        SuccessAlert(t('marketplace.marketEconomy.returnShareSetSuccess'))
+        break
+      case 'initiator':
+        settings.value = await setInitiatorShare({ initiator_share_percent: value })
+        SuccessAlert(t('marketplace.marketEconomy.initiatorShareSetSuccess'))
+        break
+      default:
+        settings.value = await setAidLimit({ aid_month_limit: value })
+        SuccessAlert(t('marketplace.marketEconomy.aidLimitSetSuccess'))
+    }
     dialogOpen.value = false
-    SuccessAlert(t('marketplace.marketEconomy.setSuccess'))
   } catch (e) {
     FailAlert(e, t('marketplace.marketEconomy.setFailedError'))
   } finally {
@@ -102,8 +288,9 @@ onMounted(() => {
   void loadTurnover()
 })
 
-// Сбор с оборота живёт в цепи (marketplace::config), свод оборота — в базе
-// стола: приёмки склада и исполненные заказы.
+// Настройки модели живут в цепи (marketplace::config, branch::brnconfig,
+// реестр фондов fund::funds), свод оборота — в базе стола: приёмки склада и
+// исполненные заказы.
 useLiveReload(marketLiveTables('economy'), load)
 useLiveReload(marketLiveTables('order', 'warehouse'), () => loadTurnover(true))
 </script>
@@ -113,22 +300,25 @@ q-page.admin-economy
   PageHint(storage-key='mp:admin-economy:banner-dismissed')
     | {{ $t('marketplace.marketEconomy.intro') }}
 
-  .admin-economy__card
-    .admin-economy__stat
-      .admin-economy__label {{ $t('marketplace.marketEconomy.feeLabel') }}
-      .admin-economy__value
-        span.admin-economy__amount {{ displayValue }}
-        span.admin-economy__unit %
-      .admin-economy__caption {{ $t('marketplace.marketEconomy.statSubtitle') }}
-    BaseButton.admin-economy__edit(
-      variant='secondary',
-      size='sm',
-      :disabled='loading',
-      @click='openDialog'
+  //- Модель кооператива карточками: четыре настройки администратора (кнопка
+  //- «Изменить» в карточке, своим диалогом) и проценты фондов накопления
+  //- только для чтения — ими распоряжается совет. Подробности — подсказкой у названия.
+  .wallet-grid
+    WalletCard(
+      v-for='c in tiles',
+      :key='c.key',
+      program='wallet',
+      :icon='c.icon',
+      :title='c.caption',
+      :subtitle='c.sub',
+      :hint='c.hint',
+      :balance='c.value',
+      :symbol='c.symbol',
+      :balance-label='c.label',
+      :loading='firstLoad'
     )
-      template(#icon-left)
-        q-icon(name='edit', size='16px')
-      | {{ $t('marketplace.marketEconomy.editButton') }}
+      template(v-if='c.editable', #actions)
+        BaseButton(variant='secondary', size='sm', :disabled='firstLoad || saving', @click='onEditTile(c.key)') {{ $t('common.action.edit') }}
 
   TurnoverTop(
     v-model='periodDays',
@@ -137,16 +327,18 @@ q-page.admin-economy
     :loading='turnoverLoading'
   )
 
-  BaseDialog(v-model='dialogOpen', :title='$t("marketplace.marketEconomy.feeLabel")', size='sm')
-    p.admin-economy__dialog-hint
-      | {{ $t('marketplace.marketEconomy.dialogHint') }}
+  //- Карточка предложения строки оборота — та же, что в реестре предложений.
+  OfferRegistryOverlay(:coopname='info.coopname', from='economy')
+
+  BaseDialog(v-model='dialogOpen', :title='dialogTitle', size='sm')
+    p.admin-economy__dialog-hint {{ dialogHint }}
     AmountInput(
-      v-model='draftPercent',
-      :label='$t("marketplace.marketEconomy.feeLabel")',
-      symbol='%',
+      v-model='draft',
+      :label='dialogTitle',
+      :symbol='dialogSymbol',
       :precision='2',
       :min='0',
-      :max='100',
+      :max='dialogMax',
       :disabled='saving'
     )
     template(#footer)
@@ -161,118 +353,22 @@ q-page.admin-economy
 
 <style scoped lang="scss">
 .admin-economy {
-  padding: var(--p-6, 24px);
+  padding: var(--p-6);
   display: flex;
   flex-direction: column;
-  gap: var(--p-4, 16px);
-
-  &__card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-4, 16px);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface);
-    padding: var(--p-5, 20px) var(--p-6, 24px);
-    max-width: 480px;
-  }
-
-  &__label {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    margin-bottom: var(--p-1, 4px);
-  }
-
-  &__caption {
-    margin-top: var(--p-1, 4px);
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
-  }
-
-  &__value {
-    display: flex;
-    align-items: baseline;
-    gap: var(--p-1, 4px);
-    color: var(--p-ink);
-  }
-
-  &__amount {
-    font-size: var(--p-fs-h1, 24px);
-    line-height: var(--p-lh-h1, 1.2);
-    letter-spacing: var(--p-ls-h1, -0.018em);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1;
-  }
-
-  &__unit {
-    font-size: var(--p-fs-h3, 15px);
-    font-weight: 500;
-    color: var(--p-ink-2);
-  }
-
-  &__edit {
-    flex-shrink: 0;
-  }
-
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
-  }
-
-  &__section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--p-3, 12px);
-  }
-
-  &__period {
-    width: 200px;
-  }
-
-  &__section-note {
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
-  }
-
-  &__pvz {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__pvz-name {
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-
-  &__pvz-addr {
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm, 13px);
-    overflow-wrap: anywhere;
-  }
+  gap: var(--p-6);
 
   &__dialog-hint {
     margin: 0;
     color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: var(--p-lh-body-sm, 1.5);
+    font-size: var(--p-fs-body-sm);
+    line-height: var(--p-lh-body-sm);
   }
 }
 
 @media (max-width: 599px) {
   .admin-economy {
-    padding: var(--p-4, 16px);
-
-    &__card {
-      max-width: none;
-    }
+    padding: var(--p-4);
   }
 }
 </style>

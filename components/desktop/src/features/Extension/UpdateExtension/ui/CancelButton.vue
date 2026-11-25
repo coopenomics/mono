@@ -1,9 +1,13 @@
 <template lang="pug">
-q-btn.full-width(@click='cancel', flat, no-caps, color='grey-7') {{ $t('extension.cancelButton.label') }}
+BaseButton(variant='ghost', :block='block', @click='cancel') {{ $t('extension.cancelButton.label') }}
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { BaseButton } from 'src/shared/ui/base';
+
+/** На всю ширину колонки — в левой колонке настроек; в строке действий — по содержимому */
+withDefaults(defineProps<{ block?: boolean }>(), { block: true });
 
 const router = useRouter();
 

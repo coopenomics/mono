@@ -22,6 +22,8 @@ const MEMBER_RIGHTS = {
   KuDecision: ['read', 'create', 'join', 'vote', 'conduct', 'cancel'],
   KuTrust: ['read', 'request', 'decide'],
   KuDocument: ['generate:own'],
+  // Доверенности: председатель участка подписывает свою и видит свои; совет видит все.
+  KuAuthority: ['read:own', 'sign'],
 };
 
 /**
@@ -31,7 +33,12 @@ const MEMBER_RIGHTS = {
  */
 export const kuRightsTable: RightsTable<MemberRole, never> = {
   participant: [{ when: [], rights: MEMBER_RIGHTS }],
-  council: [{ when: [], rights: { ...MEMBER_RIGHTS, KuDocument: ['generate:own', 'generate:all'] } }],
+  council: [
+    {
+      when: [],
+      rights: { ...MEMBER_RIGHTS, KuDocument: ['generate:own', 'generate:all'], KuAuthority: ['read:own', 'read:all', 'sign'] },
+    },
+  ],
   chairman: [],
 };
 

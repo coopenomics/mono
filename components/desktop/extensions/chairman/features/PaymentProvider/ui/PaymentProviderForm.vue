@@ -42,6 +42,8 @@ form.pp-form(@submit.prevent='submit')
 import { ref, computed, onMounted } from 'vue'
 import { useSystemStore } from 'src/entities/System/model'
 import { usePaymentProvider } from '../model'
+import { api as extensionApi } from 'src/entities/Extension/api'
+import { useLiveReload } from 'src/shared/lib/realtime'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { t } from '../../../i18n';
 
@@ -71,14 +73,28 @@ const formData = ref({
 // Оригинальные данные для сравнения
 const originalData = ref({ ...formData.value })
 
-// Опции провайдеров платежей
-const providerOptions = [
-  {
-    value: 'qrpay',
-    label: t('chairman.paymentProviderForm.qrProviderName'),
-    description: t('chairman.paymentProviderForm.qrProviderHint')
+// Опции провайдеров платежей. ЮKassa предлагается, только когда расширение
+// установлено и включено: без него сервер не найдёт провайдера и любой
+// входящий платёж пайщика завершится ошибкой. Выбранная ранее ЮKassa
+// остаётся в списке, чтобы форма показала текущее значение.
+const yookassaReady = ref(false)
+const providerOptions = computed(() => {
+  const options = [
+    {
+      value: 'qrpay',
+      label: t('chairman.paymentProviderForm.qrProviderName'),
+      description: t('chairman.paymentProviderForm.qrProviderHint')
+    }
+  ]
+  if (yookassaReady.value || originalData.value.provider_name === 'yookassa') {
+    options.push({
+      value: 'yookassa',
+      label: t('chairman.paymentProviderForm.yookassaProviderName'),
+      description: t('chairman.paymentProviderForm.yookassaProviderHint')
+    })
   }
-]
+  return options
+})
 
 // Проверка наличия изменений
 const hasChanges = computed(() => {
@@ -87,7 +103,7 @@ const hasChanges = computed(() => {
 
 // Описание выбранного провайдера
 const selectedProviderDescription = computed(() => {
-  const selectedOption = providerOptions.find(option => option.value === formData.value.provider_name)
+  const selectedOption = providerOptions.value.find(option => option.value === formData.value.provider_name)
   return selectedOption?.description || ''
 })
 
@@ -96,8 +112,25 @@ const resetForm = () => {
   formData.value = { ...originalData.value }
 }
 
+// Установлена ли и включена ЮKassa: при открытии и по сигналу ленты — председатель
+// мог включить или выключить её в каталоге, не закрывая страницу.
+const loadYookassaReady = (): Promise<void> =>
+  extensionApi
+    .loadExtensions({ name: 'yookassa' })
+    .then((list) => {
+      const ext = list.find((e) => e.name === 'yookassa')
+      yookassaReady.value = Boolean(ext?.is_installed && ext?.enabled)
+    })
+    .catch(() => {
+      yookassaReady.value = false
+    })
+
+useLiveReload([{ code: 'core', table: 'extensions' }], loadYookassaReady)
+
 // Загрузка данных при монтировании
 onMounted(() => {
+  void loadYookassaReady()
+
   if (systemStore.info?.settings) {
     const settings = systemStore.info.settings
     formData.value = {

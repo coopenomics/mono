@@ -70,6 +70,7 @@ static constexpr eosio::name _product_return_action = "productrtrn"_n;
 static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
 static constexpr eosio::name _marketplace_issue_action = "mktissue"_n;        ///< Выдача имущества пайщику в паевой ветке Стола заказов по решению совета (p.mkt.supply)
 static constexpr eosio::name _marketplace_return_action = "mktretrn"_n;       ///< Гарантийный возврат: принятие имущества и восстановление паевого взноса по решению совета (p.mkt.return)
+static constexpr eosio::name _marketplace_iprop_action = "mktiprop"_n;       ///< Приём имущества паевым взносом инициатора в кооперативный участок по решению совета (p.mkt.invest, задача 99D-27)
 
 // edubridge linked actions
 static constexpr eosio::name _edubridge_rid_action = "eduacptrid"_n;          ///< Приём паевого взноса результатом интеллектуальной деятельности преподавателя по решению совета (p.edu.rid)
@@ -113,6 +114,7 @@ static const std::set<eosio::name> soviet_actions = {
     //CAPITAL
     "capitalinvst"_n, //заявление на инвестиции по договору УХД
     "createresult"_n, //клайм прироста благороста из задания
+    "createpgprp"_n, //паевой взнос имуществом в программу благороста (решение совета)
     "createdebt"_n, //взять ссуду под залог будущего задания
     "capresexpns"_n, //произвести выплату по расходам задания
     "capwthdrprog"_n, //произвести возврат накопленных членских взносов по программе на капиталиста
@@ -134,6 +136,7 @@ static const std::set<eosio::name> soviet_actions = {
     "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
     "mktissue"_n, //заявление о выдаче имущества пайщику в паевой ветке на повестку совета (p.mkt.supply)
     "mktretrn"_n, //заявление о внесении паевого взноса имуществом при гарантийном возврате на повестку совета (p.mkt.return)
+    "mktiprop"_n, //заявление инициатора о паевом взносе имуществом в кооперативный участок на повестку совета (p.mkt.invest)
 
     //EDUBRIDGE
     "eduacptrid"_n, //заявление преподавателя о паевом взносе результатом интеллектуальной деятельности на повестку совета (p.edu.rid)
@@ -279,10 +282,14 @@ static constexpr uint64_t _eduteacher_program_id = 6;
     static constexpr uint64_t _producers_percent = 900000; // 90%
     static constexpr uint64_t _fund_percent = 100000; // 10%
 
+    static constexpr uint64_t MIN_BRANCHES_COUNT = 3; /*!< число кооперативных участков, с которого кооператив переходит на мажоритарную систему управления */
+
 #ifdef IS_TESTNET
+    static constexpr uint64_t MIN_BRANCHED_PARTICIPANTS_COUNT = 0; /*!< тестовая сборка: мажоритарная система включается по числу участков, без порога пайщиков */
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 1; /*!< минимальное количество членов совета (тест) */
     static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = false; /*!< один пайщик может возглавлять несколько кооперативных участков (тест) */
 #else
+    static constexpr uint64_t MIN_BRANCHED_PARTICIPANTS_COUNT = 100; /*!< мажоритарная система включается не раньше, чем в кооперативе 100 активных пайщиков */
     static constexpr uint64_t MIN_SOVIET_MEMBERS_COUNT = 3; /*!< минимальное количество членов совета (прод) */
     static constexpr bool ENFORCE_SINGLE_BRANCH_TRUSTEE = true; /*!< председатель возглавляет ровно один кооперативный участок (прод) */
 #endif

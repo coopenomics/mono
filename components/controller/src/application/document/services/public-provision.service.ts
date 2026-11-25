@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import config from '~/config/config';
 import { DocumentInteractor } from '../interactors/document.interactor';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -12,12 +12,12 @@ import { DomainError } from '@coopenomics/extension-kit';
  * реестра, включая те, что подставляют данные пайщика.
  */
 const PUBLIC_REGISTRY_IDS: readonly number[] = [
-  Cooperative.Registry.WalletAgreement.registry_id,
-  Cooperative.Registry.RegulationElectronicSignature.registry_id,
-  Cooperative.Registry.PrivacyPolicy.registry_id,
+  Registry.WalletAgreement.registry_id,
+  Registry.RegulationElectronicSignature.registry_id,
+  Registry.PrivacyPolicy.registry_id,
   // Пользовательское соглашение подставляет имя подписанта, но публично
   // показывается бланком: без username фабрика оставляет на его месте прочерк.
-  Cooperative.Registry.UserAgreement.registry_id,
+  Registry.UserAgreement.registry_id,
 ];
 
 /**

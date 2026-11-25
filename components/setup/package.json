@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/setup",
-  "version": "2026.10.23",
+  "version": "2026.11.25",
   "private": true,
   "description": "Интерактивный мастер настройки окружения",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "esno": "^4.8.0",
     "inquirer": "^12.4.3",

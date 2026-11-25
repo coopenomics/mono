@@ -57,14 +57,15 @@ export interface ICreateOrder {
 }
 
 /**
- * Адресат перевода по заявлению 1110: заказ и его доля членской части.
+ * Адресат трансляции по заявлению 1110: заказ и недостающая под него сумма
+ * (часть тела и обеспечительной части паевого взноса; задача 99D-18).
  * Заявление одно на всё оформление, а нитка процесса ведётся по заказу —
  * контракт эмитит `o.mkt.conv` на каждый адресат с `process_hash = order_hash`.
  */
 export interface IConvertTarget {
-  /** Хэш заказа, который оплачивает эта часть перевода (заказа ещё нет). */
+  /** Хэш заказа, который оплачивает эта часть трансляции (заказа ещё нет). */
   order_hash: IChecksum256
-  /** Членская часть перевода под этот заказ. */
+  /** Сумма трансляции под этот заказ. */
   amount: IAsset
 }
 
@@ -102,6 +103,146 @@ export interface ISetFee {
 
 export interface IMktConfig {
   membership_fee_percent: IUint64
+  /** Доля инициатора участка в остатке экономии месяца после возврата пайщикам и фондов (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
+  initiator_share_percent?: IUint64
+  /** Доля пайщиков в экономии месяца — первое деление (HUNDR_PERCENTS = 100 %); binary_extension, у прежних строк отсутствует. */
+  return_share_percent?: IUint64
+}
+
+export interface ISetRetShare {
+  coopname: IName
+  /** Доля пайщиков в экономии месяца, доли HUNDR_PERCENTS. */
+  return_share_percent: IUint64
+}
+
+export interface ISetShares {
+  coopname: IName
+  initiator_share_percent: IUint64
+}
+
+export interface IClosePeriod {
+  coopname: IName
+  braname: IName
+  /** Период списания — номер, который считает контракт (`Branch::aid_period`): календарный месяц UTC либо отрезок стенда. */
+  period: IUint32
+  /** ПР — плановые расходы участка за период (реестр планов узла). */
+  planned: IAsset
+  /** СЗ — служебные записки сверх плана за период. */
+  memos: IAsset
+  /** МП — материальная помощь, выплаченная за период; с задачи 99D-34 — только с персонального кошелька. */
+  aid_paid: IAsset
+  /**
+   * ЦП — цель плановых расходов (задача 99D-34): неоплаченные и не запущенные
+   * в оплату записи реестра планов участка со сроком до конца следующего
+   * месяца. Нет — контракт считает по прежней формуле (старый узел).
+   * С задачи 99D-34 `planned` — оплачено по плану с общего кошелька за период,
+   * `memos` — служебные записки сверх плана с общего кошелька.
+   */
+  planned_target?: IAsset
+}
+
+export interface IDelPeriod {
+  coopname: IName
+  braname: IName
+  period: IUint32
+}
+
+/** Списание строки счётчика пайщика за период (задача 99D-33): суммы контракт берёт из `kudues`. */
+export interface IChargePeriod {
+  coopname: IName
+  username: IName
+  braname: IName
+  period: IUint32
+}
+
+/** Выход пайщика состоялся (зовёт registrator): остаток к списанию — участку, строки счётчиков стираются. */
+export interface IExitDue {
+  coopname: IName
+  username: IName
+  exit_hash: IChecksum256
+}
+
+/** Переходный перенос строки зеркала узла в счётчики списания (задача 99D-33, п. 6). */
+export interface IMigrateDue {
+  coopname: IName
+  username: IName
+  braname: IName
+  period: IUint32
+  /** Стоимость выданных заказов строки (ноль у удержания при отказе). */
+  turnover: IAsset
+  /** Обеспечительная часть к списанию по ставкам итога. */
+  due: IAsset
+  /** Удержание при отказе — участку целиком. */
+  retained: IAsset
+}
+
+/** Счётчик пайщика за период списания — таблица `kudues` (задача 99D-33). */
+export interface IKuDue {
+  id: IUint64
+  username: IName
+  braname: IName
+  period: IUint32
+  /** Стоимость выданных заказов периода за вычетом возвращённого. */
+  turnover: IAsset
+  /** Обеспечительная часть к списанию по ставкам итога за вычетом возвращённого. */
+  due: IAsset
+  /** Удержание при отказе от получения — участку целиком. */
+  retained: IAsset
+  /** Выданных заказов в строке. */
+  orders: IUint32
+}
+
+/** Счётчик участка за период списания — таблица `kucounters` (задача 99D-33). */
+export interface IKuCounter {
+  id: IUint64
+  braname: IName
+  period: IUint32
+  /** T — стоимость выданных заказов периода за вычетом возвращённого. */
+  turnover: IAsset
+  /** C — обеспечительная часть к списанию по ставкам за вычетом возвращённого. */
+  secured: IAsset
+  /** Удержания при отказе за период (в формулу итога не входят). */
+  retained: IAsset
+  /** Выданных заказов за период. */
+  orders: IUint32
+  /** Строк счётчиков пайщиков за период — столько транзакций списания предстоит. */
+  members: IUint32
+}
+
+export interface IKuPeriod {
+  id: IUint64
+  braname: IName
+  period: IUint32
+  turnover: IAsset
+  secured: IAsset
+  planned: IAsset
+  memos: IAsset
+  aid_paid: IAsset
+  aid_reserve: IAsset
+  aid_unpaid: IAsset
+  expenses: IAsset
+  membership: IAsset
+  funds_amount: IAsset
+  branch_amount: IAsset
+  initiator_amount: IAsset
+  return_amount: IAsset
+  deficit: IAsset
+  rate_branch: IUint64
+  rate_funds: IUint64
+  rate_initiator: IUint64
+  closed_at: ITimePointSec
+  /** ЦП — цель плановых расходов на следующий месяц (задача 99D-34; у строк старого узла нет). */
+  planned_target?: IAsset
+  /** T — цель резерва участка: плановые расходы и накопленное право получателей помощи. */
+  target?: IAsset
+  /** F_пр — собранная часть цели прошлой строки участка. */
+  target_prev?: IAsset
+  /** F — собранная часть цели этой строки. */
+  target_funded?: IAsset
+  /** СФ — в фонд социально-экономического взаимодействия и социального обеспечения участка (с 16.11.2026; у прежних строк нет). */
+  social_amount?: IAsset
+  /** r_с — доля стоимости заказа в этот фонд. */
+  rate_social?: IUint64
 }
 
 export interface ICancelOrder {
@@ -149,9 +290,43 @@ export interface ISignChair {
   act: IDocument2
 }
 
-export interface IPayout {
+export interface IAddpayout {
+  coopname: IName
+  payout_hash: IChecksum256
+  order_hash: IChecksum256
+}
+
+export interface ISendpayout {
+  coopname: IName
+  payout_hash: IChecksum256
+}
+
+export interface IClosepayout {
   coopname: IName
   order_hash: IChecksum256
+}
+
+export interface IReleasepay {
+  coopname: IName
+  order_hash: IChecksum256
+}
+
+/** Пакет выплаты поставщику: один исходящий платёж кассиру на заказы поставщика за день. */
+export interface IPayout {
+  id: IUint64
+  /** Хэш пакета — outcome_hash исходящего платежа в gateway. */
+  hash: IChecksum256
+  offerer: IName
+  /** open | sent | paid | declined */
+  status: IName
+  /** Сумма перевода: Σ(принятая стоимость − удержание) по заказам пакета. */
+  amount: IAsset
+  /** Удержано в счёт признанного гарантийного долга по заказам пакета. */
+  withheld: IAsset
+  /** Заказов в пакете, ещё не закрытых. */
+  orders: IUint32
+  created_at: ITimePointSec
+  decline_reason: string
 }
 
 export interface IPayConfirm {
@@ -305,10 +480,6 @@ export interface IHandBack {
   request_hash: IChecksum256
 }
 
-export interface IPayRetFee {
-  coopname: IName
-  request_hash: IChecksum256
-}
 
 // ── p.mkt.wroff: actions ─────────────────────────────────────────────────
 
@@ -408,6 +579,8 @@ export interface IOrder {
    * у заказов, принятых до появления поля, значения нет — контракт читает `fact_cost`.
    */
   accepted_cost?: IAsset
+  /** Пакет выплаты поставщику, в который включён заказ; пустой хэш — вне пакета. */
+  payout_hash?: IChecksum256
   issue_act1: IDocument2
   issue_act2: IDocument2
   payout_status: IName
@@ -627,4 +800,139 @@ export interface ISubmretrn {
   reason_text: string
   photos: IChecksum256[]
   statement: IDocument2
+}
+
+// ── Инвестиционный этап кооперативного участка (задача 99D-27) ──
+
+export interface ISignInvAgr {
+  coopname: IName
+  username: IName
+  braname: IName
+  agreement: IDocument2
+}
+
+export interface IInvestMoney {
+  coopname: IName
+  username: IName
+  braname: IName
+  invest_hash: IChecksum256
+  amount: IAsset
+  statement: IDocument2
+}
+
+export interface ICreateIProp {
+  coopname: IName
+  username: IName
+  braname: IName
+  property_hash: IChecksum256
+  amount: IAsset
+  description: string
+  statement: IDocument2
+}
+
+export interface IApproveIProp {
+  coopname: IName
+  braname: IName
+  property_hash: IChecksum256
+  approved_statement: IDocument2
+  meta: string
+}
+
+export interface IDeclineIProp {
+  coopname: IName
+  braname: IName
+  property_hash: IChecksum256
+  reason: string
+}
+
+export interface IAct1IProp {
+  coopname: IName
+  username: IName
+  property_hash: IChecksum256
+  act: IDocument2
+}
+
+export interface IApprvIpAct {
+  coopname: IName
+  username: IName
+  property_hash: IChecksum256
+  approved_document: IDocument2
+}
+
+export interface IDclIpAct {
+  coopname: IName
+  username: IName
+  property_hash: IChecksum256
+  reason: string
+}
+
+export interface IClaimInv {
+  coopname: IName
+  username: IName
+  braname: IName
+  claim_hash: IChecksum256
+  statement: IDocument2
+}
+
+export interface IMktInvAgreement {
+  id: IUint64
+  username: IName
+  braname: IName
+  signed_at: ITimePointSec
+  agreement: IDocument2
+}
+
+/** Паевые взносы инициаторов участка и счётчик возврата (CRPS). */
+export interface IMktInvBranch {
+  braname: IName
+  money_total: IAsset
+  property_total: IAsset
+  unused_total: IAsset
+  reserved: IAsset
+  spent_total: IAsset
+  repaid_total: IAsset
+  surplus_total: IAsset
+  /** Σ использованного активных инициаторов, единицы актива. */
+  base: IUint64
+  /** Возвращено на единицу базы × 10^12. */
+  acc: IUint64
+  /** Σ units × acc_join по базе (uint128 строкой). */
+  s_join: string
+  s_fixed: IUint64
+  join_seq: IUint64
+}
+
+export interface IMktInvestor {
+  id: IUint64
+  braname: IName
+  username: IName
+  /** active | done */
+  status: IName
+  money: IAsset
+  property: IAsset
+  used_money: IAsset
+  claimed: IAsset
+  returned_fixed: IUint64
+  acc_join: IUint64
+  acc_done: IUint64
+  join_seq: IUint64
+  joined_at: ITimePointSec
+  /** Внесено деньгами всего; заявление о трансляции его не уменьшает. Нет у строк прежней сборки. */
+  money_in?: IAsset
+}
+
+export interface IMktInvProp {
+  id: IUint64
+  hash: IChecksum256
+  braname: IName
+  username: IName
+  /** created | approved | authorized | act1 */
+  status: IName
+  amount: IAsset
+  description: string
+  statement: IDocument2
+  approved_statement: IDocument2
+  decision: IDocument2
+  act: IDocument2
+  created_at: ITimePointSec
 }

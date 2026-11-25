@@ -147,7 +147,12 @@ describe('Образование: аннулирование подписки п
     }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'заявление по гарантии удовлетворено' })
     expect(approved.decided_at, 'дата решения совета').toBeTruthy()
 
-    const closed = await enrollmentOf(token, granted.id)
+    // Заявление и подписка — две записи узла, каждая обновляется своим событием
+    // цепи: «удовлетворено» у заявления не гарантирует, что подписка уже закрыта.
+    const closed = await waitFor(async () => {
+      const e = await enrollmentOf(token, granted.id)
+      return e?.status === 'CANCELLED' ? e : null
+    }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'подписка закрыта по гарантии' })
     expect(closed).toMatchObject({ status: 'CANCELLED', refund_reason: 'guarantee' })
     expect(amount(closed.refunded_amount), 'возвращена вся стоимость, а не половина').toBeCloseTo(fee, 4)
 

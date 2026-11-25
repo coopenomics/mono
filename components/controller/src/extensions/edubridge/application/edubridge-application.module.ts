@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EdubridgeProcessContentService } from './services/edubridge-process-content.service';
 import { bucketProvidersFor, APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -82,6 +83,8 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
   // ScheduleModule.forRoot() идемпотентен: AppModule уже инициализировал планировщик.
   imports: [EdubridgeDatabaseModule, ScheduleModule.forRoot()],
   providers: [
+    // Содержание процессов «Образования» для стола бухгалтера (реестр processContent).
+    EdubridgeProcessContentService,
     EdubridgeConfigHolder,
     EdubridgeLiveFeedService,
     { provide: EDUBRIDGE_ROLE_FACTS_PORT, useClass: EdubridgeRoleFactsAdapter },

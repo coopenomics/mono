@@ -1,7 +1,7 @@
 import { ControllerChainDataSource } from './controller-chain-data.source';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 /**
  * Источник данных цепи для фабрики документов заменил собой обозреватель

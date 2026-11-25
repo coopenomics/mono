@@ -52,6 +52,9 @@ publish:
     - ledger
     - ledger2
     - marketplace
+    # Реестр фондов кооператива (fund::funds) — зеркало для страницы «Фонды»
+    # стола бухгалтера (задачи 99D-25, 99D-24).
+    - fund
     - expense
     - edubridge
     # Оплата подписок облачного провайдера: billing::pay и billing::converttoaxn

@@ -63,9 +63,13 @@ describe('платформа: назначаемые роли и управле�
     expect(roles.find(r => r.key === ROLE)).toMatchObject({ extension_name: 'cashier', extension_title: 'Стол кассира', title: expect.any(String) })
     // access.roles.happy.11: полномочия роли словами — что читает и что ведёт.
     const access = (key: string) => (roles.find(r => r.key === key)?.permissions as any[]).map(p => p.access).sort()
-    // Четыре полномочия ядра и чтение служебных записок от расходов.
-    expect(access(ROLE)).toEqual(['READ', 'READ', 'READ', 'WRITE', 'WRITE'])
-    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
+    // Четыре полномочия ядра (два чтения, два ведения) и пять от расходов
+    // (d31100b77bb, 16.10.2026): чтение записок, выплата, отчёт по строке,
+    // файлы и закрытие записки — кассир ведёт записку до закрытия.
+    expect(access(ROLE)).toEqual(['READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
+    // Бухгалтер с 03.11.2026 ведёт и настройки фондов — право FundSettings:manage
+    // страницы «Фонды» (99D-24, 5ac3366cb31): пятое полномочие ведения.
+    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
   }, 60_000)
 
   it(caseName('core.acc.happy.12', 'страница управления доступом есть у председателя и закрыта совету и пайщику'), async () => {

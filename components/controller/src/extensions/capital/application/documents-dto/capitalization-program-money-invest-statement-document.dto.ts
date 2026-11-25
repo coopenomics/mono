@@ -1,9 +1,9 @@
 import { InputType, Field, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
-type action = Cooperative.Registry.CapitalizationMoneyInvestStatement.Action;
+type action = Registry.CapitalizationMoneyInvestStatement.Action;
 
 @InputType(`BaseProgramCapitalizationMoneyInvestStatementMetaDocumentInput`)
 class BaseProgramCapitalizationMoneyInvestStatementMetaDocumentInputDTO

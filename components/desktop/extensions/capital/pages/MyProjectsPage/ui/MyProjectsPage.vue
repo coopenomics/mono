@@ -1,7 +1,7 @@
 <template lang="pug">
 //- Список на корне; проект/компонент/задача — children (рейл остаётся на «Мои проекты»)
 router-view(v-if='!isRoot')
-.my-projects-page(v-else)
+.my-projects-page.page-shell(v-else)
   ProjectsListWidget(
     :key='projectsListKey',
     :expanded='expanded',
@@ -133,18 +133,14 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+// Высоту экрана задаёт канон-оболочка .page-shell; лента забирает остаток
 .my-projects-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 55px);
 
   :deep(.projects-list-widget) {
     flex: 1;
     min-height: 0;
-  }
-
-  :deep(.projects-scroll-area) {
-    max-height: none;
   }
 }
 </style>

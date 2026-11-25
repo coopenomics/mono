@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { computeOnboardingExpiresAt, DomainError, EXTENSION_REPOSITORY, type ExtensionDomainEntity, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { DECISION_TRACKING_PORT, DecisionEventType, DOCUMENT_APPROVAL_PORT, FREE_DECISION_PORT, IDecisionTrackingPort, IDocumentApprovalPort, IFreeDecisionPort, type ILoggerPort, type ISignedDocument, LOGGER_PORT, ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { isCapitalL1Complete } from '../onboarding/capital-l1';
 
@@ -320,7 +320,7 @@ export class CapitalOnboardingService {
         project_id,
         coopname: platformSettings().coopname,
         username: actor,
-        registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id,
+        registry_id: Registry.ProjectFreeDecision.registry_id,
         title: normalizedTitle,
       },
       {}

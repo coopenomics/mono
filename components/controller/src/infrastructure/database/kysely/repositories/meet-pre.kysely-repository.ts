@@ -47,6 +47,23 @@ export class MeetPreKyselyRepository implements MeetRepository {
       .execute();
   }
 
+  async markReplaced(hash: string, replacedBy: string): Promise<void> {
+    await this.db
+      .updateTable('meet_pre')
+      .set({ replaced_by: replacedBy.toUpperCase() })
+      .where('hash', '=', hash.toUpperCase())
+      .execute();
+  }
+
+  async findReplacement(hash: string): Promise<string | null> {
+    const row = await this.db
+      .selectFrom('meet_pre')
+      .select('replaced_by')
+      .where('hash', '=', hash.toUpperCase())
+      .executeTakeFirst();
+    return row?.replaced_by ?? null;
+  }
+
   async deleteByHash(hash: string): Promise<void> {
     await this.db.deleteFrom('meet_pre').where('hash', '=', hash.toUpperCase()).execute();
   }

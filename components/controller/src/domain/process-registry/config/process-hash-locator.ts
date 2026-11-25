@@ -64,6 +64,12 @@ export const BACKEND_OVERRIDES: Readonly<Record<string, string>> = Object.freeze
 export const OPERATIONS_NOT_NAMING_PROCESS: ReadonlySet<string> = new Set([
   'o.brn.common',
   'o.brn.retfee',
+  // Отчисления в фонды (o.fnd.indiv / o.fnd.resrv / o.fnd.devel — кошелёк на
+  // каждый фонд, задача 99D-25) и o.mkt.initr (до 99D-27) идут в нитке поставки при списании
+  // по итогу месяца (задача 99D-22); имя нитке даёт заказ, а не отчисление.
+  'o.fnd.indiv',
+  'o.fnd.resrv',
+  'o.fnd.devel',
   // o.mkt.refund возвращает членский взнос и в нитке поставки (неиспользованная
   // часть по заказу), и в нитке гарантийного возврата (вторая нога, по хэшу
   // заявки). В реестре операций он объявлен под поставкой, поэтому без этой
@@ -180,13 +186,25 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
   'p.mkt.claim':  [{ code: 'marketplace', table: 'claims',      field: 'hash' }],
+  // Инвестиционный этап участка (99D-27): паевой взнос имуществом живёт в
+  // `invprops.hash` до второй подписи акта; паевой взнос деньгами и заявление
+  // обратно — одноактовые, без строки (история — по операциям ledger2).
+  'p.mkt.invest': [{ code: 'marketplace', table: 'invprops',    field: 'hash' }],
+  // Возмещение паевого взноса инициатору: заявление 1123 одноактовое, строки
+  // нет — история по операции o.mkt.iback.
+  'p.mkt.icomp':  [],
+  // Списание обеспечительной части по итогу периода (99D-33): нитка — строка
+  // счётчика пайщика за период, хэш детерминирован (sha256 от
+  // `p.mkt.due:<coopname>:<username>:<braname>:<period>`), строка стирается
+  // самим списанием — одноактовый процесс, данные по операциям ledger2.
+  'p.mkt.due':    [],
 
   // edubridge — ЦПП «Образование». Две entity-таблицы из
   // contracts/cpp/lib/domain/table_edubridge_*.hpp:
   //   - `edusubs.sub_hash` — подписка на курс (конвертация членского взноса
   //     o.edu.conv + opensub/extendsub; запись стирается на expiresub).
   //   - `edurids.rid_hash` — заявление преподавателя о паевом взносе РИД
-  //     (живёт до решения совета; acceptrid/declinerid стирают запись).
+  //     (живёт до приёма либо закрытия расчёта без приёма; acceptrid/recallrid стирают запись).
   'p.edu.access': [{ code: 'edubridge', table: 'edusubs', field: 'sub_hash' }],
   'p.edu.rid':    [{ code: 'edubridge', table: 'edurids', field: 'rid_hash' }],
   //   - `educontracts.contract_hash` — договор УХД преподавателя.
@@ -223,6 +241,15 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 
   // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
   'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
+
+  // p.fnd.accum — отчисления в фонды накопления (задачи 99D-19, 99D-25): имя
+  // стандарта процесса, а не нитки. Операции o.fnd.indiv / o.fnd.resrv /
+  // o.fnd.devel идут в нитке источника (списание обеспечительной части —
+  // поставка по хэшу заказа), поэтому собственного якоря у процесса нет.
+  'p.fnd.accum': [],
+  // p.sov.spend — расход кооператива из фонда обеспечения хозяйственной
+  // деятельности (задача 99D-25): нитка шасси расходов по хэшу служебной записки.
+  'p.sov.spend': [{ code: 'expense', table: 'proposals', field: 'proposal_hash' }],
 
   // p.cap.pgexp — пополнение пула программных расходов (o.cap.pgtop, ISSUE
   // w.cap.pgexp). Одноактовый, process_hash синтетический (sha256 в контракте) —

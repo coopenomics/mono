@@ -1,13 +1,13 @@
 import { t } from '../../../i18n';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 /**
  * Положения программ, параметры которых председатель заполняет в мастере.
  * Номера берутся из реестра документов cooptypes по имени: переименование или
  * вывод документа из реестра сразу ломает сборку, а не подключение ЦПП.
  */
-export const GENERATOR_PROGRAM_REGISTRY_ID = Cooperative.Registry.GeneratorProgramTemplate.registry_id;
-export const BLAGOROST_PROGRAM_REGISTRY_ID = Cooperative.Registry.BlagorostProgramTemplate.registry_id;
+export const GENERATOR_PROGRAM_REGISTRY_ID = Registry.GeneratorProgramTemplate.registry_id;
+export const BLAGOROST_PROGRAM_REGISTRY_ID = Registry.BlagorostProgramTemplate.registry_id;
 
 export const DOC_WIZARD_STEP_GENERATOR = 'doc_generator';
 export const DOC_WIZARD_STEP_BLAGOROST = 'doc_blagorost';

@@ -18,6 +18,7 @@ export const LEDGER2_ACCOUNT_REGISTRY: readonly AccountMeta[] = [
   { code: 4,  name: 'Нематериальные активы',            kind: 'active' },
   { code: 8,  name: 'Вложения во внеоборотные активы',  kind: 'active' },
   { code: 10, name: 'Материалы',                        kind: 'active' },
+  { code: 26, name: 'Общехозяйственные расходы',        kind: 'active' },
   { code: 51, name: 'Расчётный счёт',                   kind: 'active' },
   { code: 58, name: 'Финансовые вложения',              kind: 'active' },
   { code: 68, name: 'Расчёты по налогам и сборам',      kind: 'passive' },

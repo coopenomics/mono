@@ -39,6 +39,9 @@ export class MarketplaceListOrdersInputDTO {
   @Field(() => String, { nullable: true, description: 'Фильтр по идентификатору предложения.' })
   public readonly offer_id?: string;
 
+  @Field(() => String, { nullable: true, description: 'Фильтр по пункту выдачи заказа (кооперативному участку).' })
+  public readonly delivery_braname?: string;
+
   @Field(() => [MarketplaceOrderStatusEnum], {
     nullable: true,
     description: 'Один или несколько статусов заказа, по которым нужно отфильтровать список.',

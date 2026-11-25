@@ -2,6 +2,8 @@ import { Queries } from '@coopenomics/sdk'
 import { client } from 'src/shared/api/client'
 import { RegistrySource } from 'src/shared/lib/registry-source'
 import type {
+  IProcessContent,
+  IProcessContentInput,
   IProcessGetInput,
   IProcessListInput,
   IProcessListResult,
@@ -25,6 +27,28 @@ async function getProcess(
     { variables: input },
   )
   return output
+}
+
+/**
+ * Содержание процесса словами предметной области. Описывает его приложение
+ * процесса; пусто — у типа процесса описания нет, карточка не рисуется.
+ */
+async function getProcessContent(
+  input: IProcessContentInput,
+  source: RegistrySource = RegistrySource.CORE,
+): Promise<IProcessContent | null> {
+  if (source === RegistrySource.ACCOUNTANT) {
+    const { [Queries.Reports.ReportsProcessContent.name]: content } = await client.Query(
+      Queries.Reports.ReportsProcessContent.query,
+      { variables: input },
+    )
+    return content ?? null
+  }
+  const { [Queries.Processes.GetProcessContent.name]: content } = await client.Query(
+    Queries.Processes.GetProcessContent.query,
+    { variables: input },
+  )
+  return content ?? null
 }
 
 async function listProcesses(
@@ -60,6 +84,7 @@ function pickLatestSnapshot(view: IProcessView | undefined): IProcessSnapshot | 
 
 export const processApi = {
   getProcess,
+  getProcessContent,
   listProcesses,
   pickLatestSnapshot,
 }

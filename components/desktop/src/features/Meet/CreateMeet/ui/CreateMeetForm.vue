@@ -48,12 +48,14 @@ q-dialog(
               )
               UserSearchSelector(
                 v-model='formData.presider',
+                v-model:display-name='presiderName',
                 :label='$t("meet.createMeetForm.presiderLabel")',
                 outlined,
                 :rules='[(v) => !!v || $t("meet.createMeetForm.presiderRequired")]'
               )
               UserSearchSelector(
                 v-model='formData.secretary',
+                v-model:display-name='secretaryName',
                 :label='$t("meet.createMeetForm.secretaryLabel")',
                 outlined,
                 :rules='[(v) => !!v || $t("meet.createMeetForm.secretaryRequired")]'
@@ -140,10 +142,10 @@ q-dialog(
                   span.meet-review__value {{ selectedTypeLabel }}
                 .meet-review__row
                   span.meet-review__label {{ $t('meet.createMeetForm.presiderReviewLabel') }}
-                  span.meet-review__value {{ formData.presider || '—' }}
+                  span.meet-review__value {{ presiderName || formData.presider || '—' }}
                 .meet-review__row
                   span.meet-review__label {{ $t('meet.createMeetForm.secretaryReviewLabel') }}
-                  span.meet-review__value {{ formData.secretary || '—' }}
+                  span.meet-review__value {{ secretaryName || formData.secretary || '—' }}
                 .meet-review__row
                   span.meet-review__label {{ $t('meet.createMeetForm.openAtReviewLabel') }}
                   span.meet-review__value {{ formatLocal(formData.open_at) }}
@@ -340,6 +342,11 @@ const formData = reactive<Record<string, any>>({
   ...buildDefaults(),
   ...(props.preset || {}),
 });
+
+// ФИО председателя и секретаря для шага проверки: имя аккаунта человеку ничего
+// не говорит. Заполняет поле выбора пайщика, в данные собрания не входит.
+const presiderName = ref('');
+const secretaryName = ref('');
 
 watch(
   agendaPoints,

@@ -128,8 +128,14 @@
       @request='onRequest'
     )
       template(#body='props')
-        q-tr(:key='`pst_${props.row.key}`' :props='props')
-          q-td {{ formatDate(props.row.createdAt) }}
+        //- Нажатие на проводку открывает её операцию в правой панели на месте:
+        //- содержание процесса, движения по кошелькам и проводки.
+        q-tr(
+          :key='`pst_${props.row.key}`'
+          :props='props'
+          :class='{ "cursor-pointer": !!props.row.parentApplyGlobalSequence }'
+          @click='openOperation(props.row)'
+        )
           q-td
             EntityIdBadge(
               v-if='props.row.debitGlobalSequence'
@@ -146,6 +152,7 @@
             )
               q-tooltip {{ $t('reports.postingsPage.openProcessLabel') }}
             span.t-faint(v-else) —
+          q-td {{ formatDate(props.row.createdAt) }}
           q-td
             q-chip(
               v-if='props.row.operationCode'
@@ -162,18 +169,9 @@
           q-td.text-right.font-monospace.text-weight-bold {{ formatAmount(props.row.quantity) }}
           q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
 
-          q-td.text-right(auto-width)
-            q-btn(
-              v-if='props.row.parentApplyGlobalSequence'
-              flat dense round size='sm' color='primary'
-              icon='fa-solid fa-arrow-right'
-              :to='{ name: "reports-operations", query: { operation_id: props.row.parentApplyGlobalSequence } }'
-            )
-              q-tooltip {{ $t('reports.postingsPage.toOperationLabel') }}
-
       template(#item='props')
         .col-12
-          q-card.q-pa-md.q-mb-sm
+          q-card.q-pa-md.q-mb-sm.cursor-pointer(@click='openOperation(props.row)')
             .row.items-center.q-gutter-x-md
               .col
                 .text-caption.t-faint {{ formatDate(props.row.createdAt) }}
@@ -181,14 +179,6 @@
               .col-auto.text-right
                 .text-caption.t-faint {{ $t('reports.postingsPage.amountLabel') }}
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
-              .col-auto
-                q-btn(
-                  v-if='props.row.parentApplyGlobalSequence'
-                  flat dense size='sm' color='primary'
-                  icon='fa-solid fa-arrow-right'
-                  :label='$t("reports.postingsPage.toOperationLabel")'
-                  :to='{ name: "reports-operations", query: { operation_id: props.row.parentApplyGlobalSequence } }'
-                )
             .row.q-mt-sm.items-center.q-gutter-x-md
               .col-auto.text-caption.t-muted {{ $t('reports.postingsPage.column.debit') }}
               .col-auto
@@ -211,6 +201,13 @@
                 :rawId='shortHash(props.row.processHash)'
                 @click='copyText(props.row.processHash)'
               )
+
+  //- Операция проводки в правой панели (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='openedOperation'
+    @close='openedOperation = null'
+  )
 </template>
 
 <script setup lang="ts">
@@ -227,7 +224,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
 import type { ILedger2Posting, ILedger2PostingsFilterInput } from 'src/entities/Ledger2'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
-import { AccountIdCell } from '../../../shared/ui'
+import { AccountIdCell, OperationDetailsDrawer, type OperationRef } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
 import { t } from '../../../i18n';
 
@@ -279,12 +276,27 @@ function shortHash(hash: string | null | undefined): string {
 
 // № процесса ведёт в реестр процессов (единая адресация: процесс агрегирует
 // документы + операции + проводки по этому хэшу).
+// Операция проводки в правой панели — без перехода в реестр операций.
+const openedOperation = ref<OperationRef | null>(null)
+
+function openOperation(row: ILedger2Posting): void {
+  if (!row.parentApplyGlobalSequence) return
+  openedOperation.value = {
+    globalSequence: String(row.parentApplyGlobalSequence),
+    processHash: row.processHash,
+    operationCode: row.operationCode,
+    memo: row.memo,
+    quantity: row.quantity,
+    createdAt: row.createdAt,
+  }
+}
+
 function goToProcess(hash: string | null | undefined) {
   if (!hash) return
   router.push({
     name: 'reports-processes',
     params: { coopname: info.coopname },
-    query: { process_hash: hash },
+    query: { process: hash },
   })
 }
 
@@ -445,15 +457,14 @@ async function resolveAccountName(id: number) {
 }
 
 const columns = [
-  { name: 'createdAt', align: 'left' as const, label: t('reports.postingsPage.column.date'), field: 'createdAt' },
   { name: 'postingId', align: 'left' as const, label: t('reports.postingsPage.column.postingId'), field: 'debitGlobalSequence' },
   { name: 'processHash', align: 'left' as const, label: t('reports.postingsPage.column.processId'), field: 'processHash' },
+  { name: 'createdAt', align: 'left' as const, label: t('reports.postingsPage.column.date'), field: 'createdAt' },
   { name: 'operationCode', align: 'left' as const, label: t('reports.postingsPage.column.operation'), field: 'operationCode' },
   { name: 'debit', align: 'center' as const, label: t('reports.postingsPage.column.debit'), field: 'debitAccountId' },
   { name: 'credit', align: 'center' as const, label: t('reports.postingsPage.column.credit'), field: 'creditAccountId' },
   { name: 'quantity', align: 'right' as const, label: t('reports.postingsPage.column.amount'), field: 'quantity' },
   { name: 'username', align: 'left' as const, label: t('reports.postingsPage.column.participant'), field: 'username' },
-  { name: 'actions', align: 'right' as const, label: '', field: 'parentApplyGlobalSequence', sortable: false },
 ]
 
 const hasAnyFilter = computed(

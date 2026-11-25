@@ -10,9 +10,9 @@ import { PrivateKey, KeyType } from '@wharfkit/antelope';
 (globalThis as any).window = { crypto: webcrypto };
 import { RobotDecisionService } from '~/extensions/soviet-robot/application/services/robot-decision.service';
 import { RobotDecisionStage } from '~/extensions/soviet-robot/domain/enums/robot-decision-stage.enum';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const NO_EXPIRY = '1970-01-01T00:00:00';
 const LIMITS = { max_attempts: 3, retry_backoff_sec: 5, index_lag_attempts: 3, index_lag_pause_ms: 0 };
@@ -320,5 +320,16 @@ describe('RobotDecisionService.protocolData', () => {
     const data = service.protocolData(R.MarketplaceWriteoffProtocol.registry_id, 'voskhod', decision);
     expect(data.items_count).toBe(2);
     expect(data.meet_hash).toBe('AB'.repeat(32));
+  });
+
+  // sov.rob.side.95: версия сборщика заявления не переходит в протокол — у
+  // протокола свои версии, фабрика выбирает их сама.
+  it('не переносит версию сборщика заявления в данные протокола', () => {
+    const decision = makeDecision({
+      statement: { meta: JSON.stringify({ registry_id: 1120, builder: '1.1', property_hash: 'PH', braname: 'krg' }) },
+    });
+    const data = service.protocolData(R.MarketplaceInvestPropertyDecision.registry_id, 'voskhod', decision);
+    expect(data).not.toHaveProperty('builder');
+    expect(data).toMatchObject({ registry_id: R.MarketplaceInvestPropertyDecision.registry_id, property_hash: 'PH', braname: 'krg' });
   });
 });

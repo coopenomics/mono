@@ -41,7 +41,7 @@ export type EdubridgeContributionsCouncilOutcomeEnum = "declined" | "expired";
 
 export type EdubridgeContributionsRidTypeEnum = "assessment_material" | "course_program" | "lesson_recording" | "methodical_material" | "other";
 
-export type EdubridgeContributionsStatusEnum = "accepted" | "act_signed" | "council_approved" | "declined" | "draft" | "held" | "submitted";
+export type EdubridgeContributionsStatusEnum = "accepted" | "act_signed" | "closed" | "council_approved" | "declined" | "draft" | "held" | "returned" | "submitted";
 
 export type EdubridgeCoursesCarrierEnum = "getcourse" | "onsite" | "skillspace" | "telegram" | "vk";
 
@@ -1142,6 +1142,14 @@ export interface CooperativeCharters {
   username: string;
 }
 
+export interface DecisionDeclineReasons {
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  decision_id: Int8;
+  declined_by: string | null;
+  reason: string;
+}
+
 export interface DraftTemplates {
   block_num: Int8;
   created_at: Generated<Timestamp>;
@@ -1483,6 +1491,39 @@ export interface EntityVersions {
   previous_data: Json;
 }
 
+export interface ExpenseCounterparties {
+  /**
+   * В архиве: не предлагается для новых расходов, прежние записи его сохраняют
+   */
+  archived: Generated<boolean>;
+  /**
+   * Участок, который добавил контрагента; NULL — контрагент кооператива. Видят всех контрагентов все участки
+   */
+  braname: string | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  creator: string;
+  id: Generated<number>;
+  /**
+   * Вид контрагента: LEGAL — юридическое лицо, ENTREPRENEUR — индивидуальный предприниматель
+   */
+  kind: string;
+  name: string;
+  /**
+   * Назначение платежа по умолчанию — подставляется в запись плана и служебную записку
+   */
+  payment_purpose: string | null;
+  /**
+   * Реквизиты по полям страны кооператива (пакет юрисдикций)
+   */
+  requisites: Json;
+  /**
+   * Налоговый номер (в России — ИНН): поиск и распознавание повтора
+   */
+  tax_id: string;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface ExpenseFiles {
   checksum_sha256: string;
   coopname: string;
@@ -1511,6 +1552,10 @@ export interface ExpensePlans {
    */
   braname: string | null;
   coopname: string;
+  /**
+   * Контрагент-получатель оплаты по реквизитам
+   */
+  counterparty_id: number | null;
   created_at: Generated<Timestamp>;
   /**
    * Кто добавил запись
@@ -1530,13 +1575,29 @@ export interface ExpensePlans {
    */
   paid_at: Timestamp | null;
   /**
-   * Реквизиты получателя платежа (строкой — передаётся в платёжку кассиру)
+   * Реквизиты текстом у записей до способов оплаты; новые записи не заполняют
    */
-  pay_to: string;
+  pay_to: string | null;
+  /**
+   * Способ получения средств пайщика; реквизиты копируются в снимок при подаче записки
+   */
+  payment_method_id: string | null;
+  /**
+   * Назначение платежа организации
+   */
+  payment_purpose: string | null;
   /**
    * Расход, которым оплачивается запись (служебная записка шасси расходов); NULL — оплата не запускалась
    */
   proposal_hash: string | null;
+  /**
+   * Пайщик-получатель аванса под отчёт
+   */
+  recipient: string | null;
+  /**
+   * Получатель: ORG — организация по реквизитам контрагента, SELF/MEMBER — пайщик авансом под отчёт; NULL — запись до способов оплаты
+   */
+  recipient_type: string | null;
   /**
    * Периодичность серии: NONE — разовый; MONTHLY/QUARTERLY/YEARLY — повторяющийся
    */
@@ -1609,6 +1670,10 @@ export interface Extensions {
   enabled: Generated<boolean>;
   name: string;
   schema_version: Generated<number>;
+  /**
+   * Когда расширение удалено председателем; NULL — установлено. Запись и настройки сохраняются для повторной установки
+   */
+  uninstalled_at: Timestamp | null;
   updated_at: Generated<Timestamp>;
 }
 
@@ -1619,6 +1684,45 @@ export interface ExtensionsLogs {
   id: Generated<number>;
   name: string;
   updated_at: Generated<Timestamp>;
+}
+
+export interface FactoryDocPrivateData {
+  created_at: Generated<Timestamp>;
+  hash: string;
+  payload: Json;
+  registry_id: number;
+}
+
+export interface FactoryDocuments {
+  binary: Buffer;
+  block_num: Int8 | null;
+  created_at: Generated<Timestamp>;
+  full_title: string | null;
+  hash: string;
+  html: string;
+  id: Generated<Int8>;
+  meta: Json;
+  meta_key: string;
+  registry_id: number;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface FactoryRecords {
+  /**
+   * Блок цепи на момент записи; текущая версия — последняя по блоку
+   */
+  block_num: Int8 | null;
+  /**
+   * Коллекция записи: individuals, organizations, entrepreneurs, paymentMethods, vars, projects, udatas, signatures
+   */
+  collection: string;
+  created_at: Generated<Timestamp>;
+  /**
+   * Пометка удаления: ставится на все версии, строки не стираются
+   */
+  deleted: Generated<boolean>;
+  id: Generated<Int8>;
+  payload: Json;
 }
 
 export interface GeneratedReports {
@@ -1635,6 +1739,82 @@ export interface GeneratedReports {
   validation_errors: Json | null;
   xml: string;
   year: number;
+}
+
+export interface GreetingsCalendar {
+  /**
+   * individual — физическое лицо, entrepreneur — индивидуальный предприниматель
+   */
+  account_type: string;
+  birth_day: number;
+  birth_month: number;
+  birth_year: number;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
+export interface GreetingsSends {
+  attempts: Generated<number>;
+  created_at: Generated<Timestamp>;
+  error: string | null;
+  id: Generated<string>;
+  /**
+   * birthday — поздравление с днём рождения, mailing — рассылка в дату
+   */
+  kind: Generated<string>;
+  /**
+   * Дата рассылки; у поздравления пусто — его ключ (пайщик, год)
+   */
+  occasion_date: Timestamp | null;
+  /**
+   * Строки очереди уведомлений письма — по каналам; по ним читается состояние доставки
+   */
+  outbox_ids: Generated<Json>;
+  /**
+   * no_template — нет действующего шаблона, not_active — пайщик не действующий, no_recipient — нет почты или подписки
+   */
+  reason: string | null;
+  /**
+   * sent — принято к доставке, skipped — не отправлено по причине reason, failed — ошибка, повтор в тот же день
+   */
+  status: string;
+  subject: string | null;
+  template_id: string | null;
+  template_title: string | null;
+  updated_at: Generated<Timestamp>;
+  username: string;
+  year: number;
+}
+
+export interface GreetingsTemplates {
+  /**
+   * Текст письма в Markdown с переменными в двойных фигурных скобках
+   */
+  body: string;
+  created_at: Generated<Timestamp>;
+  created_by: string;
+  id: Generated<string>;
+  /**
+   * birthday — поздравление в день рождения пайщика, mailing — рассылка всем действующим пайщикам в дату period_start
+   */
+  kind: Generated<string>;
+  period_end: Timestamp;
+  period_start: Timestamp;
+  /**
+   * Рассылка повторяется каждый год в тот же день (праздник)
+   */
+  repeat_yearly: Generated<boolean>;
+  /**
+   * Дата, в которую рассылка обошла всех пайщиков без ошибок; повторный запуск в этот день пайщиков не перебирает
+   */
+  sent_on: Timestamp | null;
+  /**
+   * draft — черновик, active — действует: рассылка берёт шаблон в дни периода
+   */
+  status: Generated<string>;
+  subject: string;
+  title: string;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface InvalidatedEntities {
@@ -1725,6 +1905,42 @@ export interface KuDecisions {
   type: string;
 }
 
+export interface KuPowersOfAttorney {
+  braname: string;
+  coopname: string;
+  countersigned: Json | null;
+  created_at: Generated<Timestamp>;
+  document: Json;
+  document_hash: string;
+  holder: string;
+  id: Generated<number>;
+  issued_at: Timestamp;
+  number: number;
+  protocol_date: Generated<string>;
+  protocol_number: Generated<string>;
+  registry_id: number;
+  renewal_notified_at: Timestamp | null;
+  resolved_at: Timestamp | null;
+  signed_at: Generated<Timestamp>;
+  source_hash: string | null;
+  status: Generated<string>;
+  type: string;
+  valid_until: Timestamp;
+}
+
+export interface KuTrusteeLiabilities {
+  braname: string;
+  coopname: string;
+  countersigned: Json | null;
+  document: Json;
+  document_hash: string;
+  holder: string;
+  id: Generated<number>;
+  resolved_at: Timestamp | null;
+  signed_at: Generated<Timestamp>;
+  status: Generated<string>;
+}
+
 export interface KuTrustRequests {
   _created_at: Generated<Timestamp>;
   _id: Generated<string>;
@@ -1768,6 +1984,8 @@ export interface MarketplaceAplReception {
   offerer_account: string;
   shipment_id: string;
   status: string;
+  step_claimed_at: Timestamp | null;
+  step_claimed_by: string | null;
   supplier_signed_at: Timestamp | null;
   supplier_signed_documents: Json | null;
   supplier_signsupp_tx_hash: string | null;
@@ -1775,6 +1993,55 @@ export interface MarketplaceAplReception {
   ttn_number: string | null;
   updated_at: Generated<Timestamp>;
   variant: string;
+}
+
+export interface MarketplaceBranchAid {
+  aid_hash: string;
+  amount: Generated<Numeric>;
+  braname: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  paid_at: Timestamp | null;
+  status: string;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
+export interface MarketplaceBranchPeriod {
+  aid_paid: Generated<Numeric>;
+  aid_reserve: Generated<Numeric>;
+  aid_unpaid: Generated<Numeric>;
+  braname: string;
+  branch_amount: Generated<Numeric>;
+  closed_at: Generated<Timestamp>;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  deficit: Generated<Numeric>;
+  deleted_at: Timestamp | null;
+  expenses: Generated<Numeric>;
+  funds_amount: Generated<Numeric>;
+  initiator_amount: Generated<Numeric>;
+  invest_phase: Generated<string>;
+  investor_repaid: Generated<Numeric>;
+  membership: Generated<Numeric>;
+  memos: Generated<Numeric>;
+  period: number;
+  planned: Generated<Numeric>;
+  planned_target: Numeric | null;
+  rate_branch: Generated<Int8>;
+  rate_funds: Generated<Int8>;
+  rate_initiator: Generated<Int8>;
+  rate_social: Generated<Int8>;
+  return_amount: Generated<Numeric>;
+  rows_charged: Generated<number>;
+  rows_total: Generated<number>;
+  secured: Generated<Numeric>;
+  social_amount: Generated<Numeric>;
+  target: Numeric | null;
+  target_funded: Numeric | null;
+  target_prev: Numeric | null;
+  turnover: Generated<Numeric>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface MarketplaceCart {
@@ -1851,6 +2118,15 @@ export interface MarketplaceContainerType {
   width_cm: Generated<number>;
 }
 
+export interface MarketplaceHandoffCode {
+  account: string;
+  coopname: string;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  issued_at: Generated<Timestamp>;
+  token: string;
+}
+
 export interface MarketplaceInventory {
   arrival_price: Numeric | null;
   barcode_format: string | null;
@@ -1864,6 +2140,7 @@ export interface MarketplaceInventory {
   id: Generated<string>;
   labeled_at: Timestamp | null;
   labeled_by_operator_account: string | null;
+  last_actor_account: string | null;
   order_id: string;
   orderer_account_snapshot: string;
   origin: Generated<string>;
@@ -1883,12 +2160,29 @@ export interface MarketplaceInventory {
   updated_at: Generated<Timestamp>;
 }
 
+export interface MarketplaceInventoryMovement {
+  actor_account: string | null;
+  at: Generated<Timestamp>;
+  barcode_value: string | null;
+  braname: string | null;
+  cell_id: string | null;
+  container_id: string | null;
+  coopname: string;
+  id: Generated<Int8>;
+  inventory_id: string;
+  kind: string;
+  order_id: string | null;
+  quantity: number | null;
+  status: string | null;
+}
+
 export interface MarketplaceIssuanceSaga {
   act_document_hash: string | null;
   act1_document: Json | null;
   act2_document: Json | null;
   attempts: Generated<number>;
   braname: string;
+  close_reminded_at: Timestamp | null;
   closed_at: Timestamp | null;
   coopname: string;
   created_at: Generated<Timestamp>;
@@ -1906,6 +2200,8 @@ export interface MarketplaceIssuanceSaga {
   protocol_document: Json | null;
   stage: string;
   statement_document: Json | null;
+  step_claimed_at: Timestamp | null;
+  step_claimed_by: string | null;
   tx_hashes: Generated<Json>;
   updated_at: Generated<Timestamp>;
 }
@@ -2012,6 +2308,7 @@ export interface MarketplaceOrder {
   quantity: Numeric;
   ready_announced_at: Timestamp | null;
   received_at: Timestamp | null;
+  review_invited_at: Timestamp | null;
   shipment_id: string | null;
   status: string;
   supplier_account: string;
@@ -2024,19 +2321,19 @@ export interface MarketplaceOrder {
 
 export interface MarketplaceOutgoingPaymentRequest {
   amount: Numeric;
-  apl_reception_id: string;
   completed_at: Timestamp | null;
   coopname: string;
   core_payment_id: string | null;
   created_at: Generated<Timestamp>;
   decline_reason: string | null;
   id: Generated<string>;
-  order_hash: string;
-  order_id: string;
+  lines: Generated<Json>;
   payee_account: string;
+  payment_hash: string;
   payout_destination: string | null;
   payout_tx_hash: string | null;
   purpose: string;
+  settled_at: Timestamp | null;
   status: string;
   symbol: string;
   updated_at: Generated<Timestamp>;
@@ -2073,6 +2370,41 @@ export interface MarketplaceReturnClaim {
   submretrn_tx_hash: string;
   supplier_account: string;
   updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceReview {
+  author_account: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  hidden_at: Timestamp | null;
+  hidden_by: string | null;
+  hidden_reason: string | null;
+  id: Generated<string>;
+  offer_id: string;
+  order_id: string;
+  stars: number;
+  status: Generated<string>;
+  supplier_account: string;
+  text: Generated<string>;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceSecureDue {
+  base_amount: Generated<Numeric>;
+  braname: string;
+  charge_sent_at: Timestamp | null;
+  charged_amount: Generated<Numeric>;
+  charged_at: Timestamp | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  due_amount: Generated<Numeric>;
+  due_from: Timestamp | null;
+  last_sequence: Generated<string>;
+  order_hash: string;
+  returned_amount: Generated<Numeric>;
+  run_period: number | null;
+  updated_at: Generated<Timestamp>;
+  username: string;
 }
 
 export interface MarketplaceShipment {
@@ -2154,6 +2486,17 @@ export interface MarketplaceSupplierClaim {
   reclamation: Json | null;
   return_claim_id: string;
   status: string;
+  supplier_account: string;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceSupplierProfile {
+  about: Generated<string>;
+  coopname: string;
+  cover: Json | null;
+  created_at: Generated<Timestamp>;
+  display_name: string | null;
+  id: Generated<string>;
   supplier_account: string;
   updated_at: Generated<Timestamp>;
 }
@@ -2250,6 +2593,10 @@ export interface MeetPre {
   open_at: Timestamp;
   presider: string;
   proposal: Json | null;
+  /**
+   * Хэш собрания после повторного созыва; пусто — собрание не созывалось повторно
+   */
+  replaced_by: string | null;
   secretary: string;
 }
 
@@ -2401,6 +2748,35 @@ export interface PaymentState {
   updated_at: Generated<Timestamp>;
 }
 
+export interface PayoutRequests {
+  blockchain_data: Json | null;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  expired_at: Timestamp | null;
+  /**
+   * Хэш заявки — им же станет хэш платежа
+   */
+  hash: string;
+  id: Generated<string>;
+  memo: string | null;
+  payment_details: Json | null;
+  payment_method_id: string | null;
+  provider: string | null;
+  quantity: Numeric;
+  related_entity_id: string | null;
+  related_extension: string | null;
+  statement: Json | null;
+  /**
+   * awaiting — ждёт решения совета, released — платёж создан, declined — совет отказал
+   */
+  status: Generated<string>;
+  symbol: string;
+  type: PaymentsTypeEnum;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
 export interface ProgramWallets {
   _created_at: Generated<Timestamp>;
   _id: Generated<string>;
@@ -2487,6 +2863,14 @@ export interface Settings {
   coopname: string;
   created_at: Generated<Timestamp>;
   extra_settings: Generated<Json>;
+  /**
+   * Ключ логотипа кооператива в хранилище изображений
+   */
+  logo_key: string | null;
+  /**
+   * Тип файла логотипа кооператива
+   */
+  logo_mime: string | null;
   non_authorized_default_route: string;
   non_authorized_default_workspace: string;
   /**
@@ -2509,8 +2893,12 @@ export interface SignedDocuments {
   full_title: Generated<string>;
   hash: string;
   id: Generated<string>;
+  links: Generated<string[]>;
   package: string;
+  participants: Generated<string[]>;
   registry_id: Generated<number>;
+  role: Generated<string>;
+  signed_at: Timestamp | null;
   signers_text: Generated<string>;
   source_action_data: Json | null;
   status: Generated<string>;
@@ -2734,6 +3122,7 @@ export interface DB {
   chatcoop_transcription_segments: ChatcoopTranscriptionSegments;
   consumer_dedup: ConsumerDedup;
   cooperative_charters: CooperativeCharters;
+  decision_decline_reasons: DecisionDeclineReasons;
   draft_templates: DraftTemplates;
   draft_translations: DraftTranslations;
   edubridge_access_tasks: EdubridgeAccessTasks;
@@ -2753,28 +3142,41 @@ export interface DB {
   edubridge_teacher_contracts: EdubridgeTeacherContracts;
   edubridge_teacher_profiles: EdubridgeTeacherProfiles;
   entity_versions: EntityVersions;
+  expense_counterparties: ExpenseCounterparties;
   expense_files: ExpenseFiles;
   expense_plans: ExpensePlans;
   expense_proposals: ExpenseProposals;
   expense_requisite_snapshots: ExpenseRequisiteSnapshots;
   extensions: Extensions;
   extensions_logs: ExtensionsLogs;
+  factory_doc_private_data: FactoryDocPrivateData;
+  factory_documents: FactoryDocuments;
+  factory_records: FactoryRecords;
   generated_reports: GeneratedReports;
+  greetings_calendar: GreetingsCalendar;
+  greetings_sends: GreetingsSends;
+  greetings_templates: GreetingsTemplates;
   invalidated_entities: InvalidatedEntities;
   invalidated_entity_versions: InvalidatedEntityVersions;
   ipn: Ipn;
   ku_decision_questions: KuDecisionQuestions;
   ku_decisions: KuDecisions;
+  ku_powers_of_attorney: KuPowersOfAttorney;
   ku_trust_requests: KuTrustRequests;
+  ku_trustee_liabilities: KuTrusteeLiabilities;
   ledger_operations: LedgerOperations;
   marketplace_apl_reception: MarketplaceAplReception;
+  marketplace_branch_aid: MarketplaceBranchAid;
+  marketplace_branch_period: MarketplaceBranchPeriod;
   marketplace_cart: MarketplaceCart;
   marketplace_cart_item: MarketplaceCartItem;
   marketplace_category: MarketplaceCategory;
   marketplace_consolidated_request: MarketplaceConsolidatedRequest;
   marketplace_container: MarketplaceContainer;
   marketplace_container_type: MarketplaceContainerType;
+  marketplace_handoff_code: MarketplaceHandoffCode;
   marketplace_inventory: MarketplaceInventory;
+  marketplace_inventory_movement: MarketplaceInventoryMovement;
   marketplace_issuance_saga: MarketplaceIssuanceSaga;
   marketplace_ku_details: MarketplaceKuDetails;
   marketplace_moderation_log: MarketplaceModerationLog;
@@ -2782,11 +3184,14 @@ export interface DB {
   marketplace_order: MarketplaceOrder;
   marketplace_outgoing_payment_request: MarketplaceOutgoingPaymentRequest;
   marketplace_return_claim: MarketplaceReturnClaim;
+  marketplace_review: MarketplaceReview;
+  marketplace_secure_due: MarketplaceSecureDue;
   marketplace_shipment: MarketplaceShipment;
   marketplace_stock_proposal: MarketplaceStockProposal;
   marketplace_storage_cell: MarketplaceStorageCell;
   marketplace_supplier: MarketplaceSupplier;
   marketplace_supplier_claim: MarketplaceSupplierClaim;
+  marketplace_supplier_profile: MarketplaceSupplierProfile;
   marketplace_supplier_settings: MarketplaceSupplierSettings;
   marketplace_supply_validation_log: MarketplaceSupplyValidationLog;
   marketplace_ttn_document: MarketplaceTtnDocument;
@@ -2804,6 +3209,7 @@ export interface DB {
   payment_files: PaymentFiles;
   payment_state: PaymentState;
   payments: Payments;
+  payout_requests: PayoutRequests;
   program_wallets: ProgramWallets;
   report_drafts: ReportDrafts;
   report_requisites: ReportRequisites;

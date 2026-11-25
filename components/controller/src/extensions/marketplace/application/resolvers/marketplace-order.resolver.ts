@@ -147,6 +147,9 @@ export class MarketplaceOrderResolver {
       orderer_account: member.username,
       supplier_account: input?.supplier_account,
       offer_id: input?.offer_id,
+      // «Мои заказы» показывают заказы выбранного пункта выдачи (решение
+      // владельца 19.11.2026); без участка — все заказы пайщика.
+      delivery_braname: input?.delivery_braname || undefined,
       status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
     };
     // Стол заказчика: показываем наименование поставщика/ПВЗ и прогресс сбора

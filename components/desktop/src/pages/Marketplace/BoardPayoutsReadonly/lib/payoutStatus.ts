@@ -8,12 +8,15 @@ import { t } from 'src/shared/i18n';
  * начинают называть одно состояние по-разному.
  */
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  // Обход выплат включает заказы поставщика за день в одну выплату.
+  OPEN: t('marketplace.payout.status.forming'),
   PENDING: t('marketplace.payout.status.pending'),
   COMPLETED: t('marketplace.payout.status.paid'),
   DECLINED: t('marketplace.payout.status.rejected'),
 };
 
 const PAYMENT_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
+  OPEN: 'info',
   PENDING: 'warn',
   COMPLETED: 'pos',
   DECLINED: 'neg',

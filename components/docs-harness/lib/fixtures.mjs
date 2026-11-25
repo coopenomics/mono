@@ -144,7 +144,6 @@ export function harnessPorts() {
     controller: e.COOPBACK_HOST_PORT || '2998',
     desktop: e.DESKTOP_HOST_PORT || '2999',
     postgres: e.PG_HOST_PORT || '5532',
-    mongo: e.MONGO_HOST_PORT || '27017',
   };
 }
 
@@ -173,7 +172,6 @@ export function ensureFixture(name, { log = () => {} } = {}) {
   const pg = readEnvFile(path.join(REPO_ROOT, 'components/controller/.env'));
   const env = {
     ...process.env,
-    MONGO_URI: `mongodb://127.0.0.1:${ports.mongo}/cooperative-x`,
     POSTGRES_HOST: '127.0.0.1',
     POSTGRES_PORT: ports.postgres,
     POSTGRES_USERNAME: pg.POSTGRES_USERNAME || 'postgres',
@@ -238,7 +236,6 @@ export function runSeedPhase(phase, { log = () => {}, echo = false, group = 'mar
   const pg = readEnvFile(path.join(REPO_ROOT, 'components/controller/.env'));
   const env = {
     ...process.env,
-    MONGO_URI: `mongodb://127.0.0.1:${ports.mongo}/cooperative-x?directConnection=true`,
     POSTGRES_HOST: '127.0.0.1',
     POSTGRES_PORT: ports.postgres,
     POSTGRES_USERNAME: pg.POSTGRES_USERNAME || 'postgres',

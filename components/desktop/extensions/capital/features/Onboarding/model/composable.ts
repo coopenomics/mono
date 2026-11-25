@@ -5,7 +5,7 @@ import { api, type CapitalOnboardingState } from '../api';
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import type { ICouncilOnboardingConfig, ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
 import { client } from 'src/shared/api/client';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { t } from '../../../i18n';
 
 interface GeneratedDocument {
@@ -29,18 +29,18 @@ export const useCapitalOnboarding = () => {
   // «для утверждения» (995, 997, 999) выведены: их тексты расходились с теми,
   // что подписывает пайщик (фабрика утверждений, компонент 66).
   const stepToRegistryId: Record<CapitalOnboardingStepId, number> = {
-    'generator_program_template': Cooperative.Registry.GeneratorProgramTemplate.registry_id,
-    'generation_contract_template': Cooperative.Registry.GenerationContract.registry_id,
-    'generator_offer_template': Cooperative.Registry.GeneratorOffer.registry_id,
-    'blagorost_program': Cooperative.Registry.BlagorostProgramTemplate.registry_id,
-    'blagorost_offer_template': Cooperative.Registry.BlagorostOffer.registry_id,
+    'generator_program_template': Registry.GeneratorProgramTemplate.registry_id,
+    'generation_contract_template': Registry.GenerationContract.registry_id,
+    'generator_offer_template': Registry.GeneratorOffer.registry_id,
+    'blagorost_program': Registry.BlagorostProgramTemplate.registry_id,
+    'blagorost_offer_template': Registry.BlagorostOffer.registry_id,
   };
   // Документы, в которые подставляются параметры программы из мастера.
   const capitalProgramDocDataRegistryIds = new Set<number>([
-    Cooperative.Registry.GeneratorProgramTemplate.registry_id,
-    Cooperative.Registry.GeneratorOffer.registry_id,
-    Cooperative.Registry.BlagorostProgramTemplate.registry_id,
-    Cooperative.Registry.BlagorostOffer.registry_id,
+    Registry.GeneratorProgramTemplate.registry_id,
+    Registry.GeneratorOffer.registry_id,
+    Registry.BlagorostProgramTemplate.registry_id,
+    Registry.BlagorostOffer.registry_id,
   ]);
 
   const isCapitalOnboardingStepId = (stepId: string): stepId is CapitalOnboardingStepId => {

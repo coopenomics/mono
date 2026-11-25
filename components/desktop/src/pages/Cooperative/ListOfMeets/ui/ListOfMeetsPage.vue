@@ -9,11 +9,11 @@ div
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, watch } from 'vue';
+import { onMounted, computed, watch, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { MeetCardsList } from 'src/widgets/Meets/MeetCardsList';
 import { CreateMeetButton } from 'src/features/Meet/CreateMeet';
-import { useMeetStore, MEET_LIVE_TABLES } from 'src/entities/Meet';
+import { useMeetStore, MEET_LIVE_TABLES, useMeetBoundaryReload } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
 import { useWindowSize } from 'src/shared/hooks';
 import { FailAlert } from 'src/shared/api';
@@ -27,7 +27,11 @@ const { isMobile } = useWindowSize();
 
 // Данные напрямую из стора
 const meets = computed(() => meetStore.meets);
-const loading = computed(() => meetStore.loading);
+// Каркас до первого ответа сервера. Признак загрузки хранилища до старта
+// запроса равен «нет», и пустой список успевал показать «нет собраний» на
+// долю секунды. Фоновые перечитывания каркас не включают.
+const loaded = ref(meetStore.meets.length > 0);
+const loading = computed(() => !loaded.value);
 
 // Загрузка списка собраний
 const loadMeets = async () => {
@@ -35,6 +39,8 @@ const loadMeets = async () => {
     await meetStore.loadMeets({ coopname: coopname.value });
   } catch (e: any) {
     FailAlert(e);
+  } finally {
+    loaded.value = true;
   }
 };
 
@@ -49,6 +55,16 @@ useLiveReload(
     } catch (e) {
       console.warn('[meets] фоновое перечитывание не удалось', e);
     }
+  },
+);
+
+// Шаг «Голосование» по времени — не событие цепи: список перечитывается в
+// ближайший момент открытия или закрытия голосования.
+useMeetBoundaryReload(
+  () => meets.value,
+  async () => {
+    if (!isOnMeetListPage.value) return;
+    await meetStore.loadMeets({ coopname: coopname.value }, { silent: true }).catch(() => undefined);
   },
 );
 

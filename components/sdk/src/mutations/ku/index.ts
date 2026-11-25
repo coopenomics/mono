@@ -48,3 +48,18 @@ export * as StartDecision from './startDecision'
 
 /** Подать бюллетень на собрании пайщиков участка */
 export * as VoteOnDecision from './voteOnDecision'
+
+/** Сгенерировать доверенность председателю участка (номер, протокол и срок вписывает узел) */
+export * as GenerateTrusteePowerOfAttorney from './generateTrusteePowerOfAttorney'
+
+/** Сгенерировать доверенность доверенному лицу участка (реквизиты вписывает узел) */
+export * as GenerateTrustedPowerOfAttorney from './generateTrustedPowerOfAttorney'
+
+/** Сгенерировать договор о полной материальной ответственности председателя участка */
+export * as GenerateTrusteeLiabilityAgreement from './generateTrusteeLiabilityAgreement'
+
+/** Подписать доверенность председателя участка — на встречную подпись председателю совета */
+export * as SignTrusteeAuthority from './signTrusteeAuthority'
+
+/** Подписать договор о полной материальной ответственности председателя участка */
+export * as SignTrusteeLiability from './signTrusteeLiability'

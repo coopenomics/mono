@@ -1,7 +1,7 @@
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
-import type { Cooperative } from 'cooptypes';
+import type { Registry } from '@coopenomics/docs-templates';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import {
   generateExpenseProposalStatementDocument,
@@ -71,7 +71,7 @@ export function useExpenseProposalActions() {
     const generatedDoc = (generated as any)[docKey];
 
     const digital = new DigitalDocument(generatedDoc);
-    const signed = await digital.sign<Cooperative.Registry.ExpenseProposalStatement.Meta>(
+    const signed = await digital.sign<Registry.ExpenseProposalStatement.Meta>(
       session.username,
       1,
     );

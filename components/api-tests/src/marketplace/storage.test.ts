@@ -43,6 +43,9 @@ let member = ''
 let T = ''
 let type: any
 let boxes: any[] = []
+// Партия председателя кооператива того же типа (mkt.store.happy.08): с 01.11.2026
+// (56790c5aed4, 598-55) на участке стоят и её боксы — счёт и списание учитывают их.
+let coopBoxes: any[] = []
 let cells: any[] = []
 
 /** Отказ по правам Стола заказов приходит кодом 403 без доменного имени. */
@@ -131,6 +134,40 @@ describe('Стол заказов — боксы участка', () => {
     expect(found.id).toBe(boxes[0].id)
   })
 
+  it(caseName('mkt.store.side.10', 'пустой фильтр (null), как его шлёт стол, список не сужает — типы и боксы на месте'), async () => {
+    // Стол передаёт невыбранный фильтр значением null, а не пропуском поля.
+    const types = (await gql<any>(chairman, LIST_TYPES, { a: null })).marketplaceListContainerTypes
+    expect(types.map((t: any) => t.id)).toContain(type.id)
+
+    const listed = (await gql<any>(operator, LIST_BOXES, {
+      d: { braname: KRG, container_type_id: type.id, is_active: null, unplaced_only: null },
+    })).marketplaceListContainers
+    expect(listed.map((b: any) => b.id).sort()).toEqual(boxes.map(b => b.id).sort())
+
+    const all = (await gql<any>(chairman, LIST_BOXES, { d: { braname: null, container_type_id: null, is_active: null } })).marketplaceListContainers
+    for (const box of boxes) expect(all.map((b: any) => b.id)).toContain(box.id)
+  })
+
+  it(caseName('mkt.store.happy.08', 'председатель кооператива заводит партию боксов на выбранный участок — оператор участка её видит'), async () => {
+    const fromCoop = (await gql<any>(chairman, CREATE_BOXES, {
+      d: { braname: KRG, container_type_id: type.id, count: 2, label: `Закупка ${T}` },
+    })).marketplaceCreateContainers
+    coopBoxes = fromCoop
+    expect(fromCoop).toHaveLength(2)
+    for (const box of fromCoop)
+      expect(box).toMatchObject({ braname: KRG, container_type_id: type.id, label: `Закупка ${T}`, cell_id: null, is_active: true })
+
+    const seen = (await gql<any>(operator, LIST_BOXES, { d: { braname: KRG, container_type_id: type.id } })).marketplaceListContainers
+    for (const box of fromCoop) expect(seen.map((b: any) => b.id)).toContain(box.id)
+  })
+
+  it(caseName('mkt.store.side.12', 'боксы на участке, которого нет в кооперативе, председатель не заводит'), async () => {
+    expectCode(
+      await gqlError(chairman, CREATE_BOXES, { d: { braname: `нет${T}`.toLowerCase().slice(0, 12), container_type_id: type.id, count: 1 } }),
+      'MARKETPLACE_BRANCH_NOT_FOUND_BY_NAME',
+    )
+  })
+
   it(caseName('mkt.store.side.03', 'партия с нулём боксов, с типом, которого нет, и сверх предела — отказ'), async () => {
     invalid(
       await gqlError(operator, CREATE_BOXES, { d: { braname: KRG, container_type_id: type.id, count: 0 } }),
@@ -157,7 +194,8 @@ describe('Стол заказов — боксы участка', () => {
     denied(await gqlError(foreignOperator, UPDATE_BOX, { d: { container_id: boxes[0].id, label: 'чужая подпись' } }))
 
     const listed = (await gql<any>(operator, LIST_BOXES, { d: { braname: KRG, container_type_id: type.id } })).marketplaceListContainers
-    expect(listed).toHaveLength(3)
+    // Отказы ничего не завели: на участке три бокса оператора и партия председателя.
+    expect(listed).toHaveLength(boxes.length + coopBoxes.length)
     expect(listed.find((b: any) => b.id === boxes[0].id).label).toBe(`Партия ${T}`)
   })
 })
@@ -283,7 +321,7 @@ describe('Стол заказов — бокс на адресе', () => {
     expect(retired.every((c: any) => c.section === a && c.is_active === false)).toBe(true)
     expect((await cellsOf(a)).every(c => c.is_active === false)).toBe(true)
 
-    for (const box of boxes) {
+    for (const box of [...boxes, ...coopBoxes]) {
       const off = (await gql<any>(operator, UPDATE_BOX, { d: { container_id: box.id, is_active: false, label: `Списан ${T}` } })).marketplaceUpdateContainer
       expect(off).toMatchObject({ id: box.id, is_active: false, label: `Списан ${T}` })
     }

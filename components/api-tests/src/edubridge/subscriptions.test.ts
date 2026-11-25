@@ -291,13 +291,16 @@ describe('Образование: подписки — продление, вз�
       // Группа отменена, набор в неё закрыт; курс остаётся на витрине для следующих групп.
       expect(((await gql<any>(chairman, COURSE_GROUP_IDS, { id: course.id })).edubridgeCourseGroups as any[]).find(g => g.id === group.id).status).toBe('CANCELLED')
       expect((await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse.status).toBe('PUBLISHED')
-      expectCode(await gqlError(secondToken, QUOTE, input(secondSelf.id, course.id)), 'EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED')
+      // Курс опубликован, а открытой группы нет: запись отклоняется закрытым набором.
+      expectCode(await gqlError(secondToken, QUOTE, input(secondSelf.id, course.id)), 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED')
     })
 
     it(caseName('edu.enroll.side.05', 'после начала занятий курс по недобору не отменяется — у участника остаётся отказ от подписки'), async () => {
       const running = await publishCourse(chairman, section, -3)
       const active = await subscribe(second, secondToken, secondSelf.id, running.id)
-      expectCode(await gqlError(chairman, CANCEL_UNDERFILLED, { id: running.id }), 'EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED')
+      // По недобору отменяется группа (с 08.10.2026), а не курс.
+      const [group] = (await gql<any>(chairman, COURSE_GROUP_IDS, { id: running.id })).edubridgeCourseGroups as any[]
+      expectCode(await gqlError(chairman, CANCEL_UNDERFILLED, { id: group.id }), 'EDUBRIDGE_UNDERFILL_CANCEL_GROUP_STARTED')
       expect((await enrollmentOf(secondToken, active.id))?.status).toBe('ACTIVE')
       expect((await gql<any>(chairman, COURSE, { id: running.id })).edubridgeCourse.status).toBe('PUBLISHED')
       // Повтор закрытия без отметки о несостоявшемся закрытии отклоняется.

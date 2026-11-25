@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Float, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Float, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
 import {
   MarketplaceOfferDeliveryPointDTO,
@@ -8,6 +8,7 @@ import {
 } from '../dto/marketplace-offer.dto';
 import { MarketplaceOfferImagesService } from '../services/marketplace-offer-images.service';
 import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
+import { MarketplaceReviewService } from '../services/marketplace-review.service';
 import { MarketplaceStockService } from '../services/marketplace-stock.service';
 
 /**
@@ -28,7 +29,8 @@ export class MarketplaceOfferFieldsResolver {
   constructor(
     private readonly imagesService: MarketplaceOfferImagesService,
     private readonly displayService: MarketplaceOrderDisplayService,
-    private readonly stockService: MarketplaceStockService
+    private readonly stockService: MarketplaceStockService,
+    private readonly reviewService: MarketplaceReviewService
   ) {}
 
   @ResolveField('images', () => [MarketplaceOfferImageDTO], {
@@ -66,6 +68,21 @@ export class MarketplaceOfferFieldsResolver {
   async stockPackageSize(@Parent() offer: MarketplaceOfferDTO): Promise<number | null> {
     if (!offer.stock_braname) return null;
     return this.stockService.resolveStockPackageSize(offer.coopname, offer.id);
+  }
+
+  @ResolveField('rating_avg', () => Float, {
+    nullable: true,
+    description: 'Средняя оценка предложения по отзывам заказчиков. Пусто — отзывов нет.',
+  })
+  async ratingAvg(@Parent() offer: MarketplaceOfferDTO): Promise<number | null> {
+    return (await this.reviewService.ratingOfOffer(offer.coopname, offer.id)).rating_avg;
+  }
+
+  @ResolveField('reviews_count', () => Int, {
+    description: 'Число отзывов заказчиков о предложении.',
+  })
+  async reviewsCount(@Parent() offer: MarketplaceOfferDTO): Promise<number> {
+    return (await this.reviewService.ratingOfOffer(offer.coopname, offer.id)).reviews_count;
   }
 }
 

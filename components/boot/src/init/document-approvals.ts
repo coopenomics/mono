@@ -1,4 +1,4 @@
-import type { Cooperative } from 'cooptypes'
+import type { IVars } from '@coopenomics/docs-templates'
 import type Blockchain from '../blockchain'
 
 /**
@@ -45,7 +45,7 @@ function toChainTimePoint(value: string): string {
   return new Date().toISOString().slice(0, 19)
 }
 
-export async function seedDocumentApprovals(blockchain: Blockchain, coopname: string, vars: Cooperative.Model.IVars): Promise<void> {
+export async function seedDocumentApprovals(blockchain: Blockchain, coopname: string, vars: IVars): Promise<void> {
   const existing = await blockchain.getTableRows('draft', coopname, 'approvals', 1000)
   const approved = new Set<number>(existing.map((row: { registry_id: string | number }) => Number(row.registry_id)))
   let count = 0

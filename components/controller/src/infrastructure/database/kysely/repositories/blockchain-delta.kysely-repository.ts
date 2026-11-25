@@ -39,7 +39,7 @@ function conditions(eb: DeltaExpression, filter: DeltaFilterDomainInterface): Co
   const exact = [...tableConditions(eb, filter), ...(filter.primary_key ? [eb('primary_key', '=', filter.primary_key)] : [])];
   const block = filter.block_num ? [eb('block_num', '=', String(filter.block_num))] : [];
   const flags = (['present', 'repeat'] as const)
-    .filter((column) => filter[column] !== undefined)
+    .filter((column) => filter[column] != null)
     .map((column) => eb(column, '=', filter[column] as boolean));
   return [...exact, ...block, ...flags];
 }

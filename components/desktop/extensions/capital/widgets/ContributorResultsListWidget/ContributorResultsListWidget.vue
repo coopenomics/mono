@@ -3,13 +3,11 @@
   .contrib-results__skel(v-if='loading && !rows.length')
     .skel(v-for='i in 3', :key='i')
 
-  EmptyState(
-    v-else-if='!loading && !rows.length',
-    :title='emptyTitle',
-    :body='emptyBody'
-  )
-    template(#icon)
-      q-icon(name='assignment_turned_in')
+  //- Пустое состояние — канон EmptyState по центру остатка экрана
+  .empty-fill(v-else-if='!loading && !rows.length')
+    EmptyState(:title='emptyTitle', :body='emptyBody')
+      template(#icon)
+        q-icon(name='assignment_turned_in')
 
   .contrib-results__items(v-else)
     .contrib-results__item(v-for='row in rows', :key='rowKey(row)')
@@ -225,7 +223,11 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+// Колонка на высоту тела страницы: пустое состояние (.empty-fill) центрируется
 .contrib-results {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-width: 0;
 }
 
@@ -233,6 +235,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
+  flex-shrink: 0;
 
   .skel {
     height: 68px;
@@ -244,6 +247,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
+  flex-shrink: 0;
 }
 
 .contrib-results__item {

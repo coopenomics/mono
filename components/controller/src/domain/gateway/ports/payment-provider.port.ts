@@ -13,6 +13,22 @@ export interface PaymentProviderPort {
 
   /** Создание платежа по хэшу */
   createPayment(hash: string): Promise<PaymentDetailsDomainInterface>;
+
+  /**
+   * Вернуть плательщику деньги отклоняемого входящего платежа. Метод есть только
+   * у провайдера, который сам принимает деньги (эквайринг ЮKassa); у оплаты по
+   * реквизитам деньги возвращает кассир. Сбой — исключение: платёж тогда не
+   * отклоняется, и кассир видит причину.
+   */
+  refundPayment?(hash: string): Promise<ProviderRefundResultDomainInterface>;
+}
+
+/** Итог возврата у провайдера. */
+export interface ProviderRefundResultDomainInterface {
+  /** `false` — оплаты у провайдера не было, возвращать нечего. */
+  refunded: boolean;
+  /** Возвращённая сумма, например `932.64 RUB`. */
+  amount?: string;
 }
 
 /**

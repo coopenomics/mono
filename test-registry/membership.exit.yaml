@@ -17,17 +17,25 @@ title: Выход пайщика из кооператива с аннулиро
 # таблица membership_exit_requests прикрыта внешним тестом до перевода на
 # Kysely (C28-81).
 
+# Правка 31.10.2026 (99D-18): членский взнос при заказе заменён обеспечительной
+# частью паевого взноса. Трансляция по заявлению 1110, обеспечительная часть,
+# её возвраты и удержание при отказе остаются на счёте 80; на выдаче факт
+# обеспечительной части ложится на кошелёк пайщика к списанию w.mkt.due, а
+# членским взносом участка (Дт 80 / Кт 86) она становится только при списании
+# по условиям ЦПП по окончании периода конца гарантийного срока (с 09.11.2026 —
+# chargeperiod по строке счётчика пайщика, задача 99D-33).
+# Членский кошелёк программы w.mkt.member и ожидание довнесения при
+# гарантийном возврате (feepend, payretfee) сняты. Случаи слайса,
+# описывавшие прежнюю модель, переписаны.
+
 sources:
   backend:
     - components/controller/src/application/membership-exit/**
     - components/controller/src/domain/account/services/member-exit-registry.service.ts
     - components/innercoop/src/core-ports/member-exit.port.ts
-    - components/cooptypes/src/cooperative/registry/190.ProgramAgreementsAnnulmentStatement/**
-    - components/cooptypes/src/cooperative/registry/200.ParticipantExitApplication/**
-    - components/cooptypes/src/cooperative/registry/201.DecisionOfParticipantExit/**
     - components/cooptypes/src/ledger2/wallets.ts
-    - components/factory/src/Actions/190.ProgramAgreementsAnnulmentStatement.ts
-    - components/factory/src/Templates/190.ProgramAgreementsAnnulmentStatement.ts
+    - C9S/docs-factory:src/Actions/190.ProgramAgreementsAnnulmentStatement.ts
+    - C9S/docs-factory:src/Templates/190.ProgramAgreementsAnnulmentStatement.ts
     - components/controller/src/application/document/documents-dto/membership-exit-*.ts
     - components/controller/src/infrastructure/database/kysely/repositories/membership-exit-request.kysely-repository.ts
     - components/controller/src/domain/account/services/participant-status-sync.service.ts
@@ -40,12 +48,27 @@ sources:
     - components/desktop/src/pages/User/MembershipExitConfirmPage/**
 
 cases:
+  # ── Паевой взнос инициатора кооперативного участка (99D-27) ─────────────────
+  - id: mem.exit.invest.01
+    level: contract
+    kind: side
+    scenario: >
+      Пайщик с паевым взносом в кооперативный участок по договору участия выходит
+      из кооператива; часть его денег выделена под незакрытый расход участка.
+    expect: >
+      пока расход не закрыт — выход отклоняется MARKETPLACE_INVEST_EXIT_RESERVED;
+      после закрытия паевой взнос целиком переносится на главный паевой (o.mkt.iexit)
+      и возвращается с полным паевым взносом, строки инициатора стёрты, база
+      возврата участков уменьшена
+    test: ~
+    status: missing   # тест выхода инициатора — задача 99D-28 (ИНВ-2)
+
   - id: exit.doc.happy.01
     level: backend
     kind: happy
     scenario: Заявление 190 у пайщика с двумя программами.
     expect: Программы печатаются таблицей с датой соглашения и остатками кошельков; итог к переводу — сумма возвратных.
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.doc.side.02
@@ -61,7 +84,7 @@ cases:
     kind: happy
     scenario: Кошелёк возвращается либо остаётся кооперативу.
     expect: У возвратного — отметка о переводе на главный паевой, у остающегося — ссылка на Положение программы.
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.doc.side.01
@@ -69,7 +92,7 @@ cases:
     kind: side
     scenario: Заявление 190 подписывается без выхода из кооператива (вторая очередь).
     expect: Связи с заявлением на выход в тексте нет, просьба об аннулировании остаётся.
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.doc.happy.03
@@ -77,7 +100,7 @@ cases:
     kind: happy
     scenario: Оговорка об отсутствии иных требований и о сумме на день решения совета.
     expect: Обе формулировки стоят в тексте заявления.
-    test: components/factory/test/program-agreements-annulment.test.ts
+    test: C9S/docs-factory:test/program-agreements-annulment.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.wallets.happy.01
@@ -100,8 +123,10 @@ cases:
   - id: exit.wallets.side.01
     level: backend
     kind: side
-    scenario: Членский взнос «Стола заказов» и кошельки-блокеры.
-    expect: Членский взнос остаётся кооперативу; резерв под заказы и незакрытый подотчёт перечислены как держащие выход.
+    scenario: >
+      Обеспечительная часть «Стола заказов» к списанию и кошельки-блокеры.
+    expect: >
+      Обеспечительная часть к списанию при выходе списывается в членский взнос кооперативу; резерв под заказы и незакрытый подотчёт перечислены как держащие выход.
     test: components/cooptypes/test/wallets-registry.snapshot.test.ts
     api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
@@ -330,4 +355,16 @@ cases:
       политика UNTOUCHED (решение @ant 15.10.2026): при выходе средства с
       кошелька не извлекаются — остаток не возвращается на паевой, не уходит
       кооперативу и выход не блокирует
+    status: missing
+
+  - id: mem.exit.social-branch.01
+    level: contract
+    kind: side
+    scenario: >
+      Пайщик выходит из кооператива, а на кошельке фонда социального обеспечения
+      по его участку есть средства (16.11.2026)
+    expect: >
+      выход кошелёк w.fnd.social не трогает: разрез по участку, а не по пайщику
+      (политика UNTOUCHED); средства остаются у фонда участка
+    test: ~
     status: missing

@@ -5,6 +5,7 @@ DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='760',
   :closable='false',
+  flush,
   @update:model-value='(v) => !v && guardedClose()'
 )
   .requirement-overlay__body(v-if='story')
@@ -15,7 +16,9 @@ DetailsDrawer(
       variant='dialog',
       :requirement='story',
       :canEdit='resolvedCanEdit',
+      expandable,
       @close='overlay.close()',
+      @expand='openFullPage',
       @updated='onUpdated'
     )
   .requirement-overlay__loading(v-else)
@@ -29,10 +32,10 @@ import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { FailAlert } from 'src/shared/api';
 import { DetailsDrawer } from 'src/shared/ui/domain';
 import { api as StoryApi } from 'app/extensions/capital/entities/Story/api';
-import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import EditRequirementPanel from './EditRequirementPanel.vue';
+import { resolveStoryOwnerProjectHash, resolveStoryPageRoute } from '../model/storyPageRoute';
 import { t } from '../../../../i18n';
 
 /**
@@ -75,16 +78,28 @@ function guardedClose(): void {
   overlay.close();
 }
 
-async function resolveOwnerProjectHash(s: IStory): Promise<string | undefined> {
-  if (s.issue_hash) {
-    try {
-      const issue = await IssueApi.loadIssue({ issue_hash: s.issue_hash });
-      if (issue?.project_hash) return issue.project_hash;
-    } catch {
-      // остаёмся на project_hash самого артефакта
+/**
+ * «Открыть» — полная страница артефакта с постоянной ссылкой. Несохранённые
+ * правки спрашиваются тем же гардом, что и при закрытии: переход снимает
+ * оверлей вместе с параметром `?story=`.
+ */
+async function openFullPage(): Promise<void> {
+  const s = story.value;
+  if (!s || !canLeave()) return;
+  try {
+    const target = await resolveStoryPageRoute(s, route, router);
+    if (!target) {
+      FailAlert(t('capital.requirementOverlay.openFullPageError'));
+      return;
     }
+    // Гард уже пройден: снимаем панель, чтобы watch не спросил второй раз
+    story.value = null;
+    await router.push(target);
+  } catch (e: unknown) {
+    // Переход не состоялся — панель возвращается как была
+    story.value = s;
+    FailAlert(e);
   }
-  return s.project_hash ?? undefined;
 }
 
 // Право подтягивается после открытия — просмотр не ждёт загрузки проекта
@@ -94,7 +109,7 @@ async function resolveCanEdit(s: IStory): Promise<void> {
     return;
   }
   try {
-    const ownerHash = await resolveOwnerProjectHash(s);
+    const ownerHash = await resolveStoryOwnerProjectHash(s);
     if (!ownerHash) return;
     const project = await projectStore.loadProject({ hash: ownerHash });
     if (story.value?.story_hash === s.story_hash) {

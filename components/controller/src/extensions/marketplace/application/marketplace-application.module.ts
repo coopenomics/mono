@@ -93,6 +93,12 @@ import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.
 import { MarketplaceStorageCellResolver } from './resolvers/marketplace-storage-cell.resolver';
 import { MarketplaceContainerResolver } from './resolvers/marketplace-container.resolver';
 import { MarketplaceContainerService } from './services/marketplace-container.service';
+import { MarketplaceScanResolver } from './resolvers/marketplace-scan.resolver';
+import { MarketplaceIssuanceSagaFieldsResolver } from './resolvers/marketplace-issuance-saga-fields.resolver';
+import { MarketplaceInventoryItemFieldsResolver } from './resolvers/marketplace-inventory-item-fields.resolver';
+import { MarketplaceOrderSecurePartResolver } from './resolvers/marketplace-order-secure-part.resolver';
+import { MarketplaceScanService } from './services/marketplace-scan.service';
+import { MarketplaceIssuancePickService } from './services/marketplace-issuance-pick.service';
 import { MarketplaceExtensionConfigService } from './services/marketplace-extension-config.service';
 import { MarketplaceWarehouseSettingsService } from './services/marketplace-warehouse-settings.service';
 import { MarketplaceStorageCellService } from './services/marketplace-storage-cell.service';
@@ -115,10 +121,11 @@ import {
   MARKETPLACE_APL_RECEPTION_SERVICE,
 } from './services/marketplace-apl-reception.service';
 import { MarketplaceAplReceptionResolver } from './resolvers/marketplace-apl-reception.resolver';
+import { MarketplaceProcessContentService } from './services/marketplace-process-content.service';
 import {
-  MarketplacePayoutSyncService,
-  MARKETPLACE_PAYOUT_SYNC_SERVICE,
-} from './services/marketplace-payout-sync.service';
+  MarketplaceSupplierPayoutService,
+  MARKETPLACE_SUPPLIER_PAYOUT_SERVICE,
+} from './services/marketplace-supplier-payout.service';
 import {
   MarketplaceAidPayoutSyncService,
   MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
@@ -132,6 +139,10 @@ import {
   MarketplaceOutgoingPaymentResolver,
 } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceSupplierSettingsResolver } from './resolvers/marketplace-supplier-settings.resolver';
+import { MarketplaceSupplierProfileResolver } from './resolvers/marketplace-supplier-profile.resolver';
+import { MarketplaceSupplierProfileService } from './services/marketplace-supplier-profile.service';
+import { MarketplaceReviewFieldsResolver, MarketplaceReviewResolver } from './resolvers/marketplace-review.resolver';
+import { MarketplaceReviewService } from './services/marketplace-review.service';
 import {
   MarketplaceSupplierSettingsService,
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
@@ -164,10 +175,22 @@ import { MarketplaceWriteoffSyncService } from './services/marketplace-writeoff-
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
+import { MarketplaceSecureDueService } from './services/marketplace-secure-due.service';
+import { MarketplacePeriodService } from './services/marketplace-period.service';
+import { MarketplaceBranchAidMirrorService } from './services/marketplace-branch-aid-mirror.service';
+import { MarketplaceBranchReserveService } from './services/marketplace-branch-reserve.service';
+import { MarketplaceKeuResolver } from './resolvers/marketplace-keu.resolver';
+import { MarketplaceInvestmentService } from './services/marketplace-investment.service';
+import { MarketplaceInvestmentResolver } from './resolvers/marketplace-investment.resolver';
+import { MarketplaceBranchSummaryResolver } from './resolvers/marketplace-branch-summary.resolver';
+import { MarketplaceBranchSummaryService } from './services/marketplace-branch-summary.service';
+import { MarketplaceInvestmentNotificationListener } from './listeners/marketplace-investment-notification.listener';
+import { MarketplaceIssuanceCloseReminderService } from './services/marketplace-issuance-close-reminder.service';
 // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
 import { MarketplaceChainRetryCronService } from './services/marketplace-chain-retry-cron.service';
 // Задача 99D-16: закрытие заказов, не привезённых за 48 часов после принятия
 import { MarketplaceUndeliveredOrderCronService } from './services/marketplace-undelivered-order-cron.service';
+import { MarketplaceReviewInviteCronService } from './services/marketplace-review-invite-cron.service';
 // Задача 99D-14: сверка инвариантов учёта (счёт 76 и остальные) по часам и по запросу
 import {
   MarketplaceLedgerInvariantsService,
@@ -250,6 +273,12 @@ import {
     MarketplaceStorageCellService,
     MarketplaceContainerResolver,
     MarketplaceContainerService,
+    MarketplaceScanResolver,
+    MarketplaceIssuanceSagaFieldsResolver,
+    MarketplaceInventoryItemFieldsResolver,
+    MarketplaceOrderSecurePartResolver,
+    MarketplaceScanService,
+    MarketplaceIssuancePickService,
     MarketplaceExtensionConfigService,
     MarketplaceWarehouseSettingsService,
     MarketplaceStockResolver,
@@ -258,6 +287,9 @@ import {
     MarketplaceOutgoingPaymentResolver,
     MarketplaceOutgoingPaymentFieldsResolver,
     MarketplaceSupplierSettingsResolver,
+    MarketplaceSupplierProfileResolver,
+    MarketplaceReviewResolver,
+    MarketplaceReviewFieldsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
     MarketplaceSupplierClaimResolver,
@@ -305,6 +337,9 @@ import {
       useClass: MarketplaceSupplierSettingsService,
     },
     MarketplaceSupplierSettingsService,
+    // Профиль поставщика и отзывы заказчиков (задача 598-61)
+    MarketplaceReviewService,
+    MarketplaceSupplierProfileService,
     // Story 3.2
     {
       provide: MARKETPLACE_OFFER_SERVICE,
@@ -382,27 +417,25 @@ import {
     // (payconfirm/paydecline) для зеркалирования статуса выплаты поставщику.
     // Сам кассир работает в общем столе кооператива через расширение
     // gateway, marketplace только подписывается на blockchain-action delta.
-    {
-      provide: MARKETPLACE_PAYOUT_SYNC_SERVICE,
-      useClass: MarketplacePayoutSyncService,
-    },
-    MarketplacePayoutSyncService,
+    { provide: MARKETPLACE_SUPPLIER_PAYOUT_SERVICE, useExisting: MarketplaceSupplierPayoutService },
+    MarketplaceSupplierPayoutService,
+    // Содержание процессов Стола заказов для стола бухгалтера (реестр processContent).
+    MarketplaceProcessContentService,
     // requirement b6 (2026-08-03) — слушатель callback'ов от gateway
     // (aidconfirm/aiddecline) для зеркалирования статуса выплаты
     // материальной помощи доверенному КУ, тем же паттерном, что и выплата
     // поставщику выше.
-    {
-      provide: MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
-      useClass: MarketplaceAidPayoutSyncService,
-    },
+    { provide: MARKETPLACE_AID_PAYOUT_SYNC_SERVICE, useExisting: MarketplaceAidPayoutSyncService },
     MarketplaceAidPayoutSyncService,
     // requirement b6 — слушатель решений совета по заявлению на матпомощь
     // (onaidauth/onaiddecl): открывает платёж кассиру либо отменяет его.
+    // useExisting: один экземпляр — иначе на onaidauth подписаны два слушателя,
+    // и решение совета обрабатывается дважды (04.11.2026: два платежа кассиру).
+    MarketplaceAidCouncilSyncService,
     {
       provide: MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
-      useClass: MarketplaceAidCouncilSyncService,
+      useExisting: MarketplaceAidCouncilSyncService,
     },
-    MarketplaceAidCouncilSyncService,
     // requirement b6 (2026-08-13) — удержанный НДФЛ: расчёт остатка долга
     // перед бюджетом, отправка платежа кассиру и слушатель его подтверждения.
     // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
@@ -459,15 +492,26 @@ import {
     MarketplaceWriteoffResolver,
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,
+    MarketplaceSecureDueService,
+    // Задача 99D-22: итог месяца участка, зеркало материальной помощи, резерв обеспечения
+    MarketplaceBranchAidMirrorService,
+    MarketplacePeriodService,
+    MarketplaceBranchReserveService,
+    MarketplaceKeuResolver,
+    MarketplaceInvestmentService,
+    MarketplaceInvestmentResolver,
+    // Сводка участка для пайщика: вкладка «Стол заказов» на странице участка
+    MarketplaceBranchSummaryService,
+    MarketplaceBranchSummaryResolver,
+    MarketplaceInvestmentNotificationListener,
+    MarketplaceIssuanceCloseReminderService,
     // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
     MarketplaceChainRetryCronService,
     // Задача 99D-16: закрытие непоставленных заказов по сроку
     MarketplaceUndeliveredOrderCronService,
+    MarketplaceReviewInviteCronService,
     // Задача 99D-14: инварианты учёта Стола заказов
-    {
-      provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
-      useClass: MarketplaceLedgerInvariantsService,
-    },
+    { provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE, useClass: MarketplaceLedgerInvariantsService },
     MarketplaceLedgerInvariantsResolver,
     // Эпик 16 — корзина заказчика
     {
@@ -531,6 +575,12 @@ import {
     MarketplaceStorageCellService,
     MarketplaceContainerResolver,
     MarketplaceContainerService,
+    MarketplaceScanResolver,
+    MarketplaceIssuanceSagaFieldsResolver,
+    MarketplaceInventoryItemFieldsResolver,
+    MarketplaceOrderSecurePartResolver,
+    MarketplaceScanService,
+    MarketplaceIssuancePickService,
     MarketplaceExtensionConfigService,
     MarketplaceWarehouseSettingsService,
     MarketplaceAplReceptionResolver,
@@ -560,8 +610,8 @@ import {
     MARKETPLACE_APL_RECEPTION_SERVICE,
     MarketplaceAplReceptionService,
     // Story 5.6 / 5.7 + 598-16
-    MARKETPLACE_PAYOUT_SYNC_SERVICE,
-    MarketplacePayoutSyncService,
+    MARKETPLACE_SUPPLIER_PAYOUT_SERVICE,
+    MarketplaceSupplierPayoutService,
     // requirement b6 (2026-08-03) — выплата материальной помощи
     MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
     MarketplaceAidPayoutSyncService,

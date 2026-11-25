@@ -1,11 +1,11 @@
 import { InputType, Field, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsString, IsNumber } from 'class-validator';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO } from '@coopenomics/extension-kit';
 
 type ExcludeCommonProps<T> = Omit<T, 'coopname' | 'username' | 'registry_id'>;
 
-type action = Cooperative.Registry.ReturnByMoneyDecision.Action;
+type action = Registry.ReturnByMoneyDecision.Action;
 
 @InputType('BaseReturnByMoneyDecisionMetaDocumentInput')
 class BaseReturnByMoneyDecisionMetaDocumentInputDTO implements ExcludeCommonProps<action> {

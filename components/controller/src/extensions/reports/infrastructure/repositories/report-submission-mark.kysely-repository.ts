@@ -70,7 +70,7 @@ export class ReportSubmissionMarkKyselyRepository implements ReportSubmissionMar
   async list(filter: ReportSubmissionMarkFilter): Promise<ReportSubmissionMarkRecord[]> {
     let query = this.db.selectFrom('report_submission_marks').selectAll().where('coopname', '=', filter.coopname);
     if (filter.report_type) query = query.where('report_type', '=', filter.report_type);
-    if (filter.year !== undefined) query = query.where('year', '=', filter.year);
+    if (filter.year != null) query = query.where('year', '=', filter.year);
     if (filter.period === null) query = query.where('period', 'is', null);
     else if (typeof filter.period === 'number') query = query.where('period', '=', filter.period);
     const rows = await query.execute();

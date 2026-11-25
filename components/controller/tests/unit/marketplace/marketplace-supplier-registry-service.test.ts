@@ -101,3 +101,60 @@ describe('MarketplaceSupplierRegistryService', () => {
     );
   });
 });
+
+/**
+ * Приостановка действия договора поставщика и запрет аккаунта участка
+ * (решение владельца 19.11.2026).
+ */
+describe('MarketplaceSupplierRegistryService: приостановка и аккаунт участка', () => {
+  function withRow(status: MarketplaceSupplierStatus, branches: string[] = []) {
+    const repo = {
+      list: jest.fn(),
+      findByMember: jest.fn().mockResolvedValue(makeEntity({ status })),
+      create: jest.fn().mockResolvedValue(makeEntity()),
+      patch: jest.fn(async (_c: string, _m: string, p: any) => makeEntity({ status: p.status ?? status })),
+      remove: jest.fn(),
+    };
+    const ku = { listAllBranames: jest.fn(async () => branches) } as any;
+    const service = new MarketplaceSupplierRegistryService(repo as any, { emit: jest.fn() } as any, ku);
+    return { service, repo };
+  }
+
+  it('действующего поставщика приостанавливают — стол остаётся для взятых заказов, новые отклоняются; возобновляют — снова одобрен', async () => {
+    const active = withRow(MarketplaceSupplierStatus.APPROVED);
+    expect((await active.service.suspend('voskhod', 'alice', 'chairman')).status).toBe(MarketplaceSupplierStatus.SUSPENDED);
+    expect(active.repo.patch).toHaveBeenCalledWith('voskhod', 'alice', expect.objectContaining({ status: MarketplaceSupplierStatus.SUSPENDED }));
+
+    const paused = withRow(MarketplaceSupplierStatus.SUSPENDED);
+    // Стол поставщика открыт: взятые заказы он доводит до конца.
+    await expect(paused.service.isOfferer('voskhod', 'alice')).resolves.toBe(true);
+    // Новые предложения и заказы на него — отказ с кодом вызывающего.
+    await expect(paused.service.assertNotSuspended('voskhod', 'alice', 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED' });
+    await expect(active.service.assertNotSuspended('voskhod', 'alice', 'MARKETPLACE_OFFER_SUPPLIER_SUSPENDED')).resolves.toBeUndefined();
+    expect((await paused.service.resume('voskhod', 'alice', 'chairman')).status).toBe(MarketplaceSupplierStatus.APPROVED);
+  });
+
+  it('приостановить можно только действующего, возобновить — только приостановленного', async () => {
+    await expect(withRow(MarketplaceSupplierStatus.PENDING).service.suspend('voskhod', 'alice', 'chairman'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_SUPPLIER_REGISTRY_NOT_ACTIVE' });
+    await expect(withRow(MarketplaceSupplierStatus.APPROVED).service.resume('voskhod', 'alice', 'chairman'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_SUPPLIER_REGISTRY_NOT_SUSPENDED' });
+  });
+
+  it('приостановленный поставщик не обходит приостановку новой заявкой или сменой модели', async () => {
+    const { service } = withRow(MarketplaceSupplierStatus.SUSPENDED);
+    await expect(service.requestMembership('voskhod', 'alice', '1', '2026-11-19'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_SUPPLIER_REGISTRY_SUSPENDED' });
+    await expect(service.switchModel('voskhod', 'alice', MarketplaceSupplierModel.MEMBERSHIP, '1', '2026-11-19'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_SUPPLIER_REGISTRY_SUSPENDED' });
+  });
+
+  it('аккаунт кооперативного участка поставщиком не добавляется', async () => {
+    const { service, repo } = withRow(MarketplaceSupplierStatus.APPROVED, ['krgbranch']);
+    await expect(service.addSupplier('voskhod', 'krgbranch', MarketplaceSupplierModel.MEMBERSHIP, '1', '2026-11-19', 'chairman'))
+      .rejects.toMatchObject({ code: 'MARKETPLACE_SUPPLIER_REGISTRY_BRANCH_ACCOUNT' });
+    expect(repo.create).not.toHaveBeenCalled();
+    expect(repo.patch).not.toHaveBeenCalled();
+  });
+});

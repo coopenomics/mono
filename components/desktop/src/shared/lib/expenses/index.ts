@@ -159,6 +159,8 @@ export {
   formatProposalDate,
   formatProposalDay,
   proposalPurpose,
+  proposalHeaderOf,
+  type IProposalHeader,
 } from './proposal-rows';
 export {
   EXPENSE_LIVE_TABLES,

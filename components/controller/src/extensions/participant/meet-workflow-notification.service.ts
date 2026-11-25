@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFICATION_PORT, INotificationPort, ExtendedMeetStatus, MEET_PORT, type IMeetPort,
-  isEligibleForParticipantMassNotification,
+  isEligibleForParticipantMassNotification, type InnerAccount,
 } from '@coopenomics/innercoop';
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import type { TrackedMeet } from './types';
@@ -68,9 +68,29 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
     return trimmed ? { details: trimmed } : {};
   }
 
-  /** Пайщики с email и subscriber_id (как в остальной системе). */
-  private async getMeetRecipients(): Promise<MeetRecipient[]> {
+  /**
+   * Адресаты оповещения о собрании — пайщики с email и subscriber_id (как в
+   * остальной системе). На собрании уполномоченных — только председатели
+   * участков собрания: остальные пайщики не голосуют, и звать их на
+   * голосование незачем. Состав голосующих считает ядро (порт собрания).
+   */
+  private async getMeetRecipients(meet: TrackedMeet): Promise<MeetRecipient[]> {
     try {
+      const voters = await this.meetPort.getMeetVoters({ coopname: meet.coopname, hash: meet.hash });
+      if (voters !== null) {
+        // Собрание уполномоченных: председателей единицы — аккаунты читаются по имени.
+        // Аккаунт, который не прочитался, выпадает из рассылки один, а не роняет её целиком.
+        const accounts = await Promise.all(
+          voters.map((username) =>
+            this.accountPort.getAccount(username).catch((error: any) => {
+              this.logger.warn(`Председатель участка ${username} не получит оповещение о собрании ${meet.hash}: ${error.message}`);
+              return null;
+            })
+          )
+        );
+        return this.toRecipients(accounts.filter((account): account is InnerAccount => account !== null));
+      }
+
       const batchSize = 100;
       let currentPage = 1;
       let hasMorePages = true;
@@ -86,16 +106,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
           }
         );
 
-        const mappings = accountsPage.items
-          .filter(isEligibleForParticipantMassNotification)
-          .map((account) => ({
-            username: account.username,
-            email: account.provider_account?.email?.trim() ?? '',
-            subscriberId: account.provider_account?.subscriber_id?.trim() ?? '',
-          }))
-          .filter((m): m is MeetRecipient => m.email.includes('@') && m.subscriberId !== '');
-
-        allAccounts = [...allAccounts, ...mappings];
+        allAccounts = [...allAccounts, ...this.toRecipients(accountsPage.items)];
 
         if (accountsPage.currentPage >= accountsPage.totalPages || accountsPage.items.length === 0) {
           hasMorePages = false;
@@ -109,6 +120,18 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       this.logger.error(`Ошибка при получении получателей для собраний: ${error.message}`, error.stack);
       return [];
     }
+  }
+
+  /** Пайщики, которым доступна массовая рассылка, с email и subscriber_id. */
+  private toRecipients(accounts: InnerAccount[]): MeetRecipient[] {
+    return accounts
+      .filter(isEligibleForParticipantMassNotification)
+      .map((account) => ({
+        username: account.username,
+        email: account.provider_account?.email?.trim() ?? '',
+        subscriberId: account.provider_account?.subscriber_id?.trim() ?? '',
+      }))
+      .filter((m): m is MeetRecipient => m.email.includes('@') && m.subscriberId !== '');
   }
 
   /**
@@ -126,7 +149,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
     meet: TrackedMeet,
     description: string
   ): Promise<boolean> {
-    const users = await this.getMeetRecipients();
+    const users = await this.getMeetRecipients(meet);
     if (users.length === 0) {
       this.logger.warn(
         `Рассылка «${description}» по собранию ${meet.hash} (№${meet.id}) не выполнена: получателей не найдено`

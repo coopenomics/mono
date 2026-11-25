@@ -367,8 +367,8 @@ Marketplace в монорепе живёт в **двух контурах**:
 2. **Система членских взносов** (текущий MVP) — документы лежат **рядом** с актами приёма-передачи и ТТН; другая группа registry_id.
 
 Для нового документа Marketplace-членские-взносы: завести новый registry_id рядом с актами/ТТН и проложить цепочку `cooptypes → factory → controller → desktop`:
-1. `@coopenomics/cooptypes`: новый тип документа + регистрация в registry.
-2. `@coopenomics/factory`: generator (preview-структура + meta).
+1. `@coopenomics/docs-templates` (репозиторий C9S/docs-factory, `packages/docs-templates`): шаблон документа в `src/registry/` и строка в его `index.ts`.
+2. `@coopenomics/docs-factory` (тот же репозиторий): сборщик документа и реестр; оба пакета выходят одной версией и приходят в монорепу PR-ом робота.
 3. `@coopenomics/controller`: signed-document DTO + verify в сервисе.
 4. `@coopenomics/desktop`: подпись через `Classes.Document` с новым registry_id.
 
@@ -517,10 +517,53 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 
 Эталоны: `p.mkt.return.standard.yaml`, `p.cap.rid.standard.yaml`, `reg.coop.standard.yaml`. Антипример — `p.mkt.wroff.standard.yaml` в PR #399 review 2026-05-18 (был забит callback-описаниями и «type=mktwroff»).
 
+## Фабрика документов — отдельный репозиторий C9S/docs-factory (с 29.10.2026)
+
+Пакет `@coopenomics/docs-factory` ставится из npm точной версией (контроллер,
+`boot`, мигратор). Каталога `components/factory` в монорепе нет.
+
+**Шаблоны документов — пакет `@coopenomics/docs-templates` (с 30.10.2026).**
+Второй пакет того же репозитория, выходит одной версией с фабрикой, от
+`cooptypes` не зависит. В нём реестр шаблонов (`Registry.<Имя>`: номер, текст,
+схема, переводы, типы `Action` и `Model`), реестр решений совета для робота
+(`decisionTypesRegistry`), модель документа (`IMetaDocument`, `IGenerate`,
+`IGenerationOptions`, `IGeneratedDocument`, виды утверждения), данные
+кооператива (`IVars`, `ICooperativeData`, `UdataKey`), субъекты
+(`IIndividualData`, `IOrganizationData`, `IEntrepreneurData`) и реквизиты
+(`IBankAccount`, `IPaymentData`). Импорт из корня пакета:
+`import { Registry, UdataKey, type IMetaDocument } from '@coopenomics/docs-templates'`.
+В `cooptypes` остались типы цепи, в том числе документ в цепи
+(`Cooperative.Document`: `IChainDocument2`, `ISignedDocument2`, `SigFile`,
+канонизация подписи) — мету документа он берёт из пакета шаблонов.
+
+- **Версию встраивает робот, без висящих PR (решение владельца 01.11.2026).**
+  Тег в C9S/docs-factory → эталоны → npm → робот кладёт коммит с новой версией
+  обоих пакетов во все `package.json` и lock-файл сам:
+  - выпуск ради ветки монорепы — аннотированный тег со строкой
+    `mono: <ветка>` (`git tag -a v1.5.3 -m "mono: feat/mkt-secure-part"`):
+    коммит идёт прямо в эту ветку, в `dev` выпуск попадает вместе с ней. Так —
+    всегда, когда вывод документа меняется под модель, которой в `dev` ещё нет;
+  - выпуск без привязки — лёгкий тег: робот проверяет монорепу на полигоне
+    `ci/tests-docs-factory-vX.Y.Z` (Typecheck, Check, Tests) и при зелёном
+    вердикте кладёт коммит в `dev`;
+  - PR `deps/docs-factory-vX.Y.Z` — только когда робот встроить не смог
+    (красная проверка, конфликт). Его чинит агент, выпустивший версию;
+    владелец PR робота не сливает.
+  Руками версию не правят; гейт `pnpm check` (`scripts/check-docs-factory-version.mjs`)
+  держит точную и одну версию, фабрику и шаблоны — одной версией.
+- **Переустановка не забывается.** Git-хук после `pull`/`checkout` сам делает
+  `pnpm install`, если менялся `pnpm-lock.yaml`; контроллер при старте падает с
+  подсказкой, если установленные фабрика или шаблоны не совпадают с объявленными.
+- **Совместная правка.** `pnpm factory:link` подключает чекаут `~/docs-factory`
+  — фабрику и `packages/docs-templates` (после правки — `pnpm build` сначала в
+  шаблонах, затем в фабрике), `pnpm factory:unlink` возвращает npm.
+  Подключённый чекаут гейт закоммитить не даст.
+- **Тесты и эталоны фабрики** — в CI репозитория фабрики, не здесь.
+
 ## Реестр документов раскатывается релизом, не миграциями
 
 Шаблоны документов больше **не правятся миграциями мигратора**. Локальный реестр
-(`components/factory/src/Templates/registry.ts`) — источник истины; команда
+(`src/Templates/registry.ts` репозитория C9S/docs-factory, пакет `@coopenomics/docs-factory`) — источник истины; команда
 `pnpm -F @coopenomics/boot run drafts:sync` сверяет его с `draft::drafts` /
 `draft::translations` и доливает недостающее, переписывает разошедшееся,
 поднимает версию по объявлению. Playbook деплоя контрактов
@@ -534,7 +577,7 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 - правка текста/вёрстки/опечатки — просто меняем шаблон, `editdraft` версию не
   трогает, переподписей нет;
 - смысловое изменение — дополнительно поднимаем число в
-  `components/factory/src/Templates/versions.ts`, синхронизатор вызовет
+  `src/Templates/versions.ts` репозитория C9S/docs-factory, синхронизатор вызовет
   `upversion`.
 
 Синхронизатор ничего не удаляет, версию не понижает и идемпотентен. Проверить
@@ -570,8 +613,8 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
   документ в бланке.
 
 **Новый документ расширения заводится в трёх местах сразу.** Шаблон в
-`cooptypes/src/cooperative/registry/`, фабрика в `factory` (действие, шаблон,
-`Templates/registry.ts`, диспетчер в `src/index.ts`) — и **объявление в
+`packages/docs-templates/src/registry/` и фабрика (действие, шаблон,
+`Templates/registry.ts`) — оба в репозитории C9S/docs-factory — и **объявление в
 реестре шаблонов кооператива**: расширение зовёт `registerDocuments` через
 `DOCUMENT_DECLARATION_PORT` в своём `initialize()`
 (`application/onboarding/register-<name>-documents.ts`, канон —
@@ -616,9 +659,10 @@ curl -s "http://127.0.0.1:<DESKTOP_PORT>/config.js?t=$(date +%s)" | grep -i <К�
 ## Решения совета для робота — ОДИН реестр
 
 Список решений, которые робот совета умеет автоматизировать, лежит **в одном
-файле**: `components/cooptypes/src/cooperative/document/decisionTypesRegistry.ts`.
-Больше нигде его нет — стол робота, кворум и подпись протокола читают только
-оттуда. Появился новый тип решения или шаблон протокола у старого — правится
+файле**: `packages/docs-templates/src/decisionTypes.ts` репозитория
+C9S/docs-factory (пакет `@coopenomics/docs-templates`, экспорт
+`decisionTypesRegistry`). Больше нигде его нет — стол робота, кворум и подпись
+протокола читают только этот реестр. Появился новый тип решения или шаблон протокола у старого — правится
 этот файл, а не то место, где сегодня болит.
 
 Тип попадает в реестр по двум условиям **сразу**:

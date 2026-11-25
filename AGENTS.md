@@ -49,7 +49,6 @@ pnpm run reboot
 4. **Shared-библиотеки** (порядок важен):
    ```
    pnpm --filter cooptypes run build
-   pnpm --filter @coopenomics/factory run build
    pnpm --filter @coopenomics/sdk run build
    pnpm --filter @coopenomics/notifications run build
    ```
@@ -66,12 +65,8 @@ pnpm run reboot
 
 ### Запуск тестов
 
-- **Factory** (`components/factory`): нужен только MongoDB. Запуск:
-  ```
-  NODE_ENV=test SOURCE=local MONGO_URI=$MONGO_URI SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory test
-  ```
-  `MONGO_URI` по умолчанию: `mongodb://<host>:27017/cooperative-x`.
-- **Boot** (`components/boot`): требует полный EOSIO blockchain + MongoDB + PG. Запуск после `pnpm run reboot`:
+- **Фабрика документов** — отдельный репозиторий `C9S/docs-factory` (пакет `@coopenomics/docs-factory`); её тесты и эталоны — в CI того репозитория. Совместная правка — `pnpm factory:link` / `pnpm factory:unlink`.
+- **Boot** (`components/boot`): требует полный EOSIO blockchain + PG. Запуск после `pnpm run reboot`:
   ```
   pnpm --filter @coopenomics/boot test
   ```

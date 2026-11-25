@@ -37,6 +37,10 @@ struct [[eosio::table, eosio::contract(BRANCH)]] branch_expense {
   eosio::name        braname;   ///< кооперативный участок — владелец средств
   eosio::name        creator;   ///< кто подал служебную записку
   eosio::asset       amount;    ///< сумма, выделенная под расход в пул расходов
+  /// Источник средств расхода (задача 99D-28): пул расходов участка
+  /// `w.brn.expns` (из общего кошелька) или пул средств инициаторов
+  /// `w.mkt.ipool`. Пусто у записей до 99D-28 — общий кошелёк участка.
+  eosio::binary_extension<eosio::name> source;
 
   uint64_t primary_key() const { return id; }
   eosio::checksum256 by_hash() const { return hash; }

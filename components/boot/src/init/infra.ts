@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import axios from 'axios'
-import { Generator } from '@coopenomics/factory'
-import type { Cooperative } from 'cooptypes'
-import mongoose, { Types } from 'mongoose'
+import { connectGenerator } from './factory-storage'
+import type { IIndividualData, IOrganizationData, IVars } from '@coopenomics/docs-templates'
 import type { Account, Contract } from '../types'
 import config from '../configs'
 import Blockchain from '../blockchain'
@@ -188,7 +187,7 @@ export async function startInfra() {
 }
 
 export async function installInitialData(blockchain: Blockchain, isExtended = false) {
-  const organizationData: Cooperative.Users.IOrganizationData = {
+  const organizationData: IOrganizationData = {
     username: 'voskhod',
     type: 'coop',
     short_name: 'ПК "Восход"',
@@ -215,9 +214,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
 
   }
 
-  const generator = new Generator()
-  // eslint-disable-next-line node/prefer-global/process
-  await generator.connect(process.env.MONGO_URI as string)
+  const generator = await connectGenerator()
 
   await generator.save('organization', organizationData)
   console.log('Провайдер добавлен: ', organizationData)
@@ -239,7 +236,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     },
   })
 
-  const userData: Cooperative.Users.IIndividualData = {
+  const userData: IIndividualData = {
     username: 'ant',
     first_name: 'Иван',
     last_name: 'Иванов',
@@ -260,7 +257,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
   await generator.save('individual', userData)
 
   // добавляем переменные кооператива
-  const vars: Cooperative.Model.IVars = {
+  const vars: IVars = {
     coopname: 'voskhod',
     full_abbr: 'Потребительский Кооператив',
     full_abbr_genitive: 'Потребительского Кооператива',
@@ -316,58 +313,12 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     block_num: 1,
   }
 
-  // Сохраняем vars с указанием конкретного _id и _created_at
-  // eslint-disable-next-line node/prefer-global/process
-  await mongoose.connect(process.env.MONGO_URI as string)
-
-  try {
-    await mongoose.connection.collection('vars').insertOne({
-      _id: new Types.ObjectId('69898c7d996550b4db4b1a36'),
-      _created_at: new Date('2026-02-08T13:29:12.423Z'),
-      ...vars,
-    })
-    console.log('Vars сохранены с указанным _id и _created_at')
-  }
-  catch (e) {
-    console.log('Vars уже существуют, обновляем...')
-    await mongoose.connection.collection('vars').updateOne(
-      { coopname: 'voskhod' },
-      {
-        $set: {
-          ...vars,
-          _created_at: new Date('2026-02-08T13:29:12.423Z'),
-        },
-      },
-    )
-  }
+  await generator.save('vars', vars)
+  console.log('Vars сохранены')
 
   // Совет локального кооператива «утвердил» документы с реквизитами из vars —
   // иначе фабрика утверждений не предъявит пайщикам ни одного соглашения.
   await seedDocumentApprovals(blockchain, 'voskhod', vars)
-
-  try {
-    await mongoose.connection.collection('sync').deleteMany({})
-    console.log('Все документы удалены из коллекции sync')
-  }
-  catch (e) {
-    console.error('Ошибка при удалении:', e)
-  }
-
-  try {
-    await mongoose.connection.collection('actions').deleteMany({})
-    console.log('Все документы удалены из коллекции actions')
-  }
-  catch (e) {
-    console.error('Ошибка при удалении:', e)
-  }
-
-  try {
-    await mongoose.connection.collection('deltas').deleteMany({})
-    console.log('Все документы удалены из коллекции deltas')
-  }
-  catch (e) {
-    console.error('Ошибка при удалении:', e)
-  }
 
   // Собираем пользователей для инициализации в PostgreSQL
   const usersToInit = [
@@ -380,26 +331,6 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       is_registered: true,
     },
   ]
-
-  // имитируем установку
-  try {
-    await mongoose.connection.collection('monos').insertOne({
-      coopname: 'voskhod',
-      status: 'active',
-    })
-  }
-  catch (e) {
-    console.log('system is exist')
-  }
-  // сохраняем зашированный ключ в vault
-  try {
-    await mongoose.connection.collection('vaults').insertOne({
-      username: 'voskhod',
-      permission: 'active',
-      wif: '9d6479a9d77ead53fb0e5e54b3608a95:2046ee3c1577d48aecbee49e8f25c4c2df37ab02f15d73d0d1b6352f53a4b774cb9e71b6028fd7caf64568e195c7878dfbb5d2bf10a3766d90ba9e92ea724428',
-    })
-  }
-  catch (e) { console.log('vault is exist') }
 
   console.log('Добавляем пайщика ant')
 
@@ -461,8 +392,8 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
     ]
 
     for (const user of extraUsers) {
-      // Добавляем в MongoDB
-      const userData: Cooperative.Users.IIndividualData = {
+      // Данные пайщика — в хранилище фабрики
+      const userData: IIndividualData = {
         username: user.username,
         first_name: user.first_name,
         last_name: user.last_name,
@@ -723,20 +654,19 @@ export async function installExtraData(
     transfer: true,
   })
 
-  // === Засев partner1 в воскход-coopback (Mongo organizations + paymentMethods + Postgres users) ===
+  // === Засев partner1 в воскход-coopback (организация и реквизиты в хранилище фабрики + users) ===
   //
   // Provider при initSystem-инициализации partner1 запрашивает у воскход-coopback'а
   // приватные данные организации через GraphQL `getAccount(partner1).private_account`.
   // Resolver идёт по ветке `username != config.coopname` → userRepository.findByUsername
-  // (Postgres users), затем organizationRepository.findByUsername (Mongo organizations).
+  // (Postgres users), затем organizationRepository.findByUsername (хранилище фабрики).
   // Без этих записей resolver вернёт private_account=null → провайдер упадёт
   // «Unsupported account type: undefined» при подготовке organization_data.
   console.log('Засеваем partner1 как пайщика-organization в воскход-coopback')
 
   const partnerEmail = `chairman.${account.username}@example.com`
 
-  const generator = new Generator()
-  await generator.connect(process.env.MONGO_URI as string)
+  const generator = await connectGenerator()
 
   await generator.save('organization', {
     username: account.username,
@@ -780,8 +710,6 @@ export async function installExtraData(
     },
   })
 
-  await mongoose.disconnect().catch(() => {})
-
   await initUsersInPostgres([{
     username: account.username,
     email: partnerEmail,
@@ -791,5 +719,5 @@ export async function installExtraData(
     is_registered: true,
   }], config.provider)
 
-  console.log(`=== partner1 (${account.username}) засеян в воскход-coopback (Mongo+Postgres) ===\n`)
+  console.log(`=== partner1 (${account.username}) засеян в воскход-coopback ===\n`)
 }

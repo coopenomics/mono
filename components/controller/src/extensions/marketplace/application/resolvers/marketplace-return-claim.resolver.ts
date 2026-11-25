@@ -1,4 +1,5 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
   GqlJwtAuthGuard,
@@ -36,17 +37,7 @@ import {
   MARKETPLACE_ORDER_DISPLAY_SERVICE,
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
-import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * Эпик 7: GraphQL-фасад для процесса гарантийного возврата. Каждый из 5
@@ -247,7 +238,9 @@ export class MarketplaceReturnClaimResolver {
     @Args('claim_id') claim_id: string
   ): Promise<MarketplaceReturnClaimDTO> {
     const claim = await this.service.findById(platformSettings().coopname, claim_id);
-    return this.toClaimDTO(claim);
+    // Текст заявления собирается только для одного заявления: в списках он не нужен.
+    const [dto, statement] = await Promise.all([this.toClaimDTO(claim), this.service.statementAggregate(claim)]);
+    return { ...dto, statement: statement ? new DocumentAggregateDTO(statement) : null };
   }
 
   @Mutation(() => MarketplaceReturnClaimResultDTO, {

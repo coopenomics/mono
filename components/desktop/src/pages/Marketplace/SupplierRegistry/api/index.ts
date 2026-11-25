@@ -38,6 +38,24 @@ export async function approveSupplier(
   return result;
 }
 
+/** Приостановка действия договора поставщика: допуск к работе снимается. */
+export async function suspendSupplier(input: ISupplierMemberInput): Promise<MarketplaceSupplierView> {
+  const { [Mutations.Marketplace.SuspendSupplier.name]: result } = await client.Mutation(
+    Mutations.Marketplace.SuspendSupplier.mutation,
+    { variables: { input } },
+  );
+  return result;
+}
+
+/** Возобновление действия договора поставщика: допуск возвращается. */
+export async function resumeSupplier(input: ISupplierMemberInput): Promise<MarketplaceSupplierView> {
+  const { [Mutations.Marketplace.ResumeSupplier.name]: result } = await client.Mutation(
+    Mutations.Marketplace.ResumeSupplier.mutation,
+    { variables: { input } },
+  );
+  return result;
+}
+
 export async function rejectSupplier(
   input: ISupplierMemberInput,
 ): Promise<MarketplaceSupplierView> {

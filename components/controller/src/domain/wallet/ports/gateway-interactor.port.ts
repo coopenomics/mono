@@ -11,6 +11,7 @@ import type {
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
+import type { PayoutRequestDomainInterface } from '~/domain/gateway/repositories/payout-request.repository';
 
 export interface GatewayInteractorPort {
   getPayments(
@@ -19,7 +20,6 @@ export interface GatewayInteractorPort {
   ): Promise<PaginationResultDomainInterface<PaymentDomainEntity>>;
   createInitialPayment(data: CreateInitialPaymentInputDomainInterface): Promise<PaymentDomainEntity>;
   createDeposit(data: CreateDepositPaymentInputDomainInterface): Promise<PaymentDomainEntity>;
-  createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainEntity>;
   /**
    * Story 598-17 / AR35: создать системный outgoing_payment, инициированный
    * расширением (без пользовательского заявления и без method_id).
@@ -37,10 +37,21 @@ export interface GatewayInteractorPort {
   prepareWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainInterface>;
 
   /**
-   * Зафиксировать в БД ранее подготовленный исходящий платеж.
-   * Вызывается только после успешной on-chain транзакции.
+   * Сохранить подготовленный возврат паевого взноса заявкой на выплату.
+   * Вызывается только после успешной заявки в цепи; платёж кассиру создаст
+   * решение совета.
    */
-  persistWithdraw(paymentData: PaymentDomainInterface): Promise<PaymentDomainEntity>;
+  persistWithdraw(paymentData: PaymentDomainInterface): Promise<void>;
+
+  /** Заявка на системную выплату расширения, которую решает совет. */
+  registerSystemPayoutRequest(data: CreateSystemOutgoingPaymentInputDomainInterface): Promise<PayoutRequestDomainInterface>;
+  /** Совет разрешил выплату: платёж кассиру из заявки. */
+  releasePayoutRequest(hash: string): Promise<PaymentDomainInterface | null>;
+  /** Совет отказал: заявка закрывается. */
+  declinePayoutRequest(hash: string): Promise<void>;
+  /** Подача в цепь не удалась: заявка снимается. */
+  dropPayoutRequest(hash: string): Promise<void>;
+  getPayoutRequest(hash: string): Promise<PayoutRequestDomainInterface | null>;
 
   setPaymentStatus(data: SetPaymentStatusInputDomainInterface): Promise<PaymentDomainEntity>;
 

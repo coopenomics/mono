@@ -46,7 +46,10 @@ export async function phase02Reset(): Promise<void> {
         - 'onboarding_generation_contract_template_hash'
         - 'onboarding_generator_offer_template_hash'
         - 'onboarding_blagorost_provision_hash'
-        - 'onboarding_blagorost_offer_template_hash',
+        - 'onboarding_blagorost_offer_template_hash'
+        -- Параметры документов ЦПП засев кладёт вместе с отметками; для съёмки
+        -- подключения с нуля их шаг тоже должен стоять в ожидании.
+        - 'capital_program_doc_data_hash',
         updated_at = CURRENT_TIMESTAMP
       WHERE name = 'capital'
     `)

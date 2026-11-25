@@ -42,6 +42,23 @@ title: Стол заказов — таблица прав с условиями
 # `@RequireMarketplaceRole` и `MarketplaceDesktopGrantsProvider` удалены. Отказ
 # «право не положено» — код KIT_INSUFFICIENT_RIGHTS.
 
+# Правка 2026-10-10 (598-61, профиль поставщика и отзывы): в таблицу прав добавлены ресурсы `SupplierProfile` (read /
+# update:own / manage) и `Review` (read / create:own / update:own / moderate), в справочник объектов —
+# вид `Review` (владелец — автор отзыва). Случаи этих прав — в marketplace.reviews
+# (mkt.review.rights.*, mkt.profile.rights.*); набор случаев этой фичи прежний.
+
+
+# Правка 07.11.2026 (598-55): право председателя кооператива завести партию
+# боксов на любом участке переименовано из `Container:manage:all` в
+# `Container:create:all`. Строка `manage:all` по правилу «все объекты
+# включают свои» покрывала и `manage:own-KU`, и председатель кооператива
+# проходил перемещение и правку чужих боксов (`marketplaceMoveContainer`,
+# `marketplaceUpdateContainer`) — это поймал снимок матрицы прав на полигоне.
+# По решению владельца 11.10.2026 ставит боксы и выводит их из оборота участок.
+# Правка 25.11.2026 (сводка участка для пайщика): в таблицу прав добавлен ресурс
+# `BranchSummary` (read) — заказчику, когда совет подключил Стол заказов. По
+# нему каждый пайщик читает сводку любого участка. Прежние строки таблицы не
+# менялись; случаи нового права — в marketplace.branch-summary.
 sources:
   backend:
     - components/extension-kit/src/auth/rights.ts
@@ -263,4 +280,22 @@ cases:
     expect: проход без чтения объекта; список отдаётся по всему кооперативу, с участком в запросе — по нему
     test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: mkt.rights.side.11
+    level: backend
+    kind: side
+    scenario: >
+      право завести боксы на любом участке (`Container:create:all`) зовут
+      председатель кооператива, член совета и оператор участка; председатель
+      кооператива зовёт перемещение и правку бокса (`Container:manage:own-KU`)
+    expect: >
+      председателю право заведения положено; совету и оператору — отказ
+      KIT_INSUFFICIENT_RIGHTS: оператор заводит боксы только на своём участке;
+      перемещение и правка председателю кооператива не положены — их ведёт участок
+    # 07.11.2026 (C28-80): право переименовано из `Container:manage:all` — охват `all`
+    # покрывал `manage:own-KU`, и председатель перемещал и правил боксы любого участка
+    # (матрица прав, ночь 06→07.11). Решение владельца — закрыть.
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/marketplace/storage.test.ts
     status: written

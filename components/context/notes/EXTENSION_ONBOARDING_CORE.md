@@ -60,7 +60,7 @@
 4. **L1-флаг готовности**: в `initialize()` вывести флаг видимости из платформенного состояния
    (например, «все onboarding_*_done → accepted=true»). Идемпотентно — initialize зовётся и на
    boot, и на auto-restart после ONBOARDING_COMPLETED.
-5. **Документы**: каждый документ = запись в `cooptypes/src/cooperative/registry/<id>.Name/` +
+5. **Документы**: каждый документ = запись в `C9S/docs-factory:packages/docs-templates/src/registry/<id>.Name/` +
    генератор в `factory/src/{Actions,Templates}/<id>.Name.ts` + регистрация в индексах factory и
    диспетчере `factory/src/index.ts`. Пересобрать cooptypes и factory (`pnpm run build`).
 6. **Фронт**: переиспользовать `desktop/src/shared/ui/CouncilOnboarding` (`CouncilOnboardingCard`,

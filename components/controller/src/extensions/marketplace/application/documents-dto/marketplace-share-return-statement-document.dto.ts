@@ -1,7 +1,7 @@
 import { Field, Float, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsBoolean, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 /**
@@ -12,7 +12,7 @@ import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocume
  * заказчиком одним нажатием и уходит on-chain параметром `statement`
  * действия `marketplace::issuestmt`; контракт ставит его на повестку совета.
  */
-type action = Cooperative.Registry.MarketplaceShareReturnStatement.Action;
+type action = Registry.MarketplaceShareReturnStatement.Action;
 
 @InputType('BaseMarketplaceShareReturnStatementMetaDocumentInput')
 class BaseMarketplaceShareReturnStatementMetaDocumentInputDTO implements ExcludeCommonProps<action> {

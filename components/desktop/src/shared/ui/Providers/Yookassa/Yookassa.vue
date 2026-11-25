@@ -3,13 +3,25 @@ import type {
   IPaymentOrder,
   IInitialPaymentOrder,
 } from 'src/shared/lib/types/payments';
-import { onMounted } from 'vue';
+import { onBeforeUnmount, onMounted } from 'vue';
 
 const props = defineProps<{
   paymentOrder: IPaymentOrder | IInitialPaymentOrder;
 }>();
 
 const emit = defineEmits(['paymentSuccess', 'paymentFail']);
+
+/**
+ * Токен формы ЮKassa: сервер отдаёт объект с токеном и номером платежа,
+ * платежи, заведённые раньше, хранят только строку-токен.
+ */
+function widgetToken(): string {
+  const data = props.paymentOrder.payment_details?.data as unknown;
+  if (typeof data === 'string') return data;
+  return ((data ?? {}) as { confirmation_token?: string }).confirmation_token ?? '';
+}
+
+let checkout: { destroy: () => void } | null = null;
 
 onMounted(() => {
   const script = document.createElement('script');
@@ -18,40 +30,39 @@ onMounted(() => {
   document.head.appendChild(script);
 
   script.onload = () => {
-    // Инициализация виджета после загрузки скрипта
-    const checkout = new window.YooMoneyCheckoutWidget({
-      confirmation_token: props.paymentOrder.payment_details?.data,
+    // Форма показывает способы, включённые в магазине ЮKassa: набор способов
+    // кооператив согласует с менеджером ЮKassa, в форму он не передаётся.
+    const widget = new window.YooMoneyCheckoutWidget({
+      confirmation_token: widgetToken(),
 
       error_callback: function (error: any) {
-        // Обработка ошибок инициализации
-        emit('paymentFail');
-
         console.error(error);
+        emit('paymentFail');
       },
     });
+    checkout = widget;
 
-    // Отображение платежной формы в контейнере
-    checkout.render('paymentForm').then(() => {
-      // Код, который нужно выполнить после отображения платежной формы.
-    });
+    widget.render('paymentForm');
 
-    checkout.on('success', () => {
-      //Код, который нужно выполнить после успешной оплаты.
+    // Виджет присылает исход только после своего экрана успеха. Окно оплаты
+    // закрывает сигнал о статусе платежа от кооператива, обычно раньше.
+    widget.on('success', () => {
       emit('paymentSuccess');
-      //Удаление инициализированного виджета
-      checkout.destroy();
     });
 
-    checkout.on('fail', () => {
-      //Код, который нужно выполнить после неудачной оплаты.
+    widget.on('fail', () => {
       emit('paymentFail');
-      //Удаление инициализированного виджета
-      checkout.destroy();
     });
   };
   script.onerror = () => {
     console.error('Ошибка при загрузке скрипта ЮKassa');
   };
+});
+
+// Окно закрыто — форму ЮKassa вместе с её экраном успеха убираем сразу.
+onBeforeUnmount(() => {
+  checkout?.destroy();
+  checkout = null;
 });
 </script>
 

@@ -25,7 +25,10 @@ on:
     # только наборы src/cardcoop против подставной сети карт. В общий прогон
     # они не входят (решение владельца 02.10.2026): интеграции с сетью карт
     # нужен свой стенд, до него набор гоняется отдельно.
-    branches: [ci/blackbox, 'ci/blackbox-fast-*', ci/blackbox-cardcoop]
+    # ci/blackbox-nightly — ночной полный прогон dev: его пушит шаблон Semaphore
+    # (playbooks: mono/blackbox-nightly.yaml), ждёт исхода и падает вместе с ним,
+    # так падение приходит обычной тревогой Semaphore (решение владельца 01.11.2026).
+    branches: [ci/blackbox, 'ci/blackbox-fast-*', ci/blackbox-cardcoop, ci/blackbox-nightly]
   workflow_dispatch:
 
 # Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
@@ -42,7 +45,8 @@ jobs:
     # хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
     # Собранное под glibc 2.39 (24.04) в нём могло бы не загрузиться.
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    # Фаза КЭУ со сжатым временем выросла до 75 минут (99D-33) — запас задаче.
+    timeout-minutes: 210
 
     env:
       COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
@@ -181,6 +185,28 @@ jobs:
         if: ${{ !cancelled() && steps.app.outcome == 'success' }}
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh dbcov snap api
+
+      # Коэффициент экономического участия — прогон первого числа целиком:
+      # заказ, выдача, расчёт итога месяца участка, списание по ставкам. Набор
+      # ждёт первое число, поэтому идёт отдельной фазой на сжатом времени стенда:
+      # сценарные наборы уже отработали в настоящем времени, после фазы время
+      # возвращается настоящим. Стоит до отказов стенда и матрицы прав — после
+      # матрицы сценарий Стола заказов не собрать. Фаза входит в полный и в
+      # ночной прогон (решение владельца 05.11.2026).
+      - name: Коэффициент экономического участия — прогон первого числа (сжатое время)
+        id: keu
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
+        # Наборы со списанием по итогу периода (99D-33) ждут смены периода
+        # стенда: экономика участка и контрактные тесты boot (перед ними
+        # контроллер пересоздаётся с остановленными обходами) — фазе нужно
+        # больше 45 минут.
+        timeout-minutes: 75
+        run: bash scripts/blackbox/stack.sh keu
+
+      - name: База — снимок после прогона первого числа
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap keu
 
       # Отказы стенда — после всех сценариев, но до матрицы прав: наборы ставят
       # чтение цепи на паузу и останавливают цепь, под что не должен попасть ни

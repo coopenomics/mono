@@ -20,7 +20,7 @@ let sequence = 0;
  * бухгалтер; в UTC переводим здесь, потому что блокчейн штампует блоки в UTC.
  */
 function operation(params: {
-  code: 'o.brn.aid' | 'o.brn.aidtax';
+  code: 'o.brn.aid' | 'o.brn.aidtax' | 'o.mkt.iaid' | 'o.mkt.iaidtx';
   username: string;
   amount: string;
   moscow: { year: number; month: number; day: number; hour?: number; minute?: number };
@@ -205,6 +205,25 @@ describe('Ndfl6DataService — разделы 1 и 2', () => {
 
     expect(tax.peopleCount).toBe(2);
     expect(tax.withheldTotal).toBe(3900);
+  });
+});
+
+describe('Ndfl6DataService — помощь из средств инициаторов участка (99D-28)', () => {
+  it('выплата из средств инициаторов — тот же доход и налог получателя, что и выплата с фонда', async () => {
+    // Две помощи одному получателю в одном квартале: с фонда и из средств
+    // инициаторов. До правки вторая в отчёт не попадала.
+    const service = makeService([
+      ...payout({ username: 'ivanovivan11', net: '87.0000 RUB', tax: '13.0000 RUB', moscow: { year: 2026, month: 3, day: 10 }, hash: 'aid-fund' }),
+      operation({ code: 'o.mkt.iaid', username: 'ivanovivan11', amount: '87.0000 RUB', moscow: { year: 2026, month: 3, day: 11 }, hash: 'aid-pool' }),
+      operation({ code: 'o.mkt.iaidtx', username: 'ivanovivan11', amount: '13.0000 RUB', moscow: { year: 2026, month: 3, day: 11 }, hash: 'aid-pool' }),
+    ]);
+
+    const tax = await service.buildTaxSection(COOPNAME, 2026, 1);
+
+    expect(tax.incomeTotal).toBe(200);
+    expect(tax.taxCalculated).toBe(26);
+    expect(tax.withheldTotal).toBe(26);
+    expect(tax.peopleCount).toBe(1);
   });
 });
 

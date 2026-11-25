@@ -5,7 +5,7 @@
  * документы и робот — моки.
  */
 import { ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MarketplaceIssuanceSagaStages } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.types';
 import { MarketplaceUnitsOfMeasure } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
 import {
@@ -22,8 +22,8 @@ import {
   stubSignatureChecks,
 } from './issuance-saga.fixture';
 
-const STATEMENT_ID = Cooperative.Registry.MarketplaceShareReturnStatement.registry_id;
-const ACT_ID = Cooperative.Registry.MarketplaceShareReturnAct.registry_id;
+const STATEMENT_ID = Registry.MarketplaceShareReturnStatement.registry_id;
+const ACT_ID = Registry.MarketplaceShareReturnAct.registry_id;
 
 describe('Готовность к выдаче (readyIssue)', () => {
   it('нельзя отметить готовность, пока на склад по заказу ничего не принято', async () => {
@@ -46,6 +46,30 @@ describe('Готовность к выдаче (readyIssue)', () => {
     await service.readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg' });
     expect(m.chainPort.readyIssue).toHaveBeenCalledWith(expect.objectContaining({ signer: 'chairkrg', order_hash: 'h-order-1' }));
     expect(m.eventBus.emit).toHaveBeenCalledWith(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, expect.objectContaining({ order_id: 'order-1' }));
+  });
+
+  it('приглашение на выдачу называет имущество позиции: уведомление по каждой позиции отдельно', async () => {
+    const m = buildMocks({ order: buildOrder({ status: 'ACCEPTED_TO_COOP' }), warehouse: 5 });
+    m.offerRepo.findById.mockResolvedValue({ product_name: 'Мёд цветочный' });
+    await buildService(m).readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg' });
+    expect(m.eventBus.emit).toHaveBeenCalledWith(
+      MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+      expect.objectContaining({ order_id: 'order-1', product_name: 'Мёд цветочный' })
+    );
+  });
+
+  it('предложение не прочиталось — уведомление называет имущество общим словом, а не пустотой', async () => {
+    const m = buildMocks({ order: buildOrder({ status: 'ACCEPTED_TO_COOP' }), warehouse: 5 });
+    await buildService(m).readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg' });
+    const [, event] = m.eventBus.emit.mock.calls.find(([name]: [string]) => name === MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT);
+    expect(event.product_name).toBe('Имущество без названия');
+  });
+
+  it('выдача у стойки (notify: false): заказ готов к получению в цепи, уведомления заказчику нет — он уже у стойки', async () => {
+    const m = buildMocks({ order: buildOrder({ status: 'ACCEPTED_TO_COOP' }), warehouse: 5 });
+    await buildService(m).readyIssue({ coopname: COOP, order_id: 'order-1', operator_account: 'chairkrg', notify: false });
+    expect(m.chainPort.readyIssue).toHaveBeenCalled();
+    expect(m.eventBus.emit).not.toHaveBeenCalledWith(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, expect.anything());
   });
 });
 
@@ -327,6 +351,59 @@ describe('Закрывающая подпись оператора (closeIssuanc
     const service = buildService(m);
     const saga = await service.getSagaByOrder(COOP, 'order-1');
     expect(saga?.stage).toBe(MarketplaceIssuanceSagaStages.CLOSED);
+  });
+});
+
+describe('Захват шага: несколько столов закрывают одну выдачу (99D-18)', () => {
+  const actMeta = { registry_id: ACT_ID, order_hash: 'h-order-1' };
+  const memberAct = signedDoc(actMeta, ['orderer1']);
+  const act1Signed = () => buildSaga({ stage: MarketplaceIssuanceSagaStages.ACT1_SIGNED, act1_document: memberAct, fact: { actual_quantity: 8, actual_unit_price: '100.0000', fact_cost: '800.0000' } });
+  const close = (service: any, manual = false) =>
+    service.closeIssuance({ coopname: COOP, operator_account: 'chairkrg', order_id: 'order-1', signed_act: signedDoc(actMeta, ['orderer1', 'chairkrg']), manual });
+
+  it('шаг держит другой стол — фоновая подпись уступает: в цепь не отправляется, код «шаг выполняется»', async () => {
+    const m = buildMocks({ sagas: [act1Signed()], warehouse: 8 });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+    await m.sagaRepo.claimStep('saga-1', MarketplaceIssuanceSagaStages.ACT1_SIGNED, 'operator2', new Date(), new Date(0));
+    await expect(close(service)).rejects.toMatchObject({ code: 'MARKETPLACE_ISSUANCE_STEP_IN_PROGRESS' });
+    expect(m.chainPort.issueAct2).not.toHaveBeenCalled();
+  });
+
+  it('ручная кнопка перехватывает шаг, захваченный больше 20 секунд назад, и закрывает выдачу', async () => {
+    const m = buildMocks({ sagas: [act1Signed()], warehouse: 8 });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+    await m.sagaRepo.claimStep('saga-1', MarketplaceIssuanceSagaStages.ACT1_SIGNED, 'operator2', new Date(Date.now() - 30_000), new Date(0));
+    await expect(close(service)).rejects.toMatchObject({ code: 'MARKETPLACE_ISSUANCE_STEP_IN_PROGRESS' });
+    const saga = await close(service, true);
+    expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.CLOSED);
+    expect(m.claims.has('saga-1')).toBe(false);
+  });
+
+  it('фоновую подпись ставит только оператор, начавший выдачу; другой оператор закрывает кнопкой', async () => {
+    const m = buildMocks({ sagas: [act1Signed()], warehouse: 8 });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+    const byOther = (manual: boolean) =>
+      service.closeIssuance({ coopname: COOP, operator_account: 'operator2', order_id: 'order-1', signed_act: signedDoc(actMeta, ['orderer1', 'operator2']), manual });
+    await expect(byOther(false)).rejects.toMatchObject({ code: 'MARKETPLACE_ISSUANCE_CLOSE_NOT_INITIATOR' });
+    expect(m.chainPort.issueAct2).not.toHaveBeenCalled();
+    const saga = await byOther(true);
+    expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.CLOSED);
+  });
+
+  it('цепь отказала, а выдачу уже закрыл другой стол — ответ закрытой выдачей, без ошибки', async () => {
+    const m = buildMocks({ sagas: [act1Signed()], warehouse: 8 });
+    m.chainPort.issueAct2.mockImplementationOnce(async () => {
+      m.sagaStore.set('saga-1', buildSaga({ id: 'saga-1', stage: MarketplaceIssuanceSagaStages.CLOSED, act1_document: memberAct }));
+      throw new Error('order already closed');
+    });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+    const saga = await close(service);
+    expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.CLOSED);
+    expect(m.orderRepo.applyIssuanceClosed).not.toHaveBeenCalled();
   });
 });
 

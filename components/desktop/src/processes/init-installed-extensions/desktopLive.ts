@@ -51,3 +51,23 @@ async function reloadDesktop(router: Router): Promise<void> {
   const appeared = desktop.currentDesktop?.workspaces.some((ws) => !before.has(ws.name));
   if (appeared) await useInitExtensionsProcess(router);
 }
+
+/**
+ * Восстановить стол после возврата бэкенда (перезапуск узла, обновление).
+ * Если страница открылась, пока узел не отвечал, стол не загрузился и
+ * расширения не привязали к нему маршруты («no current desktop»): меню и смена
+ * стола пусты до перезагрузки страницы. Здесь — тот же путь, что на старте:
+ * стол, маршруты расширений, меню, выбор стола. Повторный вызов безопасен.
+ */
+export async function restoreDesktop(router: Router): Promise<void> {
+  const session = useSessionStore();
+  if (!session.isAuth) return;
+  const desktop = useDesktopStore();
+  const hadWorkspaces = Boolean(desktop.currentDesktop?.workspaces?.length);
+  await desktop.loadDesktop();
+  const withoutRoutes = desktop.currentDesktop?.workspaces.some((ws) => !(ws as { routes?: unknown }).routes);
+  if (withoutRoutes) await useInitExtensionsProcess(router);
+  desktop.registerWorkspaceMenus(router);
+  if (!hadWorkspaces && session.isFullyActive) desktop.selectDefaultWorkspace();
+  desktop.syncActiveWorkspaceFromRoute(router.currentRoute.value.matched.map((r) => r.name ?? null));
+}

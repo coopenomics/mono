@@ -31,7 +31,7 @@
       "maxAttemptsPrepend": "Не больше",
       "protocolRetriesAppend": "раз",
       "protocolRetriesLabel": "Сборок протокола, пока голоса не видны в истории",
-      "protocolRetriesNote": "Голоса робота попадают в историю действий с небольшой задержкой; протокол собирается повторно в том же проходе",
+      "protocolRetriesNote": "Голоса робота попадают в историю действий с небольшой задержкой; робот собирает протокол повторно в том же проходе",
       "protocolRetriesPrepend": "Не больше",
       "protocolRetryDelayAppend": "мс",
       "protocolRetryDelayLabel": "Пауза между такими сборками (в миллисекундах)",

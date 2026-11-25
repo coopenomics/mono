@@ -1,11 +1,14 @@
 <template lang="pug">
 //- Список на корне; задача — child через router-view (рейл остаётся на «Мои задачи»)
 router-view(v-if='!isRoot')
-.my-tasks-page(v-else)
+.my-tasks-page.page-shell(v-else)
   .page-surface.list-surface.list-surface--fill
-    .issues-scroll-area
+    // Скелетон первичной загрузки — как на проектах и компонентах
+    .tasks-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
+
+    .issues-scroll-area(v-else-if='items.length')
       q-table(
-        v-if='items.length || loading',
         :rows='items',
         :columns='columns',
         row-key='_id',
@@ -27,14 +30,12 @@ router-view(v-if='!isRoot')
                 @click='openIssue',
                 @context-click='openContext'
               )
-        template(#no-data)
-          .list-empty
-            q-icon(name='inbox', size='20px')
-            span {{ hasActiveFilters ? $t('capital.myTasksPage.emptyFilteredText') : $t('capital.myTasksPage.emptyText') }}
 
-      .list-empty(v-else-if='!loading')
-        q-icon(name='inbox', size='20px')
-        span {{ hasActiveFilters ? $t('capital.myTasksPage.emptyFilteredText') : $t('capital.myTasksPage.emptyText') }}
+    //- Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasActiveFilters ? "search_off" : "task_alt"')
 
   //- Диалог назначения компонента свободной задаче (открывается по клику «Без компонента»)
   MoveIssueButton(
@@ -57,6 +58,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { EMPTY_HASH } from 'src/shared/lib/consts';
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue';
 import { CreateIssueHeaderButton } from 'app/extensions/capital/features/Issue/CreateIssue';
@@ -88,8 +90,20 @@ const isRoot = computed(() => route.name === 'capital-my-tasks');
 // Фильтры и сортировка списка задач — общие с кнопками в шапке
 const { filters, sort, hasActiveFilters } = useListPreferences('issues');
 
+// Пустой список и пустой результат фильтра — разные подсказки
+const emptyTitle = computed(() =>
+  hasActiveFilters.value ? t('capital.listEmpty.filterTitle') : t('capital.myTasksPage.emptyTitle'),
+);
+const emptyBody = computed(() =>
+  hasActiveFilters.value ? t('capital.listEmpty.filterBody') : t('capital.myTasksPage.emptyBody'),
+);
+
 const loading = ref(false);
 const items = ref<IIssue[]>([]);
+
+// Скелетон только при первичной загрузке: повторные запросы (смена фильтров,
+// живая лента) молча обновляют таблицу или пустое состояние
+const isInitialLoading = computed(() => loading.value && items.value.length === 0);
 const contextByHash = ref<Record<string, string>>({});
 const originByHash = ref<Record<string, string>>({});
 
@@ -315,9 +329,23 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.tasks-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+  background: var(--p-surface);
+
+  .skel {
+    height: var(--p-7);
+  }
+}
+
+// Высоту экрана задаёт канон-оболочка .page-shell; список забирает остаток
 .my-tasks-page {
-  height: 100%;
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-surface {
@@ -329,8 +357,8 @@ onBeforeUnmount(() => {
 }
 
 .list-surface--fill {
-  height: 100%;
-  min-height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -355,13 +383,5 @@ onBeforeUnmount(() => {
   }
 }
 
-.list-empty {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  width: 100%;
-  padding: var(--p-3) var(--p-4);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
-}
+
 </style>

@@ -1,4 +1,5 @@
 import type { JurisdictionProfile } from '../types';
+import { RU_COUNTERPARTY_REQUISITES } from './requisites';
 
 /**
  * Россия.
@@ -64,6 +65,8 @@ export const RUSSIA: JurisdictionProfile = {
       },
     },
   ],
+
+  counterpartyRequisites: RU_COUNTERPARTY_REQUISITES,
 
   personalIncomeTax: [
     {

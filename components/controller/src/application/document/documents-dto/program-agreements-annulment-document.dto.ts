@@ -1,14 +1,14 @@
 import { InputType, Field, Float, Int, IntersectionType, OmitType } from '@nestjs/graphql';
 import { IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { SignedDigitalDocumentInputDTO, MetaDocumentInputDTO, GenerateMetaDocumentInputDTO, ExcludeCommonProps } from '@coopenomics/extension-kit';
 
 // интерфейс параметров для генерации
-type action = Cooperative.Registry.ProgramAgreementsAnnulmentStatement.Action;
+type action = Registry.ProgramAgreementsAnnulmentStatement.Action;
 
 @InputType('ProgramAgreementWalletInput')
-class ProgramAgreementWalletInputDTO implements Cooperative.Registry.ProgramAgreementsAnnulmentStatement.IAnnulmentWallet {
+class ProgramAgreementWalletInputDTO implements Registry.ProgramAgreementsAnnulmentStatement.IAnnulmentWallet {
   @Field(() => String, { description: 'Машинное имя кошелька' })
   @IsString()
   wallet_name!: string;
@@ -27,7 +27,7 @@ class ProgramAgreementWalletInputDTO implements Cooperative.Registry.ProgramAgre
 }
 
 @InputType('ProgramAgreementInput')
-class ProgramAgreementInputDTO implements Cooperative.Registry.ProgramAgreementsAnnulmentStatement.IAnnulmentProgram {
+class ProgramAgreementInputDTO implements Registry.ProgramAgreementsAnnulmentStatement.IAnnulmentProgram {
   @Field(() => Int, { description: 'Идентификатор программы' })
   @IsInt()
   program_id!: number;

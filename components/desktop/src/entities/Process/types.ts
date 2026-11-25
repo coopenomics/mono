@@ -25,3 +25,9 @@ export type IProcessSummary = NonNullable<IProcessListResult>['items'][number]
  * generic-формы.
  */
 export type IProcessSnapshot = Record<string, unknown>
+
+/** Содержание процесса для стола: предмет, стороны, суммы, состояние словами. */
+export type IProcessContent =
+  Queries.Processes.GetProcessContent.IOutput[typeof Queries.Processes.GetProcessContent.name]
+
+export type IProcessContentInput = Queries.Processes.GetProcessContent.IInput

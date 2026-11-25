@@ -8,6 +8,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import moment from 'src/shared/lib/utils/dates/moment'
 import { useSystemStore } from 'src/entities/System/model'
 import { t } from 'src/shared/i18n';
+import { previewAggregate, type IDocumentAggregate } from 'src/entities/Document/model';
 
 export type ISignBySecretaryResult = Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet.IOutput[typeof Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet.name]
 export type ISignByPresiderResult = Mutations.Meet.SignByPresiderOnAnnualGeneralMeet.IOutput[typeof Mutations.Meet.SignByPresiderOnAnnualGeneralMeet.name]
@@ -18,9 +19,12 @@ interface ICloseMeetWithDecisionInput {
   username: string
 }
 
-// Базовые функции API для работы с бэкендом
-export async function signBySecretaryOnAnnualGeneralMeetWithDecision(data: ICloseMeetWithDecisionInput): Promise<ISignBySecretaryResult> {
+export type IGeneratedMeetDecision = Mutations.Meet.GenerateAnnualGeneralMeetDecisionDocument.IOutput[typeof Mutations.Meet.GenerateAnnualGeneralMeetDecisionDocument.name]
 
+// Протокол собрания для подписи секретаря: генерируется до подписи, чтобы
+// секретарь прочитал текст и мог отказаться (решение владельца 24.11.2026:
+// протокол вслепую не подписывается).
+export async function generateSecretaryProtocol(data: ICloseMeetWithDecisionInput): Promise<IGeneratedMeetDecision> {
   const variables: Mutations.Meet.GenerateAnnualGeneralMeetDecisionDocument.IInput = {
     data: {
       coopname: data.coopname,
@@ -29,14 +33,20 @@ export async function signBySecretaryOnAnnualGeneralMeetWithDecision(data: IClos
     }
   }
 
-  // Генерируем документ решения
   const { [Mutations.Meet.GenerateAnnualGeneralMeetDecisionDocument.name]: generatedDocument } = await client.Mutation(
     Mutations.Meet.GenerateAnnualGeneralMeetDecisionDocument.mutation,
     {
       variables
     }
   )
+  return generatedDocument
+}
 
+// Подпись секретаря под протоколом, который он прочитал.
+export async function signBySecretaryOnAnnualGeneralMeetWithDecision(
+  data: ICloseMeetWithDecisionInput,
+  generatedDocument: IGeneratedMeetDecision
+): Promise<ISignBySecretaryResult> {
   // Подписываем документ первой подписью секретаря (signatureId = 1 по умолчанию)
   const signedDocument = await signDocument(generatedDocument, data.username)
 
@@ -144,18 +154,28 @@ export const useCloseMeet = (
     return meet.processing.extendedStatus === Zeus.ExtendedMeetStatus.PRECLOSED && isPresider
   })
 
-  const closeMeetBySecretary = async () => {
-    if (!meetStore.currentMeet) return
+  // Протокол на прочтение перед подписью: секретарю — только что собранный,
+  // председателю — тот же документ с подписью секретаря.
+  const protocolPreview = ref<{ role: 'secretary' | 'presider'; aggregate: IDocumentAggregate; generated?: IGeneratedMeetDecision } | null>(null)
+  const protocolPreviewOpen = computed({
+    get: () => protocolPreview.value !== null,
+    set: (open: boolean) => {
+      if (!open) protocolPreview.value = null
+    }
+  })
+
+  const closeInput = (): ICloseMeetWithDecisionInput | null =>
+    meetStore.currentMeet
+      ? { coopname: info.coopname, hash: meetStore.currentMeet.hash, username: sessionStore.username }
+      : null
+
+  const openSecretaryProtocol = async () => {
+    const input = closeInput()
+    if (!input) return
     processingRef.value = true
     try {
-      await signBySecretaryOnAnnualGeneralMeetWithDecision({
-        coopname: info.coopname,
-        hash: meetStore.currentMeet.hash,
-        username: sessionStore.username,
-      })
-
-      await meetStore.loadMeet({ coopname: info.coopname, hash: meetStore.currentMeet.hash })
-      SuccessAlert(t('meet.closeMeetWithDecision.success'))
+      const generated = await generateSecretaryProtocol(input)
+      protocolPreview.value = { role: 'secretary', aggregate: previewAggregate(generated), generated }
     } catch (error: any) {
       FailAlert(error)
     } finally {
@@ -163,17 +183,28 @@ export const useCloseMeet = (
     }
   }
 
-  const closeMeetByPresider = async () => {
-    if (!meetStore.currentMeet) return
+  const openPresiderProtocol = () => {
+    const decision1 = meetStore.currentMeet?.processing?.meet?.decision1
+    if (!decision1) {
+      FailAlert(t('meet.error.decision1NotFound'))
+      return
+    }
+    protocolPreview.value = { role: 'presider', aggregate: decision1 as IDocumentAggregate }
+  }
+
+  const confirmProtocol = async () => {
+    const preview = protocolPreview.value
+    const input = closeInput()
+    if (!preview || !input) return
+    protocolPreview.value = null
     processingRef.value = true
     try {
-      await signByPresiderOnAnnualGeneralMeetWithDecision({
-        coopname: info.coopname,
-        hash: meetStore.currentMeet.hash,
-        username: sessionStore.username,
-      })
+      if (preview.role === 'secretary' && preview.generated)
+        await signBySecretaryOnAnnualGeneralMeetWithDecision(input, preview.generated)
+      else
+        await signByPresiderOnAnnualGeneralMeetWithDecision(input)
 
-      await meetStore.loadMeet({ coopname: info.coopname, hash: meetStore.currentMeet.hash })
+      await meetStore.loadMeet({ coopname: input.coopname, hash: input.hash })
       SuccessAlert(t('meet.closeMeetWithDecision.success'))
     } catch (error: any) {
       FailAlert(error)
@@ -185,7 +216,10 @@ export const useCloseMeet = (
   return {
     canCloseBySecretary,
     canCloseByPresider,
-    closeMeetBySecretary,
-    closeMeetByPresider
+    protocolPreview,
+    protocolPreviewOpen,
+    openSecretaryProtocol,
+    openPresiderProtocol,
+    confirmProtocol
   }
 }

@@ -193,46 +193,10 @@ describe('Благорост — программный взнос в прогр
     expect(await programFreePool(bc)).toBeCloseTo(poolBefore + 1_000, 2)
   }, 600_000)
 
-  it('cap.pinv.break.01: повторная отправка того же заявления не проводит второй взнос', async () => {
-    const member = await bootstrapMember(bc, { deposit: 200_000 })
-    const investHash = generateRandomSHA256()
-
-    const statement = signedBy(member)
-    const payload = {
-      coopname: COOP,
-      username: member,
-      invest_hash: investHash,
-      amount: rub(INVEST),
-      statement,
-    }
-
-    await bc.api.transact({
-      actions: [{
-        account: 'capital',
-        name: 'createpinv',
-        authorization: [{ actor: COOP, permission: 'active' }],
-        data: payload,
-      }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
-
-    const poolAfterFirst = await programFreePool(bc)
-
-    // Двойной клик по кнопке: то же заявление уходит второй раз. Заявление уже
-    // зафиксировано в реестре документов, поэтому взнос повториться не должен.
-    await expect(
-      bc.api.transact({
-        actions: [{
-          account: 'capital',
-          name: 'createpinv',
-          authorization: [{ actor: COOP, permission: 'active' }],
-          data: payload,
-        }],
-      }, { blocksBehind: 3, expireSeconds: 30 }),
-    ).rejects.toThrow()
-
-    expect(await programFreePool(bc),
-      'второй взнос не должен пополнить свободные средства программы').toBeCloseTo(poolAfterFirst, 2)
-  }, 900_000)
+  // cap.pinv.break.01 снят 02.11.2026 по решению владельца: контракт экономит RAM
+  // и истории принятых взносов не хранит, поэтому повтор того же заявления в
+  // цепи проводится. Повтор отсекает контроллер — случай перенесён на его уровень
+  // (test-registry/capital.program-invest.yaml).
 
   it('cap.pinv.side.02: взнос импортированного пайщика проходит — статус импорта операции не мешает', async () => {
     // Импортированный пайщик заведён с балансом, но регистрацию не завершал:

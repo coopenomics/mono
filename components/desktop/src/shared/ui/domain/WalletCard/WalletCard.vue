@@ -2,9 +2,12 @@
   <div
     :class="[
       'wallet',
-      { 'wallet--row': compact, 'wallet--stacked': stacked, 'wallet--empty': empty },
+      { 'wallet--row': compact, 'wallet--stacked': stacked, 'wallet--empty': empty, 'wallet--clickable': clickable, 'wallet--selected': selected },
     ]"
     :style="progStyle"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
+    :aria-pressed="clickable ? selected : undefined"
   >
     <span class="wallet__icon">
       <q-icon :name="resolvedIcon" />
@@ -28,7 +31,8 @@
             <template v-else-if="empty">0,00<span class="ccy">{{ symbol }}</span></template>
             <template v-else>{{ balance }}<span class="ccy">{{ symbol }}</span></template>
           </div>
-          <div class="wallet__metric-label">{{ balanceLabel ?? $t('ui.walletCard.availableLabel') }}</div>
+          <!-- Пустая строка снимает подпись: у суммы без условия («сейчас») подпись не нужна. -->
+          <div v-if="balanceLabel !== ''" class="wallet__metric-label">{{ balanceLabel ?? $t('ui.walletCard.availableLabel') }}</div>
         </div>
 
         <div v-if="lockedBalance !== undefined" class="wallet__locked-line">
@@ -55,6 +59,8 @@ import type { WalletCardProps, WalletProgram } from './WalletCard.types';
 import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<WalletCardProps>(), {
+  clickable: false,
+  selected: false,
   loading: false,
   compact: false,
   stacked: false,

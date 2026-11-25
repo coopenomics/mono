@@ -44,14 +44,14 @@ const MARKETPLACE_OPERATION_CODES: ReadonlySet<string> = new Set(
 )
 
 /**
- * Canonical список marketplace-операций паевой модели (14 шт), полностью
- * покрывающих жизненный цикл Order'а (паевой резерв, членский взнос, приём,
+ * Canonical список marketplace-операций паевой модели, полностью
+ * покрывающих жизненный цикл Order'а (паевой резерв, обеспечительная часть и её списание, приём,
  * выдача, отказ, уценка, отзыв паевого), гарантийный возврат и списание
  * скоропорта. Если этот список расходится с
  * `Ledger2.LEDGER2_OPERATION_REGISTRY` — это поломка контракта/cooptypes.
  */
 const EXPECTED_MARKETPLACE_OP_CODES = [
-  // p.mkt.supply (12 операций)
+  // p.mkt.supply (14 операций)
   'o.mkt.lock',
   'o.mkt.lockp',
   'o.mkt.unlock',
@@ -63,10 +63,13 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.conv',
   'o.mkt.fee',
   'o.mkt.refund',
+  'o.mkt.todue',
+  'o.mkt.charge',
   'o.mkt.recall',
   'o.mkt.exfee',
-  // p.mkt.return (1)
+  // p.mkt.return (2)
   'o.mkt.return',
+  'o.mkt.undue',
   // p.mkt.wroff (1)
   'o.mkt.wroff',
   // p.mkt.claim (2) + удержание долга и зачёт против суммы к оплате в нитке заказа (2)
@@ -76,9 +79,12 @@ const EXPECTED_MARKETPLACE_OP_CODES = [
   'o.mkt.offset',
 ] as const
 
+/** Типы процессов Стола заказов, под которыми идут его операции; p.mkt.due — списание по итогу периода (99D-33). */
+const MARKETPLACE_PROCESS_TYPES = ['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim', 'p.mkt.due']
+
 describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () => {
-  it('canonical список содержит 19 кодов', () => {
-    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(19)
+  it('canonical список содержит 22 кода', () => {
+    expect(EXPECTED_MARKETPLACE_OP_CODES).toHaveLength(22)
   })
 
   it('каждый код присутствует в LEDGER2_OPERATION_REGISTRY', () => {
@@ -99,9 +105,18 @@ describe('Story 11.2 — coverage marketplace operation_code в cooptypes', () =
     (code) => {
       const op = Ledger2.LEDGER2_OPERATION_REGISTRY.find((o) => o.code === code)!
       expect(op).toBeDefined()
-      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']).toContain(op.process_type)
+      expect(MARKETPLACE_PROCESS_TYPES).toContain(op.process_type)
     },
   )
+
+  it('списание по итогу периода идёт ниткой строки счётчика пайщика (p.mkt.due), а не заказа', () => {
+    // Задача 99D-33: строка счётчика объединяет заказы пайщика за период, хэша заказа у списания нет.
+    for (const code of ['o.mkt.charge', 'o.mkt.retdue']) {
+      expect(OPERATION_CODE_TO_PROCESS_TYPE[code]).toBe('p.mkt.due')
+    }
+    expect(PROCESS_HASH_LOCATOR['p.mkt.due']).toEqual([])
+    expect(KNOWN_PROCESS_TYPES.has('p.mkt.due')).toBe(true)
+  })
 
   it.each(EXPECTED_MARKETPLACE_OP_CODES)(
     '%s — OPERATION_CODE_TO_PROCESS_TYPE возвращает контрактный process_type (Phase A якорь)',
@@ -146,16 +161,19 @@ describe('Story 11.2 — wallet_op + Дт/Кт реестра соответст
     { code: 'o.mkt.lock', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.order', debit: null, credit: null },
     { code: 'o.mkt.lockp', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.order', debit: null, credit: null },
     { code: 'o.mkt.unlock', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.share', debit: null, credit: null },
-    { code: 'o.mkt.penal', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
+    { code: 'o.mkt.penal', walletOp: 'TRANSFER', walletFrom: 'w.mkt.order', walletTo: 'w.mkt.due', debit: null, credit: null },
     { code: 'o.mkt.purch', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.topay', debit: 10, credit: 76 },
     { code: 'o.mkt.payout', walletOp: 'BURN', walletFrom: 'w.mkt.topay', walletTo: null, debit: 76, credit: 51 },
     { code: 'o.mkt.consum', walletOp: 'BURN', walletFrom: 'w.mkt.order', walletTo: null, debit: 80, credit: 10 },
     { code: 'o.mkt.loss', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 91, credit: 10 },
-    { code: 'o.mkt.conv', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.member', debit: 80, credit: 86 },
-    { code: 'o.mkt.fee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.member', walletTo: 'w.mkt.fee', debit: null, credit: null },
-    { code: 'o.mkt.refund', walletOp: 'TRANSFER', walletFrom: 'w.mkt.fee', walletTo: 'w.mkt.member', debit: null, credit: null },
+    { code: 'o.mkt.conv', walletOp: 'TRANSFER', walletFrom: 'w.wal.share', walletTo: 'w.mkt.share', debit: null, credit: null },
+    { code: 'o.mkt.fee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.mkt.secure', debit: null, credit: null },
+    { code: 'o.mkt.refund', walletOp: 'TRANSFER', walletFrom: 'w.mkt.secure', walletTo: 'w.mkt.share', debit: null, credit: null },
+    { code: 'o.mkt.todue', walletOp: 'TRANSFER', walletFrom: 'w.mkt.secure', walletTo: 'w.mkt.due', debit: null, credit: null },
+    { code: 'o.mkt.charge', walletOp: 'TRANSFER', walletFrom: 'w.mkt.due', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
+    { code: 'o.mkt.undue', walletOp: 'TRANSFER', walletFrom: 'w.mkt.due', walletTo: 'w.mkt.share', debit: null, credit: null },
     { code: 'o.mkt.recall', walletOp: 'TRANSFER', walletFrom: 'w.mkt.share', walletTo: 'w.wal.share', debit: null, credit: null },
-    { code: 'o.mkt.exfee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.member', walletTo: 'w.mkt.fee', debit: null, credit: null },
+    { code: 'o.mkt.exfee', walletOp: 'TRANSFER', walletFrom: 'w.mkt.due', walletTo: 'w.mkt.fee', debit: 80, credit: 86 },
     { code: 'o.mkt.return', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.share', debit: 10, credit: 80 },
     { code: 'o.mkt.wroff', walletOp: 'NONE', walletFrom: null, walletTo: null, debit: 91, credit: 10 },
     { code: 'o.mkt.claim', walletOp: 'ISSUE', walletFrom: null, walletTo: 'w.mkt.claim', debit: null, credit: null },
@@ -241,14 +259,14 @@ describe('Story 11.2 — синтетическая трассировка apply
       // process_type (Phase A якорь в ProcessRegistryService.getProcess
       // делает ровно эту проверку).
       const processType = OPERATION_CODE_TO_PROCESS_TYPE[code]
-      expect(['p.mkt.supply', 'p.mkt.return', 'p.mkt.wroff', 'p.mkt.claim']).toContain(processType)
+      expect(MARKETPLACE_PROCESS_TYPES).toContain(processType)
     },
   )
 
   it('full-flow happy supply (createorder → signchair → issueact2) — одна process_hash, все операции under p.mkt.supply', () => {
     const processHash = 'supply-flow-hash'
     const sequence = [
-      'o.mkt.lock',
+      'o.mkt.lockp',
       'o.mkt.purch',
       'o.mkt.payout',
       'o.mkt.consum',

@@ -242,8 +242,13 @@ export class EdubridgeAccessOutboxService {
     if (task.kind === EduAccessTaskKind.GRANT) await this.clearRemovedMark(task.coopname, enrollment.learner_id);
     if (!task.recipient_override) {
       // Переопределённый получатель — это отзыв старого адреса при смене контакта; состояние не трогаем.
-      enrollment.access_state = task.kind === EduAccessTaskKind.GRANT ? EduAccessState.GRANTED : EduAccessState.REVOKED;
-      await this.enrollments.save(enrollment);
+      // Подписка перечитывается: пока шёл запрос к площадке, её мог закрыть выход
+      // пайщика или отказ. Сохранение снимка, прочитанного до запроса, вернуло бы
+      // закрытой подписке статус «действует» (Blackbox 44056883402, edu.access.happy.10:
+      // выдача доступа завершилась в ту же миллисекунду, что и закрытие по выходу).
+      const fresh = (await this.enrollments.findById(task.coopname, enrollment.id)) ?? enrollment;
+      fresh.access_state = task.kind === EduAccessTaskKind.GRANT ? EduAccessState.GRANTED : EduAccessState.REVOKED;
+      await this.enrollments.save(fresh);
     }
     this.events.emit(task.kind === EduAccessTaskKind.GRANT ? EDUBRIDGE_ACCESS_GRANTED_EVENT : EDUBRIDGE_ACCESS_REVOKED_EVENT, {
       coopname: task.coopname,

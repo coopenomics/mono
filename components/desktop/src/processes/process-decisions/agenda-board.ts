@@ -61,7 +61,9 @@ export function useAgendaBoard() {
 
   const onAuthorizeDecision = (row: IAgenda) => act(row, processor.authorizeAndExecuteDecision, t('cooperative.listOfAgendaQuestions.approvedSuccess'));
   // Отклонённое решение контракт стирает — повестка перечитывается без него.
-  const onDeclineDecision = (row: IAgenda) => act(row, processor.declineDecision, t('cooperative.listOfAgendaQuestions.rejectedSuccess'));
+  // Пояснение председателя (необязательное) хранится на узле и показывается тем, кого касается решение.
+  const onDeclineDecision = (row: IAgenda, reason = '') =>
+    act(row, (r) => processor.declineDecision(r, reason), t('cooperative.listOfAgendaQuestions.rejectedSuccess'));
   // Голос вопрос из повестки не убирает: он остаётся с отметкой голоса.
   const onVoteFor = (row: IAgenda) => act(row, processor.voteForDecision, t('cooperative.listOfAgendaQuestions.voteAcceptedSuccess'));
   const onVoteAgainst = (row: IAgenda) => act(row, processor.voteAgainstDecision, t('cooperative.listOfAgendaQuestions.voteAcceptedSuccess'));

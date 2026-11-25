@@ -20,6 +20,7 @@ import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-unit
 import type { MarketplaceContainerView } from 'src/entities/MarketplaceStorage'
 import type { MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 import { t } from 'src/shared/i18n';
+import { ActLineItem } from 'src/widgets/Marketplace/ActDialogLayout';
 
 const props = defineProps<{
   modelValue: boolean
@@ -119,6 +120,8 @@ DetailsDrawer(
       hover,
       min-width='660px'
     )
+      template(#cell-product='{ row }')
+        ActLineItem(:title='row.product_name_snapshot', :image-url='row.image_url')
       template(#cell-qty='{ row }')
         | {{ quantityLabel(row) }}
       template(#cell-orderer='{ row }')

@@ -14,6 +14,7 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   ACCOUNT_PORT,
   BRANCH_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   DOCUMENT_PORT,
   INDIVIDUAL_PORT,
@@ -39,5 +40,7 @@ export const kuPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Лента изменений: учёт доверенностей обновляет «Мой участок» и реестр.
+    CHAIN_CHANGES_PORT,
   ],
 };

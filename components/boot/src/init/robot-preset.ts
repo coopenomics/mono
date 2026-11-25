@@ -1,7 +1,8 @@
 /* eslint-disable node/prefer-global/process */
 import crypto from 'node:crypto'
 import { Client } from 'pg'
-import { Cooperative, SovietContract } from 'cooptypes'
+import { SovietContract } from 'cooptypes'
+import { IDecisionTypeInfo, decisionTypesRegistry } from '@coopenomics/docs-templates'
 import type Blockchain from '../blockchain'
 import { GOVERN_SYMBOL, provider } from '../configs'
 
@@ -21,8 +22,8 @@ const ROBOT_PERMISSION = 'robot'
  * Стола заказов берутся из общего реестра, а не перечисляются здесь: появится
  * новое — предустановка подхватит его сама.
  */
-function automatedDecisions(): Cooperative.Document.IDecisionTypeInfo[] {
-  const registry = Cooperative.Document.decisionTypesRegistry
+function automatedDecisions(): IDecisionTypeInfo[] {
+  const registry = decisionTypesRegistry
   return [
     registry.joincoop,
     ...Object.values(registry).filter(info => info.extension === 'market'),

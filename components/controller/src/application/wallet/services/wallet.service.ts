@@ -13,7 +13,7 @@ import { CreateWithdrawResponseDTO } from '../dto/create-withdraw-response.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import type { CreateDepositPaymentInputDTO } from '../../gateway/dto/create-deposit-payment-input.dto';
 import type { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';
 
@@ -55,7 +55,7 @@ export class WalletService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа заявления
-    data.registry_id = Cooperative.Registry.ReturnByMoney.registry_id;
+    data.registry_id = Registry.ReturnByMoney.registry_id;
 
     const document = await this.walletInteractor.generateReturnByMoneyStatementDocument(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов
@@ -70,7 +70,7 @@ export class WalletService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для документа решения
-    data.registry_id = Cooperative.Registry.ReturnByMoneyDecision.registry_id;
+    data.registry_id = Registry.ReturnByMoneyDecision.registry_id;
 
     const document = await this.walletInteractor.generateReturnByMoneyDecisionDocument(data, options || {});
     //TODO чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов

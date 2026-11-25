@@ -1,8 +1,6 @@
 import './i18n';
 import { Inject, Injectable, Module, Optional } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, isStandTimeCompressed, describeStandTime } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   DOCUMENT_APPROVAL_PORT,
   type IDocumentApprovalPort,
@@ -16,7 +14,7 @@ import { merge } from 'lodash';
 import { IConfig, defaultConfig, Schema } from './types';
 import { MarketplaceExtensionDomainModule } from './domain/marketplace-domain.module';
 import { MarketplaceExtensionApplicationModule } from './application/marketplace-application.module';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { MARKETPLACE_AGREEMENT_TYPE } from './constants/marketplace-agreement-ids';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
@@ -34,7 +32,8 @@ import { t } from './i18n';
 export const MARKETPLACE_FILE_STORAGE_PORT = Symbol('MARKETPLACE_FILE_STORAGE_PORT');
 
 /** Шаги подключения ЦПП советом; ключ шага = пакет документов = поле vars. */
-const MARKETPLACE_L1_STEPS = ['marketplace_provision', 'marketplace_offer_template'] as const;
+// Шаги подключения: Положение, оферта и договор об участии с бланками (99D-35).
+const MARKETPLACE_L1_STEPS = ['marketplace_provision', 'marketplace_offer_template', 'marketplace_invest'] as const;
 
 export interface IMarketplaceFileStoragePort {
   ensureBucket(bucketName: string): Promise<void>;
@@ -101,6 +100,9 @@ export class MarketplaceExtension extends BaseExtensionModule {
     await this.initBucket();
     this.registerInAgreementRegistry();
 
+    // Сжатое время стенда меняет гарантийные сроки и «первое число» списания:
+    // пусть это будет видно в журнале сразу при запуске.
+    if (isStandTimeCompressed()) this.logger.warn(`[MARKETPLACE.TIME] ${describeStandTime()}; в работе время всегда настоящее`);
     this.logger.info('marketplace-extension готов');
   }
 
@@ -191,7 +193,7 @@ export class MarketplaceExtension extends BaseExtensionModule {
       coopAcceptance: {
         accepted: true,
         document_registry_id:
-          Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
+          Registry.MarketplaceProgramTemplate.registry_id,
         accepted_at: acceptedAt,
         accepted_by_board_decision_id: boardDecisionRef,
       },

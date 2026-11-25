@@ -574,7 +574,6 @@ Widget-режим использует облегчённый лейаут (`wid
 Перед разработкой desktop необходимо собрать зависимости (порядок важен):
 ```bash
 pnpm --filter cooptypes run build
-pnpm --filter @coopenomics/factory run build
 pnpm --filter @coopenomics/sdk run build
 pnpm --filter @coopenomics/notifications run build
 ```

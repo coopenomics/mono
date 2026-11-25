@@ -1,4 +1,4 @@
-import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { rethrowChainError, DomainError, standDaySeconds } from '@coopenomics/extension-kit';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
@@ -527,10 +527,12 @@ export class MarketplaceStockService {
     const total_cost = (priceFloat * saleUnitCount).toFixed(this.assetConfig.decimals);
     const unit_price_asset = `${priceFloat.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
-    const warranty_period_secs = offer.warranty_days * 86_400;
+    // Сутки — по шкале времени стенда: в работе настоящие, на стенде разработки
+    // сжатые, чтобы гарантия и списание обеспечительной части проходились за минуты.
+    const warranty_period_secs = offer.warranty_days * standDaySeconds();
 
-    // Паевая модель: внутренний членский кошелёк первым (взнос и тело), остаток
-    // тела — со свободного паевого «Стола заказов»; недостающее пайщик переводит
+    // Паевая модель (задача 99D-18): со свободного паевого «Стола заказов»
+    // сначала обеспечительная часть, затем тело; недостающее пайщик транслирует
     // действием convert в той же транзакции. При нехватке контракт откажет с суммами.
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).

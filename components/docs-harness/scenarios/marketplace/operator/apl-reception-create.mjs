@@ -5,8 +5,10 @@
 // ручной ввод («Или введите код вручную»): это тот же путь, которым оператор
 // пользуется, когда камера недоступна.
 //
-// Код поставщика имеет вид `blago:pickup:<кооператив>:<пайщик>` и показывается
-// на столе поставщика кнопкой «Мой код для ПВЗ».
+// Код поставщика показывается на его столе кнопкой «Мой код для ПВЗ».
+// Оператор читает его общим сканером стола — кнопкой «Сканировать» в шапке
+// (598-62); сервер узнаёт поставщика и ведёт на приёмку. Ручной ввод
+// оператора понимает логин пайщика — его и вводим.
 //
 // Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель Красногорск,
 // он же оператор участка на стенде.
@@ -15,13 +17,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { openScanner, pickMatterIfAsked, scanButton, submitCode } from '../../../lib/marketplace-scan.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
-const SUPPLIER_CODE = `blago:pickup:${process.env.COOPNAME || 'voskhod'}:ivanpetrov`;
+const SUPPLIER_CODE = 'ivanpetrov';
 
 /**
  * Партия приходит не такой, какой её заказали: поставщик привёз на единицу
@@ -62,7 +65,7 @@ export default async ({ page, shot, expect }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
-  await page.waitForSelector('button:has-text("Сканировать QR")', { timeout: 60000 });
+  await scanButton(page).waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
@@ -79,19 +82,19 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await page.locator('button:has-text("Сканировать QR")').first().click();
-  await page.waitForSelector('text=Сканирование QR партии', { timeout: 20000 });
+  const scanDialog = await openScanner(page);
   await page.waitForTimeout(1000);
 
   await shot(
     page,
     '02-scan-dialog',
-    'Диалог приёмки: оператор наводит камеру на код передачи либо вводит его вручную — например когда поставщик показывает код с распечатки.',
+    'Окно общего сканера стола: оператор наводит камеру на код поставщика либо вводит код вручную — например когда поставщик показывает его с распечатки.',
   );
 
-  await page.locator('input').first().fill(SUPPLIER_CODE);
-  await page.locator('button:has-text("Применить")').first().click();
-  await page.waitForTimeout(6000);
+  await submitCode(page, scanDialog, SUPPLIER_CODE);
+  await scanDialog.waitFor({ state: 'hidden', timeout: 20000 });
+  await pickMatterIfAsked(page, 'reception');
+  await page.waitForTimeout(3000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
 
@@ -100,9 +103,12 @@ export default async ({ page, shot, expect }) => {
   // Правим факт: количество и цену. Поля управляемые — без blur модель
   // остаётся с прежним значением, и акт уйдёт на заказанных числах при
   // внешне правильном экране.
-  const factInputs = page.locator('.reception__unit-fact input');
-  const qtyInput = factInputs.nth(1); // 0 — «Заказано», только для чтения
-  const priceInput = factInputs.nth(2);
+  // Таблица позиций окна (ActLinesTable): галка позиции, «Заказано» — текст,
+  // числовые поля в строке — «Принять» и «Цена». Галка — тоже input
+  // (скрытый checkbox), поэтому берём только числовые.
+  const factInputs = page.locator('.act-lines__cell input[type="number"]');
+  const qtyInput = factInputs.nth(0);
+  const priceInput = factInputs.nth(1);
   await qtyInput.click();
   await qtyInput.fill(String(FACT_QUANTITY));
   await qtyInput.blur();
@@ -129,7 +135,7 @@ export default async ({ page, shot, expect }) => {
     },
   );
 
-  await page.locator('button:has-text("Сформировать акты")').first().click();
+  await page.locator('button:has-text("Отправить на подпись")').first().click();
   await page.waitForTimeout(8000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
@@ -137,7 +143,7 @@ export default async ({ page, shot, expect }) => {
   await shot(
     page,
     '04-acts-created',
-    'Акт приёма-передачи сформирован. Дальше его подписывает поставщик, а закрывающую подпись ставит председатель участка — только после этого имущество оприходуется на склад.',
+    'Сверенные количества и цены отправлены поставщику на подпись. Поставщик подписывает акт приёма-передачи, а закрывающую подпись ставит председатель участка — только после этого имущество оприходуется на склад.',
     {
       preserveNotifications: true,
       expect: async (p) => {

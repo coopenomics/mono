@@ -1,4 +1,5 @@
 /** Экономика курса: себестоимость из часов по ставке, наценка кооператива, взнос за весь курс разом со скидкой, план и факт. */
+import { InnerPayoutRequestStatus, PaymentStatus } from '@coopenomics/innercoop';
 import { EdubridgeEconomyService } from '~/extensions/edubridge/application/services/edubridge-economy.service';
 import { calculateCourseFee, feeForMonths, feeForPeriod, maxCourseDiscountPercent } from '~/extensions/edubridge/domain/economy/course-fee.calculator';
 import { EduAssignmentStatus, EduContractStatus } from '~/extensions/edubridge/domain/enums';
@@ -32,6 +33,8 @@ function make(
     returns?: any[];
     contributions?: any[];
     payments?: Record<string, any>;
+    /** Заявки на выплату до решения совета по хэшу. */
+    requests?: Record<string, any>;
   } = {}
 ) {
   const config = {
@@ -55,7 +58,10 @@ function make(
     getAccounts: jest.fn(async () => []),
   } as any;
   const userWallets = { findByWallet: jest.fn(async () => options.memberShares ?? []) } as any;
-  const payments = { findByHash: jest.fn(async (h: string) => options.payments?.[h] ?? null) } as any;
+  const payments = {
+    findByHash: jest.fn(async (h: string) => options.payments?.[h] ?? null),
+    findPayoutRequestByHash: jest.fn(async (h: string) => options.requests?.[h] ?? null),
+  } as any;
   return {
     service: new EdubridgeEconomyService(config, courses, teachers, names, extensions, ledger, userWallets, payments, { findByCourse: jest.fn(async () => []), findByGroup: jest.fn(async () => []) } as any, { findByCourse: jest.fn(async () => []), findByGroup: jest.fn(async () => []) } as any, { list: jest.fn(async () => []), viewOf: (c: any) => c } as any),
     teachers,
@@ -313,7 +319,8 @@ describe('Выписка преподавателя', () => {
       history: [accepted],
       contributions: [{ id: 'K1', act_hash: 'act1' }],
       returns: [ret],
-      payments: { [HASH]: { status: 'awaiting_authorization' } },
+      // До решения совета платежа нет — возврат держит заявка на выплату.
+      requests: { [HASH]: { status: InnerPayoutRequestStatus.AWAITING } },
     });
     const items = await service.settlementJournal('voskhod', 'ant');
     // Книга учёта читается только по кошельку преподавателя и только по зачислениям: чужое и фонд в выписку не попадают.
@@ -340,7 +347,23 @@ describe('Выписка преподавателя', () => {
     expect(row!.status).toBe(status);
   });
 
-  it('платёж возврата не найден — возврат показан как несостоявшийся, а не как ожидающий', async () => {
+  it.each([
+    [InnerPayoutRequestStatus.AWAITING, 'council_review'],
+    [InnerPayoutRequestStatus.RELEASED, 'awaiting_payout'],
+    [InnerPayoutRequestStatus.DECLINED, 'declined'],
+  ])('платежа ещё нет, заявка «%s» — возврат «%s»', async (request, status) => {
+    const { service } = make({ returns: [ret], requests: { [HASH]: { status: request } } });
+    const [row] = await service.settlementJournal('voskhod', 'ant');
+    expect(row!.status).toBe(status);
+  });
+
+  it('платёж «ожидает решения совета», заведённый до заявок, показывает возврат на рассмотрении совета', async () => {
+    const { service } = make({ returns: [ret], payments: { [HASH]: { status: PaymentStatus.AWAITING_AUTHORIZATION } } });
+    const [row] = await service.settlementJournal('voskhod', 'ant');
+    expect(row!.status).toBe('council_review');
+  });
+
+  it('ни платежа, ни заявки — возврат показан как несостоявшийся, а не как ожидающий', async () => {
     const { service } = make({ returns: [ret] });
     const [row] = await service.settlementJournal('voskhod', 'ant');
     expect(row!.status).toBe('declined');

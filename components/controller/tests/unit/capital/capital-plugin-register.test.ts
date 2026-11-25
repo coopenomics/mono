@@ -15,7 +15,7 @@
  *       идемпотентность гарантируется AgreementRegistryService).
  */
 
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { registerCapitalInAgreementRegistry } from '~/extensions/capital/application/registration/register-capital-in-agreement-registry';
 
 const baseConfig = {
@@ -81,7 +81,7 @@ describe('registerCapitalInAgreementRegistry', () => {
     expect(port.registerAgreement).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'generator_offer',
-        registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
+        registry_id: Registry.GeneratorOffer.registry_id,
         agreement_type: 'generator',
         extension_name: 'capital',
         applicable_account_types: [],
@@ -91,7 +91,7 @@ describe('registerCapitalInAgreementRegistry', () => {
     expect(port.registerAgreement).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'blagorost_offer',
-        registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
+        registry_id: Registry.BlagorostOffer.registry_id,
         agreement_type: 'capital',
         extension_name: 'capital',
         // Пусто — оферта подтягивается через программу CAPITALIZATION,

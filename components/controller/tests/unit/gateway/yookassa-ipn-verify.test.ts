@@ -24,7 +24,7 @@ function build() {
   const channel = { publish: jest.fn().mockResolvedValue(undefined) };
   const ext = new YookassaExtension({} as any, payments as any, noticeLog as any, logger as any, channel as any, {} as any);
   ext.extension = { config: { client: 'shop', secret: 'key' } } as any;
-  return { ext, payments, noticeLog };
+  return { ext, payments, noticeLog, channel };
 }
 
 function notice(event: string, value: string) {
@@ -75,7 +75,7 @@ describe('ЮKassa IPN: статус берётся у ЮKassa, а не из те
   });
 
   it('подтверждённая ЮKassa оплата проводится', async () => {
-    const { ext, payments, noticeLog } = build();
+    const { ext, payments, noticeLog, channel } = build();
     getPayment.mockResolvedValue({
       id: 'yk-1',
       status: 'succeeded',
@@ -88,6 +88,9 @@ describe('ЮKassa IPN: статус берётся у ЮKassa, а не из те
 
     expect(noticeLog.record).toHaveBeenCalled();
     expect(payments.update).toHaveBeenCalledWith('db-1', { status: PaymentStatus.PAID });
+    // Сигнал шлюзу — объектом: строку JSON порт сериализовал бы второй раз, и
+    // шлюз получал пустой id — взнос не зачислялся (24.11.2026).
+    expect(channel.publish).toHaveBeenCalledWith('voskhod:orderStatusUpdate', { id: 'db-1', status: PaymentStatus.PAID });
   });
 
   it('платёж без секрета кооператива не проводится чужому пополнению', async () => {

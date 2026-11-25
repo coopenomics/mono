@@ -10,7 +10,7 @@ import { walletEventsTopic } from '../services/wallet-events.service';
  */
 describe('WalletResolver.walletEvents', () => {
   const asyncIterator = jest.fn((topic: string) => ({ topic }) as unknown as AsyncIterator<unknown>);
-  const resolver = new WalletResolver({} as never, { asyncIterator } as never);
+  const resolver = new WalletResolver({} as never, { asyncIterator } as never, {} as never);
 
   beforeEach(() => asyncIterator.mockClear());
 

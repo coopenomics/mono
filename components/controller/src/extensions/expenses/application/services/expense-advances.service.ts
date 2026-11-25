@@ -63,13 +63,22 @@ export class ExpenseAdvancesService {
     };
   }
 
-  /** Хеши строк-авансов с открытой платёжкой расчёта разницы. */
+  /**
+   * Хеши строк-авансов с открытой платёжкой расчёта разницы.
+   *
+   * Реестр платежей отбирает по виду только направление (входящий/исходящий):
+   * на запрос доплаты перерасхода он отдаёт все исходящие, в том числе платёж
+   * выдачи самого аванса с тем же item_hash. Поэтому вид сверяется здесь; до
+   * 04.11.2026 выдача считалась открытой доплатой, и каждый выданный аванс
+   * стоял на кассе в «возврат или доплата» вместо «ждёт отчёта».
+   */
   async settlingItems(coopname: string): Promise<Set<string>> {
     const out = new Set<string>();
     for (const type of SETTLEMENT_TYPES) {
       for (let page = 1; ; page++) {
         const found = await this.payments.list({ coopname, type }, { page, limit: SETTLEMENT_PAGE, sortOrder: 'DESC' });
         for (const payment of found.items) {
+          if (payment.type !== type) continue;
           const itemHash = (payment.blockchain_data as { item_hash?: string } | undefined)?.item_hash;
           if (itemHash && SETTLEMENT_OPEN.has(payment.status)) out.add(itemHash.toLowerCase());
         }

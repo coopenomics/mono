@@ -16,3 +16,7 @@ export interface ILoadNotificationsInput {
   filter: INotificationsFilter;
   pagination: IJournalPagination;
 }
+
+/** Уведомление с текстом и историей попыток — для правой панели журнала. */
+export type INotificationDetail =
+  Queries.Notification.GetNotification.IOutput[typeof Queries.Notification.GetNotification.name];

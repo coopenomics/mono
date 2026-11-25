@@ -263,6 +263,14 @@ void expense::payexp(name coopname, checksum256 proposal_hash, checksum256 item_
   const auto code = static_cast<D::Mechanics>(paid_mechanics) == D::Mechanics::ADVANCE
     ? ops.advance
     : ops.direct;
+  // Транзит через фонд (задача 99D-25, решение владельца 03.11.2026): деньги
+  // выходят из кооператива только с кошелька фонда — сумма переводится с пула на
+  // фонд без проводки, затем списывается с фонда той же транзакцией. Оборот
+  // фонда — расходы по факту, остаток фонда не меняется.
+  if (ops.has_transit()) {
+    Ledger2::apply(get_self(), coopname, ops.to_fund, processes::expense::PROPOSAL, actual_amount,
+                   paid_recipient, proposal_hash, "expense:payexp:tofund");
+  }
   Ledger2::apply(get_self(), coopname, code, processes::expense::PROPOSAL, actual_amount,
                  paid_recipient, proposal_hash, "expense:payexp");
 }
@@ -377,11 +385,18 @@ void expense::returnexp(name coopname, checksum256 proposal_hash, checksum256 it
     row.updated_at   = eosio::current_time_point();
   });
 
-  // ledger2: TRANSFER подотчёт → пул-источник (зеркало выдачи аванса).
-  // Подотчёт снимается с получателя аванса.
-  Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).refund,
+  // ledger2: TRANSFER подотчёт → кошелёк выплаты (зеркало выдачи аванса).
+  // Подотчёт снимается с получателя аванса. При транзите через фонд (99D-25)
+  // сумма возвращается на фонд и той же транзакцией — с фонда в пул-источник.
+  const auto& ops = expense_ops_for(it->source_wallet);
+  Ledger2::apply(get_self(), coopname, ops.refund,
                  processes::expense::PROPOSAL, return_amount,
                  item_recipient, proposal_hash, "expense:returnexp");
+  if (ops.has_transit()) {
+    Ledger2::apply(get_self(), coopname, ops.from_fund,
+                   processes::expense::PROPOSAL, return_amount,
+                   item_recipient, proposal_hash, "expense:returnexp:fromfund");
+  }
 }
 
 void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256 item_hash,
@@ -425,7 +440,15 @@ void expense::overspendexp(name coopname, checksum256 proposal_hash, checksum256
 
   // ledger2: доплата перерасхода — TRANSFER пул-источник → подотчёт получателя
   // (зеркало выдачи аванса на сумму доплаты). Закрытие на полную сумму — в reportexp.
-  Ledger2::apply(get_self(), coopname, expense_ops_for(it->source_wallet).overspend,
+  // Доплата идёт тем же путём, что аванс: при транзите (99D-25) сначала с пула
+  // на кошелёк фонда, затем с фонда получателю — одной транзакцией.
+  const auto& ops = expense_ops_for(it->source_wallet);
+  if (ops.has_transit()) {
+    Ledger2::apply(get_self(), coopname, ops.to_fund,
+                   processes::expense::PROPOSAL, overspend_amount,
+                   item_recipient, proposal_hash, "expense:overspend:tofund");
+  }
+  Ledger2::apply(get_self(), coopname, ops.overspend,
                  processes::expense::PROPOSAL, overspend_amount,
                  item_recipient, proposal_hash, "expense:overspend");
 }

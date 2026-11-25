@@ -20,9 +20,17 @@ export const meta = {
 
 const PROOF = path.join(HARNESS_ROOT, 'fixtures', 'sok.jpg');
 
-/** Первая исходящая строка реестра, которая ждёт кассира. */
+/**
+ * Первая исходящая строка реестра, которая ждёт кассира. Колонки «Направление»
+ * в реестре кассира нет: исходящий платёж отмечен стрелкой вверх у суммы
+ * (иконка arrow_upward), слово «Исходящий» — только во всплывающей подсказке.
+ */
 function pendingRow(page) {
-  return page.locator('tr.data-row').filter({ hasText: 'Исходящий' }).filter({ has: page.locator('button:has-text("Подтвердить")') }).first();
+  return page
+    .locator('tr.data-row')
+    .filter({ has: page.locator('i.q-icon', { hasText: 'arrow_upward' }) })
+    .filter({ has: page.locator('button:has-text("Подтвердить")') })
+    .first();
 }
 
 /** Кассир подтверждает платёж строки: кнопка в строке, подтверждение в окне. */
@@ -40,7 +48,7 @@ export default async ({ page, context, shot, expect }) => {
 
   await loginAsChairman(page, context);
   await settleAfterLogin(page);
-  await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/soviet/payments`, 'Платеж');
+  await openPage(page, `${env.APP_PREFIX}/${env.COOPNAME}/cashier/payments`, 'Платеж');
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await shot(page, '01-registry', 'Реестр платежей кооператива: исходящие платежи по решениям совета ждут кассира — возврат паевого взноса преподавателю и оплата расхода программы. Кассир переводит деньги по реквизитам и подтверждает платёж.');

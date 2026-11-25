@@ -15,7 +15,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf, waitFor } from '../core'
 import { ensureCapitalInitialized, fundProgramPool } from '../capital/cap-metrics.helpers'
 import {
   CREATE_PROPOSAL,
@@ -49,6 +49,9 @@ const FILES_BY_ITEM = `query($c:String!,$h:String!,$i:String!){ expenseFilesByIt
 
 const ORG_REQUISITES = 'ООО «Поставщик-Тест», ИНН 7700000000, р/с 40702810900000000002, БИК 044525225'
 const ORG_PURPOSE = 'Оплата по счёту № 17 за канцелярские товары'
+// Назначение платежа записывается без «ё»: банк её не принимает (c66afca91b6,
+// 99D-20, 06.11.2026). Подаётся с «ё», в снимке и платеже — с «е».
+const ORG_PURPOSE_SAVED = 'Оплата по счету № 17 за канцелярские товары'
 const PHONE = '+79990001122'
 
 /** Ищет записку в постраничном списке кооператива. */
@@ -178,11 +181,25 @@ describe('expenses: служебная записка на расход', () => 
     expect(rows).toHaveLength(2)
     const org = rows.find(r => r.item_hash === orgItem)
     const adv = rows.find(r => r.item_hash === memberItem)
-    expect(org).toMatchObject({ requisites: ORG_REQUISITES, payment_purpose: ORG_PURPOSE })
+    expect(org).toMatchObject({ requisites: ORG_REQUISITES, payment_purpose: ORG_PURPOSE_SAVED })
     expect(adv?.recipient).toBe(recipient.account)
     expect(String(adv?.method_type).toLowerCase()).toBe('sbp')
     expect(JSON.stringify(adv?.data)).toContain(PHONE)
     expect(String(adv?.payment_purpose)).toMatch(/аванс/i)
+  })
+
+  // 28.10.2026: строка организации несла пустого получателя — реестр и касса
+  // показывали прочерк; название из формы подачи теперь в снимке.
+  it(caseName('exp.prop.side.recipient-org', 'получатель строки организации в снимке — её название из формы подачи'), async () => {
+    const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
+    expect(rows.find(r => r.item_hash === orgItem)?.recipient).toBe('ООО «Поставщик-Тест»')
+    expect(rows.find(r => r.item_hash === memberItem)?.recipient).toBe(recipient.account)
+  })
+
+  it(caseName('exp.prop.side.advance-memo', 'назначение аванса пайщику — «Аванс под отчёт №<8 знаков хэша позиции>. НДС не облагается.»'), async () => {
+    const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
+    expect(rows.find(r => r.item_hash === memberItem)?.payment_purpose).toBe(`Аванс под отчет №${memberItem.slice(0, 8)}. НДС не облагается.`)
+    expect(rows.find(r => r.item_hash === orgItem)?.payment_purpose).toBe(ORG_PURPOSE_SAVED)
   })
 
   // До 25.09.2026 отказ контракта в мутации приходил ответом 500 без кода:
@@ -296,9 +313,13 @@ describe('expenses: служебная записка на расход', () => 
     expect(await gqlError(council, ADVANCES, { c: COOP, o: { page: 1, limit: 10 } })).toBeNull()
   })
 
-  it(caseName('exp.adv.side.04', 'лимит сверх предела и неизвестная колонка сортировки список авансов не роняют'), async () => {
-    const d = await gql<any>(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 500, sortBy: 'drop table', sortOrder: 'ASC' } })
+  it(caseName('exp.adv.side.04', 'лимит сверх предела обрезается, строка вместо имени колонки сортировки — отказ проверки ввода, список не роняется'), async () => {
+    const d = await gql<any>(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 500, sortOrder: 'ASC' } })
     expect(d.expenseAdvancesByCooperative.items.length).toBeLessThanOrEqual(200)
+    // С 23.09.2026 (0bfed1531c8) sortBy пропускает только имя колонки: строка
+    // клиента в ORDER BY давала вычитать базу подзапросом.
+    const err = await gqlError(chairman, ADVANCES, { c: COOP, o: { page: 1, limit: 10, sortBy: 'drop table', sortOrder: 'ASC' } })
+    expect(String(err?.code)).toBe('422')
   })
 
   // ── Права на операции со строками ────────────────────────────────────────
@@ -500,7 +521,10 @@ describe('expenses: служебная записка на расход', () => 
     expect(itemStatus(p, memberItem)).toBe('PAID')
 
     // exp.adv.happy.01: выданный аванс стоит на кассе — получатель по ФИО, сумма, «ждёт отчёта».
-    const issued = await findAdvance(chairman, memberItem, 'AWAITING_REPORT')
+    // Реестр авансов читает строки записки из базы; оплата доходит до неё
+    // разбором блока, поэтому аванс ждём, а не читаем сразу.
+    const issued = await waitFor(() => findAdvance(chairman, memberItem, 'AWAITING_REPORT'),
+      { timeoutMs: 60_000, intervalMs: 1_000, label: 'выданный аванс в реестре авансов' })
     expect(issued).toMatchObject({ proposal_hash: draft.proposal_hash, recipient: recipient.account, advance_amount: '700.0000 RUB', spent_amount: null, state: 'AWAITING_REPORT' })
     expect(issued.recipient_name).not.toBe(recipient.account)
     // exp.adv.happy.02: отбор по состоянию — среди отчитанных его ещё нет; строка организации авансом не числится.

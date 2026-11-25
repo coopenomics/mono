@@ -28,6 +28,8 @@ export interface ShipmentDetailsOrderLine {
   id: string
   shipment_id?: string | null
   product_name?: string | null
+  /** Обложка товара; пусто — нейтральный значок. */
+  image_url?: string | null
   orderer_name?: string | null
   orderer_account: string
   quantity: number

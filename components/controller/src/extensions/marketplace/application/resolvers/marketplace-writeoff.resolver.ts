@@ -1,6 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { toGeneratedDocumentDTO } from '../shared/generated-document.util';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import {
   GqlJwtAuthGuard,
   PaginationInputDTO,
@@ -33,17 +34,8 @@ import {
 } from '../dto/marketplace-writeoff.dto';
 import { MarketplaceWriteoffService } from '../services/marketplace-writeoff.service';
 import { toMarketplaceWriteoffProposalDTO } from './marketplace-writeoff.mapper';
-import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 
-function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO {
-  const dto = new GeneratedDocumentDTO();
-  dto.full_title = e.full_title;
-  dto.html = e.html;
-  dto.hash = e.hash;
-  dto.meta = e.meta;
-  dto.binary = e.binary;
-  return dto;
-}
 
 /**
  * Эпик 8: GraphQL-фасад для процесса списания скоропорта через решение
@@ -208,8 +200,8 @@ export class MarketplaceWriteoffResolver {
     // Количество и единица — в единицах отпуска (списываем целыми упаковками),
     // размерность берётся со склада.
     const presentations = await this.service.resolveItemPresentations(draft.items);
-    const action: Cooperative.Registry.MarketplaceWriteoffStatement.Action = {
-      registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
+    const action: Registry.MarketplaceWriteoffStatement.Action = {
+      registry_id: Registry.MarketplaceWriteoffStatement.registry_id,
       coopname: draft.coopname,
       username: member.username,
       lang: 'ru',
@@ -300,8 +292,8 @@ export class MarketplaceWriteoffResolver {
     @Args('data') data: MarketplaceWriteoffServiceMemoSignablePayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
     const memo = await this.service.getServiceMemoData(data.proposal_id, data.braname);
-    const action: Cooperative.Registry.MarketplaceWriteoffServiceMemo.Action = {
-      registry_id: Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id,
+    const action: Registry.MarketplaceWriteoffServiceMemo.Action = {
+      registry_id: Registry.MarketplaceWriteoffServiceMemo.registry_id,
       coopname: platformSettings().coopname,
       username: member.username,
       lang: 'ru',

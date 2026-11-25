@@ -156,5 +156,36 @@ export * as AddSupplier from './addSupplier'
 export * as ApproveSupplier from './approveSupplier'
 /** Отклонение заявки поставщика (председатель) */
 export * as RejectSupplier from './rejectSupplier'
+export * as SuspendSupplier from './suspendSupplier'
+export * as ResumeSupplier from './resumeSupplier'
 /** Смена модели работы поставщика (переподписание договора) */
 export * as SwitchSupplierModel from './switchSupplierModel'
+/** Поставщик правит свой профиль */
+export * as UpdateMySupplierProfile from './updateMySupplierProfile'
+/** Администратор правит профиль кооператива */
+export * as UpdateCooperativeProfile from './updateCooperativeProfile'
+/** Заказчик оставляет отзыв по полученному заказу */
+export * as CreateReview from './createReview'
+/** Автор правит свой отзыв */
+export * as UpdateMyReview from './updateMyReview'
+/** Администратор скрывает отзыв либо возвращает его в публикацию */
+export * as SetReviewStatus from './setReviewStatus'
+export * as SetInitiatorShare from './setInitiatorShare'
+/** Доля пайщиков в экономии месяца — первое деление экономии, отдельная настройка */
+export * as SetReturnShare from './setReturnShare'
+export * as SetAidLimit from './setAidLimit'
+export * as SetBranchReserve from './setBranchReserve'
+export * as DeleteBranchReserve from './deleteBranchReserve'
+
+// Инвестиционный этап кооперативного участка (99D-30, 99D-31).
+export * as SignInvestAgreement from './signInvestAgreement'
+export * as InvestMoney from './investMoney'
+export * as CreateInvestProperty from './createInvestProperty'
+export * as ApproveInvestProperty from './approveInvestProperty'
+export * as SignInvestPropertyAct from './signInvestPropertyAct'
+export * as DeclineInvestProperty from './declineInvestProperty'
+export * as ClaimInvestment from './claimInvestment'
+
+// Логотип кооператива: ядро хранит файл, стол заказов меняет его в профиле кооператива.
+export * as UploadCooperativeLogo from './uploadCooperativeLogo'
+export * as RemoveCooperativeLogo from './removeCooperativeLogo'

@@ -4,18 +4,21 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { DocumentNotApprovedError, Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/docs-factory';
 import type { Cooperative } from 'cooptypes';
-import config from '~/config/config';
+import type { ICooperativeData, IGenerate, IGeneratedDocument, IGenerationOptions } from '@coopenomics/docs-templates';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
+import { PgFactoryStorage } from './pg-factory-storage';
+import { assertDocsFactoryVersion } from './docs-factory-version';
 
 /**
- * Коллекции генератора (MongoDB) и их имена в ленте изменений. Личные данные
- * пайщика, способы оплаты и переменные кооператива живут не в Postgres —
- * подписчик базы узла их не видит, поэтому сигнал шлёт этот сервис после
- * записи. Имена объявлены в `chain-changes.service.ts`.
+ * Коллекции генератора и их имена в ленте изменений. Личные данные пайщика,
+ * способы оплаты и переменные кооператива фабрика пишет своим соединением
+ * мимо шлюзов таблиц — подписчик базы узла этих записей не видит, поэтому
+ * сигнал шлёт этот сервис после записи. Имена объявлены в
+ * `chain-changes.service.ts`.
  */
 const GENERATOR_FEED_TABLES: Record<string, string> = {
   individual: 'private_accounts',
@@ -35,6 +38,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   constructor(
     private readonly chainDataSource: ControllerChainDataSource,
+    private readonly pgStorage: PgFactoryStorage,
     @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null
   ) {
     this.generator = new Generator(this.chainDataSource);
@@ -48,11 +52,9 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   }
 
   async onModuleInit() {
-    await this.connect(config.mongoose.url);
-  }
-
-  async connect(url: string): Promise<void> {
-    await this.generator.connect(url);
+    assertDocsFactoryVersion();
+    // Хранилище фабрики — PostgreSQL контроллера (шаг 5 фабрики v2).
+    await this.generator.connect(this.pgStorage);
   }
 
   async disconnect(): Promise<void> {
@@ -60,9 +62,9 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   }
 
   async generate(
-    data: Cooperative.Document.IGenerate,
-    options?: Cooperative.Document.IGenerationOptions
-  ): Promise<Cooperative.Document.IGeneratedDocument> {
+    data: IGenerate,
+    options?: IGenerationOptions
+  ): Promise<IGeneratedDocument> {
     return await this.generator.generate(data, options);
   }
 
@@ -81,21 +83,17 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     hash: string;
     block_num?: number;
     meta?: unknown;
-  }): Promise<Cooperative.Document.IGeneratedDocument | null> {
+  }): Promise<IGeneratedDocument | null> {
     // Точная версия по meta подписанного документа: у двух генераций в одном
     // блоке совпадают и тело, и block_num (C28-80).
     if (query.meta !== undefined && query.meta !== null) {
-      const exact = await this.generator.getDocument({ hash: query.hash, meta_key: documentMetaKey(query.meta) } as never);
+      const exact = await this.generator.getDocument({ hash: query.hash, meta_key: documentMetaKey(query.meta) });
       if (exact) return exact;
     }
-    // Черновики версионируются по (hash + meta.block_num). При наличии
-    // block_num тянем точную версию через dot-path mongo-фильтр, иначе —
-    // любую версию с этим hash (легаси/превью).
-    const filter: Record<string, unknown> = { hash: query.hash };
-    if (query.block_num !== undefined && query.block_num !== null) {
-      filter['meta.block_num'] = query.block_num;
-    }
-    return await this.generator.getDocument(filter as never);
+    // Без меты — версия по (hash + блок черновика), без блока — первая
+    // сохранённая версия с этим hash (документы до ключа меты, превью).
+    const block_num = query.block_num ?? undefined;
+    return await this.generator.getDocument({ hash: query.hash, block_num });
   }
 
   async get<T = any>(collection: string, query: Record<string, any>): Promise<T | null> {
@@ -120,7 +118,23 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return await (this.generator as any).getHistory(collection as any, filter);
   }
 
-  async constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null> {
+  /**
+   * Сохранённые документы узла порцией — для аудита пересборки (фабрика v2,
+   * шаг 0). Отдаёт только хэш, мету и HTML: PDF не нужен, он сверяется по
+   * хэшу. Порядок по `_id`, устойчив между порциями.
+   */
+  async listStoredDocuments(query: { registry_id?: number; offset: number; limit: number }): Promise<
+    Array<Pick<IGeneratedDocument, 'hash' | 'meta' | 'html'>>
+  > {
+    return this.generator.listDocuments({ registry_id: query.registry_id ?? undefined, offset: query.offset, limit: query.limit });
+  }
+
+  /** Число сохранённых документов под тем же отбором, что и `listStoredDocuments`. */
+  async countStoredDocuments(registry_id?: number): Promise<number> {
+    return this.generator.countDocuments(registry_id ?? undefined);
+  }
+
+  async constructCooperative(username: string, block_num?: number): Promise<ICooperativeData | null> {
     return await this.generator.constructCooperative(username, block_num);
   }
 

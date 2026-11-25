@@ -55,6 +55,7 @@ export const marketplaceStockProposalSelector = Selector('MarketplaceStockPropos
     unit_of_measure: true,
     package_size: true,
     package_label: true,
+    image_url: true,
     order_id: true,
     order_hash: true,
     ordered_quantity: true,

@@ -1,58 +1,84 @@
 /**
- * Story 5.6 / 5.7 + E11 техдолг 598-16 (Locked Decision L12):
+ * Пакет выплаты поставщику — проекция строки `marketplace::payouts` и её
+ * исходящего платежа в gateway (решение владельца 19.11.2026).
  *
- * Audit-projection одного outcome'а в gateway::outcomes для расширения
- * marketplace. По канону L12 «один Order → один outcome в gateway →
- * одна запись здесь», `order_hash` совпадает с `outcomes.outcome_hash`.
- * Кассир работает в общем столе gateway (не в marketplace), backend
- * marketplace только слушает blockchain-action delta для трёх ключевых
- * переходов и зеркалит их статусы для UI marketplace-стола поставщика.
+ * Обход выплат в конце дня объединяет принятые и ещё не оплаченные заказы поставщика в один
+ * пакет: один платёж кассиру вместо платежа на каждый заказ. Запись создаёт
+ * обход выплат перед включением заказов в пакет; сумму, удержание и состояние
+ * узел берёт из дельты таблицы `payouts` — сумму считает контракт.
  *
  * Поток:
- *   1. backend `marketplace::payout` → запись создаётся в статусе PENDING
- *      (listener на action::marketplace::payout).
- *   2. gateway::outcomplete inline-вызывает `marketplace::payconfirm` →
- *      listener переводит статус в COMPLETED, фиксирует core_payment_id.
- *   3. gateway::outdecline inline-вызывает `marketplace::paydecline` →
- *      listener переводит статус в DECLINED, сохраняет `decline_reason`.
+ *   1. обход создаёт запись OPEN и включает заказы (`addpayout`);
+ *   2. `sendpayout` регистрирует один исходящий платёж → PENDING, узел заводит
+ *      платёж в реестре кассира;
+ *   3. gateway::outcomplete → `payconfirm` → COMPLETED, узел закрывает заказы
+ *      пакета (`closepayout`, Дт 76 / Кт 51 на заказ);
+ *   4. gateway::outdecline → `paydecline` → DECLINED, узел возвращает заказы
+ *      (`releasepay`), они попадают в пакет следующего дня.
  */
 
 export type MarketplaceOutgoingPaymentRequestStatus =
+  | 'OPEN'
   | 'PENDING'
   | 'COMPLETED'
   | 'DECLINED';
 
 export const MarketplaceOutgoingPaymentRequestStatuses = {
+  OPEN: 'OPEN',
   PENDING: 'PENDING',
   COMPLETED: 'COMPLETED',
   DECLINED: 'DECLINED',
 } as const satisfies Record<string, MarketplaceOutgoingPaymentRequestStatus>;
 
+/** Состояние строки пакета в цепи (`marketplace::payouts.status`). */
+export const MarketplacePayoutChainStatuses = {
+  OPEN: 'open',
+  SENT: 'sent',
+  PAID: 'paid',
+  DECLINED: 'declined',
+} as const;
+
+/** Состояние цепи → состояние проекции. */
+export const PAYOUT_STATUS_BY_CHAIN: Record<string, MarketplaceOutgoingPaymentRequestStatus> = {
+  [MarketplacePayoutChainStatuses.OPEN]: MarketplaceOutgoingPaymentRequestStatuses.OPEN,
+  [MarketplacePayoutChainStatuses.SENT]: MarketplaceOutgoingPaymentRequestStatuses.PENDING,
+  [MarketplacePayoutChainStatuses.PAID]: MarketplaceOutgoingPaymentRequestStatuses.COMPLETED,
+  [MarketplacePayoutChainStatuses.DECLINED]: MarketplaceOutgoingPaymentRequestStatuses.DECLINED,
+};
+
+/** Заказ в пакете выплаты. */
+export interface MarketplaceOutgoingPaymentLine {
+  order_id: string;
+  order_hash: string;
+}
+
 export interface MarketplaceOutgoingPaymentRequestProps {
   id: string;
   coopname: string;
-  /** Хэш Order'а — совпадает с outcome_hash в gateway::outcomes (L12). */
-  order_hash: string;
-  /** UUID Order'а в marketplace_order — для join'ов в queries. */
-  order_id: string;
-  apl_reception_id: string;
+  /** Хэш пакета — хэш строки `payouts` и outcome_hash исходящего платежа в gateway. */
+  payment_hash: string;
+  /** Заказы пакета. */
+  lines: MarketplaceOutgoingPaymentLine[];
   payee_account: string;
+  /** Сумма перевода по пакету — из цепи; до включения заказов — 0. */
   amount: string;
   symbol: string;
   purpose: string;
-  /** Куда уходит выплата — маскированные реквизиты на момент создания. */
+  /** Реквизиты получателя выплаты — маскированные, на момент создания пакета. */
   payout_destination: string | null;
-  /** Удержано в счёт признанного гарантийного долга поставщика; сумма к переводу = amount. */
+  /** Удержано в счёт признанного гарантийного долга по заказам пакета — из цепи. */
   withheld_amount: string;
   status: MarketplaceOutgoingPaymentRequestStatus;
   /** Заполняется на переходе → COMPLETED. */
   completed_at: Date | null;
   /** Заполняется на переходе → DECLINED. */
   decline_reason: string | null;
-  /** Story 598-17 / AR35: id связанного платежа в core-реестре `payments`. */
+  /** Платёж пакета в общем реестре кооператива (его видит кассир). */
   core_payment_id: string | null;
-  /** Hash транзакции payOut / payConfirm — для трассировки в логах. */
+  /** Транзакция подтверждения кассира — для трассировки в журнале. */
   payout_tx_hash: string | null;
+  /** Все заказы пакета закрыты (оплачены либо возвращены) — обходу выплат пакет больше не нужен. */
+  settled_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }

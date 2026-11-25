@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
@@ -351,7 +351,7 @@ export class MarketplaceShipmentCreateService {
     // Поля ttn_data опциональны (паспорт убран, остальное — что известно).
     // Этот фабричный путь сейчас НЕ вызывается (единый источник ТТН — фронт);
     // пустые коэрцим в '' лишь для сохранения контракта PrivateData.
-    const privatePayload: Cooperative.Registry.MarketplaceTransportNote.PrivateData = {
+    const privatePayload: Registry.MarketplaceTransportNote.PrivateData = {
       expeditor_full_name: input.ttn_data.expeditor_full_name ?? '',
       expeditor_phone: input.ttn_data.expeditor_phone ?? '',
       vehicle_number: input.ttn_data.vehicle_number ?? '',
@@ -362,11 +362,11 @@ export class MarketplaceShipmentCreateService {
 
     const { hash: doc_data_hash } = await this.documentPort.saveData(
       privatePayload as unknown as Record<string, unknown>,
-      Cooperative.Registry.MarketplaceTransportNote.registry_id
+      Registry.MarketplaceTransportNote.registry_id
     );
 
-    const action: Cooperative.Registry.MarketplaceTransportNote.Action = {
-      registry_id: Cooperative.Registry.MarketplaceTransportNote.registry_id,
+    const action: Registry.MarketplaceTransportNote.Action = {
+      registry_id: Registry.MarketplaceTransportNote.registry_id,
       coopname: input.coopname,
       username: input.supplier_account,
       ttn_number: input.ttn_number,
@@ -386,7 +386,7 @@ export class MarketplaceShipmentCreateService {
       coopname: input.coopname,
       shipment_id: input.shipment_id,
       ttn_number: input.ttn_number,
-      registry_id: Cooperative.Registry.MarketplaceTransportNote.registry_id,
+      registry_id: Registry.MarketplaceTransportNote.registry_id,
       document_hash: document.hash,
       content_html: document.html,
       meta: document.meta as Record<string, unknown>,

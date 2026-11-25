@@ -30,6 +30,7 @@ import { workflow as documentEditionAvailableWorkflow } from './document-edition
 import { workflow as documentApprovalDeclinedWorkflow } from './document-approval-declined';
 import { workflow as documentEditionReminderWorkflow } from './document-edition-reminder';
 import { workflow as endorsementExpiringWorkflow } from './endorsement-expiring';
+import { workflow as branchAuthorityExpiringWorkflow } from './branch-authority-expiring';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
 import { workflow as marketplaceAplSupplierSignRequestWorkflow } from './marketplace-apl-supplier-sign-request';
@@ -38,6 +39,8 @@ import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
 import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
+import { workflow as marketplaceReviewInviteWorkflow } from './marketplace-review-invite';
+import { workflow as marketplaceIssuanceCloseReminderWorkflow } from './marketplace-issuance-close-reminder';
 import { workflow as marketplaceIssuanceDecidedWorkflow } from './marketplace-issuance-decided';
 import { workflow as marketplaceReturnCouncilDecidedWorkflow } from './marketplace-return-council-decided';
 import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
@@ -51,6 +54,10 @@ import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-w
 import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
 import { workflow as marketplaceSupplierClaimIssuedWorkflow } from './marketplace-supplier-claim-issued';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
+import { workflow as marketplaceSecurePartChargedWorkflow } from './marketplace-secure-part-charged';
+import { workflow as marketplaceInvestPropertySubmittedWorkflow } from './marketplace-invest-property-submitted';
+import { workflow as marketplaceInvestPropertyDecidedWorkflow } from './marketplace-invest-property-decided';
+import { workflow as marketplaceInvestReturnedWorkflow } from './marketplace-invest-returned';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
 import { workflow as marketplaceOfferOnModerationWorkflow } from './marketplace-offer-on-moderation';
 import { workflow as marketplaceOfferApprovedWorkflow } from './marketplace-offer-approved';
@@ -62,6 +69,8 @@ import { workflow as edubridgeAccessGrantedWorkflow } from './edubridge-access-g
 import { workflow as edubridgeAccessExpiringWorkflow } from './edubridge-access-expiring';
 import { workflow as edubridgeAccessNeedsAttentionWorkflow } from './edubridge-access-needs-attention';
 import { workflow as edubridgeRidCouncilApprovedWorkflow } from './edubridge-rid-council-approved';
+import { workflow as capitalPropertyStatementApprovedWorkflow } from './capital-property-statement-approved';
+import { workflow as capitalPropertyAcceptedWorkflow } from './capital-property-accepted';
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
@@ -76,6 +85,8 @@ import { workflow as subscriptionSuspendedWorkflow } from './subscription-suspen
 import { workflow as packageQuotaExceededWorkflow } from './package-quota-exceeded';
 import { workflow as accessRoleAssignedWorkflow } from './access-role-assigned';
 import { workflow as accessRoleRevokedWorkflow } from './access-role-revoked';
+import { workflow as birthdayGreetingWorkflow } from './birthday-greeting';
+import { workflow as informationalMailingWorkflow } from './informational-mailing';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -108,6 +119,7 @@ export * as DocumentEditionAvailable from './document-edition-available';
 export * as DocumentApprovalDeclined from './document-approval-declined';
 export * as DocumentEditionReminder from './document-edition-reminder';
 export * as EndorsementExpiring from './endorsement-expiring';
+export * as BranchAuthorityExpiring from './branch-authority-expiring';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
 export * as MarketplaceAplSupplierSignRequest from './marketplace-apl-supplier-sign-request';
@@ -116,6 +128,8 @@ export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
 export * as MarketplaceOrderReady from './marketplace-order-ready';
+export * as MarketplaceReviewInvite from './marketplace-review-invite';
+export * as MarketplaceIssuanceCloseReminder from './marketplace-issuance-close-reminder';
 export * as MarketplaceIssuanceDecided from './marketplace-issuance-decided';
 export * as MarketplaceReturnCouncilDecided from './marketplace-return-council-decided';
 export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
@@ -129,6 +143,10 @@ export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
 export * as MarketplaceSupplierClaimIssued from './marketplace-supplier-claim-issued';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
+export * as MarketplaceSecurePartCharged from './marketplace-secure-part-charged';
+export * as MarketplaceInvestPropertySubmitted from './marketplace-invest-property-submitted';
+export * as MarketplaceInvestPropertyDecided from './marketplace-invest-property-decided';
+export * as MarketplaceInvestReturned from './marketplace-invest-returned';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
 export * as MarketplaceOfferOnModeration from './marketplace-offer-on-moderation';
 export * as MarketplaceOfferApproved from './marketplace-offer-approved';
@@ -140,6 +158,8 @@ export * as EdubridgeAccessGranted from './edubridge-access-granted';
 export * as EdubridgeAccessExpiring from './edubridge-access-expiring';
 export * as EdubridgeAccessNeedsAttention from './edubridge-access-needs-attention';
 export * as EdubridgeRidCouncilApproved from './edubridge-rid-council-approved';
+export * as CapitalPropertyStatementApproved from './capital-property-statement-approved';
+export * as CapitalPropertyAccepted from './capital-property-accepted';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 // Epic 14 — биллинговые оповещения пайщикам
 export * as TrialEnding from './trial-ending';
@@ -149,6 +169,8 @@ export * as SubscriptionSuspended from './subscription-suspended';
 export * as PackageQuotaExceeded from './package-quota-exceeded';
 export * as AccessRoleAssigned from './access-role-assigned';
 export * as AccessRoleRevoked from './access-role-revoked';
+export * as BirthdayGreeting from './birthday-greeting';
+export * as InformationalMailing from './informational-mailing';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -182,6 +204,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   documentApprovalDeclinedWorkflow,
   documentEditionReminderWorkflow,
   endorsementExpiringWorkflow,
+  branchAuthorityExpiringWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
   marketplaceAplSupplierSignRequestWorkflow,
@@ -190,6 +213,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
   marketplaceOrderReadyWorkflow,
+  marketplaceReviewInviteWorkflow,
+  marketplaceIssuanceCloseReminderWorkflow,
   marketplaceIssuanceDecidedWorkflow,
   marketplaceReturnCouncilDecidedWorkflow,
   marketplaceReturnClaimSubmittedWorkflow,
@@ -203,6 +228,10 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceNewOrderForSupplierWorkflow,
   marketplaceSupplierClaimIssuedWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
+  marketplaceSecurePartChargedWorkflow,
+  marketplaceInvestPropertySubmittedWorkflow,
+  marketplaceInvestPropertyDecidedWorkflow,
+  marketplaceInvestReturnedWorkflow,
   marketplaceNewSupplierRequestWorkflow,
   marketplaceOfferOnModerationWorkflow,
   marketplaceOfferApprovedWorkflow,
@@ -213,6 +242,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   edubridgeAccessExpiringWorkflow,
   edubridgeAccessNeedsAttentionWorkflow,
   edubridgeRidCouncilApprovedWorkflow,
+  capitalPropertyStatementApprovedWorkflow,
+  capitalPropertyAcceptedWorkflow,
   marketplaceAidCouncilDecidedWorkflow,
   branchVotingStartedWorkflow,
   branchMeetingReminderWorkflow,
@@ -227,6 +258,9 @@ export const allWorkflows: WorkflowDefinition[] = [
   packageQuotaExceededWorkflow,
   accessRoleAssignedWorkflow,
   accessRoleRevokedWorkflow,
+  // Приложение «Поздравления»
+  birthdayGreetingWorkflow,
+  informationalMailingWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

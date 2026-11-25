@@ -4,7 +4,7 @@
       "maxLengthError": "{label}: не длиннее {maxLength} символов",
       "minLengthError": "{label}: не короче {minLength} символов",
       "requiredError": "{label}: заполните поле",
-      "urlFormatError": "{label}: нужна ссылка вида https://…"
+      "urlFormatError": "{label}: введите ссылку вида https://…"
     }
   }
 }

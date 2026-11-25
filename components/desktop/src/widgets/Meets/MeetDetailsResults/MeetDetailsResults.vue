@@ -1,240 +1,121 @@
 <template lang="pug">
-.meet-results
-  .meet-results__card
-    .meet-results__head
-      q-icon(name='fact_check', size='18px')
-      span.meet-results__title {{ $t('meet.meetDetailsResults.title') }}
+//- Результаты голосования по вопросам повестки. Протокол — документ собрания,
+//- он стоит в «Документах» в колонке сведений, а не здесь.
+section.meet-results
+  .meet-results__head {{ $t('meet.meetDetailsResults.title') }}
 
-    .meet-results__items
-      .meet-result-card(
-        v-for='(item, index) in meetAgendaItems',
-        :key='index'
-      )
-        .meet-result-card__head
-          AgendaNumberAvatar(:number='item.number')
-          span.meet-result-card__title {{ item.title }}
-
-        .meet-result-card__context(
-          v-if='item.context',
-          v-html='parseLinks(item.context)'
-        )
-
-        .meet-result-card__outcome
-          .meet-result-card__outcome-row
-            span.meet-result-card__outcome-label {{ $t('meet.meetDetailsResults.decisionLabel') }}
-            span.outcome-chip(:class='getOutcomeChipClass(item)')
-              q-icon(:name='getResultIcon(item)', size='14px')
-              span {{ getResultText(item) }}
-          .meet-result-card__decision(v-if='item.decision') {{ item.decision }}
-
-        .meet-result-card__votes
-          .vote-stat.vote-stat--for
-            span.vote-stat__label {{ $t('meet.meetDetailsResults.forLabel') }}
-            span.vote-stat__value {{ item.votes_for }}
-          .vote-stat.vote-stat--against
-            span.vote-stat__label {{ $t('meet.meetDetailsResults.againstLabel') }}
-            span.vote-stat__value {{ item.votes_against }}
-          .vote-stat.vote-stat--neutral
-            span.vote-stat__label {{ $t('meet.meetDetailsResults.abstainedLabel') }}
-            span.vote-stat__value {{ item.votes_abstained }}
-
-  ExpandableDocument.meet-results__protocol(
-    v-if='protocolDocumentAggregate',
-    :documentAggregate='protocolDocumentAggregate',
-    :title='$t("meet.meetDetailsResults.protocolTitle")'
-  )
+  ol.meet-results__items
+    MeetQuestion(
+      v-for='(item, index) in items',
+      :key='index',
+      :number='index + 1',
+      :question='item'
+    )
+      .meet-tally
+        BaseBadge(v-if='item.accepted !== null', :variant='item.accepted ? "pos" : "neg"')
+          | {{ item.accepted ? $t('meet.meetDetailsResults.accepted') : $t('meet.meetDetailsResults.rejected') }}
+        span.meet-tally__item
+          span.meet-tally__label {{ $t('meet.meetDetailsResults.forLabel') }}
+          span.meet-tally__value {{ item.votesFor }}
+        span.meet-tally__item
+          span.meet-tally__label {{ $t('meet.meetDetailsResults.againstLabel') }}
+          span.meet-tally__value {{ item.votesAgainst }}
+        span.meet-tally__item
+          span.meet-tally__label {{ $t('meet.meetDetailsResults.abstainedLabel') }}
+          span.meet-tally__value {{ item.votesAbstained }}
 </template>
 
 <script setup lang="ts">
-import type { IMeet } from 'src/entities/Meet';
 import { computed } from 'vue';
-import { ExpandableDocument } from 'src/shared/ui';
-import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
-import { parseLinks } from 'src/shared/lib/utils';
-import { t } from 'src/shared/i18n';
+import type { IMeet } from 'src/entities/Meet';
+import { BaseBadge } from 'src/shared/ui/base';
+import { MeetQuestion } from 'src/widgets/Meets/MeetQuestion';
 
 const props = defineProps<{
   meet: IMeet;
 }>();
 
-const meetAgendaItems = computed(() => {
-  if (!props.meet || !props.meet.processed?.results) return [];
-  return props.meet.processed.results || [];
+interface ResultItem {
+  title: string;
+  context: string | null;
+  decision: string;
+  votesFor: number;
+  votesAgainst: number;
+  votesAbstained: number;
+  /** Итог по протоколу; до утверждения протокола — пусто, показывается только счёт. */
+  accepted: boolean | null;
+}
+
+// После утверждения протокола — итоги из протокола; до него — счёт голосов из
+// вопросов собрания в цепи, без вывода «принято»: его фиксирует протокол.
+const items = computed<ResultItem[]>(() => {
+  const processed = props.meet?.processed?.results;
+  if (processed?.length)
+    return processed.map((r) => ({
+      title: r.title ?? '',
+      context: r.context ?? null,
+      decision: r.decision ?? '',
+      votesFor: Number(r.votes_for ?? 0),
+      votesAgainst: Number(r.votes_against ?? 0),
+      votesAbstained: Number(r.votes_abstained ?? 0),
+      accepted: r.accepted ?? null,
+    }));
+  return (props.meet?.processing?.questions ?? []).map((q) => ({
+    title: q.title ?? '',
+    context: q.context ?? null,
+    decision: q.decision ?? '',
+    votesFor: Number(q.counter_votes_for ?? 0),
+    votesAgainst: Number(q.counter_votes_against ?? 0),
+    votesAbstained: Number(q.counter_votes_abstained ?? 0),
+    accepted: null,
+  }));
 });
-
-const protocolDocumentAggregate = computed(
-  () => props.meet?.processed?.decisionAggregate ?? null,
-);
-
-const getResultText = (question: any) => {
-  if (question.accepted === undefined) return t('common.state.empty');
-  return question.accepted ? t('meet.meetDetailsResults.accepted') : t('meet.meetDetailsResults.rejected');
-};
-
-const getResultIcon = (question: any) => {
-  if (question.accepted === undefined) return 'help_outline';
-  return question.accepted ? 'check_circle' : 'cancel';
-};
-
-const getOutcomeChipClass = (question: any) => {
-  if (question.accepted === undefined) return 'outcome-chip--unknown';
-  return question.accepted ? 'outcome-chip--pos' : 'outcome-chip--neg';
-};
 </script>
 
 <style lang="scss" scoped>
-.meet-results__card {
+.meet-results {
+  padding: var(--p-5, 20px);
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 16px);
-  padding: var(--p-5, 20px);
 }
 
 .meet-results__head {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2, 8px);
-  color: var(--p-ink-2);
   margin-bottom: var(--p-4, 16px);
-}
-.meet-results__title {
   font-size: var(--p-fs-h2, 18px);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--p-ink);
 }
 
 .meet-results__items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.meet-result-card {
+// Итог вопроса одной строкой: бейдж решения и счёт голосов.
+.meet-tally {
   display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
-  padding: var(--p-4, 16px);
-  background: var(--p-surface);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md, 12px);
-}
-.meet-result-card__head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--p-3, 12px);
-}
-.meet-result-card__title {
-  font-size: var(--p-fs-body, 14px);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--p-ink-1);
-  padding-top: 6px;
-  overflow-wrap: anywhere;
-}
-.meet-result-card__context {
-  font-size: var(--p-fs-body-sm, 13px);
-  line-height: 1.5;
-  color: var(--p-ink-2);
-  overflow-wrap: anywhere;
-
-  :deep(a) {
-    color: var(--p-primary);
-    word-break: break-word;
-  }
-}
-
-.meet-result-card__outcome {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2, 8px);
-  padding: var(--p-3, 12px) var(--p-4, 16px);
-  border-radius: var(--p-r-sm, 8px);
-  background: var(--p-surface-2);
-}
-.meet-result-card__outcome-row {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3, 12px);
+  gap: var(--p-2, 8px) var(--p-5, 20px);
 }
-.meet-result-card__outcome-label {
-  font-size: var(--p-fs-meta, 12px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+
+.meet-tally__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--p-2, 8px);
+}
+
+.meet-tally__label {
+  font-size: var(--p-fs-body-sm, 13px);
   color: var(--p-ink-3);
 }
-.meet-result-card__decision {
-  font-size: var(--p-fs-body-sm, 13px);
-  line-height: 1.45;
-  color: var(--p-ink-1);
-  overflow-wrap: anywhere;
-}
 
-/* Итог решения — спокойный токен-чип */
-.outcome-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: var(--p-fs-meta, 12px);
+.meet-tally__value {
+  font-size: var(--p-fs-h3, 15px);
   font-weight: 600;
-}
-.outcome-chip--pos {
-  background: var(--p-pos-soft);
-  color: var(--p-pos);
-}
-.outcome-chip--neg {
-  background: var(--p-neg-soft);
-  color: var(--p-neg);
-}
-.outcome-chip--unknown {
-  background: var(--p-surface-2);
-  color: var(--p-ink-2);
-}
-
-.meet-result-card__votes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--p-2, 8px);
-}
-@media (max-width: 599px) {
-  .meet-result-card__votes {
-    grid-template-columns: 1fr;
-  }
-}
-.vote-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: var(--p-3, 12px);
-  border-radius: var(--p-r-sm, 8px);
-  background: var(--p-surface-2);
-  text-align: center;
-}
-.vote-stat--for {
-  background: var(--p-pos-soft);
-}
-.vote-stat--against {
-  background: var(--p-neg-soft);
-}
-.vote-stat__label {
-  font-size: var(--p-fs-meta, 12px);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: var(--p-ink-2);
-}
-.vote-stat__value {
-  font-size: var(--p-fs-h2, 18px);
-  font-weight: 700;
-  letter-spacing: -0.01em;
   color: var(--p-ink);
-}
-
-.meet-results__protocol {
-  display: block;
-  margin-top: var(--p-5, 20px);
+  font-variant-numeric: tabular-nums;
 }
 </style>

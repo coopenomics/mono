@@ -123,16 +123,12 @@
       @request='onRequest'
     )
       template(#body='props')
-        q-tr(
+        q-tr.cursor-pointer(
           :key='`op_${props.row.globalSequence}`'
           :ref='(el) => registerRowRef(props.row.globalSequence, el)'
           :props='props'
+          @click='openDetails(props.row)'
         )
-          q-td(auto-width)
-            ExpandToggleButton(
-              :expanded='expanded.get(props.row.globalSequence)'
-              @click='toggleExpand(props.row.globalSequence, props.row.processHash)'
-            )
           q-td
             EntityIdBadge(
               :rawId='props.row.globalSequence'
@@ -158,112 +154,9 @@
           q-td.text-right.font-monospace.text-weight-bold {{ formatAmount(props.row.quantity) }}
           q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
 
-        q-tr.q-virtual-scroll--with-prev(
-          no-hover
-          v-if='expanded.get(props.row.globalSequence)'
-          :key='`exp_${props.row.globalSequence}`'
-          :props='props'
-        )
-          q-td(colspan='100%')
-            .q-pa-md
-              //- Шапка: цветная полоска + название + action_code + ID + memo
-              .op-header.q-mb-md(
-                :style='{ borderLeftColor: processAccentColor(rowChipText(props.row)) }'
-              )
-                .text-h6.text-weight-medium {{ rowLabel(props.row) }}
-                .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.operationCode')
-                  .text-caption.t-muted {{ $t('reports.operationsPage.processTypeLabel') }}
-                  EntityIdBadge(
-                    :rawId='props.row.operationCode'
-                    copy-on-click
-                  )
-                    q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
-                .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.processHash')
-                  .text-caption.t-muted {{ $t('reports.operationsPage.processIdLabel') }}
-                  EntityIdBadge(
-                    :rawId='props.row.processHash'
-                    copy-on-click
-                  )
-                    q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
-                .row.items-center.q-gutter-sm(v-if='props.row.memo')
-                  q-icon(name='fa-solid fa-note-sticky' color='grey-6' size='xs')
-                  .text-caption.t-muted {{ props.row.memo }}
-
-              //- Тело: две таблицы рядом на md+, друг под другом на маленьких
-              template(v-if='childLoading.get(props.row.globalSequence)')
-                q-spinner(size='sm')
-              .row.q-col-gutter-md(v-else)
-                //- Таблица 1: Движения по кошелькам
-                .col-12.col-md-6
-                  q-card(flat bordered)
-                    q-card-section.q-pb-none
-                      .text-subtitle2 {{ $t('reports.operationsPage.walletMovementsTitle') }}
-                    q-card-section.q-pt-sm
-                      q-table(
-                        v-if='walletRows(props.row.globalSequence).length'
-                        flat dense
-                        :rows='walletRows(props.row.globalSequence)'
-                        :columns='walletColumns'
-                        row-key='globalSequence'
-                        hide-pagination
-                        :pagination='{ rowsPerPage: 0 }'
-                      )
-                        template(#body-cell-direction='cp')
-                          q-td(:props='cp')
-                            DirectionCell(:direction='cp.row.direction')
-                        template(#body-cell-walletFrom='cp')
-                          q-td(:props='cp')
-                            WalletIdCell(:wallet-name='cp.row.walletFrom')
-                        template(#body-cell-walletTo='cp')
-                          q-td(:props='cp')
-                            WalletIdCell(:wallet-name='cp.row.walletTo')
-                        template(#body-cell-quantity='cp')
-                          q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
-
-                //- Таблица 2: Проводки по счетам (Дт → Кт парами)
-                .col-12.col-md-6
-                  q-card(flat bordered)
-                    q-card-section.q-pb-none
-                      .text-subtitle2 {{ $t('reports.operationsPage.postingsTitle') }}
-                    q-card-section.q-pt-sm
-                      q-table(
-                        v-if='accountRows(props.row.globalSequence).length'
-                        flat dense
-                        :rows='accountRows(props.row.globalSequence)'
-                        :columns='accountColumns'
-                        row-key='key'
-                        hide-pagination
-                        :pagination='{ rowsPerPage: 0 }'
-                      )
-                        template(#body-cell-debit='cp')
-                          q-td(:props='cp')
-                            AccountIdCell(:account-code='cp.row.debitCode')
-                        template(#body-cell-credit='cp')
-                          q-td(:props='cp')
-                            AccountIdCell(:account-code='cp.row.creditCode')
-                        template(#body-cell-quantity='cp')
-                          q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.postingsEmptyLabel') }}
-
-              //- Слот расширения: содержание процесса в бизнес-терминах.
-              //- Рисуется только если соответствующее расширение зарегистрировало
-              //- свой info-widget через processInfoFactory.registerHandler.
-              .q-mt-md(v-if='props.row.processHash && hasProcessInfo(props.row)')
-                q-card(flat bordered)
-                  q-card-section.q-pb-none
-                    .text-subtitle2 {{ $t('reports.operationsPage.processContentTitle') }}
-                  q-card-section.q-pt-sm
-                    component(
-                      :is='processInfoComponent(props.row)'
-                      :process-hash='props.row.processHash'
-                      :process-type='rowProcessType(props.row) || ""'
-                      :coopname='info.coopname'
-                    )
-
       template(#item='props')
         .col-12
-          q-card.q-pa-md.q-mb-sm
+          q-card.q-pa-md.q-mb-sm.cursor-pointer(@click='openDetails(props.row)')
             .row.items-center.q-gutter-x-md
               .col
                 .text-caption.t-faint {{ formatDate(props.row.createdAt) }}
@@ -286,6 +179,14 @@
                   :rawId='shortHash(props.row.processHash)'
                   @click='goToProcess(props.row.processHash)'
                 )
+
+  //- Операция целиком — в правой панели: содержание процесса, движения по
+  //- кошелькам, проводки (общая панель стола бухгалтера).
+  OperationDetailsDrawer(
+    :coopname='info.coopname'
+    :operation='selectedRow'
+    @close='closeDetails'
+  )
 </template>
 
 <script setup lang="ts">
@@ -298,14 +199,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
 import type { ILedger2Operation, ILedger2HistoryFilterInput } from 'src/entities/Ledger2'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
-import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
+import { OperationDetailsDrawer } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
-import { processInfoFactory } from 'src/shared/lib/process-info-factory'
 import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
@@ -338,24 +237,6 @@ function rowChipText(row: ILedger2Operation): string {
   return row.operationCode ?? (row.action === 'walmove' ? 'o.adj.walmove' : row.action === 'revert' ? 'o.adj.rev' : '—')
 }
 
-/**
- * Слот «Содержание процесса» рисуют прикладные расширения (marketplace,
- * capital, …) через `processInfoFactory.registerHandler(process_type, …)`.
- * Сама страница остаётся неизменной — она лишь даёт расширению место,
- * чтобы показать заказчика, поставщика, состав заказа и deep-link на свой
- * собственный стол. Без зарегистрированного компонента блок не появляется.
- */
-function rowProcessType(row: ILedger2Operation): string | undefined {
-  return Ledger2.getOperationProcessType(row.operationCode)
-}
-function hasProcessInfo(row: ILedger2Operation): boolean {
-  const pt = rowProcessType(row)
-  return !!pt && processInfoFactory.hasHandler(pt)
-}
-function processInfoComponent(row: ILedger2Operation) {
-  const pt = rowProcessType(row)
-  return pt ? processInfoFactory.getInfoComponent(pt) : undefined
-}
 
 // Цветовая схема по контракту-источнику operation_code — пастельный chip +
 // accent-полоска. operation_code имеет формат `o.<contract>.<verb>`, контракт
@@ -385,9 +266,6 @@ function processColorEntry(code: string | null | undefined): ProcessColorEntry {
   const contract = parts.length >= 3 ? parts[1] : parts[0]
   return PROCESS_COLORS[contract ?? ''] ?? PROCESS_COLOR_DEFAULT
 }
-function processAccentColor(code: string | null | undefined): string {
-  return processColorEntry(code).accent
-}
 function processChipBg(code: string | null | undefined): string {
   return processColorEntry(code).chipBg
 }
@@ -407,7 +285,7 @@ function goToProcess(hash: string | null | undefined) {
   router.push({
     name: 'reports-processes',
     params: { coopname: info.coopname },
-    query: { process_hash: hash },
+    query: { process: hash },
   })
 }
 
@@ -418,7 +296,6 @@ function formatAmount(qty: string | null | undefined): string {
 
 const loading = ref(false)
 const items = ref<ILedger2Operation[]>([])
-const expanded = ref(new Map<string, boolean>())
 const rowRefs = new Map<string, HTMLElement | null>()
 
 // FIO-кэш: username → ФИО
@@ -427,8 +304,6 @@ const deskNames = useDeskFioCache()
 const fioCache = deskNames.fioCache
 
 // Дочерние операции для развёрнутого apply
-const childOps = ref(new Map<string, ILedger2Operation[]>())
-const childLoading = ref(new Map<string, boolean>())
 
 function registerRowRef(seq: string, el: unknown): void {
   if (el && typeof (el as { $el?: HTMLElement }).$el !== 'undefined') {
@@ -594,7 +469,6 @@ async function resolveAccountName(id: number) {
 }
 
 const columns = [
-  { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
   { name: 'operationId', align: 'left' as const, label: t('reports.operationsPage.column.operationId'), field: 'globalSequence' },
   { name: 'processHash', align: 'left' as const, label: t('reports.operationsPage.column.processId'), field: 'processHash' },
   { name: 'createdAt', align: 'left' as const, label: t('reports.operationsPage.column.date'), field: 'createdAt' },
@@ -602,70 +476,6 @@ const columns = [
   { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
   { name: 'username', align: 'left' as const, label: t('reports.operationsPage.column.participant'), field: 'username' },
 ]
-
-const walletColumns = [
-  { name: 'direction', align: 'center' as const, label: '', field: 'direction' },
-  { name: 'walletFrom', align: 'left' as const, label: t('reports.operationsPage.column.walletFrom'), field: 'walletFrom' },
-  { name: 'walletTo', align: 'left' as const, label: t('reports.operationsPage.column.walletTo'), field: 'walletTo' },
-  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
-]
-
-const accountColumns = [
-  { name: 'debit', align: 'center' as const, label: t('reports.operationsPage.column.debit'), field: 'debit' },
-  { name: 'credit', align: 'center' as const, label: t('reports.operationsPage.column.credit'), field: 'credit' },
-  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
-]
-
-// Группированные sibling-операции по parent apply globalSequence
-interface WalletRow {
-  globalSequence: string
-  direction: 'in' | 'out' | 'move'
-  /** eosio::name кошелька (`w.<contract>.<waltype>`) или null. */
-  walletFrom: string | null
-  walletTo: string | null
-  quantity: string | null
-}
-interface AccountRow {
-  key: string
-  debitCode: number | null
-  creditCode: number | null
-  quantity: string | null
-}
-
-function walletRows(parentSeq: string): WalletRow[] {
-  const ops = childOps.value.get(parentSeq) ?? []
-  return ops
-    .filter((o) => o.action === 'walletop')
-    .map((o) => {
-      const from = o.walletFrom ?? null
-      const to = o.walletTo ?? null
-      let direction: WalletRow['direction'] = 'move'
-      if (from && !to) direction = 'out'
-      else if (!from && to) direction = 'in'
-      return {
-        globalSequence: String(o.globalSequence),
-        direction,
-        walletFrom: from,
-        walletTo: to,
-        quantity: o.quantity ?? null,
-      }
-    })
-}
-
-function accountRows(parentSeq: string): AccountRow[] {
-  const ops = childOps.value.get(parentSeq) ?? []
-  const debit = ops.find((o) => o.action === 'debit')
-  const credit = ops.find((o) => o.action === 'credit')
-  if (!debit && !credit) return []
-  return [
-    {
-      key: `${parentSeq}_pair`,
-      debitCode: debit?.accountId != null ? Math.round(debit.accountId / 1000) : null,
-      creditCode: credit?.accountId != null ? Math.round(credit.accountId / 1000) : null,
-      quantity: debit?.quantity ?? credit?.quantity ?? null,
-    },
-  ]
-}
 
 const hasAnyFilter = computed(
   () =>
@@ -702,31 +512,18 @@ async function resetFilters() {
   reload()
 }
 
-function toggleExpand(seq: string, processHash: string | null | undefined) {
-  const wasOpen = expanded.value.get(seq)
-  expanded.value.set(seq, !wasOpen)
-  if (!wasOpen && processHash && !childOps.value.has(seq)) {
-    loadChildOps(seq, processHash)
-  }
+// Операция в правой панели: строка реестра открывает панель на месте.
+const selectedSeq = ref<string | null>(null)
+const selectedRow = computed(() =>
+  items.value.find((row) => String(row.globalSequence) === selectedSeq.value) ?? null,
+)
+
+function openDetails(row: ILedger2Operation): void {
+  selectedSeq.value = String(row.globalSequence)
 }
 
-async function loadChildOps(seq: string, processHash: string) {
-  childLoading.value.set(seq, true)
-  try {
-    const resp = await registries.loadHistory({
-      coopname: info.coopname,
-      processHash,
-      parentApplyGlobalSequence: seq,
-      actionNames: ['walletop', 'debit', 'credit'],
-      limit: 10,
-      sortOrder: 'ASC',
-    })
-    childOps.value.set(seq, resp?.items ?? [])
-  } catch (e) {
-    FailAlert(e)
-  } finally {
-    childLoading.value.set(seq, false)
-  }
+function closeDetails(): void {
+  selectedSeq.value = null
 }
 
 function formatDate(d: string | Date): string {
@@ -830,10 +627,7 @@ onMounted(async () => {
     if (filters.applyGlobalSequence) {
       const seq = filters.applyGlobalSequence
       const row = items.value.find((r) => String(r.globalSequence) === seq)
-      expanded.value.set(seq, true)
-      if (row?.processHash) {
-        loadChildOps(seq, row.processHash)
-      }
+      if (row) openDetails(row)
       nextTick(() => {
         rowRefs.get(seq)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
@@ -858,9 +652,5 @@ useLiveReload(LEDGER_LIVE_TABLES, load)
 .font-monospace {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
-}
-.op-header {
-  border-left: 4px solid var(--p-line-2);
-  padding: 4px 0 4px 12px;
 }
 </style>

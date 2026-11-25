@@ -151,9 +151,11 @@ export interface MarketplaceAplSupplierOnsiteSignRequestEvent {
   ku_name: string;
 }
 
+/** Пакет выплаты поставщику отправлен кассиру: один платёж на заказы поставщика за день. */
 export interface MarketplaceCashierNewPaymentEvent {
   coopname: string;
-  apl_reception_id: string;
+  /** Заказов в пакете выплаты. */
+  orders_count: number;
   payment_request_id: string;
   supplier_account: string;
   amount: string;
@@ -161,20 +163,38 @@ export interface MarketplaceCashierNewPaymentEvent {
 
 export interface MarketplaceSupplierPaymentConfirmedEvent {
   coopname: string;
-  apl_reception_id: string;
+  /** Заказов в пакете выплаты. */
+  orders_count: number;
   payment_request_id: string;
   supplier_account: string;
   amount: string;
   payment_reference: string;
+  /** Что оплачено: имущество заказов пакета («Мёд цветочный, Чай и ещё 2»). */
+  item_name?: string;
 }
 
 export interface MarketplaceSupplierPaymentDeclinedEvent {
   coopname: string;
-  apl_reception_id: string;
+  /** Заказов в пакете выплаты. */
+  orders_count: number;
   payment_request_id: string;
   supplier_account: string;
   amount: string;
   reason: string;
+}
+
+/**
+ * Задача 598-61: заказчику через несколько часов после получения заказа направляется
+ * приглашение оставить отзыв — один раз, если отзыва ещё нет.
+ */
+export const MARKETPLACE_REVIEW_INVITE_EVENT = 'marketplace.review.orderer.invite';
+
+export interface MarketplaceReviewInviteEvent {
+  coopname: string;
+  order_id: string;
+  orderer_account: string;
+  /** Название полученного имущества; пусто, если предложение не прочиталось. */
+  product_name: string;
 }
 
 export interface MarketplaceOrderReadyToReceiveEvent {
@@ -184,6 +204,8 @@ export interface MarketplaceOrderReadyToReceiveEvent {
   orderer_account: string;
   /** Кооперативный участок, где имущество готово к выдаче. */
   braname: string;
+  /** Название имущества заказа: уведомление идёт по каждой позиции отдельно. */
+  product_name: string;
 }
 
 /**
@@ -596,4 +618,16 @@ export interface MarketplaceReturnCouncilDecidedEvent {
   orderer_account: string;
   delivery_braname: string;
   authorized: boolean;
+}
+
+/**
+ * Проход списания возместил паевые взносы инициаторов участков (задача 99D-30):
+ * инициаторам — уведомление, сколько доступно к возврату. Одно событие на
+ * проход, участки — без повторов.
+ */
+export const MARKETPLACE_INVEST_REPAID_EVENT = 'marketplace.invest.repaid';
+
+export interface MarketplaceInvestRepaidEvent {
+  coopname: string;
+  branames: string[];
 }

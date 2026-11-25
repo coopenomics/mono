@@ -10,7 +10,7 @@ import { boot, bootClean, bootExtra } from './init/booter'
 // startCoop удалён из CLI: create-coop теперь регистрирует кооператив в подсети (Epic 29)
 import { sleep } from './utils'
 import { checkHealth } from './docker/health'
-import { clearDB, clearDirectory, deleteFile } from './docker/purge'
+import { clearDirectory, deleteFile } from './docker/purge'
 import { deployCommand } from './docker/deploy'
 import { addTestUser } from './scripts/add-test-user'
 import { waitForRpc } from './utils/waitForRpc'
@@ -315,7 +315,6 @@ program
       await clearDirectory(basePath)
       await runInfraContainers()
       await sleep(5000)
-      await clearDB()
       await runContainer()
       console.log('Блокчейн очищен и перезапущен. Запустите загрузку: pnpm run boot')
       process.exit(0)

@@ -112,6 +112,10 @@ const safeHtml = computed((): string => {
   padding: var(--p-2, 8px) var(--p-3, 12px);
   border-bottom: 1px solid var(--p-line);
   vertical-align: top;
+  /* Без заливки ячеек из шаблона документа: в тёмной теме подписи
+     не читались (слово владельца 11.11.2026). */
+  background: transparent !important;
+  color: inherit !important;
 }
 
 .document-preview__pdf {

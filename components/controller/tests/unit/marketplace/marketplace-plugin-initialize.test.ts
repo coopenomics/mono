@@ -76,9 +76,11 @@ const makeStatefulRepo = (config: Record<string, unknown>) => {
   } as any;
 };
 
+// Шаги подключения: Положение, оферта и договор об участии с бланками (99D-35).
 const L1_DONE = {
   onboarding_marketplace_provision_done: true,
   onboarding_marketplace_offer_template_done: true,
+  onboarding_marketplace_invest_done: true,
 };
 
 describe('MarketplaceExtension.initialize: программа во вступлении', () => {
@@ -92,7 +94,7 @@ describe('MarketplaceExtension.initialize: программа во вступл�
     expect(agreements.registerAgreement).not.toHaveBeenCalled();
   });
 
-  it('утверждён только один из двух документов — программа не предлагается', async () => {
+  it('утверждён только один из документов подключения — программа не предлагается', async () => {
     const agreements = makeAgreementPort();
     const repo = makeStatefulRepo({ onboarding_marketplace_provision_done: true });
     const extension = new MarketplaceExtension(repo, makeLogger(), agreements, makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), makeApprovalsPort(), null);
@@ -102,7 +104,7 @@ describe('MarketplaceExtension.initialize: программа во вступл�
     expect(agreements.registerProgram).not.toHaveBeenCalled();
   });
 
-  it('оба шага отмечены — программа регистрируется', async () => {
+  it('все шаги отмечены — программа регистрируется', async () => {
     const agreements = makeAgreementPort();
     const extension = new MarketplaceExtension(makeStatefulRepo(L1_DONE), makeLogger(), agreements, makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), makeApprovalsPort(), null);
 
@@ -116,7 +118,7 @@ describe('MarketplaceExtension.initialize: программа во вступл�
   it('отметок нет, но документы утверждены в цепи — отметки дописываются, программа регистрируется', async () => {
     const agreements = makeAgreementPort();
     const repo = makeStatefulRepo({});
-    const approvals = makeApprovalsPort(['marketplace_provision', 'marketplace_offer_template']);
+    const approvals = makeApprovalsPort(['marketplace_provision', 'marketplace_offer_template', 'marketplace_invest']);
     const extension = new MarketplaceExtension(repo, makeLogger(), agreements, makeOnboardingPort(), makeDocumentsPort(), makeSovietPort(), approvals, null);
 
     await extension.initialize();

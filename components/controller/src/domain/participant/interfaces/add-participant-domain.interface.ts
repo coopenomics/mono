@@ -1,15 +1,15 @@
-import type { Cooperative } from 'cooptypes';
+import type { IBankAccount, IEntrepreneurData, IIndividualData, IOrganizationData } from '@coopenomics/docs-templates';
 import type { RegisterRole } from '~/application/account/enum/account-role-on-register.enum';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 
 export interface AddParticipantDomainInterface {
   email: string;
-  entrepreneur_data?: Omit<Cooperative.Users.IEntrepreneurData, 'username'> & {
-    bank_account: Cooperative.Payments.IBankAccount;
+  entrepreneur_data?: Omit<IEntrepreneurData, 'username'> & {
+    bank_account: IBankAccount;
   };
-  individual_data?: Omit<Cooperative.Users.IIndividualData, 'username'>;
-  organization_data?: Omit<Cooperative.Users.IOrganizationData, 'username'> & {
-    bank_account: Cooperative.Payments.IBankAccount;
+  individual_data?: Omit<IIndividualData, 'username'>;
+  organization_data?: Omit<IOrganizationData, 'username'> & {
+    bank_account: IBankAccount;
   };
   public_key?: string;
   referer?: string;

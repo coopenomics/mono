@@ -1,9 +1,7 @@
 /* eslint-disable no-case-declarations */
 import 'reflect-metadata';
-import mongoose from 'mongoose';
 import { MigrationManager } from '../migrator/migrationManager';
 import { runDatabaseMigrations } from '../migrator/database-migrations';
-import config from '../config/config';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -15,9 +13,6 @@ async function main() {
   }
 
   try {
-    // Подключение к MongoDB для миграций
-    await mongoose.connect(config.mongoose.url);
-    console.log('Connected to MongoDB for migrations');
     // Таблицы, с которыми работают миграции данных, создаёт схема — она первой.
     await runDatabaseMigrations();
     const migrationManager = new MigrationManager();
@@ -92,16 +87,13 @@ async function main() {
 
       default:
         console.error(`❌ Неизвестная команда: ${command}`);
-        await mongoose.disconnect().catch((err) => console.error('Ошибка при закрытии соединения с MongoDB:', err));
         showHelp();
         process.exit(1);
     }
 
     await migrationManager.close();
-    await mongoose.disconnect();
   } catch (error) {
     console.error('❌ Ошибка выполнения команды:', error);
-    await mongoose.disconnect().catch((err) => console.error('Ошибка при закрытии соединения с MongoDB:', err));
     process.exit(1);
   }
 }
@@ -153,6 +145,5 @@ function showHelp() {
 
 main().catch(async (error) => {
   console.error('💥 Критическая ошибка:', error);
-  await mongoose.disconnect().catch((err) => console.error('Ошибка при закрытии соединения с MongoDB:', err));
   process.exit(1);
 });

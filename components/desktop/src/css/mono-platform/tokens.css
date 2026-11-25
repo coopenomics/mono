@@ -89,7 +89,6 @@
   --p-pane-accent:      #2dd4bf;
   --p-pane-accent-soft: rgba(45, 212, 191, 0.12);
   --p-pane-accent-ink:  #04231f;
-  --p-pane-mark:        rgba(45, 212, 191, 0.08);
 
   color-scheme: light;
 }
@@ -172,7 +171,6 @@
   --p-pane-accent:      #2dd4bf;
   --p-pane-accent-soft: rgba(45, 212, 191, 0.12);
   --p-pane-accent-ink:  #04231f;
-  --p-pane-mark:        rgba(45, 212, 191, 0.08);
 
   color-scheme: dark;
 }

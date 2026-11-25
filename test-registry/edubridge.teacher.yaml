@@ -8,7 +8,8 @@ title: Образовательный мост — договор УХД, наз
 # проект свободного решения совета с правилом отслеживания → DecisionTrackedEvent
 # → COUNCIL_APPROVED → акт 3010 подписывает преподаватель → acceptrid с
 # протоколом 3009 (Дт 04 / Кт 08 и Дт 76 / Кт 80 с переводом w.edu.hold →
-# w.edu.share). Отказ совета исполняет обратный вызов onriddecl: recallrid с причиной совета.
+# w.edu.share). Взнос не принят (совет отказал, срок вопроса вышел, председатель не
+# подписал акт) — returnrid: материалы возвращены преподавателю на доработку.
 #
 # Материалы занятия до заявления лежат на ответственном хранении: акт 3012 →
 # holdrid (Дт 08 / Кт 76, w.edu.hold). Рекламация внутри срока — recallrid
@@ -41,6 +42,42 @@ title: Образовательный мост — договор УХД, наз
 # себе не называет — её назначает администратор при приёме преподавателя.
 # Первый шаг подключения — только рассказ о себе; без назначенной ставки
 # преподаватель в курс не ставится.
+
+# Правка 30.10.2026 (5A8-11): модель документа, данные кооператива, субъекты
+# и реквизиты (`IMetaDocument`, `IGenerate`, `UdataKey`, `IIndividualData`, …)
+# импортируются из @coopenomics/docs-templates вместо cooptypes. Поведение
+# не менялось: те же типы и значения, другой пакет.
+
+
+# Правка 17.11.2026 (слово владельца): заявление по гарантийным условиям
+# (warrclaim) и заявление о РИД (submitrid) публикуются в реестр документов
+# один раз — повесткой совета, итог ставит решение совета. Прежде контракт
+# публиковал заявление ещё и сам, сразу с итогом «решено» до решения совета.
+# Движения, статусы и обратные вызовы не менялись, случаи прежние.
+
+# Правка 25.11.2026 (487-28): председатель может пояснить отклонение решения
+# совета своими словами (окно «Отклонение вопроса» на столе совета). Пояснение
+# хранит ядро в decision_decline_reasons, в цепь оно не пишется; при отказе по
+# отчёту преподавателя расширение берёт его по номеру решения через порт
+# DECISION_DECLINE_REASON_PORT, и преподаватель видит его в «Причине
+# отклонения». Пояснения нет — прежнее основание из цепи.
+#
+# Правка 25.11.2026 (487-28), решение владельца: расчёт с преподавателем
+# подписки обучающихся не затрагивает. Прежний путь отказа убран целиком:
+# действия контракта refundlesson (отмена расчёта занятия в подписках) и
+# declinerid (закрытие заявления протоколом) удалены вместе с их вызовами.
+# Любой исход без приёма — отказ совета, срок вопроса, отказ председателя в
+# подписи акта, одно занятие либо взнос за гарантийный срок — идёт одним путём:
+# returnrid, взнос RETURNED, запись материалов в цепи жива, взнос преподавателя
+# лежит в резерве курса. Повторная подача (edubridgeReworkContribution) — тот
+# же взнос и хэш, прежняя сумма, без нового расчёта, без срока, при любой
+# группе; дальше прежние шаги: акт хранения, заявление, совет. Без приёма
+# расчёт закрывает только председатель (edubridgeCloseContribution → recallrid,
+# взнос CLOSED, o.edu.free в кошелёк программы). Взнос на доработке держит
+# выход преподавателя из кооператива. Заодно исправлено: пояснение
+# председателя к отклонению читается по номеру вопроса в повестке — номера
+# принятого решения у отклонённого вопроса нет, и пояснение не находилось.
+
 sources:
   contract:
     - components/contracts/cpp/edubridge/src/p.edu.teach/**
@@ -56,11 +93,9 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-profile.record.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
-    - components/factory/test/education-contract.test.ts
-    - components/cooptypes/src/cooperative/registry/3006.EducationParticipationContract/**
-    - components/factory/src/Actions/3006.EducationParticipationContract.ts
-    - components/cooptypes/src/cooperative/registry/3012.EducationRidStorageAct/**
-    - components/factory/src/Actions/3012.EducationRidStorageAct.ts
+    - C9S/docs-factory:test/education-contract.test.ts
+    - C9S/docs-factory:src/Actions/3006.EducationParticipationContract.ts
+    - C9S/docs-factory:src/Actions/3012.EducationRidStorageAct.ts
     - components/controller/src/extensions/edubridge/domain/lib/lesson-dates.ts
     - components/controller/src/extensions/edubridge/application/onboarding/register-edubridge-documents.ts
     - components/controller/src/extensions/edubridge/application/listeners/edubridge-membership-exit.listener.ts
@@ -117,7 +152,7 @@ cases:
     level: backend
     kind: happy
     scenario: Отказ совета по взносу исполняется обратным вызовом контракта.
-    expect: onriddecl → recallrid с причиной совета, DECLINED, причина сохранена; председатель отдельно ничего не оформляет.
+    expect: onriddecl → returnrid с причиной совета, взнос RETURNED (на доработке), причина сохранена; запись материалов в цепи жива, расчёт с обучающимися не меняется; председатель отдельно ничего не оформляет.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -183,7 +218,7 @@ cases:
     kind: happy
     scenario: Фабрика собирает заявление о трансляции паевого взноса (3015) на названную сумму.
     expect: В тексте одна просьба с суммой в виде для человека, без ссылок на договор и приложений; документ воспроизводится с тем же хэшем.
-    test: components/factory/test/education-share-withdraw.test.ts
+    test: C9S/docs-factory:test/education-share-withdraw.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: written   # прогон — CI на полигоне ci/tests
   - id: edu.teach.happy.wth-03
@@ -265,7 +300,7 @@ cases:
     kind: happy
     scenario: "Бланк договора УХД для совета и экземпляр для пайщика (3006) генерируются фабрикой по редакции владельца «Договор УХД_Преподаватели_ПВ»: 9 разделов, 12 терминов, реквизиты сторон и Дополнительные условия по ответственному хранению Имущества."
     expect: "Текст разделов 1–9 и Дополнительных условий в бланке и экземпляре совпадает дословно; экземпляр подставляет номер, дату, протокол утверждения и пайщика без незаполненных мест; бланк — прочерками; повторная генерация даёт тот же хэш."
-    test: components/factory/test/education-contract.test.ts
+    test: C9S/docs-factory:test/education-contract.test.ts
     api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: written
 
@@ -330,7 +365,7 @@ cases:
     kind: happy
     scenario: Акт передачи материалов на ответственное хранение (3012) формируется по отчёту о занятии.
     expect: В акте названы курс, номер и тема занятия, состав материалов, оценка и дата окончания срока хранения; сказано, что паевым взносом материалы становятся по решению совета.
-    test: components/factory/test/education-rid-storage-act.test.ts
+    test: C9S/docs-factory:test/education-rid-storage-act.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.ui.03
@@ -344,7 +379,7 @@ cases:
     level: backend
     kind: side
     scenario: "Совет отклоняет вопрос о приёме взноса; отдельной операции отказа у председателя нет."
-    expect: "Отказ совета сам снимает материалы с хранения с основанием совета (recallrid), взнос DECLINED, протокола нет; declinerid не вызывается."
+    expect: "Отказ совета сам возвращает материалы преподавателю с основанием совета (returnrid), взнос RETURNED, протокола нет; расчёт без приёма не закрывается (recallrid не вызывается); возможный возврат обучающемуся по подписке не меняется."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -402,11 +437,11 @@ cases:
   - id: edu.teach.side.14
     level: backend
     kind: side
-    scenario: "Совет отказал в приёме, материалы сняты с хранения; преподаватель отчитывается по тому же занятию заново."
-    expect: "Строка журнала та же, взнос новый с другим ключом."
+    scenario: "Взнос возвращён на доработку; преподаватель правит материалы и подаёт его повторно."
+    expect: "Тот же взнос и хэш, сумма прежняя, расчёта с обучающимися нет; новый отчёт по занятию отклоняется; дальше — акт хранения, заявление, вопрос в повестке совета."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    status: written
   - id: edu.teach.happy.11
     level: backend
     kind: happy
@@ -449,8 +484,8 @@ cases:
   - id: edu.teach.contract.08
     level: contract
     kind: side
-    scenario: "declinerid до подачи заявления; recallrid после подачи заявления."
-    expect: "declinerid отклоняется; recallrid снимает материалы с хранения (Дт 76 / Кт 08) и стирает запись."
+    scenario: "returnrid до подачи заявления и повторно; holdrid по возвращённой записи чужим преподавателем; recallrid по возвращённой записи и по записи на хранении."
+    expect: "returnrid без заявления и по уже возвращённой записи отклоняется; чужой holdrid отклоняется; recallrid стирает запись и переводит взнос преподавателя из резерва курса в кошелёк программы (o.edu.free), материалы на хранении снимает (Дт 76 / Кт 08)."
     test: ~
     status: missing
   - id: edu.teach.contract.09
@@ -479,7 +514,7 @@ cases:
     level: backend
     kind: side
     scenario: "Совет отклонил вопрос о приёме результата либо не принял решение в срок."
-    expect: "Подача запоминает номер вопроса в повестке; исход совета помечает заявление, обратный вызов контракта закрывает взнос (DECLINED, материалы сняты с хранения, протокола нет)."
+    expect: "Подача запоминает номер вопроса в повестке; исход совета помечает заявление, обратный вызов контракта возвращает взнос на доработку (RETURNED, материалы у преподавателя, протокола нет); без приёма его закрывает только председатель с основанием (CLOSED), преподаватель и член совета права не имеют."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -726,3 +761,160 @@ cases:
     expect: "Очередь закрывает гарантийный срок и у истёкшей подписки; взнос преподавателя за занятия гарантийного срока оформляется, а не ждёт её вечно."
     test: ~
     status: missing   # отбор подписок — SQL шлюза; проверка — сквозной сценарий на стенде
+
+  # 01.11.2026 (C28-80): отчёт, отклонённый расчётом, оставлял черновик с тем же
+  # хэшем, и повторный отчёт падал на уникальном индексе rid_hash ответом 500.
+  - id: edu.teach.side.37
+    level: backend
+    kind: side
+    scenario: "Отчёт о занятии отклонён расчётом (оплативших занятие нет), затем ученик оплатил — преподаватель отчитывается по тому же занятию снова"
+    expect: "Повторный отчёт принимается: берётся тот же отклонённый черновик взноса (хэш прежний, строка занятия в цепи была снята), новой записи нет, 500 нет."
+    test: components/api-tests/src/edubridge/course-rules.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
+    status: written
+
+  - id: edu.teach.break.12
+    level: backend
+    kind: break
+    scenario: "Профиль преподавателя сохраняет вход без действующего членства (кандидат)"
+    expect: "Отказ EDUBRIDGE_INSUFFICIENT_RIGHTS; раньше учётное имя приходило пустым и запись падала на NOT NULL teacher_username ответом 500."
+    test: components/api-tests/src/rights/matrix.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  # 25.11.2026 (487-28): пояснение председателя к отклонению решения
+  - id: edu.teacher.decline-reason.happy.01
+    level: backend
+    kind: happy
+    scenario: Совет отклонил отчёт преподавателя большинством «против», председатель написал пояснение
+    expect: в «Причине отклонения» отчёта — пояснение председателя (читается по номеру вопроса в повестке); основание возврата материалов на доработку — с ним же
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: на стенде нужен совет с большинством голосов «против» по живому отчёту преподавателя — внешний сценарий голосования совета в наборе отсутствует
+
+  - id: edu.teacher.decline-reason.side.01
+    level: backend
+    kind: side
+    scenario: Совет отклонил отчёт без пояснения председателя
+    expect: в «Причине отклонения» — основание из цепи («большинство голосов против», «истёк срок»)
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: то же — внешнего сценария голосования совета против отчёта нет
+
+  - id: dec.decline.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель отклоняет решение с пояснением
+    expect: пояснение записано в базу до транзакции declinedec, в цепь не передаётся; пустое пояснение не пишется
+    test: components/controller/tests/unit/decision/decline-decision-reason.test.ts
+    status: written
+    external: unreachable
+    external_reason: отклонение требует большинства «против» в совете стенда; внешнего сценария голосования совета нет
+
+  - id: dec.decline.side.01
+    level: backend
+    kind: side
+    scenario: Цепь отказала в отклонении (нет большинства «против»)
+    expect: ошибка цепи возвращается председателю, пояснение снято — к будущему снятию вопроса по сроку оно не приписывается
+    test: components/controller/tests/unit/decision/decline-decision-reason.test.ts
+    status: written
+    external: unreachable
+    external_reason: то же — внешнего сценария голосования совета нет
+
+  # 25.11.2026 (487-28): один путь отказа — возврат на доработку, повторная
+  # подача без нового расчёта, закрытие без приёма только председателем
+  - id: edu.rid.rework.happy.01
+    level: backend
+    kind: happy
+    scenario: Взнос одного занятия возвращён на доработку; преподаватель правит тему и материалы и подаёт повторно
+    expect: тот же взнос и хэш, статус DRAFT, сумма прежняя, документы и номера прошлой попытки сняты; занятие в цепи не открывается и с подписок не списывается; дальше — holdrid с тем же хэшем и submitrid
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
+
+  - id: edu.rid.rework.happy.02
+    level: backend
+    kind: happy
+    scenario: Группа завершена, подписок не осталось; взнос на доработке подаётся повторно
+    expect: повторная подача проходит — состояние группы и подписки не читаются
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: завершённая группа с взносом на доработке получается только после полного срока программы группы; сценария такой длины в наборе нет
+
+  - id: edu.rid.rework.happy.03
+    level: backend
+    kind: happy
+    scenario: Взнос за занятия гарантийного срока возвращён на доработку; преподаватель правит материалы одного занятия из двух
+    expect: взнос DRAFT с прежней суммой и названием, перечень материалов собран заново по занятиям; holdrid с тем же хэшем
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: взнос за гарантийный срок, отклонённый советом, требует прожить гарантийный срок группы и провести два решения совета; внешний сценарий гарантийного срока заканчивается заведением взноса
+
+  - id: edu.rid.rework.side.01
+    level: backend
+    kind: side
+    scenario: Повторная подача взноса не на доработке, чужого взноса, с чужим занятием, с пустыми материалами, при прекращённом договоре
+    expect: каждый случай — отказ со своим кодом, взнос остаётся RETURNED
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
+
+  - id: edu.rid.rework.side.02
+    level: backend
+    kind: side
+    scenario: Новый отчёт по занятию взноса на доработке
+    expect: отклоняется как уже поданный — второго взноса и второго расчёта занятия нет
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
+
+  - id: edu.rid.close.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель закрывает расчёт по взносу на доработке без приёма и называет основание
+    expect: recallrid с основанием, взнос CLOSED, запись курса сверена с цепью; повторная подача и второе закрытие отклоняются
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
+
+  - id: edu.rid.close.side.01
+    level: backend
+    kind: side
+    scenario: Закрытие без приёма взноса на хранении и у совета; без основания; отказ цепи
+    expect: отклоняется; по сроку и само закрытие не происходит; отказ цепи оставляет взнос RETURNED
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
+    status: written
+
+  - id: edu.rid.return.side.01
+    level: backend
+    kind: side
+    scenario: Цепь отказала в возврате на доработку
+    expect: взнос остаётся на рассмотрении; повторный обратный вызов доводит возврат до конца
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: отказ цепи на returnrid снаружи не создать — остановка узла цепи роняет весь стенд
+
+  - id: edu.exit.side.01
+    level: backend
+    kind: side
+    scenario: Преподаватель с взносом на доработке выходит из кооператива
+    expect: выход держится, причина называет оба способа закрыть расчёт — повторная подача либо закрытие председателем; закрытый, принятый и прежний отклонённый взносы выход не держат
+    test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
+    status: written
+    external: unreachable
+    external_reason: внешний сценарий выхода преподавателя с незакрытым взносом в наборе не заведён; проверка причины — модульная
+
+  - id: edu.rid.ui.01
+    level: ui
+    kind: happy
+    scenario: Стол преподавателя — у взноса «Возвращён на доработку» кнопка «Подать повторно» в строке и в панели, в том числе у взноса за гарантийный срок; окно показывает причину и материалы каждого занятия
+    expect: после подачи взнос «На рассмотрении совета»; стол председателя — у взноса на доработке «Закрыть без приёма» с обязательным основанием, после закрытия «Закрыт без приёма»
+    test: ~
+    status: missing
+

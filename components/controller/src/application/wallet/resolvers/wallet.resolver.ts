@@ -16,6 +16,14 @@ import {
   DOCUMENT_GENERATION_THROTTLE,
 } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
+import { WalletActivityService } from '../services/wallet-activity.service';
+import {
+  GetMyPendingPayoutsInputDTO,
+  GetMyWalletMovementsInputDTO,
+  PaginatedWalletMovements,
+  WalletMovementDTO,
+  WalletPendingItemDTO,
+} from '../dto/wallet-activity.dto';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
 import { CreateWithdrawInputDTO } from '../dto/create-withdraw-input.dto';
@@ -41,7 +49,8 @@ const paginatedProgramWalletsResult = createPaginationResult(ProgramWalletDTO, '
 export class WalletResolver {
   constructor(
     private readonly walletService: WalletService,
-    @Inject(PUB_SUB) private readonly pubSub: PubSub
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly walletActivity: WalletActivityService
   ) {}
 
   /**
@@ -182,5 +191,35 @@ export class WalletResolver {
     @Args('coopname', { nullable: true }) coopname?: string
   ): Promise<UserWalletDTO[]> {
     return await this.walletService.getUserWallets(username, coopname);
+  }
+
+  /**
+   * Query: движения по всем кошелькам пайщика, свежие сверху; отбор по одному
+   * кошельку. Строка несёт хэш процесса — по нему открываются документы.
+   */
+  @Query(() => PaginatedWalletMovements, {
+    name: 'getMyWalletMovements',
+    description: 'Движения по кошелькам пайщика: поступления, списания и переводы, свежие сверху',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Wallet', ['read:own', 'read:all'], { owner: 'data.username' })
+  async getMyWalletMovements(
+    @Args('data') data: GetMyWalletMovementsInputDTO
+  ): Promise<PaginationResult<WalletMovementDTO>> {
+    return this.walletActivity.movements(data);
+  }
+
+  /**
+   * Query: что у пайщика ещё в работе — заявки на выплату до решения совета,
+   * выплаты у кассира, неоплаченные пополнения.
+   */
+  @Query(() => [WalletPendingItemDTO], {
+    name: 'getMyPendingPayouts',
+    description: 'Неисполненные заявки и платежи пайщика: на рассмотрении совета, у кассира, ожидают оплаты',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Wallet', ['read:own', 'read:all'], { owner: 'data.username' })
+  async getMyPendingPayouts(@Args('data') data: GetMyPendingPayoutsInputDTO): Promise<WalletPendingItemDTO[]> {
+    return this.walletActivity.pending(data);
   }
 }

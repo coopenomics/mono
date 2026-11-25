@@ -1,9 +1,9 @@
 import { DocumentApprovalStateService } from '~/domain/document-approval/services/document-approval-state.service';
 import { DocumentDeclarationsRegistryService } from '~/domain/document-approval/services/document-declarations-registry.service';
 import { DocumentApprovalState } from '~/domain/document-approval/enums/document-approval.enums';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn() } as any;
 

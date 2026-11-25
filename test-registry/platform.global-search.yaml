@@ -55,8 +55,13 @@ cases:
   - id: plat.gsearch.side.02
     level: backend
     kind: side
-    scenario: пайщик ищет документы — свои и чужие
-    expect: чужие не находятся; свои ведут на страницу документа в столе пайщика
+    scenario: пайщик ищет документы — свои и чужие, в том числе по аккаунту другого пайщика
+    expect: >
+      пакеты, где владелец — другой пайщик, не находятся; находка по аккаунту
+      другого пайщика допустима, только если он подписант в пакете самого
+      пайщика (поставщик на акте приёмки в пакете заказа) — такая находка
+      открывается в реестре пайщика; свои ведут на страницу документа в столе
+      пайщика
     test: components/controller/tests/unit/search/core-search.providers.test.ts
     api: components/api-tests/src/platform/global-search.test.ts
     status: written

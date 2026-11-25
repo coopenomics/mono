@@ -58,8 +58,9 @@ export interface EdubridgeChainPort {
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
   /** Акт приёма-передачи РИД с подписью преподавателя — уходит председателю на одобрение вместе с протоколом совета. */
   signRidAct(data: EdubridgeContract.Actions.SignRidAct.ISignRidAct): Promise<InnerTransactResult>;
-  declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult>;
-  /** Снятие материалов с ответственного хранения по рекламации внутри срока. */
+  /** Взнос не принят: материалы возвращаются преподавателю на доработку, запись материалов в цепи остаётся. */
+  returnRid(data: EdubridgeContract.Actions.Returnrid.IReturnrid): Promise<InnerTransactResult>;
+  /** Расчёт по материалам закрывается без приёма: взнос преподавателя из резерва курса — на кошелёк программы. */
   recallRid(data: EdubridgeContract.Actions.Recallrid.IRecallrid): Promise<InnerTransactResult>;
   /** Трансляция паевого взноса преподавателя с кошелька программы в «Цифровой Кошелёк» по его заявлению. */
   withdrawShare(data: EdubridgeContract.Actions.Wthshare.IWthshare): Promise<InnerTransactResult>;

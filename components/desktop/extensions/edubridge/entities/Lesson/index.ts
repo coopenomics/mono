@@ -1,6 +1,34 @@
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { getTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import { t } from '../../i18n';
+
+/**
+ * Время занятий — местное время кооператива: по его поясу сервер строит
+ * календарь из окон расписания. Стол показывает моменты занятий в том же
+ * поясе и подписывает его («МСК»): иначе ученик в другом поясе видел бы в
+ * календаре 21:00 при расписании «Вт 17:00» (замечание владельца 25.11.2026).
+ */
+export const COOP_TIMEZONE_LABEL = getTimezoneLabel();
+const coopFormat = new Intl.DateTimeFormat('ru-RU', {
+  timeZone: getTimezone(),
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** Момент по часам кооператива: год, месяц с нуля, число, день недели (1 — пн … 7 — вс) и «ЧЧ:ММ». */
+export function coopMoment(value: unknown): { year: number; month: number; day: number; weekday: number; time: string } {
+  const parts = Object.fromEntries(coopFormat.formatToParts(new Date(String(value))).map((p) => [p.type, p.value]));
+  const year = Number(parts.year);
+  const month = Number(parts.month) - 1;
+  const day = Number(parts.day);
+  const weekday = ((new Date(Date.UTC(year, month, day)).getUTCDay() + 6) % 7) + 1;
+  return { year, month, day, weekday, time: `${parts.hour}:${parts.minute}` };
+}
 
 /**
  * Занятие группы: календарь и журнал в одной записи. Занятие появляется из
@@ -79,16 +107,18 @@ export const RESERVE_WEEKDAY = 8;
 /** Дни недели коротко: 1 — понедельник … 7 — воскресенье. */
 export const WEEKDAY_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((value) => ({ value, label: t(`edubridge.schedule.weekday.${value}` as never) }));
 
-/** Срок с годом и временем: «05.11.2026, 17:03» — срок может лежать за пределами текущего года. */
+/** Срок с годом и временем: «05.11.2026, 17:03 МСК» — срок может лежать за пределами текущего года. */
 export function formatDeadline(value: unknown): string {
   if (!value) return '______';
-  const d = new Date(String(value));
-  return `${d.toLocaleDateString('ru-RU')}, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+  const m = coopMoment(value);
+  return `${pad(m.day)}.${pad(m.month + 1)}.${m.year}, ${m.time} ${COOP_TIMEZONE_LABEL}`;
 }
 
-/** Момент занятия словами: «Чт 15.10, 17:00». */
+/** Момент занятия словами: «Чт 15.10, 17:00 МСК». */
 export function formatLessonMoment(value: unknown): string {
   if (!value) return '______';
-  const d = new Date(String(value));
-  return `${WEEKDAY_OPTIONS[((d.getDay() + 6) % 7)].label} ${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+  const m = coopMoment(value);
+  return `${WEEKDAY_OPTIONS[m.weekday - 1].label} ${pad(m.day)}.${pad(m.month + 1)}, ${m.time} ${COOP_TIMEZONE_LABEL}`;
 }
+
+const pad = (n: number): string => String(n).padStart(2, '0');

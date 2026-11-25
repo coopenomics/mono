@@ -1,97 +1,100 @@
 <template lang="pug">
 .projects-list-widget
-  // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
-  .projects-skeleton(v-if='isInitialLoading')
-    .skel(v-for='i in 8', :key='i')
+  // Плоскость списка — та же, что у задач/артефактов: скелетон, лента или
+  // пустое состояние, всё по центру остатка экрана
+  .page-surface.list-surface
+    // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
+    .projects-skeleton(v-if='isInitialLoading')
+      .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(v-else, ref='scrollAreaRef')
-    q-table(
-      ref='tableRef',
-      :rows='projects?.items || []',
-      :columns='columns',
-      row-key='project_hash',
-      :pagination='pagination',
-      flat,
-      square,
-      hide-header,
-      hide-pagination,
-      virtual-scroll,
-      @virtual-scroll='onScroll',
-      :virtual-scroll-target='".projects-scroll-area"',
-      :virtual-scroll-item-size='48',
-      :virtual-scroll-sticky-size-start='48',
-      :rows-per-page-options='[0]'
-    )
-      template(#body='props')
-        q-tr(
-          :props='props'
-        )
-          q-td
-            .row.items-center.project-row
-              // Кнопка раскрытия
-              .col-auto.project-row__toggle
-                ExpandToggleButton(
-                  :expanded='expanded[props.row.project_hash]',
-                  @click='handleToggleExpand(props.row.project_hash)'
-                )
+    .projects-scroll-area(v-else-if='projects.items.length', ref='scrollAreaRef')
+      q-table(
+        ref='tableRef',
+        :rows='projects?.items || []',
+        :columns='columns',
+        row-key='project_hash',
+        :pagination='pagination',
+        flat,
+        square,
+        hide-header,
+        hide-pagination,
+        virtual-scroll,
+        @virtual-scroll='onScroll',
+        :virtual-scroll-target='".projects-scroll-area"',
+        :virtual-scroll-item-size='48',
+        :virtual-scroll-sticky-size-start='48',
+        :rows-per-page-options='[0]'
+      )
+        template(#body='props')
+          q-tr(
+            :props='props'
+          )
+            q-td
+              .row.items-center.project-row
+                // Кнопка раскрытия
+                .col-auto.project-row__toggle
+                  ExpandToggleButton(
+                    :expanded='expanded[props.row.project_hash]',
+                    @click='handleToggleExpand(props.row.project_hash)'
+                  )
 
-              // ID — плоский muted-текст фиксированной колонки (Linear-style)
-              .col-auto.project-row__id
-                EntityIdBadge(
-                  v-if='props.row.id'
-                  :raw-id='props.row.id'
-                  copy-on-click
-                  address-clipboard
-                  flat
-                )
+                // ID — плоский muted-текст фиксированной колонки (Linear-style)
+                .col-auto.project-row__id
+                  EntityIdBadge(
+                    v-if='props.row.id'
+                    :raw-id='props.row.id'
+                    copy-on-click
+                    address-clipboard
+                    flat
+                  )
 
-              // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
-              .col-auto.row-status
-                ProjectPriorityChip(:project='props.row' variant='icon')
+                // Приоритет — компактная иконка слева, как у задач; статус ушёл чипом вправо
+                .col-auto.row-status
+                  ProjectPriorityChip(:project='props.row' variant='icon')
 
-              // Избранное — рядом со статусом, до заголовка
-              .col-auto.row-favorite
-                FavoriteStarButton(
-                  :target-type='FavoriteTargetType.PROJECT',
-                  :target-hash='props.row.project_hash'
-                )
+                // Избранное — рядом со статусом, до заголовка
+                .col-auto.row-favorite
+                  FavoriteStarButton(
+                    :target-type='FavoriteTargetType.PROJECT',
+                    :target-hash='props.row.project_hash'
+                  )
 
-              // Title
-              .col.project-row__title-col
-                .list-item-title(
-                  @click.stop='handleOpenProject(props.row.project_hash)'
-                )
-                  PrivateShieldIcon(:show='props.row.origin === "local"')
-                  span {{ props.row.title }}
+                // Title
+                .col.project-row__title-col
+                  .list-item-title(
+                    @click.stop='handleOpenProject(props.row.project_hash)'
+                  )
+                    PrivateShieldIcon(:show='props.row.origin === "local"')
+                    span {{ props.row.title }}
 
-              // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
-              // время на уровне проекта пока скрыто — почти всегда нули
-              .col-auto.row-cells
-                .cell-time
-                .cell-side
-                  // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
-                  ProjectStatusChip(:project='props.row')
-                .cell-actions
-                  // Мастер — ответственный за проект (зеркально исполнителям задач)
-                  SetMasterAvatar(:project='props.row')
+                // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
+                // время на уровне проекта пока скрыто — почти всегда нули
+                .col-auto.row-cells
+                  .cell-time
+                  .cell-side
+                    // Статус — чип с меню, тот же слот и рисунок, что у статуса задач
+                    ProjectStatusChip(:project='props.row')
+                  .cell-actions
+                    // Мастер — ответственный за проект (зеркально исполнителям задач)
+                    SetMasterAvatar(:project='props.row')
 
-        // Слот для дополнительного контента проекта (ComponentsListWidget)
-        q-tr.q-virtual-scroll--with-prev(
-          no-hover,
-          v-if='expanded[props.row.project_hash]',
-          :key='`${props.row.project_hash}`'
-        )
-          //- Без colspan: в теле одна ячейка на строку, а colspan='100%'
-          //- парсится браузером как 100 колонок и при table-layout: fixed
-          //- сжимает строку проекта в ширину первой из них
-          q-td.project-row__nested
-            slot(name='project-content', :project='props.row')
+          // Слот для дополнительного контента проекта (ComponentsListWidget)
+          q-tr.q-virtual-scroll--with-prev(
+            no-hover,
+            v-if='expanded[props.row.project_hash]',
+            :key='`${props.row.project_hash}`'
+          )
+            //- Без colspan: в теле одна ячейка на строку, а colspan='100%'
+            //- парсится браузером как 100 колонок и при table-layout: fixed
+            //- сжимает строку проекта в ширину первой из них
+            q-td.project-row__nested
+              slot(name='project-content', :project='props.row')
 
-      // Канон-пустое состояние вместо дефолтного q-table no-data
-      template(#no-data)
-        .list-empty
-          q-icon(name='inbox', size='20px')
-          span {{ hasFiltersApplied ? $t('capital.projectsListWidget.noFilterResults') : $t('capital.projectsListWidget.emptyText') }}
+    //- Пустое состояние — канон EmptyState по центру экрана
+    .empty-fill(v-else)
+      EmptyState(:title='emptyTitle', :body='emptyBody')
+        template(#icon)
+          q-icon(:name='hasFiltersApplied ? "search_off" : "folder_open"')
 </template>
 
 <script lang="ts" setup>
@@ -100,6 +103,7 @@ import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realt
 import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
@@ -196,6 +200,14 @@ const hasFiltersApplied = computed(() => {
 const isInitialLoading = computed(() => {
   return loading.value && projects.value.items.length === 0;
 });
+
+// Пустой список и пустой результат фильтра — разные подсказки
+const emptyTitle = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterTitle') : t('capital.projectsListWidget.emptyTitle'),
+);
+const emptyBody = computed(() =>
+  hasFiltersApplied.value ? t('capital.listEmpty.filterBody') : t('capital.projectsListWidget.emptyBody'),
+);
 
 // Пагинация
 const pagination = ref({
@@ -400,23 +412,33 @@ const columns = [
   flex-direction: column;
   gap: var(--p-3);
   padding: var(--p-4);
-  background: var(--p-surface);
 
   .skel {
     height: var(--p-7);
   }
 }
 
-// Высоту задаёт страница (flex-колонка под шапкой и панелью фильтров);
-// fallback на полный вьюпорт минус шапка — для standalone-использования
+// Плоскость списка — та же (page-shell + surface), что у задач/артефактов
+.page-surface.list-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-surface);
+}
+
+// Высоту задаёт страница (flex-колонка .page-shell под шапкой);
+// пустое состояние (.empty-fill) забирает остаток и центрируется
 .projects-list-widget {
   height: 100%;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .projects-scroll-area {
-  height: 100%;
-  max-height: calc(100vh - 55px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -520,17 +542,6 @@ const columns = [
   gap: var(--p-1);
   color: var(--p-ink-3);
   white-space: nowrap;
-}
-
-// Канон-пустое состояние списка
-.list-empty {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-  width: 100%;
-  padding: var(--p-3) var(--p-4);
-  color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
 }
 
 .projects-scroll-area :deep(.q-table) {

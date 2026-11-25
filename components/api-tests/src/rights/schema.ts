@@ -60,8 +60,19 @@ export function named(t: TypeRef): TypeRef {
   return x
 }
 
+/**
+ * Номера записей, которые наборы стенда заводят до матрицы (план расходов №1
+ * создаёт фаза КЭУ). С номером 1 проба попадала в живую запись: ответ зависел
+ * от данных и порядка ролей, а председатель участка её удалял. Проба, как и
+ * для пайщика и участка, берёт номер, которого на стенде нет.
+ */
+const NONEXISTENT_ID_FIELDS = new Set(['plan_id'])
+const NONEXISTENT_ID = 2_000_000_000
+
 function scalarValue(scalar: string, field: string): unknown {
   const f = field.toLowerCase()
+  if (scalar === 'Int' && NONEXISTENT_ID_FIELDS.has(f))
+    return NONEXISTENT_ID
   switch (scalar) {
     case 'Int': return 1
     case 'Float': return 1

@@ -73,7 +73,7 @@ interface ISearchResult {
 ## Пример использования
 
 ```typescript
-import { Generator } from '@coopenomics/factory'
+import { Generator } from '@coopenomics/docs-factory'
 
 const generator = new Generator()
 await generator.connect('mongodb://localhost:27017/mydatabase')

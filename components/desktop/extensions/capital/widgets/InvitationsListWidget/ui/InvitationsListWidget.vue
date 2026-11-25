@@ -1,13 +1,13 @@
 <template lang="pug">
 .invitations-list
-  //- Пустое состояние — канон EmptyState на surface (без серой «прижатой» зоны q-table)
-  EmptyState(
-    v-if='!loading && candidates.length === 0',
-    :title='$t("capital.invitationsListWidget.emptyTitle")',
-    :body='$t("capital.invitationsListWidget.emptyBody")'
-  )
-    template(#icon)
-      q-icon(name='people_outline')
+  //- Пустое состояние — канон EmptyState по центру остатка экрана
+  .empty-fill(v-if='!loading && candidates.length === 0')
+    EmptyState(
+      :title='$t("capital.invitationsListWidget.emptyTitle")',
+      :body='$t("capital.invitationsListWidget.emptyBody")'
+    )
+      template(#icon)
+        q-icon(name='people_outline')
 
   //- Список приглашений
   q-table(
@@ -195,9 +195,12 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Колонка на высоту остатка экрана: пустое состояние (.empty-fill) центрируется
 .invitations-list {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .invitations-list__expand {
@@ -231,6 +234,7 @@ onMounted(async () => {
 
 :deep(.q-table) {
   background: transparent;
+  flex-shrink: 0;
 }
 
 :deep(.q-tr) {

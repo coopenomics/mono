@@ -8,4 +8,15 @@ export interface DocumentPackageAggregateDomainInterface {
   decision: DecisionDetailAggregateDomainInterface | null;
   acts: ActDetailAggregateDomainInterface[];
   links: DocumentAggregateDomainInterface[];
+  /**
+   * Ключ записи реестра — хэш подписанного заявления пакета. Пакет, выданный
+   * пайщику без заявления (поставщику — только его акт), открывается по нему.
+   */
+  registry_hash?: string | null;
+  /** Название строки реестра по типу документа (текущая редакция шаблона). */
+  title?: string | null;
+  /** Дата подписи — время блока документа в цепи. */
+  signed_at?: Date | null;
+  /** Роль документа в процессе. */
+  role?: string | null;
 }

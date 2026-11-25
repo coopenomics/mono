@@ -23,6 +23,7 @@ import { BaseButton, BaseDialog, BaseForm, BaseInput } from 'src/shared/ui/base'
 import { DataRow } from 'src/shared/ui/domain';
 import { commitLessonMaterials, fetchMyContributions, reportLesson, type ILesson } from '../../entities/Teacher';
 import { formatLessonMoment } from '../../entities/Lesson';
+import { materialsToText, parseMaterials } from '../../shared/lib/materials';
 import { t } from '../../i18n';
 
 /**
@@ -47,7 +48,7 @@ watch(
   () => props.lesson,
   (lesson) => {
     topic.value = lesson?.topic ?? '';
-    materialsText.value = '';
+    materialsText.value = materialsToText(lesson?.materials);
   },
 );
 
@@ -64,7 +65,7 @@ async function onReport(): Promise<void> {
     created = await reportLesson({
       lesson_id: asText(props.lesson.id),
       topic: topic.value,
-      materials: materialsText.value.split('\n').map((s) => s.trim()).filter(Boolean),
+      materials: parseMaterials(materialsText.value),
     });
     const draft = (await fetchMyContributions()).find((c) => asText(c.id) === asText(created?.contribution_id)) ?? null;
     if (draft) await commitLessonMaterials(draft);

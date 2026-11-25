@@ -97,6 +97,8 @@ export interface InnerExpenseItemInput {
   recipient_type: InnerExpenseRecipientType;
   /** Получатель: имя пайщика; у организации аккаунта в кооперативе нет — пустая строка. */
   recipient: string;
+  /** Название организации-получателя — у организации аккаунта нет, её называют по имени. */
+  recipient_name?: string;
   description: string;
   /** Планируемая сумма, например `1000.0000 RUB`. */
   planned_amount: string;
@@ -114,6 +116,12 @@ export interface InnerExpenseRequisiteItemInput {
   itemHash: string;
   /** Получатель: username пайщика (владелец платёжного метода) либо пусто для организации. */
   recipient: string;
+  /**
+   * Название организации-получателя (оплата по счёту). Аккаунта в кооперативе у
+   * организации нет, поэтому реестр и поручение кассиру показывают получателя по
+   * этому названию. Для пайщика не используется.
+   */
+  recipientName?: string;
   /** true — получатель-организация: реквизиты приходят строкой `requisites`. */
   isOrganization: boolean;
   /**
@@ -124,7 +132,13 @@ export interface InnerExpenseRequisiteItemInput {
   mechanics: 'ADVANCE' | 'DIRECT';
   /** Идентификатор платёжного метода получателя-пайщика. */
   paymentMethodId?: string;
-  /** Реквизиты строкой (организации — ручной ввод из формы). */
+  /**
+   * Контрагент-получатель из реестра контрагентов шасси. С ним наименование и
+   * реквизиты организации берёт шасси из карточки контрагента, а `requisites`
+   * — текст из подписанной записки — сверяется с карточкой.
+   */
+  counterpartyId?: number;
+  /** Реквизиты строкой (организации — ручной ввод из формы либо текст из карточки контрагента). */
   requisites?: string;
   /** Назначение платежа (оплата по счёту) — фиксируется в снимке для кассира. */
   paymentPurpose?: string;
@@ -188,6 +202,43 @@ export interface InnerExpensePlannedReserve {
   amount: number;
   /** За сколько дней вперёд посчитан резерв. */
   horizonDays: number;
+}
+
+/**
+ * Запись реестра плановых расходов — для потребителей, которым нужны суммы по
+ * срокам (итог месяца кооперативного участка Стола заказов, задача 99D-22).
+ */
+export interface InnerExpensePlan {
+  id: number;
+  /** Участок записи; null — расход уровня кооператива. */
+  branchName: string | null;
+  title: string;
+  /** Сумма, asset-строка в валюте кооператива. */
+  amount: string;
+  dueDate: Date | null;
+  /**
+   * Шаг серии повторяющегося расхода в месяцах: 1 — каждый месяц, 3 — раз в
+   * квартал, 12 — раз в год; 0 или нет поля — разовый расход. Резерв копит
+   * платёж серии равными долями за этот срок.
+   */
+  recurrenceMonths?: number;
+  /**
+   * Способ оплаты записи: получатель-организация (ORG) по реквизитам
+   * контрагента либо пайщик (SELF/MEMBER) авансом под отчёт; нет поля — запись
+   * до способов оплаты, служебная записка составляется вручную.
+   */
+  recipientType?: InnerExpenseRecipientType | null;
+  /** Контрагент-получатель оплаты по реквизитам. */
+  counterpartyId?: number | null;
+  /** Пайщик-получатель аванса под отчёт. */
+  recipient?: string | null;
+  /** Способ получения средств пайщика. */
+  paymentMethodId?: string | null;
+  /** Назначение платежа организации. */
+  paymentPurpose?: string | null;
+  /** Хэш служебной записки шасси, которой оплачивается запись; null — оплата не запускалась. */
+  proposalHash: string | null;
+  paidAt: Date | null;
 }
 
 export interface IExpenseChassisPort {
@@ -268,6 +319,13 @@ export interface IExpenseChassisPort {
    * подразделению.
    */
   getPlannedReserve(coopname: string, branchName: string | null): Promise<InnerExpensePlannedReserve>;
+
+  /**
+   * Записи реестра плановых расходов участка (`branchName`) либо всего
+   * кооператива (`null`) — со сроками, суммами и связью с записками шасси.
+   * Читает итог месяца участка Стола заказов (задача 99D-22).
+   */
+  listPlans(coopname: string, branchName: string | null): Promise<InnerExpensePlan[]>;
 
   /**
    * Связать плановую запись с поданной сметой: пока смета идёт по шасси

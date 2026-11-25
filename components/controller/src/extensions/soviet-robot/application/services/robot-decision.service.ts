@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Classes } from '@coopenomics/sdk';
-import { Cooperative } from 'cooptypes';
+import { decisionTypesRegistry } from '@coopenomics/docs-templates';
 import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import {
   DOCUMENT_PORT,
@@ -19,6 +19,12 @@ import { isAutomationExpired } from './robot-registry.service';
 /** Поля метаданных документа, которые задаёт фабрика сама; в данные генерации протокола их не передаём. */
 const META_SERVICE_KEYS = new Set([
   'title', 'registry_id', 'lang', 'generator', 'version', 'coopname', 'username', 'created_at', 'block_num', 'timezone', 'links',
+  // Версия сборщика принадлежит виду документа: заявление 1120 собрано
+  // сборщиком 1.1, а у протокола 1121 есть только 1.0. Перенесённая в данные
+  // протокола, она заставляла фабрику искать сборщик 1.1 у протокола
+  // (UnknownBuilderVersionError), и решение по имуществу застревало
+  // (Blackbox 13.11.2026). Версию протокола выбирает фабрика сама.
+  'builder',
 ]);
 
 /** Намерение робота по одному члену совета для одного решения. */
@@ -154,7 +160,7 @@ export class RobotDecisionService {
     limits: RobotLimits
   ): Promise<RobotDecisionDomainEntity> {
     entry.stage = RobotDecisionStage.AWAITING_PROTOCOL;
-    const registryId = Cooperative.Document.decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
+    const registryId = decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
     if (!registryId)
       throw DomainError.internal('SOVIET_ROBOT_DECISION_TYPE_UNKNOWN', { decisionType: entry.decision_type });
 

@@ -10,7 +10,7 @@
   >
     <q-card
       flat
-      :class="['base-dialog', maximized ? 'base-dialog--maximized' : `base-dialog--${size}`]"
+      :class="['base-dialog', maximized ? 'base-dialog--maximized' : `base-dialog--${size}`, { 'base-dialog--canvas': canvas }]"
       :style="maximized ? undefined : { maxWidth: maxWidthBySize[size ?? 'md'] }"
     >
       <q-card-section
@@ -52,6 +52,7 @@ withDefaults(defineProps<BaseDialogProps>(), {
   closeOnRouteChange: true,
   hideCloseButton: false,
   maximized: false,
+  canvas: false,
 });
 
 const emit = defineEmits<{
@@ -81,7 +82,11 @@ const maxWidthBySize: Record<BaseDialogSize, string> = {
   max-width: none;
   max-height: none;
 }
-.base-dialog--maximized .base-dialog__foot {
+.base-dialog--maximized .base-dialog--canvas,
+.base-dialog--canvas .base-dialog__foot {
+  background: var(--p-canvas);
+}
+.base-dialog__foot {
   flex-shrink: 0;
 }
 .base-dialog__head {

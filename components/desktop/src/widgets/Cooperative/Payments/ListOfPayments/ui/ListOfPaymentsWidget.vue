@@ -4,7 +4,7 @@
     v-if='onLoading && !items.length',
     :columns='skeletonColumns',
     :rows='6',
-    :min-width='hideActions ? "660px" : "790px"'
+    :min-width='hideActions ? "780px" : "900px"'
   )
   template(v-else-if='items.length')
     //- Десктоп: канон-таблица. На мобиле скрыта — таблица из 7–8 колонок
@@ -42,10 +42,12 @@
                     q-icon.q-mr-xs(:name='getDirectionIcon(displayDirection(row))', size='16px')
                     span.dir__amount {{ amountLabel(row) }}
                     q-tooltip {{ directionLabel(row) }} · {{ directionHint(row) }}
-                td {{ row.type_label }}
+                td.cell-type {{ row.type_label }}
                 td
                   .cell-status
-                    BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
+                    //- Статус — цветным текстом, а не плашкой: два слова
+                    //- («Ожидает оплаты») переносятся и не наезжают на соседей.
+                    span.status-text(:class='`status-text--${getStatusVariant(row.status)}`') {{ row.status_label }}
                     //- Статус отчёта по авансу (личный стол пайщика) — отдельная ось
                     //- рядом со статусом платежа: требуется / подан / принят.
                     BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
@@ -683,16 +685,17 @@ onMounted(async () => {
    него колонки сжимаются уже контента и кнопки действий наезжают на статус.
    Перебиваем !important: при нехватке ширины таблица скроллится в
    .table-scroll, а не схлопывает колонки (как журнал уведомлений).
-   Ширины колонок вместе с колонкой пайщика укладываются в min-width (790px с
-   действиями, 660px без), а она — в страницу на окне 1120px с меню (1120 −
-   248 − поля): таблица помещается целиком, раскрытая строка не шире её.
+   Ширины колонок вместе с колонкой пайщика укладываются в min-width (900px с
+   действиями, 780px без): сумма «1 000 000,00 RUB» со стрелкой, тип
+   «Регистрационный взнос» и статус в две строки не наезжают на соседей
+   (замечание владельца 18.11.2026). Уже — таблица скроллится в .table-scroll.
    Поля ячеек поджаты до --p-3, иначе восемь колонок по 40px полей не влезают. */
 .table {
   table-layout: fixed !important;
-  min-width: 660px !important;
+  min-width: 780px !important;
 }
 .table--actions {
-  min-width: 790px !important;
+  min-width: 900px !important;
 }
 
 .table thead th,
@@ -709,13 +712,13 @@ onMounted(async () => {
   width: 100px;
 }
 .col-num {
-  width: 132px;
+  width: 184px;
 }
 .col-type {
-  width: 112px;
+  width: 160px;
 }
 .col-status {
-  width: 168px;
+  width: 120px;
 }
 .col-action {
   width: 136px;
@@ -738,8 +741,32 @@ onMounted(async () => {
   gap: var(--p-2, 8px);
 }
 
-.cell-name {
+.cell-name,
+.cell-type {
   overflow-wrap: break-word;
+}
+
+/* Статус платежа текстом цвета состояния; переносится по словам. */
+.status-text {
+  font-size: var(--p-fs-body-sm);
+  font-weight: 500;
+  white-space: normal;
+}
+.status-text--pos {
+  color: var(--p-pos);
+}
+.status-text--neg {
+  color: var(--p-neg);
+}
+.status-text--warn {
+  color: var(--p-warn);
+}
+.status-text--info,
+.status-text--accent {
+  color: var(--p-info);
+}
+.status-text--neutral {
+  color: var(--p-ink-2);
 }
 
 .dir {

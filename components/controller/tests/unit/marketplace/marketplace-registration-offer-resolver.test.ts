@@ -7,7 +7,7 @@
  *       + agreement_id, registry_id, agreement_type, title, applicable_account_types.
  */
 import { MarketplaceRegistrationOfferResolver } from '~/extensions/marketplace/application/resolvers/marketplace-registration-offer.resolver';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 const makePort = (item: any) =>
   ({
@@ -29,7 +29,7 @@ describe('MarketplaceRegistrationOfferResolver', () => {
   it('AgreementQueryPort вернул item → registered=true с заполненными полями', async () => {
     const item = {
       id: 'marketplace_offer',
-      registry_id: Cooperative.Registry.MarketplaceProgramTemplate.registry_id,
+      registry_id: Registry.MarketplaceProgramTemplate.registry_id,
       agreement_type: 'marketplace',
       title: 'Оферта Стола заказов',
       checkbox_text: 'Я принимаю',
@@ -44,7 +44,7 @@ describe('MarketplaceRegistrationOfferResolver', () => {
 
     expect(dto.registered).toBe(true);
     expect(dto.agreement_id).toBe('marketplace_offer');
-    expect(dto.registry_id).toBe(Cooperative.Registry.MarketplaceProgramTemplate.registry_id);
+    expect(dto.registry_id).toBe(Registry.MarketplaceProgramTemplate.registry_id);
     expect(dto.agreement_type).toBe('marketplace');
     expect(dto.title).toBe('Оферта Стола заказов');
     expect(dto.applicable_account_types).toEqual(['individual', 'entrepreneur']);

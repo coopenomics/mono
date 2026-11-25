@@ -6,6 +6,7 @@ import {
   PROVIDER_TARIFF_PORT,
   PROVIDER_APPS_PORT,
   CHAIRMAN_APPROVALS_PORT,
+  POWERS_OF_ATTORNEY_PORT,
   CHAIN_DELTA_WAIT_PORT,
   CHAIN_CHANGES_PORT,
   CHATCOOP_CALENDAR_PORT,
@@ -58,6 +59,8 @@ import {
   SECRET_CIPHER_PORT,
   USER_DATA_PORT,
   USER_AVATAR_PORT,
+  COOPERATIVE_LOGO_PORT,
+  DECISION_DECLINE_REASON_PORT,
   USER_CERTIFICATE_PORT,
   VERIFICATION_PORT,
   USER_DIRECTORY_PORT,
@@ -75,6 +78,8 @@ import { AccountInnercoopAdapter } from '~/infrastructure/innercoop/account-inne
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { AccountModule } from '~/application/account/account.module';
 import { UserAvatarService } from '~/application/account/services/user-avatar.service';
+import { CooperativeLogoService } from '~/application/account/services/cooperative-logo.service';
+import { DecisionDeclineReasonKyselyRepository } from '~/infrastructure/database/kysely/repositories/decision-decline-reason.kysely-repository';
 import { NotificationCenterModule } from '~/application/notification-center/notification-center.module';
 import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastructure.module';
 import { MeetDataAdapter } from '~/infrastructure/meet/meet-data.adapter';
@@ -147,6 +152,8 @@ import { DocumentModule } from '~/application/document/document.module';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { ChairmanExtensionModule } from './chairman/chairman-extension.module';
+import { KuExtensionModule } from './ku/ku-extension.module';
+import { KuPowersOfAttorneyService } from './ku/application/services/ku-powers-of-attorney.service';
 import { ChairmanInnercoopApprovalsAdapter } from './chairman/infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { ChainDeltaWaiterService } from '~/infrastructure/blockchain/chain-delta-waiter.service';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
@@ -184,6 +191,8 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     ChatCoopExtensionModule,
     // Одобрения председателя другим столам — через порт одобрений.
     ChairmanExtensionModule,
+    // Доверенности кооператива — учёт ведёт расширение участков.
+    KuExtensionModule,
     ExpensesExtensionModule,
     SovietRobotExtensionModule,
     Ledger2Module,
@@ -282,6 +291,12 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       // показывает его у себя; одобрение одно — подпись закрывает его везде.
       provide: CHAIRMAN_APPROVALS_PORT,
       useExisting: ChairmanInnercoopApprovalsAdapter,
+    },
+    {
+      // Доверенности кооператива: истёкшая доверенность закрывает пайщику
+      // работу по ней (Стол заказов — работу с пунктом выдачи).
+      provide: POWERS_OF_ATTORNEY_PORT,
+      useExisting: KuPowersOfAttorneyService,
     },
     {
       provide: PROJECT_CAPITAL_CLEARANCE_PORT,
@@ -447,6 +462,15 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
       useExisting: UserAvatarService,
     },
     {
+      provide: COOPERATIVE_LOGO_PORT,
+      useExisting: CooperativeLogoService,
+    },
+    // Пояснение председателя к отклонению решения совета — хранилище ядра (KyselyModule, глобальный)
+    {
+      provide: DECISION_DECLINE_REASON_PORT,
+      useExisting: DecisionDeclineReasonKyselyRepository,
+    },
+    {
       provide: USER_CERTIFICATE_PORT,
       useExisting: UserCertificateInnercoopAdapter,
     },
@@ -565,6 +589,7 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     CHAIRMAN_APPROVALS_PORT,
+    POWERS_OF_ATTORNEY_PORT,
     CHAIN_DELTA_WAIT_PORT,
     CHAIN_CHANGES_PORT,
     CHATCOOP_CALENDAR_PORT,
@@ -604,6 +629,8 @@ import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-r
     MUTATION_LOG_PORT,
     CANDIDATE_PORT,
     USER_AVATAR_PORT,
+    COOPERATIVE_LOGO_PORT,
+    DECISION_DECLINE_REASON_PORT,
     USER_CERTIFICATE_PORT,
     VERIFICATION_PORT,
     AGREEMENT_CATALOG_PORT,

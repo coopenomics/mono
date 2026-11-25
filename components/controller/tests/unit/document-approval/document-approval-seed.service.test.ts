@@ -2,9 +2,9 @@ import { DocumentApprovalSeedService } from '~/domain/document-approval/services
 import { toChainTimePoint } from '~/domain/document-approval/services/decision-date';
 import { DocumentApprovalRequirement, DocumentApprovalState, DocumentKind } from '~/domain/document-approval/enums/document-approval.enums';
 import type { DocumentTemplateView } from '~/domain/document-approval/interfaces/document-template-view.interface';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
-const R = Cooperative.Registry;
+const R = Registry;
 
 jest.mock('~/config/config', () => ({
   __esModule: true,

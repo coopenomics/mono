@@ -4,6 +4,7 @@ import { GeneratorInfrastructureService } from './generator.service';
 import { GENERATOR_PORT } from '~/domain/document/ports/generator.port';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 import { EffectiveTemplateBlockResolver } from './effective-template-block.resolver';
+import { PgFactoryStorage } from './pg-factory-storage';
 import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
 
 @Global()
@@ -11,6 +12,7 @@ import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module'
   imports: [BlockchainModule],
   providers: [
     EffectiveTemplateBlockResolver,
+    PgFactoryStorage,
     ControllerChainDataSource,
     GeneratorInfrastructureService,
     {
@@ -18,6 +20,6 @@ import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module'
       useClass: GeneratorInfrastructureService,
     },
   ],
-  exports: [GeneratorInfrastructureService, GENERATOR_PORT],
+  exports: [GeneratorInfrastructureService, GENERATOR_PORT, PgFactoryStorage],
 })
 export class GeneratorInfrastructureModule {}

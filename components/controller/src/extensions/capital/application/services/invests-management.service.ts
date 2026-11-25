@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
@@ -13,7 +14,8 @@ import { CHAIN_DELTA_WAIT_PORT, DOCUMENT_PORT, type IChainDeltaWaitPort, type ID
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
 import { AssetUtils, CurrencyValidationUtil, GeneratedDocumentDTO, GenerateDocumentInputDTO, GenerateDocumentOptionsInputDTO, generateRandomHash, PaginationInputDTO, PaginationResult, verifySignedDocumentAgainstStoredDraft } from '@coopenomics/extension-kit';
-import { CapitalContract, Cooperative, Ledger2Contract } from 'cooptypes';
+import { CapitalContract, Ledger2Contract } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 
 /**
  * Сервис уровня приложения для управления инвестициями CAPITAL
@@ -70,7 +72,11 @@ export class InvestsManagementService {
       [{ field: 'amount', expected: data.amount, mode: 'currency_amount' }],
     );
 
-    const invest_hash = generateRandomHash();
+    // Хэш взноса выводится из подписанного заявления, а не выпускается заново:
+    // повтор того же заявления (двойной клик, повтор запроса) получает тот же
+    // хэш и отсекается интерактором до цепи (решение владельца 02.11.2026 —
+    // контракт истории взносов не хранит).
+    const invest_hash = createHash('sha256').update(`capital-pinv|${data.statement.hash.toLowerCase()}`).digest('hex');
 
     const tx = await this.investsManagementInteractor.createProgramInvest(
       {
@@ -165,7 +171,7 @@ export class InvestsManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.CapitalizationMoneyInvestStatement.registry_id,
+        registry_id: Registry.CapitalizationMoneyInvestStatement.registry_id,
       },
       options,
     });

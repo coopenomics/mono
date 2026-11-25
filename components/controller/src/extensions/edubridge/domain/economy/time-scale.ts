@@ -10,7 +10,15 @@
  *  - `NODE_ENV=development` — сжатие включено само собой.
  *  - `EDUBRIDGE_GUARANTEE_DAY_SECONDS` — своя длина суток (86400 — настоящие).
  *  - `EDUBRIDGE_MONTH_SECONDS` — своя длина месяца; 0 — месяц в четыре недели (28 дней).
+ *
+ * Общая шкала стенда (`STAND_DAY_SECONDS`, `STAND_MONTH_SECONDS`,
+ * `STAND_WORKER_PACE_SECONDS`, `@coopenomics/extension-kit`) главнее: если
+ * задана хоть одна её переменная, образование живёт по ней вместе с другими
+ * приложениями. Переменные `EDUBRIDGE_*` и сжатие по `NODE_ENV=development`
+ * остаются запасными — для стендов, где шкала стенда не задана.
  */
+import { isStandTimeConfigured, standDaySeconds, standMonthSeconds, standWorkerPaceSeconds } from '@coopenomics/extension-kit';
+
 const SECONDS_IN_DAY = 24 * 60 * 60;
 /** Сутки на стенде разработки: одна минута. */
 const DEV_SECONDS_IN_DAY = 60;
@@ -26,6 +34,7 @@ const inDevelopment = (): boolean => process.env.NODE_ENV === 'development';
 /** Длина суток, секунд. */
 export function eduDaySeconds(): number {
   if (inProduction()) return SECONDS_IN_DAY;
+  if (isStandTimeConfigured()) return standDaySeconds();
   const custom = Number(process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS);
   if (Number.isFinite(custom) && custom > 0) return Math.floor(custom);
   return inDevelopment() ? DEV_SECONDS_IN_DAY : SECONDS_IN_DAY;
@@ -39,6 +48,7 @@ export function isDayShortened(): boolean {
 /** Длина месяца, секунд; 0 — месяц в четыре недели (28 дней). */
 export function eduMonthSeconds(): number {
   if (inProduction()) return 0;
+  if (isStandTimeConfigured()) return standMonthSeconds();
   const raw = process.env.EDUBRIDGE_MONTH_SECONDS;
   if (raw !== undefined && raw.trim() !== '') {
     const custom = Number(raw);
@@ -56,6 +66,7 @@ export function isTimeCompressed(): boolean {
 export function workerPaceSeconds(): number {
   // Стенд документации проходит путь взноса преподавателя за минуты: ход очереди
   // задаётся окружением, как и длина суток. В работе — раз в десять минут.
+  if (isStandTimeConfigured()) return standWorkerPaceSeconds(WORKER_PACE_SECONDS);
   if (!inProduction()) {
     const custom = Number(process.env.EDUBRIDGE_WORKER_PACE_SECONDS);
     if (Number.isFinite(custom) && custom > 0) return Math.floor(custom);

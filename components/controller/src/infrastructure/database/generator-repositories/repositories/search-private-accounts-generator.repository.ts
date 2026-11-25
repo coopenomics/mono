@@ -9,7 +9,7 @@ import type { IndividualDomainInterface } from '~/domain/common/interfaces/indiv
 import type { EntrepreneurDomainInterface } from '~/domain/common/interfaces/entrepreneur-domain.interface';
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import type { ISearchResult } from '@coopenomics/factory';
+import type { ISearchResult } from '@coopenomics/docs-factory';
 
 /**
  * Инфраструктурная реализация репозитория поиска приватных аккаунтов

@@ -46,7 +46,7 @@ src/
    - Активация фич протокола (PREACTIVATE_FEATURE → остальные)
    - Деплой смарт-контрактов (eosio.boot → eosio.system → все остальные)
    - Создание и выпуск токенов
-   - Загрузка шаблонов документов из `@coopenomics/factory` Registry
+   - Загрузка шаблонов документов из `@coopenomics/docs-factory` Registry
    - Настройка ресурсов (powerup)
 
 2. **installInitialData()** — данные кооператива:
@@ -99,4 +99,4 @@ EOSIO отклоняет транзакции с одинаковым хешем
 ## Зависимости от других компонентов
 
 - `cooptypes` (workspace) — типы контрактов
-- `@coopenomics/factory` (workspace) — реестр шаблонов, сохранение данных в MongoDB
+- `@coopenomics/docs-factory` (npm, C9S/docs-factory) — реестр шаблонов, сохранение данных в PostgreSQL узла

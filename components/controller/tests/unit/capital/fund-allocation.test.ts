@@ -50,7 +50,8 @@ function makeInteractor(o: { project?: any } = {}) {
     {} as any, // segmentRepository
     {} as any, // domainToBlockchainUtils
     {} as any, // investSyncService
-    makeLoggerStub()
+    makeLoggerStub(),
+    {} as any // ledgerHistory: повтор взноса в программу, здесь не участвует
   );
 
   return { interactor, capitalBlockchainPort, projectRepository };
@@ -171,7 +172,8 @@ function makeDeallocInteractor(o: { project?: any, segments?: any[] } = {}) {
     segmentRepository,
     {} as any, // domainToBlockchainUtils
     {} as any, // investSyncService
-    makeLoggerStub()
+    makeLoggerStub(),
+    {} as any // ledgerHistory: повтор взноса в программу, здесь не участвует
   );
 
   return { interactor, capitalBlockchainPort, projectRepository, segmentRepository };

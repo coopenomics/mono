@@ -2,7 +2,7 @@
 //- Родитель кооперативных проектов: список на корне, проект/компонент/задача — children через router-view
 //- (подсветка «Кооперативные проекты» в рейле через matched по name projects-list).
 router-view(v-if='!isWorkshopRoot')
-.projects-list-page(v-else)
+.projects-list-page.page-shell(v-else)
   //- Фильтры живут кнопкой в шапке (FilterDialogWithButton), отдельной
   //- панели на странице нет
 
@@ -223,20 +223,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-// Flex-колонка: панель фильтров сверху, список занимает остаток вьюпорта,
-// скролл живёт внутри списка (virtual-scroll), низ не уезжает за экран
+// Flex-колонка на высоту экрана (.page-shell): панель фильтров сверху,
+// список занимает остаток, скролл живёт внутри списка (virtual-scroll)
 .projects-list-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 55px);
 
   :deep(.projects-list-widget) {
     flex: 1;
     min-height: 0;
-  }
-
-  :deep(.projects-scroll-area) {
-    max-height: none;
   }
 }
 </style>

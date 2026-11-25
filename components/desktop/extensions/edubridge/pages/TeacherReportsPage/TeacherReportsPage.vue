@@ -41,6 +41,8 @@
         BaseButton(v-if="actionOf(row) === 'report'" variant="primary" size="sm" @click.stop="reportTarget = row") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
         BaseButton(v-else-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
         BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+        //- Взнос возвращён на доработку — преподаватель правит материалы по причине и подаёт его повторно
+        BaseButton(v-else-if="resubmittable(row)" variant="secondary" size="sm" @click.stop="openRework(row)") {{ $t('edubridge.teacherReportsPage.resubmitButton') }}
     EmptyState(v-if="!firstLoad && !rows.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
       template(#icon)
         q-icon(name="event_available" size="32px")
@@ -59,7 +61,7 @@
       template(v-if="details.contribution")
         DataRow(:label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(details.contribution.amount)")
         DataRow(v-if="details.contribution.hold_until" :label="$t('edubridge.teacherLessonsPage.details.holdUntil')" :value="formatDate(details.contribution.hold_until)")
-        DataRow(v-if="details.contribution.decline_reason" :label="$t('edubridge.teacherLessonsPage.details.declineReason')" :value="details.contribution.decline_reason")
+        DataRow(v-if="details.contribution.decline_reason" :label="reasonLabelOf(details.contribution)" :value="details.contribution.decline_reason")
       .edu-lesson__section(v-for="l in details.lessons" :key="asText(l.id)")
         .t-eyebrow.q-mb-sm {{ $t('edubridge.teacherLessonsPage.lessonTitle', { number: l.lesson_number }) }}
         DataRow(v-if="l.topic" :label="$t('edubridge.teacherLessonsPage.details.topic')" :value="l.topic")
@@ -71,13 +73,15 @@
             q-icon(name="link" size="14px")
             span {{ link }}
         .t-muted.t-sm(v-else) ______
-    template(v-if="detailsAction" #footer)
+    template(v-if="detailsAction || (details && resubmittable(details))" #footer)
       .row.justify-end
-        BaseButton(v-if="detailsAction === 'report'" variant="primary" @click="details && openReportFromDetails(details)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
+        BaseButton(v-if="!detailsAction" variant="primary" @click="details && openReworkFromDetails(details)") {{ $t('edubridge.teacherReportsPage.resubmitButton') }}
+        BaseButton(v-else-if="detailsAction === 'report'" variant="primary" @click="details && openReportFromDetails(details)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
         BaseButton(v-else-if="detailsAction === 'transfer'" variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onTransfer(details)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
         BaseButton(v-else variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onSignAct(details)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   LessonReportDialog(:lesson="reportTarget" @close="reportTarget = null" @busy="reporting = $event" @done="load")
+  ReportReworkDialog(:target="reworkTarget" @close="reworkTarget = null" @busy="reporting = $event" @done="load")
 </template>
 
 <script setup lang="ts">
@@ -92,6 +96,7 @@ import { CONTRIBUTION_STATUS_LABELS, commitLessonMaterials, signAct, type IContr
 import { formatDeadline, formatLessonMoment } from '../../entities/Lesson';
 import { useTeacherLessons } from '../../features/TeacherLessons';
 import { LessonReportDialog } from '../../widgets/LessonReportDialog';
+import { ReportReworkDialog, type IReworkTarget } from '../../widgets/ReportReworkDialog';
 import { lessonActionOf, type LessonAction } from '../../shared/lib/lessonAction';
 import { t } from '../../i18n';
 
@@ -106,6 +111,8 @@ import { t } from '../../i18n';
 const { lessons, firstLoad, reporting, load, awaitingReport, contributionOf, replaceContribution } = useTeacherLessons();
 const rowBusy = ref<string | null>(null);
 const reportTarget = ref<ILesson | null>(null);
+/** Взнос в окне повторной подачи. */
+const reworkTarget = ref<IReworkTarget | null>(null);
 
 /** Проведённые занятия — журнал; запланированные живут в календаре. */
 const heldLessons = computed(() => lessons.value.filter((l) => l.status === Zeus.EduLessonStatus.HELD));
@@ -134,6 +141,17 @@ const columns: BaseTableColumn<ILessonRow>[] = [
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 /** Действие, которое сейчас за преподавателем по занятию: передать материалы либо подписать акт. */
 const actionOf = (row: ILessonRow): RowAction | null => (row.awaiting ? 'report' : lessonActionOf(row.contribution?.status));
+/**
+ * Взнос не принят и возвращён на доработку — его подают повторно: с одним
+ * занятием и за гарантийный срок, без срока и при завершённой группе. Расчёт
+ * с обучающимися не повторяется (решение владельца 25.11.2026). Это
+ * возможность, а не обязанность: в число дел на меню «Отчёты» повторная
+ * подача не входит.
+ */
+const resubmittable = (row: ILessonRow): boolean => !row.awaiting && row.contribution?.status === Zeus.EduContributionStatus.RETURNED;
+/** Подпись к причине: у закрытого без приёма взноса — основание председателя. */
+const reasonLabelOf = (c: IContribution): string =>
+  t(c.status === Zeus.EduContributionStatus.CLOSED ? 'edubridge.teacherLessonsPage.details.closeReason' : 'edubridge.teacherLessonsPage.details.declineReason');
 const byNumber = (a: ILesson, b: ILesson) => Number(a.lesson_number) - Number(b.lesson_number);
 /** Занятия одного взноса — одной записью; занятие без взноса — записью само по себе. */
 function packLessons(all: ILesson[]): ILesson[][] {
@@ -182,6 +200,13 @@ const detailsAction = computed<RowAction | null>(() => (details.value ? actionOf
 function openReportFromDetails(row: ILessonRow): void {
   detailsOpen.value = false;
   reportTarget.value = row;
+}
+function openRework(row: ILessonRow): void {
+  if (row.contribution) reworkTarget.value = { contribution: row.contribution, lessons: row.lessons };
+}
+function openReworkFromDetails(row: ILessonRow): void {
+  detailsOpen.value = false;
+  openRework(row);
 }
 function openDetails(row: ILessonRow): void {
   detailsId.value = asText(row.id);

@@ -8,17 +8,17 @@
       "unknownForms": "Для этой заявки не предусмотрены анкеты: {formIds}"
     },
     "intakeSchema": {
-      "booleanRequiredHint": "нужно «да» или «нет»",
+      "booleanRequiredHint": "выберите «да» или «нет»",
       "fieldRequiredHint": "заполните поле",
-      "integerRequiredHint": "нужно целое число",
-      "linkFormatHint": "нужна ссылка вида https://…",
+      "integerRequiredHint": "введите целое число",
+      "linkFormatHint": "введите ссылку вида https://…",
       "maxLengthHint": "не длиннее {maxLength} символов",
       "maximumHint": "не больше {maximum}",
       "minLengthHint": "не короче {minLength} символов",
       "minimumHint": "не меньше {minimum}",
-      "numberRequiredHint": "нужно число",
+      "numberRequiredHint": "введите число",
       "selectFromListHint": "выберите значение из списка",
-      "textRequiredHint": "нужен текст"
+      "textRequiredHint": "введите текст"
     },
     "registerParticipantInput": {
       "formIdRequired": "Поле \"form_id\" обязательно для заполнения.",

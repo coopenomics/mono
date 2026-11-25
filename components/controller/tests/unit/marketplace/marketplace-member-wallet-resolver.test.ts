@@ -1,15 +1,17 @@
 /**
  * Unit-тесты MarketplaceMemberWalletResolver.
  *
- * Resolver возвращает массив 4-х USER_SHARED-кошельков стандарта marketplace:
+ * Resolver возвращает массив 5-ти USER_SHARED-кошельков стандарта marketplace:
  *   - `w.wal.share`  — паевые взносы деньгами (program_id=1).
  *   - `w.mkt.order`  — паевой резерв под Order (program_id=2). Введён 2026-05-28
  *                       взамен механики .blocked на программном кошельке.
- *   - `w.mkt.share`  — свободный паевой «Стола заказов» (program_id=2): туда
- *                       возвращается тело при отменах и возвратах, оттуда же
- *                       оплачивается тело следующих заказов.
- *   - `w.mkt.member` — членский взнос пайщика в программе (program_id=2):
- *                       оплачивает только взносы участка под следующие заказы.
+ *   - `w.mkt.share`  — свободный паевой «Стола заказов» (program_id=2): на него
+ *                       возвращается тело при отменах и возвратах, с него же
+ *                       оплачиваются тело и обеспечительная часть следующих заказов.
+ *   - `w.mkt.secure` — обеспечительная часть паевого взноса под невыданные заказы
+ *                       (program_id=2; решение владельца 05.11.2026).
+ *   - `w.mkt.due`    — обеспечительная часть паевого взноса к списанию в членский
+ *                       взнос по условиям ЦПП (program_id=2; задача 99D-18).
  *
  * Каждый кошелёк со своим `name`/`human_name`/`available`/`blocked`, без
  * сворачивания. Источник — core `UserWalletRepository.findByUsername`
@@ -38,7 +40,7 @@ const member = {
 };
 
 describe('MarketplaceMemberWalletResolver', () => {
-  it('пайщик с записями share + mkt.order → массив из 4 кошельков, свободный паевой и членский нулевые', async () => {
+  it('пайщик с записями share + mkt.order → массив из 6 кошельков, свободный паевой и членский нулевые', async () => {
     const repo = makeRepo([
       { wallet_name: 'w.wal.share', available: '125.0000 RUB', blocked: '5.0000 RUB' },
       { wallet_name: 'w.mkt.order', available: '80.0000 RUB', blocked: '0.0000 RUB' },
@@ -53,7 +55,7 @@ describe('MarketplaceMemberWalletResolver', () => {
     expect(dto.username).toBe('alice');
     expect(dto.coopname).toBe('voskhod');
 
-    expect(dto.wallets).toHaveLength(4);
+    expect(dto.wallets).toHaveLength(6);
     expect(dto.wallets[0]).toMatchObject({
       name: 'w.wal.share',
       program_id: 1,
@@ -77,21 +79,28 @@ describe('MarketplaceMemberWalletResolver', () => {
       blocked: '0',
     });
     expect(dto.wallets[3]).toMatchObject({
-      name: 'w.mkt.member',
+      name: 'w.mkt.secure',
       program_id: 2,
-      label: 'Членский взнос | Стол Заказов',
+      label: 'Обеспечительная часть в заказах | Стол Заказов',
+      available: '0',
+      blocked: '0',
+    });
+    expect(dto.wallets[4]).toMatchObject({
+      name: 'w.mkt.due',
+      program_id: 2,
+      label: 'Обеспечительная часть к списанию | Стол Заказов',
       available: '0',
       blocked: '0',
     });
   });
 
-  it('пайщик без L3-записей вообще → 4 кошелька с 0/0 (а не NotFoundException)', async () => {
+  it('пайщик без L3-записей вообще → 6 кошельков с 0/0 (а не NotFoundException)', async () => {
     const repo = makeRepo([]);
     const resolver = new MarketplaceMemberWalletResolver(repo);
 
     const dto = await resolver.marketplaceMemberWallet(member as any);
 
-    expect(dto.wallets).toHaveLength(4);
+    expect(dto.wallets).toHaveLength(6);
     for (const w of dto.wallets) {
       expect(w.available).toBe('0');
       expect(w.blocked).toBe('0');
@@ -100,7 +109,10 @@ describe('MarketplaceMemberWalletResolver', () => {
       'w.wal.share',
       'w.mkt.order',
       'w.mkt.share',
-      'w.mkt.member',
+      'w.mkt.secure',
+      'w.mkt.due',
+      // Паевой взнос инициатора в кооперативные участки (99D-30).
+      'w.mkt.invest',
     ]);
   });
 

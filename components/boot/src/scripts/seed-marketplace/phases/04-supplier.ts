@@ -17,7 +17,7 @@ import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { Client, Mutations } from '@coopenomics/sdk'
 import { loginChairman } from '../../lib/chairman-login'
-import { Generator } from '@coopenomics/factory'
+import { connectGenerator } from '../../../init/factory-storage'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -72,8 +72,7 @@ export async function phase04(): Promise<void> {
     }
     const fixture = JSON.parse(fs.readFileSync(fixtureFile, 'utf8')) as { email: string, wif: string }
 
-    const generator = new Generator()
-    await generator.connect(process.env.MONGO_URI as string)
+    const generator = await connectGenerator()
     const methodId = randomUUID()
     await generator.save('paymentMethod', {
       is_default: true,

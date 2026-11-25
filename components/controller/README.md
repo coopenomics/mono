@@ -124,4 +124,4 @@ migrations/                # Миграции данных (TypeORM)
 
 ## Лицензия
 
-[BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.ru)
+[MIT](LICENSE), кроме приложений «Стол заказов», «Благорост» и «Образование» (`src/extensions/marketplace`, `src/extensions/capital`, `src/extensions/edubridge` и их тесты): закрытая лицензия, все права защищены, условия — [LICENSES/VOSKHOD-PROPRIETARY.md](../../LICENSES/VOSKHOD-PROPRIETARY.md).

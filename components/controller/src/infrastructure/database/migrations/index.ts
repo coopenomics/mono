@@ -6,6 +6,16 @@ import { CashierRoleToCashierDesk1792132849961 } from './1792132849961-cashier-r
 import type { SchemaMigrationClass } from '@coopenomics/extension-kit';
 import { CoreUserAvatarExitAnnulment1790236885855 } from './1790236885855-user-avatar-exit-annulment';
 import { CoreSettingsOnboardingCompleted1792411435309 } from './1792411435309-settings-onboarding-completed';
+import { CoreFactoryStorage1793204380830 } from './1793204380830-factory-storage';
+import { CorePayoutRequests1793781600000 } from './1793781600000-payout-requests';
+import { CoreDepositPaymentExpiry1793869546649 } from './1793869546649-deposit-payment-expiry';
+import { CoreBankSafePaymentPurpose1793946153183 } from './1793946153183-bank-safe-payment-purpose';
+import { CoreSignedDocumentParticipants1794926742339 } from './1794926742339-signed-document-participants';
+import { CoreSignedDocumentJournal1794992888820 } from './1794992888820-signed-document-journal';
+import { CoreSettingsCoopLogo1795200000000 } from './1795200000000-settings-coop-logo';
+import { CoreExtensionsSoftUninstall1795501306341 } from './1795501306341-extensions-soft-uninstall';
+import { CoreMeetPreReplacedBy1795536951950 } from './1795536951950-meet-pre-replaced-by';
+import { CoreDecisionDeclineReasons1795596709426 } from './1795596709426-decision-decline-reasons';
 
 /**
  * Миграции таблиц ядра — в порядке появления (метка времени в имени класса).
@@ -23,5 +33,9 @@ export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [Core
   RoleAssignments1791538523720,
   ProviderChartersBillingLog1792054007375,
   CashierRoleToCashierDesk1792132849961,
-  CoreSettingsOnboardingCompleted1792411435309,
-];
+  CoreSettingsOnboardingCompleted1792411435309, CoreFactoryStorage1793204380830,
+  CorePayoutRequests1793781600000,
+  CoreDepositPaymentExpiry1793869546649,
+  CoreBankSafePaymentPurpose1793946153183, CoreSignedDocumentParticipants1794926742339,
+  CoreSignedDocumentJournal1794992888820, CoreSettingsCoopLogo1795200000000, CoreExtensionsSoftUninstall1795501306341,
+  CoreMeetPreReplacedBy1795536951950, CoreDecisionDeclineReasons1795596709426];

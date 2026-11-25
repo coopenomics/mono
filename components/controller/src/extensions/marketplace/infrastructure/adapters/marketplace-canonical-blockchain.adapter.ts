@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BranchContract, Ledger2Contract, MarketContract, SovietContract, type Interfaces } from 'cooptypes';
+import { Checksum256, Name, UInt128 } from '@wharfkit/session';
+import { BranchContract, FundContract, Ledger2Contract, MarketContract, SovietContract } from 'cooptypes';
 import httpStatus from 'http-status';
 import {
   MarketplaceCheckoutOrderActionKind,
@@ -241,26 +242,81 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
-  async payOut(data: MarketContract.Actions.PayOut.IPayout): Promise<InnerTransactResult> {
-    const wif = await this.vaultDomainService.getWif(data.coopname);
+  async addPayouts(coopname: string, payout_hash: string, order_hashes: string[]): Promise<InnerTransactResult> {
+    return this.transactMany(
+      coopname,
+      order_hashes.map((order_hash) => ({
+        name: MarketContract.Actions.AddPayout.actionName,
+        data: { coopname, payout_hash, order_hash } satisfies MarketContract.Actions.AddPayout.IAddpayout,
+      }))
+    );
+  }
+
+  async sendPayout(coopname: string, payout_hash: string): Promise<InnerTransactResult> {
+    return this.transactMany(coopname, [
+      {
+        name: MarketContract.Actions.SendPayout.actionName,
+        data: { coopname, payout_hash } satisfies MarketContract.Actions.SendPayout.ISendpayout,
+      },
+    ]);
+  }
+
+  async closePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult> {
+    return this.transactMany(
+      coopname,
+      order_hashes.map((order_hash) => ({
+        name: MarketContract.Actions.ClosePayout.actionName,
+        data: { coopname, order_hash } satisfies MarketContract.Actions.ClosePayout.IClosepayout,
+      }))
+    );
+  }
+
+  async releasePayouts(coopname: string, order_hashes: string[]): Promise<InnerTransactResult> {
+    return this.transactMany(
+      coopname,
+      order_hashes.map((order_hash) => ({
+        name: MarketContract.Actions.ReleasePay.actionName,
+        data: { coopname, order_hash } satisfies MarketContract.Actions.ReleasePay.IReleasepay,
+      }))
+    );
+  }
+
+  async getPayout(coopname: string, payout_hash: string): Promise<MarketContract.Tables.Payouts.IPayout | null> {
+    // Индексы `payouts`: byhash — второй (lib/domain/table_marketplace_payouts.hpp).
+    // Ключ индекса-хэша узел цепи принимает только типизированной контрольной суммой.
+    return this.blockchainService.getSingleRow<MarketContract.Tables.Payouts.IPayout>(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.Payouts.tableName,
+      Checksum256.from(payout_hash.toLowerCase()),
+      'secondary',
+      'sha256'
+    );
+  }
+
+  /**
+   * Несколько действий контракта одной транзакцией от имени кооператива:
+   * действия пакета выплаты атомарны — либо все заказы, либо ни одного.
+   */
+  private async transactMany(
+    coopname: string,
+    actions: { name: string; data: Record<string, unknown> }[]
+  ): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(coopname);
     if (!wif) {
       throw new DomainError('MARKETPLACE_PRIVATE_KEY_NOT_FOUND_PAYOUT', {}, httpStatus.BAD_GATEWAY);
     }
-
-    this.blockchainService.initialize(data.coopname, wif);
-
-    return await this.blockchainService.transact({
-      account: MarketContract.contractName.production,
-      name: MarketContract.Actions.PayOut.actionName,
-      authorization: [
-        {
-          actor: data.coopname,
-          permission: 'active',
-        },
-      ],
-      data,
-    });
+    this.blockchainService.initialize(coopname, wif);
+    return await this.blockchainService.transact(
+      actions.map((a) => ({
+        account: MarketContract.contractName.production,
+        name: a.name,
+        authorization: [{ actor: coopname, permission: 'active' }],
+        data: a.data,
+      }))
+    );
   }
+
 
 
 
@@ -467,20 +523,46 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.HandBack.actionName, data, 'handback');
   }
 
-  async payRetFee(data: MarketContract.Actions.PayRetFee.IPayRetFee): Promise<InnerTransactResult> {
-    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.PayRetFee.actionName, data, 'payretfee');
+  // ── Коэффициент экономического участия (задачи 99D-22, 99D-33) ──
+
+  async closePeriod(data: MarketContract.Actions.ClosePeriod.IClosePeriod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ClosePeriod.actionName, data, 'closeperiod');
   }
 
-  async findReturnRequestByHash(coopname: string, request_hash: string): Promise<Interfaces.Marketplace.IReturnRequest | null> {
-    // Заявлений на возврат у кооператива немного и живут они до закрытия —
-    // полный скан области допустим; при росте перевести на индекс byhash.
-    const rows: Interfaces.Marketplace.IReturnRequest[] = await this.blockchainService.getAllRows(
-      MarketContract.contractName.production,
-      coopname,
-      MarketContract.Tables.RetRequests.tableName
-    );
-    const wanted = request_hash.toLowerCase();
-    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
+  async deletePeriod(data: MarketContract.Actions.DelPeriod.IDelPeriod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.DelPeriod.actionName, data, 'delperiod');
+  }
+
+  async chargePeriod(data: MarketContract.Actions.ChargePeriod.IChargePeriod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ChargePeriod.actionName, data, 'chargeperiod');
+  }
+
+  async migrateDue(data: MarketContract.Actions.MigrateDue.IMigrateDue): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.MigrateDue.actionName, data, 'migratedue');
+  }
+
+  async setShares(data: MarketContract.Actions.SetShares.ISetShares): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SetShares.actionName, data, 'setshares');
+  }
+
+  async setRetShare(data: MarketContract.Actions.SetRetShare.ISetRetShare): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SetRetShare.actionName, data, 'setretshare');
+  }
+
+  async setAidLimit(data: BranchContract.Actions.SetAidLimit.ISetaidlimit): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetAidLimit.actionName, data, 'setaidlimit');
+  }
+
+  async setAidPeriod(data: BranchContract.Actions.SetAidPeriod.ISetaidperiod): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetAidPeriod.actionName, data, 'setaidperiod');
+  }
+
+  async setReserve(data: BranchContract.Actions.SetReserve.ISetreserve): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.SetReserve.actionName, data, 'setreserve');
+  }
+
+  async deleteReserve(data: BranchContract.Actions.DelReserve.IDelreserve): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, BranchContract.contractName.production, BranchContract.Actions.DelReserve.actionName, data, 'delreserve');
   }
 
   async admitClaim(data: MarketContract.Actions.AdmitClaim.IAdmitClaim): Promise<InnerTransactResult> {
@@ -489,15 +571,15 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
 
 
   async findCouncilDecisionByHash(coopname: string, hash: string): Promise<SovietContract.Tables.Decisions.IDecision | null> {
-    // Решений у кооператива немного и живут они до исполнения — полный скан
-    // области допустим; при росте перевести на secondary-индекс byhash.
-    const rows: SovietContract.Tables.Decisions.IDecision[] = await this.blockchainService.getAllRows(
+    // Индекс `byhash` таблицы решений — седьмой по порядку объявления в контракте.
+    return this.blockchainService.getSingleRow<SovietContract.Tables.Decisions.IDecision>(
       SovietContract.contractName.production,
       coopname,
-      SovietContract.Tables.Decisions.tableName
+      SovietContract.Tables.Decisions.tableName,
+      hash.toLowerCase(),
+      'seventh',
+      'sha256'
     );
-    const wanted = hash.toLowerCase();
-    return rows.find((r) => String(r.hash).toLowerCase() === wanted) ?? null;
   }
 
   async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<InnerTransactResult> {
@@ -574,23 +656,28 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return (rows[0] as MarketContract.Tables.Config.IMktConfig | undefined) ?? null;
   }
 
-  async getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]> {
-    return this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.Weights.tableName
+  async getBranchWeights(coopname: string, braname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]> {
+    // Индексы таблицы весов: второй — контракт и участок, третий — участок.
+    return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Weights.tableName, 'tertiary', braname);
+  }
+
+  async getBranchWeightTotals(coopname: string, braname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]> {
+    return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.WeightTotals.tableName, 'tertiary', braname);
+  }
+
+  async getAidMonth(coopname: string, username: string): Promise<BranchContract.Tables.AidMonths.IBranchAidmonth | null> {
+    return this.blockchainService.getSingleRow<BranchContract.Tables.AidMonths.IBranchAidmonth>(
+      BranchContract.contractName.production, coopname, BranchContract.Tables.AidMonths.tableName, username, 'primary', 'name'
     );
   }
 
-  async getBranchWeightTotals(coopname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]> {
-    return this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.WeightTotals.tableName
-    );
-  }
-
-  async listAids(coopname: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
+  async listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
+    // Заявления одного получателя — по третьему индексу (получатель).
+    if (username) {
+      return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Aids.tableName, 'tertiary', username);
+    }
+    // Стол администратора читает все заявления в работе: строка живёт от подачи
+    // до выплаты либо отказа, после чего контракт её стирает.
     return this.blockchainService.getAllRows(
       BranchContract.contractName.production,
       coopname,
@@ -598,19 +685,153 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]> {
-    // Полный скан userwallets кооператива с фильтром по кошелькам экономики КУ.
-    // Объём = пайщики × кошельки — приемлем для MVP; при росте перевести на
-    // запрос по secondary-индексу byuserwallet (i128).
-    const rows: Ledger2Contract.Tables.UserWallets.IUserWallet[] =
-      await this.blockchainService.getAllRows(
-        Ledger2Contract.contractName.production,
-        coopname,
-        Ledger2Contract.Tables.UserWallets.tableName
-      );
-    return rows.filter(
-      (r) => r.wallet_name === 'w.brn.person' || r.wallet_name === 'w.brn.common'
+  async listBranchPeriods(coopname: string, braname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Periods.tableName, 'secondary', braname);
+  }
+
+  async listAllBranchPeriods(coopname: string): Promise<MarketContract.Tables.Periods.IKuPeriod[]> {
+    // В цепи у каждого участка не больше двух строк итога: таблица не растёт с историей.
+    return this.blockchainService.getAllRows(MarketContract.contractName.production, coopname, MarketContract.Tables.Periods.tableName);
+  }
+
+  async listDueCounters(coopname: string): Promise<MarketContract.Tables.Counters.IKuCounter[]> {
+    // Строк — по числу участков на каждый открытый период; таблица не растёт с историей.
+    return this.blockchainService.getAllRows(MarketContract.contractName.production, coopname, MarketContract.Tables.Counters.tableName);
+  }
+
+  async listBranchDues(coopname: string, braname: string): Promise<MarketContract.Tables.Dues.IKuDue[]> {
+    // Индексы `kudues`: byuser — второй, bybranch — третий (lib/domain/table_marketplace_dues.hpp).
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, 'tertiary', braname);
+  }
+
+  async listMemberDues(coopname: string, username: string): Promise<MarketContract.Tables.Dues.IKuDue[]> {
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, 'secondary', username);
+  }
+
+  async hasAnyDues(coopname: string): Promise<boolean> {
+    const rows = await this.blockchainService.queryRows<MarketContract.Tables.Dues.IKuDue>(
+      MarketContract.contractName.production, coopname, MarketContract.Tables.Dues.tableName, { maxRows: 1 }
     );
+    return rows.length > 0;
+  }
+
+  async listBranchReserves(coopname: string, braname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {
+    return this.rowsByName(BranchContract.contractName.production, coopname, BranchContract.Tables.Reserves.tableName, 'secondary', braname);
+  }
+
+  async listAllBranchReserves(coopname: string): Promise<BranchContract.Tables.Reserves.IBranchReserve[]> {
+    // Строка на получателя помощи — председателя или доверенного участка; история не копится.
+    return this.blockchainService.getAllRows(BranchContract.contractName.production, coopname, BranchContract.Tables.Reserves.tableName);
+  }
+
+  async getBranchConfig(coopname: string): Promise<BranchContract.Tables.BranchConfig.IBranchConfig | null> {
+    const rows = await this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.BranchConfig.tableName
+    );
+    return (rows[0] as BranchContract.Tables.BranchConfig.IBranchConfig | undefined) ?? null;
+  }
+
+  async listAccumulationFunds(coopname: string): Promise<FundContract.Tables.Funds.IFund[]> {
+    // Реестр фондов `funds` (задача 99D-25): пять строк настроек, остатки — в
+    // ledger2 по кошельку фонда. Отдаём только фонды накопления: у них процент.
+    const rows: FundContract.Tables.Funds.IFund[] = await this.blockchainService.getAllRows(
+      FundContract.contractName.production,
+      coopname,
+      FundContract.Tables.Funds.tableName
+    );
+    return rows.filter((row) => row.kind === FundContract.Tables.Funds.KIND_ACCUMULATION);
+  }
+
+  async getUserWallet(coopname: string, walletName: string, username: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet | null> {
+    // Третий индекс таблицы кошельков — владелец: узел отдаёт только кошельки
+    // этого пайщика (их число ограничено числом видов кошельков), нужный берётся
+    // по имени. Чтение не зависит от числа пайщиков кооператива.
+    const wallets = await this.rowsByName<Ledger2Contract.Tables.UserWallets.IUserWallet>(
+      Ledger2Contract.contractName.production,
+      coopname,
+      Ledger2Contract.Tables.UserWallets.tableName,
+      'tertiary',
+      username
+    );
+    return wallets.find((w) => String(w.wallet_name) === walletName) ?? null;
+  }
+
+  // ── Инвестиционный этап кооперативного участка (задача 99D-30) ──
+  async signInvestAgreement(data: MarketContract.Actions.SignInvAgr.ISignInvAgr): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.SignInvAgr.actionName, data, 'signinvagr');
+  }
+
+  async investMoney(data: MarketContract.Actions.InvestMoney.IInvestMoney): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.InvestMoney.actionName, data, 'investmoney');
+  }
+
+  async createInvestProperty(data: MarketContract.Actions.CreateIProp.ICreateIProp): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.CreateIProp.actionName, data, 'createiprop');
+  }
+
+  async approveInvestProperty(data: MarketContract.Actions.ApproveIProp.IApproveIProp): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ApproveIProp.actionName, data, 'approveiprop');
+  }
+
+  async declineInvestProperty(data: MarketContract.Actions.DeclineIProp.IDeclineIProp): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.DeclineIProp.actionName, data, 'declineiprop');
+  }
+
+  async signInvestPropertyAct1(data: MarketContract.Actions.Act1IProp.IAct1IProp): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.Act1IProp.actionName, data, 'act1iprop');
+  }
+
+
+  async claimInvestment(data: MarketContract.Actions.ClaimInv.IClaimInv): Promise<InnerTransactResult> {
+    return this.submitAsCoop(data.coopname, MarketContract.contractName.production, MarketContract.Actions.ClaimInv.actionName, data, 'claiminv');
+  }
+
+  /**
+   * Договор пайщика с участком: индекс `byuserbr` (второй) — ключ uint128 из
+   * имени пайщика (старшие 64 бита) и имени участка, как `combine_ids` в контракте.
+   */
+  async getInvestAgreement(coopname: string, username: string, braname: string): Promise<MarketContract.Tables.InvAgreements.IMktInvAgreement | null> {
+    const nameValue = (name: string): bigint => BigInt(Name.from(name).value.toString());
+    const key = (nameValue(username) << 64n) | nameValue(braname);
+    return this.blockchainService.getSingleRow<MarketContract.Tables.InvAgreements.IMktInvAgreement>(
+      MarketContract.contractName.production, coopname, MarketContract.Tables.InvAgreements.tableName, UInt128.from(key.toString()), 'secondary', 'i128'
+    );
+  }
+
+  async getInvestBranch(coopname: string, braname: string): Promise<MarketContract.Tables.InvBranches.IMktInvBranch | null> {
+    return this.blockchainService.getSingleRow<MarketContract.Tables.InvBranches.IMktInvBranch>(
+      MarketContract.contractName.production, coopname, MarketContract.Tables.InvBranches.tableName, braname, 'primary', 'name'
+    );
+  }
+
+  async listBranchInvestors(coopname: string, braname: string): Promise<MarketContract.Tables.Investors.IMktInvestor[]> {
+    // Индексы `investors`: bybranch — второй, byuser — третий (lib/domain/table_marketplace_invest.hpp).
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Investors.tableName, 'secondary', braname);
+  }
+
+  async listUserInvestments(coopname: string, username: string): Promise<MarketContract.Tables.Investors.IMktInvestor[]> {
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.Investors.tableName, 'tertiary', username);
+  }
+
+  async listBranchInvestProperties(coopname: string, braname: string): Promise<MarketContract.Tables.InvProps.IMktInvProp[]> {
+    // Индексы `invprops`: byhash — второй, bybranch — третий, byuser — четвёртый.
+    return this.rowsByName(MarketContract.contractName.production, coopname, MarketContract.Tables.InvProps.tableName, 'tertiary', braname);
+  }
+
+  async getInvestProperty(coopname: string, hash: string): Promise<MarketContract.Tables.InvProps.IMktInvProp | null> {
+    return this.blockchainService.getSingleRow<MarketContract.Tables.InvProps.IMktInvProp>(
+      MarketContract.contractName.production, coopname, MarketContract.Tables.InvProps.tableName, hash.toLowerCase(), 'secondary', 'sha256'
+    );
+  }
+
+  /**
+   * Строки таблицы, у которых ключ индекса равен имени (участок, пайщик):
+   * узел отдаёт только их, размер таблицы на чтение не влияет.
+   */
+  private rowsByName<T>(code: string, coopname: string, tableName: string, indexPosition: string, name: string): Promise<T[]> {
+    return this.blockchainService.queryRows<T>(code, coopname, tableName, { indexPosition, keyType: 'name', from: name, to: name });
   }
 
 }

@@ -1,5 +1,5 @@
-import type { Cooperative } from 'cooptypes';
+import type { IBankAccount, IOrganizationData } from '@coopenomics/docs-templates';
 
-export type CreateOrganizationDataInputDomainInterface = Omit<Cooperative.Users.IOrganizationData, 'username'> & {
-  bank_account: Cooperative.Payments.IBankAccount;
+export type CreateOrganizationDataInputDomainInterface = Omit<IOrganizationData, 'username'> & {
+  bank_account: IBankAccount;
 };

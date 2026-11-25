@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { Cooperative, Ledger2 } from 'cooptypes';
+import { Ledger2 } from 'cooptypes';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { WalletBlockchainPort, WALLET_BLOCKCHAIN_PORT } from '~/domain/wallet/ports/wallet-blockchain.port';
@@ -86,11 +87,11 @@ export class WalletInteractor {
    * Генерация документа заявления на возврат паевого взноса (900)
    */
   async generateReturnByMoneyStatementDocument(
-    data: Cooperative.Registry.ReturnByMoney.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.ReturnByMoney.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     // Устанавливаем registry_id для документа заявления
-    data.registry_id = Cooperative.Registry.ReturnByMoney.registry_id;
+    data.registry_id = Registry.ReturnByMoney.registry_id;
     return await this.generatorInfrastructureService.generateDocument({ data, options });
   }
 
@@ -98,17 +99,18 @@ export class WalletInteractor {
    * Генерация документа решения совета о возврате паевого взноса (901)
    */
   async generateReturnByMoneyDecisionDocument(
-    data: Cooperative.Registry.ReturnByMoneyDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.ReturnByMoneyDecision.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
     // Устанавливаем registry_id для документа решения
-    data.registry_id = Cooperative.Registry.ReturnByMoneyDecision.registry_id;
+    data.registry_id = Registry.ReturnByMoneyDecision.registry_id;
     return await this.generatorInfrastructureService.generateDocument({ data, options });
   }
 
   /**
-   * Создание заявки на вывод средств (createWithdraw)
-   * Данный метод создает платеж в gateway и withdraw в blockchain
+   * Создание заявки на возврат паевого взноса (createWithdraw): заявка в цепи
+   * (wallet::createwthd) и заявка на выплату с реквизитами в базе узла. Платёж
+   * кассиру создаст решение совета (wallet::authwthd).
    */
   async createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<{ withdraw_hash: string }> {
     // Используем payment_hash из параметров вместо генерации нового
@@ -154,21 +156,21 @@ export class WalletInteractor {
       throw error;
     }
 
-    // 3. Только после успешной on-chain заявки фиксируем платёж в БД для
-    //    отслеживания кассиром и последующего перехода статусов.
+    // 3. Только после успешной on-chain заявки сохраняем заявку на выплату с
+    //    реквизитами: платёж кассиру создаст решение совета.
     try {
       await this.gatewayInteractorPort.persistWithdraw(preparedPayment);
     } catch (error: any) {
       // Редкий случай: on-chain заявка прошла, но запись в БД не удалась (например,
       // недоступна БД). On-chain withdraw существует — требуется ручная сверка.
       this.logger.error(
-        `КРИТИЧНО: on-chain withdraw ${withdraw_hash} создан, но не удалось зафиксировать платёж в БД: ${error.message}`,
+        `КРИТИЧНО: on-chain withdraw ${withdraw_hash} создан, но не удалось сохранить заявку на выплату в БД: ${error.message}`,
         error
       );
       throw error;
     }
 
-    this.logger.log(`Создан withdraw в wallet: ${withdraw_hash}, платёж зафиксирован в gateway`);
+    this.logger.log(`Создан withdraw в wallet: ${withdraw_hash}, заявка на выплату ждёт решения совета`);
 
     return { withdraw_hash };
   }

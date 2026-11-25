@@ -515,21 +515,21 @@ documents:
     registry_id: 3000
     signed_by: [council]
     stored_in: "реестр документов кооператива"
-    note: "Принимается советом при открытии программы. Источник правды — components/cooptypes/src/cooperative/registry/3000.EducationProgramTemplate"
+    note: "Принимается советом при открытии программы. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3000.EducationProgramTemplate"
 
   - action: null
     title: Оферта ученика
     registry_id: 3002
     signed_by: [member]
     stored_in: "реестр документов кооператива"
-    note: "Подписывается пайщиком один раз при вступлении в программу; включает согласие на передачу почты обучающегося образовательной площадке. Редакцию оферты утверждает совет. Источник правды — components/cooptypes/src/cooperative/registry/3002.EducationParentOffer"
+    note: "Подписывается пайщиком один раз при вступлении в программу; включает согласие на передачу почты обучающегося образовательной площадке. Редакцию оферты утверждает совет. Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3002.EducationParentOffer"
 
   - action: edubridge::convert
     title: Заявление о конвертации паевого взноса в членский взнос по ЦПП «Образование»
     registry_id: 3011
     signed_by: [member]
     stored_in: "реестр документов (package = хэш подписки)"
-    note: "Подписывается пайщиком при оплате каждого периода курса. Содержит сумму, название курса и период. Подписка хранит hash последнего заявления (edusubs.statement_hash). Источник правды — components/cooptypes/src/cooperative/registry/3011.EducationConvertStatement"
+    note: "Подписывается пайщиком при оплате каждого периода курса. Содержит сумму, название курса и период. Подписка хранит hash последнего заявления (edusubs.statement_hash). Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/3011.EducationConvertStatement"
 
   - action: edubridge::warrclaim
     title: Заявление об аннулировании Подписки по Гарантийным условиям
@@ -550,7 +550,7 @@ documents:
     registry_id: 190
     signed_by: [member]
     stored_in: "реестр документов (package = хэш подписки)"
-    note: "Подписывается при выходе из кооператива вместе с заявлением на выход. В таблице все программы пайщика; по программе «Образование» — остаток кошелька программы и возврат по действующим подпискам на день подписания (пп. 4.2.4, 4.2.5 Положения). Источник правды — components/cooptypes/src/cooperative/registry/190.ProgramAgreementsAnnulmentStatement"
+    note: "Подписывается при выходе из кооператива вместе с заявлением на выход. В таблице все программы пайщика; по программе «Образование» — остаток кошелька программы и возврат по действующим подпискам на день подписания (пп. 4.2.4, 4.2.5 Положения). Источник правды — C9S/docs-factory:packages/docs-templates/src/registry/190.ProgramAgreementsAnnulmentStatement"
 
 # ── Секция 6. Операции (Ledger2) ────────────────────────────────────────────
 # Восемь операций: конвертация паевого в членский взнос, списание взноса в
@@ -583,7 +583,7 @@ operations:
       программы пополняется. Одна операция на одно заявление.
 
   - ledger_code: o.edu.fee
-    human_name: Списание членского взноса в фонд программы
+    human_name: Зачисление членского взноса за курс в фонд ЦПП «Образование»
     wallet_op: TRANSFER
     debit: null                    # оба кошелька на счёте 86
     credit: null
@@ -632,7 +632,7 @@ operations:
       свободных средств.
 
   - ledger_code: o.edu.allot
-    human_name: Резерв выплат преподавателям из членского взноса
+    human_name: Резервирование выплат преподавателям из членского взноса по ЦПП «Образование»
     wallet_op: TRANSFER
     debit: null                    # оба кошелька на счёте 86
     credit: null
@@ -654,13 +654,15 @@ operations:
     credit: null
     wallet_from: w.edu.teach
     wallet_to: w.edu.fund
-    amount_ref: резерв подписки за непроведённые занятия | разница между плановой ставкой и ставкой преподавателя
-    triggered_by: edubridge::cancelsub, edubridge::onwarrauth, edubridge::expiresub, edubridge::chargelesson
+    amount_ref: резерв подписки за непроведённые занятия | взнос преподавателя по материалам, расчёт по которым закрыт без приёма | разница между плановой ставкой и ставкой преподавателя
+    triggered_by: edubridge::cancelsub, edubridge::onwarrauth, edubridge::expiresub, edubridge::chargelesson, edubridge::recallrid
     description: >
       Подписка отменена либо закрыта — резерв за её непроведённые занятия
       возвращается в свободные средства программы. При расчёте занятия тем же
       ходом возвращается разница между плановой ставкой курса и ставкой
-      преподавателя. Резерв курса уменьшается на ту же сумму.
+      преподавателя. Когда кооператив закрывает расчёт по материалам
+      преподавателя без приёма, в свободные средства программы переходит его
+      взнос за рассчитанные занятия. Резерв курса уменьшается на ту же сумму.
 
   - ledger_code: o.edu.refund
     human_name: Возврат членского взноса из фонда программы

@@ -25,6 +25,8 @@ export interface InnerBranch {
   /** Закрытый участок виден не всем пайщикам. Поле появилось позже, у старых записей его нет. */
   is_private?: boolean;
   whitelist?: string[];
+  /** Дата создания участка; у участков, созданных до появления поля, отсутствует. */
+  created_at?: string;
   [key: string]: any;
 }
 

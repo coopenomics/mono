@@ -47,7 +47,7 @@ export class DraftRegistryKyselyRepository {
   /** Шаблон, действовавший на указанном блоке (или текущий, если блок не задан). */
   async findTemplateAt(registryId: string | number, blockNum?: number): Promise<any | null> {
     let query = this.db.selectFrom('draft_templates').select('value').where('registry_id', '=', String(registryId));
-    if (blockNum !== undefined) query = query.where('block_num', '<=', String(blockNum));
+    if (blockNum != null) query = query.where('block_num', '<=', String(blockNum));
     const row = await query.orderBy('block_num', 'desc').limit(1).executeTakeFirst();
     return row?.value ?? null;
   }
@@ -78,7 +78,7 @@ export class DraftRegistryKyselyRepository {
       .select('value')
       .where('draft_id', '=', String(draftId))
       .where('lang', '=', lang);
-    if (blockNum !== undefined) query = query.where('block_num', '<=', String(blockNum));
+    if (blockNum != null) query = query.where('block_num', '<=', String(blockNum));
     const row = await query.orderBy('block_num', 'desc').limit(1).executeTakeFirst();
     return row?.value ?? null;
   }
@@ -93,7 +93,7 @@ export class DraftRegistryKyselyRepository {
       .distinctOn('lang')
       .select('value')
       .where('draft_id', '=', String(draftId));
-    if (blockNum !== undefined) query = query.where('block_num', '<=', String(blockNum));
+    if (blockNum != null) query = query.where('block_num', '<=', String(blockNum));
     const rows = await query.orderBy('lang').orderBy('block_num', 'desc').execute();
     return rows.map((row) => row.value);
   }

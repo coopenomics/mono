@@ -29,7 +29,7 @@ function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?:
   const connectors = { get: jest.fn(() => connector) } as any;
   const events = { emit: jest.fn() } as any;
   const service = new EdubridgeAccessOutboxService(tasks, enrollments, learners, courses, bindings, connectors, logger, events, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
-  return { service, task, enrollment, tasks, connector, events, bindings, learners };
+  return { service, task, enrollment, enrollments, tasks, connector, events, bindings, learners };
 }
 
 describe('backoffMinutes', () => {
@@ -48,6 +48,22 @@ describe('EdubridgeAccessOutboxService.processDue', () => {
     expect(req.recipient).toEqual({ type: 'email', value: 'kid@x.ru' });
     expect(Object.keys(req.recipient)).not.toContain('display_name');
     expect(events.emit).toHaveBeenCalledWith(EDUBRIDGE_ACCESS_GRANTED_EVENT, expect.anything());
+  });
+
+  it('подписку закрыли, пока шёл запрос к площадке: статус закрытия не затирается, отмечается только доступ', async () => {
+    const { service, enrollment, enrollments, connector } = make();
+    // Выход пайщика закрыл подписку в паузе между чтением задачей и ответом площадки.
+    const closed = { ...enrollment, status: 'CANCELLED', refund_reason: 'refusal' };
+    connector.grant.mockImplementationOnce(async () => {
+      enrollments.findById.mockImplementation(async () => closed);
+      return { code: 'ok' };
+    });
+    await service.processDue('voskhod');
+    const saved = enrollments.save.mock.calls.at(-1)![0];
+    // Закрытие подписки сохранено, отмечено только состояние доступа.
+    expect(saved.status).toBe('CANCELLED');
+    expect(saved.refund_reason).toBe('refusal');
+    expect(saved.access_state).toBe(EduAccessState.GRANTED);
   });
 
   it('«пользователь уже существует» — это успех', async () => {

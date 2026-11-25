@@ -22,7 +22,7 @@ import { ensureChairmanPassword, ensureChairmanTokens, ensureTokens, forgetLogin
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
 
-export async function runSuite({ app, groups, args = [], extraFixtures = [] }) {
+export async function runSuite({ app, groups, args = [], extraFixtures = [], elsewhere = [], partial = false }) {
 const GROUPS = groups;
   const REBOOT = args.includes('--reboot');
   const only = (args.find((a) => a.startsWith('--only=')) ?? '').replace('--only=', '');
@@ -62,8 +62,10 @@ const GROUPS = groups;
         if (f.endsWith('.mjs')) onDisk.push(`${app}/${dir}/${f.replace(/\.mjs$/, '')}`);
       }
     }
-    const planned = new Set(plan.map((p) => p.scenario));
-    const forgotten = onDisk.filter((s) => !planned.has(s));
+    // Сценарии другой сюиты того же приложения (`elsewhere`) забытыми не считаются;
+    // сюита-часть (`partial`) про остальные сценарии приложения молчит целиком.
+    const planned = new Set([...plan.map((p) => p.scenario), ...elsewhere]);
+    const forgotten = partial ? [] : onDisk.filter((s) => !planned.has(s));
     if (forgotten.length) {
       console.error('⚠ сценарии есть на диске, но не включены в план сюиты:');
       for (const f of forgotten) console.error(`    ${f}`);

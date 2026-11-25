@@ -76,6 +76,9 @@ namespace processes {
     inline constexpr eosio::name RETURN    = "p.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к o.mkt.consum (o.mkt.return).
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
     inline constexpr eosio::name CLAIM     = "p.mkt.claim"_n;    ///< Гарантийная претензия поставщику по отменённой советом сделке (o.mkt.claim → o.mkt.admit; несогласие в цепь не пишется); удержание долга из выплат — o.mkt.deduct в нитке заказа.
+    inline constexpr eosio::name INVEST    = "p.mkt.invest"_n;   ///< Паевой взнос инициатора в кооперативный участок: договор участия, паевой взнос деньгами и имуществом, пул средств инициаторов (o.mkt.inv, o.mkt.iprop, o.mkt.ipool, o.mkt.iunpl). Задача 99D-27.
+    inline constexpr eosio::name INVEST_COMPENSATION = "p.mkt.icomp"_n; ///< Возмещение паевого взноса инициатору кооперативного участка: заявление о трансляции возмещённого и неиспользованного с кошелька договора участия на главный паевой (o.mkt.iback). Отдельный процесс по слову владельца 10.11.2026: возмещение — не внесение.
+    inline constexpr eosio::name DUE       = "p.mkt.due"_n;      ///< Списание обеспечительной части по итогу периода участка (задача 99D-33): строка счётчика пайщика за период — одна транзакция chargeperiod (o.mkt.charge, o.brn.common, o.fnd.*, o.mkt.repay, o.mkt.icover, o.mkt.rpsurp, o.mkt.iuncov, o.mkt.retdue). Хэш нитки — Marketplace::Dues::charge_hash(coopname, username, braname, period); заказы объединены, хэша заказа у списания нет.
   }
 
   // branch — экономика кооперативного участка (requirement b6)
@@ -83,6 +86,11 @@ namespace processes {
     inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person).
     inline constexpr eosio::name AID   = "p.brn.aid"_n;   ///< Материальная помощь доверенному КУ из его персонального кошелька (o.brn.aid; заявление → выплата кассиром).
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
+  }
+
+  // fund — фонды накопления кооператива (задача 99D-19)
+  namespace fund {
+    inline constexpr eosio::name ACCUM = "p.fnd.accum"_n; ///< Отчисления в фонды накопления (o.fnd.indiv, o.fnd.resrv, o.fnd.devel — по кошельку на фонд, задача 99D-25). Имя стандарта процесса; сами отчисления идут в нитке процесса-источника (списание обеспечительной части участка — p.mkt.supply), поэтому как имя нитки в apply не передаётся.
   }
 
   // expense — шасси расходов (СЗ → авторизация → платёж → отчёт → закрытие)
@@ -104,6 +112,7 @@ namespace processes {
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).
     inline constexpr eosio::name TAX         = "p.sov.tax"_n;    ///< Перечисление удержанного налога в бюджет (заявка бухгалтера → платёж кассира → закрытие обязательства). Собственная нитка, а не продолжение выплаты: платёж гасит удержания всех программ сразу, и привязать его к одной выплате нельзя.
+    inline constexpr eosio::name SPEND       = "p.sov.spend"_n;  ///< Расход кооператива из фонда обеспечения хозяйственной деятельности (служебная записка → решение совета → платёж кассира → отчёт). Шасси расходов на кошельке w.sov.expns: пул и фонд — один кошелёк (задача 99D-25).
   }
 
   // billing (Epic 12 — контракт billing)
@@ -147,12 +156,14 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::RID,          capital::PROPERTY,    capital::PREIMP,
   capital::WTHCAP,       capital::PGEXP,
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
+  marketplace::INVEST,   marketplace::INVEST_COMPENSATION, marketplace::DUE,
   branch::FEES,          branch::AID,          branch::SPEND,
+  fund::ACCUM,
   expense::PROPOSAL,
   billing::CONVERT,      billing::PAY,
   edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
   edubridge::RETURN_SHARE, edubridge::WITHDRAW_SHARE,
-  soviet::AXN_CONVERT,   soviet::TAX,
+  soviet::AXN_CONVERT,   soviet::TAX,          soviet::SPEND,
   migration::TRANSIT,
   adjustment::CORRECTION,
 };

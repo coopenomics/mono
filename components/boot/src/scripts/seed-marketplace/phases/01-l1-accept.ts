@@ -27,7 +27,8 @@
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
 import { loginChairman } from '../../lib/chairman-login'
-import { Cooperative, SovietContract } from 'cooptypes'
+import { SovietContract } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -42,7 +43,7 @@ const EXTENSION = 'market'
 // Пять членов совета, порог — больше половины, поэтому хватает трёх голосов.
 const VOTING_MEMBERS = ['petr', 'anna', 'mikhail']
 
-const FREE_DECISION_REGISTRY_ID = Cooperative.Registry.FreeDecision.registry_id
+const FREE_DECISION_REGISTRY_ID = Registry.FreeDecision.registry_id
 
 // registry_id документов шагов. Источник — desktop
 // pages/Marketplace/OnboardingCoopAcceptCpp/model/composable.ts (STEP_REGISTRY):
@@ -57,6 +58,15 @@ const STEP_DOCS: Record<string, { registry_id: number, title: string, question: 
     registry_id: 1102,
     title: 'Публичная оферта ЦПП «Стол заказов»',
     question: 'Об утверждении шаблона публичной оферты по присоединению пайщиков к ЦПП «Стол заказов»',
+  },
+  // Третий шаг подключения с 12.11.2026 (0e265d7d9e8, 99D-35): бланк договора
+  // об участии в хозяйственной деятельности участка (1118) вместе с бланками
+  // заявлений и акта. Без него подключение не завершалось, участки не
+  // заводились, и наборы Стола заказов падали каскадом (ночь 12→13.11).
+  marketplace_invest: {
+    registry_id: 1118,
+    title: 'Договор об участии в хозяйственной деятельности кооперативного участка',
+    question: 'Об утверждении бланка договора об участии в хозяйственной деятельности кооперативного участка, заявлений и акта',
   },
 }
 

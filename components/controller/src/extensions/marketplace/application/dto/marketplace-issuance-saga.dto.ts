@@ -2,7 +2,6 @@ import { Field, Float, ID, InputType, ObjectType, registerEnumType } from '@nest
 import { IsBoolean, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DocumentAggregateDTO, GeneratedDocumentDTO, SignedDigitalDocumentDTO } from '@coopenomics/extension-kit';
-import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import type { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
 import { MarketplaceShareReturnActSignedInputDTO } from '../documents-dto/marketplace-share-return-act-document.dto';
@@ -215,17 +214,6 @@ export class MarketplaceSignIssuanceStatementInputDTO {
   @ValidateNested()
   @Type(() => MarketplaceShareReturnStatementSignedInputDTO)
   signed_statement!: MarketplaceShareReturnStatementSignedInputDTO;
-
-  @Field(() => MarketplaceConvertStatementSignedInputDTO, {
-    nullable: true,
-    description:
-      'Заявление 1110 на доплату по факту (разница тела и довзнос участка), подписанное заказчиком — ' +
-      'только если marketplaceIssuanceConvertPayload вернул документ.',
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => MarketplaceConvertStatementSignedInputDTO)
-  signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
 }
 
 @InputType('MarketplaceSignIssuanceActInput')
@@ -238,6 +226,15 @@ export class MarketplaceSignIssuanceActInputDTO {
   @ValidateNested()
   @Type(() => MarketplaceShareReturnActSignedInputDTO)
   signed_act!: MarketplaceShareReturnActSignedInputDTO;
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description:
+      'Ручная подпись кнопкой: шаг перехватывается, даже если его держит другой стол. Фоновая подпись поле не ставит и уступает шаг.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  manual?: boolean;
 }
 
 @InputType('MarketplaceListIssuanceSagasInput')

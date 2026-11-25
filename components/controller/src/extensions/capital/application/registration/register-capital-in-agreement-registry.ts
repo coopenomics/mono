@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import {
   BLAGOROST_AGREEMENT_TYPE,
   BLAGOROST_OFFER_AGREEMENT_ID,
@@ -100,7 +100,7 @@ export function registerCapitalInAgreementRegistry(
 
   port.registerAgreement({
     id: GENERATOR_OFFER_AGREEMENT_ID,
-    registry_id: Cooperative.Registry.GeneratorOffer.registry_id,
+    registry_id: Registry.GeneratorOffer.registry_id,
     agreement_type: GENERATOR_AGREEMENT_TYPE,
     title: t('capital.agreementRegistry.generatorOffer.title'),
     checkbox_text: t('capital.agreementRegistry.generatorOffer.checkboxText'),
@@ -113,7 +113,7 @@ export function registerCapitalInAgreementRegistry(
 
   port.registerAgreement({
     id: BLAGOROST_OFFER_AGREEMENT_ID,
-    registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
+    registry_id: Registry.BlagorostOffer.registry_id,
     agreement_type: BLAGOROST_AGREEMENT_TYPE,
     title: t('capital.agreementRegistry.blagorostOffer.title'),
     checkbox_text: t('capital.agreementRegistry.blagorostOffer.checkboxText'),

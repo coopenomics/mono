@@ -51,6 +51,22 @@ export class BranchExpenseItemInputDTO {
   @IsString()
   recipient!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру.',
+  })
+  @IsOptional()
+  @IsString()
+  recipient_name?: string;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки.',
+  })
+  @IsOptional()
+  @IsInt()
+  counterparty_id?: number;
+
   @Field(() => String, { description: 'Назначение расхода по этой позиции.' })
   @IsString()
   description!: string;

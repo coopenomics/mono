@@ -14,6 +14,8 @@ import type {
   KuAgendaPointInputDomainInterface,
   KuVoteItemInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
+  SignKuTrusteeAuthorityInputDomainInterface,
+  SignKuTrusteeLiabilityInputDomainInterface,
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../domain/interfaces/ku-action-inputs.interface';
@@ -247,19 +249,60 @@ export class ExecKuDecisionInputDTO implements ExecKuDecisionInputDomainInterfac
   @Type(() => BranchEstablishmentPetitionSignedDocumentInputDTO)
   petition!: BranchEstablishmentPetitionSignedDocumentInputDTO;
 
-  @Field(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO, {
-    description: 'Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет)',
-  })
-  @ValidateNested()
-  @Type(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO)
-  liability!: BranchTrusteeLiabilityAgreementSignedDocumentInputDTO;
+}
+
+@InputType('SignKuTrusteeAuthorityInput', {
+  description: 'Подпись доверенности председателем кооперативного участка после решения совета',
+})
+export class SignKuTrusteeAuthorityInputDTO implements SignKuTrusteeAuthorityInputDomainInterface {
+  @Field(() => String, { description: 'Имя аккаунта кооператива' })
+  @IsString()
+  @IsNotEmpty()
+  coopname!: string;
+
+  @Field(() => String, { description: 'Кооперативный участок' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { description: 'Председатель участка' })
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
 
   @Field(() => BranchTrusteePowerOfAttorneySignedDocumentInputDTO, {
-    description: 'Подписанная председателем участка доверенность председателю участка (идёт в пакете в совет)',
+    description: 'Доверенность председателю кооперативного участка с подписью председателя участка',
   })
   @ValidateNested()
   @Type(() => BranchTrusteePowerOfAttorneySignedDocumentInputDTO)
   authority!: BranchTrusteePowerOfAttorneySignedDocumentInputDTO;
+}
+
+@InputType('SignKuTrusteeLiabilityInput', {
+  description: 'Подпись договора о полной материальной ответственности председателем кооперативного участка после решения совета',
+})
+export class SignKuTrusteeLiabilityInputDTO implements SignKuTrusteeLiabilityInputDomainInterface {
+  @Field(() => String, { description: 'Имя аккаунта кооператива' })
+  @IsString()
+  @IsNotEmpty()
+  coopname!: string;
+
+  @Field(() => String, { description: 'Кооперативный участок' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { description: 'Председатель участка' })
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
+
+  @Field(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO, {
+    description: 'Договор о полной материальной ответственности с подписью председателя участка',
+  })
+  @ValidateNested()
+  @Type(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO)
+  liability!: BranchTrusteeLiabilityAgreementSignedDocumentInputDTO;
 }
 
 @InputType('CancelKuDecisionInput', { description: 'Отмена собрания пайщиков участка' })

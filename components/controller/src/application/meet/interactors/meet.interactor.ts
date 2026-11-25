@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes';
+import { type IGenerationOptions, Registry } from '@coopenomics/docs-templates';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { Inject, Injectable } from '@nestjs/common';
@@ -21,6 +21,7 @@ import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/int
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import httpStatus from 'http-status';
 import { DomainError } from '@coopenomics/extension-kit';
+import { MeetVotersDomainService } from '~/domain/meet/services/meet-voters-domain.service';
 
 @Injectable()
 export class MeetInteractor {
@@ -29,14 +30,39 @@ export class MeetInteractor {
     @Inject(MEET_REPOSITORY) private readonly meetPreRepository: MeetPreProcessingRepository,
     @Inject(MEET_PROCESSED_REPOSITORY) private readonly meetProcessedRepository: MeetProcessedRepository,
     @Inject(MEET_BLOCKCHAIN_PORT) private readonly meetBlockchainPort: MeetBlockchainPort,
-    private readonly documentAggregator: DocumentAggregator
+    private readonly documentAggregator: DocumentAggregator,
+    private readonly meetVoters: MeetVotersDomainService
   ) {}
 
+  /**
+   * Правило собрания уполномоченных, которое держит контракт, проверяется до
+   * обращения в цепь: пайщик получает понятный отказ с кодом, а не текст
+   * отклонённой транзакции. Собрание пайщиков и отсутствие собрания в цепи
+   * пропускаются — их разбирает контракт.
+   */
+  private async assertMeetParticipation(
+    coopname: string,
+    hash: string,
+    username: string,
+    action: 'vote' | 'notify'
+  ): Promise<void> {
+    const processing = await this.meetBlockchainPort.getMeet({ coopname, hash });
+    if (!processing?.meet) return;
+    const participation = await this.meetVoters.getParticipation(processing.meet, username);
+    if (!participation.isTrusteesMeet) return;
+    if (action === 'vote' && !participation.canVote) {
+      throw DomainError.forbidden(participation.branchVoted && participation.canNotify ? 'MEET_BRANCH_ALREADY_VOTED' : 'MEET_NOT_TRUSTEE');
+    }
+    if (action === 'notify' && !participation.canNotify) {
+      throw DomainError.forbidden('MEET_NOT_TRUSTEE');
+    }
+  }
+
   async generateAnnualGeneralMeetAgendaDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingAgenda.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.AnnualGeneralMeetingAgenda.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingAgenda.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingAgenda.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
@@ -85,38 +111,56 @@ export class MeetInteractor {
   }
 
   async generateAnnualGeneralMeetDecisionDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.AnnualGeneralMeetingDecision.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingDecision.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateAnnualGeneralMeetNotificationDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingNotification.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.AnnualGeneralMeetingNotification.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingNotification.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingNotification.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateSovietDecisionOnAnnualMeetDocument(
-    data: Cooperative.Registry.AnnualGeneralMeetingSovietDecision.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.AnnualGeneralMeetingSovietDecision.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingSovietDecision.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingSovietDecision.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
   async generateBallotForAnnualGeneralMeet(
-    data: Cooperative.Registry.AnnualGeneralMeetingVotingBallot.Action,
-    options: Cooperative.Document.IGenerationOptions
+    data: Registry.AnnualGeneralMeetingVotingBallot.Action,
+    options: IGenerationOptions
   ): Promise<DocumentDomainEntity> {
-    data.registry_id = Cooperative.Registry.AnnualGeneralMeetingVotingBallot.registry_id;
+    data.registry_id = Registry.AnnualGeneralMeetingVotingBallot.registry_id;
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
-  async getMeet(data: GetMeetInputDomainInterface, username?: string): Promise<MeetAggregate> {
+  /**
+   * Повторный созыв меняет хэш собрания в цепи. Ссылка по прежнему хэшу ведёт
+   * к действующему созыву по цепочке замен; цепочка ограничена, чтобы ошибка в
+   * данных не зациклила чтение.
+   */
+  private async currentMeetHash(hash: string): Promise<string> {
+    let current = hash;
+    for (let hop = 0; hop < MeetInteractor.MAX_RESTART_HOPS; hop++) {
+      const next = await this.meetPreRepository.findReplacement(current);
+      if (!next) return current;
+      current = next;
+    }
+    return current;
+  }
+
+  private static readonly MAX_RESTART_HOPS = 20;
+
+  async getMeet(input: GetMeetInputDomainInterface, username?: string): Promise<MeetAggregate> {
+    const data = { ...input, hash: await this.currentMeetHash(input.hash) };
     // Получаем данные из блокчейна через порт
     const processingMeet = await this.meetBlockchainPort.getMeet({
       coopname: data.coopname,
@@ -166,6 +210,7 @@ export class MeetInteractor {
   }
 
   async vote(data: VoteOnAnnualGeneralMeetInputDomainInterface): Promise<MeetAggregate> {
+    await this.assertMeetParticipation(data.coopname, data.hash, data.username, 'vote');
     // Вызов блокчейн порта для голосования
     await this.meetBlockchainPort.vote(data);
 
@@ -222,6 +267,7 @@ export class MeetInteractor {
     });
 
     await this.meetPreRepository.create(preProcessing);
+    await this.meetPreRepository.markReplaced(data.hash, new_hash);
 
     const preMeet = await this.meetPreRepository.findByHash(new_hash);
     const processedMeetEntity = await this.meetProcessedRepository.findByHash(new_hash);
@@ -286,6 +332,7 @@ export class MeetInteractor {
    * @param data Данные уведомления
    */
   async notifyOnAnnualGeneralMeet(data: NotifyOnAnnualGeneralMeetInputDomainInterface): Promise<MeetAggregate> {
+    await this.assertMeetParticipation(data.coopname, data.meet_hash, data.username, 'notify');
     // Вызов блокчейн порта для отправки уведомления
     await this.meetBlockchainPort.notifyOnAnnualGeneralMeet(data);
 

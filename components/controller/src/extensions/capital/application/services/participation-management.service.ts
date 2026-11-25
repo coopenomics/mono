@@ -10,7 +10,7 @@ import { ContributorFilterInputDTO } from '../dto/participation_management/contr
 import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { ContributorMapperService } from './contributor-mapper.service';
 import { ContributorSyncService } from '../syncers/contributor-sync.service';
-import { Cooperative } from 'cooptypes';
+import { Registry } from '@coopenomics/docs-templates';
 import { GenerationContractGenerateDocumentInputDTO } from '../documents-dto/generation-agreement-document.dto';
 import { ProjectGenerationContractGenerateDocumentInputDTO } from '../documents-dto/project-generation-agreement-document.dto';
 import { ComponentGenerationContractGenerateDocumentInputDTO } from '../documents-dto/component-generation-agreement-document.dto';
@@ -182,7 +182,7 @@ export class ParticipationManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.BlagorostOffer.registry_id,
+        registry_id: Registry.BlagorostOffer.registry_id,
       },
       options,
     });
@@ -199,7 +199,7 @@ export class ParticipationManagementService {
     const document = await this.documentPort.generate({
       data: {
         ...data,
-        registry_id: Cooperative.Registry.GenerationContract.registry_id,
+        registry_id: Registry.GenerationContract.registry_id,
       },
       options,
     });

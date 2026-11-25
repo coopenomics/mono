@@ -15,6 +15,10 @@ import {
 } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
+import { useBranchStore } from 'src/entities/Branch/model';
+import { useConfirm } from 'src/shared/lib/composables';
+import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
 import AddSupplierButton from './AddSupplierButton.vue';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
@@ -26,6 +30,8 @@ import {
   approveSupplier,
   fetchSuppliers,
   rejectSupplier,
+  suspendSupplier,
+  resumeSupplier,
   type MarketplaceSupplierView,
 } from '../api';
 import {
@@ -43,6 +49,11 @@ import { t } from 'src/shared/i18n';
  */
 
 const session = useSessionStore();
+const { confirm } = useConfirm();
+// Аккаунты кооперативных участков в поиске поставщика не показываются:
+// участок поставщиком не бывает (замечание владельца 19.11.2026).
+const branchStore = useBranchStore();
+const branchAccounts = computed(() => branchStore.branches.map((b) => b.braname));
 const isChairman = computed(() => session.isChairman);
 const { registerAction } = useHeaderActions();
 
@@ -107,12 +118,12 @@ const columns = computed<BaseTableColumn<MarketplaceSupplierView>[]>(() => [
 ]);
 
 const addOpen = ref(false);
-const addMember = ref('');
+const addMember = ref<string | undefined>(undefined);
 const addNumber = ref('');
 const addDate = ref('');
 const adding = ref(false);
 const canAdd = computed(
-  () => addMember.value.trim().length > 0 && addNumber.value.trim().length > 0 && addDate.value.length > 0,
+  () => Boolean(addMember.value) && addNumber.value.trim().length > 0 && addDate.value.length > 0,
 );
 
 async function load(): Promise<void> {
@@ -153,19 +164,53 @@ async function onReject(row: MarketplaceSupplierView): Promise<void> {
   }
 }
 
+/** Приостановка действия договора — с подтверждением: поставщик сразу теряет допуск к работе. */
+async function onSuspend(row: MarketplaceSupplierView): Promise<void> {
+  const ok = await confirm({
+    title: t('marketplace.supplierRegistryPage.suspendConfirmTitle'),
+    message: t('marketplace.supplierRegistryPage.suspendConfirmMessage'),
+    confirmLabel: t('marketplace.supplierDetailOverlay.suspendButton'),
+    danger: true,
+  });
+  if (!ok) return;
+  acting.value = row.member_account;
+  try {
+    await suspendSupplier({ member_account: row.member_account });
+    SuccessAlert(t('marketplace.supplierRegistryPage.suspendSuccessMessage'));
+    await load();
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    acting.value = null;
+  }
+}
+
+async function onResume(row: MarketplaceSupplierView): Promise<void> {
+  acting.value = row.member_account;
+  try {
+    await resumeSupplier({ member_account: row.member_account });
+    SuccessAlert(t('marketplace.supplierRegistryPage.resumeSuccessMessage'));
+    await load();
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    acting.value = null;
+  }
+}
+
 async function onAdd(): Promise<void> {
   if (!canAdd.value) return;
   adding.value = true;
   try {
     await addSupplier({
-      member_account: addMember.value.trim(),
+      member_account: String(addMember.value),
       model: Zeus.MarketplaceSupplierModel.MEMBERSHIP,
       contract_number: addNumber.value.trim(),
       contract_date: addDate.value,
     });
     SuccessAlert(t('marketplace.supplierRegistryPage.addSuccessMessage'));
     addOpen.value = false;
-    addMember.value = '';
+    addMember.value = undefined;
     addNumber.value = '';
     addDate.value = '';
     await load();
@@ -184,6 +229,9 @@ function contractLabel(row: MarketplaceSupplierView): string {
 }
 
 onMounted(() => {
+  if (!branchStore.branches.length) {
+    void branchStore.loadBranches({ coopname: useSystemStore().info.coopname }).catch(() => undefined);
+  }
   // Добавление поставщика — главное действие страницы, поэтому живёт в шапке
   // (канон), а пояснение — в общей карточке-подсказке, как на соседних столах.
   registerAction({
@@ -252,15 +300,20 @@ q-page.mp-role-admin.supplier-registry(role="region", :aria-label="$t('marketpla
     template(#icon)
       q-icon(name="storefront", size="48px")
 
-  BaseDialog(v-model="addOpen", :title="$t('marketplace.supplierRegistryPage.addDialogTitle')", size="sm")
+  BaseDialog(v-model="addOpen", :title="$t('marketplace.supplierRegistryPage.addDialogTitle')", size="md")
     template(#default)
       .supplier-registry__form
-        BaseInput(
+        //- Поставщик ищется среди пайщиков по ФИО, названию организации или
+        //- аккаунту; в подсказке под именем стоит аккаунт — однофамильцев не
+        //- перепутать (замечание владельца 19.11.2026). Высота и нижний отступ —
+        //- как у полей договора: dense и место под подсказку (bottom-slots).
+        UserSearchSelector(
           v-model="addMember",
           :label="$t('marketplace.supplierRegistryPage.accountLabel')",
-          :placeholder="$t('marketplace.supplierRegistryPage.accountPlaceholder')",
-          mono,
-          :disabled="adding"
+          :exclude="branchAccounts",
+          outlined,
+          dense,
+          bottom-slots
         )
         BaseInput(
           v-model="addNumber",
@@ -286,7 +339,9 @@ q-page.mp-role-admin.supplier-registry(role="region", :aria-label="$t('marketpla
     :acting="!!acting",
     :name-by-account="supplierNames",
     @approve="onApprove",
-    @reject="onReject"
+    @reject="onReject",
+    @suspend="onSuspend",
+    @resume="onResume"
   )
 </template>
 

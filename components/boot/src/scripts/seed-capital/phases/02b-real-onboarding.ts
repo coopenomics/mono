@@ -29,7 +29,8 @@
  */
 import { Client, Mutations, Queries } from '@coopenomics/sdk'
 import { loginChairman } from '../../lib/chairman-login'
-import { Cooperative, SovietContract } from 'cooptypes'
+import { SovietContract } from 'cooptypes'
+import { Registry } from '@coopenomics/docs-templates'
 import Blockchain from '../../../blockchain'
 import config from '../../../configs'
 
@@ -38,7 +39,7 @@ const log = (...a: unknown[]) => console.error('[seed-capital:02b]', ...a)
 // FreeDecision — общий протокол решения совета (registry_id=600). Используется
 // для authorize/exec любого решения как «обёртка» — председатель подписывает
 // HTML-протокол, его hash попадает в decision как `final_document`.
-const FREE_DECISION_REGISTRY_ID = Cooperative.Registry.FreeDecision.registry_id
+const FREE_DECISION_REGISTRY_ID = Registry.FreeDecision.registry_id
 
 const COOPNAME = 'voskhod'
 const CHAIRMAN = 'ant'

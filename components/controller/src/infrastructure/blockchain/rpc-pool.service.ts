@@ -143,7 +143,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
       } catch (e) {
         lastErr = e;
         if (!isFailoverWorthy(e)) throw e;
-        this.markUnhealthy(ep);
+        this.markUnhealthy(ep, e);
         if (i < order.length - 1) {
           this.logger.warn(`RpcPool: узел ${ep.url} недоступен, переключаюсь: ${errMsg(e)}`);
         }
@@ -180,8 +180,8 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
         try {
           await this.withTimeout(ep.client.v1.chain.get_info(), config.blockchain.rpcTimeoutMs);
           this.markHealthy(ep);
-        } catch {
-          this.markUnhealthy(ep);
+        } catch (e) {
+          this.markUnhealthy(ep, e);
         }
       }),
     );
@@ -202,12 +202,23 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   }
 
   private markHealthy(ep: RpcEndpoint): void {
+    if (!ep.healthy) this.logger.log(`RpcPool: узел ${ep.url} снова отвечает`);
     ep.healthy = true;
     ep.failures = 0;
     ep.nextProbeAt = 0;
   }
 
-  private markUnhealthy(ep: RpcEndpoint): void {
+  /**
+   * Переход узла в «недоступен» пишется в журнал всегда — и при одном узле в пуле.
+   * Раньше причину печатало только предупреждение о переключении, а его нет у
+   * последнего узла: 26–27.10.2026 ВОСХОД с одним узлом 14 часов отдавал 503, и в
+   * журнале не осталось ни адреса, ни сетевого кода (C28-95). Строка — одна на
+   * перерыв: повторные отказы того же узла её не повторяют.
+   */
+  private markUnhealthy(ep: RpcEndpoint, e?: unknown): void {
+    if (ep.healthy) {
+      this.logger.warn(`RpcPool: узел ${ep.url} перестал отвечать: ${e === undefined ? 'нет ответа' : errMsg(e)}`);
+    }
     ep.healthy = false;
     ep.failures += 1;
     ep.nextProbeAt = this.now() + rpcBackoffMs(ep.failures);
@@ -227,6 +238,15 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   }
 }
 
+/**
+ * Текст ошибки вместе с причиной. Сетевой отказ fetch приходит как «fetch failed»,
+ * а код (ECONNREFUSED, EAI_AGAIN, UND_ERR_CONNECT_TIMEOUT…) лежит в `cause` — без
+ * него перерыв связи с цепью нельзя разобрать по журналу.
+ */
 function errMsg(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+  const message = e instanceof Error ? e.message : String(e);
+  const cause = (e as { cause?: { code?: unknown; message?: unknown } } | null)?.cause;
+  if (!cause) return message;
+  const detail = [cause.code, cause.message].filter((x) => x !== undefined && x !== '').map(String).join(': ');
+  return detail ? `${message} (${detail})` : message;
 }

@@ -1,6 +1,6 @@
-import { Field, ID, InputType, ObjectType } from '@nestjs/graphql';
+import { Field, ID, InputType, ObjectType, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf, ValidateNested, IsInt } from 'class-validator';
 import { createPaginationResult, ExpenseProposalStatementSignedDocumentInputDTO } from '@coopenomics/extension-kit';
 // Способ оплаты, тип получателя и состояния — словарь шасси расходов из
 // межрасширенческого контракта: расход программы идёт тем же процессом, что и
@@ -32,6 +32,22 @@ export class EduExpenseItemInputDTO {
   @IsNotEmpty()
   @IsString()
   recipient!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Название организации-получателя (для оплаты по счёту) — показывается в реестре расходов и в поручении кассиру.',
+  })
+  @IsOptional()
+  @IsString()
+  recipient_name?: string;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Контрагент-получатель из реестра контрагентов: наименование и реквизиты организации подставляются из его карточки.',
+  })
+  @IsOptional()
+  @IsInt()
+  counterparty_id?: number;
 
   @Field(() => String, { description: 'Назначение расхода по этой позиции' })
   @IsString()

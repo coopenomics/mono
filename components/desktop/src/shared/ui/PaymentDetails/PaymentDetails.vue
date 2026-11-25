@@ -26,6 +26,7 @@
     DataRow(v-if='bankData?.card_number', :label='$t("ui.paymentDetails.cardNumberLabel")', :value='bankData.card_number', copyable, mono)
     DataRow(v-if='bankData?.currency', :label='$t("ui.paymentDetails.currencyLabel")', :value='bankData.currency')
     DataRow(v-if='sbpData?.phone', :label='$t("ui.paymentDetails.sbpPhoneLabel")', :value='sbpData.phone', copyable, mono)
+    DataRow(v-if='sbpData?.bank_name', :label='$t("ui.paymentDetails.sbpBankLabel")', :value='sbpData.bank_name', copyable)
     //- Оплата расхода: получатель-организация и её реквизиты приходят
     //- свободной строкой из снимка СЗ (не платёжным методом пайщика).
     DataRow(v-if='freeData?.recipient_name', :label='$t("ui.paymentDetails.recipientLabel")', :value='freeData.recipient_name', copyable)
@@ -85,8 +86,8 @@ const payment = props.payment;
 // Типизированные computed для различных типов данных платежных методов
 const bankData = computed(() => {
   const data = payment.payment_details?.data;
-  // Проверяем, является ли это банковским аккаунтом (есть поле bank_name)
-  if (data && typeof data === 'object' && 'bank_name' in data) {
+  // Банковский счёт узнаётся по номеру счёта: банк есть и у реквизитов СБП.
+  if (data && typeof data === 'object' && 'account_number' in data) {
     return data as IBankAccount;
   }
   return null;
@@ -101,11 +102,22 @@ const sbpData = computed(() => {
   return null;
 });
 
-// Свободные реквизиты (оплата расхода организации/ИП по снимку СЗ)
+// Свободные реквизиты (оплата расхода организации/ИП по снимку СЗ). Сервер
+// отдаёт имя получателя и реквизиты строкой. Платежи контрагентам, созданные
+// 11–13.11.2026, хранят карточку контрагента: имя в `name`, реквизиты объектом —
+// такой объект печатался как «[object Object]» (598-63), его значения
+// выводятся через запятую.
 const freeData = computed(() => {
   const data = payment.payment_details?.data;
   if (data && typeof data === 'object' && ('requisites' in data || 'recipient_name' in data)) {
-    return data as { recipient_name?: string; requisites?: string };
+    const raw = data as { recipient_name?: string; name?: string; requisites?: unknown };
+    const requisites =
+      raw.requisites && typeof raw.requisites === 'object'
+        ? Object.values(raw.requisites as Record<string, unknown>).filter(Boolean).join(', ')
+        : typeof raw.requisites === 'string'
+          ? raw.requisites
+          : '';
+    return { recipient_name: raw.recipient_name || raw.name || '', requisites };
   }
   return null;
 });

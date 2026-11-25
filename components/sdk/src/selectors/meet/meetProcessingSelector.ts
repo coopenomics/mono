@@ -49,6 +49,20 @@ const rawMeetSelector = {
   level: true,
 }
 
+// Право текущего пайщика на собрании: голос, подтверждение уведомления, председатель участка
+const rawMeetParticipationSelector = {
+  isTrusteesMeet: true,
+  canVote: true,
+  canNotify: true,
+  branchVoted: true,
+  branchTrustee: true,
+  branchTrusteeCertificate: rawUserCertificateUnionSelector,
+}
+
+{
+  const _validate: MakeAllFieldsRequired<ValueTypes['MeetParticipation']> = rawMeetParticipationSelector
+}
+
 // Селектор для MeetProcessing
 const rawMeetProcessingSelector = {
   hash: true,
@@ -56,6 +70,7 @@ const rawMeetProcessingSelector = {
   questions: rawQuestionSelector,
   isVoted: true,
   extendedStatus: true,
+  participation: rawMeetParticipationSelector,
 }
 
 // Проверка валидности MeetProcessing
@@ -65,4 +80,5 @@ const rawMeetProcessingSelector = {
 
 export type meetProcessingModel = ModelTypes['MeetProcessing']
 export const meetProcessingSelector = Selector('MeetProcessing')(rawMeetProcessingSelector)
-export { rawMeetProcessingSelector, rawMeetSelector, rawQuestionSelector }
+export type meetParticipationModel = ModelTypes['MeetParticipation']
+export { rawMeetParticipationSelector, rawMeetProcessingSelector, rawMeetSelector, rawQuestionSelector }

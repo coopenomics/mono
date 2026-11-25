@@ -68,12 +68,12 @@ export * as DclRidAct from './dclRidAct'
 export * as Acceptrid from './acceptrid'
 
 /**
- * Отказ в приёме РИД по решению совета.
+ * Взнос не принят — материалы возвращаются преподавателю на доработку: o.edu.retrid.
  */
-export * as Declinerid from './declinerid'
+export * as Returnrid from './returnrid'
 
 /**
- * Снятие материалов с ответственного хранения по рекламации: o.edu.retrid.
+ * Расчёт по материалам закрывается без приёма: o.edu.retrid, взнос преподавателя из резерва — на кошелёк программы (o.edu.free).
  */
 export * as Recallrid from './recallrid'
 

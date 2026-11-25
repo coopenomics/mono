@@ -1,4 +1,5 @@
 import { DocumentAction } from '../enums/document-action.enum';
+import type { DocumentsView } from '../enums/documents-view.enum';
 
 export interface GetDocumentsInputDomainInterface {
   type?: 'newsubmitted' | 'newresolved';
@@ -12,4 +13,10 @@ export interface GetDocumentsInputDomainInterface {
    * Используется оператор $in для выборки документов с указанными действиями.
    */
   actions?: DocumentAction[];
+  /** Вид выдачи: пакеты (по умолчанию) либо каждый документ отдельно. */
+  view?: DocumentsView;
+  signed_from?: Date;
+  signed_to?: Date;
+  registry_ids?: number[];
+  search?: string;
 }

@@ -1,4 +1,4 @@
-import { Cooperative } from 'cooptypes'
+import type { IUdata } from '@coopenomics/docs-templates'
 
 // Используем типы из cooptypes для консистентности
-export type UdataDomainInterface = Cooperative.Model.IUdata
+export type UdataDomainInterface = IUdata

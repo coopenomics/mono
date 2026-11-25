@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-registry-domain.module';
+import { PaymentProcessContentService } from './services/payment-process-content.service';
 import { GatewayResolver } from './resolvers/gateway.resolver';
 import { PaymentFilesResolver } from './resolvers/payment-files.resolver';
 import { GatewayService } from './services/gateway.service';
 import { PaymentFilesService } from './services/payment-files.service';
 import { PaymentNotificationService } from './services/payment-notification.service';
 import { WithdrawAuthorizationListener } from './services/withdraw-authorization.listener';
+import { PayoutRequestService } from './services/payout-request.service';
 import { PaymentController } from './controllers/payment.controller';
 import { GatewayInteractor } from './interactors/gateway.interactor';
 import { GatewayNotificationHandler } from './handlers/gateway-notification.handler';
@@ -23,6 +26,8 @@ import { CoreRightsModule } from '../rights/core-rights.module';
 @Module({
   imports: [
     CoreRightsModule,
+    // Строка кандидата процесса приёма — для содержания процесса на столе бухгалтера.
+    ProcessRegistryDomainModule,
     // Реестр платёжных провайдеров (PROVIDER_PORT). Обратного ребра нет:
     // инфраструктура шлюза про приложение не знает.
     GatewayInfrastructureModule,
@@ -47,6 +52,9 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     { provide: GATEWAY_INTERACTOR_PORT, useExisting: GatewayInteractor },
     GatewayNotificationHandler,
     WithdrawAuthorizationListener,
+    PayoutRequestService,
+    // Содержание платёжных процессов для стола бухгалтера (реестр processContent).
+    PaymentProcessContentService,
     GatewayExpiryCronService,
   ],
   exports: [
@@ -55,6 +63,7 @@ import { CoreRightsModule } from '../rights/core-rights.module';
     GatewayInteractor,
     GATEWAY_INTERACTOR_PORT,
     PaymentFilesService,
+    PayoutRequestService,
   ],
 })
 export class GatewayModule {}

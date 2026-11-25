@@ -21,6 +21,7 @@ import publisherInstall from '../../../extensions/publisher/install';
 import marketInstall from '../../../extensions/market/install';
 import edubridgeInstall from '../../../extensions/edubridge/install';
 import robotInstall from '../../../extensions/robot/install';
+import greetingsInstall from '../../../extensions/greetings/install';
 
 /**
  * Единый регистр всех доступных расширений
@@ -43,6 +44,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   market: marketInstall,
   edubridge: edubridgeInstall,
   robot: robotInstall,
+  greetings: greetingsInstall,
 };
 
 /**
