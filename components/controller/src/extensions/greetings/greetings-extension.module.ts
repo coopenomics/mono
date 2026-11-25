@@ -7,6 +7,7 @@ import {
   APP_RIGHTS,
   BaseExtensionModule,
   DomainError,
+  platformSettings,
   EXTENSION_REPOSITORY,
   RightsGuard,
   describeConfigField,
@@ -26,13 +27,27 @@ import { GreetingsSenderService } from './application/services/greetings-sender.
 import { GreetingsQueryService } from './application/services/greetings-query.service';
 import { GreetingsResolver } from './application/resolvers/greetings.resolver';
 
+/** «Europe/Moscow, GMT+3» — зона кооператива и её смещение для подписи настройки. */
+function timezoneLabel(timezone: string): string {
+  try {
+    const offset = new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName: 'shortOffset' })
+      .formatToParts(new Date())
+      .find((part) => part.type === 'timeZoneName')?.value;
+    return offset ? `${timezone}, ${offset}` : timezone;
+  } catch {
+    return timezone;
+  }
+}
+
 export const defaultConfig = {
   sendHour: 9,
   calendarFilledAt: '',
 };
 
 export const Schema = z.object({
-  sendHour: z
+  // coerce: форма настроек передаёт число из поля ввода, а значение
+  // «9» строкой — тоже верный час; без приведения установка падала.
+  sendHour: z.coerce
     .number()
     .int()
     .min(0)
@@ -41,7 +56,7 @@ export const Schema = z.object({
     .describe(
       describeConfigField({
         label: t('greetings.settings.sendHourLabel'),
-        note: t('greetings.settings.sendHourNote'),
+        note: t('greetings.settings.sendHourNote', { timezone: timezoneLabel(platformSettings().timezone) }),
         rules: ['val >= 0', 'val <= 23'],
         append: t('greetings.settings.sendHourAppend'),
       })

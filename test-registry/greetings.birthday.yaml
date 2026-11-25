@@ -20,8 +20,8 @@ cases:
   - id: grt.tpl.happy.01
     level: backend
     kind: happy
-    scenario: председатель сохраняет черновик шаблона, совет читает список шаблонов
-    expect: шаблон записан черновиком на председателя и виден совету
+    scenario: председатель сохраняет черновик шаблона и открывает список шаблонов
+    expect: шаблон записан черновиком на председателя и виден в списке
     test: components/api-tests/src/greetings/templates.test.ts
     api: components/api-tests/src/greetings/templates.test.ts
     status: written
@@ -65,8 +65,8 @@ cases:
   - id: grt.tpl.side.04
     level: backend
     kind: side
-    scenario: член совета пишет шаблон, пайщик без роли в совете читает шаблоны
-    expect: оба запроса отклонены KIT_INSUFFICIENT_RIGHTS
+    scenario: член совета читает и пишет шаблоны, пайщик читает шаблоны
+    expect: все запросы отклонены KIT_INSUFFICIENT_RIGHTS — приложение видит только председатель (решение владельца 25.11.2026)
     test: components/api-tests/src/greetings/templates.test.ts
     api: components/api-tests/src/greetings/templates.test.ts
     status: written

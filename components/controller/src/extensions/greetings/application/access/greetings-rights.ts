@@ -13,13 +13,14 @@ import { DESKTOP_GRANTS_REGISTRY_PORT, type IDesktopGrantsRegistryPort } from '@
 export const GREETINGS_DESKTOP_NAME = 'greetings';
 
 /**
- * Таблица прав приложения «Поздравления»: шаблоны, журнал и календарь читает
- * совет, шаблоны пишет и включает председатель. Отдельной роли под
- * поздравления нет (решение владельца 24.11.2026).
+ * Таблица прав приложения «Поздравления»: шаблоны, журнал и календарь видит и
+ * ведёт только председатель. Члены совета приложение не видят (решение
+ * владельца 25.11.2026); отдельной роли под поздравления нет.
  */
 export const greetingsRightsTable: RightsTable<CouncilRole, never> = {
-  council: [{ when: [], rights: { Greetings: ['read'] } }],
-  chairman: [{ when: [], rights: { Greetings: ['manage'] } }],
+  // Совет прав не получает: таблица перечисляет все роли, пустой список — отказ.
+  council: [],
+  chairman: [{ when: [], rights: { Greetings: ['read', 'manage'] } }],
 };
 
 @Injectable()
