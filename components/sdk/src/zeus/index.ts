@@ -10477,6 +10477,29 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on GreetingCalendarEntry']?: Omit<ValueTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
 }>;
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: AliasType<{
+	/** Рассылка обошла всех пайщиков без ошибок */
+	completed?:boolean | `@${string}`,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date?:boolean | `@${string}`,
+	/** Писем, отправка которых не удалась */
+	failed?:boolean | `@${string}`,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly?:boolean | `@${string}`,
+	/** Писем принято центром уведомлений к доставке */
+	sent?:boolean | `@${string}`,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status?:boolean | `@${string}`,
+	/** Тема письма */
+	subject?:boolean | `@${string}`,
+	/** Идентификатор шаблона рассылки */
+	template_id?:boolean | `@${string}`,
+	/** Название рассылки */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GreetingMailingOccurrence']?: Omit<ValueTypes["GreetingMailingOccurrence"], "...on GreetingMailingOccurrence">
+}>;
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: AliasType<{
 	/** Сколько лет исполняется в ближайший день рождения */
@@ -18258,6 +18281,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, st
 globalSearch?: [{	data: ValueTypes["GlobalSearchInput"] | Variable<any, string>},ValueTypes["GlobalSearchGroup"]],
 greetingsCalendar?: [{	month: number | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GreetingCalendarEntry"]],
 greetingsJournal?: [{	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGreetingSendsPaginationResult"]],
+greetingsMailings?: [{	month: number | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["GreetingMailingOccurrence"]],
 greetingsPreview?: [{	data: ValueTypes["GreetingPreviewInput"] | Variable<any, string>},ValueTypes["GreetingPreview"]],
 greetingsTemplate?: [{	id: string | Variable<any, string>},ValueTypes["GreetingTemplate"]],
 	/** Шаблоны поздравлений, новые периоды первыми */
@@ -30289,6 +30313,28 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: AliasType<{
+	/** Рассылка обошла всех пайщиков без ошибок */
+	completed?:boolean | `@${string}`,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date?:boolean | `@${string}`,
+	/** Писем, отправка которых не удалась */
+	failed?:boolean | `@${string}`,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly?:boolean | `@${string}`,
+	/** Писем принято центром уведомлений к доставке */
+	sent?:boolean | `@${string}`,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status?:boolean | `@${string}`,
+	/** Тема письма */
+	subject?:boolean | `@${string}`,
+	/** Идентификатор шаблона рассылки */
+	template_id?:boolean | `@${string}`,
+	/** Название рассылки */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: AliasType<{
 	/** Сколько лет исполняется в ближайший день рождения */
@@ -37810,6 +37856,7 @@ getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | u
 globalSearch?: [{	data: ResolverInputTypes["GlobalSearchInput"]},ResolverInputTypes["GlobalSearchGroup"]],
 greetingsCalendar?: [{	month: number,	year: number},ResolverInputTypes["GreetingCalendarEntry"]],
 greetingsJournal?: [{	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGreetingSendsPaginationResult"]],
+greetingsMailings?: [{	month: number,	year: number},ResolverInputTypes["GreetingMailingOccurrence"]],
 greetingsPreview?: [{	data: ResolverInputTypes["GreetingPreviewInput"]},ResolverInputTypes["GreetingPreview"]],
 greetingsTemplate?: [{	id: string},ResolverInputTypes["GreetingTemplate"]],
 	/** Шаблоны поздравлений, новые периоды первыми */
@@ -49450,6 +49497,27 @@ export type ModelTypes = {
 	/** Имя аккаунта пайщика */
 	username: string
 };
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: {
+		/** Рассылка обошла всех пайщиков без ошибок */
+	completed: boolean,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date: string,
+	/** Писем, отправка которых не удалась */
+	failed: number,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly: boolean,
+	/** Писем принято центром уведомлений к доставке */
+	sent: number,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status: ModelTypes["GreetingTemplateStatus"],
+	/** Тема письма */
+	subject: string,
+	/** Идентификатор шаблона рассылки */
+	template_id: string,
+	/** Название рассылки */
+	title: string
+};
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: {
 		/** Сколько лет исполняется в ближайший день рождения */
@@ -57211,6 +57279,8 @@ export type ModelTypes = {
 	greetingsCalendar: Array<ModelTypes["GreetingCalendarEntry"]>,
 	/** Журнал поздравлений, свежие записи первыми */
 	greetingsJournal: ModelTypes["PaginatedGreetingSendsPaginationResult"],
+	/** Рассылки месяца с итогом отправки */
+	greetingsMailings: Array<ModelTypes["GreetingMailingOccurrence"]>,
 	/** Письмо по несохранённому тексту на выбранном пайщике либо на ближайшем имениннике */
 	greetingsPreview: ModelTypes["GreetingPreview"],
 	/** Шаблон поздравления */
@@ -69401,6 +69471,29 @@ export type GraphQLTypes = {
 	username: string,
 	['...on GreetingCalendarEntry']: Omit<GraphQLTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
 };
+	/** Рассылка в календаре: дата в месяце и итог отправки */
+["GreetingMailingOccurrence"]: {
+	__typename: "GreetingMailingOccurrence",
+	/** Рассылка обошла всех пайщиков без ошибок */
+	completed: boolean,
+	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
+	date: string,
+	/** Писем, отправка которых не удалась */
+	failed: number,
+	/** Рассылка повторяется каждый год */
+	repeat_yearly: boolean,
+	/** Писем принято центром уведомлений к доставке */
+	sent: number,
+	/** Состояние шаблона: черновик рассылку не отправляет */
+	status: GraphQLTypes["GreetingTemplateStatus"],
+	/** Тема письма */
+	subject: string,
+	/** Идентификатор шаблона рассылки */
+	template_id: string,
+	/** Название рассылки */
+	title: string,
+	['...on GreetingMailingOccurrence']: Omit<GraphQLTypes["GreetingMailingOccurrence"], "...on GreetingMailingOccurrence">
+};
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: {
 	__typename: "GreetingPreview",
@@ -77787,6 +77880,8 @@ export type GraphQLTypes = {
 	greetingsCalendar: Array<GraphQLTypes["GreetingCalendarEntry"]>,
 	/** Журнал поздравлений, свежие записи первыми */
 	greetingsJournal: GraphQLTypes["PaginatedGreetingSendsPaginationResult"],
+	/** Рассылки месяца с итогом отправки */
+	greetingsMailings: Array<GraphQLTypes["GreetingMailingOccurrence"]>,
 	/** Письмо по несохранённому тексту на выбранном пайщике либо на ближайшем имениннике */
 	greetingsPreview: GraphQLTypes["GreetingPreview"],
 	/** Шаблон поздравления */

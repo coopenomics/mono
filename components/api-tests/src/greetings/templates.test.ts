@@ -22,6 +22,7 @@ const VARIABLES = 'query{ greetingsVariables{ variable token description } }'
 const PREVIEW = 'query($d:GreetingPreviewInput!){ greetingsPreview(data:$d){ username displayName age subject bodyHtml unknownVariables } }'
 const UPCOMING = 'query{ greetingsUpcoming(limit:5){ username displayName date age } }'
 const SEND_TEST = 'mutation($d:GreetingPreviewInput!){ greetingsSendTest(data:$d) }'
+const MAILINGS = 'query($y:Int!,$m:Int!){ greetingsMailings(year:$y, month:$m){ template_id title date repeat_yearly status completed sent failed } }'
 
 const YEAR = 2041
 
@@ -141,6 +142,17 @@ describe('поздравления: рассылки и пробное пись�
     expect(saved.period_end).toBe(saved.period_start)
     const on = await gql<any>(chairman, STATUS, { id: saved.id, s: 'ACTIVE' })
     expect(on.greetingsSetTemplateStatus.status).toBe('ACTIVE')
+  })
+
+  it(caseName('grt.mail.cal.01', 'ежегодная рассылка стоит в календаре на свою дату в каждом году'), async () => {
+    const saved = await save(mailing('8 Марта в календаре', '{{Кооператив}} поздравляет вас.'))
+    for (const y of [YEAR, YEAR + 1]) {
+      const d = await gql<any>(chairman, MAILINGS, { y, m: 3 })
+      const row = (d.greetingsMailings as any[]).find(r => r.template_id === saved.id)
+      expect(row).toMatchObject({ date: `${y}-03-08`, repeat_yearly: true, sent: 0, failed: 0, completed: false })
+    }
+    const other = await gql<any>(chairman, MAILINGS, { y: YEAR, m: 4 })
+    expect((other.greetingsMailings as any[]).some(r => r.template_id === saved.id)).toBe(false)
   })
 
   it(caseName('grt.mail.side.01', 'рассылка с возрастом не включается'), async () => {

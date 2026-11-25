@@ -5,7 +5,7 @@ import {
   localDate,
   parseBirthdate,
 } from '~/extensions/greetings/domain/birthday';
-import { chooseTemplate, isValidPeriod, mailingsDue } from '~/extensions/greetings/domain/template-choice';
+import { chooseTemplate, isValidPeriod, mailingDateInMonth, mailingsDue } from '~/extensions/greetings/domain/template-choice';
 import { buildGreetingLetter, findUnknownVariables, findVariablesNotForKind, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
 import { GreetingTemplateKind, GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
 
@@ -72,6 +72,15 @@ describe('поздравления: шаблон на дату', () => {
   it('ежегодная рассылка повторяется с года первой даты', () => {
     expect(mailingsDue([newYear], { year: 2027, month: 12, day: 31 }).map((t) => t.id)).toEqual(['ny']);
     expect(mailingsDue([newYear], { year: 2025, month: 12, day: 31 })).toEqual([]);
+  });
+
+  it('календарь ставит рассылку на её дату в месяце', () => {
+    expect(mailingDateInMonth(notice, 2026, 6)).toBe('2026-06-15');
+    expect(mailingDateInMonth(notice, 2027, 6)).toBeNull();
+    expect(mailingDateInMonth(newYear, 2030, 12)).toBe('2030-12-31');
+    expect(mailingDateInMonth(newYear, 2030, 11)).toBeNull();
+    expect(mailingDateInMonth(leap, 2027, 2)).toBe('2027-02-28');
+    expect(mailingDateInMonth(year, 2026, 6)).toBeNull();
   });
 
   it('ежегодная рассылка на 29 февраля в невисокосный год — 28-го', () => {

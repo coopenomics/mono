@@ -232,3 +232,12 @@ cases:
     test: components/api-tests/src/greetings/templates.test.ts
     api: components/api-tests/src/greetings/templates.test.ts
     status: written
+
+  - id: grt.mail.cal.01
+    level: backend
+    kind: happy
+    scenario: председатель открывает календарь месяца с ежегодной рассылкой
+    expect: рассылка стоит на свою дату в каждом году начиная с первого, в других месяцах её нет; счётчики писем из журнала
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written

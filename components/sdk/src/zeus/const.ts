@@ -3854,6 +3854,9 @@ export const AllTypesProps: Record<string,any> = {
 		greetingsJournal:{
 			options:"PaginationInput"
 		},
+		greetingsMailings:{
+
+		},
 		greetingsPreview:{
 			data:"GreetingPreviewInput"
 		},
@@ -7373,6 +7376,17 @@ export const ReturnTypes: Record<string,any> = {
 		template_title:"String",
 		username:"String"
 	},
+	GreetingMailingOccurrence:{
+		completed:"Boolean",
+		date:"String",
+		failed:"Int",
+		repeat_yearly:"Boolean",
+		sent:"Int",
+		status:"GreetingTemplateStatus",
+		subject:"String",
+		template_id:"String",
+		title:"String"
+	},
 	GreetingPreview:{
 		age:"Int",
 		bodyHtml:"String",
@@ -10365,6 +10379,7 @@ export const ReturnTypes: Record<string,any> = {
 		globalSearch:"GlobalSearchGroup",
 		greetingsCalendar:"GreetingCalendarEntry",
 		greetingsJournal:"PaginatedGreetingSendsPaginationResult",
+		greetingsMailings:"GreetingMailingOccurrence",
 		greetingsPreview:"GreetingPreview",
 		greetingsTemplate:"GreetingTemplate",
 		greetingsTemplates:"GreetingTemplate",

@@ -87,3 +87,19 @@ const rawGreetingSendsPaginationSelector = { ...paginationSelector, items: rawGr
 const _validateSends: MakeAllFieldsRequired<ValueTypes['PaginatedGreetingSendsPaginationResult']> = rawGreetingSendsPaginationSelector
 export type greetingSendsPaginationModel = ModelTypes['PaginatedGreetingSendsPaginationResult']
 export const greetingSendsPaginationSelector = Selector('PaginatedGreetingSendsPaginationResult')(rawGreetingSendsPaginationSelector)
+
+// Рассылка месяца в календаре
+const rawGreetingMailingOccurrenceSelector = {
+  template_id: true,
+  title: true,
+  subject: true,
+  date: true,
+  repeat_yearly: true,
+  status: true,
+  completed: true,
+  sent: true,
+  failed: true,
+}
+const _validateMailing: MakeAllFieldsRequired<ValueTypes['GreetingMailingOccurrence']> = rawGreetingMailingOccurrenceSelector
+export type greetingMailingOccurrenceModel = ModelTypes['GreetingMailingOccurrence']
+export const greetingMailingOccurrenceSelector = Selector('GreetingMailingOccurrence')(rawGreetingMailingOccurrenceSelector)
