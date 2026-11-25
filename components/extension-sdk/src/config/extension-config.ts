@@ -43,9 +43,9 @@ export function loadExtensionConfig(env: NodeJS.ProcessEnv = process.env): Exten
   const jwtSecret = env.JWT_SECRET || undefined;
   const corePortsUrl = env.CORE_PORTS_URL || undefined;
   const corePortsToken = env.CORE_PORTS_TOKEN || undefined;
-  if (!jwtSecret && !(corePortsUrl && corePortsToken)) {
-    throw new ExtensionConfigError('не заданы CORE_PORTS_URL и CORE_PORTS_TOKEN (либо JWT_SECRET у приложения прежней сборки)');
-  }
+  // Доступ к ядру здесь не требуется: приложению без портов и без защищённых
+  // запросов он ни к чему. Приложение, которому порты ядра обязательны,
+  // проверяет corePortsUrl и corePortsToken само при старте.
   const coopname = env.COOPNAME;
   if (!coopname) {
     throw new ExtensionConfigError('COOPNAME не задан');
