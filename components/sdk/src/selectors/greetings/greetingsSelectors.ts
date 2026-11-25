@@ -76,6 +76,7 @@ const rawGreetingSendSelector = {
   template_title: true,
   subject: true,
   attempts: true,
+  delivery: true,
   created_at: true,
   updated_at: true,
 }
@@ -99,6 +100,9 @@ const rawGreetingMailingOccurrenceSelector = {
   completed: true,
   sent: true,
   failed: true,
+  delivered: true,
+  pending: true,
+  undelivered: true,
 }
 const _validateMailing: MakeAllFieldsRequired<ValueTypes['GreetingMailingOccurrence']> = rawGreetingMailingOccurrenceSelector
 export type greetingMailingOccurrenceModel = ModelTypes['GreetingMailingOccurrence']

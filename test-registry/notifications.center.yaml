@@ -14,8 +14,13 @@ title: Центр уведомлений — очередь доставки, ж
 # Правка 25.09.2026 (C28-80): подписки на уведомления личные — создать,
 # прочитать и снять подписку можно только свою, в том числе члену совета и
 # председателю; пайщик теперь сам снимает подписку своего устройства.
+#
+# Правка 25.11.2026 (C28-75): подробности уведомления отдают тему и текст,
+# отрисованные из данных строки очереди тем же шаблоном каталога; порт
+# уведомлений отвечает расширению о доставке его писем по строкам очереди.
 sources:
   backend:
+    - components/controller/src/infrastructure/innercoop/notification-innercoop.adapter.ts
     - components/controller/src/application/notification-center/**
     - components/controller/src/application/notification/**
     - components/controller/src/domain/notification/**
@@ -207,4 +212,23 @@ cases:
     # пайщика фабрикой; «при первой нужде» не делается. Проверка — в фазе отказов
     # стенда: пайщик без адреса, перезапуск узла, уведомление (02.10.2026, C28-85).
     test: components/api-tests/src/faults/subscriber-backfill.test.ts
+    status: written
+
+  - id: ntf.center.happy.07
+    level: backend
+    kind: happy
+    scenario: председатель открывает уведомление в журнале и смотрит, что получил пайщик
+    expect: тема и текст уведомления совпадают с заголовком и текстом строки инбокса получателя; у письма — HTML из данных строки
+    test: components/controller/tests/unit/notification/notification-content.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: written
+
+  - id: ntf.port.side.01
+    level: backend
+    kind: side
+    scenario: расширение спрашивает доставку своих писем, в списке повторы, пустые и строки другого кооператива
+    expect: порт отдаёт канал и состояние своих строк без повторов, строки другого кооператива не отдаёт, пустой список к очереди не обращается
+    test: components/controller/tests/unit/notification/notification-content.test.ts
+    external: unreachable
+    external_reason: порт вызывается расширением внутри узла, у API стенда такой операции нет; строк другого кооператива на стенде одного кооператива не бывает
     status: written

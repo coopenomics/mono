@@ -31,6 +31,7 @@
         .journal__meta {{ kindLabel(row.kind) }}
       template(#cell-status='{ row }')
         BaseBadge(:variant='sendStatusView(row.status).variant') {{ sendStatusView(row.status).label }}
+        .journal__meta(v-if='row.delivery') {{ deliveryView(row.delivery).label }}
     TablePager.q-mt-md(
       v-if='pager.rowsNumber > pager.rowsPerPage'
       :page='pager.page'
@@ -50,6 +51,7 @@
       DataRow(v-if='selected.template_title' :label='$t("greetings.journal.template")' :value='selected.template_title' align='vertical')
       DataRow(v-if='selected.reason' :label='$t("greetings.journal.columnStatus")' :value='skipReasonLabel(selected.reason)' align='vertical')
       DataRow(v-if='selected.error' :label='$t("greetings.journal.error")' :value='selected.error' align='vertical')
+      DataRow(v-if='selected.delivery' :label='$t("greetings.journal.delivery")' :value='deliveryView(selected.delivery).label' align='spread')
       DataRow(:label='$t("greetings.journal.attempts")' :value='selected.attempts' align='spread')
       DataRow(:label='$t("greetings.journal.updatedAt")' :value='formatMoment(selected.updated_at)' align='spread')
 </template>
@@ -63,6 +65,7 @@ import { BaseBadge, BaseTable, EmptyState, TablePager, type BaseTableColumn } fr
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import {
   GREETINGS_LIVE,
+  deliveryView,
   formatDay,
   formatMoment,
   kindLabel,

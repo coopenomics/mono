@@ -7,7 +7,8 @@ import {
 } from '~/extensions/greetings/domain/birthday';
 import { chooseTemplate, isValidPeriod, mailingDateInMonth, mailingsDue } from '~/extensions/greetings/domain/template-choice';
 import { buildGreetingLetter, findUnknownVariables, findVariablesNotForKind, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
-import { GreetingTemplateKind, GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
+import { GreetingDeliveryState, GreetingTemplateKind, GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
+import { deliveryOf } from '~/extensions/greetings/domain/delivery';
 
 /**
  * Доменная часть приложения «Поздравления»: дата рождения, выбор шаблона на
@@ -176,5 +177,28 @@ describe('поздравления: письмо', () => {
 
   it('находит неизвестные переменные без повторов, регистр слова не важен', () => {
     expect(findUnknownVariables('{{имя}} {{Отчетсво}} {{ Отчетсво }} {{Кличка}}')).toEqual(['Отчетсво', 'Кличка']);
+  });
+});
+
+describe('поздравления: доставка письма', () => {
+  const rows = new Map([
+    ['e1', { outboxId: 'e1', channel: 'email', state: 'sent' }],
+    ['i1', { outboxId: 'i1', channel: 'in_app', state: 'failed' }],
+    ['e2', { outboxId: 'e2', channel: 'email', state: 'sending' }],
+    ['i2', { outboxId: 'i2', channel: 'in_app', state: 'canceled' }],
+  ]);
+
+  it('доставку считает по почте, не по уведомлению в интерфейсе', () => {
+    expect(deliveryOf(['i1', 'e1'], rows)).toBe(GreetingDeliveryState.DELIVERED);
+    expect(deliveryOf(['e2'], rows)).toBe(GreetingDeliveryState.PENDING);
+  });
+
+  it('без почтовой строки берёт уведомление в интерфейсе', () => {
+    expect(deliveryOf(['i2'], rows)).toBe(GreetingDeliveryState.FAILED);
+  });
+
+  it('без строк очереди доставка неизвестна', () => {
+    expect(deliveryOf([], rows)).toBeNull();
+    expect(deliveryOf(['net'], rows)).toBeNull();
   });
 });

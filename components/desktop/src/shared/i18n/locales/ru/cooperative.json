@@ -272,7 +272,11 @@
       "statusFailed": "Ошибка",
       "statusPending": "В очереди",
       "statusSending": "Отправляется",
-      "statusSent": "Доставлено"
+      "statusSent": "Доставлено",
+      "detailsTitle": "Уведомление",
+      "contentTitle": "Что получил пайщик",
+      "contentMissing": "Текст уведомления не найден: сценария уведомления больше нет в каталоге.",
+      "attemptsTitle": "Попытки доставки"
     },
     "personnelPage": {
       "addRoleLabel": "Добавить роль",

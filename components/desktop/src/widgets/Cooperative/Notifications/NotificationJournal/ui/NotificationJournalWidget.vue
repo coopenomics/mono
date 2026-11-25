@@ -7,63 +7,50 @@
     @update:model-value='onFilterChange'
   )
 
-  TableSkeleton(
-    v-if='store.loading && !store.items.length',
-    :columns='skeletonColumns',
-    :rows='8',
-    min-width='960px'
-  )
-
-  template(v-else-if='store.items.length')
-    //- Десктоп: канон-таблица (на узком экране скроллится по горизонтали).
+  template(v-if='store.items.length || store.loading')
+    //- Десктоп: канон-таблица; строка открывает правую панель уведомления.
     //- На телефоне скрыта — вместо неё компактные карточки ниже.
-    .table-wrap.nj-desktop
-      .table-scroll
-        table.table.table--actions
-          thead
-            tr
-              th.col-date {{ $t('cooperative.notificationJournalWidget.column.date') }}
-              th {{ $t('cooperative.notificationJournalWidget.column.recipient') }}
-              th {{ $t('cooperative.notificationJournalWidget.column.type') }}
-              th {{ $t('cooperative.notificationJournalWidget.column.channel') }}
-              th {{ $t('cooperative.notificationJournalWidget.column.status') }}
-              th.col-num {{ $t('cooperative.notificationJournalWidget.column.attempts') }}
-              th.col-action {{ $t('cooperative.notificationJournalWidget.column.actions') }}
-          tbody
-            tr(v-for='row in store.items', :key='row.id')
-              td.col-date {{ formatDateToHumanDateTime(row.createdAt) }}
-              td.cell-recipient
-                IdentityCell(
-                  v-if='row.recipientUsername',
-                  :account-name='row.recipientUsername',
-                  :full-name='recipientName(row.recipientUsername)'
-                )
-                span.cell-recipient__sub(v-else) {{ row.recipientSubscriberId }}
-              td {{ workflowLabel(row.workflowId) }}
-              td {{ channelLabels[row.channel] ?? row.channel }}
-              td(:class='{ "cell-status--has-error": row.lastError }')
-                BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
-                q-tooltip(
-                  v-if='row.lastError',
-                  anchor='top middle',
-                  self='bottom middle',
-                  max-width='320px'
-                ) {{ row.lastError }}
-              td.col-num {{ row.attempts }}
-              td.col-action(@click.stop)
-                BaseButton(
-                  variant='ghost',
-                  size='sm',
-                  :loading='resendingId === row.id',
-                  @click='onResend(row.id)'
-                )
-                  q-icon.q-mr-xs(name='refresh', size='16px')
-                  | {{ $t('cooperative.notificationJournalWidget.resendLabel') }}
+    BaseTable.nj-desktop(
+      :columns='columns',
+      :rows='store.items',
+      row-key='id',
+      :loading='store.loading && !store.items.length',
+      :skeleton-rows='8',
+      clickable-rows,
+      min-width='960px',
+      @row-click='(row) => openDetails(row.id)'
+    )
+      template(#cell-date='{ row }')
+        span {{ formatDateToHumanDateTime(row.createdAt) }}
+      template(#cell-recipient='{ row }')
+        IdentityCell(
+          v-if='row.recipientUsername',
+          :account-name='row.recipientUsername',
+          :full-name='recipientName(row.recipientUsername)'
+        )
+        span.cell-recipient__sub(v-else) {{ row.recipientSubscriberId }}
+      template(#cell-type='{ row }')
+        span {{ workflowLabel(row.workflowId) }}
+      template(#cell-channel='{ row }')
+        span {{ channelLabels[row.channel] ?? row.channel }}
+      template(#cell-status='{ row }')
+        BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
+      template(#cell-actions='{ row }')
+        div(@click.stop)
+          BaseButton(
+            variant='secondary',
+            size='sm',
+            :loading='resendingId === row.id',
+            @click='onResend(row.id)'
+          )
+            template(#icon-left)
+              q-icon(name='refresh', size='16px')
+            | {{ $t('cooperative.notificationJournalWidget.resendLabel') }}
 
     //- Мобайл: карточки. Поля — по два в ряд (col-xs-6), компактно, без
     //- посимвольного переноса и горизонтального скролла.
     .nj-cards.nj-mobile
-      .nj-card(v-for='row in store.items', :key='row.id')
+      .nj-card(v-for='row in store.items', :key='row.id', @click='openDetails(row.id)')
         .nj-card__head
           .nj-card__recipient
             IdentityCell(
@@ -88,12 +75,13 @@
             .nj-card__value {{ row.attempts }}
         .nj-card__error(v-if='row.lastError') {{ row.lastError }}
         BaseButton.nj-card__action(
-          variant='ghost',
+          variant='secondary',
           size='sm',
           :loading='resendingId === row.id',
-          @click='onResend(row.id)'
+          @click.stop='onResend(row.id)'
         )
-          q-icon.q-mr-xs(name='refresh', size='16px')
+          template(#icon-left)
+            q-icon(name='refresh', size='16px')
           | {{ $t('cooperative.notificationJournalWidget.resendLabel') }}
 
     .table-foot
@@ -113,6 +101,47 @@
   )
     template(#icon)
       q-icon(name='notifications', size='48px')
+
+  //- Правая панель: что получил пайщик — тема и текст уведомления, состояние и попытки.
+  DetailsDrawer(v-model='detailsOpen', :title='$t("cooperative.notificationJournalWidget.detailsTitle")', :width='560')
+    template(v-if='detail')
+      .nj-detail__type {{ workflowLabel(detail.workflowId) }}
+      BaseBadge.q-mb-md(:variant='statusVariant(detail.status)') {{ statusLabels[detail.status] ?? detail.status }}
+      DataRow(:label='$t("cooperative.notificationJournalWidget.column.recipient")', :value='recipientLabel(detail)', align='vertical')
+      DataRow(:label='$t("cooperative.notificationJournalWidget.column.channel")', :value='channelLabels[detail.channel] ?? detail.channel', align='spread')
+      DataRow(:label='$t("cooperative.notificationJournalWidget.column.date")', :value='formatDateToHumanDateTime(detail.createdAt)', align='spread')
+      DataRow(:label='$t("cooperative.notificationJournalWidget.column.attempts")', :value='detail.attempts', align='spread')
+      BaseBanner.q-mt-md(v-if='detail.lastError', variant='neg')
+        template(#icon)
+          q-icon(name='error_outline')
+        | {{ detail.lastError }}
+      .nj-detail__section {{ $t('cooperative.notificationJournalWidget.contentTitle') }}
+      template(v-if='detail.subject || detail.body')
+        .nj-detail__subject {{ detail.subject }}
+        //- Текст письма — HTML из шаблона и данных уведомления. Подстановки не
+        //- экранируются, поэтому письмо показывается в изолированном фрейме без
+        //- скриптов: чужая разметка в данных ничего не выполнит на столе.
+        iframe.nj-detail__letter(
+          v-if='detail.channel === Zeus.NotificationChannel.EMAIL',
+          sandbox='',
+          :srcdoc='letterDocument(detail.body ?? "")',
+          :title='detail.subject ?? ""'
+        )
+        .nj-detail__text(v-else) {{ detail.body }}
+      .nj-detail__muted(v-else) {{ $t('cooperative.notificationJournalWidget.contentMissing') }}
+      template(v-if='detail.deliveries.length')
+        .nj-detail__section {{ $t('cooperative.notificationJournalWidget.attemptsTitle') }}
+        .nj-detail__attempt(v-for='attempt in detail.deliveries', :key='attempt.id')
+          span {{ attempt.attemptNumber }} · {{ formatDateToHumanDateTime(attempt.createdAt) }}
+          span.nj-detail__muted(v-if='attempt.error') {{ attempt.error }}
+    template(#footer)
+      BaseButton(
+        v-if='detail',
+        variant='secondary',
+        size='sm',
+        :loading='resendingId === detail.id',
+        @click='onResend(detail.id)'
+      ) {{ $t('cooperative.notificationJournalWidget.resendLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -124,17 +153,20 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
+import { BaseTable, type BaseTableColumn } from 'src/shared/ui/base/BaseTable';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
-import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
 import { IdentityCell } from 'src/shared/ui/domain/IdentityCell';
+import { DataRow } from 'src/shared/ui/domain/DataRow';
+import { DetailsDrawer } from 'src/shared/ui/domain/DetailsDrawer';
 import { FilterBar } from 'src/shared/ui/domain/FilterBar';
 import type { FilterDefinition, FilterValues } from 'src/shared/ui/domain/FilterBar';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
 import { getName } from 'src/shared/lib/utils/account';
 import { api as accountApi } from 'src/entities/Account/api';
 import { useNotificationJournalStore } from '../model';
-import type { INotificationsFilter } from '../model';
+import type { INotification, INotificationDetail, INotificationsFilter } from '../model';
+import { api } from '../api';
 import { t } from 'src/shared/i18n';
 
 const store = useNotificationJournalStore();
@@ -238,15 +270,42 @@ const filterValues = computed<FilterValues>(() => ({
   status: store.filter.status ?? null,
 }));
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: t('cooperative.notificationJournalWidget.column.date'), cell: 'text', cellWidth: '132px' },
-  { label: t('cooperative.notificationJournalWidget.column.recipient'), cell: 'text' },
-  { label: t('cooperative.notificationJournalWidget.column.type'), cell: 'text' },
-  { label: t('cooperative.notificationJournalWidget.column.channel'), cell: 'text' },
-  { label: t('cooperative.notificationJournalWidget.column.status'), cell: 'badge' },
-  { label: t('cooperative.notificationJournalWidget.column.attempts'), class: 'col-num', cell: 'text', cellWidth: '64px' },
-  { label: t('cooperative.notificationJournalWidget.column.actions'), class: 'col-action', cell: 'icon' },
+const columns: BaseTableColumn<INotification>[] = [
+  { key: 'date', label: t('cooperative.notificationJournalWidget.column.date'), width: '150px', nowrap: true },
+  { key: 'recipient', label: t('cooperative.notificationJournalWidget.column.recipient') },
+  { key: 'type', label: t('cooperative.notificationJournalWidget.column.type') },
+  { key: 'channel', label: t('cooperative.notificationJournalWidget.column.channel'), width: '140px', nowrap: true },
+  { key: 'status', label: t('cooperative.notificationJournalWidget.column.status'), width: '150px', nowrap: true },
+  { key: 'attempts', label: t('cooperative.notificationJournalWidget.column.attempts'), width: '90px', numeric: true },
+  { key: 'actions', label: t('cooperative.notificationJournalWidget.column.actions'), width: '190px', nowrap: true },
 ];
+
+// ─── Правая панель уведомления ──────────────────────────────────────────────
+const detailsOpen = ref(false);
+const detail = ref<INotificationDetail | null>(null);
+
+async function openDetails(id: string): Promise<void> {
+  try {
+    detail.value = await api.loadNotification(id);
+    detailsOpen.value = true;
+  } catch (error) {
+    FailAlert(error);
+  }
+}
+
+function recipientLabel(row: INotificationDetail): string {
+  const name = recipientName(row.recipientUsername);
+  return [name, row.recipientUsername ?? row.recipientSubscriberId].filter(Boolean).join(' · ');
+}
+
+/**
+ * Документ письма для изолированного фрейма: свои стили документа не
+ * наследуют стол, поэтому шрифт и цвета берутся системные, со светлой и
+ * тёмной схемой.
+ */
+function letterDocument(html: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>:root{color-scheme:light dark}body{margin:12px;font:14px/1.5 system-ui,sans-serif;background:Canvas;color:CanvasText;overflow-wrap:anywhere}</style></head><body>${html}</body></html>`;
+}
 
 const rangeLabel = computed(() => {
   const shown = store.items.length;
@@ -292,6 +351,53 @@ useLiveReload(
 </script>
 
 <style lang="scss" scoped>
+.nj-card {
+  cursor: pointer;
+}
+
+.nj-detail__type {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
+}
+
+.nj-detail__section {
+  font-size: var(--p-fs-eyebrow);
+  color: var(--p-ink-3);
+  margin: var(--p-5) 0 var(--p-2);
+}
+
+.nj-detail__subject {
+  font-weight: 600;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
+}
+
+.nj-detail__letter {
+  width: 100%;
+  min-height: calc(var(--p-10) * 5);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+}
+
+.nj-detail__text {
+  white-space: pre-wrap;
+  color: var(--p-ink);
+}
+
+.nj-detail__attempt {
+  display: flex;
+  flex-direction: column;
+  padding: var(--p-2) 0;
+  border-bottom: 1px solid var(--p-line);
+}
+
+.nj-detail__muted {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
+}
+
 .notification-journal {
   width: 100%;
   display: flex;

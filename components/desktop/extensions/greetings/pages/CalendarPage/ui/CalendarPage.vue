@@ -73,6 +73,9 @@
       DataRow(:label='$t("greetings.journal.subject")' :value='selectedMailing.subject' align='vertical')
       DataRow(:label='$t("greetings.calendar.sent")' :value='selectedMailing.sent' align='spread')
       DataRow(:label='$t("greetings.calendar.failed")' :value='selectedMailing.failed' align='spread')
+      DataRow(:label='$t("greetings.calendar.delivered")' :value='selectedMailing.delivered' align='spread')
+      DataRow(:label='$t("greetings.calendar.pending")' :value='selectedMailing.pending' align='spread')
+      DataRow(:label='$t("greetings.calendar.undelivered")' :value='selectedMailing.undelivered' align='spread')
       .calendar__meta.q-mt-md {{ $t('greetings.calendar.deliveryNote') }}
     template(#footer)
       BaseButton(v-if='selectedMailing' variant='secondary' size='sm' @click='openTemplate(selectedMailing.template_id)')
@@ -153,8 +156,8 @@ const mailingColumns: BaseTableColumn<IGreetingMailing>[] = [
 const mailingKey = (row: IGreetingMailing) => `${row.template_id}:${row.date}`;
 const lettersLabel = (row: IGreetingMailing) =>
   row.failed
-    ? t('greetings.calendar.lettersFailed', { sent: row.sent, failed: row.failed })
-    : t('greetings.calendar.letters', { sent: row.sent });
+    ? t('greetings.calendar.lettersFailed', { sent: row.sent, delivered: row.delivered, failed: row.failed })
+    : t('greetings.calendar.letters', { sent: row.sent, delivered: row.delivered });
 
 const mailingOpen = ref(false);
 const selectedMailing = ref<IGreetingMailing | null>(null);

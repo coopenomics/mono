@@ -60,7 +60,9 @@ const notice = {
 
 const TODAY = { year: 2026, month: 6, day: 15 };
 
-function build(notify = jest.fn().mockResolvedValue({ acknowledged: true, outboxIds: [] })) {
+function build(
+  notify: jest.Mock = jest.fn(async (username: string) => ({ acknowledged: true, outboxIds: [`${username}-email`, `${username}-inapp`] }))
+) {
   const templates = memoryStore<GreetingTemplateRecord>();
   templates.rows.push({ ...notice });
   const sends = memoryStore<GreetingSendRecord>();
@@ -103,6 +105,8 @@ describe('поздравления: рассылка в дату', () => {
     expect(notify.mock.calls[1][2].subject).toBe('ООО «Ромашка», приглашаем на собрание');
     expect(notify.mock.calls[0][2].occasion).toBe('mailing:tpl-notice:2026-06-15');
     expect(sends.rows.every((row) => row.kind === GreetingTemplateKind.MAILING && row.occasion_date === '2026-06-15')).toBe(true);
+    // Строки очереди сохраняются: по ним календарь и журнал читают доставку.
+    expect(sends.rows.find((row) => row.username === 'anna')?.outbox_ids).toEqual(['anna-email', 'anna-inapp']);
   });
 
   it('после обхода без ошибок ставит отметку дня и в тот же день пайщиков не перебирает', async () => {

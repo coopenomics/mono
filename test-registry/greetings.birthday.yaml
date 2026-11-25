@@ -241,3 +241,13 @@ cases:
     test: components/controller/tests/unit/greetings/greetings-domain.test.ts
     api: components/api-tests/src/greetings/templates.test.ts
     status: written
+
+  - id: grt.dlv.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель смотрит доставку писем рассылки и поздравлений
+    expect: доставка письма считается по почтовой строке очереди, без неё — по уведомлению в интерфейсе; без строк очереди доставка неизвестна; рассылка хранит строки очереди каждого письма
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    external: unreachable
+    external_reason: состояние доставки письма задаёт почтовый сервер после отправки по расписанию; снаружи стенда исход доставки не задать
+    status: written

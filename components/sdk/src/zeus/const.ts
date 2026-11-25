@@ -1134,6 +1134,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	GreetingAccountType: "enum" as const,
+	GreetingDeliveryState: "enum" as const,
 	GreetingPreviewInput:{
 		kind:"GreetingTemplateKind"
 	},
@@ -7379,13 +7380,16 @@ export const ReturnTypes: Record<string,any> = {
 	GreetingMailingOccurrence:{
 		completed:"Boolean",
 		date:"String",
+		delivered:"Int",
 		failed:"Int",
+		pending:"Int",
 		repeat_yearly:"Boolean",
 		sent:"Int",
 		status:"GreetingTemplateStatus",
 		subject:"String",
 		template_id:"String",
-		title:"String"
+		title:"String",
+		undelivered:"Int"
 	},
 	GreetingPreview:{
 		age:"Int",
@@ -7398,6 +7402,7 @@ export const ReturnTypes: Record<string,any> = {
 	GreetingSend:{
 		attempts:"Int",
 		created_at:"DateTime",
+		delivery:"GreetingDeliveryState",
 		displayName:"String",
 		error:"String",
 		id:"String",
@@ -9452,6 +9457,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	NotificationDetail:{
 		attempts:"Int",
+		body:"String",
 		channel:"NotificationChannel",
 		coopname:"String",
 		createdAt:"DateTime",
@@ -9461,6 +9467,7 @@ export const ReturnTypes: Record<string,any> = {
 		recipientSubscriberId:"String",
 		recipientUsername:"String",
 		status:"NotificationOutboxStatus",
+		subject:"String",
 		updatedAt:"DateTime",
 		workflowId:"String"
 	},

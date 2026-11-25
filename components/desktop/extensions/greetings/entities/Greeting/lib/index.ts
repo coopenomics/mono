@@ -48,6 +48,17 @@ export function mailingStateView(mailing: {
   return { label: t(`greetings.calendar.mailingState.${state.key}` as never), variant: state.variant };
 }
 
+const DELIVERY_VIEW: Record<Zeus.GreetingDeliveryState, BaseBadgeVariant> = {
+  [Zeus.GreetingDeliveryState.PENDING]: 'info',
+  [Zeus.GreetingDeliveryState.DELIVERED]: 'pos',
+  [Zeus.GreetingDeliveryState.FAILED]: 'neg',
+};
+
+/** Доставка письма → подпись и цвет. */
+export function deliveryView(state: Zeus.GreetingDeliveryState): { label: string; variant: BaseBadgeVariant } {
+  return { label: t(`greetings.delivery.${state.toLowerCase()}` as never), variant: DELIVERY_VIEW[state] };
+}
+
 /** Причина пропуска поздравления. */
 export function skipReasonLabel(reason: Zeus.GreetingSkipReason | null | undefined): string {
   return reason ? t(`greetings.reason.${reason.toLowerCase()}` as never) : '';

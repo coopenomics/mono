@@ -10477,14 +10477,20 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on GreetingCalendarEntry']?: Omit<ValueTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
 }>;
+	/** Доставка письма по данным центра уведомлений */
+["GreetingDeliveryState"]:GreetingDeliveryState;
 	/** Рассылка в календаре: дата в месяце и итог отправки */
 ["GreetingMailingOccurrence"]: AliasType<{
 	/** Рассылка обошла всех пайщиков без ошибок */
 	completed?:boolean | `@${string}`,
 	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
 	date?:boolean | `@${string}`,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered?:boolean | `@${string}`,
 	/** Писем, отправка которых не удалась */
 	failed?:boolean | `@${string}`,
+	/** Писем, которые ждут доставки */
+	pending?:boolean | `@${string}`,
 	/** Рассылка повторяется каждый год */
 	repeat_yearly?:boolean | `@${string}`,
 	/** Писем принято центром уведомлений к доставке */
@@ -10497,6 +10503,8 @@ export type ValueTypes = {
 	template_id?:boolean | `@${string}`,
 	/** Название рассылки */
 	title?:boolean | `@${string}`,
+	/** Писем, которые доставить не удалось */
+	undelivered?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on GreetingMailingOccurrence']?: Omit<ValueTypes["GreetingMailingOccurrence"], "...on GreetingMailingOccurrence">
 }>;
@@ -10534,6 +10542,8 @@ export type ValueTypes = {
 	attempts?:boolean | `@${string}`,
 	/** Когда поздравление записано в журнал впервые */
 	created_at?:boolean | `@${string}`,
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?:boolean | `@${string}`,
 	/** ФИО пайщика */
 	displayName?:boolean | `@${string}`,
 	/** Текст ошибки отправки */
@@ -16093,6 +16103,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["NotificationDetail"]: AliasType<{
 	/** Сделано попыток */
 	attempts?:boolean | `@${string}`,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?:boolean | `@${string}`,
 	/** Канал доставки */
 	channel?:boolean | `@${string}`,
 	/** Кооператив-владелец */
@@ -16111,6 +16123,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	recipientUsername?:boolean | `@${string}`,
 	/** Статус доставки */
 	status?:boolean | `@${string}`,
+	/** Тема уведомления, как её увидел получатель */
+	subject?:boolean | `@${string}`,
 	/** Когда обновлено */
 	updatedAt?:boolean | `@${string}`,
 	/** Тип уведомления */
@@ -30313,14 +30327,20 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Доставка письма по данным центра уведомлений */
+["GreetingDeliveryState"]:GreetingDeliveryState;
 	/** Рассылка в календаре: дата в месяце и итог отправки */
 ["GreetingMailingOccurrence"]: AliasType<{
 	/** Рассылка обошла всех пайщиков без ошибок */
 	completed?:boolean | `@${string}`,
 	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
 	date?:boolean | `@${string}`,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered?:boolean | `@${string}`,
 	/** Писем, отправка которых не удалась */
 	failed?:boolean | `@${string}`,
+	/** Писем, которые ждут доставки */
+	pending?:boolean | `@${string}`,
 	/** Рассылка повторяется каждый год */
 	repeat_yearly?:boolean | `@${string}`,
 	/** Писем принято центром уведомлений к доставке */
@@ -30333,6 +30353,8 @@ export type ResolverInputTypes = {
 	template_id?:boolean | `@${string}`,
 	/** Название рассылки */
 	title?:boolean | `@${string}`,
+	/** Писем, которые доставить не удалось */
+	undelivered?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Письмо, которое получит пайщик */
@@ -30368,6 +30390,8 @@ export type ResolverInputTypes = {
 	attempts?:boolean | `@${string}`,
 	/** Когда поздравление записано в журнал впервые */
 	created_at?:boolean | `@${string}`,
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?:boolean | `@${string}`,
 	/** ФИО пайщика */
 	displayName?:boolean | `@${string}`,
 	/** Текст ошибки отправки */
@@ -35763,6 +35787,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["NotificationDetail"]: AliasType<{
 	/** Сделано попыток */
 	attempts?:boolean | `@${string}`,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?:boolean | `@${string}`,
 	/** Канал доставки */
 	channel?:boolean | `@${string}`,
 	/** Кооператив-владелец */
@@ -35781,6 +35807,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	recipientUsername?:boolean | `@${string}`,
 	/** Статус доставки */
 	status?:boolean | `@${string}`,
+	/** Тема уведомления, как её увидел получатель */
+	subject?:boolean | `@${string}`,
 	/** Когда обновлено */
 	updatedAt?:boolean | `@${string}`,
 	/** Тип уведомления */
@@ -49497,14 +49525,19 @@ export type ModelTypes = {
 	/** Имя аккаунта пайщика */
 	username: string
 };
+	["GreetingDeliveryState"]:GreetingDeliveryState;
 	/** Рассылка в календаре: дата в месяце и итог отправки */
 ["GreetingMailingOccurrence"]: {
 		/** Рассылка обошла всех пайщиков без ошибок */
 	completed: boolean,
 	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
 	date: string,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered: number,
 	/** Писем, отправка которых не удалась */
 	failed: number,
+	/** Писем, которые ждут доставки */
+	pending: number,
 	/** Рассылка повторяется каждый год */
 	repeat_yearly: boolean,
 	/** Писем принято центром уведомлений к доставке */
@@ -49516,7 +49549,9 @@ export type ModelTypes = {
 	/** Идентификатор шаблона рассылки */
 	template_id: string,
 	/** Название рассылки */
-	title: string
+	title: string,
+	/** Писем, которые доставить не удалось */
+	undelivered: number
 };
 	/** Письмо, которое получит пайщик */
 ["GreetingPreview"]: {
@@ -49550,6 +49585,8 @@ export type ModelTypes = {
 	attempts: number,
 	/** Когда поздравление записано в журнал впервые */
 	created_at: ModelTypes["DateTime"],
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?: ModelTypes["GreetingDeliveryState"] | undefined | null,
 	/** ФИО пайщика */
 	displayName: string,
 	/** Текст ошибки отправки */
@@ -55147,6 +55184,8 @@ export type ModelTypes = {
 	["NotificationDetail"]: {
 		/** Сделано попыток */
 	attempts: number,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?: string | undefined | null,
 	/** Канал доставки */
 	channel: ModelTypes["NotificationChannel"],
 	/** Кооператив-владелец */
@@ -55165,6 +55204,8 @@ export type ModelTypes = {
 	recipientUsername?: string | undefined | null,
 	/** Статус доставки */
 	status: ModelTypes["NotificationOutboxStatus"],
+	/** Тема уведомления, как её увидел получатель */
+	subject?: string | undefined | null,
 	/** Когда обновлено */
 	updatedAt: ModelTypes["DateTime"],
 	/** Тип уведомления */
@@ -69471,6 +69512,8 @@ export type GraphQLTypes = {
 	username: string,
 	['...on GreetingCalendarEntry']: Omit<GraphQLTypes["GreetingCalendarEntry"], "...on GreetingCalendarEntry">
 };
+	/** Доставка письма по данным центра уведомлений */
+["GreetingDeliveryState"]: GreetingDeliveryState;
 	/** Рассылка в календаре: дата в месяце и итог отправки */
 ["GreetingMailingOccurrence"]: {
 	__typename: "GreetingMailingOccurrence",
@@ -69478,8 +69521,12 @@ export type GraphQLTypes = {
 	completed: boolean,
 	/** Дата отправки в месяце календаря, ГГГГ-ММ-ДД */
 	date: string,
+	/** Писем, доставленных почтовому провайдеру */
+	delivered: number,
 	/** Писем, отправка которых не удалась */
 	failed: number,
+	/** Писем, которые ждут доставки */
+	pending: number,
 	/** Рассылка повторяется каждый год */
 	repeat_yearly: boolean,
 	/** Писем принято центром уведомлений к доставке */
@@ -69492,6 +69539,8 @@ export type GraphQLTypes = {
 	template_id: string,
 	/** Название рассылки */
 	title: string,
+	/** Писем, которые доставить не удалось */
+	undelivered: number,
 	['...on GreetingMailingOccurrence']: Omit<GraphQLTypes["GreetingMailingOccurrence"], "...on GreetingMailingOccurrence">
 };
 	/** Письмо, которое получит пайщик */
@@ -69529,6 +69578,8 @@ export type GraphQLTypes = {
 	attempts: number,
 	/** Когда поздравление записано в журнал впервые */
 	created_at: GraphQLTypes["DateTime"],
+	/** Доставка письма; пусто — письмо не отправлялось */
+	delivery?: GraphQLTypes["GreetingDeliveryState"] | undefined | null,
 	/** ФИО пайщика */
 	displayName: string,
 	/** Текст ошибки отправки */
@@ -75527,6 +75578,8 @@ export type GraphQLTypes = {
 	__typename: "NotificationDetail",
 	/** Сделано попыток */
 	attempts: number,
+	/** Текст уведомления: у письма — HTML, у уведомления в интерфейсе и push — простой текст */
+	body?: string | undefined | null,
 	/** Канал доставки */
 	channel: GraphQLTypes["NotificationChannel"],
 	/** Кооператив-владелец */
@@ -75545,6 +75598,8 @@ export type GraphQLTypes = {
 	recipientUsername?: string | undefined | null,
 	/** Статус доставки */
 	status: GraphQLTypes["NotificationOutboxStatus"],
+	/** Тема уведомления, как её увидел получатель */
+	subject?: string | undefined | null,
 	/** Когда обновлено */
 	updatedAt: GraphQLTypes["DateTime"],
 	/** Тип уведомления */
@@ -81383,6 +81438,12 @@ export enum GreetingAccountType {
 	ENTREPRENEUR = "ENTREPRENEUR",
 	INDIVIDUAL = "INDIVIDUAL"
 }
+/** Доставка письма по данным центра уведомлений */
+export enum GreetingDeliveryState {
+	DELIVERED = "DELIVERED",
+	FAILED = "FAILED",
+	PENDING = "PENDING"
+}
 /** Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась */
 export enum GreetingSendStatus {
 	FAILED = "FAILED",
@@ -82655,6 +82716,7 @@ type ZEUS_VARIABLES = {
 	["GlobalSearchGroupStatus"]: ValueTypes["GlobalSearchGroupStatus"];
 	["GlobalSearchInput"]: ValueTypes["GlobalSearchInput"];
 	["GreetingAccountType"]: ValueTypes["GreetingAccountType"];
+	["GreetingDeliveryState"]: ValueTypes["GreetingDeliveryState"];
 	["GreetingPreviewInput"]: ValueTypes["GreetingPreviewInput"];
 	["GreetingSendStatus"]: ValueTypes["GreetingSendStatus"];
 	["GreetingSkipReason"]: ValueTypes["GreetingSkipReason"];
