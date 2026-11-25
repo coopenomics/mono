@@ -64,6 +64,13 @@ async function saveTemplate(data: ISaveTemplateInput): Promise<IGreetingTemplate
   return output;
 }
 
+async function sendTest(data: IPreviewInput): Promise<boolean> {
+  const { [Mutations.Greetings.SendTest.name]: output } = await client.Mutation(Mutations.Greetings.SendTest.mutation, {
+    variables: { data },
+  });
+  return output;
+}
+
 async function setTemplateStatus(id: string, status: Zeus.GreetingTemplateStatus): Promise<IGreetingTemplate> {
   const { [Mutations.Greetings.SetTemplateStatus.name]: output } = await client.Mutation(
     Mutations.Greetings.SetTemplateStatus.mutation,
@@ -89,6 +96,7 @@ export const greetingsApi = {
   loadUpcoming,
   loadJournal,
   saveTemplate,
+  sendTest,
   setTemplateStatus,
   deleteTemplate,
 };

@@ -5,10 +5,12 @@
 
   .calendar__nav.q-mb-md
     BaseButton(variant='secondary' size='sm' icon-only :aria-label='$t("greetings.calendar.previous")' @click='shift(-1)')
-      q-icon(name='chevron_left')
+      template(#icon-left)
+        q-icon(name='chevron_left')
     .calendar__month {{ monthTitle }}
     BaseButton(variant='secondary' size='sm' icon-only :aria-label='$t("greetings.calendar.next")' @click='shift(1)')
-      q-icon(name='chevron_right')
+      template(#icon-left)
+        q-icon(name='chevron_right')
 
   EmptyState(
     v-if='!firstLoad && !loading && !rows.length'

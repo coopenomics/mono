@@ -1,7 +1,13 @@
 import { configurePlatformSettings, platformSettings } from '@coopenomics/extension-kit';
 import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { GreetingsSenderService } from '~/extensions/greetings/application/services/greetings-sender.service';
-import { GreetingSendStatus, GreetingSkipReason, GreetingTemplateStatus, GreetingAccountType } from '~/extensions/greetings/domain/greetings.enums';
+import {
+  GreetingAccountType,
+  GreetingSendStatus,
+  GreetingSkipReason,
+  GreetingTemplateKind,
+  GreetingTemplateStatus,
+} from '~/extensions/greetings/domain/greetings.enums';
 import type { GreetingCalendarRecord, GreetingSendRecord, GreetingTemplateRecord } from '~/extensions/greetings/infrastructure/database/greetings.records';
 
 /**
@@ -42,6 +48,7 @@ const template = {
   id: 'tpl-2026',
   title: 'Поздравление на 2026 год',
   status: GreetingTemplateStatus.ACTIVE,
+  kind: GreetingTemplateKind.BIRTHDAY,
   period_start: '2026-01-01',
   period_end: '2026-12-31',
   subject: '{{Обращение}}, с днём рождения!',
@@ -73,7 +80,8 @@ function build(options: { status?: MonoAccountStatus; email?: string; notify?: j
   };
   const letters = { letter: jest.fn().mockResolvedValue({ subject: 'Анна Петровна, с днём рождения!', bodyHtml: '<p>…</p>' }) };
   const calendar = { celebratingOn: jest.fn().mockResolvedValue([entry]) };
-  const templates = { forDate: jest.fn().mockResolvedValue(template) };
+  const templates = { active: jest.fn().mockResolvedValue([template]) };
+  const mailings = { run: jest.fn().mockResolvedValue([]) };
   const logger = { setContext: jest.fn(), info: jest.fn(), error: jest.fn() };
   const sender = new GreetingsSenderService(
     sends as never,
@@ -81,10 +89,11 @@ function build(options: { status?: MonoAccountStatus; email?: string; notify?: j
     templates as never,
     letters as never,
     people as never,
+    mailings as never,
     { notifyUser: notify } as never,
     logger as never
   );
-  return { sender, sends, notify, templates };
+  return { sender, sends, notify, templates, mailings };
 }
 
 beforeAll(() => {
@@ -110,7 +119,11 @@ describe('поздравления: рассылка', () => {
     const { sender, sends, notify } = build();
     const result = await sender.run(9, BIRTHDAY_MORNING);
     expect(result).toMatchObject({ celebrants: 1, sent: 1 });
-    expect(notify).toHaveBeenCalledWith('anna', 'pozdravlenie-s-dnem-rozhdeniya', expect.objectContaining({ subject: 'Анна Петровна, с днём рождения!' }));
+    expect(notify).toHaveBeenCalledWith(
+      'anna',
+      'pozdravlenie-s-dnem-rozhdeniya',
+      expect.objectContaining({ subject: 'Анна Петровна, с днём рождения!', occasion: 'birthday:2026' })
+    );
     expect(sends.rows).toHaveLength(1);
     expect(sends.rows[0]).toMatchObject({ year: 2026, status: GreetingSendStatus.SENT, template_title: template.title });
   });
@@ -142,7 +155,7 @@ describe('поздравления: рассылка', () => {
 
   it('без действующего шаблона пропускает с причиной', async () => {
     const { sender, sends, notify, templates } = build();
-    templates.forDate.mockResolvedValue(null);
+    templates.active.mockResolvedValue([]);
     await sender.run(9, BIRTHDAY_MORNING);
     expect(notify).not.toHaveBeenCalled();
     expect(sends.rows[0]).toMatchObject({ status: GreetingSendStatus.SKIPPED, reason: GreetingSkipReason.NO_TEMPLATE });
@@ -160,5 +173,11 @@ describe('поздравления: рассылка', () => {
     await sender.run(9, BIRTHDAY_MORNING);
     expect(notify).not.toHaveBeenCalled();
     expect(sends.rows[0]).toMatchObject({ status: GreetingSendStatus.SKIPPED, reason: GreetingSkipReason.NO_RECIPIENT });
+  });
+
+  it('в тот же запуск отдаёт действующие шаблоны рассылке', async () => {
+    const { sender, mailings } = build();
+    await sender.run(9, BIRTHDAY_MORNING);
+    expect(mailings.run).toHaveBeenCalledWith(expect.objectContaining({ year: 2026, month: 6, day: 15 }), [template]);
   });
 });

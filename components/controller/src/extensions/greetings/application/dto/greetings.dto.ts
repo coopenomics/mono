@@ -1,9 +1,10 @@
 import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import {
   GreetingAccountType,
   GreetingSendStatus,
   GreetingSkipReason,
+  GreetingTemplateKind,
   GreetingTemplateStatus,
   GreetingVariable,
 } from '../../domain/greetings.enums';
@@ -11,6 +12,10 @@ import {
 registerEnumType(GreetingTemplateStatus, {
   name: 'GreetingTemplateStatus',
   description: 'Состояние шаблона поздравления: черновик или действует',
+});
+registerEnumType(GreetingTemplateKind, {
+  name: 'GreetingTemplateKind',
+  description: 'Повод шаблона: поздравление в день рождения пайщика или рассылка всем пайщикам в дату',
 });
 registerEnumType(GreetingSendStatus, {
   name: 'GreetingSendStatus',
@@ -54,6 +59,15 @@ export class GreetingTemplateDTO {
   @Field(() => GreetingTemplateStatus, { description: 'Состояние шаблона' })
   status!: GreetingTemplateStatus;
 
+  @Field(() => GreetingTemplateKind, { description: 'Повод: день рождения или рассылка в дату' })
+  kind!: GreetingTemplateKind;
+
+  @Field(() => Boolean, { description: 'Рассылка повторяется каждый год в тот же день' })
+  repeat_yearly!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'День, в который рассылка обошла всех пайщиков, ГГГГ-ММ-ДД' })
+  sent_on!: string | null;
+
   @Field(() => String, { description: 'Кто создал шаблон' })
   created_by!: string;
 
@@ -76,11 +90,11 @@ export class GreetingTemplateInputDTO {
   @MaxLength(200)
   title!: string;
 
-  @Field(() => String, { description: 'Первый день периода действия, ГГГГ-ММ-ДД' })
+  @Field(() => String, { description: 'Первый день периода действия, у рассылки — дата отправки, ГГГГ-ММ-ДД' })
   @Matches(DATE)
   period_start!: string;
 
-  @Field(() => String, { description: 'Последний день периода действия включительно, ГГГГ-ММ-ДД' })
+  @Field(() => String, { description: 'Последний день периода действия включительно, ГГГГ-ММ-ДД; у рассылки не используется' })
   @Matches(DATE)
   period_end!: string;
 
@@ -93,6 +107,16 @@ export class GreetingTemplateInputDTO {
   @IsString()
   @MaxLength(20000)
   body!: string;
+
+  @Field(() => GreetingTemplateKind, { nullable: true, description: 'Повод; без него — поздравление с днём рождения' })
+  @IsOptional()
+  @IsEnum(GreetingTemplateKind)
+  kind?: GreetingTemplateKind | null;
+
+  @Field(() => Boolean, { nullable: true, description: 'Рассылка повторяется каждый год в тот же день' })
+  @IsOptional()
+  @IsBoolean()
+  repeat_yearly?: boolean | null;
 }
 
 @InputType('GreetingPreviewInput', { description: 'Текст для предпросмотра письма на пайщике' })
@@ -111,6 +135,11 @@ export class GreetingPreviewInputDTO {
   @IsOptional()
   @IsString()
   username?: string | null;
+
+  @Field(() => GreetingTemplateKind, { nullable: true, description: 'Повод письма; у рассылки возраст не подставляется' })
+  @IsOptional()
+  @IsEnum(GreetingTemplateKind)
+  kind?: GreetingTemplateKind | null;
 }
 
 @ObjectType('GreetingPreview', { description: 'Письмо, которое получит пайщик' })
@@ -144,6 +173,9 @@ export class GreetingVariableDTO {
 
   @Field(() => String, { description: 'Что подставляется' })
   description!: string;
+
+  @Field(() => Boolean, { description: 'Значение есть только у поздравления с днём рождения' })
+  birthdayOnly!: boolean;
 }
 
 @ObjectType('GreetingCalendarEntry', { description: 'День рождения пайщика в календаре' })
@@ -176,6 +208,36 @@ export class GreetingCalendarEntryDTO {
   template_title!: string | null;
 }
 
+@ObjectType('GreetingMailingOccurrence', { description: 'Рассылка в календаре: дата в месяце и итог отправки' })
+export class GreetingMailingOccurrenceDTO {
+  @Field(() => String, { description: 'Идентификатор шаблона рассылки' })
+  template_id!: string;
+
+  @Field(() => String, { description: 'Название рассылки' })
+  title!: string;
+
+  @Field(() => String, { description: 'Тема письма' })
+  subject!: string;
+
+  @Field(() => String, { description: 'Дата отправки в месяце календаря, ГГГГ-ММ-ДД' })
+  date!: string;
+
+  @Field(() => Boolean, { description: 'Рассылка повторяется каждый год' })
+  repeat_yearly!: boolean;
+
+  @Field(() => GreetingTemplateStatus, { description: 'Состояние шаблона: черновик рассылку не отправляет' })
+  status!: GreetingTemplateStatus;
+
+  @Field(() => Boolean, { description: 'Рассылка обошла всех пайщиков без ошибок' })
+  completed!: boolean;
+
+  @Field(() => Int, { description: 'Писем принято центром уведомлений к доставке' })
+  sent!: number;
+
+  @Field(() => Int, { description: 'Писем, отправка которых не удалась' })
+  failed!: number;
+}
+
 @ObjectType('GreetingSend', { description: 'Запись журнала поздравлений' })
 export class GreetingSendDTO {
   @Field(() => String, { description: 'Идентификатор записи' })
@@ -189,6 +251,12 @@ export class GreetingSendDTO {
 
   @Field(() => Int, { description: 'Год поздравления' })
   year!: number;
+
+  @Field(() => GreetingTemplateKind, { description: 'Повод письма' })
+  kind!: GreetingTemplateKind;
+
+  @Field(() => String, { nullable: true, description: 'Дата рассылки, ГГГГ-ММ-ДД; у поздравления пусто' })
+  occasion_date!: string | null;
 
   @Field(() => GreetingSendStatus, { description: 'Итог поздравления' })
   status!: GreetingSendStatus;

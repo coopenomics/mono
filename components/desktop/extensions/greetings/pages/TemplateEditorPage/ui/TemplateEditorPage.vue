@@ -13,11 +13,21 @@
           template(v-else)
             .row.q-col-gutter-md
               .col-12
+                .greeting-editor__eyebrow {{ $t('greetings.editor.kindLabel') }}
+                BaseSegmented(v-model='form.kind' :options='kindOptions' :disabled='!canManage')
+              .col-12
                 BaseInput(v-model='form.title' :label='$t("greetings.editor.titleLabel")' :readonly='!canManage')
-              .col-12.col-sm-6
-                BaseInput(v-model='form.period_start' type='date' :label='$t("greetings.editor.periodStartLabel")' :readonly='!canManage')
-              .col-12.col-sm-6
-                BaseInput(v-model='form.period_end' type='date' :label='$t("greetings.editor.periodEndLabel")' :readonly='!canManage')
+              //- У рассылки одна дата отправки, у поздравления — период действия.
+              template(v-if='isMailing')
+                .col-12.col-sm-6
+                  BaseInput(v-model='form.period_start' type='date' :label='$t("greetings.editor.sendDateLabel")' :readonly='!canManage')
+                .col-12.col-sm-6.flex.items-center
+                  BaseCheckbox(v-model='form.repeat_yearly' :label='$t("greetings.editor.repeatYearly")' :disabled='!canManage')
+              template(v-else)
+                .col-12.col-sm-6
+                  BaseInput(v-model='form.period_start' type='date' :label='$t("greetings.editor.periodStartLabel")' :readonly='!canManage')
+                .col-12.col-sm-6
+                  BaseInput(v-model='form.period_end' type='date' :label='$t("greetings.editor.periodEndLabel")' :readonly='!canManage')
               .col-12(ref='subjectBox' @focusin='lastField = "subject"')
                 BaseInput(v-model='form.subject' :label='$t("greetings.editor.subjectLabel")' :readonly='!canManage')
 
@@ -25,7 +35,7 @@
               .greeting-editor__eyebrow {{ $t('greetings.editor.variablesLabel') }}
               .row.q-gutter-xs
                 BaseButton(
-                  v-for='item in variables'
+                  v-for='item in visibleVariables'
                   :key='item.variable'
                   variant='secondary'
                   size='sm'
@@ -52,7 +62,7 @@
             v-model='previewUsername'
             :options='participantOptions'
             :label='$t("greetings.editor.previewParticipant")'
-            :placeholder='$t("greetings.editor.previewNearest")'
+            :placeholder='isMailing ? $t("greetings.editor.previewNearestMailing") : $t("greetings.editor.previewNearest")'
             clearable
             searchable
           )
@@ -66,6 +76,17 @@
               template(#icon)
                 q-icon(name='warning')
               | {{ $t('greetings.editor.unknownVariables', { variables: preview.unknownVariables.join(', ') }) }}
+            //- Пробное письмо — тот же текст тем же сценарием, но на почту председателя.
+            BaseButton.q-mt-md(
+              v-if='canManage'
+              variant='secondary'
+              size='sm'
+              :loading='testing'
+              @click='sendTest'
+            )
+              template(#icon-left)
+                q-icon(name='outgoing_mail' size='18px')
+              | {{ $t('greetings.editor.sendTest') }}
           EmptyState.q-mt-md(v-else-if='previewMissing' :title='$t("greetings.editor.previewTitle")' :body='$t("greetings.editor.previewEmpty")')
             template(#icon)
               q-icon(name='mail_outline' size='32px')
@@ -87,13 +108,24 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useLiveReload } from 'src/shared/lib/realtime';
-import { BaseBanner, BaseButton, BaseCard, BaseInput, BaseSelect, EmptyState, type BaseSelectOption } from 'src/shared/ui/base';
+import {
+  BaseBanner,
+  BaseButton,
+  BaseCard,
+  BaseCheckbox,
+  BaseInput,
+  BaseSegmented,
+  BaseSelect,
+  EmptyState,
+  type BaseSelectOption,
+} from 'src/shared/ui/base';
 import { BackLink, DataRow } from 'src/shared/ui/domain';
 import { Editor } from 'src/shared/ui/Editor';
 import {
   GREETINGS_LIVE,
   formatDay,
   greetingsApi,
+  kindLabel,
   useCanManageGreetings,
   type IGreetingCalendarEntry,
   type IGreetingPreview,
@@ -104,9 +136,9 @@ import { TemplateStatusActions } from '../../../features/TemplateStatus';
 import { t } from '../../../i18n';
 
 /**
- * Редактор шаблона поздравления. Председатель пишет тему и текст с
- * переменными, справа сразу видит письмо на конкретном пайщике. Член совета
- * видит то же только для чтения.
+ * Редактор шаблона: поздравление с днём рождения или рассылка в дату.
+ * Председатель пишет тему и текст с переменными, справа сразу видит письмо
+ * на конкретном пайщике и может отправить его себе пробным письмом.
  */
 const route = useRoute();
 const router = useRouter();
@@ -119,7 +151,19 @@ const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const saving = ref(false);
 
-const form = reactive({ title: '', period_start: '', period_end: '', subject: '', body: '' });
+const form = reactive({
+  kind: Zeus.GreetingTemplateKind.BIRTHDAY as Zeus.GreetingTemplateKind,
+  repeat_yearly: false,
+  title: '',
+  period_start: '',
+  period_end: '',
+  subject: '',
+  body: '',
+});
+const isMailing = computed(() => form.kind === Zeus.GreetingTemplateKind.MAILING);
+const kindOptions = Object.values(Zeus.GreetingTemplateKind).map((value) => ({ value, label: kindLabel(value) }));
+/** У рассылки возраста нет — его переменные в панели не показываются. */
+const visibleVariables = computed(() => variables.value.filter((item) => !isMailing.value || !item.birthdayOnly));
 /** Сохранённое состояние формы: по нему видно, есть ли несохранённые правки. */
 const savedSnapshot = ref('');
 const isDirty = computed(() => JSON.stringify(form) !== savedSnapshot.value);
@@ -134,25 +178,57 @@ const isNew = computed(() => templateId.value === 'new');
 const tokenOf = (variable: Zeus.GreetingVariable) =>
   `{{${variables.value.find((item) => item.variable === variable)?.token ?? ''}}}`;
 
-/** Черновик нового шаблона: годовой период и готовый текст, который председатель правит. */
-function fillNew() {
-  const year = new Date().getFullYear();
-  Object.assign(form, {
-    title: t('greetings.editor.newTitle', { year }),
-    period_start: `${year}-01-01`,
-    period_end: `${year}-12-31`,
-    subject: t('greetings.editor.defaultSubject', { address: tokenOf(Zeus.GreetingVariable.ADDRESS) }),
-    body: t('greetings.editor.defaultBody', {
-      address: tokenOf(Zeus.GreetingVariable.ADDRESS),
-      cooperative: tokenOf(Zeus.GreetingVariable.COOPERATIVE),
-      chairman: tokenOf(Zeus.GreetingVariable.CHAIRMAN),
-    }),
-  });
+/** Черновик нового шаблона под повод: готовый текст, который председатель правит. */
+function fillNew(kind: Zeus.GreetingTemplateKind) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const tokens = {
+    address: tokenOf(Zeus.GreetingVariable.ADDRESS),
+    cooperative: tokenOf(Zeus.GreetingVariable.COOPERATIVE),
+    chairman: tokenOf(Zeus.GreetingVariable.CHAIRMAN),
+  };
+  if (kind === Zeus.GreetingTemplateKind.MAILING) {
+    const today = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    Object.assign(form, {
+      kind,
+      repeat_yearly: false,
+      title: t('greetings.editor.newMailingTitle', { date: formatDay(today) }),
+      period_start: today,
+      period_end: today,
+      subject: t('greetings.editor.defaultMailingSubject', tokens),
+      body: t('greetings.editor.defaultMailingBody', tokens),
+    });
+  } else {
+    Object.assign(form, {
+      kind,
+      repeat_yearly: false,
+      title: t('greetings.editor.newTitle', { year }),
+      period_start: `${year}-01-01`,
+      period_end: `${year}-12-31`,
+      subject: t('greetings.editor.defaultSubject', tokens),
+      body: t('greetings.editor.defaultBody', tokens),
+    });
+  }
+  // Заготовка — точка отсчёта: смена повода у нетронутой заготовки меняет текст.
+  draftSnapshot.value = JSON.stringify(form);
 }
+
+/** Заготовка нового шаблона: пока председатель её не правил, смена повода подставляет другую. */
+const draftSnapshot = ref('');
+watch(
+  () => form.kind,
+  (kind) => {
+    if (isNew.value && JSON.stringify({ ...form, kind: otherKind(kind) }) === draftSnapshot.value) fillNew(kind);
+  },
+);
+const otherKind = (kind: Zeus.GreetingTemplateKind) =>
+  kind === Zeus.GreetingTemplateKind.MAILING ? Zeus.GreetingTemplateKind.BIRTHDAY : Zeus.GreetingTemplateKind.MAILING;
 
 function fillFrom(source: IGreetingTemplate) {
   template.value = source;
   Object.assign(form, {
+    kind: source.kind,
+    repeat_yearly: source.repeat_yearly,
     title: source.title,
     period_start: source.period_start,
     period_end: source.period_end,
@@ -167,7 +243,7 @@ async function load() {
     const [vars, nearest] = await Promise.all([greetingsApi.loadVariables(), greetingsApi.loadUpcoming(20)]);
     variables.value = vars;
     upcoming.value = nearest;
-    if (isNew.value) fillNew();
+    if (isNew.value) fillNew(Zeus.GreetingTemplateKind.BIRTHDAY);
     else fillFrom(await greetingsApi.loadTemplate(templateId.value));
   } catch (error) {
     FailAlert(error, t('greetings.editor.loadError'));
@@ -191,7 +267,13 @@ function insertVariable(word: string) {
 async function save(): Promise<boolean> {
   saving.value = true;
   try {
-    const saved = await greetingsApi.saveTemplate({ id: isNew.value ? null : templateId.value, ...form });
+    // У рассылки одна дата: конец периода равен дате отправки.
+    const periodEnd = isMailing.value ? form.period_start : form.period_end;
+    const saved = await greetingsApi.saveTemplate({
+      id: isNew.value ? null : templateId.value,
+      ...form,
+      period_end: periodEnd,
+    });
     fillFrom(saved);
     SuccessAlert(t('greetings.editor.saved'));
     if (isNew.value) await router.replace({ name: 'greetings-template', params: { coopname: route.params.coopname, id: saved.id } });
@@ -236,6 +318,7 @@ const refreshPreview = debounce(async () => {
       subject: form.subject,
       body: form.body,
       username: previewUsername.value || null,
+      kind: form.kind,
     });
     previewMissing.value = false;
   } catch (error) {
@@ -246,7 +329,26 @@ const refreshPreview = debounce(async () => {
   }
 }, 500);
 
-watch(() => [form.subject, form.body, previewUsername.value], () => void refreshPreview());
+watch(() => [form.subject, form.body, form.kind, previewUsername.value], () => void refreshPreview());
+
+// ─── Пробное письмо ─────────────────────────────────────────────────────────
+const testing = ref(false);
+async function sendTest() {
+  testing.value = true;
+  try {
+    await greetingsApi.sendTest({
+      subject: form.subject,
+      body: form.body,
+      username: previewUsername.value || null,
+      kind: form.kind,
+    });
+    SuccessAlert(t('greetings.editor.testSent'));
+  } catch (error) {
+    FailAlert(error, t('greetings.editor.testError'));
+  } finally {
+    testing.value = false;
+  }
+}
 
 // ─── Шапка ──────────────────────────────────────────────────────────────────
 const { registerAction, unregisterAction } = useHeaderActions();

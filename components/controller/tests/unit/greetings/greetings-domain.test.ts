@@ -5,9 +5,9 @@ import {
   localDate,
   parseBirthdate,
 } from '~/extensions/greetings/domain/birthday';
-import { chooseTemplate, isValidPeriod } from '~/extensions/greetings/domain/template-choice';
-import { buildGreetingLetter, findUnknownVariables, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
-import { GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
+import { chooseTemplate, isValidPeriod, mailingsDue } from '~/extensions/greetings/domain/template-choice';
+import { buildGreetingLetter, findUnknownVariables, findVariablesNotForKind, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
+import { GreetingTemplateKind, GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
 
 /**
  * Доменная часть приложения «Поздравления»: дата рождения, выбор шаблона на
@@ -50,9 +50,34 @@ describe('поздравления: дата рождения', () => {
 });
 
 describe('поздравления: шаблон на дату', () => {
-  const year = { id: 'year', status: GreetingTemplateStatus.ACTIVE, period_start: '2026-01-01', period_end: '2026-12-31' };
-  const june = { id: 'june', status: GreetingTemplateStatus.ACTIVE, period_start: '2026-06-01', period_end: '2026-06-30' };
-  const draft = { id: 'draft', status: GreetingTemplateStatus.DRAFT, period_start: '2026-06-10', period_end: '2026-06-10' };
+  const BIRTHDAY = GreetingTemplateKind.BIRTHDAY;
+  const MAILING = GreetingTemplateKind.MAILING;
+  const ACTIVE = GreetingTemplateStatus.ACTIVE;
+  const year = { id: 'year', kind: BIRTHDAY, status: ACTIVE, period_start: '2026-01-01', period_end: '2026-12-31' };
+  const june = { id: 'june', kind: BIRTHDAY, status: ACTIVE, period_start: '2026-06-01', period_end: '2026-06-30' };
+  const draft = { id: 'draft', kind: BIRTHDAY, status: GreetingTemplateStatus.DRAFT, period_start: '2026-06-10', period_end: '2026-06-10' };
+  const newYear = { id: 'ny', kind: MAILING, status: ACTIVE, repeat_yearly: true, period_start: '2026-12-31', period_end: '2026-12-31' };
+  const notice = { id: 'notice', kind: MAILING, status: ACTIVE, repeat_yearly: false, period_start: '2026-06-15', period_end: '2026-06-15' };
+  const leap = { id: 'leap', kind: MAILING, status: ACTIVE, repeat_yearly: true, period_start: '2024-02-29', period_end: '2024-02-29' };
+
+  it('рассылку поздравление не берёт, даже если её дата в периоде', () => {
+    expect(chooseTemplate([year, notice], '2026-06-15')?.id).toBe('year');
+  });
+
+  it('разовая рассылка — только в свою дату', () => {
+    expect(mailingsDue([notice, year], { year: 2026, month: 6, day: 15 }).map((t) => t.id)).toEqual(['notice']);
+    expect(mailingsDue([notice], { year: 2027, month: 6, day: 15 })).toEqual([]);
+  });
+
+  it('ежегодная рассылка повторяется с года первой даты', () => {
+    expect(mailingsDue([newYear], { year: 2027, month: 12, day: 31 }).map((t) => t.id)).toEqual(['ny']);
+    expect(mailingsDue([newYear], { year: 2025, month: 12, day: 31 })).toEqual([]);
+  });
+
+  it('ежегодная рассылка на 29 февраля в невисокосный год — 28-го', () => {
+    expect(mailingsDue([leap], { year: 2027, month: 2, day: 28 }).map((t) => t.id)).toEqual(['leap']);
+    expect(mailingsDue([leap], { year: 2028, month: 2, day: 28 })).toEqual([]);
+  });
 
   it('берёт годовой шаблон вне коротких периодов', () => {
     expect(chooseTemplate([year, june], '2026-03-08')?.id).toBe('year');
@@ -127,6 +152,17 @@ describe('поздравления: письмо', () => {
   it('Markdown превращает в разметку письма', () => {
     const letter = buildGreetingLetter({ subject: 'Тема', body: '**Дорогой {{Имя}}**' }, values);
     expect(letter.bodyHtml).toContain('<strong>Дорогой Анна</strong>');
+  });
+
+  it('возраст в рассылке недоступен, в поздравлении — доступен', () => {
+    const text = 'С {{Летие}}! Вам {{Возраст}}, {{Имя}}';
+    expect(findVariablesNotForKind(text, GreetingTemplateKind.MAILING)).toEqual(['Летие', 'Возраст']);
+    expect(findVariablesNotForKind(text, GreetingTemplateKind.BIRTHDAY)).toEqual([]);
+  });
+
+  it('к организации обращается по названию', () => {
+    const org = greetingValues({ lastName: '', firstName: '', middleName: '', displayName: 'ООО «Ромашка»', age: null, cooperative: '', chairman: '' });
+    expect(org.address).toBe('ООО «Ромашка»');
   });
 
   it('находит неизвестные переменные без повторов, регистр слова не важен', () => {

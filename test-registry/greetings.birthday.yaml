@@ -1,5 +1,5 @@
 feature: greetings.birthday
-title: Поздравления пайщиков с днём рождения по шаблону председателя
+title: Рассылки — поздравления с днём рождения и информационные рассылки по шаблону председателя
 
 # Приложение «Поздравления» (C28-75, 24.11.2026). Председатель пишет шаблон
 # письма с периодом действия и переменными, проверяет письмо на пайщике и
@@ -164,3 +164,71 @@ cases:
     expect: переменная встаёт в позицию курсора темы или текста, предпросмотр обновляется
     test: ~
     status: missing
+
+  # 25.11.2026: приложение расширено до «Рассылок» — рассылка всем
+  # действующим пайщикам в дату и пробное письмо председателю.
+  - id: grt.mail.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель сохраняет и включает ежегодную рассылку на 8 Марта
+    expect: шаблон хранит повод «рассылка», одну дату отправки и признак повтора
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.mail.side.01
+    level: backend
+    kind: side
+    scenario: включение рассылки с переменной возраста
+    expect: отказ GREETINGS_TEMPLATE_VARIABLES_BIRTHDAY_ONLY
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.mail.happy.02
+    level: backend
+    kind: happy
+    scenario: в дату рассылки приложение отправляет письмо всем действующим пайщикам с почтой
+    expect: письмо получают физлица и организации (обращение по названию), заблокированные и пайщики без почты пропускаются, журнал пишет строку на шаблон, пайщика и дату
+    test: components/controller/tests/unit/greetings/greetings-mailing.test.ts
+    external: unreachable
+    external_reason: рассылка срабатывает по расписанию в дату шаблона; снаружи стенда нельзя перевести часы узла на эту дату
+    status: written
+
+  - id: grt.mail.side.02
+    level: backend
+    kind: side
+    scenario: повторный запуск рассылки в тот же день, в том числе после ошибки доставки
+    expect: отправленное письмо не повторяется, неотправленное отправляется; после обхода без ошибок шаблон получает отметку дня
+    test: components/controller/tests/unit/greetings/greetings-mailing.test.ts
+    external: unreachable
+    external_reason: повтор возникает только между запусками расписания в один день; снаружи стенда запуск расписания не вызвать
+    status: written
+
+  - id: grt.mail.side.03
+    level: backend
+    kind: side
+    scenario: ежегодная рассылка на 29 февраля в невисокосный год
+    expect: рассылка отправляется 28 февраля
+    test: components/controller/tests/unit/greetings/greetings-domain.test.ts
+    external: unreachable
+    external_reason: правило срабатывает в расписании 28 февраля невисокосного года; снаружи стенда часы узла не перевести
+    status: written
+
+  - id: grt.test.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель отправляет себе пробное письмо из редактора
+    expect: приложение направляет председателю письмо по тому же сценарию уведомления с пометкой «Пробное письмо» в теме; повтор с тем же текстом не отбрасывается
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written
+
+  - id: grt.test.side.01
+    level: backend
+    kind: side
+    scenario: член совета отправляет пробное письмо
+    expect: отказ KIT_INSUFFICIENT_RIGHTS
+    test: components/api-tests/src/greetings/templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written

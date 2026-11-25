@@ -9,6 +9,7 @@ import {
   type InnerAccount,
 } from '@coopenomics/innercoop';
 import { GreetingAccountType } from '../../domain/greetings.enums';
+import { t } from '../../i18n';
 import type { GreetingSubject } from '../../domain/greeting-letter';
 
 /** Личные данные пайщика, которые приложение читает у ядра. */
@@ -77,7 +78,8 @@ export class GreetingsPeopleService {
     const vars = await this.cooperativeVars.get();
     const [chairman] = await this.users.findByRoles(['chairman']);
     return {
-      cooperative: vars?.shortAbbr ?? '',
+      // В реквизитах сокращение и имя лежат раздельно: «ПК» и «Восход».
+      cooperative: vars ? t('greetings.letter.cooperative', { shortAbbr: vars.shortAbbr, name: vars.name }) : '',
       chairman: chairman ? await this.accounts.getDisplayName(chairman.username) : '',
     };
   }

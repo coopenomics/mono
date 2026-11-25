@@ -10,12 +10,14 @@ import {
 import { Workflows } from '@coopenomics/notifications';
 import { GREETINGS_SEND_STORE } from '../../infrastructure/database/greetings-stores';
 import type { GreetingCalendarRecord, GreetingSendRecord, GreetingTemplateRecord } from '../../infrastructure/database/greetings.records';
-import { GreetingSendStatus, GreetingSkipReason } from '../../domain/greetings.enums';
+import { GreetingSendStatus, GreetingSkipReason, GreetingTemplateKind } from '../../domain/greetings.enums';
 import { ageInYear, formatDate, localDate } from '../../domain/birthday';
 import { GreetingsCalendarService } from './greetings-calendar.service';
 import { GreetingsTemplatesService } from './greetings-templates.service';
 import { GreetingsLetterService } from './greetings-letter.service';
 import { GreetingsPeopleService } from './greetings-people.service';
+import { GreetingsMailingService } from './greetings-mailing.service';
+import { chooseTemplate } from '../../domain/template-choice';
 
 /** Итог одного запуска рассылки — для журнала контроллера и тестов. */
 export interface GreetingsRunResult {
@@ -24,6 +26,8 @@ export interface GreetingsRunResult {
   sent: number;
   skipped: number;
   failed: number;
+  /** Письма рассылок в дату: отправлено всем шаблонам вместе. */
+  mailingsSent: number;
 }
 
 /**
@@ -45,6 +49,7 @@ export class GreetingsSenderService {
     private readonly templates: GreetingsTemplatesService,
     private readonly letters: GreetingsLetterService,
     private readonly people: GreetingsPeopleService,
+    private readonly mailings: GreetingsMailingService,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -58,10 +63,19 @@ export class GreetingsSenderService {
     this.running = true;
     try {
       const date = formatDate(today);
+      const active = await this.templates.active();
+      const mailings = await this.mailings.run(today, active);
       const celebrants = await this.calendar.celebratingOn(today);
-      const result: GreetingsRunResult = { date, celebrants: celebrants.length, sent: 0, skipped: 0, failed: 0 };
+      const result: GreetingsRunResult = {
+        date,
+        celebrants: celebrants.length,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        mailingsSent: mailings.reduce((sum, mailing) => sum + mailing.sent, 0),
+      };
       if (!celebrants.length) return result;
-      const template = await this.templates.forDate(date);
+      const template = chooseTemplate(active, date);
       for (const entry of celebrants) {
         const status = await this.greet(entry, today.year, template);
         if (status === GreetingSendStatus.SENT) result.sent += 1;
@@ -77,10 +91,11 @@ export class GreetingsSenderService {
 
   /** Поздравить одного пайщика; возвращает итог либо `null`, если уже поздравлен. */
   async greet(entry: GreetingCalendarRecord, year: number, template: GreetingTemplateRecord | null): Promise<GreetingSendStatus | null> {
-    const existing = await this.sends.findOne({ username: entry.username, year });
+    const existing = await this.sends.findOne({ kind: GreetingTemplateKind.BIRTHDAY, username: entry.username, year });
     if (existing?.status === GreetingSendStatus.SENT) return null;
     const base: Partial<GreetingSendRecord> = {
       ...(existing ? { id: existing.id } : {}),
+      kind: GreetingTemplateKind.BIRTHDAY,
       username: entry.username,
       year,
       attempts: (existing?.attempts ?? 0) + 1,
@@ -118,6 +133,7 @@ export class GreetingsSenderService {
       subject: letter.subject,
       bodyHtml: letter.bodyHtml,
       coopShortName: signature.cooperative,
+      occasion: `birthday:${year}`,
     });
     return { status: GreetingSendStatus.SENT, reason: null, subject: letter.subject };
   }

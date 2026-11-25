@@ -6,6 +6,14 @@ export enum GreetingTemplateStatus {
   ACTIVE = 'active',
 }
 
+/** Повод шаблона. */
+export enum GreetingTemplateKind {
+  /** Поздравление каждому пайщику в его день рождения. */
+  BIRTHDAY = 'birthday',
+  /** Информационная рассылка всем действующим пайщикам в дату. */
+  MAILING = 'mailing',
+}
+
 /** Итог поздравления пайщика в конкретном году. */
 export enum GreetingSendStatus {
   /** Центр уведомлений принял письмо к доставке. */

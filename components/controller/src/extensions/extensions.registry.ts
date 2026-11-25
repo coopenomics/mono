@@ -361,7 +361,7 @@ export const AppRegistry: INamedExtension = {
       {
         name: 'greetings',
         title: t('app.extensionsRegistry.greetings.windowTitle'),
-        icon: 'cake',
+        icon: 'campaign',
       },
     ],
     title: t('app.extensionsRegistry.greetings.title'),

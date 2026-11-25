@@ -11,6 +11,9 @@ const rawGreetingTemplateSelector = {
   subject: true,
   body: true,
   status: true,
+  kind: true,
+  repeat_yearly: true,
+  sent_on: true,
   created_by: true,
   created_at: true,
   updated_at: true,
@@ -24,6 +27,7 @@ const rawGreetingVariableSelector = {
   variable: true,
   token: true,
   description: true,
+  birthdayOnly: true,
 }
 const _validateVariable: MakeAllFieldsRequired<ValueTypes['GreetingVariableInfo']> = rawGreetingVariableSelector
 export type greetingVariableModel = ModelTypes['GreetingVariableInfo']
@@ -64,6 +68,8 @@ const rawGreetingSendSelector = {
   username: true,
   displayName: true,
   year: true,
+  kind: true,
+  occasion_date: true,
   status: true,
   reason: true,
   error: true,

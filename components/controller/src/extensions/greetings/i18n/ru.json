@@ -2,7 +2,9 @@
   "greetings": {
     "letter": {
       "age": "{n} год | {n} года | {n} лет",
-      "anniversary": "{n}-летием"
+      "anniversary": "{n}-летием",
+      "cooperative": "{shortAbbr} «{name}»",
+      "testSubject": "Пробное письмо — {subject}"
     },
     "variables": {
       "lastName": {
@@ -31,7 +33,7 @@
       },
       "cooperative": {
         "token": "Кооператив",
-        "description": "Краткое название кооператива"
+        "description": "Краткое название кооператива: «ПК «Восход»»"
       },
       "chairman": {
         "token": "Председатель",
@@ -45,13 +47,14 @@
     }
   },
   "errors": {
-    "GREETINGS_CONFIG_NOT_FOUND": "Конфигурация приложения «Поздравления» не найдена",
+    "GREETINGS_CONFIG_NOT_FOUND": "Конфигурация приложения «Рассылки» не найдена",
     "GREETINGS_TEMPLATE_NOT_FOUND": "Шаблон поздравления не найден",
     "GREETINGS_TEMPLATE_PERIOD_INVALID": "Период шаблона задан неверно: укажите даты начала и окончания, начало не позже окончания",
     "GREETINGS_TEMPLATE_PERIOD_TAKEN": "Шаблон с таким же периодом уже действует: «{title}»",
     "GREETINGS_TEMPLATE_UNKNOWN_VARIABLES": "В тексте шаблона есть неизвестные переменные: {variables}",
     "GREETINGS_TEMPLATE_EMPTY": "Заполните тему и текст письма",
     "GREETINGS_PREVIEW_NO_PARTICIPANT": "В календаре нет пайщиков с датой рождения: предпросмотр строится на данных пайщика",
-    "GREETINGS_PARTICIPANT_NOT_IN_CALENDAR": "Пайщика нет в календаре дней рождения"
+    "GREETINGS_PARTICIPANT_NOT_IN_CALENDAR": "Пайщика нет в календаре дней рождения",
+    "GREETINGS_TEMPLATE_VARIABLES_BIRTHDAY_ONLY": "Переменные {variables} есть только у поздравления с днём рождения: в рассылке всем пайщикам возраст не считается"
   }
 }

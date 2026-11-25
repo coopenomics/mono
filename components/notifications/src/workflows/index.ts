@@ -86,6 +86,7 @@ import { workflow as packageQuotaExceededWorkflow } from './package-quota-exceed
 import { workflow as accessRoleAssignedWorkflow } from './access-role-assigned';
 import { workflow as accessRoleRevokedWorkflow } from './access-role-revoked';
 import { workflow as birthdayGreetingWorkflow } from './birthday-greeting';
+import { workflow as informationalMailingWorkflow } from './informational-mailing';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -169,6 +170,7 @@ export * as PackageQuotaExceeded from './package-quota-exceeded';
 export * as AccessRoleAssigned from './access-role-assigned';
 export * as AccessRoleRevoked from './access-role-revoked';
 export * as BirthdayGreeting from './birthday-greeting';
+export * as InformationalMailing from './informational-mailing';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -258,6 +260,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   accessRoleRevokedWorkflow,
   // Приложение «Поздравления»
   birthdayGreetingWorkflow,
+  informationalMailingWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

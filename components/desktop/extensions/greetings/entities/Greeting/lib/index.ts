@@ -22,6 +22,12 @@ export function sendStatusView(status: Zeus.GreetingSendStatus): { label: string
   return { label: t(view.key as never), variant: view.variant };
 }
 
+/** Повод шаблона или письма; у ежегодной рассылки — с пометкой. */
+export function kindLabel(kind: Zeus.GreetingTemplateKind, repeatYearly = false): string {
+  if (kind === Zeus.GreetingTemplateKind.BIRTHDAY) return t('greetings.kind.birthday');
+  return repeatYearly ? `${t('greetings.kind.mailing')} · ${t('greetings.kind.yearly')}` : t('greetings.kind.mailing');
+}
+
 /** Причина пропуска поздравления. */
 export function skipReasonLabel(reason: Zeus.GreetingSkipReason | null | undefined): string {
   return reason ? t(`greetings.reason.${reason.toLowerCase()}` as never) : '';

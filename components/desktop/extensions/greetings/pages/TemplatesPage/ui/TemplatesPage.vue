@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md.greetings-templates
-  PageHint.q-mb-md(storage-key='greetings:templates:hint' variant='info' icon='cake')
+  PageHint.q-mb-md(storage-key='greetings:templates:hint' variant='info' icon='campaign')
     | {{ $t('greetings.templates.hint') }}
 
   EmptyState(
@@ -9,7 +9,7 @@
     :body='$t("greetings.templates.emptyBody")'
   )
     template(#icon)
-      q-icon(name='cake' size='32px')
+      q-icon(name='campaign' size='32px')
 
   BaseTable(
     v-else
@@ -24,6 +24,8 @@
     template(#cell-title='{ row }')
       .greetings-templates__title {{ row.title }}
       .greetings-templates__meta {{ row.subject }}
+    template(#cell-kind='{ row }')
+      span {{ kindLabel(row.kind, row.repeat_yearly) }}
     template(#cell-period='{ row }')
       span.t-mono-sm {{ periodLabel(row) }}
     template(#cell-status='{ row }')
@@ -43,9 +45,11 @@ import {
   GREETINGS_LIVE,
   formatDay,
   greetingsApi,
+  kindLabel,
   templateStatusView,
   type IGreetingTemplate,
 } from '../../../entities/Greeting';
+import { Zeus } from '@coopenomics/sdk';
 import { CreateTemplateButton } from '../../../features/CreateTemplate';
 import { t } from '../../../i18n';
 
@@ -62,12 +66,16 @@ const firstLoad = useFirstLoad(loading);
 
 const columns: BaseTableColumn<IGreetingTemplate>[] = [
   { key: 'title', label: t('greetings.templates.columnTitle') },
+  { key: 'kind', label: t('greetings.templates.columnKind'), width: '200px', nowrap: true },
   { key: 'period', label: t('greetings.templates.columnPeriod'), width: '220px', nowrap: true },
   { key: 'status', label: t('greetings.templates.columnStatus'), width: '140px', nowrap: true },
 ];
 
+/** У поздравления — период, у рассылки — дата отправки. */
 const periodLabel = (row: IGreetingTemplate) =>
-  t('greetings.templates.period', { start: formatDay(row.period_start), end: formatDay(row.period_end) });
+  row.kind === Zeus.GreetingTemplateKind.MAILING
+    ? formatDay(row.period_start)
+    : t('greetings.templates.period', { start: formatDay(row.period_start), end: formatDay(row.period_end) });
 
 async function load(silent = false) {
   try {
