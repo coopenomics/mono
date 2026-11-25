@@ -1752,6 +1752,10 @@ export interface GreetingsSends {
    */
   occasion_date: Timestamp | null;
   /**
+   * Строки очереди уведомлений письма — по каналам; по ним читается состояние доставки
+   */
+  outbox_ids: Generated<Json>;
+  /**
    * no_template — нет действующего шаблона, not_active — пайщик не действующий, no_recipient — нет почты или подписки
    */
   reason: string | null;

@@ -65,6 +65,8 @@ export class GreetingSendRecord {
   /** Тема отправленного письма. */
   subject!: string | null;
   attempts!: number;
+  /** Строки очереди уведомлений письма — по ним читается доставка. */
+  outbox_ids!: string[];
   created_at!: Date;
   updated_at!: Date;
 }

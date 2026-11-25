@@ -3,6 +3,7 @@ import { Workflows, templateFor } from '@coopenomics/notifications';
 import { DEFAULT_LOCALE } from '@coopenomics/i18n';
 import { Liquid } from 'liquidjs';
 import type { ChannelMessage } from '~/domain/notification/interfaces/channel.ports';
+import type { NotificationOutboxDomainInterface } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
 import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
 
 const logger = new Logger('NotificationTemplate');
@@ -83,4 +84,37 @@ function resolvePath(root: Record<string, unknown>, path: string): unknown {
     if (acc != null && typeof acc === 'object') return (acc as Record<string, unknown>)[key];
     return undefined;
   }, root);
+}
+
+/**
+ * Сообщение канала из строки очереди. Одно на обработчик очереди и журнал:
+ * журнал показывает письмо, отрисованное из тех же данных тем же шаблоном,
+ * что и при отправке.
+ */
+export function outboxMessage(row: NotificationOutboxDomainInterface): ChannelMessage {
+  return {
+    outboxId: row.id,
+    coopname: row.coopname,
+    workflowId: row.workflowId,
+    recipient: {
+      subscriberId: row.recipientSubscriberId,
+      email: row.recipientEmail,
+      username: row.recipientUsername,
+    },
+    payload: row.payload,
+    actorSubscriberId: row.actorSubscriberId,
+  };
+}
+
+/**
+ * Тема и текст уведомления строки очереди — для журнала председателя. Текст
+ * готового письма очередь не хранит: он восстанавливается из шаблона каталога
+ * и данных строки. Шаблон каталога с тех пор мог измениться — тогда журнал
+ * покажет текст по нынешнему шаблону.
+ */
+export function renderOutboxContent(row: NotificationOutboxDomainInterface): { subject: string; body: string } | null {
+  const template = resolveTemplate(row.workflowId, row.channel as NotificationChannel);
+  if (!template) return null;
+  const message = outboxMessage(row);
+  return { subject: renderTemplate(template.subject, message), body: renderTemplate(template.body, message) };
 }

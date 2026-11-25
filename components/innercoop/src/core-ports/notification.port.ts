@@ -56,6 +56,28 @@ export interface InnerNotifyResult {
   outboxIds: string[];
 }
 
+/** Состояние строки очереди доставки — одно письмо одного канала. */
+export enum InnerNotifyDeliveryState {
+  /** Ждёт отправки. */
+  PENDING = 'pending',
+  /** Отправляется. */
+  SENDING = 'sending',
+  /** Передано провайдеру канала: письмо отправлено, уведомление в интерфейсе показано. */
+  SENT = 'sent',
+  /** Попытки исчерпаны. */
+  FAILED = 'failed',
+  /** Отменено до отправки. */
+  CANCELED = 'canceled',
+}
+
+/** Доставка по одной строке очереди. */
+export interface InnerNotifyDelivery {
+  outboxId: string;
+  /** Канал строки: `email`, `in_app`, `push`. */
+  channel: string;
+  state: InnerNotifyDeliveryState;
+}
+
 export interface INotificationPort {
   /**
    * Поставить уведомление в очередь доставки.
@@ -80,6 +102,13 @@ export interface INotificationPort {
     payload: T,
     actor?: InnerNotifyActor
   ): Promise<InnerNotifyResult>;
+
+  /**
+   * Состояния доставки по строкам очереди — тем, что вернул `notify`.
+   * Расширение хранит идентификаторы у себя и спрашивает, дошло ли письмо.
+   * Чужие и неизвестные идентификаторы в ответ не попадают.
+   */
+  getDeliveries(outboxIds: string[]): Promise<InnerNotifyDelivery[]>;
 }
 
 // ─── DI-токен ──────────────────────────────────────────────────────────────────

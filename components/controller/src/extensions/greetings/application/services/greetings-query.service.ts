@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
+import { deliveryOf, type DeliveryRow } from '../../domain/delivery';
 import { TableStore, oneOf, platformSettings, type PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { GREETINGS_SEND_STORE } from '../../infrastructure/database/greetings-stores';
 import type { GreetingCalendarRecord, GreetingSendRecord } from '../../infrastructure/database/greetings.records';
-import { GreetingSendStatus, GreetingTemplateKind, GreetingVariable } from '../../domain/greetings.enums';
+import { GreetingDeliveryState, GreetingSendStatus, GreetingTemplateKind, GreetingVariable } from '../../domain/greetings.enums';
 import { BIRTHDAY_ONLY_VARIABLES, variableDescription, variableToken } from '../../domain/greeting-letter';
 import { chooseTemplate, mailingDateInMonth } from '../../domain/template-choice';
 import { ageInYear, celebrationDate, formatDate, localDate } from '../../domain/birthday';
@@ -21,8 +23,16 @@ export class GreetingsQueryService {
     @Inject(GREETINGS_SEND_STORE) private readonly sends: TableStore<GreetingSendRecord>,
     private readonly calendar: GreetingsCalendarService,
     private readonly templates: GreetingsTemplatesService,
-    private readonly people: GreetingsPeopleService
+    private readonly people: GreetingsPeopleService,
+    @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort
   ) {}
+
+  /** Строки очереди по идентификаторам писем — одним обращением к центру уведомлений. */
+  private async deliveries(rows: readonly GreetingSendRecord[]): Promise<Map<string, DeliveryRow>> {
+    const ids = rows.flatMap((row) => row.outbox_ids ?? []);
+    const found = ids.length ? await this.notifications.getDeliveries(ids) : [];
+    return new Map(found.map((row) => [row.outboxId, row]));
+  }
 
   variables(): GreetingVariableDTO[] {
     return Object.values(GreetingVariable).map((variable) => ({
@@ -50,6 +60,10 @@ export class GreetingsQueryService {
       const date = mailingDateInMonth(template, year, month);
       if (!date) continue;
       const key = { kind: GreetingTemplateKind.MAILING, template_id: template.id, occasion_date: date };
+      const sentRows = await this.sends.find({ ...key, status: GreetingSendStatus.SENT });
+      const rows = await this.deliveries(sentRows);
+      const states = sentRows.map((row) => deliveryOf(row.outbox_ids ?? [], rows));
+      const countOf = (state: GreetingDeliveryState) => states.filter((value) => value === state).length;
       result.push({
         template_id: template.id,
         title: template.title,
@@ -58,8 +72,11 @@ export class GreetingsQueryService {
         repeat_yearly: template.repeat_yearly,
         status: template.status,
         completed: template.sent_on === date,
-        sent: await this.sends.count({ ...key, status: GreetingSendStatus.SENT }),
+        sent: sentRows.length,
         failed: await this.sends.count({ ...key, status: GreetingSendStatus.FAILED }),
+        delivered: countOf(GreetingDeliveryState.DELIVERED),
+        pending: countOf(GreetingDeliveryState.PENDING),
+        undelivered: countOf(GreetingDeliveryState.FAILED),
       });
     }
     return result.sort((a, b) => a.date.localeCompare(b.date));
@@ -79,8 +96,13 @@ export class GreetingsQueryService {
       {},
       { order: { updated_at: options?.sortOrder ?? 'DESC' }, limit, offset: (page - 1) * limit }
     );
+    const delivery = await this.deliveries(rows);
     const items = await Promise.all(
-      rows.map(async (row) => ({ ...row, displayName: await this.people.displayName(row.username) }))
+      rows.map(async (row) => ({
+        ...row,
+        displayName: await this.people.displayName(row.username),
+        delivery: deliveryOf(row.outbox_ids ?? [], delivery),
+      }))
     );
     return { items, totalCount, totalPages: Math.ceil(totalCount / limit), currentPage: page };
   }

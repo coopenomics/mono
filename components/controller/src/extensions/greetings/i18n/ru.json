@@ -47,7 +47,7 @@
     }
   },
   "errors": {
-    "GREETINGS_CONFIG_NOT_FOUND": "Конфигурация приложения «Рассылки» не найдена",
+    "GREETINGS_CONFIG_NOT_FOUND": "Конфигурация приложения «Информационные рассылки» не найдена",
     "GREETINGS_TEMPLATE_NOT_FOUND": "Шаблон поздравления не найден",
     "GREETINGS_TEMPLATE_PERIOD_INVALID": "Период шаблона задан неверно: укажите даты начала и окончания, начало не позже окончания",
     "GREETINGS_TEMPLATE_PERIOD_TAKEN": "Шаблон с таким же периодом уже действует: «{title}»",

@@ -120,7 +120,7 @@ export class GreetingsSenderService {
     entry: GreetingCalendarRecord,
     year: number,
     template: GreetingTemplateRecord | null
-  ): Promise<Pick<GreetingSendRecord, 'status' | 'reason' | 'subject'>> {
+  ): Promise<Pick<GreetingSendRecord, 'status' | 'reason' | 'subject'> & Partial<Pick<GreetingSendRecord, 'outbox_ids'>>> {
     const skip = (reason: GreetingSkipReason) => ({ status: GreetingSendStatus.SKIPPED, reason, subject: null });
     if (!template) return skip(GreetingSkipReason.NO_TEMPLATE);
     const person = await this.people.person(entry.username);
@@ -129,12 +129,12 @@ export class GreetingsSenderService {
     if (!provider?.subscriber_id || !provider.email) return skip(GreetingSkipReason.NO_RECIPIENT);
     const letter = await this.letters.letter(person, template, ageInYear(entry.birth_year, year));
     const signature = await this.people.signature();
-    await this.notifications.notifyUser(entry.username, Workflows.BirthdayGreeting.id, {
+    const queued = await this.notifications.notifyUser(entry.username, Workflows.BirthdayGreeting.id, {
       subject: letter.subject,
       bodyHtml: letter.bodyHtml,
       coopShortName: signature.cooperative,
       occasion: `birthday:${year}`,
     });
-    return { status: GreetingSendStatus.SENT, reason: null, subject: letter.subject };
+    return { status: GreetingSendStatus.SENT, reason: null, subject: letter.subject, outbox_ids: queued?.outboxIds ?? [] };
   }
 }

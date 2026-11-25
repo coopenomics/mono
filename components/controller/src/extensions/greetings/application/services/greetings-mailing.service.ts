@@ -97,13 +97,19 @@ export class GreetingsMailingService {
     try {
       const displayName = await this.people.displayName(person.username);
       const letter = buildGreetingLetter(template, greetingValues({ ...this.people.subject(person, null, signature), displayName }));
-      await this.notifications.notifyUser(person.username, Workflows.InformationalMailing.id, {
+      const queued = await this.notifications.notifyUser(person.username, Workflows.InformationalMailing.id, {
         subject: letter.subject,
         bodyHtml: letter.bodyHtml,
         coopShortName: signature.cooperative,
         occasion: `mailing:${template.id}:${date}`,
       });
-      await this.sends.save({ ...base, status: GreetingSendStatus.SENT, subject: letter.subject, error: null });
+      await this.sends.save({
+        ...base,
+        status: GreetingSendStatus.SENT,
+        subject: letter.subject,
+        error: null,
+        outbox_ids: queued?.outboxIds ?? [],
+      });
       return GreetingSendStatus.SENT;
     } catch (error: unknown) {
       const message = (error as Error).message;

@@ -22,6 +22,7 @@ import {
   type WebPushChannelPort,
 } from '~/domain/notification/interfaces/channel.ports';
 import { NotificationChannel } from '~/domain/notification/interfaces/notify-input.domain.interface';
+import { outboxMessage } from './template.util';
 
 // Параметры worker'а — ENV-sourced с дефолтами (канон: не hardcode magic numbers).
 // Тик опроса очереди; при пустой таблице — один индексный запрос, CPU idle (NFR2).
@@ -260,18 +261,7 @@ export class OutboxWorkerService implements OnModuleInit {
   }
 
   private buildMessage(row: NotificationOutboxDomainInterface): ChannelMessage {
-    return {
-      outboxId: row.id,
-      coopname: row.coopname,
-      workflowId: row.workflowId,
-      recipient: {
-        subscriberId: row.recipientSubscriberId,
-        email: row.recipientEmail,
-        username: row.recipientUsername,
-      },
-      payload: row.payload,
-      actorSubscriberId: row.actorSubscriberId,
-    };
+    return outboxMessage(row);
   }
 
   private backoffMs(attempts: number): number {

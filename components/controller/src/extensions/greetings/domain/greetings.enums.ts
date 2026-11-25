@@ -24,6 +24,16 @@ export enum GreetingSendStatus {
   FAILED = 'failed',
 }
 
+/** Доставка письма по данным центра уведомлений. */
+export enum GreetingDeliveryState {
+  /** Письмо ждёт отправки или отправляется. */
+  PENDING = 'pending',
+  /** Письмо передано почтовому провайдеру. */
+  DELIVERED = 'delivered',
+  /** Попытки исчерпаны или отправка отменена. */
+  FAILED = 'failed',
+}
+
 /** Почему поздравление не отправлено. */
 export enum GreetingSkipReason {
   /** На дату нет действующего шаблона. */

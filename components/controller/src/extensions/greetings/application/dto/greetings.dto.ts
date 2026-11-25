@@ -2,6 +2,7 @@ import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/gra
 import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import {
   GreetingAccountType,
+  GreetingDeliveryState,
   GreetingSendStatus,
   GreetingSkipReason,
   GreetingTemplateKind,
@@ -20,6 +21,10 @@ registerEnumType(GreetingTemplateKind, {
 registerEnumType(GreetingSendStatus, {
   name: 'GreetingSendStatus',
   description: 'Итог поздравления: письмо принято к доставке, не отправлено или отправка не удалась',
+});
+registerEnumType(GreetingDeliveryState, {
+  name: 'GreetingDeliveryState',
+  description: 'Доставка письма по данным центра уведомлений',
 });
 registerEnumType(GreetingSkipReason, {
   name: 'GreetingSkipReason',
@@ -236,6 +241,15 @@ export class GreetingMailingOccurrenceDTO {
 
   @Field(() => Int, { description: 'Писем, отправка которых не удалась' })
   failed!: number;
+
+  @Field(() => Int, { description: 'Писем, доставленных почтовому провайдеру' })
+  delivered!: number;
+
+  @Field(() => Int, { description: 'Писем, которые ждут доставки' })
+  pending!: number;
+
+  @Field(() => Int, { description: 'Писем, которые доставить не удалось' })
+  undelivered!: number;
 }
 
 @ObjectType('GreetingSend', { description: 'Запись журнала поздравлений' })
@@ -275,6 +289,9 @@ export class GreetingSendDTO {
 
   @Field(() => Int, { description: 'Число попыток' })
   attempts!: number;
+
+  @Field(() => GreetingDeliveryState, { nullable: true, description: 'Доставка письма; пусто — письмо не отправлялось' })
+  delivery!: GreetingDeliveryState | null;
 
   @Field(() => Date, { description: 'Когда поздравление записано в журнал впервые' })
   created_at!: Date;

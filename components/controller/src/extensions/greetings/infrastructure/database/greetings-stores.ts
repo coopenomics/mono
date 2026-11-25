@@ -63,6 +63,7 @@ export const greetingsStoreProviders: Provider[] = [
         table: SENDS_TABLE,
         primaryKey: ['id'],
         dates: ['occasion_date'],
+        json: ['outbox_ids'],
         updatedAt: 'updated_at',
         sameNames: true,
         columns: [
@@ -78,6 +79,7 @@ export const greetingsStoreProviders: Provider[] = [
           'template_title',
           'subject',
           'attempts',
+          'outbox_ids',
           'created_at',
           'updated_at',
         ],
