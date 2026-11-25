@@ -214,11 +214,16 @@ import { t } from 'src/shared/i18n';
     });
   }
 
+  /** Числовое поле схемы: дробное (`number`) или целое (`integer`). */
+  function isNumeric(property: ISchemaProperty): boolean {
+    return property.type === 'number' || property.type === 'integer';
+  }
+
   // Функции для получения атрибутов полей
   function getComponentType(property: ISchemaProperty) {
     if (property.enum) {
       return QSelect;
-    } else if (property.type === 'number' || property.type === 'integer') {
+    } else if (isNumeric(property)) {
       return QInput;
     } else if (property.type === 'string') {
       return QInput;
@@ -238,7 +243,10 @@ import { t } from 'src/shared/i18n';
           data[propertyName] = SECRET_SET_MARKER;
           return;
         }
-        data[propertyName] = property.type === 'number' ? parseFloat(value) : value;
+        // `integer` — то же число: Zod даёт этот тип полю с `.int()`, и без
+        // перевода форма передавала значение строкой, а сервер отвергал конфиг
+        // («Expected number, received string», установка «Поздравлений» 25.11.2026).
+        data[propertyName] = isNumeric(property) ? parseFloat(value) : value;
       },
     };
 
@@ -309,7 +317,7 @@ import { t } from 'src/shared/i18n';
     }
 
     // Установка типа поля в зависимости от типа property
-    if (property.type === 'number') {
+    if (isNumeric(property)) {
       componentProps.type = 'number';  // Поле будет восприниматься как числовое, разрешены только цифры
     } else if (property.type === 'string') {
       // Проверка на пароль

@@ -3,8 +3,9 @@
  * (test-registry/greetings.birthday.yaml).
  *
  * Председатель пишет шаблон поздравления с периодом действия и переменными,
- * включает его в рассылку и проверяет письмо на пайщике. Совет читает
- * шаблоны, пайщик без роли в совете их не видит.
+ * включает его в рассылку и проверяет письмо на пайщике. Приложение видит
+ * только председатель: члены совета и пайщики получают отказ (решение
+ * владельца 25.11.2026).
  *
  * Период теста — далёкий будущий год: рассылка стенда его шаблоны не берёт.
  * Набор удаляет за собой созданные шаблоны.
@@ -55,11 +56,11 @@ afterAll(async () => {
 })
 
 describe('поздравления: шаблоны', () => {
-  it(caseName('grt.tpl.happy.01', 'председатель сохраняет черновик шаблона, совет его читает'), async () => {
+  it(caseName('grt.tpl.happy.01', 'председатель сохраняет черновик шаблона и видит его в списке'), async () => {
     const draft = await save(yearTemplate('Поздравление на 2041 год'))
     expect(draft.status).toBe('DRAFT')
     expect(draft.created_by).toBe(CHAIRMAN.account)
-    const d = await gql<any>(council, LIST)
+    const d = await gql<any>(chairman, LIST)
     expect((d.greetingsTemplates as any[]).some(t => t.id === draft.id)).toBe(true)
   })
 
@@ -88,7 +89,8 @@ describe('поздравления: шаблоны', () => {
     expectCode(err, 'GREETINGS_TEMPLATE_PERIOD_INVALID')
   })
 
-  it(caseName('grt.tpl.side.04', 'член совета не пишет шаблоны, пайщик не читает'), async () => {
+  it(caseName('grt.tpl.side.04', 'член совета и пайщик не читают и не пишут шаблоны'), async () => {
+    expectCode(await gqlError(council, LIST), 'KIT_INSUFFICIENT_RIGHTS')
     expectCode(await gqlError(council, SAVE, { d: yearTemplate('Шаблон совета') }), 'KIT_INSUFFICIENT_RIGHTS')
     expectCode(await gqlError(member, LIST), 'KIT_INSUFFICIENT_RIGHTS')
   })
