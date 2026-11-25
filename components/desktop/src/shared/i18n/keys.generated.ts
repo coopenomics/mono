@@ -4019,6 +4019,7 @@ export type MessageKey =
   | 'edubridge.teacherReportsPage.awaiting'
   | 'edubridge.teacherReportsPage.column.learners'
   | 'edubridge.teacherReportsPage.overdue'
+  | 'edubridge.teacherReportsPage.resubmitButton'
   | 'edubridge.teacherReportsPage.title'
   | 'edubridge.teacherSettlementPage.column.amount'
   | 'edubridge.teacherSettlementPage.column.at'

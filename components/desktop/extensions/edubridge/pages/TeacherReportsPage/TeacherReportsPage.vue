@@ -41,6 +41,8 @@
         BaseButton(v-if="actionOf(row) === 'report'" variant="primary" size="sm" @click.stop="reportTarget = row") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
         BaseButton(v-else-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
         BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+        //- Совет отклонил отчёт — преподаватель исправляет его по причине отклонения и подаёт заново
+        BaseButton(v-else-if="resubmittable(row)" variant="secondary" size="sm" @click.stop="reportTarget = row") {{ $t('edubridge.teacherReportsPage.resubmitButton') }}
     EmptyState(v-if="!firstLoad && !rows.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
       template(#icon)
         q-icon(name="event_available" size="32px")
@@ -71,9 +73,10 @@
             q-icon(name="link" size="14px")
             span {{ link }}
         .t-muted.t-sm(v-else) ______
-    template(v-if="detailsAction" #footer)
+    template(v-if="detailsAction || (details && resubmittable(details))" #footer)
       .row.justify-end
-        BaseButton(v-if="detailsAction === 'report'" variant="primary" @click="details && openReportFromDetails(details)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
+        BaseButton(v-if="!detailsAction" variant="primary" @click="details && openReportFromDetails(details)") {{ $t('edubridge.teacherReportsPage.resubmitButton') }}
+        BaseButton(v-else-if="detailsAction === 'report'" variant="primary" @click="details && openReportFromDetails(details)") {{ $t('edubridge.teacherLessonsPage.reportButton') }}
         BaseButton(v-else-if="detailsAction === 'transfer'" variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onTransfer(details)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
         BaseButton(v-else variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onSignAct(details)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
@@ -134,6 +137,15 @@ const columns: BaseTableColumn<ILessonRow>[] = [
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 /** Действие, которое сейчас за преподавателем по занятию: передать материалы либо подписать акт. */
 const actionOf = (row: ILessonRow): RowAction | null => (row.awaiting ? 'report' : lessonActionOf(row.contribution?.status));
+/**
+ * Отчёт отклонён советом — его можно подать повторно: сервер освобождает
+ * занятие и по новому отчёту заводит новый взнос (решение владельца
+ * 25.11.2026). Это возможность, а не обязанность: в число дел на меню
+ * «Отчёты» повторная подача не входит. Взнос на несколько занятий
+ * (гарантийный срок) подаётся заново по каждому занятию в журнале занятий.
+ */
+const resubmittable = (row: ILessonRow): boolean =>
+  !row.awaiting && row.lessons.length === 1 && row.contribution?.status === Zeus.EduContributionStatus.DECLINED;
 const byNumber = (a: ILesson, b: ILesson) => Number(a.lesson_number) - Number(b.lesson_number);
 /** Занятия одного взноса — одной записью; занятие без взноса — записью само по себе. */
 function packLessons(all: ILesson[]): ILesson[][] {

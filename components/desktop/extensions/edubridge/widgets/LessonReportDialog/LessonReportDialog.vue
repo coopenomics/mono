@@ -47,7 +47,8 @@ watch(
   () => props.lesson,
   (lesson) => {
     topic.value = lesson?.topic ?? '';
-    materialsText.value = '';
+    // Повторная подача после отказа совета: прежние материалы уже в поле — их правят, а не набирают заново
+    materialsText.value = (lesson?.materials ?? []).join('\n');
   },
 );
 
