@@ -37,7 +37,7 @@
         :agenda='question',
         :is-processing='isProcessing(question.table.id)',
         @authorize='onAuthorizeDecision(question)',
-        @decline='(reason) => onDeclineDecision(question, reason)'
+        @decline='onDeclineDecision(question, $event)'
       )
 </template>
 
