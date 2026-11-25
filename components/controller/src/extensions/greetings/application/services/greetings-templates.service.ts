@@ -50,23 +50,30 @@ export class GreetingsTemplatesService {
   async save(draft: GreetingTemplateDraft, author: string): Promise<GreetingTemplateRecord> {
     if (!isValidPeriod(draft.period_start, draft.period_end)) throw DomainError.badRequest('GREETINGS_TEMPLATE_PERIOD_INVALID');
     const existing = draft.id ? await this.get(draft.id) : null;
-    const record: Partial<GreetingTemplateRecord> = {
-      ...(existing ? { id: existing.id } : { created_by: author, status: GreetingTemplateStatus.DRAFT }),
+    const fields: Partial<GreetingTemplateRecord> = {
       title: draft.title.trim(),
       period_start: draft.period_start,
       period_end: draft.period_end,
       subject: draft.subject,
       body: draft.body,
     };
+    if (!existing) return this.templates.save({ ...fields, created_by: author, status: GreetingTemplateStatus.DRAFT });
     // Правка действующего шаблона проходит те же проверки, что и включение.
-    if (existing?.status === GreetingTemplateStatus.ACTIVE) await this.assertActivatable({ ...existing, ...record });
-    return this.templates.save(record);
+    if (existing.status === GreetingTemplateStatus.ACTIVE) await this.assertActivatable({ ...existing, ...fields });
+    // Существующая строка правится UPDATE: `save` — это INSERT … ON CONFLICT, а
+    // Postgres проверяет NOT NULL у вставляемой строки раньше конфликта, и
+    // строка без created_by падала (Blackbox 24→25.11.2026).
+    await this.templates.update({ id: existing.id }, fields);
+    return this.get(existing.id);
   }
 
   async setStatus(id: string, status: GreetingTemplateStatus): Promise<GreetingTemplateRecord> {
     const template = await this.get(id);
     if (status === GreetingTemplateStatus.ACTIVE) await this.assertActivatable(template);
-    return this.templates.save({ id, status });
+    // Только статус — UPDATE, а не `save`: строка из id и status упиралась в
+    // NOT NULL колонки title ещё до ON CONFLICT (Blackbox 24→25.11.2026).
+    await this.templates.update({ id: template.id }, { status });
+    return this.get(template.id);
   }
 
   /** Удаление шаблона; журнал хранит название шаблона на момент отправки. */
