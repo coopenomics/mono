@@ -127,6 +127,15 @@ export interface AppsCatalogApps {
   updated_at: Generated<Timestamp>;
 }
 
+export interface AppsPortGrants {
+  chain_actions: Generated<Json>;
+  created_at: Generated<Timestamp>;
+  package_id: string;
+  ports: Generated<Json>;
+  token_hash: string;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface AppsPublishers {
   added_by: string;
   coopname: string;
@@ -3060,6 +3069,7 @@ export interface WebPushSubscriptions {
 export interface DB {
   agreements: Agreements;
   apps_catalog_apps: AppsCatalogApps;
+  apps_port_grants: AppsPortGrants;
   apps_publishers: AppsPublishers;
   available_categories: AvailableCategories;
   balance_corrections: BalanceCorrections;
