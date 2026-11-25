@@ -162,9 +162,15 @@ describe('каталог расширений и рабочие столы', () 
 
   it(caseName('sys.ext.side.03', 'обновить неустановленное нельзя; конфиг, не прошедший схему, не пишется'), async () => {
     expectCode(await gqlError(chairToken, UPDATE, { d: { name: PROBE_EXT, enabled: true, config: {} } }), 'DATABASE_EXTENSION_NOT_INSTALLED')
+    // ЮKassa с 24.11.2026 открыта вне основной сети и ставится стендом по
+    // умолчанию, выключенной (9dbe50ff876). Случай проверяет, что отказ схемы
+    // ничего не пишет: конфиг и состояние до и после совпадают.
+    const before = await extension('yookassa')
     expectCode(await gqlError(chairToken, UPDATE, { d: { name: 'yookassa', enabled: false, config: { client: 1 } } }), 'EXTENSION_CONFIG_VALIDATION_FAILED')
     expect((await extension(PROBE_EXT)).is_installed).toBe(false)
-    expect((await extension('yookassa')).is_installed).toBe(false)
+    const after = await extension('yookassa')
+    expect(after.config).toEqual(before.config)
+    expect({ installed: after.is_installed, enabled: after.enabled }).toEqual({ installed: before.is_installed, enabled: before.enabled })
   })
 
   it(caseName('sys.ext.happy.04', 'установка, выключение и удаление расширения — каталог и состав рабочих столов следуют'), async () => {

@@ -71,6 +71,19 @@ cases:
     api: components/api-tests/src/greetings/templates.test.ts
     status: written
 
+  # Правка 25.11.2026 (C28-80): смена статуса и правка черновика пишут
+  # существующую строку UPDATE — `save` хранилища это INSERT … ON CONFLICT, и
+  # строка без title/created_by падала на NOT NULL раньше конфликта (Blackbox
+  # 24→25.11.2026, grt.tpl.happy.02 и grt.tpl.side.02 отвечали 500).
+  - id: grt.tpl.side.05
+    level: backend
+    kind: side
+    scenario: председатель меняет статус шаблона и правит сохранённый черновик
+    expect: пишутся только присланные поля; автор, название и статус черновика сохраняются, строка одна
+    test: components/controller/tests/unit/greetings/greetings-templates.test.ts
+    api: components/api-tests/src/greetings/templates.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
   - id: grt.tpl.happy.03
     level: backend
     kind: happy

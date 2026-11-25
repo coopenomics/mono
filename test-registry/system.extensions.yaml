@@ -93,7 +93,10 @@ cases:
     level: backend
     kind: side
     scenario: Обновляют неустановленное расширение; присылают конфиг, не прошедший схему
-    expect: DATABASE_EXTENSION_NOT_INSTALLED и EXTENSION_CONFIG_VALIDATION_FAILED, записи в каталоге не появляется
+    expect: >
+      DATABASE_EXTENSION_NOT_INSTALLED и EXTENSION_CONFIG_VALIDATION_FAILED; неустановленное
+      не появляется в каталоге, у установленного конфиг и состояние после отказа прежние
+      (правка 25.11.2026: ЮKassa вне основной сети ставится по умолчанию, 9dbe50ff876)
     test: components/api-tests/src/system/extensions.test.ts
     api: components/api-tests/src/system/extensions.test.ts
     status: passing
