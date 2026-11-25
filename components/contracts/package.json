@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/contracts",
   "license": "CC-BY-NC-SA-4.0",
-  "version": "2026.11.24",
+  "version": "2026.11.25",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/notifications",
-  "version": "2026.11.24",
+  "version": "2026.11.25",
   "description": "Каталог типобезопасных типов уведомлений и шаблонов Центра уведомлений",
   "type": "module",
   "private": false,
