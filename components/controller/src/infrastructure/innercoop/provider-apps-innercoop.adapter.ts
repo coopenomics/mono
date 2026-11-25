@@ -72,7 +72,7 @@ export class ProviderAppsInnercoopAdapter implements IProviderAppsPort {
     }
     catch (error: any) {
       const message = error?.message ?? String(error);
-      if (error instanceof DomainError && error.code === 'PROVIDER_APP_NOT_OFFERED') {
+      if (error instanceof DomainError && error.code === 'PROVIDER_APP_NOT_OFFERED') { // enum-literal: код DomainError — ключ перевода errors.*, перечисления кодов нет
         return { status: 'notOffered', error: message };
       }
       this.logger.warn(`Подписка ${coopname} на ${packageId} не оформлена: ${message}`);
@@ -88,7 +88,7 @@ export class ProviderAppsInnercoopAdapter implements IProviderAppsPort {
     }
     catch (error: any) {
       const message = error?.message ?? String(error);
-      if (error instanceof DomainError && error.code === 'PROVIDER_APP_NOT_SUBSCRIBED') {
+      if (error instanceof DomainError && error.code === 'PROVIDER_APP_NOT_SUBSCRIBED') { // enum-literal: код DomainError — ключ перевода errors.*, перечисления кодов нет
         return { status: 'notSubscribed' };
       }
       this.logger.warn(`Подписка ${coopname} на ${packageId} не отменена: ${message}`);

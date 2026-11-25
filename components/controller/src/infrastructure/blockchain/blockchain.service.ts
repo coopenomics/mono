@@ -52,7 +52,7 @@ function isMissingAccount(e: unknown): boolean {
   const err = e as { error?: { name?: string; code?: number }; message?: string };
   if (err?.error?.name === 'account_query_exception' || err?.error?.code === 3060002) return true;
   const message = String(err?.message ?? '');
-  if (e instanceof DomainError && e.code === 'BLOCKCHAIN_ABI_NOT_FOUND') return true;
+  if (e instanceof DomainError && e.code === 'BLOCKCHAIN_ABI_NOT_FOUND') return true; // enum-literal: код DomainError — ключ перевода errors.*, перечисления кодов нет
   return message.includes('account_query_exception') || message.includes('Account Query Exception');
 }
 
