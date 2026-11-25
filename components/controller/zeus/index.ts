@@ -11913,6 +11913,68 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceBranchReserves']?: Omit<ValueTypes["MarketplaceBranchReserves"], "...on MarketplaceBranchReserves">
 }>;
+	/** Сводка кооперативного участка для пайщика: пункт выдачи заказов, кошельки участка и взносы инициаторов. Раздел пуст, когда участок в нём не участвует. */
+["MarketplaceBranchSummary"]: AliasType<{
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Остаток общего кошелька участка. */
+	common_balance?:boolean | `@${string}`,
+	/** Взносы инициаторов участка. Пусто, когда инициаторов у участка нет. */
+	initiators?:ValueTypes["MarketplaceBranchSummaryInitiators"],
+	/** Пункт выдачи заказов участка. Пусто, когда участок не подключён как пункт выдачи. */
+	issuance_point?:ValueTypes["MarketplaceBranchSummaryIssuancePoint"],
+	/** Остаток фонда социально-экономического взаимодействия и социального обеспечения по участку. */
+	social_fund_balance?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchSummary']?: Omit<ValueTypes["MarketplaceBranchSummary"], "...on MarketplaceBranchSummary">
+}>;
+	/** Паевые взносы инициаторов кооперативного участка одной строкой итогов. */
+["MarketplaceBranchSummaryInitiators"]: AliasType<{
+	/** Внесено инициаторами деньгами. */
+	money_total?:boolean | `@${string}`,
+	/** Осталось возместить инициаторам. */
+	outstanding?:boolean | `@${string}`,
+	/** Внесено инициаторами имуществом. */
+	property_total?:boolean | `@${string}`,
+	/** Возмещено инициаторам из экономии участка. */
+	repaid_total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchSummaryInitiators']?: Omit<ValueTypes["MarketplaceBranchSummaryInitiators"], "...on MarketplaceBranchSummaryInitiators">
+}>;
+	/** Пункт выдачи заказов на кооперативном участке. */
+["MarketplaceBranchSummaryIssuancePoint"]: AliasType<{
+	/** Пункт выдачи работает и принимает заказы. */
+	active?:boolean | `@${string}`,
+	/** Режим работы пункта выдачи по дням недели. */
+	working_hours?:ValueTypes["WorkingHours"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchSummaryIssuancePoint']?: Omit<ValueTypes["MarketplaceBranchSummaryIssuancePoint"], "...on MarketplaceBranchSummaryIssuancePoint">
+}>;
+	/** Движение по общему кошельку участка для пайщика: дата, операция и сумма. */
+["MarketplaceBranchSummaryMovement"]: AliasType<{
+	/** Дата и время операции. */
+	created_at?:boolean | `@${string}`,
+	/** Порядковый номер операции в реестре движений. */
+	global_sequence?:boolean | `@${string}`,
+	/** Код операции: поступление членского взноса, распределение, оплата расхода. */
+	operation_code?:boolean | `@${string}`,
+	/** Сумма движения. */
+	quantity?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchSummaryMovement']?: Omit<ValueTypes["MarketplaceBranchSummaryMovement"], "...on MarketplaceBranchSummaryMovement">
+}>;
+	["MarketplaceBranchSummaryMovementsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceBranchSummaryMovement"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceBranchSummaryMovementsPaginationResult']?: Omit<ValueTypes["MarketplaceBranchSummaryMovementsPaginationResult"], "...on MarketplaceBranchSummaryMovementsPaginationResult">
+}>;
 	["MarketplaceBranchWalletHistoryPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -18360,6 +18422,8 @@ marketplaceGetBranchCurrentPeriod?: [{	braname: string | Variable<any, string>},
 marketplaceGetBranchEconomy?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchMovementParts?: [{	braname: string | Variable<any, string>,	process_hash: string | Variable<any, string>},ValueTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchReserves"]],
+marketplaceGetBranchSummary?: [{	braname: string | Variable<any, string>},ValueTypes["MarketplaceBranchSummary"]],
+marketplaceGetBranchSummaryMovements?: [{	braname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceBranchSummaryMovementsPaginationResult"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
 	marketplaceGetCart?:ValueTypes["MarketplaceCart"],
@@ -31744,6 +31808,63 @@ export type ResolverInputTypes = {
 	rows?:ResolverInputTypes["MarketplaceBranchReserve"],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Сводка кооперативного участка для пайщика: пункт выдачи заказов, кошельки участка и взносы инициаторов. Раздел пуст, когда участок в нём не участвует. */
+["MarketplaceBranchSummary"]: AliasType<{
+	/** Кооперативный участок. */
+	braname?:boolean | `@${string}`,
+	/** Остаток общего кошелька участка. */
+	common_balance?:boolean | `@${string}`,
+	/** Взносы инициаторов участка. Пусто, когда инициаторов у участка нет. */
+	initiators?:ResolverInputTypes["MarketplaceBranchSummaryInitiators"],
+	/** Пункт выдачи заказов участка. Пусто, когда участок не подключён как пункт выдачи. */
+	issuance_point?:ResolverInputTypes["MarketplaceBranchSummaryIssuancePoint"],
+	/** Остаток фонда социально-экономического взаимодействия и социального обеспечения по участку. */
+	social_fund_balance?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Паевые взносы инициаторов кооперативного участка одной строкой итогов. */
+["MarketplaceBranchSummaryInitiators"]: AliasType<{
+	/** Внесено инициаторами деньгами. */
+	money_total?:boolean | `@${string}`,
+	/** Осталось возместить инициаторам. */
+	outstanding?:boolean | `@${string}`,
+	/** Внесено инициаторами имуществом. */
+	property_total?:boolean | `@${string}`,
+	/** Возмещено инициаторам из экономии участка. */
+	repaid_total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Пункт выдачи заказов на кооперативном участке. */
+["MarketplaceBranchSummaryIssuancePoint"]: AliasType<{
+	/** Пункт выдачи работает и принимает заказы. */
+	active?:boolean | `@${string}`,
+	/** Режим работы пункта выдачи по дням недели. */
+	working_hours?:ResolverInputTypes["WorkingHours"],
+		__typename?: boolean | `@${string}`
+}>;
+	/** Движение по общему кошельку участка для пайщика: дата, операция и сумма. */
+["MarketplaceBranchSummaryMovement"]: AliasType<{
+	/** Дата и время операции. */
+	created_at?:boolean | `@${string}`,
+	/** Порядковый номер операции в реестре движений. */
+	global_sequence?:boolean | `@${string}`,
+	/** Код операции: поступление членского взноса, распределение, оплата расхода. */
+	operation_code?:boolean | `@${string}`,
+	/** Сумма движения. */
+	quantity?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceBranchSummaryMovementsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceBranchSummaryMovement"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceBranchWalletHistoryPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -37973,6 +38094,8 @@ marketplaceGetBranchCurrentPeriod?: [{	braname: string},ResolverInputTypes["Mark
 marketplaceGetBranchEconomy?: [{	braname: string},ResolverInputTypes["MarketplaceBranchEconomy"]],
 marketplaceGetBranchMovementParts?: [{	braname: string,	process_hash: string},ResolverInputTypes["MarketplaceBranchWalletOperation"]],
 marketplaceGetBranchReserves?: [{	braname: string},ResolverInputTypes["MarketplaceBranchReserves"]],
+marketplaceGetBranchSummary?: [{	braname: string},ResolverInputTypes["MarketplaceBranchSummary"]],
+marketplaceGetBranchSummaryMovements?: [{	braname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceBranchSummaryMovementsPaginationResult"]],
 marketplaceGetBranchWalletHistory?: [{	braname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceBranchWalletHistoryPaginationResult"]],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
 	marketplaceGetCart?:ResolverInputTypes["MarketplaceCart"],
@@ -50899,6 +51022,58 @@ export type ModelTypes = {
 	/** Строки резерва по получателям. */
 	rows: Array<ModelTypes["MarketplaceBranchReserve"]>
 };
+	/** Сводка кооперативного участка для пайщика: пункт выдачи заказов, кошельки участка и взносы инициаторов. Раздел пуст, когда участок в нём не участвует. */
+["MarketplaceBranchSummary"]: {
+		/** Кооперативный участок. */
+	braname: string,
+	/** Остаток общего кошелька участка. */
+	common_balance: string,
+	/** Взносы инициаторов участка. Пусто, когда инициаторов у участка нет. */
+	initiators?: ModelTypes["MarketplaceBranchSummaryInitiators"] | undefined | null,
+	/** Пункт выдачи заказов участка. Пусто, когда участок не подключён как пункт выдачи. */
+	issuance_point?: ModelTypes["MarketplaceBranchSummaryIssuancePoint"] | undefined | null,
+	/** Остаток фонда социально-экономического взаимодействия и социального обеспечения по участку. */
+	social_fund_balance: string
+};
+	/** Паевые взносы инициаторов кооперативного участка одной строкой итогов. */
+["MarketplaceBranchSummaryInitiators"]: {
+		/** Внесено инициаторами деньгами. */
+	money_total: string,
+	/** Осталось возместить инициаторам. */
+	outstanding: string,
+	/** Внесено инициаторами имуществом. */
+	property_total: string,
+	/** Возмещено инициаторам из экономии участка. */
+	repaid_total: string
+};
+	/** Пункт выдачи заказов на кооперативном участке. */
+["MarketplaceBranchSummaryIssuancePoint"]: {
+		/** Пункт выдачи работает и принимает заказы. */
+	active: boolean,
+	/** Режим работы пункта выдачи по дням недели. */
+	working_hours: ModelTypes["WorkingHours"]
+};
+	/** Движение по общему кошельку участка для пайщика: дата, операция и сумма. */
+["MarketplaceBranchSummaryMovement"]: {
+		/** Дата и время операции. */
+	created_at: ModelTypes["DateTime"],
+	/** Порядковый номер операции в реестре движений. */
+	global_sequence: string,
+	/** Код операции: поступление членского взноса, распределение, оплата расхода. */
+	operation_code: string,
+	/** Сумма движения. */
+	quantity?: string | undefined | null
+};
+	["MarketplaceBranchSummaryMovementsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceBranchSummaryMovement"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["MarketplaceBranchWalletHistoryPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -57458,6 +57633,10 @@ export type ModelTypes = {
 	marketplaceGetBranchMovementParts: Array<ModelTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
 	marketplaceGetBranchReserves: ModelTypes["MarketplaceBranchReserves"],
+	/** Сводка кооперативного участка для пайщика: пункт выдачи заказов с режимом работы, остатки кошельков участка и итоги взносов инициаторов. Доступна каждому пайщику кооператива. */
+	marketplaceGetBranchSummary: ModelTypes["MarketplaceBranchSummary"],
+	/** Движения по общему кошельку кооперативного участка для пайщика: дата, операция и сумма, без получателей и заказов. Новые первыми. */
+	marketplaceGetBranchSummaryMovements: ModelTypes["MarketplaceBranchSummaryMovementsPaginationResult"],
 	/** Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов. */
 	marketplaceGetBranchWalletHistory: ModelTypes["MarketplaceBranchWalletHistoryPaginationResult"],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
@@ -71022,6 +71201,68 @@ export type GraphQLTypes = {
 	rows: Array<GraphQLTypes["MarketplaceBranchReserve"]>,
 	['...on MarketplaceBranchReserves']: Omit<GraphQLTypes["MarketplaceBranchReserves"], "...on MarketplaceBranchReserves">
 };
+	/** Сводка кооперативного участка для пайщика: пункт выдачи заказов, кошельки участка и взносы инициаторов. Раздел пуст, когда участок в нём не участвует. */
+["MarketplaceBranchSummary"]: {
+	__typename: "MarketplaceBranchSummary",
+	/** Кооперативный участок. */
+	braname: string,
+	/** Остаток общего кошелька участка. */
+	common_balance: string,
+	/** Взносы инициаторов участка. Пусто, когда инициаторов у участка нет. */
+	initiators?: GraphQLTypes["MarketplaceBranchSummaryInitiators"] | undefined | null,
+	/** Пункт выдачи заказов участка. Пусто, когда участок не подключён как пункт выдачи. */
+	issuance_point?: GraphQLTypes["MarketplaceBranchSummaryIssuancePoint"] | undefined | null,
+	/** Остаток фонда социально-экономического взаимодействия и социального обеспечения по участку. */
+	social_fund_balance: string,
+	['...on MarketplaceBranchSummary']: Omit<GraphQLTypes["MarketplaceBranchSummary"], "...on MarketplaceBranchSummary">
+};
+	/** Паевые взносы инициаторов кооперативного участка одной строкой итогов. */
+["MarketplaceBranchSummaryInitiators"]: {
+	__typename: "MarketplaceBranchSummaryInitiators",
+	/** Внесено инициаторами деньгами. */
+	money_total: string,
+	/** Осталось возместить инициаторам. */
+	outstanding: string,
+	/** Внесено инициаторами имуществом. */
+	property_total: string,
+	/** Возмещено инициаторам из экономии участка. */
+	repaid_total: string,
+	['...on MarketplaceBranchSummaryInitiators']: Omit<GraphQLTypes["MarketplaceBranchSummaryInitiators"], "...on MarketplaceBranchSummaryInitiators">
+};
+	/** Пункт выдачи заказов на кооперативном участке. */
+["MarketplaceBranchSummaryIssuancePoint"]: {
+	__typename: "MarketplaceBranchSummaryIssuancePoint",
+	/** Пункт выдачи работает и принимает заказы. */
+	active: boolean,
+	/** Режим работы пункта выдачи по дням недели. */
+	working_hours: GraphQLTypes["WorkingHours"],
+	['...on MarketplaceBranchSummaryIssuancePoint']: Omit<GraphQLTypes["MarketplaceBranchSummaryIssuancePoint"], "...on MarketplaceBranchSummaryIssuancePoint">
+};
+	/** Движение по общему кошельку участка для пайщика: дата, операция и сумма. */
+["MarketplaceBranchSummaryMovement"]: {
+	__typename: "MarketplaceBranchSummaryMovement",
+	/** Дата и время операции. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Порядковый номер операции в реестре движений. */
+	global_sequence: string,
+	/** Код операции: поступление членского взноса, распределение, оплата расхода. */
+	operation_code: string,
+	/** Сумма движения. */
+	quantity?: string | undefined | null,
+	['...on MarketplaceBranchSummaryMovement']: Omit<GraphQLTypes["MarketplaceBranchSummaryMovement"], "...on MarketplaceBranchSummaryMovement">
+};
+	["MarketplaceBranchSummaryMovementsPaginationResult"]: {
+	__typename: "MarketplaceBranchSummaryMovementsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceBranchSummaryMovement"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceBranchSummaryMovementsPaginationResult']: Omit<GraphQLTypes["MarketplaceBranchSummaryMovementsPaginationResult"], "...on MarketplaceBranchSummaryMovementsPaginationResult">
+};
 	["MarketplaceBranchWalletHistoryPaginationResult"]: {
 	__typename: "MarketplaceBranchWalletHistoryPaginationResult",
 	/** Текущая страница */
@@ -78099,6 +78340,10 @@ export type GraphQLTypes = {
 	marketplaceGetBranchMovementParts: Array<GraphQLTypes["MarketplaceBranchWalletOperation"]>,
 	/** Резерв социально-экономического обеспечения пайщиков участка: потолок кооператива и строки по получателям с остатком на текущий месяц. */
 	marketplaceGetBranchReserves: GraphQLTypes["MarketplaceBranchReserves"],
+	/** Сводка кооперативного участка для пайщика: пункт выдачи заказов с режимом работы, остатки кошельков участка и итоги взносов инициаторов. Доступна каждому пайщику кооператива. */
+	marketplaceGetBranchSummary: GraphQLTypes["MarketplaceBranchSummary"],
+	/** Движения по общему кошельку кооперативного участка для пайщика: дата, операция и сумма, без получателей и заказов. Новые первыми. */
+	marketplaceGetBranchSummaryMovements: GraphQLTypes["MarketplaceBranchSummaryMovementsPaginationResult"],
 	/** Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов. */
 	marketplaceGetBranchWalletHistory: GraphQLTypes["MarketplaceBranchWalletHistoryPaginationResult"],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */

@@ -91,6 +91,14 @@ export interface MarketplaceTrusteeWeightView {
   personal_balance: string;
 }
 
+/** Остатки кошельков участка, открытые каждому пайщику кооператива, asset-строки. */
+export interface MarketplaceBranchWalletBalancesView {
+  /** Общий кошелёк участка (w.brn.common). */
+  common_balance: string;
+  /** Фонд социального обеспечения по участку (w.fnd.social). */
+  social_fund_balance: string;
+}
+
 export interface MarketplaceBranchEconomyView {
   braname: string;
   total_weight: number;
@@ -352,12 +360,27 @@ export class MarketplaceEconomyService {
 
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
-  async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [weights, totals, common, socialFund, plans, initiatorsFree] = await Promise.all([
-      this.chainPort.getBranchWeights(coopname, braname),
-      this.chainPort.getBranchWeightTotals(coopname, braname),
+  /**
+   * Остатки двух кошельков участка: общего и фонда социального обеспечения.
+   * Два точечных чтения по ключу участка. Читает их и экономика участка для
+   * председателя, и сводка участка для пайщика — источник у обоих один.
+   */
+  async getBranchWalletBalances(coopname: string, braname: string): Promise<MarketplaceBranchWalletBalancesView> {
+    const [common, socialFund] = await Promise.all([
       this.chainPort.getUserWallet(coopname, BRANCH_COMMON_WALLET, braname),
       this.chainPort.getUserWallet(coopname, BRANCH_SOCIAL_FUND_WALLET, braname),
+    ]);
+    return {
+      common_balance: common?.available ?? this.zeroAsset(),
+      social_fund_balance: socialFund?.available ?? this.zeroAsset(),
+    };
+  }
+
+  async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
+    const [weights, totals, balances, plans, initiatorsFree] = await Promise.all([
+      this.chainPort.getBranchWeights(coopname, braname),
+      this.chainPort.getBranchWeightTotals(coopname, braname),
+      this.getBranchWalletBalances(coopname, braname),
       this.expenseChassis.listPlans(coopname, braname),
       this.initiatorFreeFunds(coopname, braname),
     ]);
@@ -383,7 +406,7 @@ export class MarketplaceEconomyService {
     );
     const personalBalanceOf = (username: string): string => personal.get(username) ?? this.zeroAsset();
 
-    const commonBalance = common?.available ?? this.zeroAsset();
+    const commonBalance = balances.common_balance;
 
     const available = Math.max(0, this.assetToNumber(commonBalance) - reserve.amount);
 
@@ -401,7 +424,7 @@ export class MarketplaceEconomyService {
       available_to_distribute: this.formatAsset(available),
       initiators_free: this.formatAsset(initiatorsFree),
       available_for_expenses: this.formatAsset(this.assetToNumber(commonBalance) + initiatorsFree),
-      social_fund_balance: socialFund?.available ?? this.zeroAsset(),
+      social_fund_balance: balances.social_fund_balance,
     };
   }
 

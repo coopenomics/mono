@@ -1,0 +1,119 @@
+feature: marketplace.branch-summary
+title: Сводка участка для пайщика — вкладка «Стол заказов» на странице кооперативного участка
+
+# Каждый пайщик кооператива читает по любому участку то, что Стол заказов
+# знает об участке: пункт выдачи с режимом работы, остатки общего кошелька и
+# фонда социального обеспечения, итоги взносов инициаторов и движения общего
+# кошелька — дата, операция, сумма. Получатели распределения, заказы и
+# назначение движений в сводку не входят: экономика участка целиком остаётся
+# у председателя и доверенных лиц участка.
+#
+# Заведено 25.11.2026 (решение владельца: деньги участка открыты пайщикам;
+# участок, который не пункт выдачи и не имеет инициаторов, вкладку не получает).
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-branch-summary.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-branch-summary.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-branch-summary.dto.ts
+  ui:
+    - components/desktop/src/entities/MarketplaceBranchSummary/**
+    - components/desktop/src/widgets/Marketplace/BranchSummaryTab/**
+
+cases:
+  - id: mkt.bsum.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик читает сводку участка, который подключён как пункт выдачи
+    expect: в сводке режим работы пункта и признак «работает»; остаток общего кошелька тот же, что видит председатель участка в экономике участка
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    api: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.happy.02
+    level: backend
+    kind: happy
+    scenario: Пайщик читает сводку чужого участка
+    expect: сводка отдана; принадлежность к участку не проверяется, деньги участка открыты каждому пайщику кооператива
+    test: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.happy.03
+    level: backend
+    kind: happy
+    scenario: Пайщик читает движения общего кошелька участка
+    expect: операции, суммы и число движений те же, что у председателя участка; в записи только номер, операция, сумма и дата
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    api: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.side.01
+    level: backend
+    kind: side
+    scenario: Участок не подключён как пункт выдачи и не имеет взносов инициаторов
+    expect: разделы «пункт выдачи» и «инициаторы» пусты — страница участка вкладку не показывает
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    api: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.side.02
+    level: backend
+    kind: side
+    scenario: Пункт выдачи участка выключен председателем кооператива
+    expect: раздел пункта выдачи остаётся в сводке с признаком «не работает»
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    external: unreachable
+    external_reason: "выключение пункта выдачи общего участка стенда ломает соседние наборы Стола заказов, которые идут параллельно"
+    status: written
+
+  - id: mkt.bsum.side.03
+    level: backend
+    kind: side
+    scenario: Итоги взносов инициаторов — строка участка есть, взносов и возмещений нет; взнос только деньгами
+    expect: при нулевых взносах и возмещении инициаторов нет; взнос деньгами делает участок участком с инициаторами; инициаторы поимённо не читаются
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    external: unreachable
+    external_reason: "взнос инициатора меняет экономику общего участка стенда и возмещается только итогом месяца; набор сводки состояние стенда не меняет"
+    status: written
+
+  - id: mkt.bsum.break.01
+    level: backend
+    kind: break
+    scenario: Пайщик запрашивает у движения сводки получателя, назначение и заказ
+    expect: запрос отклонён — таких полей у движения сводки нет
+    test: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.break.02
+    level: backend
+    kind: break
+    scenario: Пайщик с правом сводки запрашивает экономику участка председателя
+    expect: отказ по праву; право сводки экономику участка не открывает
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    api: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.break.03
+    level: backend
+    kind: break
+    scenario: Гость читает сводку участка и её движения
+    expect: отказ по входу
+    test: components/api-tests/src/marketplace/branch-summary.test.ts
+    status: written
+
+  - id: mkt.bsum.break.04
+    level: backend
+    kind: break
+    scenario: Совет не подключил Стол заказов, пайщик читает сводку участка
+    expect: права сводки у пайщика нет
+    test: components/controller/tests/unit/marketplace/marketplace-branch-summary.test.ts
+    external: unreachable
+    external_reason: "на стенде Стол заказов подключён советом; отключение программы снимает допуск у всех наборов стенда"
+    status: written
+
+  - id: mkt.bsum.ui.01
+    level: ui
+    kind: happy
+    scenario: Пайщик открывает вкладку «Стол заказов» на странице участка-пункта выдачи
+    expect: карточка пункта выдачи с режимом работы, карточки общего кошелька и фонда социального обеспечения, таблица движений общего кошелька; у участка с инициаторами — четыре карточки взносов
+    status: missing
+    decision_needed: false

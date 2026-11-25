@@ -107,6 +107,18 @@ export interface MarketplaceInvestorView {
   unused: bigint;
 }
 
+/** Итоги паевых взносов инициаторов участка для сводки участка. Суммы — в единицах актива. */
+export interface MarketplaceInitiatorTotalsView {
+  /** Внесено деньгами за вычетом переведённых на главный паевой кошелёк неиспользованных денег. */
+  money_total: bigint;
+  /** Внесено имуществом. */
+  property_total: bigint;
+  /** Возмещено инициаторам из экономии участка. */
+  repaid_total: bigint;
+  /** Осталось возместить из использованного. */
+  outstanding: bigint;
+}
+
 /** Паевые взносы участка для столов. Суммы — в единицах актива. */
 export interface MarketplaceInvestBranchView {
   braname: string;
@@ -454,6 +466,24 @@ export class MarketplaceInvestmentService {
       investors: views,
       properties,
     };
+  }
+
+  /**
+   * Итоги паевых взносов инициаторов участка для сводки участка: одна строка
+   * участка в цепи, без чтения инициаторов. Пусто — у участка нет ни взносов,
+   * ни возмещений: раздел «Инициаторы» сводка не показывает.
+   */
+  async getBranchInitiatorTotals(coopname: string, braname: string): Promise<MarketplaceInitiatorTotalsView | null> {
+    const branch = await this.chainPort.getInvestBranch(coopname, braname);
+    if (!branch) return null;
+    const totals: MarketplaceInitiatorTotalsView = {
+      money_total: units(branch.money_total, this.economyService),
+      property_total: units(branch.property_total, this.economyService),
+      repaid_total: units(branch.repaid_total, this.economyService),
+      outstanding: crpsOutstanding(this.crpsBranch(branch)),
+    };
+    const involved = totals.money_total > 0n || totals.property_total > 0n || totals.repaid_total > 0n;
+    return involved ? totals : null;
   }
 
   async listMyInvestments(coopname: string, username: string): Promise<MarketplaceInvestorView[]> {

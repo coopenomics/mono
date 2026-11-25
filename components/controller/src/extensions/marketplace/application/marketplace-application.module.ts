@@ -182,6 +182,8 @@ import { MarketplaceBranchReserveService } from './services/marketplace-branch-r
 import { MarketplaceKeuResolver } from './resolvers/marketplace-keu.resolver';
 import { MarketplaceInvestmentService } from './services/marketplace-investment.service';
 import { MarketplaceInvestmentResolver } from './resolvers/marketplace-investment.resolver';
+import { MarketplaceBranchSummaryResolver } from './resolvers/marketplace-branch-summary.resolver';
+import { MarketplaceBranchSummaryService } from './services/marketplace-branch-summary.service';
 import { MarketplaceInvestmentNotificationListener } from './listeners/marketplace-investment-notification.listener';
 import { MarketplaceIssuanceCloseReminderService } from './services/marketplace-issuance-close-reminder.service';
 // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
@@ -498,6 +500,9 @@ import {
     MarketplaceKeuResolver,
     MarketplaceInvestmentService,
     MarketplaceInvestmentResolver,
+    // Сводка участка для пайщика: вкладка «Стол заказов» на странице участка
+    MarketplaceBranchSummaryService,
+    MarketplaceBranchSummaryResolver,
     MarketplaceInvestmentNotificationListener,
     MarketplaceIssuanceCloseReminderService,
     // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи

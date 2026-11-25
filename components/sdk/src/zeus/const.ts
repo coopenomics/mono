@@ -3945,6 +3945,12 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetBranchReserves:{
 
 		},
+		marketplaceGetBranchSummary:{
+
+		},
+		marketplaceGetBranchSummaryMovements:{
+			options:"PaginationInput"
+		},
 		marketplaceGetBranchWalletHistory:{
 			options:"PaginationInput"
 		},
@@ -7844,6 +7850,35 @@ export const ReturnTypes: Record<string,any> = {
 		limit:"String",
 		rows:"MarketplaceBranchReserve"
 	},
+	MarketplaceBranchSummary:{
+		braname:"String",
+		common_balance:"String",
+		initiators:"MarketplaceBranchSummaryInitiators",
+		issuance_point:"MarketplaceBranchSummaryIssuancePoint",
+		social_fund_balance:"String"
+	},
+	MarketplaceBranchSummaryInitiators:{
+		money_total:"String",
+		outstanding:"String",
+		property_total:"String",
+		repaid_total:"String"
+	},
+	MarketplaceBranchSummaryIssuancePoint:{
+		active:"Boolean",
+		working_hours:"WorkingHours"
+	},
+	MarketplaceBranchSummaryMovement:{
+		created_at:"DateTime",
+		global_sequence:"String",
+		operation_code:"String",
+		quantity:"String"
+	},
+	MarketplaceBranchSummaryMovementsPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceBranchSummaryMovement",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	MarketplaceBranchWalletHistoryPaginationResult:{
 		currentPage:"Int",
 		items:"MarketplaceBranchWalletOperation",
@@ -10435,6 +10470,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
 		marketplaceGetBranchMovementParts:"MarketplaceBranchWalletOperation",
 		marketplaceGetBranchReserves:"MarketplaceBranchReserves",
+		marketplaceGetBranchSummary:"MarketplaceBranchSummary",
+		marketplaceGetBranchSummaryMovements:"MarketplaceBranchSummaryMovementsPaginationResult",
 		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetCart:"MarketplaceCart",
 		marketplaceGetCategoryRules:"MarketplaceAvailableCategory",

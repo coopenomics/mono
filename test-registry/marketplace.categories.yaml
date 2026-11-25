@@ -53,6 +53,9 @@ title: Доступные категории кооператива — огра
 # председателя кооператива завести боксы переименовано в `Container:create:all`
 # (было `manage:all`, оно покрывало и `manage:own-KU`). Права категорий не
 # менялись, случаи прежние.
+# Правка 25.11.2026 (сводка участка для пайщика): в общую таблицу прав Стола
+# заказов добавлен ресурс `BranchSummary`. Права категорий не менялись, набор
+# случаев прежний.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts

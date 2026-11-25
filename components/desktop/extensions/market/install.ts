@@ -61,6 +61,12 @@ import {
   OnsiteSignatureGateOverlay,
   registerOnsiteGateLive,
 } from 'src/widgets/Marketplace/OnsiteSignatureGate'
+import { registerBranchTab } from 'src/shared/lib/branch-tabs'
+import { BranchSummaryTab } from 'src/widgets/Marketplace/BranchSummaryTab'
+import { isBranchInvolved, useMarketplaceBranchSummaryStore } from 'src/entities/MarketplaceBranchSummary'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
+import { liveTable } from 'src/shared/lib/realtime'
+import { MarketContract } from 'cooptypes'
 import { t } from './i18n';
 
 /**
@@ -126,6 +132,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   // его не импортирует; он сам решает свою видимость (поставщик очно / заказчик
   // на получении).
   registerGlobalOverlay('marketplace:onsite-signature-gate', OnsiteSignatureGateOverlay)
+
+  // Вкладка «Стол заказов» на странице кооперативного участка: пункт выдачи,
+  // кошельки участка и взносы инициаторов. Стол «Кооперативный участок» о ней
+  // не знает и рисует общий реестр. Участок без пункта выдачи и без
+  // инициаторов вкладку не получает.
+  registerBranchTab({
+    id: 'market:summary',
+    extension: 'market',
+    label: t('market.install.branchTabTitle'),
+    icon: 'storefront',
+    component: BranchSummaryTab,
+    isInvolved: async (braname) => isBranchInvolved(await useMarketplaceBranchSummaryStore().load(braname)),
+    liveTables: [...marketLiveTables('ku'), liveTable(MarketContract, MarketContract.Tables.InvBranches)],
+  })
 
   // Гейт живёт по общей ленте изменений ядра (C28-83): ядро держит одну
   // подписку chainChanges и дочитывает после переподключения само.

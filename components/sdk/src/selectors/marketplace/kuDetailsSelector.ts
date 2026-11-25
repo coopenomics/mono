@@ -20,7 +20,7 @@ const _validateWorkingHoursDay: MakeAllFieldsRequired<ValueTypes['WorkingHoursDa
 
 export const workingHoursDaySelector = Selector('WorkingHoursDay')(rawWorkingHoursDaySelector)
 
-const rawWorkingHoursSelector = {
+export const rawWorkingHoursSelector = {
   mon: rawWorkingHoursDaySelector,
   tue: rawWorkingHoursDaySelector,
   wed: rawWorkingHoursDaySelector,

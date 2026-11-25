@@ -84,6 +84,11 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         DeliveryPoint: ['choose:own'],
         KU: ['read'],
         Supplier: ['read:own', 'request:own'],
+        // Сводка участка на странице кооперативного участка: пункт выдачи,
+        // кошельки участка и итоги взносов инициаторов — каждому пайщику по
+        // любому участку (решение владельца 25.11.2026: деньги участка
+        // открыты). Документы и получатели остаются под `Economy:read:own-KU`.
+        BranchSummary: ['read'],
       },
     },
     {

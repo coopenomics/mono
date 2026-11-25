@@ -3,14 +3,14 @@
   button.ku-back(type='button', @click='goBack')
     q-icon(name='arrow_back', size='16px')
     span {{ $t('ku.kuBranchDetailsPage.backAction') }}
-  KuBranchDetailsWidget(:braname='braname')
+  KuBranchPageWidget(:braname='braname')
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { KuBranchDetailsWidget } from 'src/widgets/Ku/BranchDetails';
+import { KuBranchPageWidget } from 'src/widgets/Ku/BranchPage';
 
 const route = useRoute();
 const router = useRouter();
