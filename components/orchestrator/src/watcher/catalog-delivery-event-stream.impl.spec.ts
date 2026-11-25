@@ -23,12 +23,18 @@ describe('CatalogDeliveryEventStream', () => {
     }) as typeof fetch;
   });
 
-  const build = (releasePollEvery = 1) => {
+  const build = (releasePollEvery = 1, installedPackages?: () => Promise<string[]>) => {
     const token = new CatalogTenantToken();
     token.set('tenant-jwt');
     const versions: LatestVersionPort = { latestVersion: jest.fn(async () => latest) };
     const stream = new CatalogDeliveryEventStream(
-      { catalogDeliveryBaseUrl: 'http://catalog-delivery:3001', coopname: 'voskhod', pollIntervalMs: 1000, releasePollEvery },
+      {
+        catalogDeliveryBaseUrl: 'http://catalog-delivery:3001',
+        coopname: 'voskhod',
+        pollIntervalMs: 1000,
+        releasePollEvery,
+        installedPackages,
+      },
       token,
       versions,
     );
@@ -75,6 +81,85 @@ describe('CatalogDeliveryEventStream', () => {
     await stream.poll(failing);
     await stream.poll(failing);
     expect(events.filter((e) => e.kind === 'subscription-activated')).toHaveLength(2);
+  });
+
+  // Сломанный образ не должен дёргать реестр каждый опрос: первая неудача
+  // повторяется следующим опросом, дальше пауза удваивается (25.11.2026).
+  it('side: установка падает подряд — третья попытка ждёт паузу, после паузы идёт снова', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-25T12:00:00.000Z') });
+    try {
+      const { stream, events } = build();
+      const failing = jest.fn(async (e: AppsContractEvent) => {
+        events.push(e);
+        throw new Error('docker pull failed');
+      });
+      const activations = () => events.filter((e) => e.kind === 'subscription-activated').length;
+      await stream.poll(failing); // 1-я неудача: повтор без паузы
+      await stream.poll(failing); // 2-я неудача: пауза 2 × опрос = 2 с
+      expect(activations()).toBe(2);
+      await stream.poll(failing); // пауза идёт — попытки нет
+      expect(activations()).toBe(2);
+      jest.setSystemTime(Date.now() + 2_001);
+      await stream.poll(failing);
+      expect(activations()).toBe(3);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('break: пока идёт пауза после неудачи, подписка не считается установленной и не даёт subscription-expired при отмене', async () => {
+    const { stream, events } = build();
+    const failing = jest.fn(async (e: AppsContractEvent) => {
+      events.push(e);
+      throw new Error('healthcheck timeout');
+    });
+    await stream.poll(failing);
+    await stream.poll(failing);
+    await stream.poll(failing); // пауза: подписка отложена
+    active.length = 0; // подписку отменили, так и не установив
+    await stream.poll(failing);
+    expect(events.filter((e) => e.kind === 'subscription-expired')).toHaveLength(0);
+  });
+
+  it('happy: после удачной установки счётчик неудач сброшен — новая неудача снова повторяется сразу', async () => {
+    const { stream, events } = build();
+    let fail = true;
+    const flaky = jest.fn(async (e: AppsContractEvent) => {
+      events.push(e);
+      if (fail) throw new Error('docker pull failed');
+    });
+    await stream.poll(flaky); // неудача
+    fail = false;
+    await stream.poll(flaky); // удача
+    expect(events.filter((e) => e.kind === 'subscription-activated')).toHaveLength(2);
+    await stream.poll(flaky); // установлено — повторной активации нет
+    expect(events.filter((e) => e.kind === 'subscription-activated')).toHaveLength(2);
+  });
+
+  // Подписку отменили, пока оркестратор был выключен: после старта он не
+  // знает про неё, а контейнер приложения работает дальше (25.11.2026).
+  it('happy: приложение стоит на узле без действующей подписки — первый опрос даёт subscription-expired', async () => {
+    active.length = 0;
+    const { stream, events, handler } = build(1, async () => ['@voskhod/orphan']);
+    await stream.poll(handler);
+    expect(events).toEqual([
+      expect.objectContaining({ kind: 'subscription-expired', packageId: '@voskhod/orphan' }),
+    ]);
+  });
+
+  it('break: приложение стоит и подписка действует — первый опрос его не снимает, а активирует как обычно', async () => {
+    const { stream, events, handler } = build(1, async () => [PKG]);
+    await stream.poll(handler);
+    expect(events.map((e) => e.kind)).toEqual(['subscription-activated']);
+  });
+
+  it('break: список установленного читается только первым опросом — позже установленное вручную не снимается', async () => {
+    let installed: string[] = [];
+    const { stream, events, handler } = build(1, async () => installed);
+    await stream.poll(handler);
+    installed = ['@voskhod/later'];
+    await stream.poll(handler);
+    expect(events.filter((e) => e.kind === 'subscription-expired')).toHaveLength(0);
   });
 
   it('happy: новая версия у действующей подписки — release-published; первое наблюдение версии события не даёт', async () => {

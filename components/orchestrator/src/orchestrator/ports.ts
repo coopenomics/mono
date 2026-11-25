@@ -38,9 +38,20 @@ export interface DockerRunnerPort {
     name: string;
     network?: string;
     env?: Record<string, string>;
+    /** Метки контейнера: по ним оркестратор находит контейнеры приложений. */
+    labels?: Record<string, string>;
   }): Promise<void>;
+  /** Значения метки у всех контейнеров, где она стоит (работающих и остановленных). */
+  listLabelValues(label: string): Promise<string[]>;
   /** Снять контейнер расширения (rollback/uninstall). Idempotent. */
   removeContainer(name: string): Promise<void>;
+  /**
+   * Состояние контейнера расширения: работает ли он и из какого образа
+   * создан. `null` — контейнера с таким именем нет. По нему установка
+   * решает, трогать ли контейнер: здоровое приложение на нужном образе
+   * пересоздавать незачем.
+   */
+  containerState(name: string): Promise<{ running: boolean; imageRef: string } | null>;
 }
 
 export const DOCKER_RUNNER = Symbol('DockerRunnerPort');

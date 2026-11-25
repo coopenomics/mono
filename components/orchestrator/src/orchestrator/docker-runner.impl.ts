@@ -79,6 +79,7 @@ export class ShellDockerRunner implements DockerRunnerPort {
     name: string;
     network?: string;
     env?: Record<string, string>;
+    labels?: Record<string, string>;
   }): Promise<void> {
     // Замещаем существующий контейнер с тем же именем: это и retry после
     // падения, и обновление версии одним и тем же путём.
@@ -90,6 +91,9 @@ export class ShellDockerRunner implements DockerRunnerPort {
     for (const [key, value] of Object.entries(opts.env ?? {})) {
       args.push('-e', `${key}=${value}`);
     }
+    for (const [key, value] of Object.entries(opts.labels ?? {})) {
+      args.push('--label', `${key}=${value}`);
+    }
     args.push(opts.imageRef);
     this.logger.log(`docker run -d --name ${opts.name} ${opts.imageRef}`);
     await this.run('docker', args);
@@ -100,6 +104,35 @@ export class ShellDockerRunner implements DockerRunnerPort {
       await this.run('docker', ['rm', '-f', name]);
     } catch {
       // контейнера нет — нормальное состояние первого запуска
+    }
+  }
+
+  async listLabelValues(label: string): Promise<string[]> {
+    try {
+      const { stdout } = await execFileAsync(
+        'docker',
+        ['ps', '-a', '--filter', `label=${label}`, '--format', `{{.Label "${label}"}}`],
+        { timeout: DOCKER_TIMEOUT_MS },
+      );
+      return stdout.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    } catch (e) {
+      this.logger.warn(`docker ps по метке ${label} не удался: ${e instanceof Error ? e.message : String(e)}`);
+      return [];
+    }
+  }
+
+  async containerState(name: string): Promise<{ running: boolean; imageRef: string } | null> {
+    try {
+      const { stdout } = await execFileAsync(
+        'docker',
+        ['inspect', '--format', '{{.State.Running}}|{{.Config.Image}}', name],
+        { timeout: DOCKER_TIMEOUT_MS },
+      );
+      const [running, imageRef] = stdout.trim().split('|');
+      return { running: running === 'true', imageRef: imageRef ?? '' };
+    } catch {
+      // docker inspect падает, когда контейнера нет — это и есть ответ.
+      return null;
     }
   }
 

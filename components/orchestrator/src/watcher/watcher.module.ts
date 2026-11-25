@@ -16,6 +16,7 @@ import { Module } from '@nestjs/common';
 import { FrontendCacheModule } from '../frontend-cache/frontend-cache.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { OrchestratorModule } from '../orchestrator/orchestrator.module';
+import { InstallOrchestratorService } from '../orchestrator/install-orchestrator.service';
 import { OnChainWatcherService, OnChainWatcherConfig } from './on-chain-watcher.service';
 import {
   APPS_CONTRACT_EVENT_STREAM,
@@ -66,8 +67,12 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
     },
     {
       provide: APPS_CONTRACT_EVENT_STREAM,
-      inject: [CatalogTenantToken, RELEASE_METADATA_PORT],
-      useFactory: (token: CatalogTenantToken, metadata: ReleaseMetadataPort): AppsContractEventStreamPort => {
+      inject: [CatalogTenantToken, RELEASE_METADATA_PORT, InstallOrchestratorService],
+      useFactory: (
+        token: CatalogTenantToken,
+        metadata: ReleaseMetadataPort,
+        orchestrator: InstallOrchestratorService,
+      ): AppsContractEventStreamPort => {
         const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
         if (!catalogDeliveryBaseUrl || !(metadata instanceof CatalogDeliveryReleaseMetadata)) {
           return new NoopEventStream();
@@ -78,6 +83,7 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
             coopname: loadAppConfig().coopname,
             pollIntervalMs: Number(process.env.WATCHER_POLL_INTERVAL_MS ?? 15000),
             releasePollEvery: Number(process.env.WATCHER_RELEASE_POLL_EVERY ?? 20),
+            installedPackages: () => orchestrator.installedPackages(),
           },
           token,
           metadata,

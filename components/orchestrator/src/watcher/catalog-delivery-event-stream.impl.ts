@@ -36,6 +36,13 @@ export interface CatalogDeliveryEventStreamConfig {
   pollIntervalMs: number;
   /** Версии выпусков проверяются раз в столько опросов подписок. */
   releasePollEvery: number;
+  /**
+   * Пакеты, которые уже стоят на узле к моменту старта. Первый опрос сверяет
+   * их с действующими подписками: установленное без подписки снимается.
+   * Без этого приложение, отписанное пока оркестратор был выключен, работало
+   * бы на узле без срока.
+   */
+  installedPackages?: () => Promise<string[]>;
 }
 
 interface ActiveSubscriptionWire {
@@ -44,10 +51,19 @@ interface ActiveSubscriptionWire {
   end_at: string;
 }
 
+/** Потолок паузы между попытками установки одного пакета. */
+const RETRY_MAX_MS = 10 * 60_000;
+
 export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
   private readonly logger = new Logger(CatalogDeliveryEventStream.name);
   private knownSubs = new Set<string>();
   private knownVersions = new Map<string, string>();
+  /**
+   * Неудачные установки: сколько раз подряд упала и когда пробовать снова.
+   * Первая неудача повторяется следующим опросом, дальше пауза удваивается
+   * до RETRY_MAX_MS: сломанный образ не должен дёргать реестр каждый опрос.
+   */
+  private failedInstalls = new Map<string, { count: number; retryAt: number }>();
   private initialised = false;
   private polls = 0;
 
@@ -87,11 +103,25 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
   /** @internal exposed для юнит-тестов. */
   async poll(handler: (e: AppsContractEvent) => Promise<void>): Promise<void> {
     const live = await this.fetchLive();
+    if (!this.initialised && this.cfg.installedPackages !== undefined) {
+      for (const packageId of await this.cfg.installedPackages()) {
+        // Установленное без подписки ниже получит subscription-expired.
+        if (!live.has(packageId)) this.knownSubs.add(packageId);
+      }
+    }
     const events: AppsContractEvent[] = [];
     const activation = new Map<AppsContractEvent, string>();
 
+    const now = Date.now();
+    const postponed = new Set<string>();
     for (const [packageId, endAtUnix] of live) {
       if (this.knownSubs.has(packageId)) continue;
+      const failed = this.failedInstalls.get(packageId);
+      if (failed !== undefined && failed.retryAt > now) {
+        // Пауза после неудачи ещё идёт: подписку не считаем установленной.
+        postponed.add(packageId);
+        continue;
+      }
       const e: AppsContractEvent = {
         kind: 'subscription-activated',
         coopname: this.cfg.coopname,
@@ -108,7 +138,11 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
         this.knownVersions.delete(packageId);
       }
     }
-    this.knownSubs = new Set(live.keys());
+    this.knownSubs = new Set([...live.keys()].filter((id) => !postponed.has(id)));
+    for (const packageId of this.failedInstalls.keys()) {
+      // Подписка пропала — устанавливать нечего, счётчик неудач не нужен.
+      if (!live.has(packageId)) this.failedInstalls.delete(packageId);
+    }
 
     if (this.initialised && this.polls % this.cfg.releasePollEvery === 0) {
       events.push(...(await this.releaseEvents(live)));
@@ -117,14 +151,20 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
     this.initialised = true;
 
     for (const e of events) {
+      const packageId = activation.get(e);
       try {
         await handler(e);
+        if (packageId !== undefined) this.failedInstalls.delete(packageId);
       } catch (err) {
         this.logger.error(
           `handler failed on ${e.kind} ${'packageId' in e ? e.packageId : ''}: ${err instanceof Error ? err.message : String(err)}`,
         );
-        const packageId = activation.get(e);
-        if (packageId !== undefined) this.knownSubs.delete(packageId);
+        if (packageId !== undefined) {
+          this.knownSubs.delete(packageId);
+          const count = (this.failedInstalls.get(packageId)?.count ?? 0) + 1;
+          const delay = count <= 1 ? 0 : Math.min(this.cfg.pollIntervalMs * 2 ** (count - 1), RETRY_MAX_MS);
+          this.failedInstalls.set(packageId, { count, retryAt: Date.now() + delay });
+        }
       }
     }
   }

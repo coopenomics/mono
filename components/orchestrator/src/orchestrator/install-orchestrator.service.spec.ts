@@ -12,6 +12,7 @@
  *  6. registry write error → failed + rollback composeDown.
  */
 import {
+  extensionContainerName,
   InstallOrchestratorService,
   InstallExtensionInput,
 } from './install-orchestrator.service';
@@ -40,20 +41,36 @@ class FakeDockerRunner implements DockerRunnerPort {
   async composeDown(opts: { composeFile: string; serviceName: string }): Promise<void> {
     this.downs.push(opts);
   }
-  runs: Array<{ imageRef: string; name: string; network?: string; env?: Record<string, string> }> = [];
+  runs: Array<{
+    imageRef: string;
+    name: string;
+    network?: string;
+    env?: Record<string, string>;
+    labels?: Record<string, string>;
+  }> = [];
   removed: string[] = [];
   runError?: Error;
+  /** Что «уже стоит» на узле: имя контейнера → состояние. */
+  states = new Map<string, { running: boolean; imageRef: string }>();
+  labelValues: string[] = [];
   async runContainer(opts: {
     imageRef: string;
     name: string;
     network?: string;
     env?: Record<string, string>;
+    labels?: Record<string, string>;
   }): Promise<void> {
     this.runs.push(opts);
     if (this.runError) throw this.runError;
   }
   async removeContainer(name: string): Promise<void> {
     this.removed.push(name);
+  }
+  async containerState(name: string): Promise<{ running: boolean; imageRef: string } | null> {
+    return this.states.get(name) ?? null;
+  }
+  async listLabelValues(): Promise<string[]> {
+    return this.labelValues;
   }
 }
 
@@ -87,6 +104,10 @@ class FakeRegistryService {
   }
   async setHealthStatus(packageId: string, healthStatus: string): Promise<void> {
     this.healthSets.push({ packageId, healthStatus });
+  }
+  deactivated: string[] = [];
+  async deactivate(packageId: string): Promise<void> {
+    this.deactivated.push(packageId);
   }
 }
 
@@ -255,6 +276,7 @@ describe('InstallOrchestratorService', () => {
         name: 'ext-chatcoop',
         network: 'mono-net',
         env: { SUBGRAPH_PORT: '3001' },
+        labels: { 'coop.extension.package': '@coopenomics/chatcoop' },
       },
     ]);
 
@@ -263,5 +285,67 @@ describe('InstallOrchestratorService', () => {
     const failed = await h2.service.install(input);
     expect(failed.status).toBe('failed');
     expect(h2.docker.removed).toEqual(['ext-chatcoop']);
+  });
+
+  // Установку вызывает и первый опрос после перезапуска оркестратора. До
+  // 25.11.2026 каждый его перезапуск пересоздавал контейнеры всех приложений
+  // узла: они простаивали и теряли состояние в памяти.
+  describe('контейнер приложения уже стоит на узле', () => {
+    const input = {
+      ...baseInput,
+      imageRef: 'registry.local/coopenomics/chatcoop:1.0.0',
+      cooperativeJwt: 'jwt-of-voskhod',
+      coopname: 'voskhod',
+      containerName: 'ext-chatcoop',
+    };
+
+    it('break: работает на том же образе → docker run не зовётся, здоровье и реестр проверяются', async () => {
+      const h = buildHarness();
+      h.docker.states.set('ext-chatcoop', { running: true, imageRef: input.imageRef });
+      const result = await h.service.install(input);
+      expect(result.status).toBe('applied');
+      expect(h.docker.runs).toEqual([]);
+      expect(h.docker.removed).toEqual([]);
+      expect(h.health.calls).toHaveLength(1);
+      expect(h.registry.upserts).toHaveLength(1);
+    });
+
+    it('side: работает на другом образе (вышла новая версия) → контейнер заменяется', async () => {
+      const h = buildHarness();
+      h.docker.states.set('ext-chatcoop', { running: true, imageRef: 'registry.local/coopenomics/chatcoop:0.9.0' });
+      await h.service.install(input);
+      expect(h.docker.runs.map((r) => r.imageRef)).toEqual([input.imageRef]);
+    });
+
+    it('side: контейнер есть, но остановлен → запускается заново', async () => {
+      const h = buildHarness();
+      h.docker.states.set('ext-chatcoop', { running: false, imageRef: input.imageRef });
+      await h.service.install(input);
+      expect(h.docker.runs).toHaveLength(1);
+    });
+  });
+
+  // До 25.11.2026 снятие только выключало запись реестра: контейнер
+  // отписавшегося приложения работал дальше и держал память узла.
+  describe('uninstall', () => {
+    it('happy: запись реестра выключена, контейнер пакета снят', async () => {
+      const h = buildHarness();
+      await h.service.uninstall('@voskhod/exampleapp');
+      expect(h.registry.deactivated).toEqual(['@voskhod/exampleapp']);
+      expect(h.docker.removed).toEqual(['ext-exampleapp']);
+    });
+
+    it('side: имя контейнера при снятии совпадает с именем при установке', () => {
+      expect(extensionContainerName('@voskhod/exampleapp')).toBe('ext-exampleapp');
+      // Символы вне [a-zA-Z0-9_.-] заменяются дефисом: имя годится для docker.
+      expect(extensionContainerName('@coop/стол заказов')).toBe(`ext-${'-'.repeat(12)}`);
+      expect(extensionContainerName('plain')).toBe('ext-plain');
+    });
+
+    it('happy: installedPackages отдаёт пакеты по метке контейнеров', async () => {
+      const h = buildHarness();
+      h.docker.labelValues = ['@voskhod/exampleapp'];
+      expect(await h.service.installedPackages()).toEqual(['@voskhod/exampleapp']);
+    });
   });
 });

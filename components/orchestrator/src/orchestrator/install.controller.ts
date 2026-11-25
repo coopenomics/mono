@@ -15,7 +15,6 @@ import {
   InstallExtensionInput,
   InstallOutcome,
 } from './install-orchestrator.service';
-import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
 import { SupergraphRefreshService } from '../gateway/supergraph-refresh.service';
 
 interface UninstallResult {
@@ -27,7 +26,6 @@ interface UninstallResult {
 export class InstallController {
   constructor(
     private readonly orchestrator: InstallOrchestratorService,
-    private readonly registry: SubgraphRegistryService,
     private readonly refresh: SupergraphRefreshService,
   ) {}
 
@@ -42,7 +40,7 @@ export class InstallController {
 
   @Delete('uninstall/:packageId')
   async uninstall(@Param('packageId') packageId: string): Promise<UninstallResult> {
-    await this.registry.deactivate(packageId);
+    await this.orchestrator.uninstall(packageId);
     await this.refresh.trigger();
     return { ok: true, deactivated: packageId };
   }

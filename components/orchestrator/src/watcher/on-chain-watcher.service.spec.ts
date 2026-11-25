@@ -82,6 +82,10 @@ class FakeOrchestrator {
     this.calls.push(input);
     return { ...this.outcome, packageId: input.packageId };
   }
+  uninstalled: string[] = [];
+  async uninstall(packageId: string): Promise<void> {
+    this.uninstalled.push(packageId);
+  }
 }
 
 class FakeRegistryService {
@@ -262,7 +266,10 @@ describe('OnChainWatcherService', () => {
   });
 
   describe('subscription-expired', () => {
-    it('для нашего coop → registry.deactivate', async () => {
+    // Снятие идёт через uninstall установщика: он выключает запись реестра
+    // И удаляет контейнер. Прямой registry.deactivate оставлял контейнер
+    // отписавшегося приложения работать (25.11.2026).
+    it('для нашего coop → uninstall установщика и фронт убран из кэша', async () => {
       const h = buildHarness();
       await h.watcher.handle({
         kind: 'subscription-expired',
@@ -270,7 +277,8 @@ describe('OnChainWatcherService', () => {
         packageId: PACKAGE_ID,
         blockNum: 400,
       });
-      expect(h.registry.deactivated).toEqual([PACKAGE_ID]);
+      expect(h.orchestrator.uninstalled).toEqual([PACKAGE_ID]);
+      expect(h.frontendCache.evicted).toEqual([PACKAGE_ID]);
     });
 
     it('для чужого coop → ignore', async () => {
@@ -281,7 +289,27 @@ describe('OnChainWatcherService', () => {
         packageId: PACKAGE_ID,
         blockNum: 401,
       });
-      expect(h.registry.deactivated).toEqual([]);
+      expect(h.orchestrator.uninstalled).toEqual([]);
+    });
+  });
+
+  // Поток событий повторяет установку, только если обработчик бросил
+  // исключение. Раньше неудача установки лишь писалась в лог: сбой сети при
+  // первом docker pull оставлял приложение неустановленным до перезапуска.
+  describe('неудачная установка', () => {
+    it('break: install вернул failed → обработчик бросает исключение с причиной', async () => {
+      const h = buildHarness();
+      h.metadata.setSpec(PACKAGE_ID, '', SPEC);
+      h.orchestrator.outcome = { status: 'failed', packageId: '', reason: 'docker-pull', error: 'unauthorized' };
+      await expect(
+        h.watcher.handle({
+          kind: 'subscription-activated',
+          coopname: 'voskhod',
+          packageId: PACKAGE_ID,
+          expiresAtUnix: 0,
+          blockNum: 300,
+        }),
+      ).rejects.toThrow(/docker-pull/);
     });
   });
 

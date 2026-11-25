@@ -165,7 +165,8 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
     e: Extract<AppsContractEvent, { kind: 'subscription-expired' }>,
   ): Promise<void> {
     if (e.coopname !== this.cfg.coopname) return;
-    await this.registry.deactivate(e.packageId);
+    // Запись реестра выключается, контейнер приложения снимается.
+    await this.orchestrator.uninstall(e.packageId);
     // E12-2: подписка кончилась — фронт убирается из кэша, desktop
     // перестаёт получать install.js этого пакета.
     await this.frontendCache.evict(e.packageId);
@@ -213,6 +214,11 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       this.logger.error(
         `install via watcher failed: ${packageId}@${version} reason=${result.reason} ${result.error}`,
       );
+      // О неудаче сообщаем исключением: поток событий по нему понимает, что
+      // подписка не установлена, и повторяет установку позже. Без этого
+      // сбой сети при первом docker pull оставлял приложение неустановленным
+      // до перезапуска оркестратора (найдено 25.11.2026 на exampleapp).
+      throw new Error(`установка ${packageId} не удалась (${result.reason}): ${result.error}`);
     }
   }
 }

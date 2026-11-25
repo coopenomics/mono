@@ -18,6 +18,7 @@
  */
 import { Logger } from '@nestjs/common';
 import type { FrontendManifestVerifierPort } from '../frontend-cache/ports';
+import { extensionContainerName } from '../orchestrator/install-orchestrator.service';
 import type { ReleaseInstallSpec, ReleaseMetadataPort } from './ports';
 import type { CatalogTenantToken } from './catalog-tenant-token';
 import type { LatestVersionPort } from './catalog-delivery-event-stream.impl';
@@ -105,7 +106,7 @@ export class CatalogDeliveryReleaseMetadata
     }
 
     const port = backend.subgraphPort ?? 3001;
-    const containerName = `ext-${coords.name}`.replace(/[^a-zA-Z0-9_.-]/g, '-');
+    const containerName = extensionContainerName(opts.packageId);
     const healthPath = backend.healthcheck ?? '/_health';
 
     return {

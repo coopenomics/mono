@@ -101,6 +101,23 @@ export function deriveHealthUrl(subgraphUrl: string): string {
   }
 }
 
+/**
+ * Имя контейнера расширения по пакету каталога: `@voskhod/exampleapp` →
+ * `ext-exampleapp`. Одна функция на установку и снятие: снятие обязано
+ * найти ровно тот контейнер, который поставила установка.
+ */
+export function extensionContainerName(packageId: string): string {
+  const name = packageId.includes('/') ? packageId.slice(packageId.indexOf('/') + 1) : packageId;
+  return `ext-${name}`.replace(/[^a-zA-Z0-9_.-]/g, '-');
+}
+
+/**
+ * Метка контейнера приложения каталога, значение — пакет (`@scope/name`).
+ * По ней оркестратор после перезапуска узнаёт, какие приложения стоят на
+ * узле, и снимает те, у которых подписки больше нет.
+ */
+export const EXTENSION_PACKAGE_LABEL = 'coop.extension.package';
+
 export type InstallOutcome =
   | { status: 'applied'; packageId: string; healthAfterMs: number }
   | { status: 'failed'; packageId: string; reason: InstallFailureReason; error: string };
@@ -169,11 +186,19 @@ export class InstallOrchestratorService {
       }
     } else if (input.containerName !== undefined && input.imageRef !== undefined) {
       try {
-        await this.docker.runContainer({
+        // Контейнер уже работает на этом образе — не трогаем его. Установку
+        // вызывает и первый опрос после перезапуска оркестратора: без этой
+        // проверки каждый его перезапуск пересоздавал все приложения узла,
+        // и они теряли состояние в памяти и простаивали (25.11.2026).
+        const state = await this.docker.containerState(input.containerName);
+        if (state?.running === true && state.imageRef === input.imageRef) {
+          this.logger.log(`контейнер ${input.containerName} уже работает на ${input.imageRef} — оставляем`);
+        } else await this.docker.runContainer({
           imageRef: input.imageRef,
           name: input.containerName,
           network: input.containerNetwork,
           env: input.containerEnv,
+          labels: { [EXTENSION_PACKAGE_LABEL]: input.packageId },
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -205,6 +230,24 @@ export class InstallOrchestratorService {
 
     this.logger.log(`install applied: ${input.packageId}@${input.version} (health ${health.elapsedMs}ms)`);
     return { status: 'applied', packageId: input.packageId, healthAfterMs: health.elapsedMs };
+  }
+
+  /**
+   * Снять расширение с узла: запись реестра выключается (шлюз убирает его
+   * схему), контейнер останавливается и удаляется. До 25.11.2026 снятие
+   * только выключало запись — контейнер отписавшегося приложения работал
+   * дальше и держал память узла.
+   */
+  async uninstall(packageId: string): Promise<void> {
+    await this.registry.deactivate(packageId);
+    const container = extensionContainerName(packageId);
+    await this.docker.removeContainer(container);
+    this.logger.log(`uninstall: ${packageId} — запись выключена, контейнер ${container} снят`);
+  }
+
+  /** Пакеты, чьи контейнеры стоят на узле (по метке {@link EXTENSION_PACKAGE_LABEL}). */
+  installedPackages(): Promise<string[]> {
+    return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL);
   }
 
   private async rollbackComposeIfAny(input: InstallExtensionInput): Promise<void> {

@@ -11,7 +11,7 @@ title: Вход узла кооператива в каталог приложе
 # ни к одному действию: транзакцию этим ключом не подписать.
 #
 # Оркестратору ключ не отдаётся: ядро выпускает tenant JWT каталога и само
-# передаёт его оркестратору (раз в 10 минут, токен живёт 30). Оркестратор
+# передаёт его оркестратору (раз в минуту, токен живёт 30). Оркестратор
 # опрашивает catalog-delivery: действующие подписки → установка/снятие,
 # версии выпусков → обновление.
 #
@@ -22,11 +22,20 @@ title: Вход узла кооператива в каталог приложе
 # и состояние узла (включено/выключено, таблица apps_catalog_apps). Подписки
 # и кошелёк кооператива у оператора узел читает для показа: подписки — у
 # провайдера, остаток — из цепи по области оператора.
+#
+# Правка 25.11.2026 (487-31): контейнерное приложение (@voskhod/exampleapp)
+# впервые установлено и снято на стенде 4 целиком. Найдено и исправлено в оркестраторе:
+# неудачная установка не повторялась (обработчик не бросал исключение);
+# снятие подписки оставляло контейнер работать; перезапуск оркестратора
+# пересоздавал контейнеры всех приложений; приложение, отписанное при
+# выключенном оркестраторе, работало без срока; после перезапуска оркестратор
+# ждал токен каталога до 10 минут (теперь ядро передаёт его раз в минуту).
 sources:
   backend:
     - components/controller/src/application/auth-v2/certificate/catalog-key.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/apps-catalog-http.service.ts
     - components/orchestrator/src/watcher/**
+    - components/orchestrator/src/orchestrator/**
     - components/controller/src/application/provider/dto/provider-app.dto.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/node-apps.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/catalog-apps-state.service.ts
@@ -214,3 +223,60 @@ cases:
     test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
     status: written
     api: components/boot/src/tests/catalog-apps-two-coop.test.ts
+
+  # ── 25.11.2026 (487-31): жизненный цикл контейнера приложения ───────────
+  - id: apps.access.break.10
+    level: backend
+    kind: break
+    scenario: >
+      Установка приложения по подписке не удалась (docker pull, проверка здоровья).
+    expect: >
+      обработчик события бросает исключение с причиной; поток событий не считает
+      подписку установленной и повторяет установку
+    test: components/orchestrator/src/watcher/on-chain-watcher.service.spec.ts
+    status: written
+
+  - id: apps.access.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Установка одного пакета падает несколько раз подряд.
+    expect: >
+      первая неудача повторяется следующим опросом, дальше пауза удваивается до 10 минут;
+      после удачи счётчик сброшен; отложенная подписка при отмене не даёт события снятия
+    test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
+    status: written
+
+  - id: apps.access.break.11
+    level: backend
+    kind: break
+    scenario: >
+      Оркестратор перезапущен, контейнер приложения работает на образе действующего выпуска.
+    expect: >
+      docker run не вызывается, контейнер остаётся прежним; проверяются здоровье и запись реестра;
+      другой образ или остановленный контейнер — контейнер заменяется
+    test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
+    status: written
+
+  - id: apps.access.happy.10
+    level: backend
+    kind: happy
+    scenario: >
+      Подписка на приложение отменена или истекла.
+    expect: >
+      запись реестра выключена, контейнер приложения остановлен и удалён, фронт убран из кэша;
+      имя контейнера при снятии то же, что при установке
+    test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
+    status: written
+
+  - id: apps.access.happy.11
+    level: backend
+    kind: happy
+    scenario: >
+      Подписку отменили, пока оркестратор был выключен; он запускается.
+    expect: >
+      первый опрос сверяет контейнеры с меткой coop.extension.package с действующими
+      подписками и снимает приложение без подписки; приложение с подпиской не снимается;
+      список установленного читается только первым опросом
+    test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
+    status: written
