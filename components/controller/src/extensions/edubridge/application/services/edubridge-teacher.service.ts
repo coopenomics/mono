@@ -1268,8 +1268,8 @@ export class EdubridgeTeacherService {
   /**
    * Совет принял решение (`edubridge::onridauth` из `soviet::exec`): протокол
    * 3009 подписан председателем и пришёл с действием. Он и есть документ
-   * решения — им закрываются приём (`acceptrid`) и отказ (`declinerid`).
-   * Дальше ждём акт преподавателя.
+   * решения — им закрывается приём (`acceptrid`). Дальше ждём акт
+   * преподавателя.
    */
   async onCouncilApproved(coopname: string, ridHash: string, authorization: ISignedDocument | undefined): Promise<void> {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());

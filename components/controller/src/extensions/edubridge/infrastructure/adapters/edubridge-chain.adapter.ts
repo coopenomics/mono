@@ -232,11 +232,6 @@ async declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline)
     );
   }
 
-  async declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult> {
-    await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Declinerid.actionName, data as unknown as Record<string, unknown>, data.coopname));
-  }
-
   async terminateContract(data: EdubridgeContract.Actions.Termcontract.ITermcontract): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Termcontract.actionName, data as unknown as Record<string, unknown>, data.coopname));

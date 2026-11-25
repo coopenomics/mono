@@ -249,12 +249,6 @@ export interface IAcceptrid {
   act: IDocument2
 }
 
-export interface IDeclinerid {
-  coopname: IName
-  rid_hash: IChecksum256
-  decision: IDocument2
-}
-
 /** Взнос не принят: материалы возвращаются преподавателю на доработку, запись материалов остаётся. */
 export interface IReturnrid {
   coopname: IName
@@ -267,13 +261,6 @@ export interface IRecallrid {
   coopname: IName
   rid_hash: IChecksum256
   reason: string
-}
-
-/** Прежний путь отказа совета: отмена расчёта занятия в названных подписках. */
-export interface IRefundlesson {
-  coopname: IName
-  rid_hash: IChecksum256
-  subs: IChecksum256[]
 }
 
 export interface IOnRidAuth {
@@ -480,8 +467,9 @@ export interface IEduLesson {
 }
 
 /**
- * edurids (scope = coopname) — заявления о взносе РИД в ожидании решения;
- * acceptrid / declinerid стирают запись.
+ * edurids (scope = coopname) — материалы преподавателя от приёма на хранение
+ * до приёма результата либо закрытия расчёта без приёма; acceptrid / recallrid
+ * стирают запись.
  */
 export interface IEduRid {
   id: IUint64

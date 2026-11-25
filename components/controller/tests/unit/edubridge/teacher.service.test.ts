@@ -95,7 +95,7 @@ function make(
   const lessonOpen = { current: false };
   const chain = {
     holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})), returnRid: jest.fn(async () => ({})),
-    submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})), signRidAct: jest.fn(async () => ({})),
+    submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), signRidAct: jest.fn(async () => ({})),
     signContract: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
     withdrawShare: jest.fn(async () => ({})),
     // Расчёт занятия ведёт контракт: число участников и сумму приложение читает из записи занятия.
@@ -474,7 +474,6 @@ describe('EdubridgeTeacherService', () => {
       rid_hash: c.rid_hash,
       reason: 'взнос не принят, материалы возвращены на доработку: Акт расходится с материалами',
     });
-    expect(chain.declineRid).not.toHaveBeenCalled();
     expect(chain.recallRid).not.toHaveBeenCalled();
   });
 
@@ -499,9 +498,8 @@ describe('EdubridgeTeacherService', () => {
     expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
     expect(c.decline_reason).toBe('Материал не соответствует программе');
     expect(c.amount).toBe('1000.0000 RUB');
-    // Отрицательного протокола у совета не бывает: собирать его не из чего, declinerid не зовётся.
+    // Отрицательного протокола у совета не бывает: собирать его не из чего.
     expect(documents.generate).not.toHaveBeenCalled();
-    expect(chain.declineRid).not.toHaveBeenCalled();
     expect(chain.returnRid).toHaveBeenCalledWith({
       coopname: 'voskhod',
       rid_hash: c.rid_hash,

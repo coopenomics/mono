@@ -204,7 +204,7 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   //   - `edusubs.sub_hash` — подписка на курс (конвертация членского взноса
   //     o.edu.conv + opensub/extendsub; запись стирается на expiresub).
   //   - `edurids.rid_hash` — заявление преподавателя о паевом взносе РИД
-  //     (живёт до решения совета; acceptrid/declinerid стирают запись).
+  //     (живёт до приёма либо закрытия расчёта без приёма; acceptrid/recallrid стирают запись).
   'p.edu.access': [{ code: 'edubridge', table: 'edusubs', field: 'sub_hash' }],
   'p.edu.rid':    [{ code: 'edubridge', table: 'edurids', field: 'rid_hash' }],
   //   - `educontracts.contract_hash` — договор УХД преподавателя.

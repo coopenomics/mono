@@ -49,6 +49,10 @@ title: Имя нитки процесса ledger2
 # Имена процессов и операций не менялись, набор случаев прежний; поиск
 # покрыт test-registry/meet.assembly-form.yaml.
 
+# Правка 25.11.2026 (487-28): в локаторе хэша процесса исправлен комментарий к
+# p.edu.rid — запись материалов стирают acceptrid и recallrid (действия
+# declinerid в контракте больше нет). Код и случаи фичи не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/ledger2/processes.hpp

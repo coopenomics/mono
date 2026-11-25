@@ -39,7 +39,7 @@ using namespace Edubridge;
  *    фонда через общее шасси расходов.
  *  - **p.edu.rid** (16 actions): openlesson, chargelesson, closecharge, droplesson,
  *    holdrid, submitrid, onridauth, onriddecl, signridact, apprvridact,
- *    dclridact, acceptrid, declinerid, returnrid, recallrid, refundlesson,
+ *    dclridact, acceptrid, returnrid, recallrid,
  *    wthshare — преподаватель отчитывается по занятию, контракт по одной
  *    подписке за действие считает его взнос (оплата занятия уходит из
  *    резерва подписки), и преподаватель передаёт материалы на
@@ -409,15 +409,6 @@ public:
                                    document2 act);
 
   /**
-   * @brief Отказ совета в приёме РИД по Протоколу (3009). Материалы снимаются
-   * с ответственного хранения (o.edu.retrid, Дт 76 / Кт 08), запись стирается.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void declinerid(eosio::name coopname,
-                                    checksum256 rid_hash,
-                                    document2 decision);
-
-  /**
    * @brief Взнос не принят — материалы возвращаются преподавателю на
    * доработку (o.edu.retrid, Дт 76 / Кт 08). Один путь для отказа совета,
    * истёкшего срока вопроса и отказа председателя в подписи акта. Запись
@@ -439,18 +430,6 @@ public:
   [[eosio::action]] void recallrid(eosio::name coopname,
                                    checksum256 rid_hash,
                                    std::string reason);
-
-  /**
-   * @brief Прежний путь отказа совета: отмена расчёта занятия в названных
-   * подписках и освобождение его номера. Приложение его больше не вызывает —
-   * отказ идёт действием `returnrid`, подписки участников не затрагиваются
-   * (решение владельца 25.11.2026). Оставлено на один выпуск: контракты
-   * раскатываются раньше приложения, и прежнее приложение зовёт это действие.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void refundlesson(eosio::name coopname,
-                                       checksum256 rid_hash,
-                                       std::vector<checksum256> subs);
 
   /**
    * @brief Трансляция паевого взноса преподавателя из ЦПП «Образование» в

@@ -118,8 +118,8 @@ void edubridge::holdrid(eosio::name coopname,
     assignment_id = lesson->assignment_id;
     course_id     = lesson->course_id;
     held_at       = lesson->held_at;
-    // Запись занятия стирается — её номер, минуты и цены переходят в
-    // запись материалов (их читает прежнее действие refundlesson).
+    // Запись занятия стирается — её номер, минуты и цены на момент расчёта
+    // остаются в записи материалов.
     lesson_info.number  = lesson->number;
     lesson_info.minutes = lesson->minutes;
     lesson_info.cost    = lesson->cost;

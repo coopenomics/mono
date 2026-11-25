@@ -68,11 +68,6 @@ export * as DclRidAct from './dclRidAct'
 export * as Acceptrid from './acceptrid'
 
 /**
- * Отказ в приёме РИД по решению совета.
- */
-export * as Declinerid from './declinerid'
-
-/**
  * Взнос не принят — материалы возвращаются преподавателю на доработку: o.edu.retrid.
  */
 export * as Returnrid from './returnrid'
@@ -81,11 +76,6 @@ export * as Returnrid from './returnrid'
  * Расчёт по материалам закрывается без приёма: o.edu.retrid, взнос преподавателя из резерва — на кошелёк программы (o.edu.free).
  */
 export * as Recallrid from './recallrid'
-
-/**
- * Прежний путь отказа совета: отмена расчёта занятия в подписках. Приложение его не вызывает — отказ идёт через Returnrid.
- */
-export * as Refundlesson from './refundlesson'
 
 /**
  * Трансляция паевого взноса преподавателя в «Цифровой Кошелёк»: o.edu.wthshr.
