@@ -157,11 +157,12 @@ onMounted(async () => {
 
 <style scoped>
 .edu-course-edit {
-  padding: var(--p-6) var(--p-4);
+  padding: var(--p-6) var(--p-6);
 }
+/* Мастер — на всю ширину рабочей области: окна расписания, пары полей и
+   расчёт взноса встают в строку без тесноты (замечание владельца 25.11.2026). */
 .edu-course-edit__col {
-  max-width: 720px;
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
