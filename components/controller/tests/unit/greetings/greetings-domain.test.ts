@@ -9,6 +9,7 @@ import { chooseTemplate, isValidPeriod, mailingDateInMonth, mailingsDue } from '
 import { buildGreetingLetter, findUnknownVariables, findVariablesNotForKind, greetingValues } from '~/extensions/greetings/domain/greeting-letter';
 import { GreetingDeliveryState, GreetingTemplateKind, GreetingTemplateStatus } from '~/extensions/greetings/domain/greetings.enums';
 import { deliveryOf } from '~/extensions/greetings/domain/delivery';
+import { InnerNotifyDeliveryState } from '@coopenomics/innercoop';
 
 /**
  * Доменная часть приложения «Поздравления»: дата рождения, выбор шаблона на
@@ -181,11 +182,12 @@ describe('поздравления: письмо', () => {
 });
 
 describe('поздравления: доставка письма', () => {
+  const S = InnerNotifyDeliveryState;
   const rows = new Map([
-    ['e1', { outboxId: 'e1', channel: 'email', state: 'sent' }],
-    ['i1', { outboxId: 'i1', channel: 'in_app', state: 'failed' }],
-    ['e2', { outboxId: 'e2', channel: 'email', state: 'sending' }],
-    ['i2', { outboxId: 'i2', channel: 'in_app', state: 'canceled' }],
+    ['e1', { outboxId: 'e1', channel: 'email', state: S.SENT }],
+    ['i1', { outboxId: 'i1', channel: 'in_app', state: S.FAILED }],
+    ['e2', { outboxId: 'e2', channel: 'email', state: S.SENDING }],
+    ['i2', { outboxId: 'i2', channel: 'in_app', state: S.CANCELED }],
   ]);
 
   it('доставку считает по почте, не по уведомлению в интерфейсе', () => {

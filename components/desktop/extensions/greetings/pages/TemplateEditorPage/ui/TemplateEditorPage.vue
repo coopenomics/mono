@@ -21,7 +21,8 @@
               template(v-if='isMailing')
                 .col-12.col-sm-6
                   BaseInput(v-model='form.period_start' type='date' :label='$t("greetings.editor.sendDateLabel")' :readonly='!canManage')
-                .col-12.col-sm-6.flex.items-center
+                //- Поле даты держит место под подсказку снизу; флажок выравнивается по самому полю, а не по колонке.
+                .col-12.col-sm-6.greeting-editor__repeat
                   BaseCheckbox(v-model='form.repeat_yearly' :label='$t("greetings.editor.repeatYearly")' :disabled='!canManage')
               template(v-else)
                 .col-12.col-sm-6
@@ -403,6 +404,12 @@ useLiveReload([GREETINGS_LIVE.templates], async () => {
   font-size: var(--p-fs-eyebrow);
   color: var(--p-ink-3);
   margin-bottom: var(--p-2);
+}
+
+.greeting-editor__repeat {
+  display: flex;
+  align-items: flex-start;
+  padding-top: var(--p-4);
 }
 
 .greeting-editor__vars {

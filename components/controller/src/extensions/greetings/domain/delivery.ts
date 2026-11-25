@@ -1,18 +1,19 @@
-import { GreetingDeliveryState } from './greetings.enums';
+import { InnerNotifyDeliveryState } from '@coopenomics/innercoop';
+import { GreetingDeliveryChannel, GreetingDeliveryState } from './greetings.enums';
 
 /** Строка очереди уведомлений глазами приложения. */
 export interface DeliveryRow {
   outboxId: string;
   channel: string;
-  state: string;
+  state: InnerNotifyDeliveryState;
 }
 
-const STATE: Record<string, GreetingDeliveryState> = {
-  pending: GreetingDeliveryState.PENDING,
-  sending: GreetingDeliveryState.PENDING,
-  sent: GreetingDeliveryState.DELIVERED,
-  failed: GreetingDeliveryState.FAILED,
-  canceled: GreetingDeliveryState.FAILED,
+const STATE: Record<InnerNotifyDeliveryState, GreetingDeliveryState> = {
+  [InnerNotifyDeliveryState.PENDING]: GreetingDeliveryState.PENDING,
+  [InnerNotifyDeliveryState.SENDING]: GreetingDeliveryState.PENDING,
+  [InnerNotifyDeliveryState.SENT]: GreetingDeliveryState.DELIVERED,
+  [InnerNotifyDeliveryState.FAILED]: GreetingDeliveryState.FAILED,
+  [InnerNotifyDeliveryState.CANCELED]: GreetingDeliveryState.FAILED,
 };
 
 /**
@@ -22,6 +23,9 @@ const STATE: Record<string, GreetingDeliveryState> = {
  */
 export function deliveryOf(outboxIds: readonly string[], rows: ReadonlyMap<string, DeliveryRow>): GreetingDeliveryState | null {
   const own = outboxIds.map((id) => rows.get(id)).filter((row): row is DeliveryRow => Boolean(row));
-  const main = own.find((row) => row.channel === 'email') ?? own.find((row) => row.channel === 'in_app') ?? own[0];
+  const main =
+    own.find((row) => row.channel === GreetingDeliveryChannel.EMAIL) ??
+    own.find((row) => row.channel === GreetingDeliveryChannel.IN_APP) ??
+    own[0];
   return main ? (STATE[main.state] ?? null) : null;
 }

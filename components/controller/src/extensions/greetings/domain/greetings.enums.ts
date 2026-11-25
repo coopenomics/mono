@@ -34,6 +34,12 @@ export enum GreetingDeliveryState {
   FAILED = 'failed',
 }
 
+/** Канал строки очереди уведомлений, по которому считается доставка. */
+export enum GreetingDeliveryChannel {
+  EMAIL = 'email',
+  IN_APP = 'in_app',
+}
+
 /** Почему поздравление не отправлено. */
 export enum GreetingSkipReason {
   /** На дату нет действующего шаблона. */
