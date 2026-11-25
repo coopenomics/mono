@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 351.
+Всего экспортов: 353.
 
 ## ACCOUNT_PORT
 
@@ -135,6 +135,12 @@
 - `event_type: DecisionEventType`
 - `vars_field: string`
 - `metadata: Record<string, any>`
+
+## DECISION_DECLINE_REASON_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.DecisionDeclineReason')`
 
 ## DECISION_TRACKING_PORT
 
@@ -427,6 +433,12 @@
 - `ensureProgram(params: InnerEnsureProgramParams): Promise<InnerEnsureProgramResult>`
 - `cancelExpiredDecision(input: { coopname: string`
 - `decision_id: string | number }): Promise<InnerTransactResult>`
+
+## IDecisionDeclineReasonPort
+
+`interface` · core-ports
+
+- `getDeclineReason(coopname: string, decisionId: string | number): Promise<string | null>`
 
 ## IDecisionTrackingPort
 

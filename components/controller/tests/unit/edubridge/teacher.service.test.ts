@@ -500,6 +500,37 @@ describe('EdubridgeTeacherService', () => {
     expect(chain.recallRid).toHaveBeenCalledTimes(1);
   });
 
+  // Решение владельца 25.11.2026: председатель может пояснить отклонение своими
+  // словами; пояснение хранит ядро на узле, преподаватель видит его в отчёте.
+  it('отказ с пояснением председателя: в отчёте преподавателя — пояснение, а не основание из цепи', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    c.council_decision_id = '31';
+    const getDeclineReason = jest.fn(async () => 'Материалы занятия не раскрывают тему');
+    (service as any).declineReasons = { getDeclineReason };
+
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Отклонено советом: большинство голосов против');
+
+    expect(getDeclineReason).toHaveBeenCalledWith('voskhod', '31');
+    expect(c.decline_reason).toBe('Материалы занятия не раскрывают тему');
+    expect(chain.recallRid).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'совет не принял решение о приёме: Материалы занятия не раскрывают тему' })
+    );
+  });
+
+  it('отказ без пояснения председателя: в отчёте — основание из цепи', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    c.council_decision_id = '31';
+    (service as any).declineReasons = { getDeclineReason: jest.fn(async () => null) };
+
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Отклонено советом: большинство голосов против');
+
+    expect(c.decline_reason).toBe('Отклонено советом: большинство голосов против');
+  });
+
   it('снятие вопроса по сроку: исход «срок» помечен действием совета, обратный вызов закрывает взнос с основанием совета', async () => {
     const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);

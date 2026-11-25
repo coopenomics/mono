@@ -16,6 +16,10 @@ title: Платформа — назначаемые роли приложени
 # что и reportsProcess. Права и роли не менялись; случаи слайса без изменений
 # (слайс содержания — reports.process-content).
 
+# Правка 25.11.2026 (487-28): в мосту innercoop добавлена привязка порта
+# DECISION_DECLINE_REASON_PORT (пояснение председателя к отклонению решения
+# совета); роли и права не менялись.
+
 sources:
   backend:
     - components/controller/src/application/access-roles/**

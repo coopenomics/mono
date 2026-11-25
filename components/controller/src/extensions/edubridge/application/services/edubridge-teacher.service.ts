@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { Registry, UdataKey } from '@coopenomics/docs-templates';
@@ -21,6 +21,8 @@ import {
   type IUserDataPort,
   type IUserWalletPort,
   type IWalletWithdrawPort,
+  DECISION_DECLINE_REASON_PORT,
+  type IDecisionDeclineReasonPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduEnrollmentStatus, EduGroupStatus, EduLessonStatus, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
 import { expectedLessonAmount } from '../../domain/lib/lesson-charge';
@@ -148,7 +150,12 @@ export class EdubridgeTeacherService {
     @Inject(WALLET_WITHDRAW_PORT) private readonly walletWithdraw: IWalletWithdrawPort,
     private readonly chainTerms: EdubridgeChainTermsService,
     private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
-    private readonly groups: EdubridgeGroupService
+    private readonly groups: EdubridgeGroupService,
+    // Пояснение председателя к отклонению решения — хранит ядро; без порта
+    // в отказе остаётся основание из цепи
+    @Optional()
+    @Inject(DECISION_DECLINE_REASON_PORT)
+    private readonly declineReasons: IDecisionDeclineReasonPort | null = null
   ) {
     this.logger.setContext(EdubridgeTeacherService.name);
   }
@@ -1289,7 +1296,12 @@ export class EdubridgeTeacherService {
   async onCouncilDeclinedByHash(coopname: string, ridHash: string, reason: string): Promise<void> {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
     if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.SUBMITTED) return;
-    const basis = reason.trim() || t('edubridge.teacher.councilDeclinedReason');
+    // Председатель пояснил отказ — преподаватель видит его слова; нет —
+    // основание из цепи («большинство голосов против», «истёк срок»).
+    const explained = c.council_decision_id
+      ? ((await this.declineReasons?.getDeclineReason(coopname, c.council_decision_id))?.trim() ?? '')
+      : '';
+    const basis = explained || reason.trim() || t('edubridge.teacher.councilDeclinedReason');
     await this.returnLessonPayment(coopname, c);
     await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: basis }) } as never);
     c.council_outcome = c.council_outcome ?? EduCouncilOutcome.DECLINED;

@@ -1135,6 +1135,14 @@ export interface CooperativeCharters {
   username: string;
 }
 
+export interface DecisionDeclineReasons {
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  decision_id: Int8;
+  declined_by: string | null;
+  reason: string;
+}
+
 export interface DraftTemplates {
   block_num: Int8;
   created_at: Generated<Timestamp>;
@@ -3106,6 +3114,7 @@ export interface DB {
   chatcoop_transcription_segments: ChatcoopTranscriptionSegments;
   consumer_dedup: ConsumerDedup;
   cooperative_charters: CooperativeCharters;
+  decision_decline_reasons: DecisionDeclineReasons;
   draft_templates: DraftTemplates;
   draft_translations: DraftTranslations;
   edubridge_access_tasks: EdubridgeAccessTasks;

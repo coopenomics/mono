@@ -200,7 +200,7 @@ export function useDecisionProcessor() {
    * (отрицательный консенсус). Проводит контроллер ключом кооператива; контракт
    * проверяет порог «против». Развязано с авто-отменой по сроку (cancelexprd).
    */
-  async function declineDecision(row: IAgenda) {
+  async function declineDecision(row: IAgenda, reason = '') {
     if (!row.table) {
       throw new Error(t('decision.error.tableMissing'));
     }
@@ -217,6 +217,7 @@ export function useDecisionProcessor() {
     await declineDecisionApi.declineDecision({
       coopname: info.coopname,
       decision_id,
+      ...(reason.trim() ? { reason: reason.trim() } : {}),
     });
 
     return true;

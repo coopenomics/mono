@@ -30,6 +30,7 @@
 | `COOPERATIVE_LOGO_PORT` | `ICooperativeLogoPort` (3)<br><sub>core-ports/cooperative-logo.port.ts</sub> | `CooperativeLogoService` | marketplace* | Логотип кооператива — одно изображение в настройках узла, хранится ядром. |
 | `COOPERATIVE_VARS_PORT` | `ICooperativeVarsPort` (1)<br><sub>core-ports/cooperative-vars.port.ts</sub> | `CooperativeVarsInnercoopAdapter` | chairman, chatcoop, greetings | Реквизиты кооператива, которому принадлежит контур: как он называется и как его называть в текстах. |
 | `COUNCIL_PORT` | `ICouncilPort` (5)<br><sub>core-ports/council.port.ts</sub> | `CouncilInnercoopAdapter` | capital, chairman, edubridge, marketplace | Совет кооператива: решения и типовые соглашения. |
+| `DECISION_DECLINE_REASON_PORT` | `IDecisionDeclineReasonPort` (1)<br><sub>core-ports/decision-decline-reason.port.ts</sub> | `DecisionDeclineReasonKyselyRepository` | edubridge* | Пояснение председателя к отклонению решения совета. |
 | `DECISION_TRACKING_PORT` | `IDecisionTrackingPort` (7)<br><sub>core-ports/decision-tracking.port.ts</sub> | `DecisionTrackingAdapter` | capital, chairman | Отслеживание решений: расширение регистрирует правило «когда примут решение с этим хэшем — обновить такое-то поле параметров кооператива», и дальше ядро следит само. |
 | `DOCUMENT_APPROVAL_PORT` | `IDocumentApprovalPort` (2)<br><sub>core-ports/document-approval.port.ts</sub> | `DocumentApprovalOnboardingAdapter` | capital, chairman, marketplace | Фабрика утверждений документов — для шагов подключения расширений. |
 | `DOCUMENT_DECLARATION_PORT` | `IDocumentDeclarationPort` (2)<br><sub>core-ports/document-declaration.port.ts</sub> | `DocumentDeclarationsRegistryService` | capital, edubridge, marketplace | Декларация документов приложения — какие шаблоны реестра документов оно использует в кооперативе и какие из них совет обязан утверждать. |
@@ -100,4 +101,4 @@
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 68.
+Всего портов: 69.

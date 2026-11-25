@@ -15,6 +15,7 @@ import {
   CHAIN_CHANGES_PORT,
   CHAIRMAN_APPROVALS_PORT,
   CHAIN_PORT,
+  DECISION_DECLINE_REASON_PORT,
   COUNCIL_PORT,
   EXPENSE_CHASSIS_PORT,
   DOCUMENT_DECLARATION_PORT,
@@ -97,5 +98,8 @@ export const edubridgePorts = {
     // Лента изменений для живого обновления столов; без неё столы дочитывают
     // данные только при открытии.
     CHAIN_CHANGES_PORT,
+    // Пояснение председателя к отклонению отчёта советом; без порта в отказе
+    // остаётся основание из цепи.
+    DECISION_DECLINE_REASON_PORT,
   ],
 };

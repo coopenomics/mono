@@ -62,3 +62,4 @@ export * from './user-avatar.port';
 export * from './cooperative-logo.port';
 export * from './role-assignments.port';
 export * from './accounting-registry.port';
+export * from './decision-decline-reason.port';

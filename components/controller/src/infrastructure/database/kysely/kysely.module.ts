@@ -3,6 +3,8 @@ import { Global, Module } from '@nestjs/common';
 import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
 import { MAIN_DATABASE } from '@coopenomics/extension-kit';
 import { EXTENSION_UNINSTALLED_REPOSITORY } from '~/domain/extension/repositories/extension-uninstalled.repository';
+import { DECISION_DECLINE_REASON_REPOSITORY } from '~/domain/decision/repositories/decision-decline-reason.repository';
+import { DecisionDeclineReasonKyselyRepository } from './repositories/decision-decline-reason.kysely-repository';
 import { PG_POOL, kyselyProvider, mainDatabaseProvider, pgPoolProvider } from './kysely.provider';
 import { KYSELY } from './kysely.tokens';
 import { MEMBERSHIP_EXIT_REQUEST_REPOSITORY } from '~/domain/membership-exit/repositories/membership-exit-request.repository';
@@ -105,6 +107,9 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     },
     // Удалённые расширения читает тот же экземпляр хранилища
     { provide: EXTENSION_UNINSTALLED_REPOSITORY, useExisting: EXTENSION_REPOSITORY },
+    // Пояснения председателя к отклонению решений совета (и адаптер порта расширений)
+    DecisionDeclineReasonKyselyRepository,
+    { provide: DECISION_DECLINE_REASON_REPOSITORY, useExisting: DecisionDeclineReasonKyselyRepository },
     {
       provide: LOG_EXTENSION_REPOSITORY,
       useClass: LogExtensionKyselyRepository,
@@ -258,6 +263,8 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     DraftRegistryKyselyRepository,
     EXTENSION_REPOSITORY,
     EXTENSION_UNINSTALLED_REPOSITORY,
+    DecisionDeclineReasonKyselyRepository,
+    DECISION_DECLINE_REASON_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,
     MEET_PROCESSED_REPOSITORY,

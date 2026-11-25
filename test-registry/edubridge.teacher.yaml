@@ -54,6 +54,13 @@ title: Образовательный мост — договор УХД, наз
 # публиковал заявление ещё и сам, сразу с итогом «решено» до решения совета.
 # Движения, статусы и обратные вызовы не менялись, случаи прежние.
 
+# Правка 25.11.2026 (487-28): председатель может пояснить отклонение решения
+# совета своими словами (окно «Отклонение вопроса» на столе совета). Пояснение
+# хранит ядро в decision_decline_reasons, в цепь оно не пишется; при отказе по
+# отчёту преподавателя расширение берёт его по номеру решения через порт
+# DECISION_DECLINE_REASON_PORT, и преподаватель видит его в «Причине
+# отклонения». Пояснения нет — прежнее основание из цепи.
+
 sources:
   contract:
     - components/contracts/cpp/edubridge/src/p.edu.teach/**
@@ -760,3 +767,44 @@ cases:
     test: components/api-tests/src/rights/matrix.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  # 25.11.2026 (487-28): пояснение председателя к отклонению решения
+  - id: edu.teacher.decline-reason.happy.01
+    level: backend
+    kind: happy
+    scenario: Совет отклонил отчёт преподавателя большинством «против», председатель написал пояснение
+    expect: в «Причине отклонения» отчёта — пояснение председателя; основание отзыва материалов — с ним же
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: на стенде нужен совет с большинством голосов «против» по живому отчёту преподавателя — внешний сценарий голосования совета в наборе отсутствует
+
+  - id: edu.teacher.decline-reason.side.01
+    level: backend
+    kind: side
+    scenario: Совет отклонил отчёт без пояснения председателя
+    expect: в «Причине отклонения» — основание из цепи («большинство голосов против», «истёк срок»)
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: то же — внешнего сценария голосования совета против отчёта нет
+
+  - id: dec.decline.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель отклоняет решение с пояснением
+    expect: пояснение записано в базу до транзакции declinedec, в цепь не передаётся; пустое пояснение не пишется
+    test: components/controller/tests/unit/decision/decline-decision-reason.test.ts
+    status: written
+    external: unreachable
+    external_reason: отклонение требует большинства «против» в совете стенда; внешнего сценария голосования совета нет
+
+  - id: dec.decline.side.01
+    level: backend
+    kind: side
+    scenario: Цепь отказала в отклонении (нет большинства «против»)
+    expect: ошибка цепи возвращается председателю, пояснение снято — к будущему снятию вопроса по сроку оно не приписывается
+    test: components/controller/tests/unit/decision/decline-decision-reason.test.ts
+    status: written
+    external: unreachable
+    external_reason: то же — внешнего сценария голосования совета нет
