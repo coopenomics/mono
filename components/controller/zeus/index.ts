@@ -7558,6 +7558,12 @@ export type ValueTypes = {
 	/** Раздел каталога из справочника */
 	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>
 };
+	["EduCloseContributionInput"]: {
+	/** Взнос, возвращённый на доработку */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Основание закрытия без приёма */
+	reason: string | Variable<any, string>
+};
 	["EduConnectorBinding"]: AliasType<{
 	carrier?:boolean | `@${string}`,
 	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
@@ -7605,7 +7611,7 @@ export type ValueTypes = {
 	/** Дата решения */
 	decided_at?:boolean | `@${string}`,
 	decision_hash?:boolean | `@${string}`,
-	/** Причина отклонения */
+	/** Причина, по которой взнос не принят, либо основание закрытия без приёма */
 	decline_reason?:boolean | `@${string}`,
 	/** Описание результата */
 	description?:boolean | `@${string}`,
@@ -8240,8 +8246,6 @@ export type ValueTypes = {
 	ends_at?:boolean | `@${string}`,
 	/** Показ суммы взноса преподавателя за занятие по ставке допуска, окну расписания и обучающимся с оплаченным доступом; окончательную сумму считает контракт */
 	expected_amount?:boolean | `@${string}`,
-	/** Группа занятия идёт: по занятию принимается отчёт, в том числе повторный после отказа совета */
-	group_active?:boolean | `@${string}`,
 	/** Группа курса */
 	group_id?:boolean | `@${string}`,
 	/** Название группы */
@@ -8534,6 +8538,20 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduReturnBalance']?: Omit<ValueTypes["EduReturnBalance"], "...on EduReturnBalance">
 }>;
+	["EduReworkContributionInput"]: {
+	/** Взнос, возвращённый на доработку */
+	contribution_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Занятия взноса с исправленными материалами */
+	lessons: Array<ValueTypes["EduReworkLessonInput"]> | Variable<any, string>
+};
+	["EduReworkLessonInput"]: {
+	/** Занятие взноса */
+	lesson_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string> | Variable<any, string>,
+	/** Тема занятия */
+	topic?: string | undefined | null | Variable<any, string>
+};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
 	["EduSaveLevelInput"]: {
@@ -15738,6 +15756,7 @@ edubridgeCancelGroupUnderfilled?: [{	group_id: ValueTypes["ID"] | Variable<any, 
 edubridgeCancelLesson?: [{	lesson_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
+edubridgeCloseContribution?: [{	data: ValueTypes["EduCloseContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -15757,6 +15776,7 @@ edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<a
 edubridgeRequestShareReturn?: [{	data: ValueTypes["EduRequestShareReturnInput"] | Variable<any, string>},ValueTypes["EduTeacherSettlement"]],
 edubridgeRetryEnrollmentClose?: [{	data: ValueTypes["EduRetryEnrollmentCloseInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
+edubridgeReworkContribution?: [{	data: ValueTypes["EduReworkContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStorageAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -27492,6 +27512,12 @@ export type ResolverInputTypes = {
 	/** Раздел каталога из справочника */
 	section_id?: ResolverInputTypes["ID"] | undefined | null
 };
+	["EduCloseContributionInput"]: {
+	/** Взнос, возвращённый на доработку */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Основание закрытия без приёма */
+	reason: string
+};
 	["EduConnectorBinding"]: AliasType<{
 	carrier?:boolean | `@${string}`,
 	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
@@ -27537,7 +27563,7 @@ export type ResolverInputTypes = {
 	/** Дата решения */
 	decided_at?:boolean | `@${string}`,
 	decision_hash?:boolean | `@${string}`,
-	/** Причина отклонения */
+	/** Причина, по которой взнос не принят, либо основание закрытия без приёма */
 	decline_reason?:boolean | `@${string}`,
 	/** Описание результата */
 	description?:boolean | `@${string}`,
@@ -28155,8 +28181,6 @@ export type ResolverInputTypes = {
 	ends_at?:boolean | `@${string}`,
 	/** Показ суммы взноса преподавателя за занятие по ставке допуска, окну расписания и обучающимся с оплаченным доступом; окончательную сумму считает контракт */
 	expected_amount?:boolean | `@${string}`,
-	/** Группа занятия идёт: по занятию принимается отчёт, в том числе повторный после отказа совета */
-	group_active?:boolean | `@${string}`,
 	/** Группа курса */
 	group_id?:boolean | `@${string}`,
 	/** Название группы */
@@ -28436,6 +28460,20 @@ export type ResolverInputTypes = {
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduReworkContributionInput"]: {
+	/** Взнос, возвращённый на доработку */
+	contribution_id: ResolverInputTypes["ID"],
+	/** Занятия взноса с исправленными материалами */
+	lessons: Array<ResolverInputTypes["EduReworkLessonInput"]>
+};
+	["EduReworkLessonInput"]: {
+	/** Занятие взноса */
+	lesson_id: ResolverInputTypes["ID"],
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic?: string | undefined | null
+};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
 	["EduSaveLevelInput"]: {
@@ -35430,6 +35468,7 @@ edubridgeCancelGroupUnderfilled?: [{	group_id: ResolverInputTypes["ID"]},boolean
 edubridgeCancelLesson?: [{	lesson_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduLesson"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
+edubridgeCloseContribution?: [{	data: ResolverInputTypes["EduCloseContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
@@ -35449,6 +35488,7 @@ edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},Res
 edubridgeRequestShareReturn?: [{	data: ResolverInputTypes["EduRequestShareReturnInput"]},ResolverInputTypes["EduTeacherSettlement"]],
 edubridgeRetryEnrollmentClose?: [{	data: ResolverInputTypes["EduRetryEnrollmentCloseInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
+edubridgeReworkContribution?: [{	data: ResolverInputTypes["EduReworkContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStorageAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
@@ -46809,6 +46849,12 @@ export type ModelTypes = {
 	/** Раздел каталога из справочника */
 	section_id?: ModelTypes["ID"] | undefined | null
 };
+	["EduCloseContributionInput"]: {
+	/** Взнос, возвращённый на доработку */
+	contribution_id: ModelTypes["ID"],
+	/** Основание закрытия без приёма */
+	reason: string
+};
 	["EduConnectorBinding"]: {
 		carrier: ModelTypes["EduAccessCarrier"],
 	/** Все поля подключения заданы (сами ключи наружу не выдаются) */
@@ -46850,7 +46896,7 @@ export type ModelTypes = {
 	/** Дата решения */
 	decided_at?: ModelTypes["DateTime"] | undefined | null,
 	decision_hash?: string | undefined | null,
-	/** Причина отклонения */
+	/** Причина, по которой взнос не принят, либо основание закрытия без приёма */
 	decline_reason?: string | undefined | null,
 	/** Описание результата */
 	description: string,
@@ -47442,8 +47488,6 @@ export type ModelTypes = {
 	ends_at: ModelTypes["DateTime"],
 	/** Показ суммы взноса преподавателя за занятие по ставке допуска, окну расписания и обучающимся с оплаченным доступом; окончательную сумму считает контракт */
 	expected_amount?: string | undefined | null,
-	/** Группа занятия идёт: по занятию принимается отчёт, в том числе повторный после отказа совета */
-	group_active: boolean,
 	/** Группа курса */
 	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Название группы */
@@ -47704,6 +47748,20 @@ export type ModelTypes = {
 	subscriptions: number,
 	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total: string
+};
+	["EduReworkContributionInput"]: {
+	/** Взнос, возвращённый на доработку */
+	contribution_id: ModelTypes["ID"],
+	/** Занятия взноса с исправленными материалами */
+	lessons: Array<ModelTypes["EduReworkLessonInput"]>
+};
+	["EduReworkLessonInput"]: {
+	/** Занятие взноса */
+	lesson_id: ModelTypes["ID"],
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic?: string | undefined | null
 };
 	["EduRidType"]:EduRidType;
 	["EduSaveLevelInput"]: {
@@ -54566,6 +54624,8 @@ export type ModelTypes = {
 	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
+	/** Закрыть расчёт по взносу, возвращённому на доработку, без приёма: взнос преподавателя из резерва курса переходит на кошелёк программы */
+	edubridgeCloseContribution: ModelTypes["EduContribution"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
@@ -54604,6 +54664,8 @@ export type ModelTypes = {
 	edubridgeRetryEnrollmentClose: ModelTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: ModelTypes["EduAccessTask"],
+	/** Подать повторно взнос, возвращённый на доработку: исправленные материалы занятий; расчёт с обучающимися не повторяется */
+	edubridgeReworkContribution: ModelTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
 	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
@@ -66605,6 +66667,12 @@ export type GraphQLTypes = {
 	/** Раздел каталога из справочника */
 	section_id?: GraphQLTypes["ID"] | undefined | null
 };
+	["EduCloseContributionInput"]: {
+		/** Взнос, возвращённый на доработку */
+	contribution_id: GraphQLTypes["ID"],
+	/** Основание закрытия без приёма */
+	reason: string
+};
 	["EduConnectorBinding"]: {
 	__typename: "EduConnectorBinding",
 	carrier: GraphQLTypes["EduAccessCarrier"],
@@ -66653,7 +66721,7 @@ export type GraphQLTypes = {
 	/** Дата решения */
 	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
 	decision_hash?: string | undefined | null,
-	/** Причина отклонения */
+	/** Причина, по которой взнос не принят, либо основание закрытия без приёма */
 	decline_reason?: string | undefined | null,
 	/** Описание результата */
 	description: string,
@@ -67288,8 +67356,6 @@ export type GraphQLTypes = {
 	ends_at: GraphQLTypes["DateTime"],
 	/** Показ суммы взноса преподавателя за занятие по ставке допуска, окну расписания и обучающимся с оплаченным доступом; окончательную сумму считает контракт */
 	expected_amount?: string | undefined | null,
-	/** Группа занятия идёт: по занятию принимается отчёт, в том числе повторный после отказа совета */
-	group_active: boolean,
 	/** Группа курса */
 	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Название группы */
@@ -67580,6 +67646,20 @@ export type GraphQLTypes = {
 	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total: string,
 	['...on EduReturnBalance']: Omit<GraphQLTypes["EduReturnBalance"], "...on EduReturnBalance">
+};
+	["EduReworkContributionInput"]: {
+		/** Взнос, возвращённый на доработку */
+	contribution_id: GraphQLTypes["ID"],
+	/** Занятия взноса с исправленными материалами */
+	lessons: Array<GraphQLTypes["EduReworkLessonInput"]>
+};
+	["EduReworkLessonInput"]: {
+		/** Занятие взноса */
+	lesson_id: GraphQLTypes["ID"],
+	/** Материалы занятия — ссылки на записи, конспекты, задания */
+	materials: Array<string>,
+	/** Тема занятия */
+	topic?: string | undefined | null
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]: EduRidType;
@@ -74951,6 +75031,8 @@ export type GraphQLTypes = {
 	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
+	/** Закрыть расчёт по взносу, возвращённому на доработку, без приёма: взнос преподавателя из резерва курса переходит на кошелёк программы */
+	edubridgeCloseContribution: GraphQLTypes["EduContribution"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
@@ -74989,6 +75071,8 @@ export type GraphQLTypes = {
 	edubridgeRetryEnrollmentClose: GraphQLTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
+	/** Подать повторно взнос, возвращённый на доработку: исправленные материалы занятий; расчёт с обучающимися не повторяется */
+	edubridgeReworkContribution: GraphQLTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
 	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
@@ -81245,10 +81329,12 @@ export enum EduContributionDocumentKind {
 export enum EduContributionStatus {
 	ACCEPTED = "ACCEPTED",
 	ACT_SIGNED = "ACT_SIGNED",
+	CLOSED = "CLOSED",
 	COUNCIL_APPROVED = "COUNCIL_APPROVED",
 	DECLINED = "DECLINED",
 	DRAFT = "DRAFT",
 	HELD = "HELD",
+	RETURNED = "RETURNED",
 	SUBMITTED = "SUBMITTED"
 }
 /** Исход рассмотрения заявления советом, когда решение о приёме не принято */
@@ -82570,6 +82656,7 @@ type ZEUS_VARIABLES = {
 	["EduAssignmentInput"]: ValueTypes["EduAssignmentInput"];
 	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];
 	["EduCatalogFilterInput"]: ValueTypes["EduCatalogFilterInput"];
+	["EduCloseContributionInput"]: ValueTypes["EduCloseContributionInput"];
 	["EduConnectorCredentialInput"]: ValueTypes["EduConnectorCredentialInput"];
 	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
 	["EduContractStatus"]: ValueTypes["EduContractStatus"];
@@ -82608,6 +82695,8 @@ type ZEUS_VARIABLES = {
 	["EduRequestShareReturnInput"]: ValueTypes["EduRequestShareReturnInput"];
 	["EduRetryEnrollmentCloseInput"]: ValueTypes["EduRetryEnrollmentCloseInput"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
+	["EduReworkContributionInput"]: ValueTypes["EduReworkContributionInput"];
+	["EduReworkLessonInput"]: ValueTypes["EduReworkLessonInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
 	["EduSaveLevelInput"]: ValueTypes["EduSaveLevelInput"];
 	["EduSaveSectionInput"]: ValueTypes["EduSaveSectionInput"];

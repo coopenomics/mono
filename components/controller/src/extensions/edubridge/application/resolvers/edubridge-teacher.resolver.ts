@@ -21,6 +21,8 @@ import {
   EduSignContractInputDTO,
   EduHoldContributionInputDTO,
   EduSubmitContributionInputDTO,
+  EduReworkContributionInputDTO,
+  EduCloseContributionInputDTO,
   EduTeacherContractDTO,
   EduTeacherDTO,
   EduTeacherProfileDTO,
@@ -137,6 +139,16 @@ export class EdubridgeTeacherResolver {
   @RequireRight('EduContribution', 'create:own', SELF)
   async edubridgeHoldContribution(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduHoldContributionInputDTO): Promise<EduContributionDTO> {
     return new EduContributionDTO(await this.teachers.holdContribution(coop(), m.username as string, data.contribution_id, data.document));
+  }
+
+  @Mutation(() => EduContributionDTO, {
+    name: 'edubridgeReworkContribution',
+    description: 'Подать повторно взнос, возвращённый на доработку: исправленные материалы занятий; расчёт с обучающимися не повторяется',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduContribution', 'create:own', SELF)
+  async edubridgeReworkContribution(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduReworkContributionInputDTO): Promise<EduContributionDTO> {
+    return new EduContributionDTO(await this.teachers.reworkContribution(coop(), m.username as string, data));
   }
 
   @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStatement', description: 'Сформировать заявление о паевом взносе РИД для подписи' })
@@ -288,6 +300,16 @@ export class EdubridgeTeacherResolver {
     const contributions = await this.teachers.listContributions(coop());
     const learners = await this.teachers.learnersByContribution(coop(), contributions);
     return contributions.map((c) => new EduContributionDTO(c, learners.get(c.id) ?? null));
+  }
+
+  @Mutation(() => EduContributionDTO, {
+    name: 'edubridgeCloseContribution',
+    description: 'Закрыть расчёт по взносу, возвращённому на доработку, без приёма: взнос преподавателя из резерва курса переходит на кошелёк программы',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduContribution', 'decide')
+  async edubridgeCloseContribution(@Args('data') data: EduCloseContributionInputDTO): Promise<EduContributionDTO> {
+    return new EduContributionDTO(await this.teachers.closeContribution(coop(), data.contribution_id, data.reason));
   }
 
   @Query(() => EduContributionBriefDTO, {

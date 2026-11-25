@@ -44,6 +44,10 @@ export * as SubmitGuaranteeClaim from './submitGuaranteeClaim'
 export * as RidStorageAct from './ridStorageAct'
 /** Подать взнос РИД */
 export * as HoldContribution from './holdContribution'
+/** Подать повторно взнос, возвращённый на доработку */
+export * as ReworkContribution from './reworkContribution'
+/** Закрыть расчёт по взносу без приёма */
+export * as CloseContribution from './closeContribution'
 export * as TerminateContract from './terminateContract'
 export * as SubmitContribution from './submitContribution'
 /** Акт приёма-передачи для подписи */

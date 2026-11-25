@@ -255,13 +255,21 @@ export interface IDeclinerid {
   decision: IDocument2
 }
 
+/** Взнос не принят: материалы возвращаются преподавателю на доработку, запись материалов остаётся. */
+export interface IReturnrid {
+  coopname: IName
+  rid_hash: IChecksum256
+  reason: string
+}
+
+/** Расчёт по материалам закрывается без приёма: запись стирается, взнос преподавателя из резерва курса — на кошелёк программы. */
 export interface IRecallrid {
   coopname: IName
   rid_hash: IChecksum256
   reason: string
 }
 
-/** Отказ совета по взносу занятия: подписки группы, где занятие рассчитано, получают оплату назад. */
+/** Прежний путь отказа совета: отмена расчёта занятия в названных подписках. */
 export interface IRefundlesson {
   coopname: IName
   rid_hash: IChecksum256

@@ -1,4 +1,27 @@
 /**
+ * Материалы на хранении: проводка и акт в реестре документов. Общая часть
+ * первой и повторной передачи.
+ */
+static void hold_materials(eosio::name coopname,
+                           eosio::name username,
+                           checksum256 rid_hash,
+                           uint64_t rid_id,
+                           eosio::asset amount,
+                           const document2& act) {
+  // ── o.edu.hold: ISSUE → w.edu.hold (Дт 08 / Кт 76) ────────────────────
+  Ledger2::apply(_edubridge, coopname,
+                 operations::edubridge::HOLD_EDU_RID,
+                 processes::edubridge::RID,
+                 amount, username, rid_hash,
+                 Edubridge::Memo::get_hold_rid_memo(rid_id));
+
+  // Акт хранения публикуется в реестр документов пакетом процесса (package = rid_hash).
+  Soviet::make_complete_document(_edubridge, coopname, username,
+                                 "holdrid"_n,
+                                 rid_hash, act);
+}
+
+/**
  * @brief Преподаватель передаёт материалы занятия кооперативу на
  * ответственное хранение — расчёт по занятию завершается.
  *
@@ -20,8 +43,15 @@
  *  - `o.edu.hold` (ISSUE → w.edu.hold, Дт 08 / Кт 76) — материалы приняты,
  *    у кооператива возникло обязательство перед преподавателем.
  *
+ * Повторная передача. Взнос не принят, и материалы возвращены преподавателю
+ * на доработку (`returnrid`): запись материалов жива, расчёт занятий с
+ * участниками по ней завершён и не повторяется. Преподаватель передаёт
+ * исправленные материалы новым актом с тем же rid_hash — сумма и срок берутся
+ * из записи, `pack` не читается.
+ *
  * Guards:
  *  - занятие открыто этим преподавателем, окно расчёта закрыто, рассчитан хотя бы один участник;
+ *  - повторная передача — материалы по записи возвращены этому преподавателю;
  *  - подпись акта валидна (username);
  *  - преподаватель — активный член кооператива с действующим договором УХД.
  *
@@ -44,6 +74,25 @@ void edubridge::holdrid(eosio::name coopname,
   // Материалы принимаются только по действующему договору УХД
   // (подписан преподавателем и председателем — p.edu.teach).
   Edubridge::get_active_contract_or_fail(coopname, username);
+
+  edu_rids_index rids(_edubridge, coopname.value);
+  auto by_hash = rids.get_index<"byhash"_n>();
+  auto returned = by_hash.find(rid_hash);
+  if (returned != by_hash.end()) {
+    // Запись материалов жива: расчёт занятий по ней прошёл при первом отчёте.
+    eosio::check(returned->storage_act_hash == checksum256(),
+                 "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
+    eosio::check(returned->username == username,
+                 "EDUBRIDGE_RID_NOT_OWNER: Материалы по этой записи переданы другим преподавателем");
+    const eosio::asset returned_amount = returned->amount;
+    const uint64_t returned_id         = returned->id;
+    by_hash.modify(returned, RamPayer::of(rids, coopname), [&](auto& r) {
+      r.rid_type         = rid_type;
+      r.storage_act_hash = act.hash;
+    });
+    hold_materials(coopname, username, rid_hash, returned_id, returned_amount, act);
+    return;
+  }
 
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto lessons_by_hash = lessons.get_index<"byhash"_n>();
@@ -69,8 +118,8 @@ void edubridge::holdrid(eosio::name coopname,
     assignment_id = lesson->assignment_id;
     course_id     = lesson->course_id;
     held_at       = lesson->held_at;
-    // Запись занятия стирается — для возврата оплаты при отказе совета её
-    // номер, минуты и цены переходят в запись материалов.
+    // Запись занятия стирается — её номер, минуты и цены переходят в
+    // запись материалов (их читает прежнее действие refundlesson).
     lesson_info.number  = lesson->number;
     lesson_info.minutes = lesson->minutes;
     lesson_info.cost    = lesson->cost;
@@ -123,11 +172,6 @@ void edubridge::holdrid(eosio::name coopname,
   // объявлена либо срок уже вышел. Материалы принимаются и в этом случае.
   const eosio::time_point_sec hold_until = Edubridge::lesson_hold_until(terms, held_at);
 
-  edu_rids_index rids(_edubridge, coopname.value);
-  auto by_hash = rids.get_index<"byhash"_n>();
-  eosio::check(by_hash.find(rid_hash) == by_hash.end(),
-               "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
-
   uint64_t rid_id = 0;
   rids.emplace(RamPayer::of(rids, coopname), [&](auto& r) {
     r.id               = get_global_id_in_scope(_edubridge, coopname, "edurids"_n);
@@ -145,15 +189,5 @@ void edubridge::holdrid(eosio::name coopname,
     rid_id             = r.id;
   });
 
-  // ── o.edu.hold: ISSUE → w.edu.hold (Дт 08 / Кт 76) ────────────────────
-  Ledger2::apply(_edubridge, coopname,
-                 operations::edubridge::HOLD_EDU_RID,
-                 processes::edubridge::RID,
-                 amount, username, rid_hash,
-                 Edubridge::Memo::get_hold_rid_memo(rid_id));
-
-  // Акт хранения публикуется в реестр документов пакетом процесса (package = rid_hash).
-  Soviet::make_complete_document(_edubridge, coopname, username,
-                                 "holdrid"_n,
-                                 rid_hash, act);
+  hold_materials(coopname, username, rid_hash, rid_id, amount, act);
 }

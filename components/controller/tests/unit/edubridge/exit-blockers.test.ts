@@ -13,7 +13,8 @@ const COURSE = { id: 'C1', title: 'Алгебра' } as any;
 function make(opts: { assignments?: any[]; contributions?: any[]; subscriptions?: number; refunds?: number } = {}) {
   const teachers = {
     listAssignments: jest.fn(async () => opts.assignments ?? []),
-    listContributions: jest.fn(async () => opts.contributions ?? []),
+    // Хранилище отбирает по состояниям запроса — как настоящее.
+    listContributions: jest.fn(async (_c: string, f: { statuses: string[] }) => (opts.contributions ?? []).filter((c) => f.statuses.includes(c.status))),
   } as any;
   const courses = { findById: jest.fn(async () => COURSE) } as any;
   const enrollments = {
@@ -45,7 +46,7 @@ describe('Запреты выхода из кооператива у Образ�
   });
 
   it('заявления в работе держат выход: расчёт по занятиям не закрыт', async () => {
-    const { service, teachers } = make({ contributions: [{ id: 'K1' }, { id: 'K2' }] });
+    const { service, teachers } = make({ contributions: [{ id: 'K1', status: EduContributionStatus.SUBMITTED }, { id: 'K2', status: EduContributionStatus.ACT_SIGNED }] });
     const reasons = await service.blockers('voskhod', 'ant');
     expect(reasons).toHaveLength(1);
     expect(reasons[0]).toContain('2');
@@ -59,6 +60,26 @@ describe('Запреты выхода из кооператива у Образ�
         EduContributionStatus.ACT_SIGNED,
       ],
     });
+  });
+
+  // Решение владельца 25.11.2026: взнос на доработке ждёт преподавателя без срока,
+  // его доля лежит в резерве курса — расчёт не закрыт.
+  it('edu.exit.side.01: взнос на доработке держит выход: причина называет оба способа закрыть расчёт', async () => {
+    const { service, teachers } = make({
+      contributions: [
+        { id: 'K1', status: EduContributionStatus.RETURNED },
+        { id: 'K2', status: EduContributionStatus.RETURNED },
+        // Закрытый без приёма, принятый и прежний отклонённый выход не держат.
+        { id: 'K3', status: EduContributionStatus.CLOSED },
+        { id: 'K4', status: EduContributionStatus.ACCEPTED },
+        { id: 'K5', status: EduContributionStatus.DECLINED },
+      ],
+    });
+    const reasons = await service.blockers('voskhod', 'ant');
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]).toMatch(/взносов на доработке — 2/);
+    expect(reasons[0]).toMatch(/Подайте их повторно.*закрыть расчёт без приёма/);
+    expect(teachers.listContributions).toHaveBeenCalledWith('voskhod', { teacher: 'ant', statuses: [EduContributionStatus.RETURNED] });
   });
 
   it('материалы на хранении без заявления: причина называет действие преподавателя, а не ожидание', async () => {

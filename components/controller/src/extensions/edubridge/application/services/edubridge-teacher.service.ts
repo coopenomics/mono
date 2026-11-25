@@ -52,6 +52,7 @@ import { EduLessonDTO } from '../dto/edu-teacher.dto';
 import type {
   EduAssignmentInputDTO,
   EduLessonReportInputDTO,
+  EduReworkContributionInputDTO,
   EduTeacherDTO,
   EduTeacherProfileDTO,
   EduTeacherProfileInputDTO,
@@ -998,7 +999,7 @@ export class EdubridgeTeacherService {
       const expectedAmount = lessonAmountOf(l, group, rates.get(l.assignment_id ?? '') ?? null, learnersPaid);
       // Конец гарантийного срока — по группе: тот же момент, что решает, сохраняется ли отчёт без документов.
       const guaranteeUntil = group && group.guarantee_days > 0 ? guaranteeEndsAt({ starts_at: startMomentOf(group), guarantee_days: group.guarantee_days }) : null;
-      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount, guaranteeUntil, groupActive: group?.status === EduGroupStatus.ACTIVE });
+      return new EduLessonDTO(l, { course: titles.get(l.course_id) ?? '', group: group?.title, reportDays: group?.report_days, learnersPaid, expectedAmount, guaranteeUntil });
     });
   }
 
@@ -1288,50 +1289,90 @@ export class EdubridgeTeacherService {
   }
 
   /**
-   * Совет отказал (`edubridge::onriddecl` — отказ по вопросу либо снятие по
-   * сроку): отказ исполняется сразу, без участия председателя. Отрицательного
-   * протокола у совета не бывает — материалы снимаются с хранения с основанием
-   * совета (Дт 76 / Кт 08), взнос закрывается; занятие отчитывается заново.
+   * Совет решения о приёме не принял (`edubridge::onriddecl` — отказ по
+   * вопросу либо снятие по сроку): взнос возвращается преподавателю на
+   * доработку. Отрицательного протокола у совета не бывает.
    */
   async onCouncilDeclinedByHash(coopname: string, ridHash: string, reason: string): Promise<void> {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
     if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.SUBMITTED) return;
     // Председатель пояснил отказ — преподаватель видит его слова; нет —
     // основание из цепи («большинство голосов против», «истёк срок»).
-    const explained = c.council_decision_id
-      ? ((await this.declineReasons?.getDeclineReason(coopname, c.council_decision_id))?.trim() ?? '')
-      : '';
-    const basis = explained || reason.trim() || t('edubridge.teacher.councilDeclinedReason');
-    await this.returnLessonPayment(coopname, c);
-    await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: basis }) } as never);
+    // Пояснение записано по номеру вопроса в повестке: номера принятого
+    // решения у отклонённого вопроса нет.
+    const questionId = c.council_agenda_id ?? c.council_decision_id;
+    const explained = questionId ? ((await this.declineReasons?.getDeclineReason(coopname, questionId))?.trim() ?? '') : '';
     c.council_outcome = c.council_outcome ?? EduCouncilOutcome.DECLINED;
-    c.decline_reason = basis;
-    c.status = EduContributionStatus.DECLINED;
-    c.decided_at = new Date();
-    const saved = await this.teachers.saveContribution(c);
-    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
-    this.logger.info(`[EDU.RID] совет отказал в приёме взноса ${c.rid_hash} — материалы сняты с хранения: ${basis}`);
+    await this.returnForRework(coopname, c, explained || reason.trim() || t('edubridge.teacher.councilDeclinedReason'));
+    this.logger.info(`[EDU.RID] совет не принял взнос ${c.rid_hash} — возвращён преподавателю на доработку: ${c.decline_reason}`);
   }
 
   /**
-   * Отказ совета по взносу занятия: ученикам — оплата занятия назад, номер
-   * занятия свободен (`refundlesson`, до снятия материалов). Повторный отчёт
-   * тогда идёт обычным расчётом, и за занятие ученики платят один раз
-   * (решение владельца 02.11.2026). Контракт возвращает оплату только тем
-   * подпискам группы, где занятие рассчитано, поэтому названы все.
-   * Материалы, принятые до появления действия, записи занятия не несут —
-   * возврата у них нет, отказ идёт прежним путём.
+   * Взнос не принят — один путь для любого исхода: совет отказал, срок вопроса
+   * вышел, председатель не подписал акт; одно занятие либо занятия
+   * гарантийного срока одной суммой. Материалы снимаются с хранения и
+   * возвращаются преподавателю (`returnrid`, Дт 76 / Кт 08), запись материалов
+   * в цепи остаётся: взнос преподавателя лежит в резерве курса и ждёт
+   * повторной подачи. Срока на неё нет. Расчёт занятий с участниками не
+   * меняется — подписки здесь не читаются (решение владельца 25.11.2026).
    */
-  private async returnLessonPayment(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
-    if (!c.lesson_id) return;
-    try {
-      const lesson = await this.lessons.findById(coopname, c.lesson_id);
-      if (!lesson?.group_id) return;
-      const subs = (await this.enrollments.findByGroup(coopname, lesson.group_id)).map((e) => e.sub_hash).filter(Boolean);
-      await this.chain.refundLesson({ coopname, rid_hash: c.rid_hash, subs });
-    } catch (e) {
-      this.logger.warn(`[EDU.RID] оплата занятия по ${c.rid_hash} ученикам не возвращена: ${(e as Error)?.message ?? e}`);
-    }
+  private async returnForRework(coopname: string, c: EdubridgeContributionRecord, reason: string): Promise<void> {
+    await this.chain.returnRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridReturnReason', { reason }) });
+    c.decline_reason = reason;
+    c.status = EduContributionStatus.RETURNED;
+    c.decided_at = new Date();
+    const saved = await this.teachers.saveContribution(c);
+    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
+  }
+
+  /**
+   * Повторная подача взноса, возвращённого на доработку. Преподаватель правит
+   * тему и материалы занятий; взнос снова черновик с прежней суммой, и дальше
+   * идёт тем же путём, что первая подача: акт хранения, заявление, совет.
+   * Расчёта с участниками нет — он прошёл при первом отчёте, поэтому состояние
+   * группы и подписок не проверяется. Документы и номера прошлой попытки
+   * снимаются: у новой — свои.
+   */
+  async reworkContribution(coopname: string, teacher: string, input: EduReworkContributionInputDTO): Promise<EdubridgeContributionRecord> {
+    // Материалы на хранение принимаются только по действующему договору — отказ до правок, а не на подписи акта.
+    await this.requireContract(coopname, teacher);
+    const c = await this.ownContribution(coopname, teacher, input.contribution_id);
+    if (c.status !== EduContributionStatus.RETURNED) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_NOT_RETURNED');
+    const lessons = await this.contributionLessons(coopname, c);
+    if (!lessons.length) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_WITHOUT_LESSON');
+
+    const edited = reworkedLessons(lessons, input.lessons);
+    const links = lessons.flatMap((l) => l.materials ?? []);
+    if (!links.length) throw DomainError.badRequest('EDUBRIDGE_REWORK_MATERIALS_REQUIRED');
+    for (const lesson of edited) await this.lessons.save(lesson);
+
+    // Взнос одного занятия называется его темой; у взноса за гарантийный срок название — перечень занятий.
+    if (c.lesson_id && lessons[0].topic) c.description = lessons[0].topic;
+    const saved = await this.teachers.saveContribution(Object.assign(c, { links }, NEW_ATTEMPT));
+    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} подаётся повторно: материалы исправлены, занятий ${lessons.length}`);
+    return saved;
+  }
+
+  /**
+   * Кооператив закрывает расчёт по взносу без приёма (`recallrid`): взнос
+   * возвращён на доработку, и повторной подачи не будет. Взнос преподавателя
+   * из резерва курса переходит на кошелёк программы. Само это не происходит и
+   * срока не имеет: решение принимает председатель и называет основание.
+   */
+  async closeContribution(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionRecord> {
+    const c = await this.teachers.findContribution(coopname, contributionId);
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
+    if (c.status !== EduContributionStatus.RETURNED) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_NOT_RETURNED');
+    const basis = reason.trim();
+    if (!basis) throw DomainError.badRequest('EDUBRIDGE_CLOSE_REASON_REQUIRED');
+    await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridCloseReason', { reason: basis }) });
+    c.decline_reason = basis;
+    c.status = EduContributionStatus.CLOSED;
+    c.decided_at = new Date();
+    const saved = await this.teachers.saveContribution(c);
+    await this.settleReserve(coopname, c);
+    this.logger.info(`[EDU.RID] расчёт по взносу ${c.rid_hash} закрыт без приёма: ${basis}`);
+    return saved;
   }
 
   /**
@@ -1418,22 +1459,15 @@ export class EdubridgeTeacherService {
   }
 
   /**
-   * Председатель отказал в подписи акта (`edubridge::dclridact`): решение совета
-   * есть, приём не состоялся — заявление закрывается протоколом этого решения
-   * (`declinerid`) с причиной председателя.
+   * Председатель отказал в подписи акта (`edubridge::dclridact`): решение
+   * совета есть, приём не состоялся. Взнос возвращается преподавателю на
+   * доработку с причиной председателя — тем же путём, что отказ совета.
    */
   async onActDeclined(coopname: string, ridHash: string, reason: string): Promise<void> {
     const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
     if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.ACT_SIGNED) return;
-    const decision = await this.councilProtocol(coopname, c);
-    await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision } as never);
-    c.decision_hash = decision.hash.toLowerCase();
-    c.decline_reason = reason.trim() || t('edubridge.teacher.actDeclinedReason');
-    c.status = EduContributionStatus.DECLINED;
-    c.decided_at = new Date();
-    const saved = await this.teachers.saveContribution(c);
-    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: false });
-    this.logger.info(`[EDU.RID] председатель отказал в подписи акта по взносу ${c.rid_hash} — заявление закрыто протоколом совета`);
+    await this.returnForRework(coopname, c, reason.trim() || t('edubridge.teacher.actDeclinedReason'));
+    this.logger.info(`[EDU.RID] председатель отказал в подписи акта по взносу ${c.rid_hash} — возвращён преподавателю на доработку`);
   }
 
   /**
@@ -1618,6 +1652,42 @@ export class EdubridgeTeacherService {
     const meta = doc.meta as Record<string, any>;
     return { version: meta?.version || '1.0', hash: doc.hash, doc_hash: meta?.doc_hash || doc.hash, meta_hash: meta?.meta_hash || doc.hash, meta: doc.meta as ISignedDocument['meta'], signatures: [] };
   }
+}
+
+/**
+ * Взнос перед повторной подачей: снова ждёт передачи материалов, документы и
+ * номера прошлой попытки сняты — у новой свои. Сумма и хэш остаются.
+ */
+const NEW_ATTEMPT: Partial<EdubridgeContributionRecord> = {
+  status: EduContributionStatus.DRAFT,
+  statement_hash: null,
+  statement_document: null,
+  storage_act_hash: null,
+  storage_act_document: null,
+  act_hash: null,
+  act_signed: null,
+  decision_hash: null,
+  decision_document: null,
+  council_agenda_id: null,
+  council_decision_id: null,
+  council_outcome: null,
+  decline_reason: null,
+  decided_at: null,
+};
+
+/**
+ * Правки преподавателя переносятся в занятия взноса; возвращаются изменённые
+ * занятия. Занятие вне взноса — отказ: чужие занятия повторной подачей не правятся.
+ */
+function reworkedLessons(own: EdubridgeLessonRecord[], edits: EduReworkContributionInputDTO['lessons']): EdubridgeLessonRecord[] {
+  const byId = new Map(own.map((l) => [l.id, l]));
+  return edits.map((edit) => {
+    const lesson = byId.get(edit.lesson_id);
+    if (!lesson) throw DomainError.badRequest('EDUBRIDGE_REWORK_FOREIGN_LESSON');
+    lesson.materials = edit.materials.map((m) => m.trim()).filter(Boolean);
+    lesson.topic = edit.topic?.trim() || lesson.topic || '';
+    return lesson;
+  });
 }
 
 /** Числовое значение ставки часа («1000.0000 RUB» → 1000). */

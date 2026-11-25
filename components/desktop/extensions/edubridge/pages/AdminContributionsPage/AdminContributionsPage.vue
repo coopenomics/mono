@@ -3,8 +3,9 @@
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
     | {{ $t('edubridge.adminContributionsPage.hint') }}
 
-  //- Строка открывает взнос в правой панели. Действий у председателя здесь нет:
-  //- решение принимает совет, его исход контракт исполняет сам, вторая подпись на акте — в «Запросах одобрений».
+  //- Строка открывает взнос в правой панели. Решение принимает совет, вторая подпись на акте —
+  //- в «Запросах одобрений». Действие председателя здесь одно: закрыть без приёма расчёт по
+  //- взносу, возвращённому на доработку.
   BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" :clickable-rows="true" min-width="980px" @row-click="openDetails")
     template(#cell-teacher_username="{ row }")
       IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
@@ -31,6 +32,17 @@
     template(v-if="details")
       ContributionDetails(:contribution="details" :teacher-name="teacherName(details.teacher_username)" show-teacher)
       .t-sm.text-negative.q-mt-md(v-if="councilOutcome(details)") {{ councilOutcome(details) }}
+    template(v-if="details && closable(details)" #footer)
+      .row.justify-end
+        BaseButton(variant="secondary" @click="openClose") {{ $t('edubridge.adminContributionsPage.close.button') }}
+
+  //- Закрытие без приёма: взнос преподавателя из резерва переходит на кошелёк программы; основание обязательно.
+  BaseDialog(v-model="closeOpen" :title="$t('edubridge.adminContributionsPage.close.title')" size="sm")
+    .t-sm.q-mb-md {{ $t('edubridge.adminContributionsPage.close.body') }}
+    BaseInput(v-model="closeReason" :label="$t('edubridge.adminContributionsPage.close.reasonLabel')" type="textarea" :rows="3" autofocus)
+    template(#footer)
+      BaseButton(variant="ghost" :disabled="closing" @click="closeOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
+      BaseButton(variant="primary" :disabled="!closeReason.trim()" :loading="closing" @click="onClose") {{ $t('edubridge.adminContributionsPage.close.button') }}
 </template>
 
 <script setup lang="ts">
@@ -38,14 +50,15 @@ import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { ContributionDetails } from '../../widgets/ContributionDetails';
 import {
   CONTRIBUTION_STATUS_LABELS,
   RID_TYPE_LABELS,
+  closeContribution,
   fetchContributions,
   fetchTeachers,
   type IContribution,
@@ -53,13 +66,16 @@ import {
 } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { useEduRights } from '../../shared/lib/rights';
 import { t as i18nT } from '../../i18n';
 
 /**
  * Взносы результатами работы — отдельной страницей: председатель видит их
  * сами по себе, а не попутно с назначениями. Решение по взносу принимает совет
- * в повестке; отказ совета контракт исполняет сам, вторую подпись на акте
- * председатель ставит в «Запросах одобрений».
+ * в повестке; вторую подпись на акте председатель ставит в «Запросах
+ * одобрений». Не принятый взнос возвращается преподавателю на доработку и
+ * ждёт повторной подачи без срока; закрыть расчёт по нему без приёма может
+ * только председатель — здесь, с основанием.
  */
 const contributions = ref<IContribution[]>([]);
 const teachers = ref<ITeacher[]>([]);
@@ -98,6 +114,31 @@ async function load(): Promise<void> {
     FailAlert(e);
   } finally {
     loading.value = false;
+  }
+}
+
+const { canDecide } = useEduRights();
+/** Без приёма закрывается только взнос на доработке — и только председателем. */
+const closable = (c: IContribution): boolean => canDecide.value && c.status === Zeus.EduContributionStatus.RETURNED;
+const closeOpen = ref(false);
+const closeReason = ref('');
+const closing = ref(false);
+function openClose(): void {
+  closeReason.value = '';
+  closeOpen.value = true;
+}
+async function onClose(): Promise<void> {
+  if (!details.value) return;
+  closing.value = true;
+  try {
+    const closed = await closeContribution({ contribution_id: asText(details.value.id), reason: closeReason.value.trim() });
+    contributions.value = contributions.value.map((c) => (asText(c.id) === asText(closed.id) ? closed : c));
+    closeOpen.value = false;
+    SuccessAlert(i18nT('edubridge.adminContributionsPage.close.success'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    closing.value = false;
   }
 }
 

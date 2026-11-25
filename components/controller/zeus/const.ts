@@ -685,6 +685,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduCatalogFilterInput:{
 
 	},
+	EduCloseContributionInput:{
+
+	},
 	EduConnectorCredentialInput:{
 
 	},
@@ -771,6 +774,12 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	EduRetryTaskInput:{
+
+	},
+	EduReworkContributionInput:{
+		lessons:"EduReworkLessonInput"
+	},
+	EduReworkLessonInput:{
 
 	},
 	EduRidType: "enum" as const,
@@ -2322,6 +2331,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCloseAssignment:{
 
 		},
+		edubridgeCloseContribution:{
+			data:"EduCloseContributionInput"
+		},
 		edubridgeConvertStatement:{
 			data:"EduQuoteInput"
 		},
@@ -2378,6 +2390,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeRetryTask:{
 			data:"EduRetryTaskInput"
+		},
+		edubridgeReworkContribution:{
+			data:"EduReworkContributionInput"
 		},
 		edubridgeRidAct:{
 
@@ -6838,7 +6853,6 @@ export const ReturnTypes: Record<string,any> = {
 		duration_minutes:"Int",
 		ends_at:"DateTime",
 		expected_amount:"String",
-		group_active:"Boolean",
 		group_id:"ID",
 		group_title:"String",
 		guarantee_until:"DateTime",
@@ -9142,6 +9156,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCancelLesson:"EduLesson",
 		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
+		edubridgeCloseContribution:"EduContribution",
 		edubridgeConvertStatement:"GeneratedDocument",
 		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",
@@ -9161,6 +9176,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRequestShareReturn:"EduTeacherSettlement",
 		edubridgeRetryEnrollmentClose:"EduEnrollment",
 		edubridgeRetryTask:"EduAccessTask",
+		edubridgeReworkContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
 		edubridgeRidStorageAct:"GeneratedDocument",

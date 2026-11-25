@@ -79,6 +79,13 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
       reasons.push(t('edubridge.exitBlockers.statementsInWork', { count: inWork }));
     }
 
+    // Взнос возвращён на доработку: взнос преподавателя лежит в резерве курса.
+    // Расчёт закрывает повторная подача либо председатель — без приёма.
+    const returned = await this.teachers.listContributions(coopname, { teacher: username, statuses: [EduContributionStatus.RETURNED] });
+    if (returned.length > 0) {
+      reasons.push(t('edubridge.exitBlockers.returnedContributions', { count: returned.length }));
+    }
+
     return reasons;
   }
 }

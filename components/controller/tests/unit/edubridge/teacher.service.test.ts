@@ -94,7 +94,7 @@ function make(
   if (opts.calendar !== false) for (const n of [1, 2, 3]) planLesson(n);
   const lessonOpen = { current: false };
   const chain = {
-    holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
+    holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})), returnRid: jest.fn(async () => ({})),
     submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})), signRidAct: jest.fn(async () => ({})),
     signContract: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
     withdrawShare: jest.fn(async () => ({})),
@@ -454,7 +454,7 @@ describe('EdubridgeTeacherService', () => {
     expect(c.status).toBe(EduContributionStatus.ACCEPTED);
   });
 
-  it('акт без подписи преподавателя в цепь не уходит; одобрение по взносу не на подписи игнорируется; отказ председателя закрывает заявление', async () => {
+  it('акт без подписи преподавателя в цепь не отправляется; одобрение по взносу не на подписи игнорируется; отказ председателя возвращает взнос на доработку', async () => {
     const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
@@ -466,10 +466,16 @@ describe('EdubridgeTeacherService', () => {
 
     await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
     await service.onActDeclined('voskhod', c.rid_hash, 'Акт расходится с материалами');
-    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    // Тот же путь, что отказ совета: материалы возвращены преподавателю, запись в цепи жива.
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
     expect(c.decline_reason).toBe('Акт расходится с материалами');
-    // Решение совета есть — заявление закрывается его протоколом.
-    expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }) }));
+    expect(chain.returnRid).toHaveBeenCalledWith({
+      coopname: 'voskhod',
+      rid_hash: c.rid_hash,
+      reason: 'взнос не принят, материалы возвращены на доработку: Акт расходится с материалами',
+    });
+    expect(chain.declineRid).not.toHaveBeenCalled();
+    expect(chain.recallRid).not.toHaveBeenCalled();
   });
 
   it('акт до решения совета недоступен; решение по чужим материалам игнорируется', async () => {
@@ -480,24 +486,33 @@ describe('EdubridgeTeacherService', () => {
     await expect(service.act('voskhod', 'teach', c.id)).rejects.toThrow(/после решения совета/);
   });
 
-  it('отказ совета обратным вызовом контракта исполняется сразу: материалы сняты с хранения с основанием совета, взнос отклонён', async () => {
+  // Решение владельца 25.11.2026: расчёт с преподавателем подписки обучающихся не
+  // затрагивает. Отказ — один путь: взнос возвращён на доработку и ждёт без срока.
+  it('отказ совета: взнос возвращён преподавателю на доработку с основанием совета; расчёт с обучающимися не отменяется', async () => {
     const { service, chain, documents, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
     documents.generate.mockClear();
+    const charged = chain.chargeLesson.mock.calls.length;
     await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материал не соответствует программе');
-    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
     expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
     expect(c.decline_reason).toBe('Материал не соответствует программе');
+    expect(c.amount).toBe('1000.0000 RUB');
     // Отрицательного протокола у совета не бывает: собирать его не из чего, declinerid не зовётся.
     expect(documents.generate).not.toHaveBeenCalled();
     expect(chain.declineRid).not.toHaveBeenCalled();
-    expect(chain.recallRid).toHaveBeenCalledWith(
-      expect.objectContaining({ rid_hash: c.rid_hash, reason: 'совет не принял решение о приёме: Материал не соответствует программе' })
-    );
-    // Повторный вызов и вызов по закрытому взносу ничего не делают.
+    expect(chain.returnRid).toHaveBeenCalledWith({
+      coopname: 'voskhod',
+      rid_hash: c.rid_hash,
+      reason: 'взнос не принят, материалы возвращены на доработку: Материал не соответствует программе',
+    });
+    // Запись материалов в цепи остаётся — расчёт не закрыт; подписки в цепь не называются.
+    expect(chain.recallRid).not.toHaveBeenCalled();
+    expect(chain.chargeLesson).toHaveBeenCalledTimes(charged);
+    // Повторный вызов и вызов по возвращённому взносу ничего не делают.
     await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'повторно');
-    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+    expect(chain.returnRid).toHaveBeenCalledTimes(1);
   });
 
   // Решение владельца 25.11.2026: председатель может пояснить отклонение своими
@@ -506,16 +521,18 @@ describe('EdubridgeTeacherService', () => {
     const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    c.council_decision_id = '31';
+    // Номера принятого решения у отклонённого вопроса нет: пояснение записано по номеру вопроса в повестке.
+    expect(c.council_decision_id ?? null).toBeNull();
+    expect(c.council_agenda_id).toBe('77');
     const getDeclineReason = jest.fn(async () => 'Материалы занятия не раскрывают тему');
     (service as any).declineReasons = { getDeclineReason };
 
     await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Отклонено советом: большинство голосов против');
 
-    expect(getDeclineReason).toHaveBeenCalledWith('voskhod', '31');
+    expect(getDeclineReason).toHaveBeenCalledWith('voskhod', '77');
     expect(c.decline_reason).toBe('Материалы занятия не раскрывают тему');
-    expect(chain.recallRid).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: 'совет не принял решение о приёме: Материалы занятия не раскрывают тему' })
+    expect(chain.returnRid).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'взнос не принят, материалы возвращены на доработку: Материалы занятия не раскрывают тему' })
     );
   });
 
@@ -523,7 +540,6 @@ describe('EdubridgeTeacherService', () => {
     const { service, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    c.council_decision_id = '31';
     (service as any).declineReasons = { getDeclineReason: jest.fn(async () => null) };
 
     await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Отклонено советом: большинство голосов против');
@@ -531,16 +547,17 @@ describe('EdubridgeTeacherService', () => {
     expect(c.decline_reason).toBe('Отклонено советом: большинство голосов против');
   });
 
-  it('снятие вопроса по сроку: исход «срок» помечен действием совета, обратный вызов закрывает взнос с основанием совета', async () => {
+  it('снятие вопроса по сроку: исход «срок» помечен действием совета, взнос возвращён на доработку тем же путём', async () => {
     const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
     await service.onCouncilGaveUp('voskhod', '77', EduCouncilOutcome.EXPIRED);
     await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, '');
-    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
     expect(c.council_outcome).toBe(EduCouncilOutcome.EXPIRED);
     expect(c.decline_reason).toBe('совет отказал в приёме');
-    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+    expect(chain.returnRid).toHaveBeenCalledTimes(1);
+    expect(chain.recallRid).not.toHaveBeenCalled();
   });
 
   it('подача запоминает номер вопроса в повестке совета; отклонение и просрочка помечают заявление', async () => {
@@ -800,20 +817,168 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(store.size).toBe(1);
   });
 
-  it('после отказа совета занятие проводится и отчитывается заново — взнос новый', async () => {
-    const { service, teachers, store } = make();
-    let n = 0;
-    teachers.createContribution.mockImplementation((d: any) => ({ ...d, id: `K${++n}`, created_at: new Date('2026-02-01') }));
-    const first = await service.reportLesson('voskhod', 'teach', report as any);
-    const firstContribution = store.get('K1');
-    // Совет отклонил вопрос о приёме — обратный вызов контракта снял материалы с хранения.
-    firstContribution.status = EduContributionStatus.SUBMITTED;
-    await service.onCouncilDeclinedByHash('voskhod', firstContribution.rid_hash, 'Совет отклонил вопрос');
-    const again = await service.reportLesson('voskhod', 'teach', { ...report, topic: 'Дроби, повтор' } as any);
-    expect(again.id).toBe(first.id);
-    expect(again.topic).toBe('Дроби, повтор');
-    expect(again.contribution_id).toBe('K2');
-    expect(store.get('K2').rid_hash).not.toBe(firstContribution.rid_hash);
+  // ── Повторная подача и закрытие без приёма (решение владельца 25.11.2026) ──
+  it('edu.rid.rework.happy.01: взнос на доработке подаётся повторно — тот же взнос и хэш, сумма прежняя, расчёта с обучающимися нет', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме');
+    const ridHash = c.rid_hash;
+    const charged = chain.chargeLesson.mock.calls.length;
+    const opened = chain.openLesson.mock.calls.length;
+
+    const draft = await service.reworkContribution('voskhod', 'teach', {
+      contribution_id: c.id,
+      lessons: [{ lesson_id: 'LS1', topic: ' Дроби, повтор ', materials: [' https://video/1-new ', ''] }],
+    });
+
+    expect(draft.id).toBe(c.id);
+    expect(store.size).toBe(1);
+    expect(draft).toMatchObject({
+      status: EduContributionStatus.DRAFT,
+      rid_hash: ridHash,
+      amount: '1000.0000 RUB',
+      links: ['https://video/1-new'],
+      description: 'Дроби, повтор',
+      statement_document: null,
+      storage_act_document: null,
+      council_agenda_id: null,
+      council_outcome: null,
+      decline_reason: null,
+    });
+    // Расчёт занятия прошёл при первом отчёте: занятие не открывается и с подписок не списывается.
+    expect(chain.openLesson).toHaveBeenCalledTimes(opened);
+    expect(chain.chargeLesson).toHaveBeenCalledTimes(charged);
+
+    // Дальше — тот же путь, что первая подача: акт хранения, заявление, совет.
+    await service.storageAct('voskhod', 'teach', c.id);
+    expect(chain.chargeLesson).toHaveBeenCalledTimes(charged);
+    await service.holdContribution('voskhod', 'teach', c.id, signedBy('teach', 'HOLD2'));
+    expect(chain.holdRid).toHaveBeenLastCalledWith(expect.objectContaining({ rid_hash: ridHash, pack: [] }));
+    c.hold_until = null;
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT2'));
+    expect(chain.submitRid).toHaveBeenCalledTimes(2);
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(c.council_agenda_id).toBe('77');
+  });
+
+  it('edu.rid.rework.happy.02: повторная подача не зависит от группы и подписок — их состояние не читается', async () => {
+    const { service, store, enrollments } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме');
+    // Группа завершена, подписок не осталось.
+    (service as any).groups.get = jest.fn(async () => ({ id: 'G1', status: 'closed' }));
+    enrollments.findByGroup.mockClear();
+    enrollments.findByCourse.mockClear();
+
+    const draft = await service.reworkContribution('voskhod', 'teach', { contribution_id: c.id, lessons: [{ lesson_id: 'LS1', materials: ['https://video/2'] }] });
+
+    expect(draft.status).toBe(EduContributionStatus.DRAFT);
+    expect(enrollments.findByGroup).not.toHaveBeenCalled();
+    expect(enrollments.findByCourse).not.toHaveBeenCalled();
+  });
+
+  it('edu.rid.rework.happy.03: взнос за гарантийный срок подаётся повторно — материалы по занятиям, перечень взноса собран заново', async () => {
+    const { service, chain, store, lessons } = make({ calendar: false });
+    for (const n of [1, 2]) {
+      await lessons.save({ id: `LS${n}`, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', assignment_id: 'A1', teacher_username: 'teach', lesson_number: n, learners_count: 2, contribution_id: null, materials: [`https://video/${n}`], held_at: new Date(Date.now() - 20 * 86400_000), duration_minutes: 60, status: 'held', topic: `Тема ${n}` });
+    }
+    await service.openGuaranteePacks('voskhod');
+    const pack = [...store.values()][0];
+    await service.holdContribution('voskhod', 'teach', pack.id, signedBy('teach', 'HOLD'));
+    pack.hold_until = null;
+    await service.submitContribution('voskhod', 'teach', pack.id, signedBy('teach', 'STMT'));
+    await service.onCouncilDeclinedByHash('voskhod', pack.rid_hash, 'Нет записи второго занятия');
+    expect(pack.status).toBe(EduContributionStatus.RETURNED);
+    const description = pack.description;
+
+    // Правится одно занятие из двух — второе остаётся с прежними материалами.
+    const draft = await service.reworkContribution('voskhod', 'teach', { contribution_id: pack.id, lessons: [{ lesson_id: 'LS2', materials: ['https://video/2', 'https://video/2-record'] }] });
+
+    expect(draft).toMatchObject({ status: EduContributionStatus.DRAFT, amount: '3000.0000 RUB', lesson_id: null, description });
+    expect(draft.links).toEqual(['https://video/1', 'https://video/2', 'https://video/2-record']);
+    await service.holdContribution('voskhod', 'teach', pack.id, signedBy('teach', 'HOLD2'));
+    expect(chain.holdRid).toHaveBeenLastCalledWith(expect.objectContaining({ rid_hash: pack.rid_hash }));
+  });
+
+  it('edu.rid.rework.side.01: повторно подаётся только взнос на доработке и только своим преподавателем с действующим договором', async () => {
+    const { service, store, teachers } = make();
+    const c = await contributionOfLesson(service, store);
+    const input = { contribution_id: c.id, lessons: [{ lesson_id: 'LS1', materials: ['https://video/2'] }] };
+    // Материалы на хранении, взнос у совета, принят — подавать повторно нечего.
+    for (const status of [EduContributionStatus.HELD, EduContributionStatus.SUBMITTED, EduContributionStatus.ACCEPTED, EduContributionStatus.DECLINED, EduContributionStatus.CLOSED]) {
+      c.status = status;
+      await expect(service.reworkContribution('voskhod', 'teach', input)).rejects.toThrow(/не возвращён на доработку/);
+    }
+    c.status = EduContributionStatus.RETURNED;
+    await expect(service.reworkContribution('voskhod', 'other', input)).rejects.toThrow();
+    // Чужое занятие и пустые материалы.
+    await expect(service.reworkContribution('voskhod', 'teach', { contribution_id: c.id, lessons: [{ lesson_id: 'LS2', materials: ['https://x'] }] })).rejects.toThrow(/не относится к этому взносу/);
+    await expect(service.reworkContribution('voskhod', 'teach', { contribution_id: c.id, lessons: [{ lesson_id: 'LS1', materials: ['  '] }] })).rejects.toThrow(/Укажите материалы/);
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
+    // Договор прекращён — материалы на хранение не принимаются, отказ до правок.
+    (await teachers.findContract('voskhod', 'teach')).status = EduContractStatus.TERMINATED;
+    await expect(service.reworkContribution('voskhod', 'teach', input)).rejects.toThrow();
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
+  });
+
+  it('edu.rid.rework.side.02: по занятию взноса на доработке новый отчёт не принимается — путь один, повторная подача', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме');
+
+    await expect(service.reportLesson('voskhod', 'teach', { lesson_id: 'LS1', materials: ['https://video/2'] } as any)).rejects.toThrow(/уже подан/);
+    expect(store.size).toBe(1);
+  });
+
+  it('edu.rid.close.happy.01: председатель закрывает расчёт по взносу на доработке без приёма — recallrid с основанием, запись курса сверена с цепью', async () => {
+    const { service, chain, store, funds } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме');
+    funds.onSettled.mockClear();
+
+    const closed = await service.closeContribution('voskhod', c.id, '  Преподаватель вышел из программы ');
+
+    expect(chain.recallRid).toHaveBeenCalledWith({ coopname: 'voskhod', rid_hash: c.rid_hash, reason: 'расчёт закрыт без приёма: Преподаватель вышел из программы' });
+    expect(closed).toMatchObject({ status: EduContributionStatus.CLOSED, decline_reason: 'Преподаватель вышел из программы' });
+    expect(funds.onSettled).toHaveBeenCalledTimes(1);
+    // Закрытый расчёт повторно не подаётся и второй раз не закрывается.
+    await expect(service.reworkContribution('voskhod', 'teach', { contribution_id: c.id, lessons: [{ lesson_id: 'LS1', materials: ['https://x'] }] })).rejects.toThrow(/не возвращён на доработку/);
+    await expect(service.closeContribution('voskhod', c.id, 'ещё раз')).rejects.toThrow(/не возвращён на доработку/);
+    expect(chain.recallRid).toHaveBeenCalledTimes(1);
+  });
+
+  it('edu.rid.close.side.01: без приёма закрывается только взнос на доработке и только с основанием; отказ цепи состояние не меняет', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    // Материалы на хранении, взнос у совета: само закрытие не происходит и не разрешено.
+    await expect(service.closeContribution('voskhod', c.id, 'причина')).rejects.toThrow(/не возвращён на доработку/);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await expect(service.closeContribution('voskhod', c.id, 'причина')).rejects.toThrow(/не возвращён на доработку/);
+    await expect(service.closeContribution('voskhod', 'NOPE', 'причина')).rejects.toThrow();
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме');
+    await expect(service.closeContribution('voskhod', c.id, '   ')).rejects.toThrow(/Укажите основание/);
+    expect(chain.recallRid).not.toHaveBeenCalled();
+
+    chain.recallRid.mockRejectedValueOnce(new Error('цепь недоступна'));
+    await expect(service.closeContribution('voskhod', c.id, 'причина')).rejects.toThrow('цепь недоступна');
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
+  });
+
+  it('edu.rid.return.side.01: цепь отказала в возврате на доработку — взнос остаётся на рассмотрении, обработчик повторяем', async () => {
+    const { service, chain, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    chain.returnRid.mockRejectedValueOnce(new Error('цепь недоступна'));
+
+    await expect(service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме')).rejects.toThrow('цепь недоступна');
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash, 'Материалы не по теме');
+    expect(c.status).toBe(EduContributionStatus.RETURNED);
   });
 
   it('отчёт задним числом и курс без гарантии: материалы всё равно принимаются на хранение', async () => {

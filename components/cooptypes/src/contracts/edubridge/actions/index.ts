@@ -73,12 +73,17 @@ export * as Acceptrid from './acceptrid'
 export * as Declinerid from './declinerid'
 
 /**
- * Снятие материалов с ответственного хранения по рекламации: o.edu.retrid.
+ * Взнос не принят — материалы возвращаются преподавателю на доработку: o.edu.retrid.
+ */
+export * as Returnrid from './returnrid'
+
+/**
+ * Расчёт по материалам закрывается без приёма: o.edu.retrid, взнос преподавателя из резерва — на кошелёк программы (o.edu.free).
  */
 export * as Recallrid from './recallrid'
 
 /**
- * Отказ совета по взносу занятия: оплата возвращается ученикам, номер занятия освобождается.
+ * Прежний путь отказа совета: отмена расчёта занятия в подписках. Приложение его не вызывает — отказ идёт через Returnrid.
  */
 export * as Refundlesson from './refundlesson'
 

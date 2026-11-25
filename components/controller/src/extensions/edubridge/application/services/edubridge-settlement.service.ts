@@ -6,9 +6,6 @@ import type { EdubridgeEnrollmentRecord, EdubridgeGroupRecord } from '../../infr
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositories/edubridge-group.kysely-repository';
 import { EdubridgeFundsService } from './edubridge-funds.service';
-import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
-import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
-import { lessonReportInProcess } from '../../domain/lib/report-in-process';
 
 /** Код отказа контракта: подписки с таким hash в цепи нет. */
 const SUBSCRIPTION_GONE = 'EDUBRIDGE_SUBSCRIPTION_NOT_FOUND';
@@ -19,9 +16,7 @@ const SUBSCRIPTION_GONE = 'EDUBRIDGE_SUBSCRIPTION_NOT_FOUND';
  * её оплаченного срока и получает за них взнос. Срока на отчёт нет. Подписка
  * закрывается в цепи в двух случаях:
  *
- *  - преподаватель отчитался обо всех занятиях программы группы и процесс
- *    отчёта по каждому завершён (совет решил, окно повторной подачи после
- *    отказа вышло) — закрывает очередь;
+ *  - преподаватель отчитался обо всех занятиях программы группы — закрывает очередь;
  *  - администратор завершил группу — когда отчётов больше не будет.
  *
  * При закрытии резерв за занятия без отчёта уходит на кошелёк программы.
@@ -33,9 +28,7 @@ export class EdubridgeSettlementService {
     private readonly groups: EdubridgeGroupKyselyRepository,
     private readonly funds: EdubridgeFundsService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    private readonly lessons: EdubridgeLessonKyselyRepository,
-    private readonly teachers: EdubridgeTeacherKyselyRepository
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(EdubridgeSettlementService.name);
   }
@@ -75,28 +68,11 @@ export class EdubridgeSettlementService {
     return closed;
   }
 
-  /**
-   * Программа группы отчитана целиком: минут занятий в цепи столько, сколько
-   * в программе, окон расчёта нет и процесс отчёта по каждому занятию
-   * завершён. Отчёт на рассмотрении совета либо отклонённый, но ещё
-   * подаваемый повторно, держит подписки живыми: по ним вернётся оплата
-   * занятия и пройдёт расчёт повторного отчёта.
-   */
+  /** Программа группы отчитана целиком: минут занятий в цепи столько, сколько в программе, и окон расчёта нет. */
   private async fullyReported(coopname: string, group: EdubridgeGroupRecord): Promise<boolean> {
     if (!(group.minutes_total > 0)) return false;
     const terms = await this.chain.readTerms(coopname, group.chain_ref).catch(() => null);
-    if (!terms || Number(terms.minutes_opened) < group.minutes_total || Number(terms.charging ?? 0) !== 0) return false;
-    return !(await this.reportsInProcess(coopname, group));
-  }
-
-  /** По занятию группы процесс отчёта ещё идёт (см. lessonReportInProcess). */
-  private async reportsInProcess(coopname: string, group: EdubridgeGroupRecord): Promise<boolean> {
-    const now = new Date();
-    for (const lesson of await this.lessons.findByGroup(coopname, group.id)) {
-      const contribution = lesson.contribution_id ? await this.teachers.findContribution(coopname, lesson.contribution_id) : null;
-      if (lessonReportInProcess(lesson, contribution, group.report_days, now)) return true;
-    }
-    return false;
+    return Boolean(terms) && Number(terms?.minutes_opened) >= group.minutes_total && Number(terms?.charging ?? 0) === 0;
   }
 
   private async closeAll(coopname: string, pending: EdubridgeEnrollmentRecord[]): Promise<number> {

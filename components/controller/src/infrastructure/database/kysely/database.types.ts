@@ -41,7 +41,7 @@ export type EdubridgeContributionsCouncilOutcomeEnum = "declined" | "expired";
 
 export type EdubridgeContributionsRidTypeEnum = "assessment_material" | "course_program" | "lesson_recording" | "methodical_material" | "other";
 
-export type EdubridgeContributionsStatusEnum = "accepted" | "act_signed" | "council_approved" | "declined" | "draft" | "held" | "submitted";
+export type EdubridgeContributionsStatusEnum = "accepted" | "act_signed" | "closed" | "council_approved" | "declined" | "draft" | "held" | "returned" | "submitted";
 
 export type EdubridgeCoursesCarrierEnum = "getcourse" | "onsite" | "skillspace" | "telegram" | "vk";
 

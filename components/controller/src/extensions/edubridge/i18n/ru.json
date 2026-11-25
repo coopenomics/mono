@@ -123,6 +123,7 @@
     "exitBlockers": {
       "courseFallbackTitle": "курс",
       "pendingReturnName": "Возврат членских взносов по действующим подпискам на курсы ({subscriptions}) по Положению программы",
+      "returnedContributions": "по вашим занятиям не закрыт расчёт: взносов на доработке — {count}. Подайте их повторно на столе преподавателя либо попросите председателя закрыть расчёт без приёма",
       "statementsInWork": "по вашим занятиям не закрыт расчёт: заявлений в работе — {count}, дождитесь их прохождения",
       "teachingCourse": "вы ведёте курс «{title}» — передайте его другому преподавателю либо дождитесь окончания программы",
       "unsignedStatements": "материалы ваших занятий на ответственном хранении без заявления о паевом взносе — {count}: подпишите заявление на столе преподавателя"
@@ -209,7 +210,8 @@
       "lessonContributionDescription": "Занятие № {lessonNumber} курса «{courseTitle}»",
       "guaranteePackDescription": "Занятия № {from}–{to} курса «{courseTitle}» за гарантийный срок",
       "guaranteePackTopic": "по № {to} включительно, занятия гарантийного срока",
-      "ridRecallReason": "совет не принял решение о приёме: {reason}",
+      "ridReturnReason": "взнос не принят, материалы возвращены на доработку: {reason}",
+      "ridCloseReason": "расчёт закрыт без приёма: {reason}",
       "councilDeclinedReason": "совет отказал в приёме",
       "actDeclinedReason": "председатель отказал в подписи акта приёма-передачи"
     },
@@ -319,6 +321,10 @@
     "EDUBRIDGE_CONTRACT_TERMINATED": "Договор прекращён — подпишите его заново",
     "EDUBRIDGE_CONTRACT_TERMINATION_REASON_REQUIRED": "Укажите основание прекращения договора",
     "EDUBRIDGE_CONTRIBUTION_ALREADY_HELD": "Материалы занятия уже приняты на ответственное хранение",
+    "EDUBRIDGE_CONTRIBUTION_NOT_RETURNED": "Взнос не возвращён на доработку: повторная подача и закрытие без приёма недоступны",
+    "EDUBRIDGE_CLOSE_REASON_REQUIRED": "Укажите основание закрытия расчёта без приёма",
+    "EDUBRIDGE_REWORK_FOREIGN_LESSON": "Занятие не относится к этому взносу",
+    "EDUBRIDGE_REWORK_MATERIALS_REQUIRED": "Укажите материалы занятия",
     "EDUBRIDGE_CONTRIBUTION_ALREADY_SUBMITTED": "Взнос уже подан",
     "EDUBRIDGE_CONTRIBUTION_FOREIGN": "Взнос принадлежит другому преподавателю",
     "EDUBRIDGE_CONTRIBUTION_NOT_FOUND": "Взнос не найден",
