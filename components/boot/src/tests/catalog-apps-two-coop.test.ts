@@ -154,7 +154,11 @@ describe('приложение каталога на связке двух ко�
       (await installedOnSlave()).includes(PACKAGE))
 
     const row = await catalogRow(nodeToken)
-    expect(row.subscription?.status).toBe('ACTIVE')
+    // Подписка действует: пробной она стартует, когда у цены пакета задан
+    // пробный срок и кооператив им ещё не пользовался, иначе — оплаченной.
+    // До 26.11.2026 тест ждал только ACTIVE и падал на стенде, где у demoapp
+    // с 26.10 пробный срок 14 дней.
+    expect(['ACTIVE', 'TRIAL']).toContain(row.subscription?.status)
     expect(row.installed).toBe(true)
     expect(row.enabled).toBe(true)
 
