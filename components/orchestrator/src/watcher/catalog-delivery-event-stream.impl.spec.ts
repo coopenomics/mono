@@ -23,7 +23,11 @@ describe('CatalogDeliveryEventStream', () => {
     }) as typeof fetch;
   });
 
-  const build = (releasePollEvery = 1, installedPackages?: () => Promise<string[]>) => {
+  const build = (
+    releasePollEvery = 1,
+    installedPackages?: () => Promise<string[]>,
+    runningPackages?: () => Promise<string[]>,
+  ) => {
     const token = new CatalogTenantToken();
     token.set('tenant-jwt');
     const versions: LatestVersionPort = { latestVersion: jest.fn(async () => latest) };
@@ -34,6 +38,7 @@ describe('CatalogDeliveryEventStream', () => {
         pollIntervalMs: 1000,
         releasePollEvery,
         installedPackages,
+        runningPackages,
       },
       token,
       versions,
@@ -195,5 +200,68 @@ describe('CatalogDeliveryEventStream', () => {
     global.fetch = (async () => new Response('down', { status: 503 })) as typeof fetch;
     await expect(stream.poll(handler)).rejects.toThrow(/503/);
     expect(events.filter((e) => e.kind === 'subscription-expired')).toHaveLength(0);
+  });
+
+  // До 26.11.2026 оркестратор помнил установленное только в памяти: контейнер,
+  // удалённый или остановленный мимо него, не работал до перезапуска оркестратора.
+  describe('сверка с работающими контейнерами', () => {
+    const activations = (events: AppsContractEvent[]) =>
+      events.filter((e) => e.kind === 'subscription-activated').length;
+
+    it('happy: контейнер приложения исчез — следующий опрос ставит приложение заново', async () => {
+      let running: string[] = [];
+      const { stream, events, handler } = build(1000, undefined, async () => running);
+      await stream.poll(handler); // установка
+      running = [PKG];
+      await stream.poll(handler); // контейнер замечен работающим
+      expect(activations(events)).toBe(1);
+      running = [];
+      await stream.poll(handler);
+      expect(activations(events)).toBe(2);
+    });
+
+    it('side: контейнер работает — повторной установки нет ни на одном опросе', async () => {
+      const { stream, events, handler } = build(1000, undefined, async () => [PKG]);
+      await stream.poll(handler);
+      await stream.poll(handler);
+      await stream.poll(handler);
+      expect(activations(events)).toBe(1);
+    });
+
+    it('side: приложение без бэкенда (контейнера не было никогда) не переустанавливается', async () => {
+      const { stream, events, handler } = build(1000, undefined, async () => []);
+      await stream.poll(handler);
+      await stream.poll(handler);
+      await stream.poll(handler);
+      expect(activations(events)).toBe(1);
+    });
+
+    it('break: повторная установка упала — действует пауза повтора, шторма установок нет', async () => {
+      let running: string[] = [PKG];
+      const { stream, handler } = build(1000, undefined, async () => running);
+      await stream.poll(handler);
+      await stream.poll(handler);
+      running = [];
+      handler.mockRejectedValue(new Error('docker pull: нет сети'));
+      const before = handler.mock.calls.length;
+      await stream.poll(handler); // 1-я попытка
+      await stream.poll(handler); // 2-я — сразу
+      await stream.poll(handler); // пауза
+      await stream.poll(handler); // пауза
+      expect(handler.mock.calls.length - before).toBe(2);
+    });
+
+    it('side: подписка закончилась — контейнер снимается обычным путём, сверка его не возвращает', async () => {
+      let running: string[] = [PKG];
+      const { stream, events, handler } = build(1000, undefined, async () => running);
+      await stream.poll(handler);
+      await stream.poll(handler);
+      active = [];
+      running = [];
+      await stream.poll(handler);
+      await stream.poll(handler);
+      expect(activations(events)).toBe(1);
+      expect(events.filter((e) => e.kind === 'subscription-expired')).toHaveLength(1);
+    });
   });
 });

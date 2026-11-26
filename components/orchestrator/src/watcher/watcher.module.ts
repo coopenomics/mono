@@ -83,6 +83,7 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
             pollIntervalMs: Number(process.env.WATCHER_POLL_INTERVAL_MS ?? 15000),
             releasePollEvery: Number(process.env.WATCHER_RELEASE_POLL_EVERY ?? 20),
             installedPackages: () => orchestrator.installedPackages(),
+            runningPackages: () => orchestrator.runningPackages(),
           },
           token,
           metadata,

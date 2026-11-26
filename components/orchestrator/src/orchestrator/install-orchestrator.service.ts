@@ -296,6 +296,15 @@ export class InstallOrchestratorService {
     return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL);
   }
 
+  /**
+   * Пакеты, чей контейнер сейчас работает либо перезапускается docker'ом.
+   * По этому списку опрос каталога замечает контейнер, который остановили
+   * или удалили мимо оркестратора.
+   */
+  runningPackages(): Promise<string[]> {
+    return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL, { runningOnly: true });
+  }
+
   private async rollbackComposeIfAny(input: InstallExtensionInput): Promise<void> {
     try {
       if (input.composeService !== undefined && input.composeFile !== undefined) {

@@ -43,6 +43,14 @@ export interface CatalogDeliveryEventStreamConfig {
    * бы на узле без срока.
    */
   installedPackages?: () => Promise<string[]>;
+  /**
+   * Пакеты, чей контейнер сейчас работает. Каждый опрос сверяет с ним
+   * приложения, которые оркестратор считает установленными: контейнер,
+   * остановленный или удалённый мимо оркестратора (ручной `docker rm`, чистка
+   * узла), ставится заново. До 26.11.2026 сверки не было, и такое приложение
+   * не работало до перезапуска оркестратора.
+   */
+  runningPackages?: () => Promise<string[]>;
 }
 
 interface ActiveSubscriptionWire {
@@ -56,6 +64,8 @@ const RETRY_MAX_MS = 10 * 60_000;
 
 export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
   private readonly logger = new Logger(CatalogDeliveryEventStream.name);
+  /** Пакеты, у которых контейнер видели работающим. */
+  private readonly containerSeen = new Set<string>();
   private knownSubs = new Set<string>();
   private knownVersions = new Map<string, string>();
   /**
@@ -109,6 +119,7 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
         if (!live.has(packageId)) this.knownSubs.add(packageId);
       }
     }
+    await this.dropVanishedContainers(live);
     const events: AppsContractEvent[] = [];
     const activation = new Map<AppsContractEvent, string>();
 
@@ -166,6 +177,31 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
           this.failedInstalls.set(packageId, { count, retryAt: Date.now() + delay });
         }
       }
+    }
+  }
+
+  /**
+   * Забыть установку приложения, чей контейнер перестал работать: этот же
+   * опрос поставит его заново как новую подписку.
+   *
+   * Сверяются только пакеты, у которых контейнер уже видели работающим:
+   * приложение без бэкенда контейнера не имеет, и переустанавливать его
+   * каждый опрос незачем.
+   */
+  private async dropVanishedContainers(live: Map<string, number>): Promise<void> {
+    if (this.cfg.runningPackages === undefined) return;
+    const running = new Set(await this.cfg.runningPackages());
+    for (const packageId of this.containerSeen) {
+      if (!live.has(packageId)) {
+        this.containerSeen.delete(packageId);
+      } else if (!running.has(packageId) && this.knownSubs.has(packageId)) {
+        this.logger.warn(`контейнер приложения ${packageId} не работает — устанавливаю заново`);
+        this.knownSubs.delete(packageId);
+        this.containerSeen.delete(packageId);
+      }
+    }
+    for (const packageId of running) {
+      if (live.has(packageId)) this.containerSeen.add(packageId);
     }
   }
 

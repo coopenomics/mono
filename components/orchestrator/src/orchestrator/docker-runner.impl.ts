@@ -118,11 +118,13 @@ export class ShellDockerRunner implements DockerRunnerPort {
     }
   }
 
-  async listLabelValues(label: string): Promise<string[]> {
+  async listLabelValues(label: string, options: { runningOnly?: boolean } = {}): Promise<string[]> {
     try {
+      // Без `-a` docker показывает работающие и перезапускаемые контейнеры.
+      const scope = options.runningOnly === true ? [] : ['-a'];
       const { stdout } = await execFileAsync(
         'docker',
-        ['ps', '-a', '--filter', `label=${label}`, '--format', `{{.Label "${label}"}}`],
+        ['ps', ...scope, '--filter', `label=${label}`, '--format', `{{.Label "${label}"}}`],
         { timeout: DOCKER_TIMEOUT_MS },
       );
       return stdout.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);

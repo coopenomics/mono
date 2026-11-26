@@ -392,3 +392,18 @@ cases:
     status: written
     external: unreachable
     external_reason: "недоступность контейнера приложения — действие над контейнером стенда, внешний слой работает только через API"
+
+  # ── 26.11.2026 (487-31): сверка установленного с работающими контейнерами ──
+  - id: apps.access.happy.16
+    level: backend
+    kind: happy
+    scenario: >
+      Контейнер установленного приложения удалён или остановлен мимо оркестратора (ручной docker rm, чистка узла).
+    expect: >
+      следующий опрос каталога ставит приложение заново; работающий контейнер и приложение без бэкенда
+      не переустанавливаются; неудачная повторная установка идёт с паузой повтора
+    test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "удаление контейнера приложения — действие над docker стенда, внешний слой работает только через API"
+
