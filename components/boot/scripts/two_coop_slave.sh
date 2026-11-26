@@ -108,7 +108,7 @@ echo "══ Ведомый кооператив $COOPNAME: стенд ${STACK_P
 
 stack_wipe_containers
 stack_wipe_volumes
-docker compose rm -fsv node orchestrator >/dev/null 2>&1 || true
+docker compose rm -fsv node >/dev/null 2>&1 || true
 
 stack_up_infra
 stack_up_authentik
@@ -116,7 +116,6 @@ echo "▸ Ретранслятор цепи ведущего..."
 docker compose up -d node
 stack_migrate_schema || exit 1
 stack_up_app
-docker compose up -d orchestrator
 
 # ── Узел готов? ──────────────────────────────────────────────────────────────
 # localhost, а не 127.0.0.1: nginx стенда переадресует 127.0.0.1 на localhost.

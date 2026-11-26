@@ -168,11 +168,14 @@ services:
       # WATCHER_RELEASE_POLL_EVERY опросов подписок.
       WATCHER_POLL_INTERVAL_MS: ${WATCHER_POLL_INTERVAL_MS:-15000}
       WATCHER_RELEASE_POLL_EVERY: ${WATCHER_RELEASE_POLL_EVERY:-20}
-      EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-}
+      # Сеть, в которой оркестратор запускает контейнеры приложений: в ней они
+      # видят ядро по имени coopback. По умолчанию — сеть этого стенда.
+      EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-${COMPOSE_PROJECT_NAME:-mono}_default}
       # Заявки приложений на порты ядра (487-17): оркестратор заводит их в
-      # ядре межсервисным секретом узла. Пусто — приложения ставятся без
-      # доступа к портам ядра.
-      SERVER_SECRET: ${SERVER_SECRET:-}
+      # ядре межсервисным секретом узла — тем же, что SERVER_SECRET ядра
+      # (components/controller/.env; на стендах разработки — SECRET). При
+      # другом секрете ядра задайте его и в корневом .env.
+      SERVER_SECRET: ${SERVER_SECRET:-SECRET}
       # Пределы контейнера одного приложения каталога: память в МБ и число
       # ядер. Пусто — без пределов (значение по умолчанию до замера).
       EXTENSION_MEMORY_MB: ${EXTENSION_MEMORY_MB:-}

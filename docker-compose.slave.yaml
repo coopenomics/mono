@@ -62,6 +62,12 @@ services:
       # приложения на узел. В .env контроллера ведомого этой строки может не быть.
       ORCHESTRATOR_URL: http://orchestrator:4000
 
+  # Оркестратор узла ведомого заводит заявки приложений в ядре тем же
+  # межсервисным секретом, что получил контроллер ведомого.
+  orchestrator:
+    environment:
+      SERVER_SECRET: ${SLAVE_SERVER_SECRET}
+
   desktop:
     environment:
       CHAIN_ID: ${CHAIN_ID}

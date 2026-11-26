@@ -14,7 +14,10 @@
 # раскладывает запросы по уже поднятым.
 STACK_INFRA_SERVICES="postgres monoredis minio"
 STACK_AUTH_SERVICES="authentik-server authentik-worker"
-STACK_APP_SERVICES="parser2 coopback desktop nginx"
+# Оркестратор приложений каталога — часть стенда наравне с контроллером
+# (решение владельца 26.11.2026): без него подписка на приложение ничего не
+# ставит, и проверить каталог на стенде нельзя.
+STACK_APP_SERVICES="parser2 coopback desktop nginx orchestrator"
 
 # ── Окружение ────────────────────────────────────────────────────────────────
 
@@ -42,6 +45,16 @@ stack_wipe_containers() {
   echo "▸ Останавливаем и удаляем контейнеры стенда..."
   docker compose rm -fsv $STACK_INFRA_SERVICES $STACK_AUTH_SERVICES $STACK_APP_SERVICES || true
   docker compose stop node || true
+  # Контейнеры приложений каталога оркестратор запускает сам, в компоузе их
+  # нет. База стенда стирается, и прежние приложения остались бы работать без
+  # подписки и без записи о них.
+  local apps
+  apps="$(docker ps -aq --filter label=coop.extension.package --filter "network=${STACK_PROJECT}_default" 2>/dev/null)"
+  if [ -n "$apps" ]; then
+    echo "  снимаем контейнеры приложений каталога"
+    # shellcheck disable=SC2086 — список идентификаторов передаётся словами
+    docker rm -f $apps >/dev/null 2>&1 || true
+  fi
 }
 
 # Именованные тома `rm -v` не трогает — только анонимные. Удаляем поимённо,
@@ -267,6 +280,11 @@ stack_up_app() {
   else
     docker compose up -d nginx
   fi
+  # Оркестратор ставит приложения каталога и держит общий шлюз GraphQL. Ядро
+  # обязательно для его схемы: до готовности контроллера docker перезапускает
+  # оркестратор сам (restart: unless-stopped). Без каталога в контуре он
+  # простаивает: ядро не передаёт ему токен каталога, опрос не начинается.
+  docker compose up -d --no-deps orchestrator
   # Контроллер и рабочий стол дальше прогреваются сами, и скрипт их не караулит.
   # Оба поднимаются через компиляцию (ts-node типизирует проект, quasar собирает
   # маршруты) и на занятой машине занимают минуты — караулить их значило держать
