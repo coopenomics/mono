@@ -46,7 +46,10 @@ export interface DockerRunnerPort {
     cpus?: number;
   }): Promise<void>;
   /** Значения метки у всех контейнеров, где она стоит (работающих и остановленных). */
-  listLabelValues(label: string, options?: { runningOnly?: boolean }): Promise<string[]>;
+  listLabelValues(
+    label: string,
+    options?: { runningOnly?: boolean; /** Отбор по значениям других меток. */ having?: Record<string, string> },
+  ): Promise<string[]>;
   /** Снять контейнер расширения (rollback/uninstall). Idempotent. */
   removeContainer(name: string): Promise<void>;
   /**

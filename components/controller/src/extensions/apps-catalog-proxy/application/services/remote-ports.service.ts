@@ -16,6 +16,7 @@ import {
   type IVaultPort,
 } from '@coopenomics/innercoop';
 import { AppPortGrantRecord } from '../../infrastructure/records/app-port-grant.record';
+import { AppSessionService } from './app-session.service';
 import { REMOTE_PORTS, type RemotePortName } from './remote-ports.catalog';
 
 /**
@@ -37,6 +38,7 @@ export class RemotePortsService {
     @Inject(ACCOUNT_PORT) account: IAccountPort,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
     @Inject(VAULT_PORT) private readonly vault: IVaultPort,
+    private readonly sessions: AppSessionService,
   ) {
     this.targets = { document, cooperativeVars, accessToken, account, chain };
   }
@@ -66,6 +68,11 @@ export class RemotePortsService {
     }
     if (port === 'chain' && method === 'transact') {
       return this.transact(grant, coopname, args[0] as InnerChainAction | InnerChainAction[], args[1] !== false);
+    }
+    // Токен приложения опознаёт только то приложение, которому стол его выдал:
+    // чужой токен приложения и поддельный дают null, как неверный токен пайщика.
+    if (port === 'accessToken' && method === 'identify' && AppSessionService.isAppSession(args[0])) {
+      return this.sessions.verify(args[0], grant.packageId);
     }
     const target = this.targets[port as RemotePortName] as Record<string, (...a: unknown[]) => unknown>;
     return target[method](...args);

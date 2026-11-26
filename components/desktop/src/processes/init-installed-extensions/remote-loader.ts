@@ -26,6 +26,7 @@ import type { Router } from 'vue-router';
 import { env } from 'src/shared/config';
 import { resolveAccessToken } from 'src/shared/api/access-token';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import { frameWorkspace, parseFrameDescriptor } from './frame-descriptor';
 
 export interface RemoteExtensionDescriptor {
   packageId: string;
@@ -229,6 +230,10 @@ export async function loadRemoteExtension(
 ): Promise<IWorkspaceConfig[]> {
   const { code, declaredSha } = await fetchInstallScript(desc);
   await verifyInstallScript(code, declaredSha, desc);
+  // Изолированный фронт (487-18): файл — описатель, а не сценарий. Стол его не
+  // выполняет: страница приложения работает в рамке с отдельным происхождением.
+  const frame = parseFrameDescriptor(code);
+  if (frame !== null) return frameWorkspace(desc.packageId, frame);
   return evalInstallScript(code, desc);
 }
 

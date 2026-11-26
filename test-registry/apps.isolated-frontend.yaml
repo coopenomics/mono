@@ -1,0 +1,151 @@
+feature: apps.isolated-frontend
+title: Изолированный фронт приложения каталога — рамка стола, мост команд, токен приложения
+
+# Образец 26.11.2026 (487-18, решение владельца: «делай образец на стенде 4»).
+#
+# Фронт приложения каталога поставлялся сценарием install.js, который стол
+# выполнял в своём окне. Код приложения получал всё, что доступно столу:
+# подпись от имени пайщика, зашифрованную копию ключа в IndexedDB, токен
+# пайщика, чужие страницы. Модерация и сверка хэша защищали только от подмены
+# файла, не от намерений автора.
+#
+# Теперь фронт — описатель: данные о рабочем столе и страница приложения. Стол
+# описатель не выполняет, а показывает страницу в рамке с отдельным
+# происхождением (sandbox без allow-same-origin) и закрытой сетью. Рамка
+# говорит со столом командами моста: init, graphql, sign. Токен пайщика рамка
+# не получает: стол просит у ядра токен приложения и сам подставляет его в
+# запросы к бэкенду приложения. Документ для окна подписи стол берёт у ядра по
+# хэшу, окно подписи рисует стол.
+#
+# Границу браузера (рамка не достаёт окно стола) держит сам браузер; здесь
+# проверяется то, что принадлежит нам: разбор недоверенных данных, перечень
+# команд и токен приложения.
+
+sources:
+  backend:
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/app-session.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/controllers/install-script.controller.ts
+  ui:
+    - components/desktop/src/widgets/IsolatedAppFrame/**
+    - components/desktop/src/processes/init-installed-extensions/frame-descriptor.ts
+    - components/desktop/src/processes/init-installed-extensions/remote-loader.ts
+
+cases:
+  # ── Токен приложения ─────────────────────────────────────────────────────
+  - id: apps.frame.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Стол просит у ядра токен пайщика для бэкенда установленного приложения; бэкенд опознаёт пайщика портом accessToken.identify.
+    expect: >
+      токен опознаёт пайщика с его ролью; обычная проверка токена пайщика при этом не вызывается;
+      токен пайщика порт проверяет по-прежнему
+    test: components/controller/tests/unit/apps-catalog-proxy/app-session.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и установленного приложения с заявкой на порт"
+
+  - id: apps.frame.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Токен приложения предъявлен другим приложением, подделан, подписан секретом другого узла либо истёк.
+    expect: >
+      опознания нет (null) в каждом случае; токен пайщика (JWT) токеном приложения не считается
+    test: components/controller/tests/unit/apps-catalog-proxy/app-session.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет установленного приложения каталога"
+
+  - id: apps.frame.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Токен приложения запрошен для неустановленного приложения, для приложения без заявки на порт accessToken,
+      запросом без пайщика (межсервисный секрет) либо на узле без SERVER_SECRET.
+    expect: >
+      токен не выдаётся, отказ с кодом APPS_CATALOG_PROXY_APP_SESSION_*; неверные координаты пакета — 404 до обращения к заявкам
+    test: components/controller/tests/unit/apps-catalog-proxy/app-session.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет установленного приложения каталога"
+
+  - id: apps.frame.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Стол запрашивает у ядра документ по хэшу, чтобы показать его пайщику в окне подписи.
+    expect: >
+      ядро отдаёт документ; хэш вне формата и неизвестный документ — отказ
+    test: components/controller/tests/unit/apps-catalog-proxy/app-session.test.ts
+    status: written
+    external: unreachable
+    external_reason: "документ формирует бэкенд приложения каталога, которого у стенда внешнего слоя нет"
+
+  # ── Мост стола и описатель фронта ────────────────────────────────────────
+  - id: apps.frame.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      Рамка приложения шлёт столу команды init, graphql и sign.
+    expect: >
+      стол принимает только проверенные поля: у graphql — запрос и переменные, у sign — один хэш документа;
+      лишние поля (токен, текст документа) отбрасываются
+    test: components/desktop/test/unit/isolated-app-frame.test.ts
+    status: written
+
+  - id: apps.frame.break.03
+    level: ui
+    kind: break
+    scenario: >
+      Рамка шлёт команду вне перечня (getMemberToken, transact), sign без хэша или с документом вместо хэша,
+      graphql без запроса или длиннее предела; чужое окно шлёт сообщение без признака моста.
+    expect: >
+      команда вне перечня и неверный запрос получают отказ; сообщение без признака моста стол не исполняет и не отвечает
+    test: components/desktop/test/unit/isolated-app-frame.test.ts
+    status: written
+
+  - id: apps.frame.happy.04
+    level: ui
+    kind: happy
+    scenario: >
+      Стол получает файл фронта приложения: описатель изолированного фронта либо прежний сценарий install.js.
+    expect: >
+      описатель разобран в рабочий стол и страницу и не выполняется; сценарий опознан как не описатель;
+      значок вне формата заменён значком по умолчанию
+    test: components/desktop/test/unit/isolated-app-frame.test.ts
+    status: written
+
+  - id: apps.frame.break.04
+    level: ui
+    kind: break
+    scenario: >
+      Описатель заявлен, но составлен неверно: имя рабочего стола с путём или пустое, заголовок пуст или длиннее предела, страница пуста.
+    expect: >
+      фронт не подключается; как сценарий такой файл не выполняется
+    test: components/desktop/test/unit/isolated-app-frame.test.ts
+    status: written
+
+  - id: apps.frame.side.01
+    level: ui
+    kind: side
+    scenario: >
+      Стол ставит политику содержимого в страницу приложения перед показом в рамке.
+    expect: >
+      политика стоит раньше любого содержимого страницы; сеть рамке закрыта (default-src none, connect-src не разрешён)
+    test: components/desktop/test/unit/isolated-app-frame.test.ts
+    status: written
+
+  # ── Проверено руками на стенде, автотеста нет ────────────────────────────
+  - id: apps.frame.side.02
+    level: ui
+    kind: side
+    scenario: >
+      Страница приложения в рамке пробует достать окно стола, его хранилища, куки, IndexedDB и сеть.
+    expect: >
+      браузер отказывает на каждую попытку; страница образца exampleapp показывает исход каждой пробы.
+      Не решено: границу держит браузер, автотест требует настоящего браузера (docs-harness) —
+      вносить ли сценарий в набор UI
+    test: ~
+    status: missing
+    decision_needed: true

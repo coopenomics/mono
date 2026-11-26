@@ -70,6 +70,8 @@ function portsHarness(wif: string | null = '5Kwif') {
     account as any,
     chain as any,
     vault as any,
+    // Токены приложений проверяет свой тест (app-session.test.ts).
+    { verify: jest.fn(() => null) } as any,
   );
   return { ports, document, cooperativeVars, accessToken, account, chain, vault };
 }

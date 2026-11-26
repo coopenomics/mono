@@ -4,19 +4,26 @@ import {
   Header,
   HttpException,
   HttpStatus,
+  Inject,
   Param,
+  Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
+import { DomainError, HttpJwtAuthGuard } from '@coopenomics/extension-kit';
+import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import {
   AppsCatalogHttpService,
   type InstalledFrontendMeta,
 } from '../../infrastructure/apps-catalog-http.service';
+import { AppSessionService } from '../services/app-session.service';
 import { CatalogAppsStateService } from '../services/catalog-apps-state.service';
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
+/** Хэш документа: sha256 в шестнадцатеричной записи. */
+const DOCUMENT_HASH_REGEX = /^[a-fA-F0-9]{64}$/;
 
 /**
  * Story 9.4.b → E12-3 — доставка install.js remote-расширений desktop'у.
@@ -45,6 +52,8 @@ export class AppsCatalogInstallScriptController {
   constructor(
     private readonly catalog: AppsCatalogHttpService,
     private readonly state: CatalogAppsStateService,
+    private readonly sessions: AppSessionService,
+    @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
   ) {}
 
   /**
@@ -56,6 +65,58 @@ export class AppsCatalogInstallScriptController {
   async installedFrontends(): Promise<{ items: InstalledFrontendMeta[] }> {
     const [items, disabled] = await Promise.all([this.catalog.listInstalledFrontends(), this.state.disabledPackageIds()]);
     return { items: items.filter((item) => !disabled.has(item.packageId)) };
+  }
+
+  /**
+   * Токен пайщика для бэкенда одного приложения каталога (487-18).
+   *
+   * Стол запрашивает его для изолированной рамки приложения и сам подставляет в
+   * запросы рамки. Токен пайщика рамка не получает. Запрос межсервисным
+   * секретом без пайщика отклоняется: токен выдаётся человеку, а не службе.
+   *
+   * @throws DomainError `APPS_CATALOG_PROXY_APP_SESSION_NO_MEMBER` — запрос без пайщика.
+   */
+  @Post('app-session/:scope/:name')
+  async appSession(
+    @Param('scope') scope: string,
+    @Param('name') name: string,
+    @Req() req: { user?: { username?: unknown; role?: unknown; status?: unknown } },
+  ): Promise<{ token: string; expires_at: string; username: string }> {
+    if (!NAME_REGEX.test(scope) || !NAME_REGEX.test(name)) {
+      throw new HttpException('Invalid package coordinates', HttpStatus.NOT_FOUND);
+    }
+    const username = req.user?.username;
+    if (typeof username !== 'string' || username.length === 0) {
+      throw DomainError.forbidden('APPS_CATALOG_PROXY_APP_SESSION_NO_MEMBER');
+    }
+    const { token, expiresAt } = await this.sessions.issue(`@${scope}/${name}`, {
+      username,
+      role: String(req.user?.role ?? ''),
+      status: String(req.user?.status ?? ''),
+    });
+    return { token, expires_at: expiresAt, username };
+  }
+
+  /**
+   * Документ по хэшу — для окна подписи стола (487-18).
+   *
+   * Приложение в изолированной рамке называет столу только хэш документа.
+   * Текст для показа пайщику стол берёт у ядра, а не у приложения: иначе
+   * приложение показало бы один текст, а подписало другой.
+   *
+   * @throws DomainError `APPS_CATALOG_PROXY_APP_DOCUMENT_NOT_FOUND` — документа с таким хэшем ядро не формировало.
+   */
+  @Get('app-document/:hash')
+  @Header('Cache-Control', 'no-store')
+  async appDocument(@Param('hash') hash: string): Promise<InnerGeneratedDocument> {
+    if (!DOCUMENT_HASH_REGEX.test(hash)) {
+      throw new HttpException('Invalid document hash', HttpStatus.NOT_FOUND);
+    }
+    const document = await this.documents.getByHash(hash.toUpperCase());
+    if (document === null) {
+      throw DomainError.notFound('APPS_CATALOG_PROXY_APP_DOCUMENT_NOT_FOUND', { hash });
+    }
+    return document;
   }
 
   @Get('install/:scope/:name')

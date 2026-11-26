@@ -11,6 +11,7 @@ import { AppsCatalogHttpService } from './infrastructure/apps-catalog-http.servi
 import { AppsCatalogInstallScriptController } from './application/controllers/install-script.controller';
 import { AppPortGrantsController, AppPortsController } from './application/controllers/app-ports.controller';
 import { AppPortGrantsService } from './application/services/app-port-grants.service';
+import { AppSessionService } from './application/services/app-session.service';
 import { RemotePortsService } from './application/services/remote-ports.service';
 import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-proxy.resolver';
 
@@ -31,6 +32,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
     AppsPublishersService,
     CatalogAppsStateService,
     AppPortGrantsService,
+    AppSessionService,
     RemotePortsService,
     DeveloperExtension,
     ...appsCatalogProxyStoreProviders,

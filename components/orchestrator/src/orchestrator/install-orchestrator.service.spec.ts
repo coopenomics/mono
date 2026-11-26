@@ -371,6 +371,14 @@ describe('InstallOrchestratorService', () => {
       expect(extensionContainerName('plain')).toBe('ext-plain');
     });
 
+    // Имя контейнера одно на docker машины: два узла на одной машине (связка
+    // стендов 26.11.2026) с именем ext-exampleapp отбирали контейнер друг у друга.
+    it('side: кооператив узла входит в имя — у двух узлов одной машины имена разные', () => {
+      expect(extensionContainerName('@voskhod/exampleapp', 'partner1')).toBe('ext-partner1-exampleapp');
+      expect(extensionContainerName('@voskhod/exampleapp', 'voskhod')).toBe('ext-voskhod-exampleapp');
+      expect(extensionContainerName('@voskhod/exampleapp', '')).toBe('ext-exampleapp');
+    });
+
     it('happy: installedPackages отдаёт пакеты по метке контейнеров', async () => {
       const h = buildHarness();
       h.docker.labelValues = ['@voskhod/exampleapp'];

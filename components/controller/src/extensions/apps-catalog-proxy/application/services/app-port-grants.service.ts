@@ -58,6 +58,11 @@ export class AppPortGrantsService {
   }
 
   /** Заявка по токену приложения; `null` — токен неизвестен или отозван. */
+  /** Заявка установленного пакета; `null` — пакет не установлен. */
+  async byPackage(packageId: string): Promise<AppPortGrantRecord | null> {
+    return this.store.findOne({ packageId });
+  }
+
   async byToken(token: string): Promise<AppPortGrantRecord | null> {
     if (!token.startsWith('apt_')) return null;
     return this.store.findOne({ tokenHash: hashAppToken(token) });

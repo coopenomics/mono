@@ -121,14 +121,26 @@ export function deriveHealthUrl(subgraphUrl: string): string {
   }
 }
 
+/** Кооператив этого узла из окружения оркестратора; пусто — узел не назван. */
+function nodeCoopname(): string {
+  return process.env.COOPNAME ?? '';
+}
+
 /**
- * Имя контейнера расширения по пакету каталога: `@voskhod/exampleapp` →
- * `ext-exampleapp`. Одна функция на установку и снятие: снятие обязано
- * найти ровно тот контейнер, который поставила установка.
+ * Имя контейнера расширения по пакету каталога и кооперативу узла:
+ * `@voskhod/exampleapp` на узле `partner1` → `ext-partner1-exampleapp`. Одна
+ * функция на установку и снятие: снятие обязано найти ровно тот контейнер,
+ * который поставила установка.
+ *
+ * Кооператив в имени — с 26.11.2026: имя контейнера одно на весь docker
+ * машины, и два узла на одной машине (связка стендов, CI) с именем
+ * `ext-exampleapp` отбирали контейнер друг у друга. Без названного
+ * кооператива имя прежнее — `ext-<пакет>`.
  */
-export function extensionContainerName(packageId: string): string {
+export function extensionContainerName(packageId: string, coopname: string = nodeCoopname()): string {
   const name = packageId.includes('/') ? packageId.slice(packageId.indexOf('/') + 1) : packageId;
-  return `ext-${name}`.replace(/[^a-zA-Z0-9_.-]/g, '-');
+  const owner = coopname.length > 0 ? `${coopname}-` : '';
+  return `ext-${owner}${name}`.replace(/[^a-zA-Z0-9_.-]/g, '-');
 }
 
 /**
@@ -137,6 +149,18 @@ export function extensionContainerName(packageId: string): string {
  * узле, и снимает те, у которых подписки больше нет.
  */
 export const EXTENSION_PACKAGE_LABEL = 'coop.extension.package';
+
+/**
+ * Метка контейнера приложения: кооператив узла, который его поставил. По ней
+ * оркестратор видит только свои контейнеры, когда на машине несколько узлов.
+ */
+export const EXTENSION_COOP_LABEL = 'coop.extension.coopname';
+
+/** Метки своего узла для отбора контейнеров; узел не назван — без отбора. */
+function ownContainers(): Record<string, string> | undefined {
+  const coopname = nodeCoopname();
+  return coopname.length > 0 ? { [EXTENSION_COOP_LABEL]: coopname } : undefined;
+}
 
 export type InstallOutcome =
   | {
@@ -239,7 +263,7 @@ export class InstallOrchestratorService {
             name: input.containerName,
             network: input.containerNetwork,
             env,
-            labels: { [EXTENSION_PACKAGE_LABEL]: input.packageId },
+            labels: { [EXTENSION_PACKAGE_LABEL]: input.packageId, ...(ownContainers() ?? {}) },
             memoryMb: limitFromEnv('EXTENSION_MEMORY_MB'),
             cpus: limitFromEnv('EXTENSION_CPUS'),
           });
@@ -293,7 +317,7 @@ export class InstallOrchestratorService {
 
   /** Пакеты, чьи контейнеры стоят на узле (по метке {@link EXTENSION_PACKAGE_LABEL}). */
   installedPackages(): Promise<string[]> {
-    return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL);
+    return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL, { having: ownContainers() });
   }
 
   /**
@@ -302,7 +326,7 @@ export class InstallOrchestratorService {
    * или удалили мимо оркестратора.
    */
   runningPackages(): Promise<string[]> {
-    return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL, { runningOnly: true });
+    return this.docker.listLabelValues(EXTENSION_PACKAGE_LABEL, { runningOnly: true, having: ownContainers() });
   }
 
   private async rollbackComposeIfAny(input: InstallExtensionInput): Promise<void> {
