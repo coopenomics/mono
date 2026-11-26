@@ -3104,6 +3104,9 @@ export const AllTypesProps: Record<string,any> = {
 		sendAgreement:{
 			data:"SendAgreementInput"
 		},
+		setAppsPackagePricing:{
+			data:"SetAppsPackagePricingInput"
+		},
 		setBranchPrivate:{
 			data:"SetBranchPrivateInput"
 		},
@@ -4476,6 +4479,9 @@ export const AllTypesProps: Record<string,any> = {
 	SendAgreementInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	SetAppsPackagePricingInput:{
+
+	},
 	SetBranchPrivateInput:{
 
 	},
@@ -4959,6 +4965,13 @@ export const ReturnTypes: Record<string,any> = {
 	AppsNodeWallet:{
 		axonAvailable:"String",
 		membershipAvailable:"String"
+	},
+	AppsPackagePricing:{
+		lastActiveVersion:"String",
+		packageId:"String",
+		rubPerMonth:"Float",
+		trialDays:"Int",
+		updatedAt:"String"
 	},
 	AppsPublisher:{
 		addedBy:"String",
@@ -9085,10 +9098,12 @@ export const ReturnTypes: Record<string,any> = {
 		packageId:"String",
 		releaseType:"ReleaseTypeEnum",
 		requiresOverride:"Boolean",
+		rubPerMonth:"Float",
 		scope:"JSON",
 		status:"ModerationStatusEnum",
 		submittedAt:"String",
 		submittedBy:"String",
+		trialDays:"Int",
 		updatedAt:"String",
 		version:"String"
 	},
@@ -9531,6 +9546,7 @@ export const ReturnTypes: Record<string,any> = {
 		selectBranch:"Boolean",
 		selectProviderTariff:"SelectProviderTariffResult",
 		sendAgreement:"Transaction",
+		setAppsPackagePricing:"AppsPackagePricing",
 		setBranchPrivate:"Branch",
 		setCatalogAppEnabled:"Boolean",
 		setCoopPrice:"CoopPrice",
@@ -10341,6 +10357,7 @@ export const ReturnTypes: Record<string,any> = {
 		appsCatalogPendingModerations:"ModerationRequestDTO",
 		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
 		appsNodeBilling:"AppsNodeBilling",
+		appsPackagePricing:"AppsPackagePricing",
 		appsPublishers:"AppsPublisher",
 		auditDocumentReproducibility:"DocumentReproducibilityAudit",
 		buildInitialReportEdits:"BuildInitialReportEdits",

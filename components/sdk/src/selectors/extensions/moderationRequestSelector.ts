@@ -10,6 +10,8 @@ const rawModerationRequestSelector = {
   brief: true,
   scope: true,
   requiresOverride: true,
+  rubPerMonth: true,
+  trialDays: true,
   submittedBy: true,
   submittedAt: true,
   updatedAt: true,

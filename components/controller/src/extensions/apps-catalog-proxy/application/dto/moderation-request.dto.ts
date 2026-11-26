@@ -1,4 +1,4 @@
-import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 
 /**
@@ -72,4 +72,13 @@ export class ModerationRequestDTO {
       'Требуется ли явный override:true при approve (критическая уязвимость в scan_report)',
   })
   requiresOverride!: boolean;
+
+  @Field(() => Float, {
+    nullable: true,
+    description: 'Цена приложения, ₽ в месяц. Пусто — издатель цену не назначил, заявка не одобряется',
+  })
+  rubPerMonth?: number | null;
+
+  @Field(() => Int, { description: 'Пробный срок приложения, дней' })
+  trialDays!: number;
 }

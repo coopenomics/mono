@@ -1957,6 +1957,20 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on AppsNodeWallet']?: Omit<ValueTypes["AppsNodeWallet"], "...on AppsNodeWallet">
 }>;
+	["AppsPackagePricing"]: AliasType<{
+	/** Действующая версия приложения. Пусто — действующего выпуска нет */
+	lastActiveVersion?:boolean | `@${string}`,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId?:boolean | `@${string}`,
+	/** Цена подписки, ₽ в месяц. Пусто — цена не назначена, первый выпуск не одобряется */
+	rubPerMonth?:boolean | `@${string}`,
+	/** Пробный срок, дней; 0 — оплата с первого дня */
+	trialDays?:boolean | `@${string}`,
+	/** Когда цена назначена (ISO 8601) */
+	updatedAt?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsPackagePricing']?: Omit<ValueTypes["AppsPackagePricing"], "...on AppsPackagePricing">
+}>;
 	["AppsPublisher"]: AliasType<{
 	/** Кто назначил */
 	addedBy?:boolean | `@${string}`,
@@ -15696,6 +15710,8 @@ export type ValueTypes = {
 	releaseType?:boolean | `@${string}`,
 	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
 	requiresOverride?:boolean | `@${string}`,
+	/** Цена приложения, ₽ в месяц. Пусто — издатель цену не назначил, заявка не одобряется */
+	rubPerMonth?:boolean | `@${string}`,
 	/** ReleaseScope: { type, subnets?, coopnames? } */
 	scope?:boolean | `@${string}`,
 	/** Текущий статус */
@@ -15704,6 +15720,8 @@ export type ValueTypes = {
 	submittedAt?:boolean | `@${string}`,
 	/** Кто подал заявку (Antelope-имя) */
 	submittedBy?:boolean | `@${string}`,
+	/** Пробный срок приложения, дней */
+	trialDays?:boolean | `@${string}`,
 	/** Когда последний раз обновлена (ISO 8601) */
 	updatedAt?:boolean | `@${string}`,
 	/** Версия пакета (SemVer) */
@@ -16184,6 +16202,7 @@ saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, s
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 selectProviderTariff?: [{	data: ValueTypes["SelectProviderTariffInput"] | Variable<any, string>},ValueTypes["SelectProviderTariffResult"]],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+setAppsPackagePricing?: [{	data: ValueTypes["SetAppsPackagePricingInput"] | Variable<any, string>},ValueTypes["AppsPackagePricing"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
 setCatalogAppEnabled?: [{	data: ValueTypes["SetCatalogAppEnabledInput"] | Variable<any, string>},boolean | `@${string}`],
 setCoopPrice?: [{	data: ValueTypes["SetCoopPriceInput"] | Variable<any, string>},ValueTypes["CoopPrice"]],
@@ -18283,6 +18302,8 @@ appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<
 appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling?:ValueTypes["AppsNodeBilling"],
+	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	appsPackagePricing?:ValueTypes["AppsPackagePricing"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ValueTypes["AppsPublisher"],
 auditDocumentReproducibility?: [{	data?: ValueTypes["DocumentReproducibilityAuditInput"] | undefined | null | Variable<any, string>},ValueTypes["DocumentReproducibilityAudit"]],
@@ -20013,6 +20034,14 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
+};
+	["SetAppsPackagePricingInput"]: {
+	/** Идентификатор пакета своего кооператива (@scope/name) */
+	packageId: string | Variable<any, string>,
+	/** Цена подписки, ₽ в месяц; 0 — бесплатно */
+	rubPerMonth: number | Variable<any, string>,
+	/** Пробный срок, дней; по умолчанию 0 */
+	trialDays?: number | undefined | null | Variable<any, string>
 };
 	["SetBranchPrivateInput"]: {
 	/** Имя аккаунта кооперативного участка */
@@ -22319,6 +22348,19 @@ export type ResolverInputTypes = {
 	axonAvailable?:boolean | `@${string}`,
 	/** Остаток членских взносов на оплату подписок, с символом */
 	membershipAvailable?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["AppsPackagePricing"]: AliasType<{
+	/** Действующая версия приложения. Пусто — действующего выпуска нет */
+	lastActiveVersion?:boolean | `@${string}`,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId?:boolean | `@${string}`,
+	/** Цена подписки, ₽ в месяц. Пусто — цена не назначена, первый выпуск не одобряется */
+	rubPerMonth?:boolean | `@${string}`,
+	/** Пробный срок, дней; 0 — оплата с первого дня */
+	trialDays?:boolean | `@${string}`,
+	/** Когда цена назначена (ISO 8601) */
+	updatedAt?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["AppsPublisher"]: AliasType<{
@@ -35671,6 +35713,8 @@ export type ResolverInputTypes = {
 	releaseType?:boolean | `@${string}`,
 	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
 	requiresOverride?:boolean | `@${string}`,
+	/** Цена приложения, ₽ в месяц. Пусто — издатель цену не назначил, заявка не одобряется */
+	rubPerMonth?:boolean | `@${string}`,
 	/** ReleaseScope: { type, subnets?, coopnames? } */
 	scope?:boolean | `@${string}`,
 	/** Текущий статус */
@@ -35679,6 +35723,8 @@ export type ResolverInputTypes = {
 	submittedAt?:boolean | `@${string}`,
 	/** Кто подал заявку (Antelope-имя) */
 	submittedBy?:boolean | `@${string}`,
+	/** Пробный срок приложения, дней */
+	trialDays?:boolean | `@${string}`,
 	/** Когда последний раз обновлена (ISO 8601) */
 	updatedAt?:boolean | `@${string}`,
 	/** Версия пакета (SemVer) */
@@ -36157,6 +36203,7 @@ saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},Resolver
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 selectProviderTariff?: [{	data: ResolverInputTypes["SelectProviderTariffInput"]},ResolverInputTypes["SelectProviderTariffResult"]],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
+setAppsPackagePricing?: [{	data: ResolverInputTypes["SetAppsPackagePricingInput"]},ResolverInputTypes["AppsPackagePricing"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
 setCatalogAppEnabled?: [{	data: ResolverInputTypes["SetCatalogAppEnabledInput"]},boolean | `@${string}`],
 setCoopPrice?: [{	data: ResolverInputTypes["SetCoopPriceInput"]},ResolverInputTypes["CoopPrice"]],
@@ -38154,6 +38201,8 @@ appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: R
 appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling?:ResolverInputTypes["AppsNodeBilling"],
+	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	appsPackagePricing?:ResolverInputTypes["AppsPackagePricing"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ResolverInputTypes["AppsPublisher"],
 auditDocumentReproducibility?: [{	data?: ResolverInputTypes["DocumentReproducibilityAuditInput"] | undefined | null},ResolverInputTypes["DocumentReproducibilityAudit"]],
@@ -39836,6 +39885,14 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	document: ResolverInputTypes["SignedDigitalDocumentInput"],
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["SetAppsPackagePricingInput"]: {
+	/** Идентификатор пакета своего кооператива (@scope/name) */
+	packageId: string,
+	/** Цена подписки, ₽ в месяц; 0 — бесплатно */
+	rubPerMonth: number,
+	/** Пробный срок, дней; по умолчанию 0 */
+	trialDays?: number | undefined | null
 };
 	["SetBranchPrivateInput"]: {
 	/** Имя аккаунта кооперативного участка */
@@ -42082,6 +42139,18 @@ export type ModelTypes = {
 	axonAvailable?: string | undefined | null,
 	/** Остаток членских взносов на оплату подписок, с символом */
 	membershipAvailable: string
+};
+	["AppsPackagePricing"]: {
+		/** Действующая версия приложения. Пусто — действующего выпуска нет */
+	lastActiveVersion?: string | undefined | null,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId: string,
+	/** Цена подписки, ₽ в месяц. Пусто — цена не назначена, первый выпуск не одобряется */
+	rubPerMonth?: number | undefined | null,
+	/** Пробный срок, дней; 0 — оплата с первого дня */
+	trialDays: number,
+	/** Когда цена назначена (ISO 8601) */
+	updatedAt?: string | undefined | null
 };
 	["AppsPublisher"]: {
 		/** Кто назначил */
@@ -54912,6 +54981,8 @@ export type ModelTypes = {
 	releaseType: ModelTypes["ReleaseTypeEnum"],
 	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
 	requiresOverride: boolean,
+	/** Цена приложения, ₽ в месяц. Пусто — издатель цену не назначил, заявка не одобряется */
+	rubPerMonth?: number | undefined | null,
 	/** ReleaseScope: { type, subnets?, coopnames? } */
 	scope: ModelTypes["JSON"],
 	/** Текущий статус */
@@ -54920,6 +54991,8 @@ export type ModelTypes = {
 	submittedAt: string,
 	/** Кто подал заявку (Antelope-имя) */
 	submittedBy: string,
+	/** Пробный срок приложения, дней */
+	trialDays: number,
 	/** Когда последний раз обновлена (ISO 8601) */
 	updatedAt: string,
 	/** Версия пакета (SemVer) */
@@ -55807,6 +55880,8 @@ export type ModelTypes = {
 	selectProviderTariff: ModelTypes["SelectProviderTariffResult"],
 	/** Отправить соглашение */
 	sendAgreement: ModelTypes["Transaction"],
+	/** Назначить цену своему пакету: рубли в месяц и пробный срок. Новая цена действует для новых подписок. */
+	setAppsPackagePricing: ModelTypes["AppsPackagePricing"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
 	setBranchPrivate: ModelTypes["Branch"],
 	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
@@ -57706,6 +57781,8 @@ export type ModelTypes = {
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling: ModelTypes["AppsNodeBilling"],
+	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	appsPackagePricing: Array<ModelTypes["AppsPackagePricing"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<ModelTypes["AppsPublisher"]>,
 	/** Пересобрать сохранённые документы узла по их метаданным и сравнить с хранилищем. Отчёт по видам документов и версиям сборщика, без содержимого документов. */
@@ -59601,6 +59678,14 @@ export type ModelTypes = {
 	document: ModelTypes["SignedDigitalDocumentInput"],
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["SetAppsPackagePricingInput"]: {
+	/** Идентификатор пакета своего кооператива (@scope/name) */
+	packageId: string,
+	/** Цена подписки, ₽ в месяц; 0 — бесплатно */
+	rubPerMonth: number,
+	/** Пробный срок, дней; по умолчанию 0 */
+	trialDays?: number | undefined | null
 };
 	["SetBranchPrivateInput"]: {
 	/** Имя аккаунта кооперативного участка */
@@ -61843,6 +61928,20 @@ export type GraphQLTypes = {
 	/** Остаток членских взносов на оплату подписок, с символом */
 	membershipAvailable: string,
 	['...on AppsNodeWallet']: Omit<GraphQLTypes["AppsNodeWallet"], "...on AppsNodeWallet">
+};
+	["AppsPackagePricing"]: {
+	__typename: "AppsPackagePricing",
+	/** Действующая версия приложения. Пусто — действующего выпуска нет */
+	lastActiveVersion?: string | undefined | null,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId: string,
+	/** Цена подписки, ₽ в месяц. Пусто — цена не назначена, первый выпуск не одобряется */
+	rubPerMonth?: number | undefined | null,
+	/** Пробный срок, дней; 0 — оплата с первого дня */
+	trialDays: number,
+	/** Когда цена назначена (ISO 8601) */
+	updatedAt?: string | undefined | null,
+	['...on AppsPackagePricing']: Omit<GraphQLTypes["AppsPackagePricing"], "...on AppsPackagePricing">
 };
 	["AppsPublisher"]: {
 	__typename: "AppsPublisher",
@@ -75584,6 +75683,8 @@ export type GraphQLTypes = {
 	releaseType: GraphQLTypes["ReleaseTypeEnum"],
 	/** Требуется ли явный override:true при approve (критическая уязвимость в scan_report) */
 	requiresOverride: boolean,
+	/** Цена приложения, ₽ в месяц. Пусто — издатель цену не назначил, заявка не одобряется */
+	rubPerMonth?: number | undefined | null,
 	/** ReleaseScope: { type, subnets?, coopnames? } */
 	scope: GraphQLTypes["JSON"],
 	/** Текущий статус */
@@ -75592,6 +75693,8 @@ export type GraphQLTypes = {
 	submittedAt: string,
 	/** Кто подал заявку (Antelope-имя) */
 	submittedBy: string,
+	/** Пробный срок приложения, дней */
+	trialDays: number,
 	/** Когда последний раз обновлена (ISO 8601) */
 	updatedAt: string,
 	/** Версия пакета (SemVer) */
@@ -76484,6 +76587,8 @@ export type GraphQLTypes = {
 	selectProviderTariff: GraphQLTypes["SelectProviderTariffResult"],
 	/** Отправить соглашение */
 	sendAgreement: GraphQLTypes["Transaction"],
+	/** Назначить цену своему пакету: рубли в месяц и пробный срок. Новая цена действует для новых подписок. */
+	setAppsPackagePricing: GraphQLTypes["AppsPackagePricing"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
 	setBranchPrivate: GraphQLTypes["Branch"],
 	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
@@ -78624,6 +78729,8 @@ export type GraphQLTypes = {
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling: GraphQLTypes["AppsNodeBilling"],
+	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	appsPackagePricing: Array<GraphQLTypes["AppsPackagePricing"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<GraphQLTypes["AppsPublisher"]>,
 	/** Пересобрать сохранённые документы узла по их метаданным и сравнить с хранилищем. Отчёт по видам документов и версиям сборщика, без содержимого документов. */
@@ -80627,6 +80734,14 @@ export type GraphQLTypes = {
 	document: GraphQLTypes["SignedDigitalDocumentInput"],
 	/** Имя аккаунта пользователя */
 	username: string
+};
+	["SetAppsPackagePricingInput"]: {
+		/** Идентификатор пакета своего кооператива (@scope/name) */
+	packageId: string,
+	/** Цена подписки, ₽ в месяц; 0 — бесплатно */
+	rubPerMonth: number,
+	/** Пробный срок, дней; по умолчанию 0 */
+	trialDays?: number | undefined | null
 };
 	["SetBranchPrivateInput"]: {
 		/** Имя аккаунта кооперативного участка */
@@ -84292,6 +84407,7 @@ type ZEUS_VARIABLES = {
 	["SelectBranchSignedMetaDocumentInput"]: ValueTypes["SelectBranchSignedMetaDocumentInput"];
 	["SelectProviderTariffInput"]: ValueTypes["SelectProviderTariffInput"];
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
+	["SetAppsPackagePricingInput"]: ValueTypes["SetAppsPackagePricingInput"];
 	["SetBranchPrivateInput"]: ValueTypes["SetBranchPrivateInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];

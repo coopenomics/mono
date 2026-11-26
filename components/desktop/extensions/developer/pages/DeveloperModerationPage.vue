@@ -4,60 +4,59 @@ q-page(padding)
     BaseBanner.q-mb-md(variant='info')
       | {{ $t('developer.moderation.intro') }}
 
-    TableSkeleton(
-      v-if='loading && !items.length',
-      :columns='skeletonColumns',
-      :rows='3'
-    )
-
-    BaseBanner.q-mb-md(v-else-if='error', variant='neg')
+    BaseBanner.q-mb-md(v-if='error', variant='neg')
       | {{ error }}
 
     EmptyState(
-      v-else-if='!items.length',
+      v-else-if='!firstLoad && !items.length',
       :title="$t('developer.moderation.emptyTitle')",
       :body="$t('developer.moderation.emptyBody')"
     )
       template(#icon)
         q-icon(name='fact_check', size='28px')
 
-    .table-wrap(v-else)
-      .table-scroll
-        table.table
-          thead
-            tr
-              th {{ $t('developer.column.package') }}
-              th {{ $t('developer.column.version') }}
-              th {{ $t('developer.column.description') }}
-              th {{ $t('developer.column.status') }}
-              th.col-action {{ $t('developer.column.actions') }}
-          tbody
-            tr(v-for='m in items', :key='m.id')
-              td
-                .t-mono {{ m.packageId }}
-                .t-sm.t-muted {{ m.submittedBy }} · {{ formatDate(m.submittedAt) }}
-              td
-                span.t-mono {{ m.version }}
-              td.moderation__brief {{ m.brief }}
-              td
-                BaseBadge(:variant="statusMap[m.status]?.variant ?? 'neutral'")
-                  | {{ statusMap[m.status]?.label ?? m.status }}
-                BaseBadge.q-ml-xs(v-if='m.requiresOverride', variant='neg')
-                  | {{ $t('developer.moderation.vulnerability') }}
-              td.col-action
-                .moderation__actions
-                  BaseButton(
-                    variant='primary',
-                    size='sm',
-                    :disabled="m.status !== 'SUBMITTED'",
-                    @click='openApprove(m)'
-                  ) {{ $t('developer.moderation.approve') }}
-                  BaseButton(
-                    variant='danger',
-                    size='sm',
-                    :disabled="m.status !== 'SUBMITTED'",
-                    @click='openReject(m)'
-                  ) {{ $t('developer.moderation.reject') }}
+    //- Зоны строки: опознание (пакет, версия, кто и когда подал) → пояснение
+    //- издателя → деньги (цена издателя) → состояние → действия.
+    BaseTable(
+      v-else,
+      :columns='columns',
+      :rows='items',
+      row-key='id',
+      :loading='firstLoad',
+      :skeleton-rows='3',
+      min-width='920px'
+    )
+      template(#cell-package='{ row }')
+        .t-mono {{ row.packageId }}@{{ row.version }}
+        .t-sm.t-muted {{ row.submittedBy }} · {{ formatDate(row.submittedAt) }}
+      template(#cell-brief='{ row }')
+        .moderation__brief {{ row.brief }}
+      template(#cell-price='{ row }')
+        template(v-if='row.rubPerMonth == null')
+          BaseBadge(variant='warn') {{ $t('developer.moderation.priceNotSet') }}
+          .t-sm.t-muted.q-mt-xs {{ $t('developer.moderation.priceRequired') }}
+        template(v-else)
+          .moderation__amount {{ row.rubPerMonth === 0 ? $t('developer.pricing.free') : $t('developer.perMonth', { amount: formatPrice(row.rubPerMonth) }) }}
+          .t-sm.t-muted {{ row.trialDays > 0 ? $t('developer.pricing.trialDays', { days: row.trialDays }) : $t('developer.pricing.noTrial') }}
+      template(#cell-status='{ row }')
+        BaseBadge(:variant="statusMap[row.status]?.variant ?? 'neutral'")
+          | {{ statusMap[row.status]?.label ?? row.status }}
+        BaseBadge.q-ml-xs(v-if='row.requiresOverride', variant='neg')
+          | {{ $t('developer.moderation.vulnerability') }}
+      template(#cell-actions='{ row }')
+        .moderation__actions
+          BaseButton(
+            variant='primary',
+            size='sm',
+            :disabled='!isSubmitted(row) || row.rubPerMonth == null',
+            @click='openApprove(row)'
+          ) {{ $t('developer.moderation.approve') }}
+          BaseButton(
+            variant='danger',
+            size='sm',
+            :disabled='!isSubmitted(row)',
+            @click='openReject(row)'
+          ) {{ $t('developer.moderation.reject') }}
 
   BaseDialog(v-model='approveDialog', :title="$t('developer.moderation.approveTitle')", size='sm')
     p.t-sm.t-muted.q-mb-sm
@@ -109,10 +108,11 @@ import {
   BaseCheckbox,
   BaseDialog,
   BaseInput,
+  BaseTable,
   EmptyState,
-  TableSkeleton,
 } from 'src/shared/ui/base';
-import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton/TableSkeleton.types';
+import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { Zeus, type Queries } from '@coopenomics/sdk';
@@ -126,13 +126,24 @@ const items = ref<ModerationRow[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: t('developer.column.package') },
-  { label: t('developer.column.version'), width: '100px' },
-  { label: t('developer.column.description') },
-  { label: t('developer.column.status'), cell: 'badge' },
-  { label: t('developer.column.actions'), cell: 'icon', class: 'col-action' },
+const firstLoad = useFirstLoad(loading);
+
+const columns: BaseTableColumn<ModerationRow>[] = [
+  { key: 'package', label: t('developer.column.package'), width: '220px' },
+  { key: 'brief', label: t('developer.column.description') },
+  { key: 'price', label: t('developer.column.price'), width: '170px' },
+  { key: 'status', label: t('developer.column.status'), width: '170px', nowrap: true },
+  { key: 'actions', label: t('developer.column.actions'), width: '210px', align: 'right', nowrap: true },
 ];
+
+/** Заявка ждёт решения модератора: только такую одобряют и отклоняют. */
+function isSubmitted(row: ModerationRow): boolean {
+  return row.status === Zeus.ModerationStatusEnum.SUBMITTED;
+}
+
+function formatPrice(rub: number): string {
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(rub);
+}
 
 const statusMap: Record<string, { label: string; variant: BaseBadgeVariant }> = {
   SUBMITTED: { label: t('developer.moderation.status.submitted'), variant: 'warn' },
@@ -245,12 +256,12 @@ onMounted(load);
 </script>
 
 <style scoped lang="scss">
-.table-scroll {
-  overflow-x: auto;
-}
-
 .moderation__brief {
   max-width: 320px;
+}
+
+.moderation__amount {
+  font-weight: 600;
 }
 
 .moderation__actions {

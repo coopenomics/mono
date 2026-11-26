@@ -1,6 +1,6 @@
 {
   "_комментарий": "Сравнения со строкой ПРОПИСНЫМИ вместо константы перечисления по файлам (scripts/check-enum-literals.mjs). Тронул файл — переведи на перечисление; долг только снижается.",
-  "_commit": "6b763771bc0807a83721f55c011eb883cfe97348",
+  "_commit": "e858a85481d3d2952e5761c679c7200a90300fd5",
   "files": {
     "components/controller/src/application/auth-v2/verification/passport-change.listener.ts": 1,
     "components/controller/src/application/ledger2/services/ledger2.service.ts": 1,
@@ -46,7 +46,6 @@
     "components/desktop/extensions/capital/widgets/ProjectVotingSegmentsWidget/ProjectVotingSegmentsWidget.vue": 2,
     "components/desktop/extensions/chairman/widgets/ApprovalsTableWidget/ui/ApprovalsTableWidget.vue": 2,
     "components/desktop/extensions/chatcoop/pages/SecretaryRoomsPage/ui/SecretaryRoomsPage.vue": 6,
-    "components/desktop/extensions/developer/pages/DeveloperModerationPage.vue": 2,
     "components/desktop/extensions/edubridge/features/OfferGate/ui/EduOfferGate.vue": 3,
     "components/desktop/extensions/edubridge/shared/lib/subscriptionDue.ts": 1,
     "components/desktop/extensions/expenses/pages/ExpenseProposalCreateDialog.vue": 1,

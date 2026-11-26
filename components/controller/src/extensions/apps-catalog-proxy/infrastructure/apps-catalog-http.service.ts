@@ -18,6 +18,19 @@ function failureOf(err: unknown): { status: number | undefined; detail: string }
   return { status: response?.status, detail };
 }
 
+/** Коды отказа каталога приложений, по которым ядро меняет своё поведение. */
+enum CatalogRefusalCode {
+  /** Издатель не назначил цену — выпуск не активируется. */
+  PRICING_NOT_SET = 'PRICING_NOT_SET',
+}
+
+/** Код отказа каталога (`error.code` в теле ответа); `undefined` — тела с кодом нет. */
+function catalogErrorCode(err: unknown): string | undefined {
+  const data = (err as AxiosError<{ error?: { code?: unknown } }>).response?.data;
+  const code = typeof data === 'object' && data ? data.error?.code : undefined;
+  return typeof code === 'string' ? code : undefined;
+}
+
 /**
  * Достать `exp` (мс) из JWT без проверки подписи — нужен только для
  * планирования обновления токена, доверие к содержимому даёт catalog-delivery.
@@ -119,6 +132,39 @@ export type ModerationStatus =
   | 'APPROVED_PENDING_CHAIN'
   | 'REJECTED';
 
+/** Цена пакета издателя, как её отдаёт catalog-delivery. */
+interface DeveloperPricingWire {
+  package_id: string;
+  monthly_rub: number | null;
+  trial_days: number;
+  last_active_version: string | null;
+  updated_at: string | null;
+}
+
+/** Цена пакета издателя. */
+export interface DeveloperPricingRow {
+  packageId: string;
+  rubPerMonth: number | null;
+  trialDays: number;
+  lastActiveVersion: string | null;
+  updatedAt: string | null;
+}
+
+/** Исход назначения цены: применено либо отказ каталога с его кодом. */
+export type SetDeveloperPricingOutcome =
+  | { status: 'applied'; pricing: DeveloperPricingRow }
+  | { status: 'failed'; code: string | undefined };
+
+function toDeveloperPricingRow(w: DeveloperPricingWire): DeveloperPricingRow {
+  return {
+    packageId: w.package_id,
+    rubPerMonth: w.monthly_rub,
+    trialDays: w.trial_days,
+    lastActiveVersion: w.last_active_version,
+    updatedAt: w.updated_at,
+  };
+}
+
 export interface ModerationRequestRow {
   id: string;
   packageId: string;
@@ -131,6 +177,9 @@ export interface ModerationRequestRow {
   submittedAt: string;
   updatedAt: string;
   requiresOverride: boolean;
+  /** Цена приложения, ₽ в месяц; `null` — издатель цену не назначил. */
+  rubPerMonth: number | null;
+  trialDays: number;
 }
 
 interface ModerationRequestWireFormat {
@@ -145,6 +194,8 @@ interface ModerationRequestWireFormat {
   submitted_at: string;
   updated_at: string;
   requires_override: boolean;
+  monthly_rub?: number | null;
+  trial_days?: number;
 }
 
 export type ReleaseScopeInput =
@@ -688,6 +739,42 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
   }
 
   /**
+   * 487-31: пакеты своего кооператива с ценами (catalog-delivery
+   * `GET /v1/developer/pricing`, токен кооператива). Без адреса каталога —
+   * пустой список.
+   */
+  async listDeveloperPricing(): Promise<DeveloperPricingRow[]> {
+    if (!this.authClient) return [];
+    const res = await this.authClient.get<{ items: DeveloperPricingWire[] }>('/v1/developer/pricing');
+    return res.data.items.map(toDeveloperPricingRow);
+  }
+
+  /**
+   * 487-31: издатель назначает цену своему пакету (catalog-delivery
+   * `PUT /v1/developer/pricing/:scope/:name`). Отказ каталога — исход с кодом
+   * каталога: резолвер переводит его в ошибку с понятным текстом.
+   */
+  async setDeveloperPricing(input: {
+    packageId: string;
+    rubPerMonth: number;
+    trialDays: number;
+  }): Promise<SetDeveloperPricingOutcome> {
+    if (!this.authClient) return { status: 'failed', code: undefined };
+    const [scope, name] = input.packageId.replace(/^@/, '').split('/');
+    try {
+      const res = await this.authClient.put<DeveloperPricingWire>(
+        `/v1/developer/pricing/${encodeURIComponent(scope)}/${encodeURIComponent(name)}`,
+        { monthly_rub: input.rubPerMonth, trial_days: input.trialDays },
+      );
+      return { status: 'applied', pricing: toDeveloperPricingRow(res.data) };
+    } catch (err) {
+      const { detail } = failureOf(err);
+      this.logger.warn(`setDeveloperPricing ${input.packageId} отклонён каталогом: ${detail}`);
+      return { status: 'failed', code: catalogErrorCode(err) };
+    }
+  }
+
+  /**
    * Story 9.9: список заявок на модерацию по статусу.
    *
    * Дёргает catalog-operator `GET /v1/admin/moderation?status=...&limit=...`.
@@ -720,6 +807,8 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
         submittedAt: r.submitted_at,
         updatedAt: r.updated_at,
         requiresOverride: r.requires_override,
+        rubPerMonth: r.monthly_rub ?? null,
+        trialDays: r.trial_days ?? 0,
       }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -787,7 +876,10 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
         this.logger.warn(
           `approveModeration conflict ${input.moderationId}: ${detail}`,
         );
-        return { status: 'conflict', requestId, error: detail };
+        // Каталог не активирует выпуск без цены: модератор получает причину
+        // словами, а не тело ответа каталога.
+        const error = catalogErrorCode(err) === CatalogRefusalCode.PRICING_NOT_SET ? t('appsCatalogProxy.catalog.priceNotSet') : detail;
+        return { status: 'conflict', requestId, error };
       }
       if (httpStatus === 403) {
         this.logger.warn(

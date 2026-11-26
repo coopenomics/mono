@@ -1,6 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
+import { DomainError, GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
+import { AppsPackagePricingDTO, SetAppsPackagePricingInputDTO } from '../dto/apps-package-pricing.dto';
 import { type IMonoAccount } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
 import {
@@ -86,6 +87,30 @@ const toReleaseScope = (dto: ReleaseScopeInputDTO): ReleaseScopeInput => {
  * (по умолчанию роль `user`). Self-filter и self-sub bypass делает
  * desktop по сравнению `publisher` и текущего coopname.
  */
+/** Коды отказа каталога при назначении цены. */
+enum CatalogPricingRefusal {
+  SCOPE_MISMATCH = 'SCOPE_MISMATCH',
+  PACKAGE_NOT_FOUND = 'PACKAGE_NOT_FOUND',
+  INVALID_PRICING = 'INVALID_PRICING',
+}
+
+/**
+ * Отказ каталога в назначении цены → ошибка с кодом узла. Код каталога
+ * сравнивается по перечню: текст отказа каталога пайщику не показывается.
+ */
+function pricingRefusal(code: string | undefined, packageId: string): DomainError {
+  switch (code) {
+    case CatalogPricingRefusal.SCOPE_MISMATCH:
+      return DomainError.forbidden('APPS_CATALOG_PROXY_PRICING_FOREIGN_PACKAGE', { package_id: packageId });
+    case CatalogPricingRefusal.PACKAGE_NOT_FOUND:
+      return DomainError.notFound('APPS_CATALOG_PROXY_PRICING_PACKAGE_NOT_REGISTERED', { package_id: packageId });
+    case CatalogPricingRefusal.INVALID_PRICING:
+      return DomainError.badRequest('APPS_CATALOG_PROXY_PRICING_INVALID', { package_id: packageId });
+    default:
+      return DomainError.badRequest('APPS_CATALOG_PROXY_PRICING_FAILED', { package_id: packageId });
+  }
+}
+
 /** Назначение издателя → GraphQL (487-27). */
 function toPublisherDTO(r: AppsPublisherRecord): AppsPublisherDTO {
   return {
@@ -360,6 +385,45 @@ export class AppsCatalogProxyResolver {
    * На degraded-mode (без APPS_CATALOG_OPERATOR_API_KEY) — пустой массив, чтобы
    * UI стола восхода нормально показал «pending пусто».
    */
+  @Query(() => [AppsPackagePricingDTO], {
+    name: 'appsPackagePricing',
+    description:
+      'Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; ' +
+      'без цены первый выпуск пакета не одобряется.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
+  async appsPackagePricing(): Promise<AppsPackagePricingDTO[]> {
+    return this.client.listDeveloperPricing();
+  }
+
+  @Mutation(() => AppsPackagePricingDTO, {
+    name: 'setAppsPackagePricing',
+    description:
+      'Назначить цену своему пакету: рубли в месяц и пробный срок. Новая цена действует ' +
+      'для новых подписок.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Developer', 'manage')
+  async setAppsPackagePricing(
+    @Args('data', { type: () => SetAppsPackagePricingInputDTO })
+    data: SetAppsPackagePricingInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<AppsPackagePricingDTO> {
+    const outcome = await this.client.setDeveloperPricing({
+      packageId: data.packageId,
+      rubPerMonth: data.rubPerMonth,
+      trialDays: data.trialDays ?? 0,
+    });
+    if (outcome.status === 'applied') {
+      this.logger.log(
+        `setAppsPackagePricing: ${currentUser.username} → ${data.packageId} ${data.rubPerMonth} ₽/мес, пробный срок ${data.trialDays ?? 0} дн.`,
+      );
+      return outcome.pricing;
+    }
+    throw pricingRefusal(outcome.code, data.packageId);
+  }
+
   @Query(() => [ModerationRequestDTO], {
     name: 'appsCatalogPendingModerations',
     description:
@@ -394,6 +458,8 @@ export class AppsCatalogProxyResolver {
       submittedAt: r.submittedAt,
       updatedAt: r.updatedAt,
       requiresOverride: r.requiresOverride,
+      rubPerMonth: r.rubPerMonth,
+      trialDays: r.trialDays,
     }));
   }
 

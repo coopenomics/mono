@@ -7,7 +7,8 @@
       "emptyToken": "Каталог не выдал токен входа кооператива",
       "noCooperativeKey": "Ключ входа в каталог ещё не выпущен: узел выпускает его после ввода ключа кооператива",
       "pricesUnavailable": "Провайдер подключения не ответил — цены приложений не получены, витрина не показана. Повторите позже",
-      "providerUnavailable": "Провайдер подключения не ответил — подписка не оформлена. Повторите позже"
+      "providerUnavailable": "Провайдер подключения не ответил — подписка не оформлена. Повторите позже",
+      "priceNotSet": "Цена приложения не назначена. Издатель назначает цену на странице «Тарифы» стола разработчика; после этого повторите одобрение"
     },
     "publishers": {
       "notAssigned": "Аккаунт {username} не назначен издателем пакета {packageId}",
@@ -29,6 +30,10 @@
     "APPS_CATALOG_PROXY_APP_GRANT_SERVICE_ONLY": "Заявки приложений заводит только оркестратор узла",
     "APPS_CATALOG_PROXY_APP_PORT_NOT_GRANTED": "Приложение {package_id} не заявляло порт {port}",
     "APPS_CATALOG_PROXY_APP_PORT_TOKEN_INVALID": "Токен приложения не принят: приложение не установлено или его доступ отозван",
-    "APPS_CATALOG_PROXY_APP_PORT_UNKNOWN": "Порт {port}.{method} приложениям каталога не открыт"
+    "APPS_CATALOG_PROXY_APP_PORT_UNKNOWN": "Порт {port}.{method} приложениям каталога не открыт",
+    "APPS_CATALOG_PROXY_PRICING_FAILED": "Каталог приложений не принял цену пакета {package_id}. Повторите позже",
+    "APPS_CATALOG_PROXY_PRICING_FOREIGN_PACKAGE": "Пакет {package_id} принадлежит другому кооперативу: цену назначает его издатель",
+    "APPS_CATALOG_PROXY_PRICING_INVALID": "Цена пакета {package_id} не принята: укажите от 0 до 1 000 000 ₽ с точностью до копейки",
+    "APPS_CATALOG_PROXY_PRICING_PACKAGE_NOT_REGISTERED": "Пакет {package_id} не зарегистрирован в каталоге. Подайте первый выпуск, затем назначьте цену"
   }
 }

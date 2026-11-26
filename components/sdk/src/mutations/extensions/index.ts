@@ -19,6 +19,7 @@ export * as ApproveModeration from './approveModeration'
 /** Reject заявки на модерацию с причиной (Story 9.9) */
 export * as RejectModeration from './rejectModeration'
 export * as AddAppsPublisher from './addAppsPublisher'
+export * as SetAppsPackagePricing from './setAppsPackagePricing'
 export * as RemoveAppsPublisher from './removeAppsPublisher'
 export * as IssueMyPublisherToken from './issueMyPublisherToken'
 export * as RevokeMyPublisherToken from './revokeMyPublisherToken'

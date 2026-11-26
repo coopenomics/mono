@@ -407,3 +407,45 @@ cases:
     external: unreachable
     external_reason: "удаление контейнера приложения — действие над docker стенда, внешний слой работает только через API"
 
+  # ── 26.11.2026 (487-31): цену приложения назначает издатель ─────────────
+  # Решение владельца: цена управляется со стола разработчика, страница
+  # «Тарифы», и назначается до активации первого выпуска. Прежде цену задавал
+  # оператор каталога запросом к своей службе, страницы для неё не было.
+  - id: apps.access.happy.17
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель кооператива-издателя открывает «Тарифы» и назначает своему пакету цену в рублях в месяц и пробный срок.
+    expect: >
+      список отдаёт свои пакеты, у пакета без цены цена пуста; каталог получает рубли в месяц без пересчёта
+      токеном кооператива; не указанный пробный срок равен 0
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: запрос цены отвечает пустым списком"
+
+  - id: apps.access.break.15
+    level: backend
+    kind: break
+    scenario: >
+      Каталог отклоняет цену: пакет чужого кооператива, пакет не зарегистрирован, цена вне допустимого, сбой каталога, адрес каталога не настроен.
+    expect: >
+      на каждый отказ — своя ошибка узла с кодом APPS_CATALOG_PROXY_PRICING_*; текст отказа каталога пайщику не показывается
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений, его отказы через API стенда не вызвать"
+
+  - id: apps.access.break.16
+    level: backend
+    kind: break
+    scenario: >
+      Модератор одобряет первый выпуск пакета, которому издатель цену не назначил.
+    expect: >
+      заявка в списке несёт пустую цену; каталог отвечает PRICING_NOT_SET, модератор получает причину словами
+      со ссылкой на страницу «Тарифы»; прочий конфликт сохраняет текст каталога
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и заявок на модерацию"
+
