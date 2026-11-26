@@ -22,6 +22,12 @@ const CHAIN_URL = required('SLAVE_CHAIN_URL')
 const CHAIN_ID = required('SLAVE_CHAIN_ID')
 const COOPNAME = process.env.SLAVE_COOPNAME || 'partner1'
 
+/** Протокол совета, которым кооператив стенда утвердил соглашения пайщика. */
+const STAND_PROTOCOL = {
+  protocol_number: '10-04-2024',
+  protocol_day_month_year: '10 апреля 2024 г.',
+}
+
 // Председатель — те же данные, что у сценария docs-harness 08: на стенде
 // приглашение на @example.com не доставляется, ссылку печатает скрипт.
 const CHAIRMAN = {
@@ -81,6 +87,14 @@ async function main() {
           contact_email: `contact@${COOPNAME}.example.com`,
           statute_link: `https://${COOPNAME}.example.com/statute`,
           passport_request: 'no',
+          // Реквизиты протоколов совета по соглашениям: без них ядро узла
+          // документы пайщику не формирует (тот же набор, что у ведущего
+          // кооператива стенда в init/infra.ts).
+          wallet_agreement: STAND_PROTOCOL,
+          signature_agreement: STAND_PROTOCOL,
+          privacy_agreement: STAND_PROTOCOL,
+          user_agreement: STAND_PROTOCOL,
+          participant_application: STAND_PROTOCOL,
         },
       },
     },

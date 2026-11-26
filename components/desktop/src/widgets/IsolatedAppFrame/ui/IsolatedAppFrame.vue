@@ -30,7 +30,7 @@ q-page.isolated-frame
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import axios from 'axios';
 import { BaseBanner, BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { env } from 'src/shared/config';
@@ -116,7 +116,8 @@ async function runGraphql(params: Record<string, unknown>): Promise<unknown> {
 const signDialog = ref(false);
 const signing = ref(false);
 const signError = ref('');
-const pendingDocument = ref<ZGeneratedDocument | null>(null);
+// Документ хранится без глубокой реактивности: подписи нужен исходный объект ядра.
+const pendingDocument = shallowRef<ZGeneratedDocument | null>(null);
 let pendingSign: { resolve: (value: unknown) => void; reject: (reason: Error) => void } | null = null;
 
 /** Документ для показа и подписи стол берёт у ядра по хэшу, не у приложения. */
@@ -184,7 +185,10 @@ async function execute(request: BridgeRequest): Promise<unknown> {
 
 /** Ответ рамке. Происхождение рамки непрозрачное, поэтому адресат — `*`; секретов в ответах нет. */
 function reply(id: string | number, payload: { result: unknown } | { error: { message: string } }) {
-  frameEl.value?.contentWindow?.postMessage({ coopBridge: BRIDGE_MARK, id, ...payload }, '*');
+  // Рамке передаются только данные: копия через JSON отбрасывает реактивные
+  // обёртки и объекты классов, которые сообщением окну не передаются.
+  const data = JSON.parse(JSON.stringify({ coopBridge: BRIDGE_MARK, id, ...payload })) as unknown;
+  frameEl.value?.contentWindow?.postMessage(data, '*');
 }
 
 async function onMessage(event: MessageEvent) {
