@@ -173,9 +173,10 @@ services:
       # ядре межсервисным секретом узла. Пусто — приложения ставятся без
       # доступа к портам ядра.
       SERVER_SECRET: ${SERVER_SECRET:-}
-      # Пределы контейнера одного приложения каталога.
-      EXTENSION_MEMORY_MB: ${EXTENSION_MEMORY_MB:-256}
-      EXTENSION_CPUS: ${EXTENSION_CPUS:-1}
+      # Пределы контейнера одного приложения каталога: память в МБ и число
+      # ядер. Пусто — без пределов (значение по умолчанию до замера).
+      EXTENSION_MEMORY_MB: ${EXTENSION_MEMORY_MB:-}
+      EXTENSION_CPUS: ${EXTENSION_CPUS:-}
       # E12-2: кэш фронт-частей. install.js активного релиза качается из
       # catalog-operator (admin API key контура — те же env-имена, что у coopback),
       # сверяется по sha256 и складывается в volume; coopback раздаёт его

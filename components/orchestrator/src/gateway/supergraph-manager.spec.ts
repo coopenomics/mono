@@ -32,9 +32,13 @@ class FakeComposer implements SupergraphComposerPort {
   calls: Array<ReadonlyArray<SubgraphDescriptor>> = [];
   results: string[] = [];
   error?: Error;
+  /** Недоступные части схемы: сборка с любой из них падает. */
+  down = new Set<string>();
   async compose(subgraphs: ReadonlyArray<SubgraphDescriptor>): Promise<string> {
     this.calls.push(subgraphs.slice());
     if (this.error) throw this.error;
+    const dead = subgraphs.find((s) => this.down.has(s.name));
+    if (dead) throw new Error(`getaddrinfo EAI_AGAIN ${dead.name}`);
     const sdl = `# supergraph v${this.calls.length}\n${subgraphs.map((s) => s.name).join(',')}`;
     this.results.push(sdl);
     return sdl;
@@ -42,9 +46,8 @@ class FakeComposer implements SupergraphComposerPort {
 }
 
 const flushMicrotasks = async (): Promise<void> => {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  // Сборка с исключением недоступного приложения — цепочка из нескольких await.
+  for (let i = 0; i < 20; i += 1) await Promise.resolve();
 };
 
 const POLL_MS = 1000;
@@ -214,5 +217,81 @@ describe('createDynamicSupergraphManager', () => {
     jest.advanceTimersByTime(POLL_MS * 5);
     await flushMicrotasks();
     expect(composer.calls.length).toBe(1); // только initial
+  });
+
+  // До 26.11.2026 запись реестра о недоступном приложении роняла сборку
+  // целиком: оркестратор не стартовал и перезапускался по кругу.
+  describe('недоступное приложение', () => {
+    const core = { name: 'core', url: 'http://core:3000/graphql' };
+    const chat = { name: 'chatcoop', url: 'http://chatcoop:3000/graphql' };
+    const shop = { name: 'shop', url: 'http://shop:3000/graphql' };
+
+    it('happy: приложение недоступно при старте — схема собрана из ядра и доступных приложений', async () => {
+      const registry = new FakeRegistry();
+      registry.current = [core, chat, shop];
+      const composer = new FakeComposer();
+      composer.down.add('chatcoop');
+      const lifecycle = await createDynamicSupergraphManager({ registry, composer, pollIntervalMs: POLL_MS }, () => undefined);
+      expect(lifecycle.initialSdl.split('\n')[1]).toBe('core,shop');
+      await lifecycle.cleanup();
+    });
+
+    it('happy: исключённое приложение поднялось — следующий такт подключает его без изменений в реестре', async () => {
+      const registry = new FakeRegistry();
+      registry.current = [core, chat];
+      const composer = new FakeComposer();
+      composer.down.add('chatcoop');
+      const updates: string[] = [];
+      const lifecycle = await createDynamicSupergraphManager(
+        { registry, composer, pollIntervalMs: POLL_MS },
+        (sdl) => updates.push(sdl),
+      );
+      // Такт, пока приложение лежит: состав схемы прежний — схему не трогаем.
+      jest.advanceTimersByTime(POLL_MS);
+      await flushMicrotasks();
+      expect(updates).toEqual([]);
+      composer.down.clear();
+      jest.advanceTimersByTime(POLL_MS);
+      await flushMicrotasks();
+      expect(updates).toHaveLength(1);
+      expect(updates[0].split('\n')[1]).toBe('core,chatcoop');
+      await lifecycle.cleanup();
+    });
+
+    it('side: приложение упало на работающем шлюзе, реестр изменился — оно исключается, остальные остаются', async () => {
+      const registry = new FakeRegistry();
+      registry.current = [core, chat];
+      const composer = new FakeComposer();
+      const updates: string[] = [];
+      const lifecycle = await createDynamicSupergraphManager(
+        { registry, composer, pollIntervalMs: POLL_MS },
+        (sdl) => updates.push(sdl),
+      );
+      composer.down.add('chatcoop');
+      registry.current = [core, chat, shop];
+      await expect(lifecycle.forceRefresh()).resolves.toBe(true);
+      expect(updates[0].split('\n')[1]).toBe('core,shop');
+      await lifecycle.cleanup();
+    });
+
+    it('break: недоступно ядро — сборки нет, отказ не маскируется исключением приложений', async () => {
+      const registry = new FakeRegistry();
+      registry.current = [core, chat];
+      const composer = new FakeComposer();
+      composer.down.add('core');
+      await expect(
+        createDynamicSupergraphManager({ registry, composer, pollIntervalMs: POLL_MS }, () => undefined),
+      ).rejects.toThrow(/core/);
+    });
+
+    it('side: ядро записано под именем пакета (core-coopback) — оно тоже обязательно', async () => {
+      const registry = new FakeRegistry();
+      registry.current = [{ name: 'core-coopback', url: 'http://coopback:2998/v1/graphql' }, chat];
+      const composer = new FakeComposer();
+      composer.down.add('chatcoop');
+      const lifecycle = await createDynamicSupergraphManager({ registry, composer, pollIntervalMs: POLL_MS }, () => undefined);
+      expect(lifecycle.initialSdl.split('\n')[1]).toBe('core-coopback');
+      await lifecycle.cleanup();
+    });
   });
 });

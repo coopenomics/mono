@@ -97,13 +97,16 @@ export interface InstallExtensionInput {
 }
 
 /**
- * Пределы контейнера приложения по умолчанию. Замер 25.11.2026 на
- * `@voskhod/exampleapp`: 36–48 МБ в покое, 85 МБ под нагрузкой — 256 МБ дают
- * трёхкратный запас; приложению, которому мало, предел поднимается
- * переменными узла.
+ * Пределы памяти и процессора контейнера приложения. По умолчанию их нет
+ * (решение владельца 26.11.2026): потребление настоящих приложений ещё не
+ * замерено, а предел наугад убивал бы приложение, которому его мало. Узел
+ * задаёт предел переменными, когда замер есть. Для ориентира:
+ * `@voskhod/exampleapp` — 36–56 МБ в покое, 85 МБ под нагрузкой.
  */
-const DEFAULT_MEMORY_MB = Number(process.env.EXTENSION_MEMORY_MB ?? 256);
-const DEFAULT_CPUS = Number(process.env.EXTENSION_CPUS ?? 1);
+function limitFromEnv(name: string): number | undefined {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
 
 /**
  * `GET <subgraph-origin>/_health` — канонический healthcheck расширения
@@ -237,8 +240,8 @@ export class InstallOrchestratorService {
             network: input.containerNetwork,
             env,
             labels: { [EXTENSION_PACKAGE_LABEL]: input.packageId },
-            memoryMb: DEFAULT_MEMORY_MB,
-            cpus: DEFAULT_CPUS,
+            memoryMb: limitFromEnv('EXTENSION_MEMORY_MB'),
+            cpus: limitFromEnv('EXTENSION_CPUS'),
           });
         }
       } catch (e) {

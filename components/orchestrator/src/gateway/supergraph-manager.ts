@@ -48,6 +48,12 @@ export interface SupergraphManagerOptions {
   registry: SupergraphRegistryReader;
   /** Интервал опроса registry. Должен совпадать с polling'ом IntrospectAndCompose. */
   pollIntervalMs: number;
+  /**
+   * Какая часть схемы — ядро: без неё шлюз схему не строит. Остальные части —
+   * приложения каталога, недоступное приложение из схемы исключается.
+   * По умолчанию ядро — запись с именем `core` или `core-…`.
+   */
+  isCore?: (subgraph: SubgraphDescriptor) => boolean;
 }
 
 export interface SupergraphManagerLifecycle {
@@ -88,6 +94,8 @@ export async function createDynamicSupergraphManager(
 ): Promise<SupergraphManagerLifecycle> {
   const logger = new Logger('DynamicSupergraphManager');
   let lastFingerprint = '';
+  /** Исключённые при последней сборке приложения — чтобы не повторять предупреждение каждый такт. */
+  let lastExcluded = '';
 
   const fingerprintOf = (subgraphs: ReadonlyArray<SubgraphDescriptor>): string =>
     subgraphs
@@ -96,25 +104,78 @@ export async function createDynamicSupergraphManager(
       .map((s) => `${s.name}:${s.url}`)
       .join('|');
 
+  const isCore = opts.isCore ?? ((s: SubgraphDescriptor) => s.name === 'core' || s.name.startsWith('core-'));
+
+  /**
+   * Собрать схему, пережив недоступное приложение.
+   *
+   * Приложение каталога — чужой контейнер: он мог не подняться, упасть или
+   * быть снят мимо оркестратора. До 26.11.2026 одна такая запись реестра
+   * роняла сборку целиком: оркестратор не стартовал, перезапускался по кругу
+   * и поэтому не мог ни переустановить это приложение, ни отдавать схему
+   * остальных. Теперь приложение, с которым сборщик схему не строит, исключается;
+   * в `included` — то, что вошло. Без ядра сборки по-прежнему нет.
+   */
+  const composeTolerant = async (
+    subgraphs: ReadonlyArray<SubgraphDescriptor>,
+  ): Promise<{ sdl: string; included: SubgraphDescriptor[] }> => {
+    try {
+      const sdl = await opts.composer.compose(subgraphs);
+      if (lastExcluded) {
+        logger.log('все приложения реестра снова в схеме');
+        lastExcluded = '';
+      }
+      return { sdl, included: subgraphs.slice() };
+    } catch (first) {
+      const core = subgraphs.filter(isCore);
+      const apps = subgraphs.filter((s) => !isCore(s));
+      if (apps.length === 0) throw first;
+      const kept: SubgraphDescriptor[] = [];
+      const excluded: string[] = [];
+      for (const app of apps) {
+        try {
+          await opts.composer.compose([...core, app]);
+          kept.push(app);
+        } catch (e) {
+          excluded.push(`${app.name} (${e instanceof Error ? e.message : String(e)})`);
+        }
+      }
+      // Одно сообщение на смену состава: приложение может лежать сутками, а
+      // сборка повторяется каждый такт.
+      const names = excluded.join('; ');
+      if (names !== lastExcluded) {
+        lastExcluded = names;
+        if (names) logger.warn(`приложения исключены из схемы: ${names}`);
+      }
+      const included = [...core, ...kept];
+      // Сборщик не строит схему и без приложений — виновато ядро, отказ прежний.
+      return { sdl: await opts.composer.compose(included), included };
+    }
+  };
+
   const composeOnce = async (): Promise<string> => {
     const subgraphs = await opts.registry.listForCompose();
-    const fp = fingerprintOf(subgraphs);
-    lastFingerprint = fp;
-    return opts.composer.compose(subgraphs);
+    const { sdl, included } = await composeTolerant(subgraphs);
+    lastFingerprint = fingerprintOf(included);
+    return sdl;
   };
 
   const initialSdl = await composeOnce();
 
   const refreshIfChanged = async (): Promise<boolean> => {
     const subgraphs = await opts.registry.listForCompose();
-    const fp = fingerprintOf(subgraphs);
+    // Отпечаток — того, что вошло в схему. Пока приложение исключено, он
+    // расходится с реестром, и каждый такт пробует собрать схему с ним снова.
+    if (fingerprintOf(subgraphs) === lastFingerprint) return false;
+    const { sdl, included } = await composeTolerant(subgraphs);
+    const fp = fingerprintOf(included);
+    // Состав прежний (исключённое приложение так и не ответило) — схему не трогаем.
     if (fp === lastFingerprint) return false;
     logger.log(`supergraph registry changed (was ${lastFingerprint.split('|').length} subgraphs, now ${fp.split('|').length}) — recompose`);
     // ВАЖНО: fingerprint обновляем только ПОСЛЕ успешного compose.
     // Иначе при exception в composer'е следующий tick посчитает,
     // что состояние уже актуально (fp === lastFingerprint) и пропустит
     // retry — supergraph навсегда останется в устаревшем состоянии.
-    const sdl = await opts.composer.compose(subgraphs);
     lastFingerprint = fp;
     update(sdl);
     return true;
@@ -122,10 +183,10 @@ export async function createDynamicSupergraphManager(
 
   const forceRecompose = async (): Promise<void> => {
     const subgraphs = await opts.registry.listForCompose();
-    const sdl = await opts.composer.compose(subgraphs);
-    lastFingerprint = fingerprintOf(subgraphs);
+    const { sdl, included } = await composeTolerant(subgraphs);
+    lastFingerprint = fingerprintOf(included);
     update(sdl);
-    logger.log(`supergraph пересобран принудительно (${subgraphs.length} subgraphs)`);
+    logger.log(`supergraph пересобран принудительно (${included.length} subgraphs)`);
   };
 
   const timer = setInterval(() => {

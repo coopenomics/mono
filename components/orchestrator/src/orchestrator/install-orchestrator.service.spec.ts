@@ -303,9 +303,9 @@ describe('InstallOrchestratorService', () => {
         network: 'mono-net',
         env: { SUBGRAPH_PORT: '3001' },
         labels: { 'coop.extension.package': '@coopenomics/chatcoop' },
-        // Пределы по умолчанию: приложение не занимает память и процессор ядра.
-        memoryMb: 256,
-        cpus: 1,
+        // Пределов по умолчанию нет: узел задаёт их переменными после замера.
+        memoryMb: undefined,
+        cpus: undefined,
       },
     ]);
 
@@ -434,6 +434,23 @@ describe('InstallOrchestratorService', () => {
       const h = buildHarness(false);
       await h.service.install(input);
       expect(h.docker.runs[0]?.env).toEqual({ SUBGRAPH_PORT: '3001', COOPNAME: 'voskhod' });
+    });
+
+    it('side: узел задал пределы переменными — контейнер получает их; без переменных пределов нет', async () => {
+      process.env.EXTENSION_MEMORY_MB = '512';
+      process.env.EXTENSION_CPUS = '2';
+      try {
+        const h = buildHarness(true);
+        await h.service.install(input);
+        expect(h.docker.runs[0]).toEqual(expect.objectContaining({ memoryMb: 512, cpus: 2 }));
+      } finally {
+        delete process.env.EXTENSION_MEMORY_MB;
+        delete process.env.EXTENSION_CPUS;
+      }
+      const free = buildHarness(true);
+      await free.service.install(input);
+      expect(free.docker.runs[0]?.memoryMb).toBeUndefined();
+      expect(free.docker.runs[0]?.cpus).toBeUndefined();
     });
 
     it('happy: снятие приложения стирает его заявку', async () => {
