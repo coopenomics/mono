@@ -3,12 +3,16 @@
 //- выполняет: он живёт в рамке с отдельным происхождением (sandbox без
 //- allow-same-origin) и общается со столом командами моста.
 q-page.isolated-frame
+  //- Каркас загрузки стоит, пока браузер не отрисовал страницу приложения.
+  CardListSkeleton.isolated-frame__skeleton(v-if='!loaded')
   iframe.isolated-frame__view(
     ref='frameEl',
+    :class="{ 'isolated-frame__view--pending': !loaded }",
     sandbox='allow-scripts',
     referrerpolicy='no-referrer',
     :srcdoc='framedHtml',
-    :title="$t('isolatedApp.frameTitle', { app: title })"
+    :title="$t('isolatedApp.frameTitle', { app: title })",
+    @load='loaded = true'
   )
 
   //- Окно подписи рисует стол: текст документа получен от ядра, показан в
@@ -32,7 +36,7 @@ q-page.isolated-frame
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import axios from 'axios';
-import { BaseBanner, BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton, BaseDialog, CardListSkeleton } from 'src/shared/ui/base';
 import { env } from 'src/shared/config';
 import { resolveAccessToken } from 'src/shared/api/access-token';
 import { signDocument, type ZGeneratedDocument } from 'src/shared/lib/document/model/entity';
@@ -63,9 +67,8 @@ const session = useSessionStore();
 const system = useSystemStore();
 
 const frameEl = ref<HTMLIFrameElement | null>(null);
-
-/** Страница приложения с политикой рамки: сети у неё нет, только мост. */
-const framedHtml = computed(() => withFramePolicy(props.html));
+/** Страница приложения отрисована — каркас загрузки снимается. */
+const loaded = ref(false);
 
 // ── Токен приложения ─────────────────────────────────────────────────────
 let appToken: { value: string; expiresAt: number } | null = null;
@@ -97,6 +100,12 @@ function themeForFrame(): { mode: string; tokens: Record<string, string> } {
   for (const name of THEME_TOKENS) tokens[name] = style.getPropertyValue(name).trim();
   return { mode: root.getAttribute('data-theme') ?? 'light', tokens };
 }
+
+/**
+ * Страница приложения с политикой рамки (сети у неё нет, только мост) и
+ * токенами оформления стола: первый кадр страницы уже в теме стола.
+ */
+const framedHtml = computed(() => withFramePolicy(props.html, themeForFrame().tokens));
 
 async function runGraphql(params: Record<string, unknown>): Promise<unknown> {
   const token = await ensureAppToken();
@@ -223,6 +232,16 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   padding: 0;
+}
+
+.isolated-frame__skeleton {
+  padding: var(--p-6);
+}
+
+/* Рамка грузится скрытой и без места в потоке: каркас стоит на её месте. */
+.isolated-frame__view--pending {
+  position: absolute;
+  visibility: hidden;
 }
 
 .isolated-frame__view {

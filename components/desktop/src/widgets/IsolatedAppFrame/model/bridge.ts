@@ -104,14 +104,30 @@ export function packageCoords(packageId: string): { scope: string; name: string 
 const FRAME_POLICY =
   "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; form-action 'none'; base-uri 'none'";
 
+/** Имя токена оформления стола и значение, годное для вставки в таблицу стилей. */
+const THEME_TOKEN_NAME = /^--p-[a-z0-9-]+$/;
+const THEME_TOKEN_VALUE = /^[#\w\s.,()%-]+$/;
+
+/**
+ * Таблица стилей с токенами оформления стола. Удвоенный `:root` сильнее
+ * значений по умолчанию из самой страницы, поэтому страница с первого кадра
+ * нарисована в теме стола, без смены цветов после ответа `init`.
+ */
+function themeStyle(tokens: Record<string, string>): string {
+  const rules = Object.entries(tokens)
+    .filter(([name, value]) => THEME_TOKEN_NAME.test(name) && THEME_TOKEN_VALUE.test(value))
+    .map(([name, value]) => `${name}:${value}`);
+  return rules.length ? `<style>:root:root{${rules.join(';')}}</style>` : '';
+}
+
 /**
  * Поставить политику первой в страницу приложения. Политика, объявленная
  * раньше содержимого, действует на всё, что идёт после неё: страница
- * может только ужесточить её, но не снять.
+ * может только ужесточить её, но не снять. Следом идут токены оформления
+ * стола, если они переданы.
  */
-export function withFramePolicy(html: string): string {
-  const meta = `<meta http-equiv="Content-Security-Policy" content="${FRAME_POLICY}">`;
+export function withFramePolicy(html: string, tokens: Record<string, string> = {}): string {
+  const head = `<meta http-equiv="Content-Security-Policy" content="${FRAME_POLICY}">${themeStyle(tokens)}`;
   const doctype = /^\s*<!doctype[^>]*>/i.exec(html);
-  return doctype ? `${doctype[0]}${meta}${html.slice(doctype[0].length)}` : `${meta}${html}`;
+  return doctype ? `${doctype[0]}${head}${html.slice(doctype[0].length)}` : `${head}${html}`;
 }
-

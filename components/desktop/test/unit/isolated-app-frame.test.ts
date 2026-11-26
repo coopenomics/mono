@@ -67,6 +67,19 @@ describe('политика рамки', () => {
     expect(withFramePolicy('<p>x</p>').startsWith('<meta http-equiv="Content-Security-Policy"')).toBe(true);
   });
 
+  it('happy: токены оформления стола стоят в странице сразу после политики и сильнее значений страницы', () => {
+    const out = withFramePolicy('<!doctype html><style>:root{--p-canvas:#fff}</style>', { '--p-canvas': '#0b0f12', '--p-ink': 'rgb(240, 240, 240)' });
+    expect(out).toContain('<style>:root:root{--p-canvas:#0b0f12;--p-ink:rgb(240, 240, 240)}</style>');
+    expect(out.indexOf(':root:root')).toBeLessThan(out.indexOf(':root{--p-canvas:#fff}'));
+    expect(out.indexOf('Content-Security-Policy')).toBeLessThan(out.indexOf(':root:root'));
+  });
+
+  it('break: токен с чужим именем или значением, которое закрывает таблицу стилей, в страницу не попадает', () => {
+    const out = withFramePolicy('<p/>', { '--p-ink': '#000}</style><script>x()</script>', 'color': 'red', '--p-line': '' });
+    expect(out).not.toContain('<script>');
+    expect(out).not.toContain(':root:root');
+  });
+
   it('break: сеть рамке закрыта — connect-src отдельно не разрешён', () => {
     expect(withFramePolicy('<p/>')).not.toContain('connect-src');
   });
