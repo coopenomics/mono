@@ -168,7 +168,7 @@ export class AppsCatalogProxyResolver {
       'только chairman\'у (стол разработчика).',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
+  @RequireRight('CatalogOperator', 'manage')
   async publishPackage(
     @Args('data', { type: () => PublishPackageInputDTO })
     data: PublishPackageInputDTO,
@@ -443,7 +443,7 @@ export class AppsCatalogProxyResolver {
       'SUBMITTED (ждут approve/reject). Только chairman.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
+  @RequireRight('CatalogOperator', 'manage')
   async appsCatalogPendingModerations(
     @Args('status', {
       type: () => ModerationStatusEnum,
@@ -491,7 +491,7 @@ export class AppsCatalogProxyResolver {
       'Одобряет заявку на модерацию в каталоге восхода. Только chairman.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
+  @RequireRight('CatalogOperator', 'manage')
   async approveModeration(
     @Args('data', { type: () => ApproveModerationInputDTO })
     data: ApproveModerationInputDTO,
@@ -552,7 +552,7 @@ export class AppsCatalogProxyResolver {
       'Отклоняет заявку на модерацию с причиной. Только chairman.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
+  @RequireRight('CatalogOperator', 'manage')
   async rejectModeration(
     @Args('data', { type: () => RejectModerationInputDTO })
     data: RejectModerationInputDTO,

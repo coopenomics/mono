@@ -595,6 +595,56 @@ cases:
     external: unreachable
     external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
+  # ── Модерация только на узле оператора каталога (487-37, слово владельца
+  #    27.11.2026: «только у оператора должна быть страница модерации») ──────
+  - id: apps.access.happy.24
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель узла оператора каталога открывает «Стол администратора».
+    expect: >
+      Выдано право оператора каталога: страница «Модерация» в меню, операции модерации доступны
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-rights.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен: расширение доступно только на стендах разработки"
+
+  - id: apps.access.side.24
+    level: backend
+    kind: side
+    scenario: >
+      Председатель узла кооператива без ключа оператора каталога открывает «Стол администратора».
+    expect: >
+      Права оператора каталога нет: страницы «Модерация» в меню нет, стол открывается на «Пакетах и издателях»; операции модерации отвечают отказом в праве
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-rights.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен: расширение доступно только на стендах разработки"
+
+  - id: apps.access.break.24
+    level: backend
+    kind: break
+    scenario: >
+      Принятый пайщик узла оператора каталога, не председатель, вызывает операцию модерации.
+    expect: >
+      Отказ в праве: право оператора каталога требует председателя
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-rights.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен: расширение доступно только на стендах разработки"
+
+  - id: apps.access.break.25
+    level: backend
+    kind: break
+    scenario: >
+      Не принятый пайщик открывает столы разработчика и администратора.
+    expect: >
+      Прав нет, столы не видны
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-rights.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен: расширение доступно только на стендах разработки"
+
   # ── Не решено ────────────────────────────────────────────────────────────
   - id: apps.access.side.20
     level: ui
