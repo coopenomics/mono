@@ -48,19 +48,21 @@
   //- Панель пакета: цена крупно → выпуск → издатели списком. Назначение — в подвале.
   DetailsDrawer(v-model='drawerOpen', :title="current ? current.packageId : ''", :width='520')
     template(v-if='current')
-      .admin-packages__head
+      .admin-packages__head(v-if='!current.publishers.length || hasPrice(current)')
         BaseBadge(v-if='!current.publishers.length', variant='warn') {{ $t('developer.adminPackages.noPublisher') }}
         .admin-packages__price(v-if='hasPrice(current)')
           .admin-packages__price-sum {{ priceLabel(current) }}
           .admin-packages__price-caption {{ trialLabel(current) }}
-      DataRow(align='spread', :label="$t('developer.adminPackages.versionLabel')", :value='versionNote(current)')
-      DataRow(
-        v-if='!hasPrice(current)',
-        align='spread',
-        :label="$t('developer.column.price')",
-        :value="$t('developer.adminPackages.priceNotSet')",
-        :hint="$t('developer.adminPackages.priceReadonly')"
-      )
+      //- Линию под последним фактом снимаем: раздел издателей начинается своей линией.
+      .admin-packages__facts
+        DataRow(align='spread', :label="$t('developer.adminPackages.versionLabel')", :value='versionNote(current)')
+        DataRow(
+          v-if='!hasPrice(current)',
+          align='spread',
+          :label="$t('developer.column.price')",
+          :value="$t('developer.adminPackages.priceNotSet')",
+          :hint="$t('developer.adminPackages.priceReadonly')"
+        )
 
       .admin-packages__section
         .t-eyebrow.q-mb-sm {{ $t('developer.adminPackages.publishersTitle') }}
@@ -267,6 +269,9 @@ onMounted(load);
 .admin-packages__price-caption {
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-3);
+}
+.admin-packages__facts :deep(.data-row:last-child) {
+  border-bottom: 0;
 }
 .admin-packages__section {
   margin-top: var(--p-5);
