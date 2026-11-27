@@ -6,6 +6,7 @@ import {
   DOCUMENT_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   LOGGER_PORT,
+  NOTIFICATION_PORT,
   PROVIDER_APPS_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
@@ -32,6 +33,8 @@ export const appsCatalogProxyPorts = {
     COOPERATIVE_VARS_PORT,
     ACCOUNT_PORT,
     ACCESS_TOKEN_PORT,
+    // Уведомление председателю о запросе новых прав ядра приложения (487-37).
+    NOTIFICATION_PORT,
   ],
   optional: [
     PROVIDER_APPS_PORT,

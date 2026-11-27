@@ -22,6 +22,8 @@ title: Согласие председателя на права ядра при
 sources:
   backend:
     - components/controller/src/extensions/apps-catalog-proxy/application/services/app-rights-consent.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/app-rights-notifier.service.ts
+    - components/notifications/src/workflows/app-rights-requested/**
     - components/controller/src/extensions/apps-catalog-proxy/application/dto/catalog-app-rights.dto.ts
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/records/app-rights-consent.record.ts
     - components/controller/src/extensions/apps-catalog-proxy/migrations/database/1795780000000-create-apps-rights-consents.ts
@@ -110,6 +112,33 @@ cases:
     expect: >
       стол получает, что просит версия, что разрешено и что ждёт согласия; без оркестратора перечень версии пуст,
       согласие отдаётся; согласие и включение переключателя просят оркестратор повторить установку
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  # ── Уведомление председателю ─────────────────────────────────────────────
+  - id: apps.consent.happy.06
+    level: backend
+    kind: happy
+    scenario: >
+      Узел записал запрос новых прав приложения; оркестратор повторяет запрос ключа по расписанию;
+      издатель выпускает следующую версию с тем же запросом.
+    expect: >
+      председатель получает одно уведомление на версию со ссылкой на страницу приложения; повтор той же версии
+      второго уведомления не даёт; версия в пределах согласия и приём переключателем уведомление о запросе не шлют
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  - id: apps.consent.break.05
+    level: backend
+    kind: break
+    scenario: >
+      У кооператива нет председателя либо центр уведомлений отказал в отправке.
+    expect: >
+      запрос новых прав записан и ждёт ответа: отказ уведомления выдачу ключа и запись запроса не роняет
     test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
     status: written
     external: unreachable

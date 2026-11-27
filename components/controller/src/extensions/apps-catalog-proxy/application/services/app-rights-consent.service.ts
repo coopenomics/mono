@@ -1,8 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { TableStore } from '@coopenomics/extension-kit';
 import { APP_RIGHTS_CONSENT_STORE } from '../../infrastructure/database/apps-catalog-proxy-stores';
 import { AppRightsConsentRecord } from '../../infrastructure/records/app-rights-consent.record';
 import { normalizeDeclaration, type AppPortDeclaration } from './app-port-grants.service';
+import { AppRightsNotifierService } from './app-rights-notifier.service';
 
 /** Согласие дал переключатель «Принимать новые права»: председатель включил его заранее. */
 export const AUTO_CONSENT = 'auto';
@@ -37,6 +38,7 @@ export class AppRightsConsentService {
 
   constructor(
     @Inject(APP_RIGHTS_CONSENT_STORE) private readonly store: TableStore<AppRightsConsentRecord>,
+    @Optional() private readonly notifier?: AppRightsNotifierService,
   ) {}
 
   /** Согласие и запрос новых прав пакета; `null` — согласия по пакету не было. */
@@ -167,6 +169,9 @@ export class AppRightsConsentService {
       pendingChainActions: missing.chainActions,
       pendingVersion: version.slice(0, VERSION_MAX),
     };
+    // Повторный запрос той же версии время запроса не сдвигает и председателя
+    // вторым уведомлением не беспокоит: оркестратор повторяет установку по расписанию.
+    const same = row?.pendingVersion === pending.pendingVersion;
     if (!row) {
       await this.store.insert({
         packageId,
@@ -180,11 +185,10 @@ export class AppRightsConsentService {
         createdAt: now,
         updatedAt: now,
       });
-      return;
+    } else {
+      await this.store.update({ packageId }, { ...pending, pendingAt: same && row.pendingAt ? row.pendingAt : now, updatedAt: now });
     }
-    // Повторный запрос той же версии время запроса не сдвигает: оркестратор повторяет установку по расписанию.
-    const same = row.pendingVersion === pending.pendingVersion;
-    await this.store.update({ packageId }, { ...pending, pendingAt: same && row.pendingAt ? row.pendingAt : now, updatedAt: now });
+    if (!same) await this.notifier?.requestRaised(packageId);
   }
 
   private noPending(): Pick<AppRightsConsentRecord, 'pendingPorts' | 'pendingChainActions' | 'pendingVersion' | 'pendingAt'> {

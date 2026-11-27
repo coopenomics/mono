@@ -12,6 +12,7 @@ import { AppsCatalogInstallScriptController } from './application/controllers/in
 import { AppPortGrantsController, AppPortsController } from './application/controllers/app-ports.controller';
 import { AppPortGrantsService } from './application/services/app-port-grants.service';
 import { AppRightsConsentService } from './application/services/app-rights-consent.service';
+import { AppRightsNotifierService } from './application/services/app-rights-notifier.service';
 import { AppSessionService } from './application/services/app-session.service';
 import { RemotePortsService } from './application/services/remote-ports.service';
 import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-proxy.resolver';
@@ -34,6 +35,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
     CatalogAppsStateService,
     AppPortGrantsService,
     AppRightsConsentService,
+    AppRightsNotifierService,
     AppSessionService,
     RemotePortsService,
     DeveloperExtension,

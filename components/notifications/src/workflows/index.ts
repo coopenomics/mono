@@ -74,6 +74,7 @@ import { workflow as capitalPropertyAcceptedWorkflow } from './capital-property-
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
+import { workflow as appRightsRequestedWorkflow } from './app-rights-requested';
 import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 // Epic 14 — биллинговые оповещения пайщикам
@@ -261,6 +262,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   // Приложение «Поздравления»
   birthdayGreetingWorkflow,
   informationalMailingWorkflow,
+  appRightsRequestedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
@@ -271,4 +273,5 @@ export const workflowsById = allWorkflows.reduce((acc, workflow) => {
 export * as BranchVotingStarted from './branch-voting-started';
 export * as BranchMeetingReminder from './branch-meeting-reminder';
 export * as BranchTrustedRequested from './branch-trusted-requested';
+export * as AppRightsRequested from './app-rights-requested';
 export * as BranchTrustedResolved from './branch-trusted-resolved';

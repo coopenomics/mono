@@ -7,11 +7,12 @@
  * снимает вопрос для издателя, которому председатель доверяет.
  */
 import { AppRightsConsentService, AUTO_CONSENT } from '~/extensions/apps-catalog-proxy/application/services/app-rights-consent.service';
+import { AppRightsNotifierService } from '~/extensions/apps-catalog-proxy/application/services/app-rights-notifier.service';
 import { NodeAppsService } from '~/extensions/apps-catalog-proxy/application/services/node-apps.service';
 import { AppRightsConsentRecord } from '~/extensions/apps-catalog-proxy/infrastructure/records/app-rights-consent.record';
 import { configurePlatformSettings } from '@coopenomics/extension-kit';
 
-configurePlatformSettings({ coopname: 'romashka', blockchain: {} } as any);
+configurePlatformSettings({ coopname: 'romashka', frontendUrl: 'https://romashka.coop', blockchain: {} } as any);
 
 const PKG = '@voskhod/exampleapp';
 
@@ -213,5 +214,71 @@ describe('права приложения для стола', () => {
     expect(h.catalog.recheckApp).toHaveBeenCalledTimes(1);
     await h.service.setRightsAutoAccept(PKG, false, 'ant');
     expect(h.catalog.recheckApp).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('уведомление председателю о запросе новых прав', () => {
+  function notifiedHarness() {
+    const store = memoryStore();
+    const notifier = { requestRaised: jest.fn(async () => undefined) };
+    return { notifier, consents: new AppRightsConsentService(store as any, notifier as any) };
+  }
+
+  it('happy: новый запрос прав — одно уведомление; повтор той же версии председателя не беспокоит', async () => {
+    const { consents, notifier } = notifiedHarness();
+    await consents.admit(PKG, RIGHTS, '0.2.0');
+    await consents.admit(PKG, RIGHTS, '0.2.0');
+    await consents.admit(PKG, RIGHTS, '0.2.0');
+    expect(notifier.requestRaised).toHaveBeenCalledTimes(1);
+    expect(notifier.requestRaised).toHaveBeenCalledWith(PKG);
+  });
+
+  it('side: следующая версия снова просит права — новое уведомление', async () => {
+    const { consents, notifier } = notifiedHarness();
+    await consents.admit(PKG, RIGHTS, '0.2.0');
+    await consents.admit(PKG, RIGHTS, '0.3.0');
+    expect(notifier.requestRaised).toHaveBeenCalledTimes(2);
+  });
+
+  it('side: версия в пределах согласия и приём переключателем уведомление о запросе не шлют', async () => {
+    const { consents, notifier } = notifiedHarness();
+    await consents.grant(PKG, RIGHTS, 'ant');
+    await consents.admit(PKG, RIGHTS, '0.1.0');
+    await consents.setAutoAccept(PKG, true, 'ant');
+    await consents.admit(PKG, { ports: ['document', 'chain'], chainActions: [] }, '0.2.0');
+    expect(notifier.requestRaised).not.toHaveBeenCalled();
+  });
+
+  function notifierHarness(opts: { chairman?: string | null; fail?: boolean } = {}) {
+    const account = {
+      getAccounts: jest.fn(async () => ({ items: opts.chairman === null ? [] : [{ username: opts.chairman ?? 'ant' }] })),
+      getDisplayName: jest.fn(async () => 'ПК «Ромашка»'),
+    };
+    const notifications = {
+      notifyUser: jest.fn(async () => {
+        if (opts.fail) throw new Error('у пайщика нет идентификатора подписчика');
+        return {};
+      }),
+    };
+    return { account, notifications, notifier: new AppRightsNotifierService(account as any, notifications as any) };
+  }
+
+  it('happy: уведомление адресовано председателю и ведёт на страницу приложения', async () => {
+    const h = notifierHarness();
+    await h.notifier.requestRaised(PKG);
+    expect(h.account.getAccounts).toHaveBeenCalledWith({ role: 'chairman' }, expect.objectContaining({ limit: 1 }));
+    expect(h.notifications.notifyUser).toHaveBeenCalledWith('ant', 'prilozhenie-prosit-novye-prava-yadra', {
+      coopShortName: 'ПК «Ромашка»',
+      appTitle: 'Exampleapp',
+      appUrl: 'https://romashka.coop/romashka/apps/app/%40voskhod%2Fexampleapp',
+    });
+  });
+
+  it('break: председателя нет либо отправка упала — запрос прав не роняется', async () => {
+    const none = notifierHarness({ chairman: null });
+    await expect(none.notifier.requestRaised(PKG)).resolves.toBeUndefined();
+    expect(none.notifications.notifyUser).not.toHaveBeenCalled();
+    const failing = notifierHarness({ fail: true });
+    await expect(failing.notifier.requestRaised(PKG)).resolves.toBeUndefined();
   });
 });
