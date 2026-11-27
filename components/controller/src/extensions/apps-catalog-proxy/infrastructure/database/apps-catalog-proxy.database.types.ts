@@ -39,6 +39,15 @@ export interface AppsPortGrants {
   updated_at: Generated<Timestamp>;
 }
 
+export interface AppsPublishers {
+  added_by: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  package_id: string;
+  username: string;
+}
+
 export interface AppsRightsConsents {
   auto_accept: Generated<boolean>;
   chain_actions: Generated<Json>;
@@ -52,15 +61,6 @@ export interface AppsRightsConsents {
   pending_version: string | null;
   ports: Generated<Json>;
   updated_at: Generated<Timestamp>;
-}
-
-export interface AppsPublishers {
-  added_by: string;
-  coopname: string;
-  created_at: Generated<Timestamp>;
-  id: Generated<string>;
-  package_id: string;
-  username: string;
 }
 
 export interface DB {
