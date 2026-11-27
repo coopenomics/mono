@@ -48,6 +48,9 @@ async function copy() {
   min-width: 0;
   margin: 0;
   padding: var(--p-1) 0;
+  /* Рамку и фон несёт блок команды: общий стиль pre дал бы рамку в рамке. */
+  border: 0;
+  background: transparent;
   font-size: var(--p-fs-body-sm);
   white-space: pre-wrap;
   word-break: break-all;
