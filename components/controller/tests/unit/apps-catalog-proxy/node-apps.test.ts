@@ -35,10 +35,18 @@ const TRIAL_SUB = {
 const PUBLIC_PKG = { packageId: PKG, publisher: 'voskhod', compatibleSubnets: [], lastActiveVersion: '0.1.2' };
 
 function harness(
-  opts: { port?: Partial<IProviderAppsPort> | null; installed?: string[]; disabled?: string[]; rightsPending?: string[] } = {},
+  opts: {
+    port?: Partial<IProviderAppsPort> | null;
+    installed?: string[];
+    disabled?: string[];
+    rightsPending?: string[];
+    operatorNode?: boolean;
+  } = {},
 ) {
   const catalog = {
-    listPublicPackages: jest.fn(async () => [PUBLIC_PKG]),
+    // Ключ оператора каталога держит только узел оператора (487-37).
+    hasOperatorAccess: opts.operatorNode ?? true,
+    listPublicPackages: jest.fn(async () => (opts.operatorNode === false ? [] : [PUBLIC_PKG])),
     listInstalledFrontends: jest.fn(async () => (opts.installed ?? [PKG]).map((packageId) => ({ packageId }))),
   };
   const state = {
@@ -254,6 +262,28 @@ describe('подписки и кошелёк узла у провайдера', 
     const billing = await service.nodeBilling();
     expect(billing.available).toBe(true);
     expect(billing.wallet).toBeNull();
+  });
+});
+
+// 487-37: ключ оператора каталога узлу кооператива не положен.
+describe('витрина узла без ключа оператора каталога', () => {
+  it('happy: перечень приложений — предложения провайдера; издатель — пространство имён пакета, цена и подписка на месте', async () => {
+    const { service } = harness({ operatorNode: false });
+    const [item] = await service.listCatalogApps(1, 50);
+    expect(item).toEqual(expect.objectContaining({
+      packageId: PKG,
+      publisher: 'voskhod',
+      lastActiveVersion: null,
+      rubPerMonth: 360,
+      trialDays: 14,
+      installed: true,
+    }));
+    expect(item.subscription).not.toBeNull();
+  });
+
+  it('side: провайдер приложение не предлагает — витрина узла без ключа пуста', async () => {
+    const { service } = harness({ operatorNode: false, port: { listOffers: jest.fn(async () => []) } });
+    expect(await service.listCatalogApps(1, 50)).toEqual([]);
   });
 });
 

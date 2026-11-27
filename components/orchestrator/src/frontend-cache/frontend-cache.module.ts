@@ -23,6 +23,7 @@ import { loadAppConfig } from '../config/app-config';
 import { CatalogDeliveryReleaseMetadata } from '../watcher/catalog-delivery-release-metadata.impl';
 import { CatalogTenantToken } from '../watcher/catalog-tenant-token';
 import { CatalogOperatorInstallSource, NoopInstallSource } from './catalog-operator-install-source.impl';
+import { RegistryInstallSource } from './registry-install-source.impl';
 import { FrontendCacheController } from './frontend-cache.controller';
 import { FRONTEND_CACHE_DIR, FrontendCacheService } from './frontend-cache.service';
 import {
@@ -43,7 +44,13 @@ import {
     },
     {
       provide: FRONTEND_INSTALL_SOURCE,
-      useFactory: (): FrontendInstallSourcePort => {
+      inject: [CatalogTenantToken],
+      useFactory: (token: CatalogTenantToken): FrontendInstallSourcePort => {
+        // Узел кооператива берёт фронт приложения из реестра каталога по своей
+        // подписке (487-37): ключ оператора каталога узлу не положен. Путь
+        // через catalog-operator остаётся узлу без адреса реестра.
+        const catalogDeliveryBaseUrl = process.env.CATALOG_DELIVERY_BASE_URL;
+        if (catalogDeliveryBaseUrl) return new RegistryInstallSource({ catalogDeliveryBaseUrl }, token);
         const baseUrl = process.env.APPS_CATALOG_OPERATOR_URL;
         const apiKey = process.env.APPS_CATALOG_OPERATOR_API_KEY;
         if (!baseUrl || !apiKey) return new NoopInstallSource();

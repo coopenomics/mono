@@ -53,6 +53,7 @@ sources:
     - components/controller/src/infrastructure/innercoop/access-token-innercoop.adapter.ts
     - components/controller/src/application/provider/dto/provider-app.dto.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/node-apps.service.ts
+    - components/orchestrator/src/frontend-cache/registry-install-source.impl.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/catalog-apps-state.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/resolvers/apps.resolver.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/access/apps-rights.ts
@@ -516,6 +517,71 @@ cases:
       прав нет, текст целиком принадлежит издателю: издатель не подставляет перечень прав своим текстом в середине пояснения
     test: components/desktop/test/unit/developer-core-rights.test.ts
     status: written
+
+  # ── Узел кооператива без ключа оператора каталога (487-37, слово владельца
+  #    27.11.2026: «ключ оператора каталога очевидно не положен для ведомого») ──
+  - id: apps.access.happy.21
+    level: backend
+    kind: happy
+    scenario: >
+      Узел кооператива без ключа оператора каталога открывает витрину приложений.
+    expect: >
+      Перечень приложений — предложения провайдера подключения: цена, пробный срок и подписка на месте,
+      издатель — пространство имён пакета
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: passing
+
+  - id: apps.access.side.21
+    level: backend
+    kind: side
+    scenario: >
+      Узел кооператива без ключа оператора каталога; провайдер приложений не предлагает.
+    expect: >
+      Витрина пуста, отказа нет
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: passing
+
+  - id: apps.access.happy.22
+    level: backend
+    kind: happy
+    scenario: >
+      Узел берёт фронт приложения из реестра каталога по подписке кооператива: токен кооператива →
+      токен пакета → архив версии → файл фронта.
+    expect: >
+      Фронт получен без ключа оператора каталога; контрольная сумма — из манифеста версии
+    test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
+    status: passing
+
+  - id: apps.access.break.22
+    level: backend
+    kind: break
+    scenario: >
+      Узел просит фронт приложения, на которое у кооператива нет действующей подписки, либо у пакета нет
+      выпуска, либо в архиве версии нет фронта.
+    expect: >
+      Фронта на узле нет; каталог токен пакета не выдал либо файл не найден
+    test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
+    status: passing
+
+  - id: apps.access.side.22
+    level: backend
+    kind: side
+    scenario: >
+      Каталог не ответил, архив повреждён либо ядро ещё не передало узлу токен кооператива.
+    expect: >
+      Источник недоступен: прежний фронт в кэше узла остаётся
+    test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
+    status: passing
+
+  - id: apps.access.side.23
+    level: backend
+    kind: side
+    scenario: >
+      В архиве пакета фронт лежит и в корне, и в сборке; рядом каталог с тем же именем.
+    expect: >
+      Берётся файл корня, затем файл сборки; каталог файлом не считается
+    test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
+    status: passing
 
   # ── Не решено ────────────────────────────────────────────────────────────
   - id: apps.access.side.20

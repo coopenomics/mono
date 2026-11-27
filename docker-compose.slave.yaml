@@ -55,9 +55,12 @@ services:
       PROVIDER_BASE_URL: http://node:3005
       PROVIDER_BEARER_TOKEN: ${SLAVE_PROVIDER_BEARER:-}
       BILLING_HUB_MODE: "false"
-      APPS_CATALOG_OPERATOR_URL: http://node:3002
+      # Ведомый — узел кооператива, не оператор каталога (487-37): ключ
+      # оператора ему не положен. Перечень приложений узел строит по
+      # предложениям провайдера, фронт берёт из реестра каталога по подписке.
+      APPS_CATALOG_OPERATOR_URL: ""
+      APPS_CATALOG_OPERATOR_API_KEY: ""
       APPS_CATALOG_DELIVERY_URL: http://node:3001
-      APPS_CATALOG_OPERATOR_API_KEY: ${APPS_CATALOG_OPERATOR_API_KEY}
       # Оркестратор своего стенда: ядро передаёт ему токен каталога, он ставит
       # приложения на узел. В .env контроллера ведомого этой строки может не быть.
       ORCHESTRATOR_URL: http://orchestrator:4000
@@ -67,6 +70,9 @@ services:
   orchestrator:
     environment:
       SERVER_SECRET: ${SLAVE_SERVER_SECRET}
+      # Ключа оператора каталога у узла кооператива нет (487-37).
+      APPS_CATALOG_OPERATOR_URL: ""
+      APPS_CATALOG_OPERATOR_API_KEY: ""
 
   desktop:
     environment:

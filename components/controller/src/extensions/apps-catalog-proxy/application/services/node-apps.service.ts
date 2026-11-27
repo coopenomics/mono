@@ -25,7 +25,11 @@ import {
 import { Name, UInt128 } from '@wharfkit/session';
 import { Ledger2, Ledger2Contract, RegistratorContract, TokenContract } from 'cooptypes';
 import { t } from '../../i18n';
-import { AppsCatalogHttpService, type AppRequestedRights } from '../../infrastructure/apps-catalog-http.service';
+import {
+  AppsCatalogHttpService,
+  type AppRequestedRights,
+  type AppsCatalogPackage,
+} from '../../infrastructure/apps-catalog-http.service';
 import type { AppRightsConsentRecord } from '../../infrastructure/records/app-rights-consent.record';
 import { CatalogAppsStateService } from './catalog-apps-state.service';
 import { AppRightsConsentService } from './app-rights-consent.service';
@@ -50,6 +54,16 @@ function toSubscriptionDTO(s: InnerAppSubscription): AppsCatalogSubscriptionDTO 
     expiresAt: s.expires_at,
     nextPaymentDue: s.next_payment_due ?? null,
     amountPerPeriod: Number(s.amount_per_period),
+  };
+}
+
+/** Пакет каталога по предложению провайдера: издатель — пространство имён пакета. */
+function packageOfOffer(offer: { package_id: string }): AppsCatalogPackage {
+  return {
+    packageId: offer.package_id,
+    publisher: offer.package_id.replace(/^@/, '').split('/')[0] ?? '',
+    compatibleSubnets: [],
+    lastActiveVersion: null,
   };
 }
 
@@ -115,10 +129,15 @@ export class NodeAppsService {
     if (offers === null) {
       throw new ServiceUnavailableException(t('appsCatalogProxy.catalog.pricesUnavailable'));
     }
+    // Узел кооператива ключа оператора каталога не имеет (487-37): перечень
+    // приложений — предложения провайдера подключения, у которого узел и
+    // оформляет подписку. Издатель — пространство имён пакета, версию узел
+    // узнаёт после подписки.
+    const listed = this.catalog.hasOperatorAccess ? packages : offers.map(packageOfOffer);
     const offerOf = new Map(offers.map((o) => [o.package_id, o]));
     const subscriptionOf = new Map((subscriptions ?? []).map((s) => [s.package_id, s]));
     const installedIds = new Set(installed.map((i) => i.packageId));
-    return packages.flatMap((p) => {
+    return listed.flatMap((p) => {
       const offer = offerOf.get(p.packageId);
       if (!offer || offer.period_days <= 0) return [];
       const subscription = subscriptionOf.get(p.packageId) ?? null;

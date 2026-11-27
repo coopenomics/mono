@@ -381,7 +381,7 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
       });
     }
     this.logger.warn(
-      'APPS_CATALOG_OPERATOR_URL/APPS_CATALOG_OPERATOR_API_KEY не заданы — apps-catalog-proxy в degraded mode (пустой каталог)',
+      'APPS_CATALOG_OPERATOR_URL/APPS_CATALOG_OPERATOR_API_KEY не заданы — узел кооператива: перечень приложений строится по предложениям провайдера, модерация каталога недоступна',
     );
     return null;
   }
@@ -575,6 +575,15 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
       }
       return null;
     }
+  }
+
+  /**
+   * У узла есть ключ оператора каталога. Ключ держит только узел оператора:
+   * он ведёт модерацию и видит полный перечень пакетов. Узлу кооператива ключ
+   * не положен — перечень приложений он строит по предложениям провайдера.
+   */
+  get hasOperatorAccess(): boolean {
+    return this.client !== null;
   }
 
   async listPublicPackages(page = 1, pageSize = 50): Promise<AppsCatalogPackage[]> {

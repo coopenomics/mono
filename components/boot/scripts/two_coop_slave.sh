@@ -100,8 +100,8 @@ export SLAVE_SERVER_SECRET="$PROVIDER_SECRET"
 export SLAVE_PROVIDER_BEARER="$PROVIDER_BEARER"
 export MASTER_NETWORK="${MASTER_PROJECT}_default"
 export CATALOG_DELIVERY_BASE_URL="http://node:3001"
-export APPS_CATALOG_OPERATOR_URL="http://node:3002"
-export APPS_CATALOG_OPERATOR_API_KEY="${APPS_CATALOG_OPERATOR_API_KEY:-$(grep -E '^APPS_CATALOG_OPERATOR_API_KEY=' "$MASTER_DIR/components/controller/.env" | tail -1 | cut -d= -f2-)}"
+# Ключ оператора каталога ведомому не передаётся (487-37): узел кооператива
+# берёт перечень приложений у провайдера, фронт — из реестра каталога по подписке.
 
 cd "$STACK_ROOT"
 echo "══ Ведомый кооператив $COOPNAME: стенд ${STACK_PROJECT}, цепь — ${MASTER_DIR} ══"
