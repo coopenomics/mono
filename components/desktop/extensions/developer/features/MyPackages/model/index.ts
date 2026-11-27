@@ -43,17 +43,14 @@ function messageOf(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-export function useMyPackages() {
+/** Данные страницы: назначения издателя, цены и ключи, сведённые в список пакетов. */
+function usePackagesData() {
   const assignments = ref<IMyAssignment[]>([]);
   const pricing = ref<IPackagePricing[]>([]);
   const tokens = ref<IMyToken[]>([]);
   // Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
   const loading = ref(true);
   const error = ref<string | null>(null);
-  const isSubmitting = ref(false);
-  const actionError = ref<string | null>(null);
-  /** Текст только что выпущенного ключа: каталог отдаёт его один раз. */
-  const issuedToken = ref<string | null>(null);
 
   const packages = computed<IMyPackage[]>(() =>
     assignments.value.map((a) => {
@@ -84,6 +81,16 @@ export function useMyPackages() {
       loading.value = false;
     }
   }
+
+  return { packages, loading, error, load };
+}
+
+export function useMyPackages() {
+  const { packages, loading, error, load } = usePackagesData();
+  const isSubmitting = ref(false);
+  const actionError = ref<string | null>(null);
+  /** Текст только что выпущенного ключа: каталог отдаёт его один раз. */
+  const issuedToken = ref<string | null>(null);
 
   /** Общая обёртка действия: признак отправки, текст отказа, перечитывание списка. */
   async function act(run: () => Promise<boolean>): Promise<boolean> {

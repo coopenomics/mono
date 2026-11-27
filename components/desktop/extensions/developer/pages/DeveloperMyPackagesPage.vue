@@ -5,7 +5,7 @@
 //- ключи выпуска и команды терминала.
 q-page(padding)
   .q-pa-md
-    PageHint(storage-key='developer:my-packages:hint-dismissed')
+    PageHint.q-mb-md(storage-key='developer:my-packages:hint-dismissed')
       | {{ $t('developer.myPackages.intro') }}
 
     BaseBanner.q-mb-md(v-if='error', variant='neg') {{ error }}

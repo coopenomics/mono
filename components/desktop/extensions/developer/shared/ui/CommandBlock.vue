@@ -25,6 +25,7 @@ async function copy() {
   try {
     await navigator.clipboard.writeText(props.command);
     copied.value = true;
+    // timing: ui — значок «скопировано» возвращается к значку копирования через две секунды
     setTimeout(() => (copied.value = false), 2000);
   } catch {
     copied.value = false;

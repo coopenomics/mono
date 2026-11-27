@@ -1,7 +1,7 @@
 <template lang="pug">
 q-page(padding)
   .q-pa-md
-    PageHint(storage-key='developer:moderation:hint-dismissed')
+    PageHint.q-mb-md(storage-key='developer:moderation:hint-dismissed')
       | {{ $t('developer.moderation.intro') }}
 
     BaseBanner.q-mb-md(v-if='error', variant='neg')

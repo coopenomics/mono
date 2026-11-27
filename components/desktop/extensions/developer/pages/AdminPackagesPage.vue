@@ -4,7 +4,7 @@
 //- издатели и снятие издателя.
 q-page(padding)
   .q-pa-md
-    PageHint(storage-key='developer:admin-packages:hint-dismissed')
+    PageHint.q-mb-md(storage-key='developer:admin-packages:hint-dismissed')
       | {{ $t('developer.adminPackages.intro') }}
 
     BaseBanner.q-mb-md(v-if='error', variant='neg') {{ error }}
