@@ -417,6 +417,24 @@ jobs:
           build_service notificator   'coop-notificator'            start
           build_service notifications '@coopenomics/notifications'  sync
 
+          # Оркестратор приложений каталога (487-37) — тот же базовый образ плюс
+          # клиент docker: контейнеры приложений оркестратор запускает через
+          # сокет демона узла. Клиент — статический файл из образа docker:cli,
+          # демон в образ не входит. Узел поднимает службу только под признаком
+          # catalog_apps_enabled (playbooks → mono/templates/apps/README.md).
+          {
+            echo "FROM docker:29-cli AS dockercli"
+            echo "FROM dicoop/mono-base:$TAG_NAME"
+            echo "COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker"
+            echo 'CMD ["pnpm", "-F", "@coopenomics/orchestrator", "run", "start"]'
+          } > Dockerfile.orchestrator
+          docker build -t "dicoop/orchestrator:$TAG_NAME" -f Dockerfile.orchestrator .
+          dpush "dicoop/orchestrator:$TAG_NAME"
+          if [ "$IS_PROD" = "true" ]; then
+            docker tag "dicoop/orchestrator:$TAG_NAME" dicoop/orchestrator:latest
+            dpush dicoop/orchestrator:latest
+          fi
+
       # === Этап 3: webhook деплоя ===
 
       - name: Trigger deployment webhook
