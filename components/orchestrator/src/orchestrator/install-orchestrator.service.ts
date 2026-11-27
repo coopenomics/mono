@@ -24,6 +24,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
 import {
   APP_GRANTS,
+  AppConsentRequiredError,
   AppGrantsPort,
   DOCKER_RUNNER,
   DockerRunnerPort,
@@ -176,6 +177,8 @@ export type InstallFailureReason =
   | 'oci-token'
   | 'docker-pull'
   | 'compose-up'
+  /** Версия просит права ядра сверх согласия председателя: прежняя версия работает, установка повторится после согласия. */
+  | 'consent-required'
   | 'healthcheck'
   | 'registry-write';
 
@@ -254,6 +257,7 @@ export class InstallOrchestratorService {
             env.CORE_PORTS_URL = this.grants.coreUrl;
             env.CORE_PORTS_TOKEN = await this.grants.issue({
               packageId: input.packageId,
+              version: input.version,
               ports: input.corePorts?.ports ?? [],
               chainActions: input.corePorts?.chainActions ?? [],
             });
@@ -270,6 +274,8 @@ export class InstallOrchestratorService {
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
+        // Ядро отказывает в ключе до замены контейнера: прежняя версия работает с прежним ключом.
+        if (e instanceof AppConsentRequiredError) return this.failed(input.packageId, 'consent-required', msg);
         return this.failed(input.packageId, 'compose-up', msg);
       }
     }
@@ -351,7 +357,8 @@ export class InstallOrchestratorService {
     reason: InstallFailureReason,
     error: string,
   ): InstallOutcome {
-    this.logger.error(`install failed (${reason}) ${packageId}: ${error}`);
+    if (reason === 'consent-required') this.logger.warn(`install postponed (${reason}) ${packageId}: ${error}`);
+    else this.logger.error(`install failed (${reason}) ${packageId}: ${error}`);
     return { status: 'failed', packageId, reason, error };
   }
 }

@@ -16,6 +16,7 @@ import {
   AppPortsController,
 } from '~/extensions/apps-catalog-proxy/application/controllers/app-ports.controller';
 import { AppPortGrantRecord } from '~/extensions/apps-catalog-proxy/infrastructure/records/app-port-grant.record';
+import { AppRightsConsentService } from '~/extensions/apps-catalog-proxy/application/services/app-rights-consent.service';
 import { configurePlatformSettings } from '@coopenomics/extension-kit';
 
 configurePlatformSettings({ coopname: 'romashka', blockchain: {} } as any);
@@ -261,16 +262,20 @@ describe('маршруты входа портов', () => {
     const { grants } = grantsHarness();
     const h = portsHarness();
     const config = { get: (k: string) => (k === 'SERVER_SECRET' ? secret : undefined) };
+    // Согласия председателя — своё хранилище той же формы, что у заявок.
+    const consents = new AppRightsConsentService(memoryStore() as any);
     return {
       grants,
+      consents,
       h,
       ports: new AppPortsController(grants, h.ports),
-      admin: new AppPortGrantsController(grants, config as any),
+      admin: new AppPortGrantsController(grants, consents, config as any),
     };
   }
 
   it('happy: оркестратор заводит заявку секретом узла, приложение вызывает порт своим токеном', async () => {
     const c = controllers();
+    await c.consents.grant(PKG, { ports: ['cooperativeVars'], chainActions: [] }, 'ant');
     const issued = await c.admin.issue('node-secret', 'voskhod', 'exampleapp', { ports: ['cooperativeVars'], chain_actions: [] });
     expect(issued.ports).toEqual(['cooperativeVars']);
     const res = await c.ports.call(`Bearer ${issued.token}`, 'cooperativeVars', 'get', { args: [] });
@@ -293,6 +298,40 @@ describe('маршруты входа портов', () => {
     // Секрет узла не задан — пустая строка в заголовке входом не считается.
     const open = controllers(undefined);
     expect(await code(() => open.admin.issue('', 'voskhod', 'exampleapp', {}))).toBe('APPS_CATALOG_PROXY_APP_GRANT_SERVICE_ONLY');
+  });
+
+  // 487-37: ключ выдаётся только в пределах согласия председателя.
+  it('break: приложение просит права без согласия председателя — отказ APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED, ключ не выдан, запрос записан', async () => {
+    const c = controllers();
+    const body = { ports: ['document'], chain_actions: ['eosio::refund'], version: '0.2.0' };
+    expect(await code(() => c.admin.issue('node-secret', 'voskhod', 'exampleapp', body))).toBe('APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED');
+    expect(await c.grants.byPackage(PKG)).toBeNull();
+    expect(await c.consents.byPackage(PKG)).toEqual(
+      expect.objectContaining({ pendingVersion: '0.2.0', pendingPorts: ['document'], pendingChainActions: ['eosio::refund'], ports: [] }),
+    );
+  });
+
+  it('break: обновление просит новое право — отказ, прежний ключ продолжает действовать', async () => {
+    const c = controllers();
+    await c.consents.grant(PKG, { ports: ['cooperativeVars'], chainActions: [] }, 'ant');
+    const first = await c.admin.issue('node-secret', 'voskhod', 'exampleapp', { ports: ['cooperativeVars'], chain_actions: [], version: '0.1.0' });
+    const update = { ports: ['cooperativeVars', 'document'], chain_actions: [], version: '0.2.0' };
+    expect(await code(() => c.admin.issue('node-secret', 'voskhod', 'exampleapp', update))).toBe('APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED');
+    const res = await c.ports.call(`Bearer ${first.token}`, 'cooperativeVars', 'get', { args: [] });
+    expect(res).toEqual({ result: expect.objectContaining({ coopname: 'romashka' }) });
+    expect(await code(() => c.ports.call(`Bearer ${first.token}`, 'document', 'getByHash', { args: ['H'] }))).toBe(
+      'APPS_CATALOG_PROXY_APP_PORT_NOT_GRANTED',
+    );
+  });
+
+  it('happy: после согласия председателя то же обновление получает ключ с новым правом', async () => {
+    const c = controllers();
+    const update = { ports: ['cooperativeVars', 'document'], chain_actions: [], version: '0.2.0' };
+    expect(await code(() => c.admin.issue('node-secret', 'voskhod', 'exampleapp', update))).toBe('APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED');
+    await c.consents.grant(PKG, { ports: ['cooperativeVars', 'document'], chainActions: [] }, 'ant');
+    const issued = await c.admin.issue('node-secret', 'voskhod', 'exampleapp', update);
+    expect(issued.ports).toEqual(['cooperativeVars', 'document']);
+    expect(await c.consents.byPackage(PKG)).toEqual(expect.objectContaining({ pendingVersion: null, pendingPorts: [] }));
   });
 
   it('side: порт вернул undefined — клиент получает явный null', async () => {

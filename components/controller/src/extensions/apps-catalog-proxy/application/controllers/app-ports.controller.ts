@@ -3,6 +3,7 @@ import { Body, Controller, Delete, Headers, HttpCode, Param, Post, Put } from '@
 import { ConfigService } from '@nestjs/config';
 import { DomainError, platformSettings } from '@coopenomics/extension-kit';
 import { AppPortGrantsService } from '../services/app-port-grants.service';
+import { AppRightsConsentService } from '../services/app-rights-consent.service';
 import { RemotePortsService } from '../services/remote-ports.service';
 
 /** Сравнение секретов за постоянное время: длина ответа не выдаёт совпавшую часть. */
@@ -60,6 +61,7 @@ export class AppPortsController {
 export class AppPortGrantsController {
   constructor(
     private readonly grants: AppPortGrantsService,
+    private readonly consents: AppRightsConsentService,
     private readonly config: ConfigService,
   ) {}
 
@@ -72,20 +74,29 @@ export class AppPortGrantsController {
   /**
    * Завести или заменить заявку пакета. Ответ несёт токен приложения — его
    * оркестратор кладёт в окружение контейнера.
+   *
+   * Ключ выдаётся только в пределах согласия председателя. Версия, которая
+   * просит больше, получает отказ 409: оркестратор оставляет работать прежнюю
+   * версию с прежним ключом, запрос новых прав ждёт ответа председателя.
+   *
+   * @throws DomainError `APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED` — версия просит права сверх согласия.
    */
   @Put(':scope/:name')
   async issue(
     @Headers('server-secret') secret: string | undefined,
     @Param('scope') scope: string,
     @Param('name') name: string,
-    @Body() body: { ports?: unknown; chain_actions?: unknown } | undefined,
+    @Body() body: { ports?: unknown; chain_actions?: unknown; version?: unknown } | undefined,
   ): Promise<{ token: string; ports: string[]; chain_actions: string[] }> {
     this.assertService(secret);
     const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
-    const issued = await this.grants.issue(packageIdOf(scope, name), {
-      ports: strings(body?.ports),
-      chainActions: strings(body?.chain_actions),
-    });
+    const packageId = packageIdOf(scope, name);
+    const declared = { ports: strings(body?.ports), chainActions: strings(body?.chain_actions) };
+    const version = typeof body?.version === 'string' ? body.version : '';
+    if (!(await this.consents.admit(packageId, declared, version))) {
+      throw DomainError.conflict('APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED', { package_id: packageId });
+    }
+    const issued = await this.grants.issue(packageId, declared);
     return { token: issued.token, ports: issued.ports, chain_actions: issued.chainActions };
   }
 

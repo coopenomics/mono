@@ -9,6 +9,39 @@ export type CatalogApp = Queries.Extensions.AppsCatalogRemotePackages.IOutput[
 
 export type CatalogAppSubscription = NonNullable<CatalogApp['subscription']>;
 
+/** Права ядра приложения на узле: что просит версия, что разрешено, что ждёт согласия. */
+export type CatalogAppRights = Queries.Extensions.CatalogAppRights.IOutput[
+  typeof Queries.Extensions.CatalogAppRights.name
+];
+
+/** Набор прав ядра: порты и действия цепи. */
+export interface CatalogAppRightsSet {
+  ports: string[];
+  chainActions: string[];
+}
+
+const NO_RIGHTS: CatalogAppRightsSet = { ports: [], chainActions: [] };
+
+/**
+ * Права, на которые председатель ещё не ответил: то, что просит действующая
+ * версия, сверх согласованного. Перечень версии недоступен — берётся запрос,
+ * который записало ядро при отказе в ключе.
+ */
+export function neededRights(rights: CatalogAppRights | undefined): CatalogAppRightsSet {
+  if (!rights) return NO_RIGHTS;
+  const want = rights.requested ?? rights.pending ?? NO_RIGHTS;
+  return {
+    ports: want.ports.filter((port) => !rights.granted.ports.includes(port)),
+    chainActions: want.chainActions.filter((action) => !rights.granted.chainActions.includes(action)),
+  };
+}
+
+/** Приложение ждёт согласия председателя на права ядра. */
+export const awaitsConsent = (rights: CatalogAppRights | undefined): boolean => {
+  const needed = neededRights(rights);
+  return needed.ports.length + needed.chainActions.length > 0;
+};
+
 /** Имя приложения каталога в маршруте: пакет `@scope/name` приходит как есть. */
 export const isCatalogAppName = (name: unknown): boolean => typeof name === 'string' && name.startsWith('@');
 
@@ -64,5 +97,43 @@ export const useCatalogAppStore = defineStore('catalogAppStore', () => {
     await load();
   }
 
-  return { apps, loading, loaded, error, load, find, subscribe, unsubscribe, setEnabled };
+  /** Права ядра приложений по пакету: страница приложения и ход установки читают одно состояние. */
+  const rights = ref<Record<string, CatalogAppRights>>({});
+
+  function rightsOf(packageId: string): CatalogAppRights | undefined {
+    return rights.value[packageId];
+  }
+
+  async function loadRights(packageId: string): Promise<void> {
+    rights.value = { ...rights.value, [packageId]: await api.loadCatalogAppRights(packageId) };
+  }
+
+  /** Председатель согласился с правами: ядро выдаёт ключ, узел ставит версию ближайшим опросом. */
+  async function grantRights(packageId: string, set: CatalogAppRightsSet): Promise<void> {
+    const fresh = await api.grantCatalogAppRights({ packageId, ports: set.ports, chainActions: set.chainActions });
+    rights.value = { ...rights.value, [packageId]: fresh };
+    await load();
+  }
+
+  async function setRightsAutoAccept(packageId: string, enabled: boolean): Promise<void> {
+    const fresh = await api.setCatalogAppRightsAutoAccept({ packageId, enabled });
+    rights.value = { ...rights.value, [packageId]: fresh };
+    await load();
+  }
+
+  return {
+    apps,
+    loading,
+    loaded,
+    error,
+    load,
+    find,
+    subscribe,
+    unsubscribe,
+    setEnabled,
+    rightsOf,
+    loadRights,
+    grantRights,
+    setRightsAutoAccept,
+  };
 });

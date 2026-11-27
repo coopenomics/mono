@@ -69,8 +69,12 @@ export const DOCKER_RUNNER = Symbol('DockerRunnerPort');
  * и ядро перестаёт принимать токен.
  */
 export interface AppGrantsPort {
-  /** Завести или заменить заявку пакета. Возвращает токен приложения. */
-  issue(opts: { packageId: string; ports: string[]; chainActions: string[] }): Promise<string>;
+  /**
+   * Завести или заменить заявку пакета. Возвращает токен приложения.
+   *
+   * @throws AppConsentRequiredError — версия просит права сверх согласия председателя.
+   */
+  issue(opts: { packageId: string; version: string; ports: string[]; chainActions: string[] }): Promise<string>;
   /** Стереть заявку пакета. Idempotent. */
   revoke(packageId: string): Promise<void>;
   /** Адрес ядра для вызова портов из контейнера приложения. */
@@ -78,6 +82,18 @@ export interface AppGrantsPort {
 }
 
 export const APP_GRANTS = Symbol('AppGrantsPort');
+
+/**
+ * Ядро отказало в ключе: версия просит права сверх согласия председателя
+ * (487-37). Это не сбой установки: работающая версия остаётся работать, а
+ * установка повторится после согласия.
+ */
+export class AppConsentRequiredError extends Error {
+  constructor(readonly packageId: string) {
+    super(`приложение ${packageId} ждёт согласия председателя на права ядра`);
+    this.name = 'AppConsentRequiredError';
+  }
+}
 
 /**
  * Порт healthcheck'а subgraph'а. Делает GET к указанному URL и считает

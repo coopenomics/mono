@@ -14,6 +14,18 @@ export interface AppPortDeclaration {
   chainActions: string[];
 }
 
+/**
+ * Права из манифеста без лишнего: неизвестные порты и действия в неверной
+ * записи отбрасываются — опечатка в манифесте не должна стать доступом,
+ * который никто не проверял. Один разбор для заявки и для согласия.
+ */
+export function normalizeDeclaration(declared: AppPortDeclaration): AppPortDeclaration {
+  return {
+    ports: [...new Set(declared.ports)].filter((p) => REMOTE_PORT_NAMES.has(p)).sort(),
+    chainActions: [...new Set(declared.chainActions)].filter((a) => CHAIN_ACTION.test(a)).sort(),
+  };
+}
+
 /** sha256 токена приложения: в базе лежит только он. */
 export function hashAppToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -42,8 +54,7 @@ export class AppPortGrantsService {
    * @returns Токен приложения. Отдаётся один раз — в базе остаётся его хэш.
    */
   async issue(packageId: string, declared: AppPortDeclaration): Promise<{ token: string; ports: string[]; chainActions: string[] }> {
-    const ports = [...new Set(declared.ports)].filter((p) => REMOTE_PORT_NAMES.has(p)).sort();
-    const chainActions = [...new Set(declared.chainActions)].filter((a) => CHAIN_ACTION.test(a)).sort();
+    const { ports, chainActions } = normalizeDeclaration(declared);
     const token = `apt_${randomBytes(32).toString('hex')}`;
     const now = new Date();
     const fields = { tokenHash: hashAppToken(token), ports, chainActions, updatedAt: now };

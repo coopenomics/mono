@@ -119,6 +119,39 @@ async function setCatalogAppEnabled(
   return output;
 }
 
+/** Права ядра приложения каталога на узле: что просит версия, что разрешено, что ждёт согласия. */
+async function loadCatalogAppRights(
+  packageId: string,
+): Promise<Queries.Extensions.CatalogAppRights.IOutput[typeof Queries.Extensions.CatalogAppRights.name]> {
+  const { [Queries.Extensions.CatalogAppRights.name]: output } = await client.Query(
+    Queries.Extensions.CatalogAppRights.query,
+    { variables: { packageId } },
+  );
+  return output;
+}
+
+/** Согласие председателя на права ядра приложения. */
+async function grantCatalogAppRights(
+  data: Mutations.Extensions.GrantCatalogAppRights.IInput['data'],
+): Promise<Mutations.Extensions.GrantCatalogAppRights.IOutput[typeof Mutations.Extensions.GrantCatalogAppRights.name]> {
+  const { [Mutations.Extensions.GrantCatalogAppRights.name]: output } = await client.Mutation(
+    Mutations.Extensions.GrantCatalogAppRights.mutation,
+    { variables: { data } },
+  );
+  return output;
+}
+
+/** Переключатель «Принимать новые права после одобрения модератора каталога». */
+async function setCatalogAppRightsAutoAccept(
+  data: Mutations.Extensions.SetCatalogAppRightsAutoAccept.IInput['data'],
+): Promise<Mutations.Extensions.SetCatalogAppRightsAutoAccept.IOutput[typeof Mutations.Extensions.SetCatalogAppRightsAutoAccept.name]> {
+  const { [Mutations.Extensions.SetCatalogAppRightsAutoAccept.name]: output } = await client.Mutation(
+    Mutations.Extensions.SetCatalogAppRightsAutoAccept.mutation,
+    { variables: { data } },
+  );
+  return output;
+}
+
 async function loadAppsNodeBilling(): Promise<Queries.Extensions.AppsNodeBilling.IOutput[typeof Queries.Extensions.AppsNodeBilling.name]> {
   const { [Queries.Extensions.AppsNodeBilling.name]: output } = await client.Query(
     Queries.Extensions.AppsNodeBilling.query,
@@ -134,6 +167,9 @@ export const api ={
   subscribePackage,
   unsubscribePackage,
   setCatalogAppEnabled,
+  loadCatalogAppRights,
+  grantCatalogAppRights,
+  setCatalogAppRightsAutoAccept,
   loadAppsNodeBilling,
   loadPendingModerations,
   approveModeration,

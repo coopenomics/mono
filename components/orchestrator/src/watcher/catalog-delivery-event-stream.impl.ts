@@ -74,6 +74,11 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
    * до RETRY_MAX_MS: сломанный образ не должен дёргать реестр каждый опрос.
    */
   private failedInstalls = new Map<string, { count: number; retryAt: number }>();
+  /**
+   * Пакеты, по которым ядро просит повторить установку ближайшим опросом:
+   * председатель дал согласие на права, ждать планового опроса выпусков незачем.
+   */
+  private readonly recheckQueue = new Set<string>();
   private initialised = false;
   private polls = 0;
 
@@ -108,6 +113,15 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
         clearInterval(timer);
       },
     };
+  }
+
+  /**
+   * Повторить установку пакета ближайшим опросом: пауза после неудачи
+   * снимается, версии сверяются без ожидания планового опроса выпусков.
+   */
+  recheck(packageId: string): void {
+    this.failedInstalls.delete(packageId);
+    this.recheckQueue.add(packageId);
   }
 
   /** @internal exposed для юнит-тестов. */
@@ -155,8 +169,12 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
       if (!live.has(packageId)) this.failedInstalls.delete(packageId);
     }
 
-    if (this.initialised && this.polls % this.cfg.releasePollEvery === 0) {
-      events.push(...(await this.releaseEvents(live)));
+    // Версия до события: неудачное обновление возвращает её, и следующий опрос
+    // выпусков повторяет обновление. Без этого сбой обновления ждал перезапуска оркестратора.
+    const previousVersion = new Map<AppsContractEvent, { packageId: string; version: string | undefined }>();
+    if (this.initialised && (this.polls % this.cfg.releasePollEvery === 0 || this.recheckQueue.size > 0)) {
+      events.push(...(await this.releaseEvents(live, previousVersion)));
+      this.recheckQueue.clear();
     }
     this.polls += 1;
     this.initialised = true;
@@ -175,6 +193,11 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
           const count = (this.failedInstalls.get(packageId)?.count ?? 0) + 1;
           const delay = count <= 1 ? 0 : Math.min(this.cfg.pollIntervalMs * 2 ** (count - 1), RETRY_MAX_MS);
           this.failedInstalls.set(packageId, { count, retryAt: Date.now() + delay });
+        }
+        const update = previousVersion.get(e);
+        if (update !== undefined) {
+          if (update.version === undefined) this.knownVersions.delete(update.packageId);
+          else this.knownVersions.set(update.packageId, update.version);
         }
       }
     }
@@ -209,7 +232,10 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
    * Смена версии у действующих подписок. Первое наблюдение версии события не
    * даёт: установку при активации ведёт `subscription-activated`.
    */
-  private async releaseEvents(live: Map<string, number>): Promise<AppsContractEvent[]> {
+  private async releaseEvents(
+    live: Map<string, number>,
+    previousVersion: Map<AppsContractEvent, { packageId: string; version: string | undefined }>,
+  ): Promise<AppsContractEvent[]> {
     const events: AppsContractEvent[] = [];
     for (const packageId of live.keys()) {
       let version: string | null;
@@ -228,7 +254,9 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
         continue;
       }
       if (prev !== undefined && prev !== version) {
-        events.push({ kind: 'release-published', packageId, version, scopeType: 'all', blockNum: 0 });
+        const e: AppsContractEvent = { kind: 'release-published', packageId, version, scopeType: 'all', blockNum: 0 };
+        events.push(e);
+        previousVersion.set(e, { packageId, version: prev });
       }
       this.knownVersions.set(packageId, version);
     }

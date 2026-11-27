@@ -27,6 +27,7 @@ const rawAppsCatalogRemotePackageSelector = {
   subscription: rawAppsCatalogSubscriptionSelector,
   installed: true,
   enabled: true,
+  rightsPending: true,
 }
 
 const _validate: MakeAllFieldsRequired<ValueTypes['AppsCatalogRemotePackageDTO']> = rawAppsCatalogRemotePackageSelector

@@ -11,6 +11,7 @@ import { AppsCatalogHttpService } from './infrastructure/apps-catalog-http.servi
 import { AppsCatalogInstallScriptController } from './application/controllers/install-script.controller';
 import { AppPortGrantsController, AppPortsController } from './application/controllers/app-ports.controller';
 import { AppPortGrantsService } from './application/services/app-port-grants.service';
+import { AppRightsConsentService } from './application/services/app-rights-consent.service';
 import { AppSessionService } from './application/services/app-session.service';
 import { RemotePortsService } from './application/services/remote-ports.service';
 import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-proxy.resolver';
@@ -32,6 +33,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
     AppsPublishersService,
     CatalogAppsStateService,
     AppPortGrantsService,
+    AppRightsConsentService,
     AppSessionService,
     RemotePortsService,
     DeveloperExtension,
@@ -40,7 +42,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
     { provide: APP_RIGHTS, useExisting: DeveloperRights },
     RightsGuard,
   ],
-  exports: [AppsCatalogHttpService, CatalogAppsStateService, DeveloperExtension],
+  exports: [AppsCatalogHttpService, CatalogAppsStateService, AppRightsConsentService, DeveloperExtension],
 })
 export class AppsCatalogProxyModule {
   constructor(private readonly developerExtension: DeveloperExtension) {}

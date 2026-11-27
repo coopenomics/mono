@@ -25,8 +25,12 @@ import {
 import { Name, UInt128 } from '@wharfkit/session';
 import { Ledger2, Ledger2Contract, RegistratorContract, TokenContract } from 'cooptypes';
 import { t } from '../../i18n';
-import { AppsCatalogHttpService } from '../../infrastructure/apps-catalog-http.service';
+import { AppsCatalogHttpService, type AppRequestedRights } from '../../infrastructure/apps-catalog-http.service';
+import type { AppRightsConsentRecord } from '../../infrastructure/records/app-rights-consent.record';
 import { CatalogAppsStateService } from './catalog-apps-state.service';
+import { AppRightsConsentService } from './app-rights-consent.service';
+import type { AppPortDeclaration } from './app-port-grants.service';
+import type { CatalogAppRightsDTO } from '../dto/catalog-app-rights.dto';
 import { AppsCatalogRemotePackageDTO, AppsCatalogSubscriptionDTO } from '../dto/apps-catalog-remote-package.dto';
 import { AppsNodeBillingDTO, AppsNodeSubscriptionDTO } from '../dto/apps-node-billing.dto';
 import { SubscribePackageResultDTO, SubscribePackageStatus, SubscriptionStateEnum } from '../dto/subscribe-package-result.dto';
@@ -49,6 +53,26 @@ function toSubscriptionDTO(s: InnerAppSubscription): AppsCatalogSubscriptionDTO 
   };
 }
 
+/** Согласие и запрос новых прав → GraphQL. */
+function toRightsDTO(
+  packageId: string,
+  requested: AppRequestedRights | null,
+  consent: AppRightsConsentRecord | null,
+): CatalogAppRightsDTO {
+  const pending = consent?.pendingVersion != null;
+  return {
+    packageId,
+    version: requested?.version ?? null,
+    requested: requested ? { ports: requested.ports, chainActions: requested.chainActions } : null,
+    granted: { ports: consent?.ports ?? [], chainActions: consent?.chainActions ?? [] },
+    pending: pending ? { ports: consent?.pendingPorts ?? [], chainActions: consent?.pendingChainActions ?? [] } : null,
+    pendingVersion: consent?.pendingVersion ?? null,
+    autoAccept: consent?.autoAccept ?? false,
+    consentedBy: consent?.consentedBy ?? null,
+    consentedAt: consent?.consentedAt ? new Date(consent.consentedAt).toISOString() : null,
+  };
+}
+
 @Injectable()
 export class NodeAppsService {
   private readonly logger = new Logger(NodeAppsService.name);
@@ -56,6 +80,7 @@ export class NodeAppsService {
   constructor(
     private readonly catalog: AppsCatalogHttpService,
     private readonly state: CatalogAppsStateService,
+    private readonly consents: AppRightsConsentService,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
     @Optional() @Inject(PROVIDER_APPS_PORT) private readonly providerApps?: IProviderAppsPort,
   ) {}
@@ -66,12 +91,13 @@ export class NodeAppsService {
 
   /** Витрина: пакеты каталога с ценой, подпиской и состоянием на узле. */
   async listCatalogApps(page = 1, pageSize = 50): Promise<AppsCatalogRemotePackageDTO[]> {
-    const [packages, offers, subscriptions, installed, disabled] = await Promise.all([
+    const [packages, offers, subscriptions, installed, disabled, rightsPending] = await Promise.all([
       this.catalog.listPublicPackages(page, pageSize),
       this.providerApps?.listOffers(this.coopname) ?? Promise.resolve(null),
       this.providerApps?.listAppSubscriptions(this.coopname) ?? Promise.resolve(null),
       this.catalog.listInstalledFrontends(),
       this.state.disabledPackageIds(),
+      this.consents.pendingPackageIds(),
     ]);
     // Без цены витрина не показывается вовсе — председатель подписывается, видя сумму.
     if (offers === null) {
@@ -96,6 +122,7 @@ export class NodeAppsService {
         subscription: subscription ? toSubscriptionDTO(subscription) : null,
         installed: installedIds.has(p.packageId),
         enabled: !disabled.has(p.packageId),
+        rightsPending: rightsPending.has(p.packageId),
       }];
     });
   }
@@ -142,16 +169,49 @@ export class NodeAppsService {
         // Стол пакета снимается сразу: приложение выключается на узле до того,
         // как оркестратор уберёт фронт.
         await this.state.markUnsubscribed(packageId);
+        // Согласие на права действует, пока действует подписка: при новой подписке председатель отвечает заново.
+        await this.consents.forget(packageId);
         this.logger.log(`unsubscribePackage: ${packageId} отменена у провайдера`);
         return { status: UnsubscribePackageStatus.CANCELLED, packageId };
       case 'notSubscribed':
         await this.state.markUnsubscribed(packageId);
+        await this.consents.forget(packageId);
         return { status: UnsubscribePackageStatus.NOT_SUBSCRIBED, packageId };
       case 'unavailable':
         return { status: UnsubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
       default:
         return { status: UnsubscribePackageStatus.FAILED, error: outcome.error };
     }
+  }
+
+  /**
+   * Права ядра приложения на узле: что просит действующая версия, с чем
+   * председатель согласился и какой запрос новых прав ждёт ответа.
+   */
+  async rights(packageId: string): Promise<CatalogAppRightsDTO> {
+    const [requested, consent] = await Promise.all([this.catalog.fetchAppRights(packageId), this.consents.byPackage(packageId)]);
+    return toRightsDTO(packageId, requested, consent);
+  }
+
+  /**
+   * Председатель согласился с правами приложения. Оркестратор получает сигнал
+   * повторить установку: версия, которая ждала согласия, ставится ближайшим опросом.
+   */
+  async grantRights(packageId: string, rights: AppPortDeclaration, username: string): Promise<CatalogAppRightsDTO> {
+    const consent = await this.consents.grant(packageId, rights, username);
+    this.logger.log(`grantCatalogAppRights: ${username} → ${packageId} [${[...consent.ports, ...consent.chainActions].join(', ')}]`);
+    const requested = await this.catalog.fetchAppRights(packageId);
+    await this.catalog.recheckApp(packageId);
+    return toRightsDTO(packageId, requested, consent);
+  }
+
+  /** Переключатель «Принимать новые права после одобрения модератора каталога». */
+  async setRightsAutoAccept(packageId: string, enabled: boolean, username: string): Promise<CatalogAppRightsDTO> {
+    const consent = await this.consents.setAutoAccept(packageId, enabled, username);
+    this.logger.log(`setCatalogAppRightsAutoAccept: ${username} → ${packageId} ${enabled ? 'включён' : 'выключен'}`);
+    const requested = await this.catalog.fetchAppRights(packageId);
+    if (enabled) await this.catalog.recheckApp(packageId);
+    return toRightsDTO(packageId, requested, consent);
   }
 
   async setEnabled(packageId: string, enabled: boolean): Promise<boolean> {

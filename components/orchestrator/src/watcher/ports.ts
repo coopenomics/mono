@@ -72,6 +72,8 @@ export type AppsContractEvent =
  */
 export interface AppsContractEventStreamPort {
   subscribe(handler: (e: AppsContractEvent) => Promise<void>): Promise<{ unsubscribe(): void }>;
+  /** Повторить установку пакета ближайшим опросом; поток без опроса сигнал пропускает. */
+  recheck?(packageId: string): void;
 }
 
 export const APPS_CONTRACT_EVENT_STREAM = Symbol('AppsContractEventStreamPort');
@@ -92,6 +94,8 @@ export interface ReleaseMetadataPort {
     packageId: string;
     version: string;
   }): Promise<ReleaseInstallSpec | null>;
+  /** Действующая версия пакета для этого кооператива; `null` — выпуска нет. */
+  latestVersion?(packageId: string): Promise<string | null>;
 }
 
 export interface ReleaseInstallSpec {

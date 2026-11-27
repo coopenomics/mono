@@ -1,7 +1,9 @@
 import { Logger } from '@nestjs/common';
-import type { AppGrantsPort } from './ports';
+import { AppConsentRequiredError, type AppGrantsPort } from './ports';
 
 const REQUEST_TIMEOUT_MS = 10_000;
+/** Ответ ядра «права сверх согласия председателя». */
+const CONSENT_REQUIRED_STATUS = 409;
 
 /** `@voskhod/exampleapp` → `voskhod/exampleapp` для адреса маршрута ядра. */
 function grantPath(packageId: string): string {
@@ -23,13 +25,15 @@ export class HttpAppGrants implements AppGrantsPort {
     private readonly fetchFn: typeof fetch = fetch,
   ) {}
 
-  async issue(opts: { packageId: string; ports: string[]; chainActions: string[] }): Promise<string> {
+  async issue(opts: { packageId: string; version: string; ports: string[]; chainActions: string[] }): Promise<string> {
     const res = await this.fetchFn(`${this.coreUrl}/v1/internal/app-grants/${grantPath(opts.packageId)}`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json', 'server-secret': this.serverSecret },
-      body: JSON.stringify({ ports: opts.ports, chain_actions: opts.chainActions }),
+      body: JSON.stringify({ ports: opts.ports, chain_actions: opts.chainActions, version: opts.version }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+    // 409 — версия просит права сверх согласия председателя: ядро записало запрос и ждёт ответа.
+    if (res.status === CONSENT_REQUIRED_STATUS) throw new AppConsentRequiredError(opts.packageId);
     if (!res.ok) throw new Error(`ядро не завело заявку ${opts.packageId}: HTTP ${res.status}`);
     const body = (await res.json()) as { token?: string };
     if (typeof body.token !== 'string' || body.token.length === 0) {

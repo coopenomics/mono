@@ -1,0 +1,208 @@
+feature: apps.rights-consent
+title: Согласие председателя на права ядра приложения каталога — при установке и при обновлении
+
+# 27.11.2026 (487-37, решение владельца: «делай задачу 487-37 … установка
+# приложений вот эти вот все разрешения — часть процесса установки»).
+#
+# Приложение каталога просит у ядра права: порты ядра и действия цепи из
+# манифеста версии. Прежде ключ приложению ядро выдавало по манифесту само:
+# права одобрял только модератор каталога, председатель кооператива-установщика
+# перечня не видел, обновление с новыми правами расширяло ключ без вопроса.
+#
+# Правило: ключ выдаётся только в пределах согласия председателя.
+#   - установка: без согласия ядро отказывает в ключе, узел приложение не ставит;
+#   - обновление с новым правом: узел прежнюю версию не трогает, запрос новых
+#     прав ждёт ответа председателя на странице приложения;
+#   - отказ и отложенное решение ничего не ломают: работает прежняя версия;
+#   - новое право — только новый порт ядра или новое действие цепи;
+#   - переключатель «Принимать новые права» снимает вопрос для доверенного издателя.
+#
+# Приложения, установленные до правила, перенесены как согласованные.
+
+sources:
+  backend:
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/app-rights-consent.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/dto/catalog-app-rights.dto.ts
+    - components/controller/src/extensions/apps-catalog-proxy/infrastructure/records/app-rights-consent.record.ts
+    - components/controller/src/extensions/apps-catalog-proxy/migrations/database/1795780000000-create-apps-rights-consents.ts
+    - components/orchestrator/src/orchestrator/app-grants.impl.ts
+    - components/orchestrator/src/orchestrator/ports.ts
+    - components/orchestrator/src/watcher/app-rights.controller.ts
+    - components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.ts
+    - components/orchestrator/src/watcher/on-chain-watcher.service.ts
+  ui:
+    - components/desktop/src/widgets/CatalogApp/**
+    - components/desktop/src/entities/CatalogApp/**
+
+cases:
+  # ── Согласие и допуск версии ─────────────────────────────────────────────
+  - id: apps.consent.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель согласился с правами приложения; узел просит у ядра ключ для версии с этими правами.
+    expect: >
+      версия допущена, запроса новых прав нет; приложение без прав допущено без согласия;
+      версия, которая просит меньше согласованного, допущена
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора: установить приложение каталога через API стенда нельзя"
+
+  - id: apps.consent.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Узел просит ключ для приложения без согласия председателя либо для обновления с новым портом и новым действием цепи.
+    expect: >
+      версия не допущена; запрос записан: при первой установке — права целиком, при обновлении — только новое;
+      согласованное не меняется; приложение числится среди тех, что ждут согласия
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  - id: apps.consent.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель отвечает на запрос новых прав: соглашается со всем запросом либо с частью.
+    expect: >
+      согласие на весь запрос закрывает его, та же версия допущена; согласие на часть оставляет остаток запроса,
+      версия не допущена
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  - id: apps.consent.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Пока запрос ждал, издатель выпустил версию без новых прав; узел повторил запрос той же версии;
+      в согласие передан неизвестный порт и действие в неверной записи; подписка отменена.
+    expect: >
+      устаревший запрос снят; повтор время запроса не сдвигает; неизвестное в согласие не попадает;
+      отмена подписки стирает согласие, и прежние права по новой подписке не действуют
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  - id: apps.consent.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель включил переключатель «Принимать новые права»; издатель выпустил обновление с новым правом.
+    expect: >
+      обновление допущено, согласие отмечено переключателем; включение при запросе, который ждёт, принимает его сразу;
+      после выключения следующее новое право снова ждёт согласия
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  - id: apps.consent.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Стол запрашивает права приложения; председатель даёт согласие и переключает автоприём.
+    expect: >
+      стол получает, что просит версия, что разрешено и что ждёт согласия; без оркестратора перечень версии пуст,
+      согласие отдаётся; согласие и включение переключателя просят оркестратор повторить установку
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
+  # ── Вход выдачи ключа ────────────────────────────────────────────────────
+  - id: apps.consent.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Оркестратор просит ключ для приложения без согласия председателя и для обновления с новым правом.
+    expect: >
+      отказ APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED; ключ не выдан и не заменён: прежний ключ действует
+      в прежних пределах, новый порт для него закрыт
+    test: components/controller/tests/unit/apps-catalog-proxy/app-ports.test.ts
+    status: written
+    external: unreachable
+    external_reason: "вход выдачи ключа принимает только межсервисный секрет узла из docker-сети, внешний слой работает через публичный API"
+
+  - id: apps.consent.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      После согласия председателя оркестратор повторяет запрос ключа для того же обновления.
+    expect: >
+      ключ выдан с новым правом, запрос новых прав закрыт
+    test: components/controller/tests/unit/apps-catalog-proxy/app-ports.test.ts
+    status: written
+    external: unreachable
+    external_reason: "вход выдачи ключа принимает только межсервисный секрет узла из docker-сети"
+
+  - id: apps.consent.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Витрина узла собирает список приложений; у одного запрос новых прав ждёт ответа. Председатель отменяет подписку.
+    expect: >
+      приложение помечено как ждущее согласия; отмена подписки стирает согласие
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и провайдера подписок на приложения"
+
+  # ── Оркестратор ──────────────────────────────────────────────────────────
+  - id: apps.consent.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Ядро отказало оркестратору в ключе: согласия нет. Первый случай — новая установка, второй — обновление работающего приложения.
+    expect: >
+      исход установки consent-required; контейнер не запускается; при обновлении прежний контейнер не снят и не заменён,
+      заявка не стёрта
+    test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "оркестратор управляет контейнерами узла через docker, внешний слой работает только через API"
+
+  - id: apps.consent.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Установка и обновление ждут согласия председателя.
+    expect: >
+      обработчик сообщает ожидание согласия отдельным исключением; фронт приложения не кэшируется:
+      фронт новой версии к прежнему бэкенду не подключается; после установки фронт обновляется вслед за бэкендом
+    test: components/orchestrator/src/watcher/on-chain-watcher.service.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "оркестратор управляет контейнерами узла через docker, внешний слой работает только через API"
+
+  - id: apps.consent.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Обновление не установилось; ядро после согласия председателя шлёт оркестратору сигнал повторной установки.
+    expect: >
+      версия возвращается к прежней, следующий опрос выпусков повторяет обновление; сигнал сверяет версии
+      ближайшим опросом и снимает паузу после неудачной установки; сигнал разовый
+    test: components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "оркестратор опрашивает каталог приложений, которого у стенда внешнего слоя нет"
+
+  # ── Не решено ────────────────────────────────────────────────────────────
+  - id: apps.consent.side.04
+    level: ui
+    kind: side
+    scenario: >
+      Председатель подписывается на приложение, отвечает на шаг «Согласие на права ядра» в ходе установки,
+      видит блок «Права ядра» на странице приложения и отвечает на запрос новых прав при обновлении.
+    expect: >
+      Не решено: сценарий через интерфейс требует стенда с каталогом приложений и оркестратором, которых
+      у набора UI нет — вносить ли каталог в стенд набора UI
+    test: ~
+    status: missing
+    decision_needed: true

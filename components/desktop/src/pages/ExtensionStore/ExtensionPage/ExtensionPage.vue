@@ -52,6 +52,8 @@
           )
         template(v-else-if='catalogApp')
           CatalogAppInfo(v-if='isMain', :app='catalogApp')
+          //- Права ядра подключённого приложения: что разрешено и запрос новых прав.
+          CatalogAppRights.q-mt-lg(v-if='isMain', :app='catalogApp')
           //- Настроек у пакетов каталога пока нет: страница есть, чтобы путь
           //- был тем же, что у встроенных; схема появится вместе с манифестом.
           template(v-if='isSettings || isInstall')
@@ -73,7 +75,7 @@ import { ExtensionActions } from 'src/widgets/ExtensionActions';
 import { ExtensionInfo } from 'src/widgets/ExtensionInfo';
 import { ExtensionSettings } from 'src/widgets/ExtensionSettings';
 import { ExtensionInstall } from 'src/widgets/ExtensionInstall';
-import { CatalogAppActions, CatalogAppInfo } from 'src/widgets/CatalogApp';
+import { CatalogAppActions, CatalogAppInfo, CatalogAppRights } from 'src/widgets/CatalogApp';
 
 const route = useRoute();
 const router = useRouter();

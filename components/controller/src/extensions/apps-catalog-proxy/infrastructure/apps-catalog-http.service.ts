@@ -255,6 +255,19 @@ export type RejectModerationOutcome =
  * только пакеты, реально установленные у кооператива, sha256 проверен
  * orchestrator'ом перед записью в кэш.
  */
+/** Права ядра, которые просит версия пакета, и сама версия. */
+export interface AppRequestedRights {
+  version: string | null;
+  ports: string[];
+  chainActions: string[];
+}
+
+/** `@voskhod/exampleapp` → `voskhod/exampleapp` для адреса маршрута оркестратора. */
+function orchestratorPackagePath(packageId: string): string {
+  const [scope, name] = packageId.replace(/^@/, '').split('/');
+  return `${encodeURIComponent(scope ?? '')}/${encodeURIComponent(name ?? '')}`;
+}
+
 export interface InstalledFrontendMeta {
   packageId: string;
   scope: string;
@@ -479,6 +492,44 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`listInstalledFrontends failed: ${msg}`);
       return [];
+    }
+  }
+
+  /**
+   * Права ядра, которые просит действующая версия пакета: оркестратор читает
+   * их из манифеста версии — тем же путём, каким возьмёт их при установке.
+   * `null` — оркестратор недоступен либо версии с бэкендом у пакета нет.
+   */
+  async fetchAppRights(packageId: string): Promise<AppRequestedRights | null> {
+    if (!this.orchestratorClient) return null;
+    try {
+      const res = await this.orchestratorClient.get<{ version?: string | null; ports?: string[]; chain_actions?: string[] }>(
+        `/v1/internal/extensions/rights/${orchestratorPackagePath(packageId)}`,
+      );
+      return {
+        version: res.data.version ?? null,
+        ports: res.data.ports ?? [],
+        chainActions: res.data.chain_actions ?? [],
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`fetchAppRights ${packageId} failed: ${msg}`);
+      return null;
+    }
+  }
+
+  /**
+   * Попросить оркестратор повторить установку пакета ближайшим опросом:
+   * председатель дал согласие, ждать планового опроса выпусков незачем.
+   * Отказ не роняет согласие — оркестратор дойдёт до пакета плановым опросом.
+   */
+  async recheckApp(packageId: string): Promise<void> {
+    if (!this.orchestratorClient) return;
+    try {
+      await this.orchestratorClient.post(`/v1/internal/extensions/recheck/${orchestratorPackagePath(packageId)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`recheckApp ${packageId} failed: ${msg}`);
     }
   }
 

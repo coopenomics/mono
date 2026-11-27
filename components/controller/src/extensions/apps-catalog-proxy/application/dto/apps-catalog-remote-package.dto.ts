@@ -78,4 +78,7 @@ export class AppsCatalogRemotePackageDTO {
 
   @Field(() => Boolean, { description: 'Приложение включено на рабочем столе узла' })
   enabled!: boolean;
+
+  @Field(() => Boolean, { description: 'Новая версия просит права ядра сверх согласия и ждёт ответа председателя' })
+  rightsPending!: boolean;
 }

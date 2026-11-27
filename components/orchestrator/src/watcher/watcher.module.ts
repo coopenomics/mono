@@ -30,6 +30,7 @@ import { loadAppConfig } from '../config/app-config';
 import { CatalogDeliveryEventStream } from './catalog-delivery-event-stream.impl';
 import { CatalogDeliveryReleaseMetadata } from './catalog-delivery-release-metadata.impl';
 import { CatalogTenantToken } from './catalog-tenant-token';
+import { AppRightsController } from './app-rights.controller';
 
 class NoopEventStream implements AppsContractEventStreamPort {
   async subscribe(_handler: (e: AppsContractEvent) => Promise<void>): Promise<{ unsubscribe(): void }> {
@@ -45,6 +46,7 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
 
 @Module({
   imports: [GatewayModule, OrchestratorModule, FrontendCacheModule],
+  controllers: [AppRightsController],
   providers: [
     OnChainWatcherService,
     {

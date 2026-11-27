@@ -23,12 +23,16 @@ export function catalogAppPrice(app: Pick<CatalogApp, 'rubPerMonth'>): string {
 }
 
 /**
- * Одна пометка состояния: пробный период до даты, подключено, выключено,
- * не оплачено. Без подписки пометки нет — витрина говорит ценой.
+ * Одна пометка состояния: ждёт согласия на права, пробный период до даты,
+ * подключено, выключено, не оплачено. Без подписки пометки нет — витрина говорит ценой.
  */
 export function catalogAppState(app: CatalogApp): { label: string; variant: BaseBadgeVariant } | null {
   const s = app.subscription;
   if (!s) return null;
+  // Запрос новых прав ядра ждёт ответа председателя: это важнее срока подписки.
+  if (app.rightsPending && s.status !== Zeus.ProviderAppSubscriptionStatus.EXPIRED) {
+    return { label: t('catalogApp.state.awaitsConsent'), variant: 'warn' };
+  }
   switch (s.status) {
     case Zeus.ProviderAppSubscriptionStatus.TRIAL:
       return app.enabled

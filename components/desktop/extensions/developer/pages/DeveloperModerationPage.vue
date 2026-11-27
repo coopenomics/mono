@@ -57,14 +57,11 @@
 
       .moderation__section
         .t-eyebrow.q-mb-sm {{ rightsTitle(current) }}
-        q-list(v-if='rightsOf(current).length', separator)
-          q-item.moderation__right(v-for='right in rightsOf(current)', :key='right.key')
-            q-item-section
-              .text-weight-medium {{ right.title }}
-              .t-meta.t-muted {{ right.text }}
-            q-item-section(side)
-              BaseBadge(v-if='right.unknown', variant='warn') {{ $t('developer.rights.unknown') }}
-              span.t-mono-sm.t-muted(v-else) {{ right.code }}
+        CoreRightsList(
+          v-if='rightsOf(current).length',
+          :ports='portsOf(current)',
+          :chain-actions='actionsOf(current)'
+        )
         .t-sm.t-muted(v-else) {{ $t('developer.rights.none') }}
         BaseBanner.q-mt-sm(v-for='note in notesOf(current)', :key='note', variant='warn') {{ note }}
 
@@ -146,6 +143,7 @@ import { Zeus, type Queries } from '@coopenomics/sdk';
 import { splitModerationBrief, type ModerationBrief } from '../shared/lib/coreRights';
 import { accountName, resolveAccountNames } from '../shared/lib/accountNames';
 import { formatDate, formatRub } from '../shared/lib/format';
+import { CoreRightsList, coreRightLines } from 'src/widgets/CatalogApp';
 import PackageRow from '../shared/ui/PackageRow.vue';
 import { t } from '../i18n';
 
@@ -220,44 +218,10 @@ function briefOf(row: ModerationRow): ModerationBrief {
 }
 const notesOf = (row: ModerationRow) => briefOf(row).rights?.notes ?? [];
 
-/** Порты ядра, открытые приложениям каталога: имя из манифеста → название и что порт даёт приложению. */
-const PORTS: Record<string, { title: string; text: string }> = {
-  document: { title: t('developer.rights.port.document'), text: t('developer.rights.portText.document') },
-  cooperativeVars: { title: t('developer.rights.port.cooperativeVars'), text: t('developer.rights.portText.cooperativeVars') },
-  accessToken: { title: t('developer.rights.port.accessToken'), text: t('developer.rights.portText.accessToken') },
-  account: { title: t('developer.rights.port.account'), text: t('developer.rights.portText.account') },
-  chain: { title: t('developer.rights.port.chain'), text: t('developer.rights.portText.chain') },
-};
-
-/** Право ядра строкой перечня: название, что оно даёт, имя из манифеста. */
-interface RightLine {
-  key: string;
-  title: string;
-  text: string;
-  code: string;
-  /** Порт вне перечня ядра: модератор видит, что порт ему незнаком. */
-  unknown: boolean;
-}
-
-function rightsOf(row: ModerationRow): RightLine[] {
-  const rights = briefOf(row).rights;
-  if (!rights) return [];
-  const ports = rights.ports.map((port) => ({
-    key: `port:${port}`,
-    title: PORTS[port]?.title ?? port,
-    text: PORTS[port]?.text ?? t('developer.rights.unknownText'),
-    code: port,
-    unknown: !PORTS[port],
-  }));
-  const actions = rights.chainActions.map((action) => ({
-    key: `action:${action}`,
-    title: t('developer.rights.chainAction'),
-    text: t('developer.rights.chainActionText'),
-    code: action,
-    unknown: false,
-  }));
-  return [...ports, ...actions];
-}
+const portsOf = (row: ModerationRow) => briefOf(row).rights?.ports ?? [];
+const actionsOf = (row: ModerationRow) => briefOf(row).rights?.chainActions ?? [];
+/** Права заявки строками перечня — тем же словарём, что у согласия председателя при установке. */
+const rightsOf = (row: ModerationRow) => coreRightLines(portsOf(row), actionsOf(row));
 
 /** Обновление просит права сверх одобренных либо порт вне перечня ядра. */
 function needsAttention(row: ModerationRow): boolean {
@@ -420,10 +384,6 @@ onMounted(load);
   margin-top: var(--p-5);
   padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
-}
-.moderation__right {
-  padding-left: 0;
-  padding-right: 0;
 }
 .moderation__brief {
   color: var(--p-ink-2);

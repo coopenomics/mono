@@ -8,13 +8,19 @@
  */
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
+import { CurrentUser, GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
+import { type IMonoAccount } from '@coopenomics/innercoop';
 import { NodeAppsService } from '../services/node-apps.service';
 import { AppsCatalogRemotePackageDTO } from '../dto/apps-catalog-remote-package.dto';
 import { AppsNodeBillingDTO } from '../dto/apps-node-billing.dto';
 import { SubscribePackageInputDTO } from '../dto/subscribe-package-input.dto';
 import { SubscribePackageResultDTO } from '../dto/subscribe-package-result.dto';
 import { SetCatalogAppEnabledInputDTO, UnsubscribePackageResultDTO } from '../dto/catalog-app-input.dto';
+import {
+  CatalogAppRightsDTO,
+  GrantCatalogAppRightsInputDTO,
+  SetCatalogAppRightsAutoAcceptInputDTO,
+} from '../dto/catalog-app-rights.dto';
 
 @Resolver()
 export class AppsResolver {
@@ -83,5 +89,47 @@ export class AppsResolver {
     @Args('data', { type: () => SetCatalogAppEnabledInputDTO }) data: SetCatalogAppEnabledInputDTO,
   ): Promise<boolean> {
     return this.apps.setEnabled(data.packageId, data.enabled);
+  }
+
+  @Query(() => CatalogAppRightsDTO, {
+    name: 'catalogAppRights',
+    description:
+      'Права ядра приложения каталога на этом узле: что просит действующая версия, с чем председатель согласился ' +
+      'и какой запрос новых прав ждёт ответа.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Apps', 'read')
+  async catalogAppRights(@Args('packageId', { type: () => String }) packageId: string): Promise<CatalogAppRightsDTO> {
+    return this.apps.rights(packageId);
+  }
+
+  @Mutation(() => CatalogAppRightsDTO, {
+    name: 'grantCatalogAppRights',
+    description:
+      'Согласие председателя на права ядра приложения. Без согласия ядро не выдаёт приложению ключ: ' +
+      'новое приложение не ставится, обновление с новыми правами ждёт на прежней версии.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Apps', 'manage')
+  async grantCatalogAppRights(
+    @Args('data', { type: () => GrantCatalogAppRightsInputDTO }) data: GrantCatalogAppRightsInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<CatalogAppRightsDTO> {
+    return this.apps.grantRights(data.packageId, { ports: data.ports, chainActions: data.chainActions }, currentUser.username);
+  }
+
+  @Mutation(() => CatalogAppRightsDTO, {
+    name: 'setCatalogAppRightsAutoAccept',
+    description:
+      'Переключатель «Принимать новые права после одобрения модератора каталога»: включён — обновления ' +
+      'с новыми правами ставятся без вопроса.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Apps', 'manage')
+  async setCatalogAppRightsAutoAccept(
+    @Args('data', { type: () => SetCatalogAppRightsAutoAcceptInputDTO }) data: SetCatalogAppRightsAutoAcceptInputDTO,
+    @CurrentUser() currentUser: IMonoAccount,
+  ): Promise<CatalogAppRightsDTO> {
+    return this.apps.setRightsAutoAccept(data.packageId, data.enabled, currentUser.username);
   }
 }

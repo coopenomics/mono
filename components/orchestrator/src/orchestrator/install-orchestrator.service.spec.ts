@@ -17,6 +17,7 @@ import {
   InstallExtensionInput,
 } from './install-orchestrator.service';
 import {
+  AppConsentRequiredError,
   AppGrantsPort,
   DockerRunnerPort,
   HealthOutcome,
@@ -119,10 +120,10 @@ class FakeRegistryService {
 /** Заявки приложений в ядре: что выдано и что стёрто. */
 class FakeAppGrants implements AppGrantsPort {
   readonly coreUrl = 'http://coopback:2998';
-  issued: Array<{ packageId: string; ports: string[]; chainActions: string[] }> = [];
+  issued: Array<{ packageId: string; version: string; ports: string[]; chainActions: string[] }> = [];
   revoked: string[] = [];
   issueError?: Error;
-  async issue(opts: { packageId: string; ports: string[]; chainActions: string[] }): Promise<string> {
+  async issue(opts: { packageId: string; version: string; ports: string[]; chainActions: string[] }): Promise<string> {
     if (this.issueError) throw this.issueError;
     this.issued.push(opts);
     return `apt_token_${this.issued.length}`;
@@ -404,7 +405,7 @@ describe('InstallOrchestratorService', () => {
       const result = await h.service.install(input);
       expect(result).toEqual(expect.objectContaining({ status: 'applied', containerReplaced: true }));
       expect(h.grants.issued).toEqual([
-        { packageId: '@coopenomics/chatcoop', ports: ['document'], chainActions: ['soviet::createagenda'] },
+        { packageId: '@coopenomics/chatcoop', version: '1.0.0', ports: ['document'], chainActions: ['soviet::createagenda'] },
       ]);
       expect(h.docker.runs[0]?.env).toEqual({
         SUBGRAPH_PORT: '3001',
@@ -427,7 +428,7 @@ describe('InstallOrchestratorService', () => {
     it('side: манифест портов не заявляет — заявка пустая, токен всё равно выдан (опознание приложения)', async () => {
       const h = buildHarness(true);
       await h.service.install({ ...input, corePorts: undefined });
-      expect(h.grants.issued).toEqual([{ packageId: '@coopenomics/chatcoop', ports: [], chainActions: [] }]);
+      expect(h.grants.issued).toEqual([{ packageId: '@coopenomics/chatcoop', version: '1.0.0', ports: [], chainActions: [] }]);
     });
 
     it('side: ядро не завело заявку — установка не удалась, контейнер без токена не запускается', async () => {
@@ -436,6 +437,26 @@ describe('InstallOrchestratorService', () => {
       const result = await h.service.install(input);
       expect(result.status).toBe('failed');
       expect(h.docker.runs).toEqual([]);
+    });
+
+    // 487-37: ключ выдаётся только в пределах согласия председателя.
+    it('break: версия просит права сверх согласия — исход consent-required, контейнер не запускается', async () => {
+      const h = buildHarness(true);
+      h.grants.issueError = new AppConsentRequiredError('@coopenomics/chatcoop');
+      const result = await h.service.install(input);
+      expect(result).toEqual(expect.objectContaining({ status: 'failed', reason: 'consent-required' }));
+      expect(h.docker.runs).toEqual([]);
+    });
+
+    it('break: обновление без согласия на новые права — прежний контейнер не снят и не заменён', async () => {
+      const h = buildHarness(true);
+      h.docker.states.set('ext-chatcoop', { running: true, imageRef: 'registry.local/coopenomics/chatcoop:0.9.0' });
+      h.grants.issueError = new AppConsentRequiredError('@coopenomics/chatcoop');
+      const result = await h.service.install(input);
+      expect(result).toEqual(expect.objectContaining({ status: 'failed', reason: 'consent-required' }));
+      expect(h.docker.runs).toEqual([]);
+      expect(h.docker.removed).toEqual([]);
+      expect(h.grants.revoked).toEqual([]);
     });
 
     it('side: узел без секрета сервиса (заявок нет) — контейнер ставится без доступа к портам ядра', async () => {

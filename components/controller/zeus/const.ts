@@ -1142,6 +1142,9 @@ export const AllTypesProps: Record<string,any> = {
 	GlobalSearchInput:{
 
 	},
+	GrantCatalogAppRightsInput:{
+
+	},
 	GreetingAccountType: "enum" as const,
 	GreetingDeliveryState: "enum" as const,
 	GreetingPreviewInput:{
@@ -2566,6 +2569,9 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		grantCatalogAppRights:{
+			data:"GrantCatalogAppRightsInput"
+		},
 		greetingsDeleteTemplate:{
 
 		},
@@ -3113,6 +3119,9 @@ export const AllTypesProps: Record<string,any> = {
 		setCatalogAppEnabled:{
 			data:"SetCatalogAppEnabledInput"
 		},
+		setCatalogAppRightsAutoAccept:{
+			data:"SetCatalogAppRightsAutoAcceptInput"
+		},
 		setCoopPrice:{
 			data:"SetCoopPriceInput"
 		},
@@ -3566,6 +3575,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		cardcoopEntry:{
 			data:"CardcoopEntryInput"
+		},
+		catalogAppRights:{
+
 		},
 		chairmanApproval:{
 
@@ -4494,6 +4506,9 @@ export const AllTypesProps: Record<string,any> = {
 	SetCatalogAppEnabledInput:{
 
 	},
+	SetCatalogAppRightsAutoAcceptInput:{
+
+	},
 	SetConfigInput:{
 		config:"ConfigInput"
 	},
@@ -4924,6 +4939,7 @@ export const ReturnTypes: Record<string,any> = {
 		lastActiveVersion:"String",
 		packageId:"String",
 		publisher:"String",
+		rightsPending:"Boolean",
 		rubPerMonth:"Float",
 		subscription:"AppsCatalogSubscription",
 		title:"String",
@@ -6269,6 +6285,21 @@ export const ReturnTypes: Record<string,any> = {
 		issued:"Boolean",
 		memberSince:"String",
 		state:"CardcoopAttestationState"
+	},
+	CatalogAppRights:{
+		autoAccept:"Boolean",
+		consentedAt:"String",
+		consentedBy:"String",
+		granted:"CatalogAppRightsSet",
+		packageId:"String",
+		pending:"CatalogAppRightsSet",
+		pendingVersion:"String",
+		requested:"CatalogAppRightsSet",
+		version:"String"
+	},
+	CatalogAppRightsSet:{
+		chainActions:"String",
+		ports:"String"
 	},
 	ChainChange:{
 		block_num:"Int",
@@ -9364,6 +9395,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateSovietDecisionOnAnnualMeetDocument:"GeneratedDocument",
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
+		grantCatalogAppRights:"CatalogAppRights",
 		greetingsDeleteTemplate:"Boolean",
 		greetingsSaveTemplate:"GreetingTemplate",
 		greetingsSendTest:"Boolean",
@@ -9549,6 +9581,7 @@ export const ReturnTypes: Record<string,any> = {
 		setAppsPackagePricing:"AppsPackagePricing",
 		setBranchPrivate:"Branch",
 		setCatalogAppEnabled:"Boolean",
+		setCatalogAppRightsAutoAccept:"CatalogAppRights",
 		setCoopPrice:"CoopPrice",
 		setLoginFactors:"LoginFactors",
 		setPaymentStatus:"GatewayPayment",
@@ -10417,6 +10450,7 @@ export const ReturnTypes: Record<string,any> = {
 		cardcoopEntry:"CardcoopEntry",
 		cardcoopEntryAvailable:"Boolean",
 		cardcoopMyCard:"CardcoopMyCard",
+		catalogAppRights:"CatalogAppRights",
 		chairmanApproval:"Approval",
 		chairmanApprovals:"PaginatedChairmanApprovalsPaginationResult",
 		chatcoopCheckUsernameAvailability:"Boolean",

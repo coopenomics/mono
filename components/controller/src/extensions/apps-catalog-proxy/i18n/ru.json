@@ -35,6 +35,7 @@
     "APPS_CATALOG_PROXY_APP_PORT_TOKEN_INVALID": "Токен приложения не принят: приложение не установлено или его доступ отозван",
     "APPS_CATALOG_PROXY_APP_PORT_UNKNOWN": "Порт {port}.{method} приложениям каталога не открыт",
     "APPS_CATALOG_PROXY_APP_SESSION_NO_MEMBER": "Токен приложения выдаётся только вошедшему пайщику",
+    "APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED": "Приложение {package_id} просит права ядра сверх согласия председателя. Ключ выдаётся после согласия на странице приложения",
     "APPS_CATALOG_PROXY_APP_SESSION_NO_SECRET": "На узле не задан SERVER_SECRET: токен приложения подписать нечем",
     "APPS_CATALOG_PROXY_APP_SESSION_UNAVAILABLE": "Приложение {package_id} не установлено на узле или не заявляло опознание пайщика",
     "APPS_CATALOG_PROXY_PRICING_FAILED": "Каталог приложений не принял цену пакета {package_id}. Повторите позже",

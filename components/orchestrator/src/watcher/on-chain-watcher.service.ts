@@ -33,6 +33,7 @@ import {
   ReleaseMetadataPort,
 } from './ports';
 import { InstallOrchestratorService } from '../orchestrator/install-orchestrator.service';
+import { AppConsentRequiredError } from '../orchestrator/ports';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
 import { SupergraphRefreshService } from '../gateway/supergraph-refresh.service';
 import { FrontendCacheService } from '../frontend-cache/frontend-cache.service';
@@ -99,33 +100,39 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       );
       return;
     }
-    // E12-2: обновить фронт-часть у уже установленных пакетов. Кэш как
-    // маркер подписки: «не закэширован, но подписан» доезжает на
-    // subscription-activated initial-снапшота при следующем старте.
-    if (await this.frontendCache.isCached(e.packageId)) {
-      await this.frontendCache.syncPackage(e.packageId);
-    }
     const spec = await this.metadata.fetchInstallSpec({
       packageId: e.packageId,
       version: e.version,
     });
     if (spec === null) {
+      // У пакета только фронт-часть: ключа ядра у него нет, фронт обновляется сразу.
+      await this.syncCachedFrontend(e.packageId);
       this.logger.warn(
         `release-published ${e.packageId}@${e.version}: metadata not found, install skipped`,
       );
       return;
     }
+    // Бэкенд раньше фронта (487-37): версия, которая ждёт согласия председателя
+    // на новые права, не ставится, и фронт новой версии к прежнему бэкенду не подключается.
     await this.callInstall(e.packageId, e.version, spec);
+    await this.syncCachedFrontend(e.packageId);
+  }
+
+  /**
+   * E12-2: обновить фронт-часть у уже установленных пакетов. Кэш как
+   * маркер подписки: «не закэширован, но подписан» получает фронт на
+   * subscription-activated первого снимка при следующем старте.
+   */
+  private async syncCachedFrontend(packageId: string): Promise<void> {
+    if (await this.frontendCache.isCached(packageId)) {
+      await this.frontendCache.syncPackage(packageId);
+    }
   }
 
   private async handleSubscriptionActivated(
     e: Extract<AppsContractEvent, { kind: 'subscription-activated' }>,
   ): Promise<void> {
     if (e.coopname !== this.cfg.coopname) return;
-    // E12-2: фронт-часть кэшируется независимо от backend-спеки — для
-    // frontend-only пакетов fetchInstallSpec вернёт null, а install.js
-    // активного релиза всё равно должен попасть в кэш.
-    await this.frontendCache.syncPackage(e.packageId);
     // На subscription-activated нам не приходит конкретная версия —
     // нужно сходить в apps-catalog за active-релизом. fetchInstallSpec
     // с пустой version интерпретируется реальным impl'ом как «дай active».
@@ -137,6 +144,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       // Пакет только с фронт-частью спеки бэкенда не имеет: его установка —
       // кэш install.js выше. Пустая спека у пакета с бэкендом означает, что
       // активного выпуска в каталоге нет.
+      await this.frontendCache.syncPackage(e.packageId);
       this.logger.log(
         `subscription-activated ${e.packageId}: спеки бэкенда нет — установлена только фронт-часть`,
       );
@@ -148,6 +156,10 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
     // используем packageId как метку записи — registry хранит
     // packageId как primary key, версия пишется отдельным полем.
     await this.callInstall(e.packageId, 'active', spec);
+    // E12-2: фронт-часть кэшируется после бэкенда (487-37). Приложение, которое
+    // ждёт согласия председателя на права ядра, стол не показывает: фронт без
+    // бэкенда дал бы рабочий стол с отказами на каждый запрос.
+    await this.frontendCache.syncPackage(e.packageId);
   }
 
   private async handleReleaseWithdrawn(
@@ -213,6 +225,11 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       cooperativeJwt: spec.pullJwt ?? this.cfg.cooperativeJwt,
       coopname: this.cfg.coopname,
     });
+    if (result.status === 'failed' && result.reason === 'consent-required') {
+      // Не сбой: приложение ждёт согласия председателя. Исключение сообщает
+      // потоку событий, что версия не установлена и установку следует повторить.
+      throw new AppConsentRequiredError(packageId);
+    }
     if (result.status === 'failed') {
       this.logger.error(
         `install via watcher failed: ${packageId}@${version} reason=${result.reason} ${result.error}`,

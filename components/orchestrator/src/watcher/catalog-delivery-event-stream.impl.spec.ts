@@ -177,6 +177,55 @@ describe('CatalogDeliveryEventStream', () => {
     expect(published).toEqual([expect.objectContaining({ packageId: PKG, version: '1.1.0', scopeType: 'all' })]);
   });
 
+  // 487-37: обновление, которое ждёт согласия председателя, повторяется.
+  it('break: обработчик обновления упал — версия возвращается, следующий опрос выпусков повторяет обновление', async () => {
+    const { stream, events, handler } = build();
+    await stream.poll(handler); // снимок
+    await stream.poll(handler); // первое наблюдение 1.0.0
+    latest = '1.1.0';
+    const failing = async (e: AppsContractEvent): Promise<void> => {
+      events.push(e);
+      if (e.kind === 'release-published') throw new Error('ждёт согласия');
+    };
+    await stream.poll(failing);
+    await stream.poll(handler);
+    const published = events.filter((e) => e.kind === 'release-published');
+    expect(published).toHaveLength(2);
+    expect(published[1]).toEqual(expect.objectContaining({ packageId: PKG, version: '1.1.0' }));
+    // Обновление установлено — третьего события нет.
+    await stream.poll(handler);
+    expect(events.filter((e) => e.kind === 'release-published')).toHaveLength(2);
+  });
+
+  it('happy: сигнал повторной установки — версии сверяются ближайшим опросом, не дожидаясь планового', async () => {
+    const { stream, handler, versions } = build(50);
+    await stream.poll(handler); // снимок
+    await stream.poll(handler);
+    expect(versions.latestVersion).not.toHaveBeenCalled();
+    stream.recheck(PKG);
+    await stream.poll(handler);
+    expect(versions.latestVersion).toHaveBeenCalledTimes(1);
+    // Сигнал разовый: следующий опрос версии не сверяет.
+    await stream.poll(handler);
+    expect(versions.latestVersion).toHaveBeenCalledTimes(1);
+  });
+
+  it('happy: сигнал повторной установки снимает паузу после неудачной установки', async () => {
+    const { stream, events, handler } = build(50);
+    const failing = async (e: AppsContractEvent): Promise<void> => {
+      events.push(e);
+      throw new Error('ждёт согласия');
+    };
+    await stream.poll(failing); // неудача 1 — повтор следующим опросом
+    await stream.poll(failing); // неудача 2 — пауза 2 с
+    const before = events.filter((e) => e.kind === 'subscription-activated').length;
+    await stream.poll(handler); // пауза идёт: события нет
+    expect(events.filter((e) => e.kind === 'subscription-activated')).toHaveLength(before);
+    stream.recheck(PKG);
+    await stream.poll(handler);
+    expect(events.filter((e) => e.kind === 'subscription-activated')).toHaveLength(before + 1);
+  });
+
   it('happy: у пакета не осталось доступной версии — release-withdrawn', async () => {
     const { stream, events, handler } = build();
     await stream.poll(handler);

@@ -36,6 +36,7 @@ import {
   InstallExtensionInput,
   InstallOutcome,
 } from '../orchestrator/install-orchestrator.service';
+import { AppConsentRequiredError } from '../orchestrator/ports';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
 import type { SupergraphRefreshService } from '../gateway/supergraph-refresh.service';
 import { FrontendCacheService } from '../frontend-cache/frontend-cache.service';
@@ -314,6 +315,43 @@ describe('OnChainWatcherService', () => {
           blockNum: 300,
         }),
       ).rejects.toThrow(/docker-pull/);
+    });
+
+    // 487-37: приложение ждёт согласия председателя на права ядра.
+    it('break: подписка без согласия на права — исключение ожидания согласия, фронт не кэшируется', async () => {
+      const h = buildHarness();
+      h.metadata.setSpec(PACKAGE_ID, '', SPEC);
+      h.orchestrator.outcome = { status: 'failed', packageId: '', reason: 'consent-required', error: 'ждёт согласия' };
+      await expect(
+        h.watcher.handle({
+          kind: 'subscription-activated',
+          coopname: 'voskhod',
+          packageId: PACKAGE_ID,
+          expiresAtUnix: 0,
+          blockNum: 301,
+        }),
+      ).rejects.toBeInstanceOf(AppConsentRequiredError);
+      expect(h.frontendCache.synced).toEqual([]);
+    });
+
+    it('break: обновление без согласия на новые права — фронт новой версии к прежнему бэкенду не подключается', async () => {
+      const h = buildHarness();
+      h.metadata.setSpec(PACKAGE_ID, VERSION, SPEC);
+      h.frontendCache.cachedIds.add(PACKAGE_ID);
+      h.orchestrator.outcome = { status: 'failed', packageId: '', reason: 'consent-required', error: 'ждёт согласия' };
+      await expect(
+        h.watcher.handle({ kind: 'release-published', packageId: PACKAGE_ID, version: VERSION, scopeType: 'all', blockNum: 302 }),
+      ).rejects.toBeInstanceOf(AppConsentRequiredError);
+      expect(h.frontendCache.synced).toEqual([]);
+    });
+
+    it('happy: обновление установлено — фронт закэшированного пакета обновляется после бэкенда', async () => {
+      const h = buildHarness();
+      h.metadata.setSpec(PACKAGE_ID, VERSION, SPEC);
+      h.frontendCache.cachedIds.add(PACKAGE_ID);
+      await h.watcher.handle({ kind: 'release-published', packageId: PACKAGE_ID, version: VERSION, scopeType: 'all', blockNum: 303 });
+      expect(h.orchestrator.calls).toHaveLength(1);
+      expect(h.frontendCache.synced).toEqual([PACKAGE_ID]);
     });
   });
 

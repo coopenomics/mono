@@ -34,7 +34,9 @@ const TRIAL_SUB = {
 };
 const PUBLIC_PKG = { packageId: PKG, publisher: 'voskhod', compatibleSubnets: [], lastActiveVersion: '0.1.2' };
 
-function harness(opts: { port?: Partial<IProviderAppsPort> | null; installed?: string[]; disabled?: string[] } = {}) {
+function harness(
+  opts: { port?: Partial<IProviderAppsPort> | null; installed?: string[]; disabled?: string[]; rightsPending?: string[] } = {},
+) {
   const catalog = {
     listPublicPackages: jest.fn(async () => [PUBLIC_PKG]),
     listInstalledFrontends: jest.fn(async () => (opts.installed ?? [PKG]).map((packageId) => ({ packageId }))),
@@ -65,8 +67,13 @@ function harness(opts: { port?: Partial<IProviderAppsPort> | null; installed?: s
     billingSummary: jest.fn(async () => null),
     ...(opts.port ?? {}),
   } as IProviderAppsPort);
-  const service = new NodeAppsService(catalog as any, state as any, chain as any, port);
-  return { service, catalog, state, chain, port };
+  // Согласия на права ядра (487-37): у приложений этого набора запросов новых прав нет.
+  const consents = {
+    pendingPackageIds: jest.fn(async () => new Set<string>(opts.rightsPending ?? [])),
+    forget: jest.fn(async () => undefined),
+  };
+  const service = new NodeAppsService(catalog as any, state as any, consents as any, chain as any, port);
+  return { service, catalog, state, consents, chain, port };
 }
 
 describe('subscribePackage → провайдер', () => {
@@ -149,6 +156,7 @@ describe('витрина приложений: цена и состояние', 
       trialDays: 14,
       installed: true,
       enabled: true,
+      rightsPending: false,
     }));
     expect(item.subscription).toEqual(expect.objectContaining({
       status: InnerAppSubscriptionStatus.ACTIVE,
@@ -246,5 +254,19 @@ describe('подписки и кошелёк узла у провайдера', 
     const billing = await service.nodeBilling();
     expect(billing.available).toBe(true);
     expect(billing.wallet).toBeNull();
+  });
+});
+
+// 487-37: согласие председателя на права ядра приложения.
+describe('права ядра приложения на узле', () => {
+  it('side: запрос новых прав ждёт ответа — витрина помечает приложение', async () => {
+    const [item] = await harness({ rightsPending: [PKG] }).service.listCatalogApps(1, 50);
+    expect(item.rightsPending).toBe(true);
+  });
+
+  it('side: отмена подписки стирает согласие — при новой подписке председатель отвечает заново', async () => {
+    const h = harness();
+    await h.service.unsubscribe(PKG);
+    expect(h.consents.forget).toHaveBeenCalledWith(PKG);
   });
 });

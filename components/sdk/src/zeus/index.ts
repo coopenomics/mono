@@ -1870,6 +1870,8 @@ export type ValueTypes = {
 	packageId?:boolean | `@${string}`,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher?:boolean | `@${string}`,
+	/** Новая версия просит права ядра сверх согласия и ждёт ответа председателя */
+	rightsPending?:boolean | `@${string}`,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth?:boolean | `@${string}`,
 	/** Действующая подписка кооператива; пусто — приложение не подключено */
@@ -5944,6 +5946,36 @@ export type ValueTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string | Variable<any, string>
 };
+	["CatalogAppRights"]: AliasType<{
+	/** Новые права принимаются без вопроса, после одобрения модератора каталога */
+	autoAccept?:boolean | `@${string}`,
+	/** Когда дано согласие (ISO 8601) */
+	consentedAt?:boolean | `@${string}`,
+	/** Кто дал согласие */
+	consentedBy?:boolean | `@${string}`,
+	/** Права, с которыми председатель согласился */
+	granted?:ValueTypes["CatalogAppRightsSet"],
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId?:boolean | `@${string}`,
+	/** Права, которые новая версия просит сверх согласия. Пусто — запроса нет */
+	pending?:ValueTypes["CatalogAppRightsSet"],
+	/** Версия, которая ждёт согласия */
+	pendingVersion?:boolean | `@${string}`,
+	/** Права, которые просит действующая версия. Пусто — перечень сейчас недоступен */
+	requested?:ValueTypes["CatalogAppRightsSet"],
+	/** Действующая версия пакета в каталоге */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CatalogAppRights']?: Omit<ValueTypes["CatalogAppRights"], "...on CatalogAppRights">
+}>;
+	["CatalogAppRightsSet"]: AliasType<{
+	/** Действия цепи вида contract::action */
+	chainActions?:boolean | `@${string}`,
+	/** Порты ядра: имена из манифеста приложения */
+	ports?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CatalogAppRightsSet']?: Omit<ValueTypes["CatalogAppRightsSet"], "...on CatalogAppRightsSet">
+}>;
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number | Variable<any, string>,
@@ -10593,6 +10625,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on GlobalSearchRoute']?: Omit<ValueTypes["GlobalSearchRoute"], "...on GlobalSearchRoute">
 }>;
+	["GrantCatalogAppRightsInput"]: {
+	/** Действия цепи, с которыми председатель согласен */
+	chainActions: Array<string> | Variable<any, string>,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string | Variable<any, string>,
+	/** Порты ядра, с которыми председатель согласен */
+	ports: Array<string> | Variable<any, string>
+};
 	/** Пайщик — физическое лицо или индивидуальный предприниматель */
 ["GreetingAccountType"]:GreetingAccountType;
 	/** День рождения пайщика в календаре */
@@ -16014,6 +16054,7 @@ generateSignatureAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Vari
 generateSovietDecisionOnAnnualMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingSovietDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateUserAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+grantCatalogAppRights?: [{	data: ValueTypes["GrantCatalogAppRightsInput"] | Variable<any, string>},ValueTypes["CatalogAppRights"]],
 greetingsDeleteTemplate?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 greetingsSaveTemplate?: [{	data: ValueTypes["GreetingTemplateInput"] | Variable<any, string>},ValueTypes["GreetingTemplate"]],
 greetingsSendTest?: [{	data: ValueTypes["GreetingPreviewInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -16205,6 +16246,7 @@ sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string
 setAppsPackagePricing?: [{	data: ValueTypes["SetAppsPackagePricingInput"] | Variable<any, string>},ValueTypes["AppsPackagePricing"]],
 setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
 setCatalogAppEnabled?: [{	data: ValueTypes["SetCatalogAppEnabledInput"] | Variable<any, string>},boolean | `@${string}`],
+setCatalogAppRightsAutoAccept?: [{	data: ValueTypes["SetCatalogAppRightsAutoAcceptInput"] | Variable<any, string>},ValueTypes["CatalogAppRights"]],
 setCoopPrice?: [{	data: ValueTypes["SetCoopPriceInput"] | Variable<any, string>},ValueTypes["CoopPrice"]],
 setLoginFactors?: [{	data: ValueTypes["SetLoginFactorsInput"] | Variable<any, string>},ValueTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
@@ -18302,7 +18344,7 @@ appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<
 appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling?:ValueTypes["AppsNodeBilling"],
-	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	/** Цены пакетов в каталоге приложений: администратору каталога — все пакеты кооператива, издателю — его пакеты. Без цены первый выпуск пакета не одобряется. */
 	appsPackagePricing?:ValueTypes["AppsPackagePricing"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ValueTypes["AppsPublisher"],
@@ -18366,6 +18408,7 @@ cardcoopEntry?: [{	data: ValueTypes["CardcoopEntryInput"] | Variable<any, string
 	cardcoopEntryAvailable?:boolean | `@${string}`,
 	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством */
 	cardcoopMyCard?:ValueTypes["CardcoopMyCard"],
+catalogAppRights?: [{	packageId: string | Variable<any, string>},ValueTypes["CatalogAppRights"]],
 chairmanApproval?: [{	id: string | Variable<any, string>},ValueTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ValueTypes["ApprovalFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ValueTypes["CheckMatrixUsernameInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -20065,6 +20108,12 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 };
 	["SetCatalogAppEnabledInput"]: {
 	/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean | Variable<any, string>,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string | Variable<any, string>
+};
+	["SetCatalogAppRightsAutoAcceptInput"]: {
+	/** true — принимать новые права без вопроса */
 	enabled: boolean | Variable<any, string>,
 	/** Пакет каталога, например @voskhod/demoapp */
 	packageId: string | Variable<any, string>
@@ -22268,6 +22317,8 @@ export type ResolverInputTypes = {
 	packageId?:boolean | `@${string}`,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher?:boolean | `@${string}`,
+	/** Новая версия просит права ядра сверх согласия и ждёт ответа председателя */
+	rightsPending?:boolean | `@${string}`,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth?:boolean | `@${string}`,
 	/** Действующая подписка кооператива; пусто — приложение не подключено */
@@ -26239,6 +26290,34 @@ export type ResolverInputTypes = {
 	/** Системное имя кооператива-источника */
 	from_coopname: string
 };
+	["CatalogAppRights"]: AliasType<{
+	/** Новые права принимаются без вопроса, после одобрения модератора каталога */
+	autoAccept?:boolean | `@${string}`,
+	/** Когда дано согласие (ISO 8601) */
+	consentedAt?:boolean | `@${string}`,
+	/** Кто дал согласие */
+	consentedBy?:boolean | `@${string}`,
+	/** Права, с которыми председатель согласился */
+	granted?:ResolverInputTypes["CatalogAppRightsSet"],
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId?:boolean | `@${string}`,
+	/** Права, которые новая версия просит сверх согласия. Пусто — запроса нет */
+	pending?:ResolverInputTypes["CatalogAppRightsSet"],
+	/** Версия, которая ждёт согласия */
+	pendingVersion?:boolean | `@${string}`,
+	/** Права, которые просит действующая версия. Пусто — перечень сейчас недоступен */
+	requested?:ResolverInputTypes["CatalogAppRightsSet"],
+	/** Действующая версия пакета в каталоге */
+	version?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CatalogAppRightsSet"]: AliasType<{
+	/** Действия цепи вида contract::action */
+	chainActions?:boolean | `@${string}`,
+	/** Порты ядра: имена из манифеста приложения */
+	ports?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CategoryTypeInput"]: {
 	/** ID категории */
 	categoryId: number,
@@ -30762,6 +30841,14 @@ export type ResolverInputTypes = {
 	query?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["GrantCatalogAppRightsInput"]: {
+	/** Действия цепи, с которыми председатель согласен */
+	chainActions: Array<string>,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string,
+	/** Порты ядра, с которыми председатель согласен */
+	ports: Array<string>
+};
 	/** Пайщик — физическое лицо или индивидуальный предприниматель */
 ["GreetingAccountType"]:GreetingAccountType;
 	/** День рождения пайщика в календаре */
@@ -36015,6 +36102,7 @@ generateSignatureAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"
 generateSovietDecisionOnAnnualMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingSovietDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateUserAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+grantCatalogAppRights?: [{	data: ResolverInputTypes["GrantCatalogAppRightsInput"]},ResolverInputTypes["CatalogAppRights"]],
 greetingsDeleteTemplate?: [{	id: string},boolean | `@${string}`],
 greetingsSaveTemplate?: [{	data: ResolverInputTypes["GreetingTemplateInput"]},ResolverInputTypes["GreetingTemplate"]],
 greetingsSendTest?: [{	data: ResolverInputTypes["GreetingPreviewInput"]},boolean | `@${string}`],
@@ -36206,6 +36294,7 @@ sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInput
 setAppsPackagePricing?: [{	data: ResolverInputTypes["SetAppsPackagePricingInput"]},ResolverInputTypes["AppsPackagePricing"]],
 setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
 setCatalogAppEnabled?: [{	data: ResolverInputTypes["SetCatalogAppEnabledInput"]},boolean | `@${string}`],
+setCatalogAppRightsAutoAccept?: [{	data: ResolverInputTypes["SetCatalogAppRightsAutoAcceptInput"]},ResolverInputTypes["CatalogAppRights"]],
 setCoopPrice?: [{	data: ResolverInputTypes["SetCoopPriceInput"]},ResolverInputTypes["CoopPrice"]],
 setLoginFactors?: [{	data: ResolverInputTypes["SetLoginFactorsInput"]},ResolverInputTypes["LoginFactors"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
@@ -38201,7 +38290,7 @@ appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: R
 appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling?:ResolverInputTypes["AppsNodeBilling"],
-	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	/** Цены пакетов в каталоге приложений: администратору каталога — все пакеты кооператива, издателю — его пакеты. Без цены первый выпуск пакета не одобряется. */
 	appsPackagePricing?:ResolverInputTypes["AppsPackagePricing"],
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers?:ResolverInputTypes["AppsPublisher"],
@@ -38265,6 +38354,7 @@ cardcoopEntry?: [{	data: ResolverInputTypes["CardcoopEntryInput"]},ResolverInput
 	cardcoopEntryAvailable?:boolean | `@${string}`,
 	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством */
 	cardcoopMyCard?:ResolverInputTypes["CardcoopMyCard"],
+catalogAppRights?: [{	packageId: string},ResolverInputTypes["CatalogAppRights"]],
 chairmanApproval?: [{	id: string},ResolverInputTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ResolverInputTypes["ApprovalFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ResolverInputTypes["CheckMatrixUsernameInput"]},boolean | `@${string}`],
@@ -39916,6 +40006,12 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 };
 	["SetCatalogAppEnabledInput"]: {
 	/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string
+};
+	["SetCatalogAppRightsAutoAcceptInput"]: {
+	/** true — принимать новые права без вопроса */
 	enabled: boolean,
 	/** Пакет каталога, например @voskhod/demoapp */
 	packageId: string
@@ -42063,6 +42159,8 @@ export type ModelTypes = {
 	packageId: string,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher: string,
+	/** Новая версия просит права ядра сверх согласия и ждёт ответа председателя */
+	rightsPending: boolean,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth: number,
 	/** Действующая подписка кооператива; пусто — приложение не подключено */
@@ -45920,6 +46018,32 @@ export type ModelTypes = {
 	entry_id: string,
 	/** Системное имя кооператива-источника */
 	from_coopname: string
+};
+	["CatalogAppRights"]: {
+		/** Новые права принимаются без вопроса, после одобрения модератора каталога */
+	autoAccept: boolean,
+	/** Когда дано согласие (ISO 8601) */
+	consentedAt?: string | undefined | null,
+	/** Кто дал согласие */
+	consentedBy?: string | undefined | null,
+	/** Права, с которыми председатель согласился */
+	granted: ModelTypes["CatalogAppRightsSet"],
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string,
+	/** Права, которые новая версия просит сверх согласия. Пусто — запроса нет */
+	pending?: ModelTypes["CatalogAppRightsSet"] | undefined | null,
+	/** Версия, которая ждёт согласия */
+	pendingVersion?: string | undefined | null,
+	/** Права, которые просит действующая версия. Пусто — перечень сейчас недоступен */
+	requested?: ModelTypes["CatalogAppRightsSet"] | undefined | null,
+	/** Действующая версия пакета в каталоге */
+	version?: string | undefined | null
+};
+	["CatalogAppRightsSet"]: {
+		/** Действия цепи вида contract::action */
+	chainActions: Array<string>,
+	/** Порты ядра: имена из манифеста приложения */
+	ports: Array<string>
 };
 	["CategoryTypeInput"]: {
 	/** ID категории */
@@ -50264,6 +50388,14 @@ export type ModelTypes = {
 	params?: ModelTypes["JSON"] | undefined | null,
 	/** Параметры запроса в адресе страницы */
 	query?: ModelTypes["JSON"] | undefined | null
+};
+	["GrantCatalogAppRightsInput"]: {
+	/** Действия цепи, с которыми председатель согласен */
+	chainActions: Array<string>,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string,
+	/** Порты ядра, с которыми председатель согласен */
+	ports: Array<string>
 };
 	["GreetingAccountType"]:GreetingAccountType;
 	/** День рождения пайщика в календаре */
@@ -55040,7 +55172,7 @@ export type ModelTypes = {
 	["Mutation"]: {
 		/** Подтвердить подключение второго фактора первым кодом */
 	activateTwoFactor: boolean,
-	/** Назначить пайщика издателем пакета. Дальше он сам выпускает ключ каталога на этот пакет со своего стола. Только chairman. */
+	/** Назначить издателя пакета. Пайщик регистрирует на себя новый пакет; издателя пакету, который уже есть в каталоге, и другого пайщика назначает администратор каталога. Дальше издатель сам выпускает ключ каталога на пакет со своего стола. */
 	addAppsPublisher: ModelTypes["AppsPublisher"],
 	/** Добавить пайщика в белый список приватного кооперативного участка */
 	addBranchWhitelist: ModelTypes["Branch"],
@@ -55516,6 +55648,8 @@ export type ModelTypes = {
 	generateUserAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" */
 	generateWalletAgreement: ModelTypes["GeneratedDocument"],
+	/** Согласие председателя на права ядра приложения. Без согласия ядро не выдаёт приложению ключ: новое приложение не ставится, обновление с новыми правами ждёт на прежней версии. */
+	grantCatalogAppRights: ModelTypes["CatalogAppRights"],
 	/** Удалить шаблон поздравления */
 	greetingsDeleteTemplate: boolean,
 	/** Сохранить шаблон поздравления: без идентификатора создаётся черновик */
@@ -55880,12 +56014,14 @@ export type ModelTypes = {
 	selectProviderTariff: ModelTypes["SelectProviderTariffResult"],
 	/** Отправить соглашение */
 	sendAgreement: ModelTypes["Transaction"],
-	/** Назначить цену своему пакету: рубли в месяц и пробный срок. Новая цена действует для новых подписок. */
+	/** Назначить цену своему пакету: рубли в месяц и пробный срок. Цену назначает только издатель пакета; новая цена действует для новых подписок. */
 	setAppsPackagePricing: ModelTypes["AppsPackagePricing"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
 	setBranchPrivate: ModelTypes["Branch"],
 	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
 	setCatalogAppEnabled: boolean,
+	/** Переключатель «Принимать новые права после одобрения модератора каталога»: включён — обновления с новыми правами ставятся без вопроса. */
+	setCatalogAppRightsAutoAccept: ModelTypes["CatalogAppRights"],
 	/** Назначить кооперативу индивидуальную цену услуги в месяц (0 — бесплатно): витрина, новые и живые подписки кооператива берут её сразу */
 	setCoopPrice: ModelTypes["CoopPrice"],
 	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
@@ -57781,7 +57917,7 @@ export type ModelTypes = {
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling: ModelTypes["AppsNodeBilling"],
-	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	/** Цены пакетов в каталоге приложений: администратору каталога — все пакеты кооператива, издателю — его пакеты. Без цены первый выпуск пакета не одобряется. */
 	appsPackagePricing: Array<ModelTypes["AppsPackagePricing"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<ModelTypes["AppsPublisher"]>,
@@ -57901,6 +58037,8 @@ export type ModelTypes = {
 	cardcoopEntryAvailable: boolean,
 	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством */
 	cardcoopMyCard: ModelTypes["CardcoopMyCard"],
+	/** Права ядра приложения каталога на этом узле: что просит действующая версия, с чем председатель согласился и какой запрос новых прав ждёт ответа. */
+	catalogAppRights: ModelTypes["CatalogAppRights"],
 	/** Получение одобрения по внутреннему ID базы данных */
 	chairmanApproval?: ModelTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
@@ -59709,6 +59847,12 @@ export type ModelTypes = {
 };
 	["SetCatalogAppEnabledInput"]: {
 	/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string
+};
+	["SetCatalogAppRightsAutoAcceptInput"]: {
+	/** true — принимать новые права без вопроса */
 	enabled: boolean,
 	/** Пакет каталога, например @voskhod/demoapp */
 	packageId: string
@@ -61843,6 +61987,8 @@ export type GraphQLTypes = {
 	packageId: string,
 	/** Имя владельца пакета (кооператив-разработчик) */
 	publisher: string,
+	/** Новая версия просит права ядра сверх согласия и ждёт ответа председателя */
+	rightsPending: boolean,
 	/** Стоимость подписки у провайдера подключения, ₽ в месяц */
 	rubPerMonth: number,
 	/** Действующая подписка кооператива; пусто — приложение не подключено */
@@ -65915,6 +66061,36 @@ export type GraphQLTypes = {
 	entry_id: string,
 	/** Системное имя кооператива-источника */
 	from_coopname: string
+};
+	["CatalogAppRights"]: {
+	__typename: "CatalogAppRights",
+	/** Новые права принимаются без вопроса, после одобрения модератора каталога */
+	autoAccept: boolean,
+	/** Когда дано согласие (ISO 8601) */
+	consentedAt?: string | undefined | null,
+	/** Кто дал согласие */
+	consentedBy?: string | undefined | null,
+	/** Права, с которыми председатель согласился */
+	granted: GraphQLTypes["CatalogAppRightsSet"],
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string,
+	/** Права, которые новая версия просит сверх согласия. Пусто — запроса нет */
+	pending?: GraphQLTypes["CatalogAppRightsSet"] | undefined | null,
+	/** Версия, которая ждёт согласия */
+	pendingVersion?: string | undefined | null,
+	/** Права, которые просит действующая версия. Пусто — перечень сейчас недоступен */
+	requested?: GraphQLTypes["CatalogAppRightsSet"] | undefined | null,
+	/** Действующая версия пакета в каталоге */
+	version?: string | undefined | null,
+	['...on CatalogAppRights']: Omit<GraphQLTypes["CatalogAppRights"], "...on CatalogAppRights">
+};
+	["CatalogAppRightsSet"]: {
+	__typename: "CatalogAppRightsSet",
+	/** Действия цепи вида contract::action */
+	chainActions: Array<string>,
+	/** Порты ядра: имена из манифеста приложения */
+	ports: Array<string>,
+	['...on CatalogAppRightsSet']: Omit<GraphQLTypes["CatalogAppRightsSet"], "...on CatalogAppRightsSet">
 };
 	["CategoryTypeInput"]: {
 		/** ID категории */
@@ -70564,6 +70740,14 @@ export type GraphQLTypes = {
 	/** Параметры запроса в адресе страницы */
 	query?: GraphQLTypes["JSON"] | undefined | null,
 	['...on GlobalSearchRoute']: Omit<GraphQLTypes["GlobalSearchRoute"], "...on GlobalSearchRoute">
+};
+	["GrantCatalogAppRightsInput"]: {
+		/** Действия цепи, с которыми председатель согласен */
+	chainActions: Array<string>,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string,
+	/** Порты ядра, с которыми председатель согласен */
+	ports: Array<string>
 };
 	/** Пайщик — физическое лицо или индивидуальный предприниматель */
 ["GreetingAccountType"]: GreetingAccountType;
@@ -75747,7 +75931,7 @@ export type GraphQLTypes = {
 	__typename: "Mutation",
 	/** Подтвердить подключение второго фактора первым кодом */
 	activateTwoFactor: boolean,
-	/** Назначить пайщика издателем пакета. Дальше он сам выпускает ключ каталога на этот пакет со своего стола. Только chairman. */
+	/** Назначить издателя пакета. Пайщик регистрирует на себя новый пакет; издателя пакету, который уже есть в каталоге, и другого пайщика назначает администратор каталога. Дальше издатель сам выпускает ключ каталога на пакет со своего стола. */
 	addAppsPublisher: GraphQLTypes["AppsPublisher"],
 	/** Добавить пайщика в белый список приватного кооперативного участка */
 	addBranchWhitelist: GraphQLTypes["Branch"],
@@ -76223,6 +76407,8 @@ export type GraphQLTypes = {
 	generateUserAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" */
 	generateWalletAgreement: GraphQLTypes["GeneratedDocument"],
+	/** Согласие председателя на права ядра приложения. Без согласия ядро не выдаёт приложению ключ: новое приложение не ставится, обновление с новыми правами ждёт на прежней версии. */
+	grantCatalogAppRights: GraphQLTypes["CatalogAppRights"],
 	/** Удалить шаблон поздравления */
 	greetingsDeleteTemplate: boolean,
 	/** Сохранить шаблон поздравления: без идентификатора создаётся черновик */
@@ -76587,12 +76773,14 @@ export type GraphQLTypes = {
 	selectProviderTariff: GraphQLTypes["SelectProviderTariffResult"],
 	/** Отправить соглашение */
 	sendAgreement: GraphQLTypes["Transaction"],
-	/** Назначить цену своему пакету: рубли в месяц и пробный срок. Новая цена действует для новых подписок. */
+	/** Назначить цену своему пакету: рубли в месяц и пробный срок. Цену назначает только издатель пакета; новая цена действует для новых подписок. */
 	setAppsPackagePricing: GraphQLTypes["AppsPackagePricing"],
 	/** Установить приватность кооперативного участка (выбор только из белого списка) */
 	setBranchPrivate: GraphQLTypes["Branch"],
 	/** Включает или выключает приложение каталога на рабочем столе; подписка при этом не меняется. */
 	setCatalogAppEnabled: boolean,
+	/** Переключатель «Принимать новые права после одобрения модератора каталога»: включён — обновления с новыми правами ставятся без вопроса. */
+	setCatalogAppRightsAutoAccept: GraphQLTypes["CatalogAppRights"],
 	/** Назначить кооперативу индивидуальную цену услуги в месяц (0 — бесплатно): витрина, новые и живые подписки кооператива берут её сразу */
 	setCoopPrice: GraphQLTypes["CoopPrice"],
 	/** Изменить настройки подтверждения входа (изменение фактора приложения требует TOTP-код) */
@@ -78729,7 +78917,7 @@ export type GraphQLTypes = {
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling: GraphQLTypes["AppsNodeBilling"],
-	/** Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; без цены первый выпуск пакета не одобряется. */
+	/** Цены пакетов в каталоге приложений: администратору каталога — все пакеты кооператива, издателю — его пакеты. Без цены первый выпуск пакета не одобряется. */
 	appsPackagePricing: Array<GraphQLTypes["AppsPackagePricing"]>,
 	/** Назначения издателей «аккаунт → пакет». Только chairman. */
 	appsPublishers: Array<GraphQLTypes["AppsPublisher"]>,
@@ -78849,6 +79037,8 @@ export type GraphQLTypes = {
 	cardcoopEntryAvailable: boolean,
 	/** Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством */
 	cardcoopMyCard: GraphQLTypes["CardcoopMyCard"],
+	/** Права ядра приложения каталога на этом узле: что просит действующая версия, с чем председатель согласился и какой запрос новых прав ждёт ответа. */
+	catalogAppRights: GraphQLTypes["CatalogAppRights"],
 	/** Получение одобрения по внутреннему ID базы данных */
 	chairmanApproval?: GraphQLTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
@@ -80765,6 +80955,12 @@ export type GraphQLTypes = {
 };
 	["SetCatalogAppEnabledInput"]: {
 		/** true — включить на рабочем столе, false — выключить */
+	enabled: boolean,
+	/** Пакет каталога, например @voskhod/demoapp */
+	packageId: string
+};
+	["SetCatalogAppRightsAutoAcceptInput"]: {
+		/** true — принимать новые права без вопроса */
 	enabled: boolean,
 	/** Пакет каталога, например @voskhod/demoapp */
 	packageId: string
@@ -84007,6 +84203,7 @@ type ZEUS_VARIABLES = {
 	["GetVoteInput"]: ValueTypes["GetVoteInput"];
 	["GlobalSearchGroupStatus"]: ValueTypes["GlobalSearchGroupStatus"];
 	["GlobalSearchInput"]: ValueTypes["GlobalSearchInput"];
+	["GrantCatalogAppRightsInput"]: ValueTypes["GrantCatalogAppRightsInput"];
 	["GreetingAccountType"]: ValueTypes["GreetingAccountType"];
 	["GreetingDeliveryState"]: ValueTypes["GreetingDeliveryState"];
 	["GreetingPreviewInput"]: ValueTypes["GreetingPreviewInput"];
@@ -84412,6 +84609,7 @@ type ZEUS_VARIABLES = {
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetCapitalProjectPriorityInput"]: ValueTypes["SetCapitalProjectPriorityInput"];
 	["SetCatalogAppEnabledInput"]: ValueTypes["SetCatalogAppEnabledInput"];
+	["SetCatalogAppRightsAutoAcceptInput"]: ValueTypes["SetCatalogAppRightsAutoAcceptInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
 	["SetCoopPriceInput"]: ValueTypes["SetCoopPriceInput"];
 	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
