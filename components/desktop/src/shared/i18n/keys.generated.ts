@@ -3162,7 +3162,6 @@ export type MessageKey =
   | 'developer.myPackages.intro'
   | 'developer.myPackages.openGuide'
   | 'developer.myPackages.registeredAt'
-  | 'developer.myPackages.registeredLabel'
   | 'developer.myPackages.versionLabel'
   | 'developer.path.createCommand'
   | 'developer.path.key'

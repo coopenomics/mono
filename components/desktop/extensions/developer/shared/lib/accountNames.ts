@@ -1,7 +1,7 @@
 /**
  * Имена пайщиков по именам аккаунтов: издатель в списках показывается ФИО,
- * имя аккаунта остаётся подписью. Имя берётся поиском пайщиков — тем же
- * запросом, что у поля выбора пайщика; найденное хранится до перезагрузки стола.
+ * имя аккаунта остаётся подписью. Имя берётся из учётной записи пайщика;
+ * найденное хранится до перезагрузки стола.
  */
 import { reactive } from 'vue';
 import { Queries } from '@coopenomics/sdk';
@@ -12,18 +12,21 @@ const names = reactive(new Map<string, string>());
 const asked = new Set<string>();
 
 /** ФИО физлица и предпринимателя либо краткое название организации. */
-function displayNameOf(data: Record<string, unknown>): string {
+function displayNameOf(data: Record<string, unknown> | null | undefined): string {
+  if (!data) return '';
   const person = [data.last_name, data.first_name, data.middle_name].filter((part) => typeof part === 'string' && part).join(' ');
   return person || (typeof data.short_name === 'string' ? data.short_name : '');
 }
 
 async function lookup(username: string): Promise<void> {
-  const { [Queries.Accounts.SearchPrivateAccounts.name]: found } = await client.Query(
-    Queries.Accounts.SearchPrivateAccounts.query,
-    { variables: { data: { query: username } } },
-  );
-  const account = found.find((item) => item.data?.username === username);
-  const name = account ? displayNameOf(account.data as Record<string, unknown>) : '';
+  const { [Queries.Accounts.GetAccount.name]: account } = await client.Query(Queries.Accounts.GetAccount.query, {
+    variables: { data: { username } },
+  });
+  const personal = account.private_account;
+  const name =
+    displayNameOf(personal?.individual_data) ||
+    displayNameOf(personal?.entrepreneur_data) ||
+    displayNameOf(personal?.organization_data);
   if (name) names.set(username, name);
 }
 

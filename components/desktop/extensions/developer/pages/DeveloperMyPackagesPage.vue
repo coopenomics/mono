@@ -45,6 +45,7 @@
         .my-packages__price(v-if='hasPrice(current)')
           .my-packages__price-sum {{ priceLabel(current) }}
           .my-packages__price-caption {{ trialLabel(current) }}
+        .t-sm.t-muted {{ $t('developer.myPackages.registeredAt', { date: formatDate(current.registeredAt) }) }}
 
       //- Путь к каталогу: пройденные шаги отмечены, у текущего — одно действие.
       .my-packages__section(v-if="current.stage !== 'active'")
@@ -56,16 +57,14 @@
               DataRow(:label="$t('developer.path.publishCommand')", :value='publishCommand(current)', align='vertical', mono, copyable)
               BaseButton.q-mt-sm(variant='secondary', size='sm', @click='openGuide') {{ $t('developer.myPackages.openGuide') }}
 
-      .my-packages__section
+      //- Действующий пакет: версия и команда обновления.
+      .my-packages__section(v-if="current.stage === 'active'")
         DataRow(
-          v-if='current.pricing && current.pricing.lastActiveVersion',
           align='spread',
           :label="$t('developer.myPackages.versionLabel')",
-          :value='current.pricing.lastActiveVersion'
+          :value="current.pricing ? current.pricing.lastActiveVersion : ''"
         )
-        DataRow(align='spread', :label="$t('developer.myPackages.registeredLabel')", :value='formatDate(current.registeredAt)')
         DataRow(
-          v-if="current.stage === 'active'",
           :label="$t('developer.path.updateCommand')",
           :value='publishCommand(current)',
           :hint="$t('developer.path.updateHint')",
