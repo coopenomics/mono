@@ -25,7 +25,7 @@
       .release-guide__text {{ topic.text }}
       DataRow(
         v-if='topic.command',
-        :label='topic.commandLabel',
+        :label="topic.commandLabel || $t('developer.guide.commandLabel')",
         :value='topic.command',
         :hint='topic.note',
         align='vertical',
