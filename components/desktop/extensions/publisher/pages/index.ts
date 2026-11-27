@@ -1,1 +1,0 @@
-export { PublisherMyAppsPage } from './PublisherMyAppsPage';

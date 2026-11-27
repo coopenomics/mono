@@ -57,7 +57,10 @@ sources:
     - components/controller/src/extensions/apps-catalog-proxy/application/resolvers/apps.resolver.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/access/apps-rights.ts
     - components/controller/src/infrastructure/innercoop/provider-apps-innercoop.adapter.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/apps-publishers.service.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/access/developer-rights.ts
   ui:
+    - components/desktop/extensions/developer/**
     - components/desktop/src/widgets/CatalogApp/**
     - components/desktop/src/entities/CatalogApp/**
     - components/desktop/src/pages/ExtensionStore/**
@@ -408,17 +411,18 @@ cases:
     external_reason: "удаление контейнера приложения — действие над docker стенда, внешний слой работает только через API"
 
   # ── 26.11.2026 (487-31): цену приложения назначает издатель ─────────────
-  # Решение владельца: цена управляется со стола разработчика, страница
-  # «Тарифы», и назначается до активации первого выпуска. Прежде цену задавал
+  # Решение владельца: цена управляется со стола разработчика (с 27.11.2026 —
+  # страница «Мои пакеты») и назначается до активации первого выпуска. Прежде цену задавал
   # оператор каталога запросом к своей службе, страницы для неё не было.
   - id: apps.access.happy.17
     level: backend
     kind: happy
     scenario: >
-      Председатель кооператива-издателя открывает «Тарифы» и назначает своему пакету цену в рублях в месяц и пробный срок.
+      Издатель открывает «Мои пакеты» и назначает своему пакету цену в рублях в месяц и пробный срок;
+      администратор каталога смотрит цены всех пакетов кооператива.
     expect: >
-      список отдаёт свои пакеты, у пакета без цены цена пуста; каталог получает рубли в месяц без пересчёта
-      токеном кооператива; не указанный пробный срок равен 0
+      администратор получает все пакеты кооператива, издатель — только свои, у пакета без цены цена пуста;
+      каталог получает рубли в месяц без пересчёта токеном кооператива; не указанный пробный срок равен 0
     test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
     status: written
     external: unreachable
@@ -443,9 +447,86 @@ cases:
       Модератор одобряет первый выпуск пакета, которому издатель цену не назначил.
     expect: >
       заявка в списке несёт пустую цену; каталог отвечает PRICING_NOT_SET, модератор получает причину словами
-      со ссылкой на страницу «Тарифы»; прочий конфликт сохраняет текст каталога
+      со ссылкой на страницу «Мои пакеты»; прочий конфликт сохраняет текст каталога
     test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет каталога приложений и заявок на модерацию"
+
+  # ── 27.11.2026: издателем становится любой пайщик, цену меняет только издатель ──
+  # Решение владельца: прежде издателя назначал председатель отдельной
+  # страницей, и без него пайщик не мог начать. Теперь пайщик сам регистрирует
+  # новый пакет на странице «Мои пакеты»; выпуск по-прежнему проходит модерацию.
+  - id: apps.access.happy.18
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик регистрирует на себя новый пакет своего кооператива на странице «Мои пакеты».
+    expect: >
+      пайщик становится издателем пакета; повторная регистрация отдаёт ту же запись без дубля
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен: расширение доступно только на стендах разработки"
+
+  - id: apps.access.break.17
+    level: backend
+    kind: break
+    scenario: >
+      Пайщик регистрирует на себя занятый пакет: пакет другого издателя, пакет из каталога без издателя,
+      пакет чужого кооператива; либо назначает издателем другого пайщика.
+    expect: >
+      отказ в каждом случае, запись издателя не создаётся; другого пайщика и издателя пакету из каталога
+      назначает только администратор каталога
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен"
+
+  - id: apps.access.break.18
+    level: backend
+    kind: break
+    scenario: >
+      Цену пакета меняет не его издатель: администратор каталога либо другой пайщик.
+    expect: >
+      отказ «не назначен издателем»; каталог запрос на запись цены не получает
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя стол разработчика не установлен"
+
+  # Права ядра в заявке: модератор видит порты и действия цепи отдельным блоком.
+  - id: apps.access.happy.19
+    level: ui
+    kind: happy
+    scenario: >
+      Модератор открывает заявку на выпуск: каталог поставил перечень прав ядра из манифеста версии в начало пояснения.
+    expect: >
+      стол показывает порты и действия цепи отдельно от текста издателя; обновление с новыми правами помечено;
+      имя контракта с точкой перечень не обрывает; замечание каталога вместо прав сохраняется
+    test: components/desktop/test/unit/developer-core-rights.test.ts
+    status: written
+
+  - id: apps.access.break.19
+    level: ui
+    kind: break
+    scenario: >
+      Пояснение заявки без перечня каталога либо со словами о правах в середине текста издателя.
+    expect: >
+      прав нет, текст целиком принадлежит издателю: издатель не подставляет перечень прав своим текстом в середине пояснения
+    test: components/desktop/test/unit/developer-core-rights.test.ts
+    status: written
+
+  # ── Не решено ────────────────────────────────────────────────────────────
+  - id: apps.access.side.20
+    level: ui
+    kind: side
+    scenario: >
+      Издатель проходит путь на «Мои пакеты»: регистрация пакета, выпуск ключа, цена; администратор назначает и снимает издателя.
+    expect: >
+      Не решено: сценарий через интерфейс требует стенда с каталогом приложений, которого у набора UI нет —
+      вносить ли каталог в стенд набора UI
+    test: ~
+    status: missing
+    decision_needed: true
 

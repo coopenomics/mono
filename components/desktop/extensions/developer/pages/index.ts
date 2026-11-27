@@ -1,6 +1,4 @@
 export { DeveloperMyPackagesPage } from './DeveloperMyPackagesPage';
-export { DeveloperPublishReleasePage } from './DeveloperPublishReleasePage';
+export { DeveloperReleaseGuidePage } from './DeveloperReleaseGuidePage';
 export { DeveloperModerationPage } from './DeveloperModerationPage';
-export { DeveloperSubscribersPage } from './DeveloperSubscribersPage';
-export { DeveloperPricingPage } from './DeveloperPricingPage';
-export { DeveloperPublishersPage } from './DeveloperPublishersPage';
+export { AdminPackagesPage } from './AdminPackagesPage';

@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
-import { DomainError, GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser } from '@coopenomics/extension-kit';
+import { DomainError, GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, councilRolesOf } from '@coopenomics/extension-kit';
 import { AppsPackagePricingDTO, SetAppsPackagePricingInputDTO } from '../dto/apps-package-pricing.dto';
 import { type IMonoAccount } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
@@ -267,21 +267,31 @@ export class AppsCatalogProxyResolver {
   @Mutation(() => AppsPublisherDTO, {
     name: 'addAppsPublisher',
     description:
-      'Назначить пайщика издателем пакета. Дальше он сам выпускает ключ ' +
-      'каталога на этот пакет со своего стола. Только chairman.',
+      'Назначить издателя пакета. Пайщик регистрирует на себя новый пакет; ' +
+      'издателя пакету, который уже есть в каталоге, и другого пайщика назначает администратор каталога. ' +
+      'Дальше издатель сам выпускает ключ каталога на пакет со своего стола.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
+  @RequireRight('Publisher', 'manage')
   async addAppsPublisher(
     @Args('data', { type: () => AppsPublisherAssignmentInputDTO })
     data: AppsPublisherAssignmentInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<AppsPublisherDTO> {
-    const row = await this.publishers.add({
-      username: data.username,
-      packageId: data.packageId,
-      addedBy: currentUser.username,
-    });
+    // Администратор назначает любого пайщика на любой пакет кооператива;
+    // остальные регистрируют только себя и только на свободный пакет.
+    if (councilRolesOf(currentUser.role).includes('chairman')) {
+      const row = await this.publishers.add({
+        username: data.username,
+        packageId: data.packageId,
+        addedBy: currentUser.username,
+      });
+      return toPublisherDTO(row);
+    }
+    if (data.username !== currentUser.username) {
+      throw DomainError.forbidden('APPS_CATALOG_PROXY_PUBLISHER_FOREIGN_ASSIGNMENT', { package_id: data.packageId });
+    }
+    const row = await this.publishers.register({ username: currentUser.username, packageId: data.packageId });
     return toPublisherDTO(row);
   }
 
@@ -388,29 +398,31 @@ export class AppsCatalogProxyResolver {
   @Query(() => [AppsPackagePricingDTO], {
     name: 'appsPackagePricing',
     description:
-      'Пакеты своего кооператива в каталоге приложений и их цены. Цену назначает издатель; ' +
-      'без цены первый выпуск пакета не одобряется.',
+      'Цены пакетов в каталоге приложений: администратору каталога — все пакеты кооператива, ' +
+      'издателю — его пакеты. Без цены первый выпуск пакета не одобряется.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
-  async appsPackagePricing(): Promise<AppsPackagePricingDTO[]> {
-    return this.client.listDeveloperPricing();
+  @RequireRight('Publisher', 'manage')
+  async appsPackagePricing(@CurrentUser() currentUser: IMonoAccount): Promise<AppsPackagePricingDTO[]> {
+    if (councilRolesOf(currentUser.role).includes('chairman')) return this.client.listDeveloperPricing();
+    return this.publishers.myPricing(currentUser.username);
   }
 
   @Mutation(() => AppsPackagePricingDTO, {
     name: 'setAppsPackagePricing',
     description:
-      'Назначить цену своему пакету: рубли в месяц и пробный срок. Новая цена действует ' +
-      'для новых подписок.',
+      'Назначить цену своему пакету: рубли в месяц и пробный срок. Цену назначает только издатель пакета; ' +
+      'новая цена действует для новых подписок.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Developer', 'manage')
+  @RequireRight('Publisher', 'manage')
   async setAppsPackagePricing(
     @Args('data', { type: () => SetAppsPackagePricingInputDTO })
     data: SetAppsPackagePricingInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
   ): Promise<AppsPackagePricingDTO> {
-    const outcome = await this.client.setDeveloperPricing({
+    const outcome = await this.publishers.setPricing({
+      username: currentUser.username,
       packageId: data.packageId,
       rubPerMonth: data.rubPerMonth,
       trialDays: data.trialDays ?? 0,

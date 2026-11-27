@@ -1,4 +1,4 @@
-// 487-27: состояние страницы «Издатели» стола разработчика.
+// Назначения издателей «пайщик → пакет» для стола администратора каталога.
 import { ref } from 'vue';
 import { api, type IAppsPublisher, type IAssignmentInput } from '../api';
 

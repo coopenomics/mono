@@ -262,9 +262,10 @@ export const AppRegistry: INamedExtension = {
         icon: 'code',
       },
       {
-        name: 'publisher',
-        title: t('app.extensionsRegistry.developer.publisherWindowTitle'),
-        icon: 'key',
+        // Стол администратора каталога: модерация, все пакеты, цены и издатели.
+        name: 'appsadmin',
+        title: t('app.extensionsRegistry.developer.adminWindowTitle'),
+        icon: 'admin_panel_settings',
       },
     ],
     title: t('app.extensionsRegistry.developer.title'),

@@ -1,23 +1,26 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { councilRolesOf, desktopGrantsOf, type AppRights, type RightsCaller, type RightsTable } from '@coopenomics/extension-kit';
 import { DESKTOP_GRANTS_REGISTRY_PORT, type IDesktopGrantsRegistryPort } from '@coopenomics/innercoop';
-import { AppsPublishersService } from '../services/apps-publishers.service';
 
 /** Имя рабочего стола расширения: под ним выдаются права страниц. */
 export const DEVELOPER_DESKTOP_NAME = 'developer';
 
-/** Председатель ведёт каталог кооператива, издатель — только свои пакеты. */
+/** Председатель — администратор каталога кооператива, издатель — только свои пакеты. */
 export type DeveloperRole = 'chairman' | 'publisher';
 
 /**
  * Таблица прав расширения «Стол разработчика» (C28-87): роль → право `Ресурс:действие`.
  *
- *  - `Developer:manage` — пакеты, выпуски, модерация, подписка и назначение
- *    издателей; стол «Стол разработчика»;
- *  - `Publisher:manage` — свои пакеты и ключи каталога; стол «Мои приложения».
+ *  - `Developer:manage` — модерация, все пакеты, цены и издатели кооператива;
+ *    «Стол администратора»;
+ *  - `Publisher:manage` — свои пакеты, их цены и ключи каталога; «Стол
+ *    разработчика».
  *
- * Операции издателя дополнительно сверяют назначение «аккаунт → пакет» в
- * сервисе: право открывает стол, назначение — конкретный пакет.
+ * Издателем становится любой принятый пайщик: он сам регистрирует пакет на
+ * странице «Мои пакеты» (решение владельца 27.11.2026 — прежде издателя
+ * назначал председатель, и без него пайщик не мог начать). Выпуск по-прежнему
+ * проходит модерацию. Операции издателя сверяют назначение «аккаунт → пакет»
+ * в сервисе: право открывает стол, назначение — конкретный пакет.
  */
 export const developerRightsTable: RightsTable<DeveloperRole, never> = {
   chairman: [{ when: [], rights: { Developer: ['manage'] } }],
@@ -38,19 +41,15 @@ export class DeveloperRights implements AppRights<DeveloperRole, never>, OnModul
 
   constructor(
     @Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort,
-    private readonly publishers: AppsPublishersService,
   ) {}
 
   onModuleInit(): void {
     this.grantsRegistry.register(desktopGrantsOf(this));
   }
 
-  async roles(caller: RightsCaller): Promise<DeveloperRole[]> {
+  roles(caller: RightsCaller): Promise<DeveloperRole[]> {
     const roles: DeveloperRole[] = councilRolesOf(caller.role).includes('chairman') ? ['chairman'] : [];
-    if (caller.status === ACCEPTED_STATUS) {
-      const assignments = await this.publishers.listFor(caller.username);
-      if (assignments.length > 0) roles.push('publisher');
-    }
-    return roles;
+    if (caller.status === ACCEPTED_STATUS) roles.push('publisher');
+    return Promise.resolve(roles);
   }
 }

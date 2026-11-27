@@ -1,8 +1,8 @@
-// 487-27: самообслуживание издателя — свои пакеты и ключи каталога.
+// Свои пакеты издателя: регистрация пакета на себя и ключи каталога.
 import { client } from 'src/shared/api/client';
 import { Mutations, Queries } from '@coopenomics/sdk';
 
-export type IMyPackage = Queries.Extensions.MyPublisherPackages.IOutput[
+export type IMyAssignment = Queries.Extensions.MyPublisherPackages.IOutput[
   typeof Queries.Extensions.MyPublisherPackages.name
 ][number];
 export type IMyToken = Queries.Extensions.MyPublisherTokens.IOutput[
@@ -13,7 +13,7 @@ export type IIssueOutput = Mutations.Extensions.IssueMyPublisherToken.IOutput[
   typeof Mutations.Extensions.IssueMyPublisherToken.name
 ];
 
-async function myPackages(): Promise<IMyPackage[]> {
+async function myAssignments(): Promise<IMyAssignment[]> {
   const { [Queries.Extensions.MyPublisherPackages.name]: output } = await client.Query(
     Queries.Extensions.MyPublisherPackages.query,
     { variables: {} },
@@ -25,6 +25,15 @@ async function myTokens(): Promise<IMyToken[]> {
   const { [Queries.Extensions.MyPublisherTokens.name]: output } = await client.Query(
     Queries.Extensions.MyPublisherTokens.query,
     { variables: {} },
+  );
+  return output;
+}
+
+/** Пайщик регистрирует пакет на себя: ядро отказывает, если пакет занят. */
+async function registerPackage(username: string, packageId: string): Promise<IMyAssignment> {
+  const { [Mutations.Extensions.AddAppsPublisher.name]: output } = await client.Mutation(
+    Mutations.Extensions.AddAppsPublisher.mutation,
+    { variables: { data: { username, packageId } } },
   );
   return output;
 }
@@ -45,4 +54,4 @@ async function revokeToken(id: string): Promise<boolean> {
   return output;
 }
 
-export const api = { myPackages, myTokens, issueToken, revokeToken };
+export const api = { myAssignments, myTokens, registerPackage, issueToken, revokeToken };
