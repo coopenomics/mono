@@ -50,6 +50,38 @@ export const isLiveSubscription = (s: CatalogAppSubscription | null | undefined)
   !!s && (s.status === Zeus.ProviderAppSubscriptionStatus.ACTIVE || s.status === Zeus.ProviderAppSubscriptionStatus.TRIAL);
 
 /**
+ * Права ядра приложений по пакету: страница приложения и ход установки читают
+ * одно состояние. После согласия и переключателя витрина перечитывается:
+ * пометка «Ждёт согласия» меняется вместе с правами.
+ */
+function useRightsState(reloadApps: () => Promise<void>) {
+  const rights = ref<Record<string, CatalogAppRights>>({});
+
+  function rightsOf(packageId: string): CatalogAppRights | undefined {
+    return rights.value[packageId];
+  }
+
+  async function loadRights(packageId: string): Promise<void> {
+    rights.value = { ...rights.value, [packageId]: await api.loadCatalogAppRights(packageId) };
+  }
+
+  /** Председатель согласился с правами: ядро выдаёт ключ, узел ставит версию ближайшим опросом. */
+  async function grantRights(packageId: string, set: CatalogAppRightsSet): Promise<void> {
+    const fresh = await api.grantCatalogAppRights({ packageId, ports: set.ports, chainActions: set.chainActions });
+    rights.value = { ...rights.value, [packageId]: fresh };
+    await reloadApps();
+  }
+
+  async function setRightsAutoAccept(packageId: string, enabled: boolean): Promise<void> {
+    const fresh = await api.setCatalogAppRightsAutoAccept({ packageId, enabled });
+    rights.value = { ...rights.value, [packageId]: fresh };
+    await reloadApps();
+  }
+
+  return { rightsOf, loadRights, grantRights, setRightsAutoAccept };
+}
+
+/**
  * Приложения каталога на этом узле: цена и пробный срок у провайдера,
  * подписка кооператива, получен ли фронт и включено ли приложение.
  * Один список читают витрина, страница приложения и список установленных.
@@ -97,29 +129,7 @@ export const useCatalogAppStore = defineStore('catalogAppStore', () => {
     await load();
   }
 
-  /** Права ядра приложений по пакету: страница приложения и ход установки читают одно состояние. */
-  const rights = ref<Record<string, CatalogAppRights>>({});
-
-  function rightsOf(packageId: string): CatalogAppRights | undefined {
-    return rights.value[packageId];
-  }
-
-  async function loadRights(packageId: string): Promise<void> {
-    rights.value = { ...rights.value, [packageId]: await api.loadCatalogAppRights(packageId) };
-  }
-
-  /** Председатель согласился с правами: ядро выдаёт ключ, узел ставит версию ближайшим опросом. */
-  async function grantRights(packageId: string, set: CatalogAppRightsSet): Promise<void> {
-    const fresh = await api.grantCatalogAppRights({ packageId, ports: set.ports, chainActions: set.chainActions });
-    rights.value = { ...rights.value, [packageId]: fresh };
-    await load();
-  }
-
-  async function setRightsAutoAccept(packageId: string, enabled: boolean): Promise<void> {
-    const fresh = await api.setCatalogAppRightsAutoAccept({ packageId, enabled });
-    rights.value = { ...rights.value, [packageId]: fresh };
-    await load();
-  }
+  const { rightsOf, loadRights, grantRights, setRightsAutoAccept } = useRightsState(load);
 
   return {
     apps,

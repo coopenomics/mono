@@ -53,23 +53,35 @@ function toSubscriptionDTO(s: InnerAppSubscription): AppsCatalogSubscriptionDTO 
   };
 }
 
+/** Согласие пакета, по которому председатель ещё не отвечал: прав нет, запроса нет. */
+const NO_CONSENT = {
+  ports: [] as string[],
+  chainActions: [] as string[],
+  pendingPorts: [] as string[],
+  pendingChainActions: [] as string[],
+  pendingVersion: null as string | null,
+  autoAccept: false,
+  consentedBy: null as string | null,
+  consentedAt: null as Date | null,
+};
+
 /** Согласие и запрос новых прав → GraphQL. */
 function toRightsDTO(
   packageId: string,
   requested: AppRequestedRights | null,
   consent: AppRightsConsentRecord | null,
 ): CatalogAppRightsDTO {
-  const pending = consent?.pendingVersion != null;
+  const row = consent ?? NO_CONSENT;
   return {
     packageId,
-    version: requested?.version ?? null,
+    version: requested ? requested.version : null,
     requested: requested ? { ports: requested.ports, chainActions: requested.chainActions } : null,
-    granted: { ports: consent?.ports ?? [], chainActions: consent?.chainActions ?? [] },
-    pending: pending ? { ports: consent?.pendingPorts ?? [], chainActions: consent?.pendingChainActions ?? [] } : null,
-    pendingVersion: consent?.pendingVersion ?? null,
-    autoAccept: consent?.autoAccept ?? false,
-    consentedBy: consent?.consentedBy ?? null,
-    consentedAt: consent?.consentedAt ? new Date(consent.consentedAt).toISOString() : null,
+    granted: { ports: row.ports, chainActions: row.chainActions },
+    pending: row.pendingVersion === null ? null : { ports: row.pendingPorts, chainActions: row.pendingChainActions },
+    pendingVersion: row.pendingVersion,
+    autoAccept: row.autoAccept,
+    consentedBy: row.consentedBy,
+    consentedAt: row.consentedAt ? new Date(row.consentedAt).toISOString() : null,
   };
 }
 

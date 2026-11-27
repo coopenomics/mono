@@ -337,12 +337,14 @@ describe('маршруты входа портов', () => {
   it('side: порт вернул undefined — клиент получает явный null', async () => {
     const c = controllers();
     c.h.cooperativeVars.get.mockResolvedValueOnce(undefined as any);
+    await c.consents.grant(PKG, { ports: ['cooperativeVars'], chainActions: [] }, 'ant');
     const issued = await c.admin.issue('node-secret', 'voskhod', 'exampleapp', { ports: ['cooperativeVars'] });
     expect(await c.ports.call(`Bearer ${issued.token}`, 'cooperativeVars', 'get', undefined)).toEqual({ result: null });
   });
 
   it('happy: снятие стирает заявку — тот же токен больше не принимается', async () => {
     const c = controllers();
+    await c.consents.grant(PKG, { ports: ['cooperativeVars'], chainActions: [] }, 'ant');
     const issued = await c.admin.issue('node-secret', '@voskhod', 'exampleapp', { ports: ['cooperativeVars'] });
     await c.admin.revoke('node-secret', 'voskhod', 'exampleapp');
     expect(await code(() => c.ports.call(`Bearer ${issued.token}`, 'cooperativeVars', 'get', { args: [] }))).toBe(
