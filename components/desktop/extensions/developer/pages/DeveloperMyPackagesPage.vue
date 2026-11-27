@@ -1,89 +1,110 @@
 <template lang="pug">
-//- Зоны строки: опознание (пакет, дата регистрации) → состояние (шаг пути к
-//- каталогу и что он значит) → деньги (цена в месяц, под ней пробный срок) →
-//- действие (следующий шаг издателя). Строка открывает панель пакета: цена,
-//- ключи выпуска и команды терминала.
-q-page(padding)
-  .q-pa-md
-    PageHint.q-mb-md(storage-key='developer:my-packages:hint-dismissed')
-      | {{ $t('developer.myPackages.intro') }}
+//- Каркас страницы списка по образцу «Мои заказы»: действие в шапке →
+//- подсказка → каркас загрузки → пустое состояние → строки пакетов.
+//- Строка: опознание (пакет, дата регистрации) → деньги (цена в месяц, под
+//- ней пробный срок) → состояние (шаг пути к каталогу, под ним только новое)
+//- → действие (следующий шаг издателя). Нажатие открывает панель пакета.
+.q-pa-md
+  PageHint.q-mb-md(storage-key='developer:my-packages:hint-dismissed')
+    | {{ $t('developer.myPackages.intro') }}
 
-    BaseBanner.q-mb-md(v-if='error', variant='neg') {{ error }}
+  BaseBanner.q-mb-md(v-if='error', variant='neg') {{ error }}
 
-    EmptyState(
-      v-else-if='!firstLoad && !packages.length',
-      :title="$t('developer.myPackages.emptyTitle')",
-      :body="$t('developer.myPackages.emptyBody')"
+  CardListSkeleton(v-else-if='firstLoad', :count='2')
+
+  EmptyState(
+    v-else-if='!packages.length',
+    :title="$t('developer.myPackages.emptyTitle')",
+    :body="$t('developer.myPackages.emptyBody')"
+  )
+    template(#icon)
+      q-icon(name='inventory_2', size='32px')
+
+  .my-packages__list(v-else)
+    PackageRow(
+      v-for='pkg in packages',
+      :key='pkg.packageId',
+      :title='pkg.packageId',
+      :meta="$t('developer.myPackages.registeredAt', { date: formatDate(pkg.registeredAt) })",
+      :sum="hasPrice(pkg) ? priceLabel(pkg) : ''",
+      :sum-caption='trialLabel(pkg)',
+      :badge-label='STAGES[pkg.stage].label',
+      :badge-variant='STAGES[pkg.stage].variant',
+      :state-note='stageNote(pkg)',
+      @open='openPackage(pkg)'
     )
-      template(#icon)
-        q-icon(name='inventory_2', size='28px')
+      template(v-if='nextStep(pkg)', #actions)
+        BaseButton(variant='secondary', size='sm', @click='nextStep(pkg)?.run()') {{ nextStep(pkg)?.label }}
 
-    BaseTable(
-      v-else,
-      :columns='columns',
-      :rows='packages',
-      row-key='packageId',
-      :loading='firstLoad',
-      :skeleton-rows='3',
-      min-width='680px',
-      clickable-rows,
-      @row-click='openPackage'
-    )
-      template(#cell-package='{ row }')
-        .t-mono {{ row.packageId }}
-        .t-sm.t-muted {{ $t('developer.myPackages.registeredAt', { date: formatDate(row.registeredAt) }) }}
-      template(#cell-stage='{ row }')
-        BaseBadge(:variant='STAGES[row.stage].variant') {{ STAGES[row.stage].label }}
-        .t-sm.t-muted.q-mt-xs {{ stageNote(row) }}
-      template(#cell-price='{ row }')
-        template(v-if='hasPrice(row)')
-          .my-packages__amount {{ priceLabel(row) }}
-          .t-sm.t-muted {{ trialLabel(row) }}
-        span.t-muted(v-else) —
-      template(#cell-actions='{ row }')
-        BaseButton(variant='secondary', size='sm', @click.stop='runNextStep(row)') {{ nextStepLabel(row) }}
-
+  //- Панель пакета: состояние → цена крупно → путь к каталогу (пока выпуска
+  //- нет) → факты → ключи выпуска → команда обновления. Действия — в подвале.
   DetailsDrawer(v-model='drawerOpen', :title="current ? current.packageId : ''", :width='520')
     template(v-if='current')
-      .my-packages__section
+      .my-packages__head
         BaseBadge(:variant='STAGES[current.stage].variant') {{ STAGES[current.stage].label }}
-        .t-sm.t-muted.q-mt-xs {{ stageNote(current) }}
+        .my-packages__price(v-if='hasPrice(current)')
+          .my-packages__price-sum {{ priceLabel(current) }}
+          .my-packages__price-caption {{ trialLabel(current) }}
+
+      //- Путь к каталогу: пройденные шаги отмечены, у текущего — одно действие.
+      .my-packages__section(v-if="current.stage !== 'active'")
+        .t-eyebrow.q-mb-sm {{ $t('developer.path.title') }}
+        VerticalStepper(:steps='pathSteps', :active-key='activeStep(current)', :completed='completedSteps(current)')
+          template(#active='{ step }')
+            template(v-if="step.key === 'release'")
+              DataRow(:label="$t('developer.path.createCommand')", :value='createCommand(current)', align='vertical', mono, copyable)
+              DataRow(:label="$t('developer.path.publishCommand')", :value='publishCommand(current)', align='vertical', mono, copyable)
+              BaseButton.q-mt-sm(variant='secondary', size='sm', @click='openGuide') {{ $t('developer.myPackages.openGuide') }}
 
       .my-packages__section
-        .my-packages__section-head
-          .my-packages__section-title {{ $t('developer.myPackages.priceTitle') }}
-          BaseButton(variant='secondary', size='sm', :disabled='!current.pricing', @click='openPrice(current)')
-            | {{ hasPrice(current) ? $t('developer.price.change') : $t('developer.price.set') }}
-        template(v-if='hasPrice(current)')
-          DataRow(align='spread', :label="$t('developer.price.priceLabel')", :value='priceLabel(current)')
-          DataRow(align='spread', :label="$t('developer.price.trialTitle')", :value='trialValue(current)')
-        .t-sm.t-muted(v-else) {{ current.pricing ? $t('developer.myPackages.priceRequired') : $t('developer.myPackages.priceAfterRelease') }}
+        DataRow(
+          v-if='current.pricing && current.pricing.lastActiveVersion',
+          align='spread',
+          :label="$t('developer.myPackages.versionLabel')",
+          :value='current.pricing.lastActiveVersion'
+        )
+        DataRow(align='spread', :label="$t('developer.myPackages.registeredLabel')", :value='formatDate(current.registeredAt)')
+        DataRow(
+          v-if="current.stage === 'active'",
+          :label="$t('developer.path.updateCommand')",
+          :value='publishCommand(current)',
+          :hint="$t('developer.path.updateHint')",
+          align='vertical',
+          mono,
+          copyable
+        )
 
       .my-packages__section
-        .my-packages__section-head
-          .my-packages__section-title {{ $t('developer.keys.title') }}
-          BaseButton(variant='secondary', size='sm', @click='openIssue(current)') {{ $t('developer.keys.issue') }}
-        .t-sm.t-muted(v-if='!current.tokens.length') {{ $t('developer.keys.empty') }}
-        .my-packages__key(v-for='token in current.tokens', :key='token.id')
-          .my-packages__key-main
-            div {{ token.label }}
-            .t-sm.t-muted
-              span.t-mono {{ token.tokenPrefix }}…
-              |
-              | · {{ formatDate(token.createdAt) }}
-          BaseBadge(:variant='tokenState(token).variant') {{ tokenState(token).label }}
-          BaseButton(v-if='isLiveToken(token)', variant='secondary', size='sm', :loading='isSubmitting', @click='revokeKey(token)')
-            | {{ $t('developer.keys.revoke') }}
+        .t-eyebrow.q-mb-sm {{ $t('developer.keys.title') }}
+        q-list(v-if='current.tokens.length', separator)
+          q-item.my-packages__key(v-for='token in current.tokens', :key='token.id')
+            q-item-section
+              .text-weight-medium {{ token.label }}
+              .t-meta.t-muted
+                span.t-mono {{ token.tokenPrefix }}…
+                |
+                | · {{ formatDate(token.createdAt) }}
+            q-item-section(side)
+              .my-packages__key-side
+                BaseBadge(:variant='tokenState(token).variant') {{ tokenState(token).label }}
+                BaseButton(
+                  v-if='isLiveToken(token)',
+                  variant='secondary',
+                  size='sm',
+                  :loading='isSubmitting',
+                  @click='revokeKey(token)'
+                ) {{ $t('developer.keys.revoke') }}
+        .t-sm.t-muted(v-else) {{ $t('developer.keys.empty') }}
 
-      .my-packages__section
-        .my-packages__section-title {{ $t('developer.myPackages.terminalTitle') }}
-        .t-sm.t-muted.q-mb-sm {{ $t('developer.myPackages.terminalText') }}
-        template(v-if="current.stage === 'registered'")
-          .t-sm.q-mb-xs {{ $t('developer.myPackages.createStep') }}
-          CommandBlock.q-mb-sm(:command='createCommand(current)')
-        .t-sm.q-mb-xs {{ $t('developer.myPackages.publishStep') }}
-        CommandBlock.q-mb-sm(:command='publishCommand(current)')
-        BaseButton(variant='secondary', size='sm', @click='openGuide') {{ $t('developer.myPackages.openGuide') }}
+    template(v-if='current', #footer)
+      .my-packages__footer
+        BaseButton(variant='secondary', @click='openIssue(current)')
+          template(#icon-left)
+            q-icon(name='key', size='18px')
+          | {{ $t('developer.keys.issue') }}
+        q-space
+        BaseButton(v-if='current.pricing', variant='primary', @click='openPrice(current)')
+          | {{ hasPrice(current) ? $t('developer.price.change') : $t('developer.price.set') }}
 
   BaseDialog(v-model='registerDialog', :title="$t('developer.register.title')", size='sm')
     p.t-sm.t-muted.q-mb-sm {{ $t('developer.register.text') }}
@@ -145,9 +166,15 @@ q-page(padding)
       BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
     template(v-else)
       BaseBanner.q-mb-sm(variant='warn') {{ $t('developer.keys.copyWarning') }}
-      CommandBlock.q-mb-md(:command='issuedToken')
-      .t-sm.q-mb-xs {{ $t('developer.keys.nextStep') }}
-      CommandBlock(:command='issuePublishCommand')
+      DataRow(:label="$t('developer.keys.keyLabel')", :value='issuedToken', align='vertical', mono, copyable)
+      DataRow(
+        :label="$t('developer.path.publishCommand')",
+        :value='issuePublishCommand',
+        :hint="$t('developer.keys.nextStep')",
+        align='vertical',
+        mono,
+        copyable
+      )
     template(#footer)
       template(v-if='!issuedToken')
         BaseButton(variant='ghost', :disabled='isSubmitting', @click='issueDialog = false') {{ $t('common.action.cancel') }}
@@ -158,17 +185,17 @@ q-page(padding)
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseInput, BaseTable, EmptyState } from 'src/shared/ui/base';
-import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
+import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
-import { AmountInput, DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
+import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper } from 'src/shared/ui/domain';
+import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { isLiveToken, useMyPackages, type IMyPackage, type IMyToken, type PackageStage } from '../features/MyPackages/model';
 import { formatDate, formatRub } from '../shared/lib/format';
-import CommandBlock from '../shared/ui/CommandBlock.vue';
+import PackageRow from '../shared/ui/PackageRow.vue';
 import HeaderActionButton from '../shared/ui/HeaderActionButton.vue';
 import { t } from '../i18n';
 
@@ -199,24 +226,21 @@ const firstLoad = useFirstLoad(loading);
 
 const packagePrefix = computed(() => `@${systemStore.info.coopname}/`);
 
-const columns: BaseTableColumn<IMyPackage>[] = [
-  { key: 'package', label: t('developer.column.package') },
-  { key: 'stage', label: t('developer.column.stage'), width: '260px' },
-  { key: 'price', label: t('developer.column.price'), width: '170px' },
-  { key: 'actions', label: t('developer.column.actions'), width: '180px', align: 'right', nowrap: true },
-];
-
-const STAGES: Record<PackageStage, { label: string; variant: BaseBadgeVariant; note: string }> = {
-  registered: { label: t('developer.stage.registered'), variant: 'neutral', note: t('developer.stage.registeredNote') },
-  needsPrice: { label: t('developer.stage.needsPrice'), variant: 'warn', note: t('developer.stage.needsPriceNote') },
-  moderation: { label: t('developer.stage.moderation'), variant: 'info', note: t('developer.stage.moderationNote') },
-  active: { label: t('developer.stage.active'), variant: 'pos', note: '' },
+/** Состояние пакета: бейдж называет шаг один раз, строка под ним добавляет только новое. */
+const STAGES: Record<PackageStage, { label: string; variant: BaseBadgeVariant }> = {
+  registered: { label: t('developer.stage.registered'), variant: 'neutral' },
+  needsPrice: { label: t('developer.stage.needsPrice'), variant: 'warn' },
+  moderation: { label: t('developer.stage.moderation'), variant: 'info' },
+  active: { label: t('developer.stage.active'), variant: 'pos' },
 };
 
 function stageNote(pkg: IMyPackage): string {
-  if (pkg.stage !== 'active') return STAGES[pkg.stage].note;
-  return t('developer.stage.activeNote', { version: pkg.pricing?.lastActiveVersion ?? '' });
+  if (pkg.stage === 'active') return t('developer.stage.activeNote', { version: pkg.pricing?.lastActiveVersion ?? '' });
+  if (pkg.stage === 'registered') return hasLiveKey(pkg) ? t('developer.stage.keyIssued') : t('developer.stage.noKey');
+  return '';
 }
+
+const hasLiveKey = (pkg: IMyPackage) => pkg.tokens.some(isLiveToken);
 
 function hasPrice(pkg: IMyPackage): boolean {
   return pkg.pricing?.rubPerMonth != null;
@@ -232,19 +256,13 @@ function trialLabel(pkg: IMyPackage): string {
   return days > 0 ? t('developer.price.trialDays', { days }) : t('developer.price.noTrial');
 }
 
-/** Пробный срок значением строки «подпись — значение»: без повтора подписи. */
-function trialValue(pkg: IMyPackage): string {
-  const days = pkg.pricing?.trialDays ?? 0;
-  return days > 0 ? t('developer.price.days', { days }) : t('developer.price.none');
-}
-
 function tokenState(token: IMyToken): { label: string; variant: BaseBadgeVariant } {
   if (token.revokedAt) return { label: t('developer.keys.state.revoked'), variant: 'neutral' };
   if (!isLiveToken(token)) return { label: t('developer.keys.state.expired'), variant: 'warn' };
   return { label: t('developer.keys.state.active'), variant: 'pos' };
 }
 
-const createCommand = (pkg: IMyPackage) => `./create-app ${pkg.name} "${t('developer.myPackages.appTitleSample')}"`;
+const createCommand = (pkg: IMyPackage) => `./create-app ${pkg.name} "${t('developer.guide.appTitleSample')}"`;
 const publishCommand = (pkg: IMyPackage) => `./publish-app ${pkg.name}`;
 
 // ── Панель пакета ──────────────────────────────────────────────────────────
@@ -263,16 +281,34 @@ function openGuide() {
   void router.push({ name: 'developer-release-guide' });
 }
 
-/** Следующий шаг издателя по пакету: ключ → цена; дальше — правка цены. */
-function nextStepLabel(pkg: IMyPackage): string {
-  if (pkg.stage === 'registered') return pkg.tokens.some(isLiveToken) ? t('developer.myPackages.howToRelease') : t('developer.keys.issue');
-  return hasPrice(pkg) ? t('developer.price.change') : t('developer.price.set');
+/** Действие строки — следующий шаг издателя; у шага без действия на столе кнопки нет. */
+function nextStep(pkg: IMyPackage): { label: string; run: () => void } | null {
+  if (pkg.stage === 'registered') {
+    return hasLiveKey(pkg) ? null : { label: t('developer.keys.issue'), run: () => openIssue(pkg) };
+  }
+  if (pkg.stage === 'needsPrice') return { label: t('developer.price.set'), run: () => openPrice(pkg) };
+  return null;
 }
 
-function runNextStep(pkg: IMyPackage) {
-  if (pkg.stage !== 'registered') return openPrice(pkg);
-  if (pkg.tokens.some(isLiveToken)) return openPackage(pkg);
-  return openIssue(pkg);
+// ── Путь пакета к каталогу ─────────────────────────────────────────────────
+/** Шаги пути: ключ → первый выпуск → цена → модерация. Регистрация пройдена у любого пакета списка. */
+const pathSteps: StepperStep[] = [
+  { key: 'key', label: t('developer.path.key'), description: t('developer.path.keyText') },
+  { key: 'release', label: t('developer.path.release'), description: t('developer.path.releaseText') },
+  { key: 'price', label: t('developer.path.price'), description: t('developer.path.priceText') },
+  { key: 'moderation', label: t('developer.path.moderation'), description: t('developer.path.moderationText') },
+];
+
+/** Текущий шаг пути: то, что издатель делает сейчас. */
+function activeStep(pkg: IMyPackage): string {
+  if (pkg.stage === 'registered') return hasLiveKey(pkg) ? 'release' : 'key';
+  return pkg.stage === 'needsPrice' ? 'price' : 'moderation';
+}
+
+/** Пройденные шаги — все до текущего. */
+function completedSteps(pkg: IMyPackage): string[] {
+  const keys = pathSteps.map((step) => step.key);
+  return keys.slice(0, keys.indexOf(activeStep(pkg)));
 }
 
 // ── Регистрация пакета ─────────────────────────────────────────────────────
@@ -393,40 +429,45 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.my-packages__amount {
-  font-weight: 600;
+.my-packages__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+}
+.my-packages__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-3);
+}
+.my-packages__price-sum {
+  font-size: var(--p-fs-h1);
+  font-weight: 700;
+  line-height: var(--p-lh-h1);
+  font-variant-numeric: tabular-nums;
+}
+.my-packages__price-caption {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
 }
 .my-packages__section {
-  padding: var(--p-4) 0;
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
 }
-.my-packages__section:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-.my-packages__section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
-  margin-bottom: var(--p-2);
-}
-.my-packages__section-title {
-  font-size: var(--p-fs-body);
-  font-weight: 600;
-  margin-bottom: var(--p-2);
-}
-.my-packages__section-head .my-packages__section-title {
-  margin-bottom: 0;
-}
 .my-packages__key {
+  padding-left: 0;
+  padding-right: 0;
+}
+.my-packages__key-side {
   display: flex;
   align-items: center;
   gap: var(--p-3);
-  padding: var(--p-2) 0;
 }
-.my-packages__key-main {
-  flex: 1;
-  min-width: 0;
+.my-packages__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
 }
 </style>

@@ -1,71 +1,84 @@
 <template lang="pug">
-//- Зоны строки: опознание (пакет, действующая версия) → издатель → деньги
-//- (цена издателя, только показ) → действие. Строка открывает панель пакета:
-//- издатели и снятие издателя.
-q-page(padding)
-  .q-pa-md
-    PageHint.q-mb-md(storage-key='developer:admin-packages:hint-dismissed')
-      | {{ $t('developer.adminPackages.intro') }}
+//- Реестр: пакеты сравнивают по колонкам, поэтому таблица. Зоны строки:
+//- опознание (пакет, выпуск) → деньги (цена издателя, только показ) →
+//- состояние (издатель либо «Не назначен»). Действий в строке нет: строка
+//- открывает панель пакета, назначение и снятие издателя — в панели.
+.q-pa-md
+  PageHint.q-mb-md(storage-key='developer:admin-packages:hint-dismissed')
+    | {{ $t('developer.adminPackages.intro') }}
 
-    BaseBanner.q-mb-md(v-if='error', variant='neg') {{ error }}
+  BaseBanner.q-mb-md(v-if='error', variant='neg') {{ error }}
 
-    EmptyState(
-      v-else-if='!firstLoad && !rows.length',
-      :title="$t('developer.adminPackages.emptyTitle')",
-      :body="$t('developer.adminPackages.emptyBody')"
-    )
-      template(#icon)
-        q-icon(name='inventory_2', size='28px')
+  EmptyState(
+    v-else-if='!firstLoad && !rows.length',
+    :title="$t('developer.adminPackages.emptyTitle')",
+    :body="$t('developer.adminPackages.emptyBody')"
+  )
+    template(#icon)
+      q-icon(name='inventory_2', size='32px')
 
-    BaseTable(
-      v-else,
-      :columns='columns',
-      :rows='rows',
-      row-key='packageId',
-      :loading='firstLoad',
-      :skeleton-rows='4',
-      min-width='760px',
-      clickable-rows,
-      @row-click='openPackage'
-    )
-      template(#cell-package='{ row }')
-        .t-mono {{ row.packageId }}
-        .t-sm.t-muted {{ versionNote(row) }}
-      template(#cell-publisher='{ row }')
-        BaseBadge(v-if='!row.publishers.length', variant='warn') {{ $t('developer.adminPackages.noPublisher') }}
-        template(v-else)
-          .t-mono(v-for='p in row.publishers', :key='p.username') {{ p.username }}
-      template(#cell-price='{ row }')
-        template(v-if='hasPrice(row)')
-          .admin-packages__amount {{ priceLabel(row) }}
-          .t-sm.t-muted {{ trialLabel(row) }}
-        span.t-muted(v-else) {{ $t('developer.adminPackages.priceNotSet') }}
-      template(#cell-actions='{ row }')
-        BaseButton(variant='secondary', size='sm', @click.stop='openAssign(row)') {{ $t('developer.adminPackages.assign') }}
-
-  DetailsDrawer(v-model='drawerOpen', :title="current ? current.packageId : ''", :width='480')
-    template(v-if='current')
-      .admin-packages__section
-        DataRow(align='spread', :label="$t('developer.adminPackages.versionLabel')", :value='versionNote(current)')
-        DataRow(
-          align='spread',
-          :label="$t('developer.price.priceLabel')",
-          :value="hasPrice(current) ? priceLabel(current) : $t('developer.adminPackages.priceNotSet')"
+  BaseTable(
+    v-else,
+    :columns='columns',
+    :rows='rows',
+    row-key='packageId',
+    :loading='firstLoad',
+    :skeleton-rows='4',
+    min-width='720px',
+    clickable-rows,
+    @row-click='openPackage'
+  )
+    template(#cell-package='{ row }')
+      .admin-packages__name {{ row.packageId }}
+      .t-sm.t-muted {{ versionNote(row) }}
+    template(#cell-price='{ row }')
+      template(v-if='hasPrice(row)')
+        .admin-packages__amount {{ priceLabel(row) }}
+        .t-sm.t-muted {{ trialLabel(row) }}
+    template(#cell-publisher='{ row }')
+      BaseBadge(v-if='!row.publishers.length', variant='warn') {{ $t('developer.adminPackages.noPublisher') }}
+      .admin-packages__publishers(v-else)
+        IdentityCell(
+          v-for='p in row.publishers',
+          :key='p.username',
+          :account-name='p.username',
+          :full-name='accountName(p.username)'
         )
-        DataRow(v-if='hasPrice(current)', align='spread', :label="$t('developer.price.trialTitle')", :value='trialValue(current)')
-        .t-sm.t-muted.q-mt-sm {{ $t('developer.adminPackages.priceReadonly') }}
+
+  //- Панель пакета: цена крупно → выпуск → издатели списком. Назначение — в подвале.
+  DetailsDrawer(v-model='drawerOpen', :title="current ? current.packageId : ''", :width='520')
+    template(v-if='current')
+      .admin-packages__head
+        BaseBadge(v-if='!current.publishers.length', variant='warn') {{ $t('developer.adminPackages.noPublisher') }}
+        .admin-packages__price(v-if='hasPrice(current)')
+          .admin-packages__price-sum {{ priceLabel(current) }}
+          .admin-packages__price-caption {{ trialLabel(current) }}
+      DataRow(align='spread', :label="$t('developer.adminPackages.versionLabel')", :value='versionNote(current)')
+      DataRow(
+        v-if='!hasPrice(current)',
+        align='spread',
+        :label="$t('developer.column.price')",
+        :value="$t('developer.adminPackages.priceNotSet')",
+        :hint="$t('developer.adminPackages.priceReadonly')"
+      )
 
       .admin-packages__section
-        .admin-packages__section-head
-          .admin-packages__section-title {{ $t('developer.adminPackages.publishersTitle') }}
-          BaseButton(variant='secondary', size='sm', @click='openAssign(current)') {{ $t('developer.adminPackages.assign') }}
-        .t-sm.t-muted(v-if='!current.publishers.length') {{ $t('developer.adminPackages.noPublisherText') }}
-        .admin-packages__publisher(v-for='p in current.publishers', :key='p.username')
-          .admin-packages__publisher-main
-            .t-mono {{ p.username }}
-            .t-sm.t-muted {{ assignedNote(p) }}
-          BaseButton(variant='danger', size='sm', :loading='isSubmitting', @click='removePublisher(p)')
-            | {{ $t('developer.adminPackages.remove') }}
+        .t-eyebrow.q-mb-sm {{ $t('developer.adminPackages.publishersTitle') }}
+        q-list(v-if='current.publishers.length', separator)
+          q-item.admin-packages__publisher(v-for='p in current.publishers', :key='p.username')
+            q-item-section
+              IdentityCell(:account-name='p.username', :full-name='accountName(p.username)')
+              .t-meta.t-muted {{ assignedNote(p) }}
+            q-item-section(side)
+              BaseButton(variant='danger', size='sm', :loading='isSubmitting', @click='removePublisher(p)')
+                | {{ $t('developer.adminPackages.remove') }}
+        .t-sm.t-muted(v-else) {{ $t('developer.adminPackages.noPublisherText') }}
+
+    template(v-if='current', #footer)
+      .admin-packages__footer
+        q-space
+        BaseButton(:variant="current.publishers.length ? 'secondary' : 'primary'", @click='openAssign(current)')
+          | {{ $t('developer.adminPackages.assign') }}
 
   BaseDialog(v-model='assignDialog', :title="$t('developer.adminPackages.assignTitle')", size='md')
     p.t-sm.t-muted.q-mb-sm
@@ -89,11 +102,12 @@ q-page(padding)
 import { computed, onMounted, ref } from 'vue';
 import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
-import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { UserSearchSelector } from 'src/shared/ui';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { useAppsPublishers, type IAppsPublisher } from '../features/AppsPublishers/model';
 import { api as pricingApi, type IPackagePricing } from '../features/PackagePricing/api';
+import { accountName, resolveAccountNames } from '../shared/lib/accountNames';
 import { formatDate, formatRub } from '../shared/lib/format';
 import { t } from '../i18n';
 
@@ -130,9 +144,8 @@ const rows = computed<AdminPackage[]>(() => {
 
 const columns: BaseTableColumn<AdminPackage>[] = [
   { key: 'package', label: t('developer.column.package') },
-  { key: 'publisher', label: t('developer.column.publisher'), width: '200px' },
-  { key: 'price', label: t('developer.column.price'), width: '180px' },
-  { key: 'actions', label: t('developer.column.actions'), width: '200px', align: 'right', nowrap: true },
+  { key: 'price', label: t('developer.column.price'), width: '200px' },
+  { key: 'publisher', label: t('developer.column.publisher'), width: '280px' },
 ];
 
 function versionNote(row: AdminPackage): string {
@@ -155,12 +168,6 @@ function trialLabel(row: AdminPackage): string {
   return days > 0 ? t('developer.price.trialDays', { days }) : t('developer.price.noTrial');
 }
 
-/** Пробный срок значением строки «подпись — значение»: без повтора подписи. */
-function trialValue(row: AdminPackage): string {
-  const days = row.pricing?.trialDays ?? 0;
-  return days > 0 ? t('developer.price.days', { days }) : t('developer.price.none');
-}
-
 /** Кто и когда назначил издателя: сам пайщик при регистрации либо администратор. */
 function assignedNote(p: IAppsPublisher): string {
   const date = formatDate(p.createdAt);
@@ -175,6 +182,7 @@ async function load() {
   try {
     [pricing.value] = await Promise.all([pricingApi.listPricing(), loadPublishers()]);
     error.value = publishersError.value;
+    void resolveAccountNames(publishers.value.map((p) => p.username));
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -210,7 +218,9 @@ function openAssign(row: AdminPackage) {
 
 async function confirmAssign() {
   if (!assignUsername.value) return;
-  if (await add({ username: assignUsername.value, packageId: assignPackageId.value })) assignDialog.value = false;
+  if (!(await add({ username: assignUsername.value, packageId: assignPackageId.value }))) return;
+  assignDialog.value = false;
+  void resolveAccountNames(publishers.value.map((p) => p.username));
 }
 
 async function removePublisher(p: IAppsPublisher) {
@@ -228,36 +238,49 @@ onMounted(load);
 </script>
 
 <style scoped>
+.admin-packages__name {
+  font-family: var(--p-mono);
+  font-weight: 600;
+}
 .admin-packages__amount {
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.admin-packages__publishers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+}
+.admin-packages__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-3);
+  margin-bottom: var(--p-3);
+}
+.admin-packages__price-sum {
+  font-size: var(--p-fs-h1);
+  font-weight: 700;
+  line-height: var(--p-lh-h1);
+  font-variant-numeric: tabular-nums;
+}
+.admin-packages__price-caption {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-3);
 }
 .admin-packages__section {
-  padding: var(--p-4) 0;
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
 }
-.admin-packages__section:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-.admin-packages__section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
-  margin-bottom: var(--p-2);
-}
-.admin-packages__section-title {
-  font-size: var(--p-fs-body);
-  font-weight: 600;
-}
 .admin-packages__publisher {
+  padding-left: 0;
+  padding-right: 0;
+}
+.admin-packages__footer {
   display: flex;
   align-items: center;
-  gap: var(--p-3);
-  padding: var(--p-2) 0;
-}
-.admin-packages__publisher-main {
-  flex: 1;
-  min-width: 0;
+  gap: var(--p-2);
+  width: 100%;
 }
 </style>
