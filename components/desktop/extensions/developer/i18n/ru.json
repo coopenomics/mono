@@ -21,7 +21,8 @@
       "removeText": "{username} теряет право выпускать {packageId}. Все ключи издателя на пакет отзываются.",
       "removeTitle": "Снять издателя?",
       "selfRegistered": "Зарегистрировал пакет {date}",
-      "versionLabel": "Выпуск"
+      "versionLabel": "Выпуск",
+      "withoutPublisher": "Без издателя"
     },
     "column": {
       "package": "Пакет",

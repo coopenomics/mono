@@ -3073,6 +3073,7 @@ export type MessageKey =
   | 'developer.adminPackages.removeTitle'
   | 'developer.adminPackages.selfRegistered'
   | 'developer.adminPackages.versionLabel'
+  | 'developer.adminPackages.withoutPublisher'
   | 'developer.column.package'
   | 'developer.column.price'
   | 'developer.column.publisher'

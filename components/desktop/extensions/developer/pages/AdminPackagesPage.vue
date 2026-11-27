@@ -49,7 +49,7 @@
   DetailsDrawer(v-model='drawerOpen', :title="current ? current.packageId : ''", :width='520')
     template(v-if='current')
       .admin-packages__head(v-if='!current.publishers.length || hasPrice(current)')
-        BaseBadge(v-if='!current.publishers.length', variant='warn') {{ $t('developer.adminPackages.noPublisher') }}
+        BaseBadge(v-if='!current.publishers.length', variant='warn') {{ $t('developer.adminPackages.withoutPublisher') }}
         .admin-packages__price(v-if='hasPrice(current)')
           .admin-packages__price-sum {{ priceLabel(current) }}
           .admin-packages__price-caption {{ trialLabel(current) }}
