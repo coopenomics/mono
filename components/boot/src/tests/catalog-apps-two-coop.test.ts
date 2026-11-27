@@ -96,7 +96,10 @@ async function catalogRow(token: string): Promise<any | null> {
 
 /** Фронт-части, которые оркестратор узла partner1 реально поставил. */
 async function installedOnSlave(): Promise<string[]> {
-  const res = await fetch(`${SLAVE_ORCHESTRATOR_URL}/v1/internal/extensions/frontend`)
+  // Служебные маршруты оркестратора принимают только секрет узла (487-37).
+  const res = await fetch(`${SLAVE_ORCHESTRATOR_URL}/v1/internal/extensions/frontend`, {
+    headers: { 'server-secret': process.env.SERVER_SECRET || 'SECRET' },
+  })
   if (!res.ok)
     throw new Error(`оркестратор partner1 → ${res.status}`)
   const body = (await res.json()) as { items: Array<{ packageId: string }> }

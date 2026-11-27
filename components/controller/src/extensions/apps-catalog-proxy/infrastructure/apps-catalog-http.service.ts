@@ -346,6 +346,7 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
     authUrl: string | undefined;
     tenantJwt: string | undefined;
     orchestratorUrl: string | undefined;
+    serverSecret: string | undefined;
   };
 
   constructor(
@@ -362,6 +363,7 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
       authUrl: env('APPS_CATALOG_DELIVERY_URL'),
       tenantJwt: env('APPS_CATALOG_TENANT_JWT'),
       orchestratorUrl: env('ORCHESTRATOR_URL'),
+      serverSecret: env('SERVER_SECRET'),
     };
     this.client = this.createAdminClient();
     this.authClient = this.createAuthClient();
@@ -425,7 +427,10 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
   /** Клиент оркестратора контура; без адреса install.js отдаётся напрямую из catalog-operator. */
   private createOrchestratorClient(): AxiosInstance | null {
     if (this.settings.orchestratorUrl) {
-      return axios.create({ baseURL: this.settings.orchestratorUrl, timeout: 5000 });
+      // Служебные маршруты оркестратора принимают только секрет узла (487-37):
+      // оркестратор виден из сети приложений, и без секрета приложение вызывало бы их само.
+      const headers = this.settings.serverSecret ? { 'server-secret': this.settings.serverSecret } : undefined;
+      return axios.create({ baseURL: this.settings.orchestratorUrl, timeout: 5000, headers });
     }
     this.logger.warn(
       'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из catalog-operator без фильтра установленности (degraded)',

@@ -246,7 +246,10 @@ export class InstallOrchestratorService {
         // проверки каждый его перезапуск пересоздавал все приложения узла,
         // и они теряли состояние в памяти и простаивали (25.11.2026).
         const state = await this.docker.containerState(input.containerName);
-        containerReplaced = !(state?.running === true && state.imageRef === input.imageRef);
+        // Контейнер вне сети приложений узла пересоздаётся: узел перевёл приложения
+      // в закрытую сеть, а этот контейнер запущен до перевода (487-37).
+      const offNetwork = input.containerNetwork !== undefined && state?.networks !== undefined && !state.networks.includes(input.containerNetwork);
+      containerReplaced = !(state?.running === true && state.imageRef === input.imageRef) || offNetwork;
         if (!containerReplaced) {
           this.logger.log(`контейнер ${input.containerName} уже работает на ${input.imageRef} — оставляем`);
         } else {

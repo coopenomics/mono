@@ -28,6 +28,7 @@ sources:
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/records/app-rights-consent.record.ts
     - components/controller/src/extensions/apps-catalog-proxy/migrations/database/1795780000000-create-apps-rights-consents.ts
     - components/orchestrator/src/orchestrator/app-grants.impl.ts
+    - components/orchestrator/src/orchestrator/internal-secret.middleware.ts
     - components/orchestrator/src/orchestrator/ports.ts
     - components/orchestrator/src/watcher/app-rights.controller.ts
     - components/orchestrator/src/watcher/catalog-delivery-event-stream.impl.ts
@@ -221,6 +222,63 @@ cases:
     status: written
     external: unreachable
     external_reason: "оркестратор опрашивает каталог приложений, которого у стенда внешнего слоя нет"
+
+  # ── Закрытая сеть контейнеров приложений ─────────────────────────────────
+  # Контейнер приложения стоял в общей сети узла и открывал соединение к базе,
+  # ядру, узлу цепи и хранилищу файлов (проверка 27.11.2026). Теперь приложения
+  # стоят в отдельной сети: в ней только оркестратор и вход портов ядра.
+  - id: apps.consent.happy.07
+    level: backend
+    kind: happy
+    scenario: >
+      Узел перевёл приложения в закрытую сеть; оркестратор сверяет работающий контейнер приложения.
+    expect: >
+      контейнер вне сети приложений пересоздаётся в ней с новым ключом; контейнер в сети приложений оставлен,
+      ключ не перевыпущен
+    test: components/orchestrator/src/orchestrator/install-orchestrator.service.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "оркестратор управляет контейнерами узла через docker, внешний слой работает только через API"
+
+  - id: apps.consent.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Оркестратор просит у ядра ключ приложения и называет контейнеру адрес входа портов.
+    expect: >
+      запрос несёт секрет узла, права и версию; 409 — ожидание согласия, прочий отказ — ошибка установки;
+      на узле с закрытой сетью контейнер получает адрес шлюза портов, заявки по-прежнему идут в ядро
+    test: components/orchestrator/src/orchestrator/app-grants.impl.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "оркестратор обращается к ядру из docker-сети узла межсервисным секретом"
+
+  - id: apps.consent.break.06
+    level: backend
+    kind: break
+    scenario: >
+      Служебный маршрут оркестратора вызывают без секрета узла, с чужим секретом, с секретом другой длины.
+    expect: >
+      отказ 401: оркестратор виден из сети приложений, и без секрета приложение вызывало бы установку и снятие
+      чужих приложений; на узле без секрета маршруты открыты, как до правила
+    test: components/orchestrator/src/orchestrator/internal-secret.middleware.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "служебные маршруты оркестратора доступны только из docker-сети узла"
+
+  - id: apps.consent.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Контейнер в сети приложений пробует соединиться с базой, ядром, узлом цепи, хранилищем файлов,
+      входом портов ядра и интернетом.
+    expect: >
+      Не решено: проверено руками на стенде 4 пробным контейнером (база, ядро, узел цепи, хранилище закрыты;
+      вход портов отвечает, прочие адреса ядра через него — 404; интернет открыт). Автотест требует docker
+      и поднятого стенда — вносить ли пробу в тест стенда двух кооперативов
+    test: ~
+    status: missing
+    decision_needed: true
 
   # ── Не решено ────────────────────────────────────────────────────────────
   - id: apps.consent.side.04

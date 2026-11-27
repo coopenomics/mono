@@ -55,7 +55,7 @@ class FakeDockerRunner implements DockerRunnerPort {
   removed: string[] = [];
   runError?: Error;
   /** Что «уже стоит» на узле: имя контейнера → состояние. */
-  states = new Map<string, { running: boolean; imageRef: string }>();
+  states = new Map<string, { running: boolean; imageRef: string; networks?: string[] }>();
   labelValues: string[] = [];
   async runContainer(opts: {
     imageRef: string;
@@ -72,7 +72,7 @@ class FakeDockerRunner implements DockerRunnerPort {
   async removeContainer(name: string): Promise<void> {
     this.removed.push(name);
   }
-  async containerState(name: string): Promise<{ running: boolean; imageRef: string } | null> {
+  async containerState(name: string): Promise<{ running: boolean; imageRef: string; networks?: string[] } | null> {
     return this.states.get(name) ?? null;
   }
   async listLabelValues(): Promise<string[]> {
@@ -423,6 +423,25 @@ describe('InstallOrchestratorService', () => {
       expect(result).toEqual(expect.objectContaining({ status: 'applied', containerReplaced: false }));
       expect(h.grants.issued).toEqual([]);
       expect(h.docker.runs).toEqual([]);
+    });
+
+    // 487-37: узел перевёл приложения в закрытую сеть.
+    it('happy: контейнер запущен вне сети приложений узла — пересоздаётся в ней с новым ключом', async () => {
+      const h = buildHarness(true);
+      h.docker.states.set('ext-chatcoop', { running: true, imageRef: input.imageRef, networks: ['mono_default'] });
+      const result = await h.service.install({ ...input, containerNetwork: 'mono_apps' });
+      expect(result).toEqual(expect.objectContaining({ status: 'applied', containerReplaced: true }));
+      expect(h.docker.runs[0]).toEqual(expect.objectContaining({ network: 'mono_apps' }));
+      expect(h.grants.issued).toHaveLength(1);
+    });
+
+    it('side: контейнер уже в сети приложений узла — оставлен, ключ не перевыпущен', async () => {
+      const h = buildHarness(true);
+      h.docker.states.set('ext-chatcoop', { running: true, imageRef: input.imageRef, networks: ['mono_apps'] });
+      const result = await h.service.install({ ...input, containerNetwork: 'mono_apps' });
+      expect(result).toEqual(expect.objectContaining({ status: 'applied', containerReplaced: false }));
+      expect(h.docker.runs).toEqual([]);
+      expect(h.grants.issued).toEqual([]);
     });
 
     it('side: манифест портов не заявляет — заявка пустая, токен всё равно выдан (опознание приложения)', async () => {

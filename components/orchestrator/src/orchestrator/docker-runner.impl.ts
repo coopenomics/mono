@@ -145,15 +145,19 @@ export class ShellDockerRunner implements DockerRunnerPort {
     }
   }
 
-  async containerState(name: string): Promise<{ running: boolean; imageRef: string } | null> {
+  async containerState(name: string): Promise<{ running: boolean; imageRef: string; networks: string[] } | null> {
     try {
       const { stdout } = await execFileAsync(
         'docker',
-        ['inspect', '--format', '{{.State.Running}}|{{.Config.Image}}', name],
+        ['inspect', '--format', '{{.State.Running}}|{{.Config.Image}}|{{range $name, $_ := .NetworkSettings.Networks}}{{$name}},{{end}}', name],
         { timeout: DOCKER_TIMEOUT_MS },
       );
-      const [running, imageRef] = stdout.trim().split('|');
-      return { running: running === 'true', imageRef: imageRef ?? '' };
+      const [running, imageRef, networks] = stdout.trim().split('|');
+      return {
+        running: running === 'true',
+        imageRef: imageRef ?? '',
+        networks: (networks ?? '').split(',').filter((network) => network.length > 0),
+      };
     } catch {
       // docker inspect падает, когда контейнера нет — это и есть ответ.
       return null;

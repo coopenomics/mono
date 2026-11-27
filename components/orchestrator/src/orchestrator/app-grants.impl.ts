@@ -19,14 +19,25 @@ function grantPath(packageId: string): string {
 export class HttpAppGrants implements AppGrantsPort {
   private readonly logger = new Logger(HttpAppGrants.name);
 
+  /** Адрес входа портов ядра для контейнера приложения. */
+  readonly coreUrl: string;
+
+  /**
+   * @param grantsUrl — ядро по сети узла: заявки заводит и стирает оркестратор.
+   * @param appsCoreUrl — вход портов для контейнеров приложений. У узла с
+   *   закрытой сетью приложений это шлюз портов; не задан — то же ядро.
+   */
   constructor(
-    readonly coreUrl: string,
+    private readonly grantsUrl: string,
     private readonly serverSecret: string,
     private readonly fetchFn: typeof fetch = fetch,
-  ) {}
+    appsCoreUrl?: string,
+  ) {
+    this.coreUrl = appsCoreUrl && appsCoreUrl.length > 0 ? appsCoreUrl : grantsUrl;
+  }
 
   async issue(opts: { packageId: string; version: string; ports: string[]; chainActions: string[] }): Promise<string> {
-    const res = await this.fetchFn(`${this.coreUrl}/v1/internal/app-grants/${grantPath(opts.packageId)}`, {
+    const res = await this.fetchFn(`${this.grantsUrl}/v1/internal/app-grants/${grantPath(opts.packageId)}`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json', 'server-secret': this.serverSecret },
       body: JSON.stringify({ ports: opts.ports, chain_actions: opts.chainActions, version: opts.version }),
@@ -44,7 +55,7 @@ export class HttpAppGrants implements AppGrantsPort {
 
   async revoke(packageId: string): Promise<void> {
     try {
-      const res = await this.fetchFn(`${this.coreUrl}/v1/internal/app-grants/${grantPath(packageId)}`, {
+      const res = await this.fetchFn(`${this.grantsUrl}/v1/internal/app-grants/${grantPath(packageId)}`, {
         method: 'DELETE',
         headers: { 'server-secret': this.serverSecret },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

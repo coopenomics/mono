@@ -35,7 +35,8 @@ import { CatalogDeliveryOciTokenClient } from './oci-token-client.impl';
       useFactory: () => {
         const secret = process.env.SERVER_SECRET;
         if (!secret) return undefined;
-        return new HttpAppGrants(new URL(loadAppConfig().coreSubgraphUrl).origin, secret);
+        // APPS_CORE_PORTS_URL — вход портов ядра в закрытой сети приложений (шлюз портов узла).
+        return new HttpAppGrants(new URL(loadAppConfig().coreSubgraphUrl).origin, secret, fetch, process.env.APPS_CORE_PORTS_URL);
       },
     },
   ],

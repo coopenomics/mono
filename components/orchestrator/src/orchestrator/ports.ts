@@ -56,9 +56,10 @@ export interface DockerRunnerPort {
    * Состояние контейнера расширения: работает ли он и из какого образа
    * создан. `null` — контейнера с таким именем нет. По нему установка
    * решает, трогать ли контейнер: здоровое приложение на нужном образе
-   * пересоздавать незачем.
+   * пересоздавать незачем. `networks` — docker-сети контейнера: контейнер вне
+   * сети приложений узла пересоздаётся (487-37).
    */
-  containerState(name: string): Promise<{ running: boolean; imageRef: string } | null>;
+  containerState(name: string): Promise<{ running: boolean; imageRef: string; networks?: string[] } | null>;
 }
 
 export const DOCKER_RUNNER = Symbol('DockerRunnerPort');
@@ -77,7 +78,10 @@ export interface AppGrantsPort {
   issue(opts: { packageId: string; version: string; ports: string[]; chainActions: string[] }): Promise<string>;
   /** Стереть заявку пакета. Idempotent. */
   revoke(packageId: string): Promise<void>;
-  /** Адрес ядра для вызова портов из контейнера приложения. */
+  /**
+   * Адрес входа портов ядра для контейнера приложения. Узел с закрытой сетью
+   * приложений называет вход шлюза портов: само ядро из этой сети недоступно.
+   */
   readonly coreUrl: string;
 }
 
