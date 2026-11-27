@@ -6,7 +6,7 @@ export const name = 'setAppsPackagePricing'
 export const mutation = Selector('Mutation')({
   [name]: [
     { data: $('data', 'SetAppsPackagePricingInput!') },
-    { packageId: true, rubPerMonth: true, trialDays: true, lastActiveVersion: true, updatedAt: true },
+    { packageId: true, rubPerMonth: true, trialDays: true, lastActiveVersion: true, inCatalog: true, updatedAt: true },
   ],
 })
 

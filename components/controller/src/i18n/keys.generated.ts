@@ -212,6 +212,7 @@ export type MessageKey =
   | 'appsCatalogProxy.publishers.packageOutOfScope'
   | 'appsCatalogProxy.publishers.packagePublished'
   | 'appsCatalogProxy.publishers.packageTaken'
+  | 'appsCatalogProxy.publishers.tokenNeedsPackages'
   | 'appsCatalogProxy.publishers.tokenNotFound'
   | 'appsCatalogProxy.remotePackage.description'
   | 'appsCatalogProxy.scope.cooperativesRequired'

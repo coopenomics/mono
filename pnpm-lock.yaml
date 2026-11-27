@@ -122,6 +122,8 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.37)(lightningcss@1.32.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.46.1)
 
+  components/app-kit: {}
+
   components/auth:
     dependencies:
       '@coopenomics/i18n':

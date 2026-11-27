@@ -595,6 +595,81 @@ cases:
     external: unreachable
     external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
+  # ── Ключи API и цена при регистрации (487-37, слово владельца 27.11.2026:
+  #    «вынести ключи в отдельный раздел… на все без ограничений»; «цену
+  #    сразу установить») ─────────────────────────────────────────────────
+  - id: apps.access.happy.26
+    level: backend
+    kind: happy
+    scenario: >
+      Издатель выпускает ключ API на два своих пакета.
+    expect: >
+      Каталог получает оба пакета, ключ не «на все», срок не задан
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
+  - id: apps.access.happy.27
+    level: backend
+    kind: happy
+    scenario: >
+      Издатель выпускает ключ API на все свои пакеты.
+    expect: >
+      Каталог получает все текущие пакеты издателя и признак «на все»
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
+  - id: apps.access.break.26
+    level: backend
+    kind: break
+    scenario: >
+      Издатель выпускает ключ на чужой пакет либо ключ без пакетов и не «на все».
+    expect: >
+      Отказ узла, каталог запрос не получает
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
+  - id: apps.access.side.26
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик регистрирует новый пакет; администратор снимает издателя с пакета.
+    expect: >
+      Регистрация добавляет пакет в ключи «на все» издателя; снятие снимает пакет с ключей, ключ без пакетов отзывается
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
+  - id: apps.access.side.27
+    level: backend
+    kind: side
+    scenario: >
+      Каталог не ответил на пополнение ключей «на все» при регистрации пакета.
+    expect: >
+      Регистрация выполнена, в журнале предупреждение
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
+  - id: apps.access.happy.28
+    level: backend
+    kind: happy
+    scenario: >
+      Издатель назначает цену при регистрации пакета, до первого выпуска.
+    expect: >
+      Цена видна издателю и администратору с признаком «не в каталоге»; пакет ждёт первого выпуска
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-pricing.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
   # ── Модерация только на узле оператора каталога (487-37, слово владельца
   #    27.11.2026: «только у оператора должна быть страница модерации») ──────
   - id: apps.access.happy.24

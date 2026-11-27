@@ -1832,6 +1832,8 @@ export type ValueTypes = {
 	review_id: string | Variable<any, string>
 };
 	["AppsCatalogPublisherToken"]: AliasType<{
+	/** Ключ на все пакеты издателя, включая будущие */
+	allPackages?:boolean | `@${string}`,
 	/** ISO-дата выдачи */
 	createdAt?:boolean | `@${string}`,
 	/** Кто выдал */
@@ -1840,12 +1842,12 @@ export type ValueTypes = {
 	expiresAt?:boolean | `@${string}`,
 	/** UUID токена (им же отзывают) */
 	id?:boolean | `@${string}`,
-	/** Метка («CI demo-app») */
+	/** Название ключа */
 	label?:boolean | `@${string}`,
 	/** ISO-дата последнего использования */
 	lastUsedAt?:boolean | `@${string}`,
-	/** Пакет, на который действует ключ */
-	packageId?:boolean | `@${string}`,
+	/** Пакеты, на которые действует ключ */
+	packageIds?:boolean | `@${string}`,
 	/** ISO-дата отзыва; null — действует */
 	revokedAt?:boolean | `@${string}`,
 	/** Первые символы токена для узнавания */
@@ -1960,6 +1962,8 @@ export type ValueTypes = {
 	['...on AppsNodeWallet']?: Omit<ValueTypes["AppsNodeWallet"], "...on AppsNodeWallet">
 }>;
 	["AppsPackagePricing"]: AliasType<{
+	/** Пакет записан в каталоге: подан первый выпуск. Нет — цена назначена при регистрации */
+	inCatalog?:boolean | `@${string}`,
 	/** Действующая версия приложения. Пусто — действующего выпуска нет */
 	lastActiveVersion?:boolean | `@${string}`,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -10964,12 +10968,14 @@ export type ValueTypes = {
 	metric_hash: string | Variable<any, string>
 };
 	["IssueMyPublisherTokenInputDTO"]: {
+	/** Ключ на все свои пакеты, включая будущие */
+	allPackages: boolean | Variable<any, string>,
 	/** Срок в днях; пусто — бессрочно */
 	expiresInDays?: number | undefined | null | Variable<any, string>,
-	/** Метка («CI github/voskhod/demoapp») */
+	/** Название ключа («Ноутбук», «Сборка на сервере») */
 	label: string | Variable<any, string>,
-	/** Свой пакет, на который выпускается ключ */
-	packageId: string | Variable<any, string>
+	/** Свои пакеты, на которые выпускается ключ. Пусто при ключе на все пакеты */
+	packageIds: Array<string> | Variable<any, string>
 };
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]:IssuePriority;
@@ -18341,6 +18347,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 agreementTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ValueTypes["AgreementFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedAgreementsPaginationResult"]],
 appsCatalogPendingModerations?: [{	limit?: number | undefined | null | Variable<any, string>,	status?: ValueTypes["ModerationStatusEnum"] | undefined | null | Variable<any, string>},ValueTypes["ModerationRequestDTO"]],
+	/** Адрес каталога приложений для команд набора издателя на компьютере разработчика. Пусто — адрес узлу не задан. */
+	appsCatalogPublicUrl?:boolean | `@${string}`,
 appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling?:ValueTypes["AppsNodeBilling"],
@@ -22280,6 +22288,8 @@ export type ResolverInputTypes = {
 	review_id: string
 };
 	["AppsCatalogPublisherToken"]: AliasType<{
+	/** Ключ на все пакеты издателя, включая будущие */
+	allPackages?:boolean | `@${string}`,
 	/** ISO-дата выдачи */
 	createdAt?:boolean | `@${string}`,
 	/** Кто выдал */
@@ -22288,12 +22298,12 @@ export type ResolverInputTypes = {
 	expiresAt?:boolean | `@${string}`,
 	/** UUID токена (им же отзывают) */
 	id?:boolean | `@${string}`,
-	/** Метка («CI demo-app») */
+	/** Название ключа */
 	label?:boolean | `@${string}`,
 	/** ISO-дата последнего использования */
 	lastUsedAt?:boolean | `@${string}`,
-	/** Пакет, на который действует ключ */
-	packageId?:boolean | `@${string}`,
+	/** Пакеты, на которые действует ключ */
+	packageIds?:boolean | `@${string}`,
 	/** ISO-дата отзыва; null — действует */
 	revokedAt?:boolean | `@${string}`,
 	/** Первые символы токена для узнавания */
@@ -22402,6 +22412,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["AppsPackagePricing"]: AliasType<{
+	/** Пакет записан в каталоге: подан первый выпуск. Нет — цена назначена при регистрации */
+	inCatalog?:boolean | `@${string}`,
 	/** Действующая версия приложения. Пусто — действующего выпуска нет */
 	lastActiveVersion?:boolean | `@${string}`,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -31168,12 +31180,14 @@ export type ResolverInputTypes = {
 	metric_hash: string
 };
 	["IssueMyPublisherTokenInputDTO"]: {
+	/** Ключ на все свои пакеты, включая будущие */
+	allPackages: boolean,
 	/** Срок в днях; пусто — бессрочно */
 	expiresInDays?: number | undefined | null,
-	/** Метка («CI github/voskhod/demoapp») */
+	/** Название ключа («Ноутбук», «Сборка на сервере») */
 	label: string,
-	/** Свой пакет, на который выпускается ключ */
-	packageId: string
+	/** Свои пакеты, на которые выпускается ключ. Пусто при ключе на все пакеты */
+	packageIds: Array<string>
 };
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]:IssuePriority;
@@ -38287,6 +38301,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 agreementTemplates?: [{	coopname: string},ResolverInputTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ResolverInputTypes["AgreementFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedAgreementsPaginationResult"]],
 appsCatalogPendingModerations?: [{	limit?: number | undefined | null,	status?: ResolverInputTypes["ModerationStatusEnum"] | undefined | null},ResolverInputTypes["ModerationRequestDTO"]],
+	/** Адрес каталога приложений для команд набора издателя на компьютере разработчика. Пусто — адрес узлу не задан. */
+	appsCatalogPublicUrl?:boolean | `@${string}`,
 appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
 	appsNodeBilling?:ResolverInputTypes["AppsNodeBilling"],
@@ -42123,7 +42139,9 @@ export type ModelTypes = {
 	review_id: string
 };
 	["AppsCatalogPublisherToken"]: {
-		/** ISO-дата выдачи */
+		/** Ключ на все пакеты издателя, включая будущие */
+	allPackages: boolean,
+	/** ISO-дата выдачи */
 	createdAt: string,
 	/** Кто выдал */
 	createdBy: string,
@@ -42131,12 +42149,12 @@ export type ModelTypes = {
 	expiresAt?: string | undefined | null,
 	/** UUID токена (им же отзывают) */
 	id: string,
-	/** Метка («CI demo-app») */
+	/** Название ключа */
 	label: string,
 	/** ISO-дата последнего использования */
 	lastUsedAt?: string | undefined | null,
-	/** Пакет, на который действует ключ */
-	packageId: string,
+	/** Пакеты, на которые действует ключ */
+	packageIds: Array<string>,
 	/** ISO-дата отзыва; null — действует */
 	revokedAt?: string | undefined | null,
 	/** Первые символы токена для узнавания */
@@ -42239,7 +42257,9 @@ export type ModelTypes = {
 	membershipAvailable: string
 };
 	["AppsPackagePricing"]: {
-		/** Действующая версия приложения. Пусто — действующего выпуска нет */
+		/** Пакет записан в каталоге: подан первый выпуск. Нет — цена назначена при регистрации */
+	inCatalog: boolean,
+	/** Действующая версия приложения. Пусто — действующего выпуска нет */
 	lastActiveVersion?: string | undefined | null,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
 	packageId: string,
@@ -50695,12 +50715,14 @@ export type ModelTypes = {
 	metric_hash: string
 };
 	["IssueMyPublisherTokenInputDTO"]: {
+	/** Ключ на все свои пакеты, включая будущие */
+	allPackages: boolean,
 	/** Срок в днях; пусто — бессрочно */
 	expiresInDays?: number | undefined | null,
-	/** Метка («CI github/voskhod/demoapp») */
+	/** Название ключа («Ноутбук», «Сборка на сервере») */
 	label: string,
-	/** Свой пакет, на который выпускается ключ */
-	packageId: string
+	/** Свои пакеты, на которые выпускается ключ. Пусто при ключе на все пакеты */
+	packageIds: Array<string>
 };
 	["IssuePriority"]:IssuePriority;
 	["IssueStatus"]:IssueStatus;
@@ -55664,7 +55686,7 @@ export type ModelTypes = {
 	installExtension: ModelTypes["Extension"],
 	/** Произвести установку членов совета перед началом работы */
 	installSystem: ModelTypes["SystemInfo"],
-	/** Выпустить ключ каталога на свой пакет. Кладётся в .npmrc репозитория приложения; plaintext возвращается один раз. */
+	/** Выпустить ключ каталога на свои пакеты либо на все свои пакеты. Ключ принимает команда выпуска; текст ключа возвращается один раз. */
 	issueMyPublisherToken: ModelTypes["CreatePublisherTokenResultDTO"],
 	/** Одобрить заявку доверенного встречной подписью председателя участка */
 	kuApproveTrusted: ModelTypes["Transaction"],
@@ -57913,6 +57935,8 @@ export type ModelTypes = {
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
 	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman. */
 	appsCatalogPendingModerations: Array<ModelTypes["ModerationRequestDTO"]>,
+	/** Адрес каталога приложений для команд набора издателя на компьютере разработчика. Пусто — адрес узлу не задан. */
+	appsCatalogPublicUrl?: string | undefined | null,
 	/** Приложения каталога для этого узла: цена и пробный срок у провайдера подключения, подписка кооператива, получен ли фронт и включено ли приложение. Пакет без цены у провайдера не показывается. */
 	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */
@@ -61949,6 +61973,8 @@ export type GraphQLTypes = {
 };
 	["AppsCatalogPublisherToken"]: {
 	__typename: "AppsCatalogPublisherToken",
+	/** Ключ на все пакеты издателя, включая будущие */
+	allPackages: boolean,
 	/** ISO-дата выдачи */
 	createdAt: string,
 	/** Кто выдал */
@@ -61957,12 +61983,12 @@ export type GraphQLTypes = {
 	expiresAt?: string | undefined | null,
 	/** UUID токена (им же отзывают) */
 	id: string,
-	/** Метка («CI demo-app») */
+	/** Название ключа */
 	label: string,
 	/** ISO-дата последнего использования */
 	lastUsedAt?: string | undefined | null,
-	/** Пакет, на который действует ключ */
-	packageId: string,
+	/** Пакеты, на которые действует ключ */
+	packageIds: Array<string>,
 	/** ISO-дата отзыва; null — действует */
 	revokedAt?: string | undefined | null,
 	/** Первые символы токена для узнавания */
@@ -62077,6 +62103,8 @@ export type GraphQLTypes = {
 };
 	["AppsPackagePricing"]: {
 	__typename: "AppsPackagePricing",
+	/** Пакет записан в каталоге: подан первый выпуск. Нет — цена назначена при регистрации */
+	inCatalog: boolean,
 	/** Действующая версия приложения. Пусто — действующего выпуска нет */
 	lastActiveVersion?: string | undefined | null,
 	/** Идентификатор пакета (например, @voskhod/demoapp) */
@@ -71080,12 +71108,14 @@ export type GraphQLTypes = {
 	metric_hash: string
 };
 	["IssueMyPublisherTokenInputDTO"]: {
-		/** Срок в днях; пусто — бессрочно */
+		/** Ключ на все свои пакеты, включая будущие */
+	allPackages: boolean,
+	/** Срок в днях; пусто — бессрочно */
 	expiresInDays?: number | undefined | null,
-	/** Метка («CI github/voskhod/demoapp») */
+	/** Название ключа («Ноутбук», «Сборка на сервере») */
 	label: string,
-	/** Свой пакет, на который выпускается ключ */
-	packageId: string
+	/** Свои пакеты, на которые выпускается ключ. Пусто при ключе на все пакеты */
+	packageIds: Array<string>
 };
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]: IssuePriority;
@@ -76423,7 +76453,7 @@ export type GraphQLTypes = {
 	installExtension: GraphQLTypes["Extension"],
 	/** Произвести установку членов совета перед началом работы */
 	installSystem: GraphQLTypes["SystemInfo"],
-	/** Выпустить ключ каталога на свой пакет. Кладётся в .npmrc репозитория приложения; plaintext возвращается один раз. */
+	/** Выпустить ключ каталога на свои пакеты либо на все свои пакеты. Ключ принимает команда выпуска; текст ключа возвращается один раз. */
 	issueMyPublisherToken: GraphQLTypes["CreatePublisherTokenResultDTO"],
 	/** Одобрить заявку доверенного встречной подписью председателя участка */
 	kuApproveTrusted: GraphQLTypes["Transaction"],
@@ -78913,6 +78943,8 @@ export type GraphQLTypes = {
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
 	/** Заявки на модерацию пакетов в каталоге восхода. По умолчанию SUBMITTED (ждут approve/reject). Только chairman. */
 	appsCatalogPendingModerations: Array<GraphQLTypes["ModerationRequestDTO"]>,
+	/** Адрес каталога приложений для команд набора издателя на компьютере разработчика. Пусто — адрес узлу не задан. */
+	appsCatalogPublicUrl?: string | undefined | null,
 	/** Приложения каталога для этого узла: цена и пробный срок у провайдера подключения, подписка кооператива, получен ли фронт и включено ли приложение. Пакет без цены у провайдера не показывается. */
 	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Подписки кооператива у провайдера подключения, сумма к оплате и кошелёк у оператора — только для показа. Пополнение и смена тарифа — на столе пайщика у оператора. */

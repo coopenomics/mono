@@ -1,0 +1,32 @@
+{
+  "name": "@coopenomics/app-kit",
+  "version": "2026.11.25",
+  "description": "Набор издателя приложений каталога Цифрового Кооператива: каркас приложения и выпуск в каталог из терминала.",
+  "type": "module",
+  "bin": {
+    "app-kit": "bin/app-kit.mjs"
+  },
+  "files": [
+    "bin",
+    "scripts",
+    "template",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coopenomics/mono.git",
+    "directory": "components/app-kit"
+  },
+  "keywords": [
+    "coopenomics",
+    "cooperative",
+    "apps-catalog"
+  ],
+  "license": "MIT"
+}

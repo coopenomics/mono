@@ -102,7 +102,10 @@ export type CreateReleaseOutcome =
 export interface PublisherTokenWire {
   id: string;
   username: string;
-  package_id: string;
+  /** Пакеты ключа (487-37: ключ на несколько пакетов либо на все). */
+  package_ids: string[];
+  /** Ключ на все пакеты издателя: узел добавляет в него новые пакеты. */
+  all_packages: boolean;
   label: string;
   token_prefix: string;
   created_by: string;
@@ -114,8 +117,10 @@ export interface PublisherTokenWire {
 
 export interface CreatePublisherTokenInput {
   username: string;
-  /** Пакет, на который выдаётся ключ (ключ = один пакет). */
-  packageId: string;
+  /** Пакеты ключа. У ключа «на все» — текущие пакеты издателя. */
+  packageIds: string[];
+  /** Ключ на все пакеты издателя. */
+  allPackages: boolean;
   label: string;
   createdBy: string;
   expiresInDays?: number;
@@ -138,6 +143,8 @@ interface DeveloperPricingWire {
   monthly_rub: number | null;
   trial_days: number;
   last_active_version: string | null;
+  /** Пакет записан в каталоге (подан первый выпуск). */
+  in_catalog?: boolean;
   updated_at: string | null;
 }
 
@@ -147,6 +154,8 @@ export interface DeveloperPricingRow {
   rubPerMonth: number | null;
   trialDays: number;
   lastActiveVersion: string | null;
+  /** Пакет записан в каталоге: подан первый выпуск. */
+  inCatalog: boolean;
   updatedAt: string | null;
 }
 
@@ -161,6 +170,7 @@ function toDeveloperPricingRow(w: DeveloperPricingWire): DeveloperPricingRow {
     rubPerMonth: w.monthly_rub,
     trialDays: w.trial_days,
     lastActiveVersion: w.last_active_version,
+    inCatalog: w.in_catalog ?? true,
     updatedAt: w.updated_at,
   };
 }
@@ -347,6 +357,7 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
     tenantJwt: string | undefined;
     orchestratorUrl: string | undefined;
     serverSecret: string | undefined;
+    publicUrl: string | undefined;
   };
 
   constructor(
@@ -363,6 +374,7 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
       authUrl: env('APPS_CATALOG_DELIVERY_URL'),
       tenantJwt: env('APPS_CATALOG_TENANT_JWT'),
       orchestratorUrl: env('ORCHESTRATOR_URL'),
+      publicUrl: env('APPS_CATALOG_PUBLIC_URL'),
       serverSecret: env('SERVER_SECRET'),
     };
     this.client = this.createAdminClient();
@@ -586,6 +598,17 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
     return this.client !== null;
   }
 
+  /**
+   * Адрес каталога для компьютера издателя: стол подставляет его в команды
+   * набора издателя (487-37). Адрес узла бывает внутренним (имя контейнера),
+   * поэтому публичный задаётся отдельно; без него годится адрес узла по https.
+   */
+  get publicCatalogUrl(): string | null {
+    const { publicUrl, authUrl } = this.settings;
+    if (publicUrl) return publicUrl.replace(/\/+$/, '');
+    return authUrl && authUrl.startsWith('https://') ? authUrl.replace(/\/+$/, '') : null;
+  }
+
   async listPublicPackages(page = 1, pageSize = 50): Promise<AppsCatalogPackage[]> {
     if (!this.client) return [];
     try {
@@ -751,7 +774,23 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
     return res.data.items;
   }
 
-  /** 487-27: отозвать все ключи пайщика на пакет (снятие издателя). */
+  /**
+   * 487-37: пайщик назначен издателем пакета — каталог добавляет пакет во все
+   * его действующие ключи «на все пакеты». Возвращает число пополненных ключей.
+   */
+  async grantPublisherPackage(username: string, packageId: string): Promise<number> {
+    if (!this.authClient) return 0;
+    const res = await this.authClient.post<{ ok: boolean; granted: number }>(
+      '/v1/publisher-tokens/grant-package',
+      { username, package_id: packageId },
+    );
+    return res.data.granted;
+  }
+
+  /**
+   * Снятие издателя: каталог убирает пакет из ключей пайщика, ключ без
+   * пакетов (не «на все») отзывается.
+   */
   async revokePublisherAccess(username: string, packageId: string): Promise<number> {
     if (!this.authClient) return 0;
     const res = await this.authClient.post<{ ok: boolean; revoked: number }>(
@@ -776,7 +815,8 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
         '/v1/publisher-tokens',
         {
           username: input.username,
-          package_id: input.packageId,
+          package_ids: input.packageIds,
+          all_packages: input.allPackages,
           label: input.label,
           created_by: input.createdBy,
           ...(input.expiresInDays ? { expires_in_days: input.expiresInDays } : {}),
@@ -808,9 +848,12 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
    * `GET /v1/developer/pricing`, токен кооператива). Без адреса каталога —
    * пустой список.
    */
-  async listDeveloperPricing(): Promise<DeveloperPricingRow[]> {
+  async listDeveloperPricing(extraPackageIds: string[] = []): Promise<DeveloperPricingRow[]> {
     if (!this.authClient) return [];
-    const res = await this.authClient.get<{ items: DeveloperPricingWire[] }>('/v1/developer/pricing');
+    // `extra` — пакеты, зарегистрированные на узле до первого выпуска: их цену
+    // назначают при регистрации (487-37), каталогу без выпуска они неизвестны.
+    const params = extraPackageIds.length > 0 ? { extra: extraPackageIds.join(',') } : undefined;
+    const res = await this.authClient.get<{ items: DeveloperPricingWire[] }>('/v1/developer/pricing', { params });
     return res.data.items.map(toDeveloperPricingRow);
   }
 

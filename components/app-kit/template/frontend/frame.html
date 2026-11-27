@@ -1,0 +1,258 @@
+<!doctype html>
+<!--
+  Фронт @voskhod/exampleapp для изолированной рамки стола (487-18).
+
+  Страница работает в рамке с отдельным происхождением: у неё нет доступа к
+  окну стола, хранилищу ключей, IndexedDB и токену пайщика. Со столом она
+  общается командами моста:
+    init     — кто пайщик, кооператив и тема оформления;
+    graphql  — запрос к бэкенду приложения (токен приложения подставляет стол);
+    sign     — подпись документа по хэшу (окно подписи рисует стол).
+  Зависимостей и сборки нет: образец показывает сам приём.
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Example App</title>
+<style>
+  :root {
+    --p-canvas: #f6f7f8; --p-surface: #ffffff; --p-surface-2: #f1f3f4;
+    --p-ink: #14181c; --p-ink-2: #4a5560; --p-ink-3: #7b8794;
+    --p-line: #dfe3e7; --p-primary: #0f766e; --p-primary-soft: #d9f0ed;
+    --p-pos: #15803d; --p-neg: #b91c1c; --p-warn: #b45309;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; font: 14px/1.5 Inter, system-ui, sans-serif; color: var(--p-ink); background: var(--p-canvas); }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .lead { margin: 0 0 20px; color: var(--p-ink-2); }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .card { background: var(--p-surface); border: 1px solid var(--p-line); border-radius: 12px; padding: 20px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--p-line); }
+  .row:last-child { border-bottom: 0; }
+  .row span:first-child { color: var(--p-ink-2); }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+  .muted { color: var(--p-ink-3); }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--p-primary); background: var(--p-primary); color: #fff; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--p-primary); }
+  button:disabled { opacity: .5; cursor: default; }
+  input { font: inherit; width: 100%; padding: 8px 10px; border: 1px solid var(--p-line); border-radius: 8px; background: var(--p-surface); color: var(--p-ink); }
+  .line { display: flex; gap: 8px; margin-top: 12px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+  .badge.pos { background: var(--p-primary-soft); color: var(--p-pos); }
+  .badge.neg { background: #fde8e8; color: var(--p-neg); }
+  .error { margin-top: 10px; color: var(--p-neg); }
+  ul { margin: 0; padding: 0; list-style: none; }
+  @media (max-width: 600px) { body { padding: 12px; } .line { flex-direction: column; } }
+</style>
+</head>
+<body>
+  <h1>Example App</h1>
+  <p class="lead">Образец приложения каталога в изолированной рамке стола.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Пайщик и кооператив</h2>
+      <div class="row"><span>Пайщик</span><span class="mono" id="who">…</span></div>
+      <div class="row"><span>Кооператив</span><span id="coop">…</span></div>
+      <div class="row"><span>Название от ядра</span><span id="coop-name">…</span></div>
+      <p class="muted">Название читает бэкенд приложения портом ядра.</p>
+    </section>
+
+    <section class="card">
+      <h2>Заметки</h2>
+      <ul id="notes"><li class="muted">Загрузка…</li></ul>
+      <div class="line">
+        <input id="note-body" maxlength="200" placeholder="Текст заметки">
+        <button id="note-add">Добавить</button>
+      </div>
+      <div class="error" id="note-error"></div>
+    </section>
+
+    <section class="card">
+      <h2>Документ на подпись</h2>
+      <p class="muted">Документ формирует ядро. Окно подписи показывает стол, ключ приложению не передаётся.</p>
+      <button id="sign">Сформировать и подписать</button>
+      <div id="sign-result"></div>
+      <div class="error" id="sign-error"></div>
+    </section>
+
+    <section class="card">
+      <h2>Проверка изоляции</h2>
+      <p class="muted">Страница пробует достать данные стола. Каждая попытка обязана получить отказ браузера.</p>
+      <ul id="probes"></ul>
+    </section>
+  </div>
+
+<script>
+'use strict';
+
+// ── Мост к столу ──────────────────────────────────────────────────────────
+var pending = {};
+var nextId = 1;
+
+function call(method, params) {
+  return new Promise(function (resolve, reject) {
+    var id = nextId++;
+    pending[id] = { resolve: resolve, reject: reject };
+    window.parent.postMessage({ coopBridge: 1, id: id, method: method, params: params || {} }, '*');
+  });
+}
+
+window.addEventListener('message', function (event) {
+  if (event.source !== window.parent) return;
+  var data = event.data;
+  if (!data || data.coopBridge !== 1 || !pending[data.id]) return;
+  var waiter = pending[data.id];
+  delete pending[data.id];
+  if (data.error) waiter.reject(new Error(data.error.message));
+  else waiter.resolve(data.result);
+});
+
+function gql(query, variables) {
+  return call('graphql', { query: query, variables: variables || {} }).then(function (res) {
+    if (res && res.errors && res.errors.length) throw new Error(res.errors[0].message);
+    return res.data;
+  });
+}
+
+function el(id) { return document.getElementById(id); }
+function text(node, value) { node.textContent = value; }
+
+// ── Пайщик и кооператив ───────────────────────────────────────────────────
+function applyTheme(theme) {
+  if (!theme || !theme.tokens) return;
+  Object.keys(theme.tokens).forEach(function (name) {
+    if (theme.tokens[name]) document.documentElement.style.setProperty(name, theme.tokens[name]);
+  });
+}
+
+call('init').then(function (ctx) {
+  applyTheme(ctx.theme);
+  text(el('who'), ctx.username);
+  text(el('coop'), ctx.coopname);
+  return gql('{ exampleAppCooperative { coopname name shortAbbr } }');
+}).then(function (data) {
+  var c = data.exampleAppCooperative;
+  text(el('coop-name'), c ? c.shortAbbr + ' «' + c.name + '»' : '—');
+}).catch(function (e) { text(el('coop-name'), e.message); });
+
+// ── Заметки ───────────────────────────────────────────────────────────────
+function renderNotes(notes) {
+  var list = el('notes');
+  list.innerHTML = '';
+  if (!notes.length) {
+    var empty = document.createElement('li');
+    empty.className = 'muted';
+    text(empty, 'Заметок пока нет');
+    list.appendChild(empty);
+    return;
+  }
+  notes.forEach(function (n) {
+    var li = document.createElement('li');
+    li.className = 'row';
+    var body = document.createElement('span');
+    var author = document.createElement('span');
+    author.className = 'mono';
+    text(body, n.body);
+    text(author, n.authorUsername);
+    li.appendChild(body);
+    li.appendChild(author);
+    list.appendChild(li);
+  });
+}
+
+function loadNotes() {
+  return gql('{ exampleAppNotes(limit: 10) { id authorUsername body } }').then(function (d) { renderNotes(d.exampleAppNotes); });
+}
+loadNotes().catch(function (e) { text(el('note-error'), e.message); });
+
+el('note-add').addEventListener('click', function () {
+  var body = el('note-body').value.trim();
+  text(el('note-error'), '');
+  if (!body) return;
+  el('note-add').disabled = true;
+  gql('mutation($b: String!) { exampleAppAddNote(body: $b) { id } }', { b: body })
+    .then(function () { el('note-body').value = ''; return loadNotes(); })
+    .catch(function (e) { text(el('note-error'), e.message); })
+    .then(function () { el('note-add').disabled = false; });
+});
+
+// ── Документ на подпись ───────────────────────────────────────────────────
+el('sign').addEventListener('click', function () {
+  text(el('sign-error'), '');
+  el('sign-result').innerHTML = '';
+  el('sign').disabled = true;
+  gql('mutation { exampleAppDraftDocument { fullTitle hash } }')
+    .then(function (d) { return call('sign', { hash: d.exampleAppDraftDocument.hash }); })
+    .then(function (signed) {
+      var first = signed && signed.signatures && signed.signatures[0];
+      var box = el('sign-result');
+      [['Документ', signed.hash], ['Подписал', first ? first.signer : '—'], ['Ключ', first ? first.public_key : '—']].forEach(function (pair) {
+        var row = document.createElement('div');
+        row.className = 'row';
+        var k = document.createElement('span');
+        var v = document.createElement('span');
+        v.className = 'mono';
+        text(k, pair[0]);
+        text(v, String(pair[1]));
+        row.appendChild(k);
+        row.appendChild(v);
+        box.appendChild(row);
+      });
+    })
+    .catch(function (e) { text(el('sign-error'), e.message); })
+    .then(function () { el('sign').disabled = false; });
+});
+
+// ── Проверка изоляции ─────────────────────────────────────────────────────
+// Каждая проба — попытка достать то, что принадлежит столу. Исход «закрыто»
+// значит, что браузер отказал; «ОТКРЫТО» — граница не держит.
+function probe(title, attempt) {
+  var li = document.createElement('li');
+  li.className = 'row';
+  var name = document.createElement('span');
+  var verdict = document.createElement('span');
+  text(name, title);
+  function show(open, detail) {
+    verdict.className = 'badge ' + (open ? 'neg' : 'pos');
+    text(verdict, open ? 'ОТКРЫТО' : 'закрыто');
+    verdict.title = detail || '';
+  }
+  li.appendChild(name);
+  li.appendChild(verdict);
+  el('probes').appendChild(li);
+  try {
+    var result = attempt();
+    if (result && typeof result.then === 'function') {
+      result.then(function (v) { show(true, String(v)); }, function (e) { show(false, e && e.message); });
+    } else {
+      show(true, String(result));
+    }
+  } catch (e) {
+    show(false, e && e.message);
+  }
+}
+
+probe('Страница стола (document окна стола)', function () { return window.parent.document.title; });
+probe('Хранилище стола (localStorage окна стола)', function () { return window.parent.localStorage.length; });
+probe('Своё локальное хранилище', function () { return window.localStorage.length; });
+probe('Куки узла', function () { return document.cookie; });
+probe('IndexedDB узла (копия ключа пайщика)', function () {
+  return new Promise(function (resolve, reject) {
+    var req = window.indexedDB.open('probe');
+    req.onsuccess = function () { resolve('открыта'); };
+    req.onerror = function () { reject(new Error('отказ')); };
+  });
+});
+probe('Прямой запрос к ядру мимо моста', function () {
+  return fetch('/backend/v1/graphql', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"query":"{ __typename }"}' })
+    .then(function (r) { return r.status; });
+});
+probe('Команда вне перечня моста', function () {
+  return call('getMemberToken').then(function (v) { return JSON.stringify(v); });
+});
+</script>
+</body>
+</html>

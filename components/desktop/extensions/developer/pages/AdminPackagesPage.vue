@@ -120,7 +120,7 @@ import { t } from '../i18n';
  */
 interface AdminPackage {
   packageId: string;
-  /** Цена из каталога; `null` — пакет зарегистрирован, выпуска ещё не было. */
+  /** Цена из каталога; `null` — цена не назначена и выпуска ещё не было. */
   pricing: IPackagePricing | null;
   publishers: IAppsPublisher[];
 }
@@ -151,7 +151,8 @@ const columns: BaseTableColumn<AdminPackage>[] = [
 ];
 
 function versionNote(row: AdminPackage): string {
-  if (!row.pricing) return t('developer.adminPackages.noRelease');
+  // Цена без выпуска — назначена при регистрации пакета (487-37).
+  if (!row.pricing || !row.pricing.inCatalog) return t('developer.adminPackages.noRelease');
   const version = row.pricing.lastActiveVersion;
   return version ? t('developer.stage.activeNote', { version }) : t('developer.adminPackages.noActiveRelease');
 }

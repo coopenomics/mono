@@ -37,7 +37,7 @@
         BaseButton(variant='secondary', size='sm', @click='nextStep(pkg)?.run()') {{ nextStep(pkg)?.label }}
 
   //- Панель пакета: состояние → цена крупно → путь к каталогу (пока выпуска
-  //- нет) → факты → ключи выпуска → команда обновления. Действия — в подвале.
+  //- нет) → команда обновления. Ключи API — отдельная страница стола.
   DetailsDrawer(v-model='drawerOpen', :title="current ? current.packageId : ''", :width='520')
     template(v-if='current')
       .my-packages__head
@@ -52,9 +52,18 @@
         .t-eyebrow.q-mb-sm {{ $t('developer.path.title') }}
         VerticalStepper(:steps='pathSteps', :active-key='activeStep(current)', :completed='completedSteps(current)')
           template(#active='{ step }')
+            BaseButton(v-if="step.key === 'price'", variant='secondary', size='sm', @click='openPrice(current)') {{ $t('developer.price.set') }}
+            BaseButton(v-if="step.key === 'key'", variant='secondary', size='sm', @click='openKeys(current)') {{ $t('developer.keys.issue') }}
             template(v-if="step.key === 'release'")
               DataRow(:label="$t('developer.path.createCommand')", :value='createCommand(current)', align='vertical', mono, copyable)
-              DataRow(:label="$t('developer.path.publishCommand')", :value='publishCommand(current)', align='vertical', mono, copyable)
+              DataRow(
+                :label="$t('developer.path.publishCommand')",
+                :value='publishCommand',
+                :hint="$t('developer.path.publishHint', { name: current.name })",
+                align='vertical',
+                mono,
+                copyable
+              )
               BaseButton.q-mt-sm(variant='secondary', size='sm', @click='openGuide') {{ $t('developer.myPackages.openGuide') }}
 
       //- Действующий пакет: версия и команда обновления.
@@ -66,45 +75,25 @@
         )
         DataRow(
           :label="$t('developer.path.updateCommand')",
-          :value='publishCommand(current)',
+          :value='publishCommand',
           :hint="$t('developer.path.updateHint')",
           align='vertical',
           mono,
           copyable
         )
 
-      .my-packages__section
-        .t-eyebrow.q-mb-sm {{ $t('developer.keys.title') }}
-        q-list(v-if='current.tokens.length', separator)
-          q-item.my-packages__key(v-for='token in current.tokens', :key='token.id')
-            q-item-section
-              .text-weight-medium {{ token.label }}
-              .t-meta.t-muted
-                span.t-mono {{ token.tokenPrefix }}…
-                |
-                | · {{ formatDate(token.createdAt) }}
-            q-item-section(side)
-              .my-packages__key-side
-                BaseBadge(:variant='tokenState(token).variant') {{ tokenState(token).label }}
-                BaseButton(
-                  v-if='isLiveToken(token)',
-                  variant='secondary',
-                  size='sm',
-                  :loading='isSubmitting',
-                  @click='revokeKey(token)'
-                ) {{ $t('developer.keys.revoke') }}
-        .t-sm.t-muted(v-else) {{ $t('developer.keys.empty') }}
-
     template(v-if='current', #footer)
       .my-packages__footer
-        BaseButton(variant='secondary', @click='openIssue(current)')
+        BaseButton(variant='secondary', @click='openKeys(current)')
           template(#icon-left)
             q-icon(name='key', size='18px')
-          | {{ $t('developer.keys.issue') }}
+          | {{ current.hasKey ? $t('developer.myPackages.openKeys') : $t('developer.keys.issue') }}
         q-space
-        BaseButton(v-if='current.pricing', variant='primary', @click='openPrice(current)')
+        BaseButton(variant='primary', @click='openPrice(current)')
           | {{ hasPrice(current) ? $t('developer.price.change') : $t('developer.price.set') }}
 
+  //- Регистрация: имя пакета и цена одним шагом — цену каталог принимает до
+  //- первого выпуска, без цены модератор выпуск не одобрит.
   BaseDialog(v-model='registerDialog', :title="$t('developer.register.title')", size='sm')
     p.t-sm.t-muted.q-mb-sm {{ $t('developer.register.text') }}
     BaseInput(
@@ -116,6 +105,21 @@
       mono,
       autofocus,
       required
+    )
+    AmountInput.q-mt-sm(
+      v-model='registerPrice.rubPerMonth',
+      symbol='₽',
+      :precision='2',
+      :label="$t('developer.price.priceLabel')",
+      :hint="$t('developer.price.priceHint')",
+      :error='registerPriceErrors.rubPerMonth'
+    )
+    BaseInput.q-mt-sm(
+      v-model='registerPrice.trialDays',
+      type='number',
+      :label="$t('developer.price.trialLabel')",
+      :hint="$t('developer.price.trialHint')",
+      :error='registerPriceErrors.trialDays'
     )
     BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
     template(#footer)
@@ -145,40 +149,6 @@
       BaseButton(variant='ghost', :disabled='isSubmitting', @click='priceDialog = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', :loading='isSubmitting', @click='confirmPrice') {{ $t('developer.price.save') }}
 
-  BaseDialog(v-model='issueDialog', :title="$t('developer.keys.issue')", size='sm')
-    template(v-if='!issuedToken')
-      p.t-sm.t-muted.q-mb-sm {{ $t('developer.keys.issueText') }}
-      BaseInput(
-        v-model='issueForm.label',
-        :label="$t('developer.keys.labelLabel')",
-        :hint="$t('developer.keys.labelHint')",
-        :error='issueErrors.label',
-        required
-      )
-      BaseInput.q-mt-sm(
-        v-model='issueForm.expiresInDays',
-        type='number',
-        :label="$t('developer.keys.expiresLabel')",
-        :hint="$t('developer.keys.expiresHint')",
-        :error='issueErrors.expiresInDays'
-      )
-      BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
-    template(v-else)
-      BaseBanner.q-mb-sm(variant='warn') {{ $t('developer.keys.copyWarning') }}
-      DataRow(:label="$t('developer.keys.keyLabel')", :value='issuedToken', align='vertical', mono, copyable)
-      DataRow(
-        :label="$t('developer.path.publishCommand')",
-        :value='issuePublishCommand',
-        :hint="$t('developer.keys.nextStep')",
-        align='vertical',
-        mono,
-        copyable
-      )
-    template(#footer)
-      template(v-if='!issuedToken')
-        BaseButton(variant='ghost', :disabled='isSubmitting', @click='issueDialog = false') {{ $t('common.action.cancel') }}
-        BaseButton(variant='primary', :loading='isSubmitting', @click='confirmIssue') {{ $t('developer.keys.issueSubmit') }}
-      BaseButton(v-else, variant='primary', @click='issueDialog = false') {{ $t('developer.keys.done') }}
 </template>
 
 <script setup lang="ts">
@@ -188,39 +158,37 @@ import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseInput, CardListSkele
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
 import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper } from 'src/shared/ui/domain';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types';
-import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
-import { isLiveToken, useMyPackages, type IMyPackage, type IMyToken, type PackageStage } from '../features/MyPackages/model';
+import { useMyPackages, type IMyPackage, type PackageStage } from '../features/MyPackages/model';
 import { formatDate, formatRub } from '../shared/lib/format';
 import PackageRow from '../shared/ui/PackageRow.vue';
 import HeaderActionButton from '../shared/ui/HeaderActionButton.vue';
+import { kitCreateCommand, kitPublishCommand } from '../shared/lib/kitCommands';
+import { api as catalogApi } from '../features/CatalogAddress/api';
 import { t } from '../i18n';
 
 /**
- * «Мои пакеты»: пайщик регистрирует пакет на себя, выпускает ключ каталога,
- * назначает цену и видит, на каком шаге пути к каталогу стоит каждый пакет.
- * Выпуск версии идёт из терминала набором издателя: страница даёт готовые
- * команды, формы выпуска в интерфейсе нет.
+ * «Мои пакеты»: пайщик регистрирует пакет на себя сразу с ценой и видит, на
+ * каком шаге пути к каталогу стоит каждый пакет. Ключи API — отдельная
+ * страница стола (487-37). Выпуск версии идёт из терминала набором издателя:
+ * страница даёт готовые команды, формы выпуска в интерфейсе нет.
  */
 
-/** Имя приложения: то же правило, что у команды create-app набора издателя. */
+/** Имя приложения: то же правило, что у команды create набора издателя @coopenomics/app-kit. */
 const APP_NAME_RE = /^[a-z][a-z1-5]{1,11}$/;
 /** Верхняя граница цены, ₽ в месяц: та же, что у каталога приложений. */
 const PRICE_MAX_RUB = 1_000_000;
 /** Верхняя граница пробного срока, дней. */
 const TRIAL_MAX_DAYS = 365;
-/** Верхняя граница срока ключа, дней. */
-const KEY_MAX_DAYS = 3650;
 
 const router = useRouter();
 const session = useSessionStore();
 const systemStore = useSystemStore();
-const { confirm } = useConfirm();
 const { registerAction } = useHeaderActions();
-const { packages, loading, error, isSubmitting, actionError, issuedToken, load, register, setPrice, issue, revoke } =
-  useMyPackages();
+const { packages, loading, error, isSubmitting, actionError, load, register, setPrice } = useMyPackages();
 const firstLoad = useFirstLoad(loading);
 
 const packagePrefix = computed(() => `@${systemStore.info.coopname}/`);
@@ -235,11 +203,9 @@ const STAGES: Record<PackageStage, { label: string; variant: BaseBadgeVariant }>
 
 function stageNote(pkg: IMyPackage): string {
   if (pkg.stage === 'active') return t('developer.stage.activeNote', { version: pkg.pricing?.lastActiveVersion ?? '' });
-  if (pkg.stage === 'registered') return hasLiveKey(pkg) ? t('developer.stage.keyIssued') : t('developer.stage.noKey');
+  if (pkg.stage === 'registered') return pkg.hasKey ? t('developer.stage.keyIssued') : t('developer.stage.noKey');
   return '';
 }
-
-const hasLiveKey = (pkg: IMyPackage) => pkg.tokens.some(isLiveToken);
 
 function hasPrice(pkg: IMyPackage): boolean {
   return pkg.pricing?.rubPerMonth != null;
@@ -255,14 +221,12 @@ function trialLabel(pkg: IMyPackage): string {
   return days > 0 ? t('developer.price.trialDays', { days }) : t('developer.price.noTrial');
 }
 
-function tokenState(token: IMyToken): { label: string; variant: BaseBadgeVariant } {
-  if (token.revokedAt) return { label: t('developer.keys.state.revoked'), variant: 'neutral' };
-  if (!isLiveToken(token)) return { label: t('developer.keys.state.expired'), variant: 'warn' };
-  return { label: t('developer.keys.state.active'), variant: 'pos' };
-}
-
-const createCommand = (pkg: IMyPackage) => `./create-app ${pkg.name} "${t('developer.guide.appTitleSample')}"`;
-const publishCommand = (pkg: IMyPackage) => `./publish-app ${pkg.name}`;
+/** Адрес каталога узла для команд набора; `null` — адрес узлу не задан. */
+const catalogUrl = ref<string | null>(null);
+const createCommand = (pkg: IMyPackage) =>
+  kitCreateCommand(pkg.packageId, t('developer.guide.appTitleSample'), catalogUrl.value);
+// Команда выпуска одна для любого пакета: пакет определяет папка приложения.
+const publishCommand = kitPublishCommand();
 
 // ── Панель пакета ──────────────────────────────────────────────────────────
 const drawerOpen = ref(false);
@@ -280,54 +244,80 @@ function openGuide() {
   void router.push({ name: 'developer-release-guide' });
 }
 
-/** Действие строки — следующий шаг издателя; у шага без действия на столе кнопки нет. */
+/** Ключи API: без ключа на пакет — сразу выпуск с отмеченным пакетом. */
+function openKeys(pkg: IMyPackage) {
+  drawerOpen.value = false;
+  void router.push({ name: 'developer-api-keys', query: pkg.hasKey ? {} : { issue: pkg.packageId } });
+}
+
+/** Действие строки — текущий шаг пути; у шага без действия на столе кнопки нет. */
 function nextStep(pkg: IMyPackage): { label: string; run: () => void } | null {
-  if (pkg.stage === 'registered') {
-    return hasLiveKey(pkg) ? null : { label: t('developer.keys.issue'), run: () => openIssue(pkg) };
-  }
-  if (pkg.stage === 'needsPrice') return { label: t('developer.price.set'), run: () => openPrice(pkg) };
+  const step = activeStep(pkg);
+  if (step === 'price') return { label: t('developer.price.set'), run: () => openPrice(pkg) };
+  if (step === 'key') return { label: t('developer.keys.issue'), run: () => openKeys(pkg) };
   return null;
 }
 
 // ── Путь пакета к каталогу ─────────────────────────────────────────────────
-/** Шаги пути: ключ → первый выпуск → цена → модерация. Регистрация пройдена у любого пакета списка. */
+/**
+ * Шаги пути: цена → ключ API → первый выпуск → модерация. Регистрация пройдена
+ * у любого пакета списка. Цену назначают при регистрации, поэтому она первая.
+ */
 const pathSteps: StepperStep[] = [
+  { key: 'price', label: t('developer.path.price'), description: t('developer.path.priceText') },
   { key: 'key', label: t('developer.path.key'), description: t('developer.path.keyText') },
   { key: 'release', label: t('developer.path.release'), description: t('developer.path.releaseText') },
-  { key: 'price', label: t('developer.path.price'), description: t('developer.path.priceText') },
   { key: 'moderation', label: t('developer.path.moderation'), description: t('developer.path.moderationText') },
 ];
 
-/** Текущий шаг пути: то, что издатель делает сейчас. */
-function activeStep(pkg: IMyPackage): string {
-  if (pkg.stage === 'registered') return hasLiveKey(pkg) ? 'release' : 'key';
-  return pkg.stage === 'needsPrice' ? 'price' : 'moderation';
+/** Пройденные шаги — по фактам пакета, а не по порядку. */
+function completedSteps(pkg: IMyPackage): string[] {
+  const done: Record<string, boolean> = {
+    price: hasPrice(pkg),
+    key: pkg.hasKey,
+    release: Boolean(pkg.pricing?.inCatalog),
+    moderation: pkg.stage === 'active',
+  };
+  return pathSteps.map((step) => step.key).filter((key) => done[key]);
 }
 
-/** Пройденные шаги — все до текущего. */
-function completedSteps(pkg: IMyPackage): string[] {
-  const keys = pathSteps.map((step) => step.key);
-  return keys.slice(0, keys.indexOf(activeStep(pkg)));
+/** Текущий шаг пути: первый непройденный. */
+function activeStep(pkg: IMyPackage): string {
+  const done = completedSteps(pkg);
+  return pathSteps.find((step) => !done.includes(step.key))?.key ?? 'moderation';
 }
 
 // ── Регистрация пакета ─────────────────────────────────────────────────────
 const registerDialog = ref(false);
 const registerName = ref('');
 const registerError = ref('');
+const registerPrice = reactive<{ rubPerMonth: number | string | null; trialDays: number | string | null }>({
+  rubPerMonth: null,
+  trialDays: 0,
+});
+const registerPriceErrors = reactive({ rubPerMonth: '', trialDays: '' });
 
 function openRegister() {
   registerName.value = '';
   registerError.value = '';
+  registerPrice.rubPerMonth = null;
+  registerPrice.trialDays = 0;
+  registerPriceErrors.rubPerMonth = '';
+  registerPriceErrors.trialDays = '';
   actionError.value = null;
   registerDialog.value = true;
 }
 
 async function confirmRegister() {
   const name = registerName.value.trim();
+  const rubPerMonth = parsePrice(registerPrice.rubPerMonth);
+  const trialDays = parseDays(registerPrice.trialDays, 0, 0, TRIAL_MAX_DAYS);
   registerError.value = APP_NAME_RE.test(name) ? '' : t('developer.register.nameFormat');
-  if (registerError.value) return;
+  registerPriceErrors.rubPerMonth = rubPerMonth === null ? t('developer.price.priceRange') : '';
+  registerPriceErrors.trialDays = trialDays === null ? t('developer.price.trialRange') : '';
+  if (registerError.value || rubPerMonth === null || trialDays === null) return;
   const packageId = `${packagePrefix.value}${name}`;
-  if (!(await register(session.username, packageId))) return;
+  if (!(await register(session.username, packageId, { rubPerMonth, trialDays }))) return;
   registerDialog.value = false;
   currentId.value = packageId;
   drawerOpen.value = true;
@@ -377,45 +367,6 @@ async function confirmPrice() {
   if (await setPrice({ packageId: pricePackageId.value, rubPerMonth, trialDays })) priceDialog.value = false;
 }
 
-// ── Ключи выпуска ──────────────────────────────────────────────────────────
-const issueDialog = ref(false);
-const issuePackage = ref<IMyPackage | null>(null);
-const issueForm = reactive<{ label: string; expiresInDays: number | string | null }>({ label: '', expiresInDays: null });
-const issueErrors = reactive({ label: '', expiresInDays: '' });
-const issuePublishCommand = computed(() => (issuePackage.value ? publishCommand(issuePackage.value) : ''));
-
-function openIssue(pkg: IMyPackage) {
-  issuePackage.value = pkg;
-  issueForm.label = t('developer.keys.labelDefault');
-  issueForm.expiresInDays = null;
-  issueErrors.label = '';
-  issueErrors.expiresInDays = '';
-  actionError.value = null;
-  issuedToken.value = null;
-  issueDialog.value = true;
-}
-
-async function confirmIssue() {
-  if (!issuePackage.value) return;
-  const label = issueForm.label.trim();
-  // Пустое поле срока — ключ без срока: признак «пусто» отличается от ошибки нулём.
-  const days = parseDays(issueForm.expiresInDays, 0, 1, KEY_MAX_DAYS);
-  issueErrors.label = label ? '' : t('developer.keys.labelRequired');
-  issueErrors.expiresInDays = days === null ? t('developer.keys.expiresRange') : '';
-  if (!label || days === null) return;
-  await issue({ packageId: issuePackage.value.packageId, label, ...(days > 0 ? { expiresInDays: days } : {}) });
-}
-
-async function revokeKey(token: IMyToken) {
-  const agreed = await confirm({
-    title: t('developer.keys.revokeTitle'),
-    message: t('developer.keys.revokeText', { label: token.label }),
-    confirmLabel: t('developer.keys.revoke'),
-    danger: true,
-  });
-  if (agreed) await revoke(token.id);
-}
-
 // realtime: нет источника — пакеты, цены и ключи хранит внешний каталог приложений, лента цепи кооператива о них не сообщает; список перечитывается после каждого действия на странице.
 onMounted(async () => {
   registerAction({
@@ -424,6 +375,7 @@ onMounted(async () => {
     props: { label: t('developer.register.action'), icon: 'add', onClick: openRegister },
   });
   await load();
+  catalogUrl.value = await catalogApi.publicCatalogUrl().catch(() => null);
 });
 </script>
 
@@ -453,15 +405,6 @@ onMounted(async () => {
   margin-top: var(--p-5);
   padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
-}
-.my-packages__key {
-  padding-left: 0;
-  padding-right: 0;
-}
-.my-packages__key-side {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3);
 }
 .my-packages__footer {
   display: flex;

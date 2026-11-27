@@ -4920,13 +4920,14 @@ export const ReturnTypes: Record<string,any> = {
 		version:"String"
 	},
 	AppsCatalogPublisherToken:{
+		allPackages:"Boolean",
 		createdAt:"String",
 		createdBy:"String",
 		expiresAt:"String",
 		id:"String",
 		label:"String",
 		lastUsedAt:"String",
-		packageId:"String",
+		packageIds:"String",
 		revokedAt:"String",
 		tokenPrefix:"String",
 		username:"String"
@@ -4983,6 +4984,7 @@ export const ReturnTypes: Record<string,any> = {
 		membershipAvailable:"String"
 	},
 	AppsPackagePricing:{
+		inCatalog:"Boolean",
 		lastActiveVersion:"String",
 		packageId:"String",
 		rubPerMonth:"Float",
@@ -10388,6 +10390,7 @@ export const ReturnTypes: Record<string,any> = {
 		agreementTemplates:"AgreementTemplate",
 		agreements:"PaginatedAgreementsPaginationResult",
 		appsCatalogPendingModerations:"ModerationRequestDTO",
+		appsCatalogPublicUrl:"String",
 		appsCatalogRemotePackages:"AppsCatalogRemotePackageDTO",
 		appsNodeBilling:"AppsNodeBilling",
 		appsPackagePricing:"AppsPackagePricing",

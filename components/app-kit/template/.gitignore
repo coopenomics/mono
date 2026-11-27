@@ -1,0 +1,4 @@
+# Описатель фронта собирает catalog-release.sh из frontend/frame.html.
+install.js
+# Ключ издателя, который хранит команда publish-app набора издателя.
+.catalog-key

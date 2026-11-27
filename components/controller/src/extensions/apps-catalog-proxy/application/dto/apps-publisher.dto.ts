@@ -27,10 +27,19 @@ export class AppsPublisherAssignmentInputDTO {
 
 @InputType()
 export class IssueMyPublisherTokenInputDTO {
-  @Field({ description: 'Свой пакет, на который выпускается ключ' })
-  packageId!: string;
+  @Field(() => [String], {
+    defaultValue: [],
+    description: 'Свои пакеты, на которые выпускается ключ. Пусто при ключе на все пакеты',
+  })
+  packageIds!: string[];
 
-  @Field({ description: 'Метка («CI github/voskhod/demoapp»)' })
+  @Field(() => Boolean, {
+    defaultValue: false,
+    description: 'Ключ на все свои пакеты, включая будущие',
+  })
+  allPackages!: boolean;
+
+  @Field({ description: 'Название ключа («Ноутбук», «Сборка на сервере»)' })
   label!: string;
 
   @Field(() => Int, { nullable: true, description: 'Срок в днях; пусто — бессрочно' })

@@ -58,6 +58,10 @@ interface Seen {
   url: string;
   auth: string;
   body: any;
+  /** Адрес без строки запроса. */
+  path: string;
+  /** Параметры строки запроса. */
+  query: Record<string, string>;
 }
 
 /**
@@ -74,21 +78,48 @@ function fakeCatalog(opts: { refuse?: { status: number; code: string }; approveC
       res.setHeader('content-type', 'application/json');
       if (url === '/v1/auth/challenge') return res.end(JSON.stringify({ challenge_string: 'ch' }));
       if (url === '/v1/auth/verify') return res.end(JSON.stringify({ token: JWT }));
+      const parsed = new URL(url, 'http://catalog.local');
+      const path = parsed.pathname;
+      const query = Object.fromEntries(parsed.searchParams.entries());
       seen.push({
         method: String(req.method),
         url,
         auth: String(req.headers.authorization ?? ''),
         body: raw ? JSON.parse(raw) : null,
+        path,
+        query,
       });
-      if (req.method === 'GET' && url === '/v1/developer/pricing') {
+      if (req.method === 'GET' && path === '/v1/developer/pricing') {
+        // Пакет без выпуска с ценой, назначенной при регистрации (487-37):
+        // каталог отдаёт его, только если узел передал его в `extra`.
+        const extra = (query.extra ?? '').split(',');
         return res.end(
           JSON.stringify({
             items: [
-              { package_id: '@voskhod/paid', monthly_rub: 500, trial_days: 7, last_active_version: '1.0.0', updated_at: '2026-11-26T10:00:00.000Z' },
-              { package_id: '@voskhod/fresh', monthly_rub: null, trial_days: 0, last_active_version: null, updated_at: null },
+              { package_id: '@voskhod/paid', monthly_rub: 500, trial_days: 7, last_active_version: '1.0.0', in_catalog: true, updated_at: '2026-11-26T10:00:00.000Z' },
+              { package_id: '@voskhod/fresh', monthly_rub: null, trial_days: 0, last_active_version: null, in_catalog: true, updated_at: null },
+              ...(extra.includes('@voskhod/newapp')
+                ? [{ package_id: '@voskhod/newapp', monthly_rub: 250, trial_days: 3, last_active_version: null, in_catalog: false, updated_at: '2026-11-27T10:00:00.000Z' }]
+                : []),
             ],
           }),
         );
+      }
+      if (req.method === 'POST' && path === '/v1/publisher-tokens') {
+        const body = JSON.parse(raw);
+        return res.end(
+          JSON.stringify({
+            id: 'tok-1', username: body.username, package_ids: body.package_ids, all_packages: body.all_packages,
+            label: body.label, token_prefix: 'cpt_abcdefgh', created_by: body.created_by, created_at: '2026-11-27T10:00:00.000Z',
+            expires_at: null, revoked_at: null, last_used_at: null, token: 'cpt_secret',
+          }),
+        );
+      }
+      if (req.method === 'POST' && path === '/v1/publisher-tokens/grant-package') {
+        return res.end(JSON.stringify({ ok: true, granted: 1 }));
+      }
+      if (req.method === 'POST' && path === '/v1/publisher-tokens/revoke-all') {
+        return res.end(JSON.stringify({ ok: true, revoked: 2 }));
       }
       if (req.method === 'PUT' && url.startsWith('/v1/developer/pricing/')) {
         if (opts.refuse) {
@@ -152,10 +183,11 @@ describe('цена приложения со стола разработчика
     const { resolver } = await build(cat);
     const out = await resolver.appsPackagePricing(CHAIRMAN);
     expect(out).toEqual([
-      { packageId: '@voskhod/paid', rubPerMonth: 500, trialDays: 7, lastActiveVersion: '1.0.0', updatedAt: '2026-11-26T10:00:00.000Z' },
-      { packageId: '@voskhod/fresh', rubPerMonth: null, trialDays: 0, lastActiveVersion: null, updatedAt: null },
+      { packageId: '@voskhod/paid', rubPerMonth: 500, trialDays: 7, lastActiveVersion: '1.0.0', inCatalog: true, updatedAt: '2026-11-26T10:00:00.000Z' },
+      { packageId: '@voskhod/fresh', rubPerMonth: null, trialDays: 0, lastActiveVersion: null, inCatalog: true, updatedAt: null },
     ]);
-    expect(cat.seen[0]).toMatchObject({ method: 'GET', url: '/v1/developer/pricing', auth: `Bearer ${JWT}` });
+    // Узел передаёт каталогу свои зарегистрированные пакеты: цена пакета без выпуска (487-37).
+    expect(cat.seen[0]).toMatchObject({ method: 'GET', path: '/v1/developer/pricing', query: { extra: '@voskhod/fresh' }, auth: `Bearer ${JWT}` });
   });
 
   it('happy: издатель назначает 499,99 ₽ и пробный срок — каталог получает рубли в месяц без пересчёта', async () => {
@@ -285,5 +317,107 @@ describe('цена приложения со стола разработчика
     const out = await client.approveModeration({ moderationId: 'm1', scope: { type: 'all' } } as any);
     expect(out.status).toBe('conflict');
     expect((out as { error: string }).error).toContain('RELEASE_CONFLICT');
+  });
+});
+
+// 487-37: цена при регистрации пакета и ключи API на несколько пакетов либо на все.
+describe('ключи API и цена при регистрации пакета (487-37)', () => {
+  let close: (() => void) | undefined;
+  afterEach(() => close?.());
+
+  it('happy: издатель видит цену пакета без выпуска, назначенную при регистрации, с признаком «не в каталоге»', async () => {
+    const cat = fakeCatalog();
+    close = () => cat.server.close();
+    const { resolver } = await build(cat, [{ username: 'dev1', packageId: '@voskhod/newapp' }]);
+    const mine = await resolver.appsPackagePricing(MEMBER);
+    expect(mine).toEqual([
+      { packageId: '@voskhod/newapp', rubPerMonth: 250, trialDays: 3, lastActiveVersion: null, inCatalog: false, updatedAt: '2026-11-27T10:00:00.000Z' },
+    ]);
+  });
+
+  it('happy: ключ на два своих пакета — каталог получает оба пакета, ключ не «на все», срок не задан', async () => {
+    const cat = fakeCatalog();
+    close = () => cat.server.close();
+    const { resolver } = await build(cat, [
+      { username: 'dev1', packageId: '@voskhod/newapp' },
+      { username: 'dev1', packageId: '@voskhod/fresh' },
+    ]);
+    const out = await resolver.issueMyPublisherToken(
+      { packageIds: ['@voskhod/newapp', '@voskhod/fresh'], allPackages: false, label: 'Ноутбук' },
+      MEMBER,
+    );
+    expect(out).toMatchObject({ status: 'created', token: 'cpt_secret', record: { packageIds: ['@voskhod/newapp', '@voskhod/fresh'], allPackages: false } });
+    const sent = cat.seen.find((r) => r.path === '/v1/publisher-tokens');
+    expect(sent?.body).toEqual({
+      username: 'dev1',
+      package_ids: ['@voskhod/newapp', '@voskhod/fresh'],
+      all_packages: false,
+      label: 'Ноутбук',
+      created_by: 'dev1',
+    });
+  });
+
+  it('happy: ключ на все пакеты — каталог получает все текущие пакеты издателя и признак «на все»', async () => {
+    const cat = fakeCatalog();
+    close = () => cat.server.close();
+    const { resolver } = await build(cat, [
+      { username: 'dev1', packageId: '@voskhod/newapp' },
+      { username: 'dev1', packageId: '@voskhod/fresh' },
+      { username: 'ant', packageId: '@voskhod/paid' },
+    ]);
+    await resolver.issueMyPublisherToken({ packageIds: [], allPackages: true, label: 'Все пакеты' }, MEMBER);
+    const sent = cat.seen.find((r) => r.path === '/v1/publisher-tokens');
+    expect(sent?.body.all_packages).toBe(true);
+    expect([...sent?.body.package_ids].sort()).toEqual(['@voskhod/fresh', '@voskhod/newapp']);
+  });
+
+  it('break: ключ на чужой пакет и ключ без пакетов — отказ, каталог запрос не получает', async () => {
+    const cat = fakeCatalog();
+    close = () => cat.server.close();
+    const { resolver } = await build(cat, [{ username: 'dev1', packageId: '@voskhod/newapp' }]);
+    await expect(
+      resolver.issueMyPublisherToken({ packageIds: ['@voskhod/newapp', '@voskhod/paid'], allPackages: false, label: 'x' }, MEMBER),
+    ).rejects.toThrow(/не назначен издателем/);
+    await expect(
+      resolver.issueMyPublisherToken({ packageIds: [], allPackages: false, label: 'x' }, MEMBER),
+    ).rejects.toThrow(/Отметьте хотя бы один пакет/);
+    expect(cat.seen.filter((r) => r.path === '/v1/publisher-tokens')).toEqual([]);
+  });
+
+  it('side: регистрация пакета добавляет его в ключи «на все» издателя; снятие издателя снимает пакет с ключей', async () => {
+    const cat = fakeCatalog();
+    close = () => cat.server.close();
+    const { resolver } = await build(cat, [{ username: 'dev2', packageId: '@voskhod/fresh' }]);
+    await resolver.addAppsPublisher({ username: 'dev1', packageId: '@voskhod/newapp' }, MEMBER);
+    expect(cat.seen.find((r) => r.path === '/v1/publisher-tokens/grant-package')?.body).toEqual({
+      username: 'dev1',
+      package_id: '@voskhod/newapp',
+    });
+    await resolver.removeAppsPublisher({ username: 'dev2', packageId: '@voskhod/fresh' }, CHAIRMAN);
+    expect(cat.seen.find((r) => r.path === '/v1/publisher-tokens/revoke-all')?.body).toEqual({
+      username: 'dev2',
+      package_id: '@voskhod/fresh',
+    });
+  });
+
+  it('side: каталог не пополнил ключи «на все» — регистрация пакета всё равно выполнена', async () => {
+    const cat = fakeCatalog();
+    close = () => cat.server.close();
+    const { resolver, store } = await build(cat, []);
+    cat.server.removeAllListeners('request');
+    cat.server.on('request', (req, res) => {
+      if (String(req.url).startsWith('/v1/auth/')) {
+        res.setHeader('content-type', 'application/json');
+        return res.end(JSON.stringify(String(req.url).endsWith('challenge') ? { challenge_string: 'ch' } : { token: JWT }));
+      }
+      if (String(req.url).startsWith('/v1/developer/pricing')) {
+        res.setHeader('content-type', 'application/json');
+        return res.end(JSON.stringify({ items: [] }));
+      }
+      res.statusCode = 503;
+      res.end('{}');
+    });
+    await resolver.addAppsPublisher({ username: 'dev1', packageId: '@voskhod/newapp' }, MEMBER);
+    expect(store.rows).toHaveLength(1);
   });
 });

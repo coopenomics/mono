@@ -510,6 +510,14 @@ const envVarsSchema = z.object({
     .optional()
     // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Base URL catalog-delivery (apps-catalog tenant API). Пусто = subscribe mutation в degraded mode.'),
+  // Публичный адрес catalog-delivery для компьютера издателя: стол разработчика
+  // подставляет его в команды набора издателя (487-37). Пусто — адрес узла,
+  // если он https.
+  APPS_CATALOG_PUBLIC_URL: z
+    .string()
+    .optional()
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до подключения переводов
+    .describe('Публичный адрес каталога приложений для команд набора издателя (https://catalog.example).'),
   APPS_CATALOG_TENANT_JWT: z
     .string()
     .optional()

@@ -126,7 +126,8 @@ function toPublisherTokenDTO(w: PublisherTokenWire): PublisherTokenDTO {
   return {
     id: w.id,
     username: w.username,
-    packageId: w.package_id,
+    packageIds: w.package_ids,
+    allPackages: w.all_packages,
     label: w.label,
     tokenPrefix: w.token_prefix,
     createdBy: w.created_by,
@@ -327,6 +328,19 @@ export class AppsCatalogProxyResolver {
     return rows.map(toPublisherDTO);
   }
 
+  @Query(() => String, {
+    name: 'appsCatalogPublicUrl',
+    nullable: true,
+    description:
+      'Адрес каталога приложений для команд набора издателя на компьютере разработчика. ' +
+      'Пусто — адрес узлу не задан.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Publisher', 'manage')
+  appsCatalogPublicUrl(): string | null {
+    return this.client.publicCatalogUrl;
+  }
+
   @Query(() => [PublisherTokenDTO], {
     name: 'myPublisherTokens',
     description: 'Мои ключи каталога (без секретов).',
@@ -342,8 +356,8 @@ export class AppsCatalogProxyResolver {
   @Mutation(() => CreatePublisherTokenResultDTO, {
     name: 'issueMyPublisherToken',
     description:
-      'Выпустить ключ каталога на свой пакет. Кладётся в .npmrc репозитория ' +
-      'приложения; plaintext возвращается один раз.',
+      'Выпустить ключ каталога на свои пакеты либо на все свои пакеты. Ключ ' +
+      'принимает команда выпуска; текст ключа возвращается один раз.',
   })
   @UseGuards(GqlJwtAuthGuard)
   async issueMyPublisherToken(
@@ -353,14 +367,14 @@ export class AppsCatalogProxyResolver {
   ): Promise<CreatePublisherTokenResultDTO> {
     const outcome = await this.publishers.issueToken({
       username: currentUser.username,
-      packageId: data.packageId,
+      packageIds: data.packageIds ?? [],
+      allPackages: data.allPackages === true,
       label: data.label,
       expiresInDays: data.expiresInDays ?? undefined,
     });
     if (outcome.status === 'created') {
-      this.logger.log(
-        `issueMyPublisherToken: ${currentUser.username} → ${data.packageId} (id ${outcome.record.id})`,
-      );
+      const scope = data.allPackages ? 'all-packages' : (data.packageIds ?? []).join(', ');
+      this.logger.log(`issueMyPublisherToken: ${currentUser.username} → ${scope} (id ${outcome.record.id})`);
       return {
         status: CreatePublisherTokenStatus.CREATED,
         token: outcome.token,
@@ -404,7 +418,7 @@ export class AppsCatalogProxyResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Publisher', 'manage')
   async appsPackagePricing(@CurrentUser() currentUser: IMonoAccount): Promise<AppsPackagePricingDTO[]> {
-    if (councilRolesOf(currentUser.role).includes('chairman')) return this.client.listDeveloperPricing();
+    if (councilRolesOf(currentUser.role).includes('chairman')) return this.publishers.allPricing();
     return this.publishers.myPricing(currentUser.username);
   }
 

@@ -7,7 +7,7 @@ export const name = 'appsPackagePricing'
  * Цену назначает издатель; `rubPerMonth: null` — цена не назначена.
  */
 export const query = Selector('Query')({
-  [name]: { packageId: true, rubPerMonth: true, trialDays: true, lastActiveVersion: true, updatedAt: true },
+  [name]: { packageId: true, rubPerMonth: true, trialDays: true, lastActiveVersion: true, inCatalog: true, updatedAt: true },
 })
 
 export interface IInput {

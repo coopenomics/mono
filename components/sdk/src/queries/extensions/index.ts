@@ -13,6 +13,7 @@ export * as GetExtensionLogs from './getExtensionLogs'
 /** Получить список расширений */
 export * as GetExtensions from './getExtensions'
 export * as AppsPublishers from './appsPublishers'
+export * as AppsCatalogPublicUrl from './appsCatalogPublicUrl'
 export * as AppsPackagePricing from './appsPackagePricing'
 export * as MyPublisherPackages from './myPublisherPackages'
 export * as MyPublisherTokens from './myPublisherTokens'

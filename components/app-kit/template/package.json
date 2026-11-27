@@ -1,0 +1,56 @@
+{
+  "name": "@voskhod/exampleapp",
+  "version": "0.1.0",
+  "description": "Эталонное приложение каталога: бэкенд на @coopenomics/extension-sdk (Federation v2, порты ядра по сети) и фронт в изолированной рамке стола. Шаблон для новых приложений.",
+  "main": "install.js",
+  "files": [
+    "install.js",
+    "assets/",
+    "README.md"
+  ],
+  "coopenomics": {
+    "backend": {
+      "image": "voskhod/exampleapp:0.1.0",
+      "subgraphPort": 3011,
+      "healthcheck": "/_health",
+      "env": [
+        "COOPNAME"
+      ]
+    },
+    "frontend": {
+      "frame": "frontend/frame.html",
+      "workspace": {
+        "name": "exampleapp",
+        "title": "Example",
+        "icon": "extension"
+      }
+    },
+    "ports": [
+      "accessToken",
+      "cooperativeVars",
+      "document",
+      "chain"
+    ],
+    "chainActions": [
+      "eosio::refund"
+    ]
+  },
+  "catalog": {
+    "kind": "remote",
+    "workspaces": [
+      "exampleapp"
+    ],
+    "pricing": {
+      "rubPerMonth": 0,
+      "trialMinutes": 60
+    },
+    "publisher": {
+      "coopname": "voskhod",
+      "signer": "chairman"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
+}

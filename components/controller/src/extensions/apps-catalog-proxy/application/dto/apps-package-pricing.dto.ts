@@ -25,6 +25,11 @@ export class AppsPackagePricingDTO {
   })
   lastActiveVersion?: string | null;
 
+  @Field(() => Boolean, {
+    description: 'Пакет записан в каталоге: подан первый выпуск. Нет — цена назначена при регистрации',
+  })
+  inCatalog!: boolean;
+
   @Field(() => String, { nullable: true, description: 'Когда цена назначена (ISO 8601)' })
   updatedAt?: string | null;
 }

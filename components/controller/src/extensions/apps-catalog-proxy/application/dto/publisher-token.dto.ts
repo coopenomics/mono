@@ -12,10 +12,13 @@ export class PublisherTokenDTO {
   @Field({ description: 'Аккаунт пайщика-издателя' })
   username!: string;
 
-  @Field({ description: 'Пакет, на который действует ключ' })
-  packageId!: string;
+  @Field(() => [String], { description: 'Пакеты, на которые действует ключ' })
+  packageIds!: string[];
 
-  @Field({ description: 'Метка («CI demo-app»)' })
+  @Field(() => Boolean, { description: 'Ключ на все пакеты издателя, включая будущие' })
+  allPackages!: boolean;
+
+  @Field({ description: 'Название ключа' })
   label!: string;
 
   @Field({ description: 'Первые символы токена для узнавания' })
