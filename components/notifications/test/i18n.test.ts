@@ -50,6 +50,7 @@ const FROZEN_IDS = [
   'priblizhaetsya-data-oplaty',
   'priglashenie-ostavit-otzyv',
   'priglashenie-v-kooperativ',
+  'prilozhenie-prosit-novye-prava-yadra',
   'probniy-period-zakanchivaetsya',
   'proekt-spisaniya-skoroporta-na-povestke-soveta',
   'redaktsii-dokumentov-zhdut-utverzhdeniya-soveta',

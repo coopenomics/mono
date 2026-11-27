@@ -529,7 +529,9 @@ cases:
       Перечень приложений — предложения провайдера подключения: цена, пробный срок и подписка на месте,
       издатель — пространство имён пакета
     test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
-    status: passing
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
   - id: apps.access.side.21
     level: backend
@@ -539,7 +541,9 @@ cases:
     expect: >
       Витрина пуста, отказа нет
     test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
-    status: passing
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
   - id: apps.access.happy.22
     level: backend
@@ -550,7 +554,9 @@ cases:
     expect: >
       Фронт получен без ключа оператора каталога; контрольная сумма — из манифеста версии
     test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
-    status: passing
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
   - id: apps.access.break.22
     level: backend
@@ -561,7 +567,9 @@ cases:
     expect: >
       Фронта на узле нет; каталог токен пакета не выдал либо файл не найден
     test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
-    status: passing
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
   - id: apps.access.side.22
     level: backend
@@ -571,7 +579,9 @@ cases:
     expect: >
       Источник недоступен: прежний фронт в кэше узла остаётся
     test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
-    status: passing
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
   - id: apps.access.side.23
     level: backend
@@ -581,7 +591,9 @@ cases:
     expect: >
       Берётся файл корня, затем файл сборки; каталог файлом не считается
     test: components/orchestrator/src/frontend-cache/registry-install-source.impl.spec.ts
-    status: passing
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и второго узла-кооператива: путь узла без ключа оператора проверен на стенде разработки 4"
 
   # ── Не решено ────────────────────────────────────────────────────────────
   - id: apps.access.side.20
