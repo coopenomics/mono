@@ -57,7 +57,8 @@ const canManage = computed(() => desktop.hasGrant('apps', 'Apps:manage'));
 const busy = ref(false);
 
 const requestText = computed(() => {
-  const version = rights.value?.pendingVersion ?? rights.value?.version;
+  // Версия — из каталога: при первой установке узел версии ещё не знает и запрос её не несёт.
+  const version = rights.value?.version;
   return version ? t('catalogApp.rights.requestUpdate', { version }) : t('catalogApp.rights.requestUpdateNoVersion');
 });
 

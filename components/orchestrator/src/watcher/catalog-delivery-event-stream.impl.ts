@@ -21,6 +21,7 @@
  */
 import { Logger } from '@nestjs/common';
 import type { AppsContractEvent, AppsContractEventStreamPort } from './ports';
+import { AppConsentRequiredError } from '../orchestrator/ports';
 import type { CatalogTenantToken } from './catalog-tenant-token';
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -185,9 +186,10 @@ export class CatalogDeliveryEventStream implements AppsContractEventStreamPort {
         await handler(e);
         if (packageId !== undefined) this.failedInstalls.delete(packageId);
       } catch (err) {
-        this.logger.error(
-          `handler failed on ${e.kind} ${'packageId' in e ? e.packageId : ''}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        const failure = `handler failed on ${e.kind} ${'packageId' in e ? e.packageId : ''}: ${err instanceof Error ? err.message : String(err)}`;
+        // Ожидание согласия председателя — не сбой: приложение ставится после ответа.
+        if (err instanceof AppConsentRequiredError) this.logger.warn(failure);
+        else this.logger.error(failure);
         if (packageId !== undefined) {
           this.knownSubs.delete(packageId);
           const count = (this.failedInstalls.get(packageId)?.count ?? 0) + 1;
