@@ -1,7 +1,10 @@
 <template lang="pug">
 //- Права ядра подключённого приложения: запрос, на который председатель ещё
 //- не ответил, → разрешённые права → переключатель автоприёма новых прав.
-BaseCard(v-if='rights', :title="$t('catalogApp.rights.title')")
+//- Блок стоит в карточке страницы приложения тем же столбцом, что факты
+//- подписки: своей рамки у него нет, раздел отделяет линия.
+section.catalog-app-rights(v-if='rights')
+  h3.catalog-app-rights__title {{ $t('catalogApp.rights.title') }}
   //- Запрос новых прав: приложение уже работает, обновление ждёт ответа.
   //- У приложения, которое ещё ставится, тот же запрос стоит шагом хода установки.
   .catalog-app-rights__request(v-if='awaiting && app.installed')
@@ -30,7 +33,7 @@ BaseCard(v-if='rights', :title="$t('catalogApp.rights.title')")
 
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { BaseBanner, BaseButton, BaseCard } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { t } from 'src/shared/i18n';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -92,6 +95,16 @@ watch(() => [props.app.packageId, live.value], load);
 </script>
 
 <style scoped>
+.catalog-app-rights {
+  max-width: 520px;
+  margin-top: var(--p-6);
+}
+.catalog-app-rights__title {
+  margin: 0 0 var(--p-4);
+  font-size: var(--p-fs-h2);
+  font-weight: 600;
+  line-height: var(--p-lh-h2);
+}
 .catalog-app-rights__request {
   display: flex;
   flex-direction: column;

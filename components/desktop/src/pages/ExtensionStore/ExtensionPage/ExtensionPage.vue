@@ -53,7 +53,7 @@
         template(v-else-if='catalogApp')
           CatalogAppInfo(v-if='isMain', :app='catalogApp')
           //- Права ядра подключённого приложения: что разрешено и запрос новых прав.
-          CatalogAppRights.q-mt-lg(v-if='isMain', :app='catalogApp')
+          CatalogAppRights(v-if='isMain', :app='catalogApp')
           //- Настроек у пакетов каталога пока нет: страница есть, чтобы путь
           //- был тем же, что у встроенных; схема появится вместе с манифестом.
           template(v-if='isSettings || isInstall')
