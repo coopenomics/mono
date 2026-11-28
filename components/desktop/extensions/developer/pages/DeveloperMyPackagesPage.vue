@@ -93,62 +93,43 @@
           | {{ hasPrice(current) ? $t('developer.price.change') : $t('developer.price.set') }}
 
   //- Регистрация: имя пакета и цена одним шагом — цену каталог принимает до
-  //- первого выпуска, без цены модератор выпуск не одобрит.
-  BaseDialog(v-model='registerDialog', :title="$t('developer.register.title')", size='sm')
-    p.t-sm.t-muted.q-mb-sm {{ $t('developer.register.text') }}
-    BaseInput(
-      v-model='registerName',
-      :label="$t('developer.register.nameLabel')",
-      :prefix='packagePrefix',
-      :hint="$t('developer.register.nameHint')",
-      :error='registerError',
-      mono,
-      autofocus,
-      required
-    )
-    AmountInput.q-mt-sm(
-      v-model='registerPrice.rubPerMonth',
-      symbol='₽',
-      :precision='2',
-      :label="$t('developer.price.priceLabel')",
-      :hint="$t('developer.price.priceHint')",
-      :error='registerPriceErrors.rubPerMonth'
-    )
-    BaseInput.q-mt-sm(
-      v-model='registerPrice.trialDays',
-      type='number',
-      :label="$t('developer.price.trialLabel')",
-      :hint="$t('developer.price.trialHint')",
-      :error='registerPriceErrors.trialDays'
-    )
-    BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
+  //- первого выпуска, без цены модератор выпуск не одобрит. Поля — колонкой
+  //- с интервалом, цена и пробный срок — рядом.
+  BaseDialog(v-model='registerDialog', :title="$t('developer.register.title')", size='lg')
+    .package-form
+      p.t-sm.t-muted.package-form__text {{ $t('developer.register.text') }}
+      BaseInput(
+        v-model='registerName',
+        :label="$t('developer.register.nameLabel')",
+        :prefix='packagePrefix',
+        :hint="$t('developer.register.nameHint')",
+        :error='registerError',
+        mono,
+        autofocus,
+        required
+      )
+      PackagePriceFields(
+        v-model:rub-per-month='registerPrice.rubPerMonth',
+        v-model:trial-days='registerPrice.trialDays',
+        :errors='registerPriceErrors'
+      )
+      BaseBanner(v-if='actionError', variant='neg') {{ actionError }}
     template(#footer)
       BaseButton(variant='ghost', :disabled='isSubmitting', @click='registerDialog = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', :loading='isSubmitting', @click='confirmRegister') {{ $t('developer.register.submit') }}
 
-  BaseDialog(v-model='priceDialog', :title="$t('developer.price.dialogTitle')", size='sm')
-    p.t-sm.t-muted.q-mb-sm
-      | {{ $t('developer.price.text') }}
-    AmountInput(
-      v-model='priceForm.rubPerMonth',
-      symbol='₽',
-      :precision='2',
-      :label="$t('developer.price.priceLabel')",
-      :hint="$t('developer.price.priceHint')",
-      :error='priceErrors.rubPerMonth'
-    )
-    BaseInput.q-mt-sm(
-      v-model='priceForm.trialDays',
-      type='number',
-      :label="$t('developer.price.trialLabel')",
-      :hint="$t('developer.price.trialHint')",
-      :error='priceErrors.trialDays'
-    )
-    BaseBanner.q-mt-sm(v-if='actionError', variant='neg') {{ actionError }}
+  BaseDialog(v-model='priceDialog', :title="$t('developer.price.dialogTitle')", size='lg')
+    .package-form
+      p.t-sm.t-muted.package-form__text {{ $t('developer.price.text') }}
+      PackagePriceFields(
+        v-model:rub-per-month='priceForm.rubPerMonth',
+        v-model:trial-days='priceForm.trialDays',
+        :errors='priceErrors'
+      )
+      BaseBanner(v-if='actionError', variant='neg') {{ actionError }}
     template(#footer)
       BaseButton(variant='ghost', :disabled='isSubmitting', @click='priceDialog = false') {{ $t('common.action.cancel') }}
       BaseButton(variant='primary', :loading='isSubmitting', @click='confirmPrice') {{ $t('developer.price.save') }}
-
 </template>
 
 <script setup lang="ts">
@@ -156,7 +137,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
-import { AmountInput, DataRow, DetailsDrawer, PageHint, VerticalStepper } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, PageHint, VerticalStepper } from 'src/shared/ui/domain';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -166,6 +147,7 @@ import { useMyPackages, type IMyPackage, type PackageStage } from '../features/M
 import { formatDate, formatRub } from '../shared/lib/format';
 import PackageRow from '../shared/ui/PackageRow.vue';
 import HeaderActionButton from '../shared/ui/HeaderActionButton.vue';
+import PackagePriceFields from '../shared/ui/PackagePriceFields.vue';
 import { kitCreateCommand, kitPublishCommand } from '../shared/lib/kitCommands';
 import { api as catalogApi } from '../features/CatalogAddress/api';
 import { t } from '../i18n';
@@ -405,6 +387,14 @@ onMounted(async () => {
   margin-top: var(--p-5);
   padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
+}
+.package-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+}
+.package-form__text {
+  margin: 0;
 }
 .my-packages__footer {
   display: flex;
