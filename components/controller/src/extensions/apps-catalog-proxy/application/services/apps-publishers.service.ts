@@ -9,7 +9,7 @@
  * {@link AppsCatalogHttpService}; mono здесь — фильтр «можно ли этому
  * аккаунту этот пакет».
  */
-import { ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { platformSettings, type TableStore } from '@coopenomics/extension-kit';
 import { APPS_PUBLISHER_STORE } from '../../infrastructure/database/apps-catalog-proxy-stores';
 import { AppsPublisherRecord } from '../../infrastructure/records/apps-publisher.record';
@@ -21,6 +21,7 @@ import {
   type PublisherTokenWire,
   type SetDeveloperPricingOutcome,
 } from '../../infrastructure/apps-catalog-http.service';
+import { DeveloperLiveFeedService } from './developer-live-feed.service';
 
 const PACKAGE_ID_RE = /^@[a-z0-9-]+\/[a-z0-9-]+$/;
 
@@ -32,6 +33,7 @@ export class AppsPublishersService {
     @Inject(APPS_PUBLISHER_STORE)
     private readonly store: TableStore<AppsPublisherRecord>,
     private readonly catalog: AppsCatalogHttpService,
+    @Optional() private readonly live?: DeveloperLiveFeedService,
   ) {}
 
   private get coopname(): string {
@@ -101,7 +103,10 @@ export class AppsPublishersService {
   private async grantToAllPackageKeys(username: string, packageId: string): Promise<void> {
     try {
       const granted = await this.catalog.grantPublisherPackage(username, packageId);
-      if (granted > 0) this.logger.log(`package ${packageId} added to ${granted} all-packages key(s) of ${username}`);
+      if (granted > 0) {
+        this.logger.log(`package ${packageId} added to ${granted} all-packages key(s) of ${username}`);
+        await this.live?.keysChanged(username);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`package ${packageId} not added to all-packages keys of ${username}: ${msg}`);
@@ -117,6 +122,7 @@ export class AppsPublishersService {
     if (!row) return false;
     const touched = await this.catalog.revokePublisherAccess(input.username, input.packageId);
     await this.store.delete({ id: row.id });
+    if (touched > 0) await this.live?.keysChanged(input.username);
     this.logger.log(
       `publisher removed: ${input.username} → ${input.packageId} by ${input.removedBy} (keys touched: ${touched})`,
     );
@@ -159,11 +165,13 @@ export class AppsPublishersService {
     trialDays: number;
   }): Promise<SetDeveloperPricingOutcome> {
     await this.assertAssigned(input.username, input.packageId);
-    return this.catalog.setDeveloperPricing({
+    const outcome = await this.catalog.setDeveloperPricing({
       packageId: input.packageId,
       rubPerMonth: input.rubPerMonth,
       trialDays: input.trialDays,
     });
+    if (outcome.status === 'applied') await this.live?.packageChanged(input.packageId);
+    return outcome;
   }
 
   private async assertAssigned(username: string, packageId: string): Promise<void> {
@@ -205,7 +213,7 @@ export class AppsPublishersService {
     if (!input.allPackages && packageIds.length === 0) {
       throw new ForbiddenException(t('appsCatalogProxy.publishers.tokenNeedsPackages'));
     }
-    return this.catalog.createPublisherToken({
+    const outcome = await this.catalog.createPublisherToken({
       username: input.username,
       packageIds,
       allPackages: input.allPackages,
@@ -213,6 +221,8 @@ export class AppsPublishersService {
       createdBy: input.username,
       expiresInDays: input.expiresInDays,
     });
+    if (outcome.status === 'created') await this.live?.keysChanged(input.username);
+    return outcome;
   }
 
   /** Отозвать свой ключ: проверяем, что ключ действительно этого издателя. */
@@ -220,6 +230,8 @@ export class AppsPublishersService {
     const mine = await this.myTokens(username);
     const target = mine.find((t) => t.id === id);
     if (!target) throw new NotFoundException(t('appsCatalogProxy.publishers.tokenNotFound'));
-    return this.catalog.revokePublisherToken(id);
+    const revoked = await this.catalog.revokePublisherToken(id);
+    if (revoked) await this.live?.keysChanged(username);
+    return revoked;
   }
 }

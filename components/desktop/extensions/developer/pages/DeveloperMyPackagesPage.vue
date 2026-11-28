@@ -140,6 +140,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.ty
 import { DataRow, DetailsDrawer, PageHint, VerticalStepper } from 'src/shared/ui/domain';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper/VerticalStepper.types';
 import { useFirstLoad } from 'src/shared/lib/composables';
+import { APPS_CATALOG_LIVE, useLiveReload } from 'src/shared/lib/realtime';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
@@ -172,6 +173,9 @@ const systemStore = useSystemStore();
 const { registerAction } = useHeaderActions();
 const { packages, loading, error, isSubmitting, actionError, load, register, setPrice } = useMyPackages();
 const firstLoad = useFirstLoad(loading);
+// Живое обновление по ленте узла: регистрация пакета, цена, решение
+// модератора и выпуск из терминала (сигнал ядра по опросу каталога), ключи API.
+useLiveReload([APPS_CATALOG_LIVE.publishers, APPS_CATALOG_LIVE.packages, APPS_CATALOG_LIVE.keys], load);
 
 const packagePrefix = computed(() => `@${systemStore.info.coopname}/`);
 
@@ -349,7 +353,6 @@ async function confirmPrice() {
   if (await setPrice({ packageId: pricePackageId.value, rubPerMonth, trialDays })) priceDialog.value = false;
 }
 
-// realtime: нет источника — пакеты, цены и ключи хранит внешний каталог приложений, лента цепи кооператива о них не сообщает; список перечитывается после каждого действия на странице.
 onMounted(async () => {
   registerAction({
     id: 'developer:register-package',

@@ -1,6 +1,7 @@
 import {
   ACCESS_TOKEN_PORT,
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   COOPERATIVE_VARS_PORT,
   DOCUMENT_PORT,
@@ -38,5 +39,7 @@ export const appsCatalogProxyPorts = {
   ],
   optional: [
     PROVIDER_APPS_PORT,
+    // Живое обновление столов каталога по ленте ядра (487-37).
+    CHAIN_CHANGES_PORT,
   ],
 };

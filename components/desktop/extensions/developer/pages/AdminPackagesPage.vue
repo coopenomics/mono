@@ -107,6 +107,7 @@ import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.typ
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { UserSearchSelector } from 'src/shared/ui';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
+import { APPS_CATALOG_LIVE, useLiveReload } from 'src/shared/lib/realtime';
 import { useAppsPublishers, type IAppsPublisher } from '../features/AppsPublishers/model';
 import { api as pricingApi, type IPackagePricing } from '../features/PackagePricing/api';
 import { accountName, resolveAccountNames } from '../shared/lib/accountNames';
@@ -133,6 +134,8 @@ const pricing = ref<IPackagePricing[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const firstLoad = useFirstLoad(loading);
+// Живое обновление по ленте узла: издатели и цены пакетов кооператива.
+useLiveReload([APPS_CATALOG_LIVE.publishers, APPS_CATALOG_LIVE.packages], () => load());
 
 /** Пакеты каталога и зарегистрированные пакеты без выпуска — одним списком по имени. */
 const rows = computed<AdminPackage[]>(() => {
@@ -236,7 +239,6 @@ async function removePublisher(p: IAppsPublisher) {
   if (agreed) await remove({ username: p.username, packageId: p.packageId });
 }
 
-// realtime: нет источника — пакеты и цены хранит внешний каталог приложений, назначения издателей — база кооператива вне ленты цепи; список перечитывается после каждого действия на странице.
 onMounted(load);
 </script>
 

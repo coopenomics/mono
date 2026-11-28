@@ -1,5 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { BadRequestException, Logger, UseGuards } from '@nestjs/common';
+import { BadRequestException, Logger, Optional, UseGuards } from '@nestjs/common';
 import { DomainError, GqlJwtAuthGuard, RightsGuard, RequireRight, CurrentUser, councilRolesOf } from '@coopenomics/extension-kit';
 import { AppsPackagePricingDTO, SetAppsPackagePricingInputDTO } from '../dto/apps-package-pricing.dto';
 import { type IMonoAccount } from '@coopenomics/innercoop';
@@ -27,6 +27,7 @@ import {
   AppsPublisherDTO,
   IssueMyPublisherTokenInputDTO,
 } from '../dto/apps-publisher.dto';
+import { DeveloperLiveFeedService } from '../services/developer-live-feed.service';
 import { AppsPublishersService } from '../services/apps-publishers.service';
 import type { AppsPublisherRecord } from '../../infrastructure/records/apps-publisher.record';
 import {
@@ -145,6 +146,7 @@ export class AppsCatalogProxyResolver {
   constructor(
     private readonly client: AppsCatalogHttpService,
     private readonly publishers: AppsPublishersService,
+    @Optional() private readonly live?: DeveloperLiveFeedService,
   ) {}
 
   /**
@@ -515,6 +517,9 @@ export class AppsCatalogProxyResolver {
       scope: toReleaseScope(data.scope),
       override: data.override,
     });
+    // Очередь модерации и состояние пакета на столах — по ленте ядра (487-37).
+    await this.live?.moderationChanged(data.moderationId);
+    if (outcome.status === 'applied') await this.live?.packageChanged(outcome.packageId);
     if (outcome.status === 'applied') {
       this.logger.log(
         `approveModeration applied: ${outcome.packageId}@${outcome.version} (request ${outcome.requestId})`,
@@ -575,6 +580,7 @@ export class AppsCatalogProxyResolver {
       moderationId: data.moderationId,
       reason: data.reason,
     });
+    await this.live?.moderationChanged(data.moderationId);
     if (outcome.status === 'applied') {
       this.logger.log(
         `rejectModeration applied: ${data.moderationId} (request ${outcome.requestId})`,

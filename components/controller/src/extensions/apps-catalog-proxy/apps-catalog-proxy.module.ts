@@ -2,6 +2,7 @@ import './i18n';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { DeveloperLiveFeedService } from './application/services/developer-live-feed.service';
 import { AppsPublishersService } from './application/services/apps-publishers.service';
 import { CatalogAppsStateService } from './application/services/catalog-apps-state.service';
 import { DeveloperExtension } from './developer-extension';
@@ -32,6 +33,7 @@ import { AppsCatalogProxyResolver } from './application/resolvers/apps-catalog-p
     AppsCatalogHttpService,
     AppsCatalogProxyResolver,
     AppsPublishersService,
+    DeveloperLiveFeedService,
     CatalogAppsStateService,
     AppPortGrantsService,
     AppRightsConsentService,

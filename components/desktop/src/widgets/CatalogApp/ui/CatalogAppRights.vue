@@ -39,6 +39,7 @@ import { t } from 'src/shared/i18n';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { type CatalogApp, awaitsConsent, isLiveSubscription, neededRights, useCatalogAppStore } from 'src/entities/CatalogApp';
 import CoreRightsList from './CoreRightsList.vue';
+import { APPS_CATALOG_LIVE, useLiveReload } from 'src/shared/lib/realtime';
 
 /**
  * Права ядра приложения каталога на странице приложения. Председатель видит,
@@ -89,7 +90,8 @@ async function load(): Promise<void> {
   }
 }
 
-// realtime: нет источника — права приложения хранит база узла вне ленты цепи, перечень версии отдаёт каталог; блок перечитывается при открытии страницы и после каждого действия.
+// Живое обновление по ленте узла: согласие председателя на права ядра.
+useLiveReload([APPS_CATALOG_LIVE.rightsConsents], load);
 onMounted(load);
 watch(() => [props.app.packageId, live.value], load);
 </script>

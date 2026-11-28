@@ -142,6 +142,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.ty
 import type { BaseTableColumn } from 'src/shared/ui/base/BaseTable/BaseTable.types';
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
+import { APPS_CATALOG_LIVE, useLiveReload } from 'src/shared/lib/realtime';
 import { useHeaderActions } from 'src/shared/hooks';
 import { apiKeyState, useApiKeys, type ApiKeyState, type IApiKey } from '../features/ApiKeys/model';
 import { formatDate } from '../shared/lib/format';
@@ -163,6 +164,8 @@ const { confirm } = useConfirm();
 const { registerAction } = useHeaderActions();
 const { keys, packageIds, loading, error, isSubmitting, actionError, issuedKey, load, issue, revoke } = useApiKeys();
 const firstLoad = useFirstLoad(loading);
+// Живое обновление по ленте узла: ключи API и пакеты издателя для выбора.
+useLiveReload([APPS_CATALOG_LIVE.keys, APPS_CATALOG_LIVE.publishers], load);
 
 const STATES: Record<ApiKeyState, { label: string; variant: BaseBadgeVariant }> = {
   active: { label: t('developer.keys.state.active'), variant: 'pos' },
@@ -258,7 +261,6 @@ async function confirmIssue() {
   });
 }
 
-// realtime: нет источника — ключи хранит внешний каталог приложений, лента цепи кооператива о них не сообщает; список перечитывается после каждого действия на странице.
 onMounted(async () => {
   registerAction({
     id: 'developer:issue-api-key',

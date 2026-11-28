@@ -57,6 +57,7 @@ import { useRouter } from 'vue-router';
 import { BaseBanner, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { useSystemStore } from 'src/entities/System/model';
+import { APPS_CATALOG_LIVE, useLiveReload } from 'src/shared/lib/realtime';
 import { api as catalogApi } from '../features/CatalogAddress/api';
 import { api as packagesApi } from '../features/MyPackages/api';
 import { appNameOf, kitCreateCommand, kitPublishCommand } from '../shared/lib/kitCommands';
@@ -183,8 +184,7 @@ function go(name: string) {
   void router.push({ name });
 }
 
-// realtime: нет источника — адрес каталога задаёт настройка узла, пакеты хранит внешний каталог приложений; страница читает их один раз при открытии.
-onMounted(async () => {
+async function load(): Promise<void> {
   try {
     const [url, assignments] = await Promise.all([catalogApi.publicCatalogUrl(), packagesApi.myAssignments()]);
     catalogUrl.value = url;
@@ -195,7 +195,11 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+// Живое обновление по ленте узла: зарегистрированный пакет подставляется в команды сразу.
+useLiveReload([APPS_CATALOG_LIVE.publishers], load);
+onMounted(load);
 </script>
 
 <style scoped>

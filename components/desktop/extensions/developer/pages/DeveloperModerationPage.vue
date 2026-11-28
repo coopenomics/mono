@@ -137,6 +137,7 @@ import {
 } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { useFirstLoad } from 'src/shared/lib/composables';
+import { APPS_CATALOG_LIVE, useLiveReload } from 'src/shared/lib/realtime';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { Zeus, type Queries } from '@coopenomics/sdk';
@@ -161,6 +162,9 @@ const items = ref<ModerationRow[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const firstLoad = useFirstLoad(loading);
+// Живое обновление по ленте узла: очередь модерации (сигнал ядра после
+// решения и по опросу каталога) и цены пакетов.
+useLiveReload([APPS_CATALOG_LIVE.moderation, APPS_CATALOG_LIVE.packages], () => load());
 
 /** Заявка ждёт решения модератора: только такую одобряют и отклоняют. */
 function isSubmitted(row: ModerationRow): boolean {
@@ -350,7 +354,6 @@ async function confirmReject() {
   }
 }
 
-// realtime: нет источника — заявки живут во внешнем каталоге, лента цепи кооператива о них не сообщает.
 onMounted(load);
 </script>
 

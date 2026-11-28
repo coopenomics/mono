@@ -17,3 +17,4 @@ export {
   type LiveReloadOptions,
 } from './live-reload';
 export { liveWindow, type LiveWindow } from './live-window';
+export { APPS_CATALOG_LIVE } from './apps-catalog-live';

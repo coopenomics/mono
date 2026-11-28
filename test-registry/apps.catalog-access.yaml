@@ -60,6 +60,7 @@ sources:
     - components/controller/src/infrastructure/innercoop/provider-apps-innercoop.adapter.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/services/apps-publishers.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/application/access/developer-rights.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/developer-live-feed.service.ts
   ui:
     - components/desktop/extensions/developer/**
     - components/desktop/src/widgets/CatalogApp/**
@@ -669,6 +670,80 @@ cases:
     status: written
     external: unreachable
     external_reason: "у стенда внешнего слоя нет каталога приложений: путь ключей и цен проверен на стенде разработки 4"
+
+  # ── Живое обновление столов каталога через ленту ядра (487-37, слово
+  #    владельца 28.11.2026: «сейчас просто сделать через ядро») ──────────
+  - id: apps.access.happy.29
+    level: backend
+    kind: happy
+    scenario: >
+      Узел запускается.
+    expect: >
+      Таблицы ленты объявлены: назначения и ключи — личные, модерация — только персоналу
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-live-feed.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: живое обновление столов каталога проверено на стенде разработки 4"
+
+  - id: apps.access.happy.30
+    level: backend
+    kind: happy
+    scenario: >
+      Издатель подаёт выпуск из терминала, модератор одобряет его на другом узле.
+    expect: >
+      На следующем опросе каталога узел даёт сигнал по пакету, стол перечитывает
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-live-feed.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: живое обновление столов каталога проверено на стенде разработки 4"
+
+  - id: apps.access.side.30
+    level: backend
+    kind: side
+    scenario: >
+      Каталог без перемен; узел без издателей.
+    expect: >
+      Сигналов нет; узел без издателей каталог не опрашивает
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-live-feed.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: живое обновление столов каталога проверено на стенде разработки 4"
+
+  - id: apps.access.side.31
+    level: backend
+    kind: side
+    scenario: >
+      Каталог добавил заявку в очередь модерации узла оператора; узел кооператива.
+    expect: >
+      Узел оператора даёт сигнал очереди; узел кооператива очередь не читает
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-live-feed.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: живое обновление столов каталога проверено на стенде разработки 4"
+
+  - id: apps.access.break.30
+    level: backend
+    kind: break
+    scenario: >
+      Каталог не ответил на опрос.
+    expect: >
+      Проход молча пропускается, следующий работает
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-live-feed.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: живое обновление столов каталога проверено на стенде разработки 4"
+
+  - id: apps.access.happy.31
+    level: backend
+    kind: happy
+    scenario: >
+      Издатель выпустил либо отозвал ключ API; в контуре нет ленты.
+    expect: >
+      Личный сигнал издателю; без ленты сервис молчит
+    test: components/controller/tests/unit/apps-catalog-proxy/developer-live-feed.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений: живое обновление столов каталога проверено на стенде разработки 4"
 
   # ── Модерация только на узле оператора каталога (487-37, слово владельца
   #    27.11.2026: «только у оператора должна быть страница модерации») ──────

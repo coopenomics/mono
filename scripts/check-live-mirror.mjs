@@ -15,6 +15,14 @@
 //
 //   // realtime: нет источника — ширина панели из localStorage
 //
+// Храповик пометок (слово владельца 28.11.2026: «ты забываешь каждый раз
+// строить живые обновления… хотелось бы, чтобы ты помнил»). Пометки сняты
+// поимённо в scripts/lib/live-mirror-optouts.json; новую пометку гейт не
+// пропускает. Данные базы узла — таблица ленты (declareLocalTables); данные
+// внешнего сервиса — сигнал publishLocal от сервера после мутации и по опросу.
+// Исключение вносит в список владелец; --update только вычёркивает
+// пометки, которых больше нет.
+//
 // Тронул файл — переведи. Проверяются экраны: pages/ и widgets/ ядра и
 // расширений.
 //
@@ -23,7 +31,7 @@
 //   node scripts/check-live-mirror.mjs --update   переснять снимок (только вниз)
 
 import { join } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { REPO_ROOT, listFiles, splitLines, verdict } from './lib/fact-gates.mjs';
 
 const ROOTS = ['components/desktop/src', 'components/desktop/extensions'];
@@ -80,8 +88,11 @@ function findLoader(code) {
   return null;
 }
 
+const OPTOUTS_PATH = join(REPO_ROOT, 'scripts/lib/live-mirror-optouts.json');
 const found = {};
 const optOuts = [];
+/** Файлы с пометкой «нет источника» в этом проходе. */
+const optOutFiles = new Set();
 for (const file of listFiles(ROOTS, { exts: ['.vue'], exclude: EXCLUDE })) {
   if (!SCREEN.test(file)) continue;
   const text = readFileSync(join(REPO_ROOT, file), 'utf8');
@@ -97,6 +108,7 @@ for (const file of listFiles(ROOTS, { exts: ['.vue'], exclude: EXCLUDE })) {
   const optOut = lines.map((l) => l.comment.match(/\brealtime:\s*(\S.*)$/)).find(Boolean);
   if (optOut) {
     optOuts.push(`${file} — ${optOut[1].trim()}`);
+    optOutFiles.add(file);
     found[file] = [];
     continue;
   }
@@ -119,4 +131,26 @@ if (optOuts.length) {
   console.log(`  без зеркала по пометке (${optOuts.length}):`);
   optOuts.forEach((o) => console.log(`    ${o}`));
 }
-process.exit(code);
+
+// Храповик пометок: список только сокращается, пополняет его владелец.
+const listed = existsSync(OPTOUTS_PATH) ? JSON.parse(readFileSync(OPTOUTS_PATH, 'utf8')) : { files: [] };
+const allowed = new Set(listed.files);
+let optOutCode = 0;
+if (process.argv.includes('--update')) {
+  const kept = listed.files.filter((f) => optOutFiles.has(f));
+  writeFileSync(OPTOUTS_PATH, `${JSON.stringify({ ...listed, files: kept }, null, 2)}\n`);
+  console.log(`  список пометок: ${kept.length} (вычеркнуто ${listed.files.length - kept.length})`);
+} else {
+  const fresh = [...optOutFiles].filter((f) => !allowed.has(f)).sort();
+  if (fresh.length) {
+    optOutCode = 1;
+    console.log(`  ✖ новая пометка «нет источника» (${fresh.length}) — подключите живое обновление:`);
+    fresh.forEach((f) => console.log(`      ${f}`));
+    console.log(
+      '\n  Данные базы узла — таблица ленты (CHAIN_CHANGES_PORT.declareLocalTables); данные внешнего сервиса — ' +
+        'сигнал publishLocal от сервера после мутации и по опросу. Пометку разрешает только владелец: ' +
+        'он вносит файл в scripts/lib/live-mirror-optouts.json.',
+    );
+  }
+}
+process.exit(code || optOutCode);
