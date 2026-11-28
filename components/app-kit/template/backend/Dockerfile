@@ -10,7 +10,10 @@ RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 # Файл блокировки необязателен: каркас его не содержит, издатель добавляет
 # свой после первой установки зависимостей.
+# vendor/ — SDK приложений из чекаута mono, когда каркас создан набором из
+# чекаута; у каркаса из npm папка пустая.
 COPY package.json pnpm-lock.yaml* ./
+COPY vendor ./vendor
 RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install; fi
 
 COPY . .
@@ -24,6 +27,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 COPY package.json pnpm-lock.yaml* ./
+COPY vendor ./vendor
 RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile --prod; else pnpm install --prod; fi && pnpm store prune
 
 COPY --from=builder /app/dist ./dist

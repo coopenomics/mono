@@ -17,6 +17,11 @@
  * спрашивается в терминале при первом выпуске и сохраняется в .catalog-key.
  *
  * Требуется: Node.js 18+, npm, bash, curl и запущенный Docker.
+ *
+ * Запуск из чекаута mono (`components/app-kit/bin/app-kit.mjs`, команда
+ * `app-kit` по ссылке): каркас получает SDK приложений из того же чекаута —
+ * пакеты extension-sdk и innercoop упаковываются в backend/vendor. Так набор
+ * работает до выпуска SDK в npm. Переменная APP_KIT_SDK=npm отключает это.
  */
 import { spawnSync } from 'node:child_process';
 import { chmodSync, cpSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -25,6 +30,11 @@ import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 const KIT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/** Пакеты SDK приложений, которые каркас берёт из чекаута mono рядом с набором. */
+const LOCAL_SDK_PACKAGES = [
+  { name: '@coopenomics/extension-sdk', dir: 'extension-sdk' },
+  { name: '@coopenomics/innercoop', dir: 'innercoop' },
+];
 const KIT_VERSION = JSON.parse(readFileSync(join(KIT, 'package.json'), 'utf8')).version;
 /** Имя приложения: от 2 до 12 символов a–z и 1–5, первая — буква; то же правило у стола разработчика. */
 const NAME_RE = /^[a-z][a-z1-5]{1,11}$/;
@@ -65,6 +75,32 @@ function parseArgs(argv) {
 }
 
 // ── create ────────────────────────────────────────────────────────────────
+
+/**
+ * Набор запущен из чекаута mono: рядом лежат собранные пакеты SDK. Каркас из
+ * npm-пакета набора их не видит и берёт SDK из npm.
+ */
+function localSdkDirs() {
+  if (process.env.APP_KIT_SDK === 'npm') return null;
+  const components = resolve(KIT, '..');
+  const dirs = LOCAL_SDK_PACKAGES.map((pkg) => ({ ...pkg, path: join(components, pkg.dir) }));
+  const ready = dirs.every((pkg) => existsSync(join(pkg.path, 'package.json')) && existsSync(join(pkg.path, 'dist')));
+  return ready ? dirs : null;
+}
+
+/** Упаковать SDK из чекаута в backend/vendor и указать на архивы в зависимостях бэкенда. */
+function vendorLocalSdk(dest, dirs) {
+  const vendor = join(dest, 'backend', 'vendor');
+  const backendFile = join(dest, 'backend', 'package.json');
+  const backend = JSON.parse(readFileSync(backendFile, 'utf8'));
+  for (const pkg of dirs) {
+    const packed = spawnSync('npm', ['pack', '--silent', '--pack-destination', vendor], { cwd: pkg.path, encoding: 'utf8' });
+    const file = (packed.stdout ?? '').trim().split('\n').pop();
+    if (packed.status !== 0 || !file) fail(`Не упакован ${pkg.name} из ${pkg.path}: ${packed.stderr ?? ''}`.trim(), 1);
+    backend.dependencies[pkg.name] = `file:./vendor/${file}`;
+  }
+  writeFileSync(backendFile, `${JSON.stringify(backend, null, 2)}\n`);
+}
 
 /** Замены имён образца: порядок важен — сначала точные формы. */
 function renameSources(dir, scope, name, pascal) {
@@ -164,16 +200,19 @@ function create(args) {
   renameSources(dest, scope, name, pascal);
   writeManifest(dest, { scope, name, title, catalog });
   writeReadme(dest, { scope, name, title });
+  const sdkDirs = localSdkDirs();
+  if (sdkDirs) vendorLocalSdk(dest, sdkDirs);
 
   process.stdout.write(
     [
       `Каркас:  ${dest}`,
       `Пакет:   @${scope}/${name} 0.1.0`,
       `Каталог: ${catalog || 'не задан — укажите --catalog при выпуске'}`,
+      `SDK:     ${sdkDirs ? `из чекаута mono (${resolve(KIT, '..')})` : `npm ${KIT_VERSION}`}`,
       '',
       'Выпуск:',
       `  cd ${name}`,
-      '  npx @coopenomics/app-kit publish',
+      `  ${sdkDirs ? 'app-kit' : 'npx @coopenomics/app-kit'} publish`,
       '',
     ].join('\n'),
   );
