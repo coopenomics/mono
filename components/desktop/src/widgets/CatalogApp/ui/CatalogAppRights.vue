@@ -5,14 +5,16 @@
 //- подписки: своей рамки у него нет, раздел отделяет линия.
 section.catalog-app-rights(v-if='rights')
   h3.catalog-app-rights__title {{ $t('catalogApp.rights.title') }}
-  //- Запрос новых прав: приложение уже работает, обновление ждёт ответа.
-  //- У приложения, которое ещё ставится, тот же запрос стоит шагом хода установки.
-  .catalog-app-rights__request(v-if='awaiting && app.installed')
+  //- Запрос прав, на который председатель не ответил: обновление ждёт ответа,
+  //- либо подписка оформлена без согласия (каталог не ответил на экране
+  //- подписки) и приложение не ставится. Согласие при подписке даётся на
+  //- экране подписки, ход установки шага согласия не имеет (28.11.2026).
+  .catalog-app-rights__request(v-if='awaiting')
     BaseBanner(variant='warn') {{ requestText }}
     CoreRightsList(:ports='needed.ports', :chain-actions='needed.chainActions')
     .catalog-app-rights__request-actions
       BaseButton(variant='primary', type='button', :loading='busy', :disabled='!canManage', @click='allow')
-        | {{ $t('catalogApp.rights.allowUpdate') }}
+        | {{ app.installed ? $t('catalogApp.rights.allowUpdate') : $t('catalogApp.rights.allowInstall') }}
     p.catalog-app-rights__hint(v-if='!canManage') {{ $t('catalogApp.rights.chairmanOnly') }}
 
   .catalog-app-rights__section
@@ -56,6 +58,7 @@ const busy = ref(false);
 
 const requestText = computed(() => {
   // Версия — из каталога: при первой установке узел версии ещё не знает и запрос её не несёт.
+  if (!props.app.installed) return t('catalogApp.rights.requestInstall');
   const version = rights.value?.version;
   return version ? t('catalogApp.rights.requestUpdate', { version }) : t('catalogApp.rights.requestUpdateNoVersion');
 });

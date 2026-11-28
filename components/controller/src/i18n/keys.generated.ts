@@ -204,6 +204,7 @@ export type MessageKey =
   | 'appsCatalogProxy.catalog.authNotConfigured'
   | 'appsCatalogProxy.catalog.emptyChallenge'
   | 'appsCatalogProxy.catalog.emptyToken'
+  | 'appsCatalogProxy.catalog.insufficientFunds'
   | 'appsCatalogProxy.catalog.noCooperativeKey'
   | 'appsCatalogProxy.catalog.priceNotSet'
   | 'appsCatalogProxy.catalog.pricesUnavailable'

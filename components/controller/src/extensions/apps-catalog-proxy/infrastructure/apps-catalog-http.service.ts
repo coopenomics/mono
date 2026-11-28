@@ -536,6 +536,29 @@ export class AppsCatalogHttpService implements OnApplicationBootstrap {
   }
 
   /**
+   * Права действующей версии пакета из каталога — без подписки (487-37).
+   * Экран подписки показывает их председателю до оформления: оркестратор
+   * узнаёт манифест только после подписки. `null` — каталог не ответил.
+   */
+  async fetchCatalogRights(packageId: string): Promise<AppRequestedRights | null> {
+    if (!this.authClient) return null;
+    try {
+      const res = await this.authClient.get<{ version?: string | null; ports?: string[]; chain_actions?: string[] }>(
+        `/v1/package-rights/${orchestratorPackagePath(packageId)}`,
+      );
+      return {
+        version: res.data.version ?? null,
+        ports: res.data.ports ?? [],
+        chainActions: res.data.chain_actions ?? [],
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`fetchCatalogRights ${packageId} failed: ${msg}`);
+      return null;
+    }
+  }
+
+  /**
    * Попросить оркестратор повторить установку пакета ближайшим опросом:
    * председатель дал согласие, ждать планового опроса выпусков незачем.
    * Отказ не роняет согласие — оркестратор дойдёт до пакета плановым опросом.

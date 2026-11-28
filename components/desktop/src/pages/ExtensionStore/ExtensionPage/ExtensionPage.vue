@@ -10,7 +10,10 @@
     button.extension-page__back(type='button', @click='goBack')
       q-icon(name='chevron_left' size='18px')
       span {{ $t('common.action.back') }}
-    .extension-page__grid
+    //- Подписка на приложение каталога — экран шагов вместо страницы
+    //- приложения: права ядра → итог со стоимостью → «Подписаться».
+    CatalogAppSubscribeFlow(v-if='subscribing && catalogApp', :app='catalogApp')
+    .extension-page__grid(v-else)
       aside.extension-page__side
         AutoAvatar.extension-page__logo(
           :username='seed',
@@ -65,7 +68,7 @@
 </template>
 <script lang="ts" setup>
 import { useExtensionStore } from 'src/entities/Extension/model';
-import { isCatalogAppName, useCatalogAppStore } from 'src/entities/CatalogApp';
+import { isCatalogAppName, isLiveSubscription, useCatalogAppStore } from 'src/entities/CatalogApp';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { isExtensionSchemaEmpty } from 'src/shared/lib/utils';
@@ -75,7 +78,7 @@ import { ExtensionActions } from 'src/widgets/ExtensionActions';
 import { ExtensionInfo } from 'src/widgets/ExtensionInfo';
 import { ExtensionSettings } from 'src/widgets/ExtensionSettings';
 import { ExtensionInstall } from 'src/widgets/ExtensionInstall';
-import { CatalogAppActions, CatalogAppInfo, CatalogAppRights } from 'src/widgets/CatalogApp';
+import { CatalogAppActions, CatalogAppInfo, CatalogAppRights, CatalogAppSubscribeFlow } from 'src/widgets/CatalogApp';
 
 const route = useRoute();
 const router = useRouter();
@@ -120,6 +123,8 @@ watch(extension, (newValue) => {
 const isMain = computed(() => route.name == 'one-extension');
 const isInstall = computed(() => route.name == 'extension-install');
 const isSettings = computed(() => route.name == 'extension-settings');
+/** Маршрут установки приложения каталога без действующей подписки — экран подписки. */
+const subscribing = computed(() => isInstall.value && !!catalogApp.value && !isLiveSubscription(catalogApp.value.subscription));
 
 const currentMode = computed(() => {
   if (isMain.value) return 'main';

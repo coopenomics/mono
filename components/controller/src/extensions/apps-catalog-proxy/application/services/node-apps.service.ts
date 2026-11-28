@@ -163,6 +163,8 @@ export class NodeAppsService {
     if (!this.providerApps) {
       return { status: SubscribePackageStatus.UNAVAILABLE, error: t('appsCatalogProxy.catalog.providerUnavailable') };
     }
+    const shortage = await this.fundsShortage(packageId);
+    if (shortage) return { status: SubscribePackageStatus.FAILED, error: shortage };
     const outcome = await this.providerApps.subscribe(this.coopname, packageId);
     switch (outcome.status) {
       case 'subscribed': {
@@ -187,6 +189,30 @@ export class NodeAppsService {
       default:
         return { status: SubscribePackageStatus.FAILED, error: outcome.error };
     }
+  }
+
+  /**
+   * Оплата вперёд (слово владельца 28.11.2026): подписка без пробного срока
+   * списывает первый месяц сразу, поэтому без остатка на кошельке членских
+   * взносов она не оформляется. Остаток покрывает цену месяца и то, что уже ждёт
+   * списания: хаб оператора платит счёт целиком. Текст отказа — для экрана;
+   * `null` — денег хватает, пробный срок есть либо остаток не прочитан
+   * (тогда доступ всё равно закрыт до списания у провайдера).
+   */
+  private async fundsShortage(packageId: string): Promise<string | null> {
+    const offers = await this.providerApps?.listOffers(this.coopname);
+    const offer = offers?.find((o) => o.package_id === packageId);
+    if (!offer || offer.trial_days > 0 || offer.price <= 0) return null;
+    const billing = await this.nodeBilling();
+    if (!billing.wallet) return null;
+    const available = Number.parseFloat(billing.wallet.membershipAvailable);
+    if (!Number.isFinite(available)) return null;
+    const need = Math.round((offer.price + billing.dueAmount) * 100) / 100;
+    if (available + 1e-9 >= need) return null;
+    return t('appsCatalogProxy.catalog.insufficientFunds', {
+      need: need.toFixed(2),
+      available: available.toFixed(2),
+    });
   }
 
   /** Отменить подписку: провайдер снимает строку счёта, каталог закрывает пакет. */
@@ -220,8 +246,19 @@ export class NodeAppsService {
    * председатель согласился и какой запрос новых прав ждёт ответа.
    */
   async rights(packageId: string): Promise<CatalogAppRightsDTO> {
-    const [requested, consent] = await Promise.all([this.catalog.fetchAppRights(packageId), this.consents.byPackage(packageId)]);
+    const [requested, consent] = await Promise.all([this.requestedRights(packageId), this.consents.byPackage(packageId)]);
     return toRightsDTO(packageId, requested, consent);
+  }
+
+  /**
+   * Что просит версия приложения. Оркестратор знает манифест после подписки;
+   * до неё экран подписки показывает права действующей версии каталога
+   * (487-37): председатель соглашается с ними до оформления подписки.
+   */
+  private async requestedRights(packageId: string): Promise<AppRequestedRights | null> {
+    const installed = await this.catalog.fetchAppRights(packageId);
+    if (installed?.version) return installed;
+    return (await this.catalog.fetchCatalogRights(packageId)) ?? installed;
   }
 
   /**

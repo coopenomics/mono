@@ -50,6 +50,14 @@ export const isLiveSubscription = (s: CatalogAppSubscription | null | undefined)
   !!s && (s.status === Zeus.ProviderAppSubscriptionStatus.ACTIVE || s.status === Zeus.ProviderAppSubscriptionStatus.TRIAL);
 
 /**
+ * Подписка ждёт первого списания: оплата вперёд (28.11.2026), срок оплаты у
+ * провайдера стоит в моменте старта, пока хаб оператора не спишет первый
+ * месяц. Пробная подписка первого списания не ждёт.
+ */
+export const awaitsFirstPayment = (s: CatalogAppSubscription | null | undefined): boolean =>
+  !!s && !s.isTrial && new Date(s.expiresAt).getTime() <= new Date(s.startedAt).getTime();
+
+/**
  * Права ядра приложений по пакету: страница приложения и ход установки читают
  * одно состояние. После согласия и переключателя витрина перечитывается:
  * пометка «Ждёт согласия» меняется вместе с правами.

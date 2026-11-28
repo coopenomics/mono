@@ -23,7 +23,7 @@
       align='spread'
     )
     DataRow(
-      v-if='sub && !sub.isTrial && live',
+      v-if='sub && !sub.isTrial && live && !awaitingPayment',
       :label="$t('catalogApp.info.paidUntil')",
       :value='formatDay(sub.expiresAt)',
       align='spread'
@@ -52,12 +52,14 @@
 import { computed } from 'vue';
 import { BaseBadge } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
-import { type CatalogApp, isLiveSubscription } from 'src/entities/CatalogApp';
+import { type CatalogApp, awaitsFirstPayment, isLiveSubscription } from 'src/entities/CatalogApp';
 import { catalogAppPrice, catalogAppState, formatDay } from '../lib/presentation';
 
 const props = defineProps<{ app: CatalogApp }>();
 
 const sub = computed(() => props.app.subscription);
+/** Первый месяц ещё не списан: «Оплачено по» не показывается. */
+const awaitingPayment = computed(() => awaitsFirstPayment(sub.value));
 const live = computed(() => isLiveSubscription(sub.value));
 const price = computed(() => catalogAppPrice(props.app));
 const state = computed(() => catalogAppState(props.app));

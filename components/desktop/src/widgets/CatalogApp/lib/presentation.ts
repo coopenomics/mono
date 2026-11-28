@@ -2,7 +2,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge/BaseBadge.types';
-import type { CatalogApp } from 'src/entities/CatalogApp';
+import { type CatalogApp, awaitsFirstPayment } from 'src/entities/CatalogApp';
 
 /**
  * Подписи приложения каталога — одни на карточку витрины, страницу
@@ -22,6 +22,15 @@ export function catalogAppPrice(app: Pick<CatalogApp, 'rubPerMonth'>): string {
     : t('catalogApp.price.free');
 }
 
+/** Действующая платная подписка: ждёт первого списания, подключена или выключена на узле. */
+function activeState(app: CatalogApp): { label: string; variant: BaseBadgeVariant } {
+  // Оплата вперёд: до первого списания приложение не ставится.
+  if (awaitsFirstPayment(app.subscription)) return { label: t('catalogApp.state.awaitsPayment'), variant: 'warn' };
+  return app.enabled
+    ? { label: t('catalogApp.state.connected'), variant: 'pos' }
+    : { label: t('catalogApp.state.disabled'), variant: 'warn' };
+}
+
 /**
  * Одна пометка состояния: ждёт согласия на права, пробный период до даты,
  * подключено, выключено, не оплачено. Без подписки пометки нет — витрина говорит ценой.
@@ -39,9 +48,7 @@ export function catalogAppState(app: CatalogApp): { label: string; variant: Base
         ? { label: t('catalogApp.state.trialUntil', { date: formatDay(s.trialEndsAt ?? s.expiresAt) }), variant: 'info' }
         : { label: t('catalogApp.state.disabled'), variant: 'warn' };
     case Zeus.ProviderAppSubscriptionStatus.ACTIVE:
-      return app.enabled
-        ? { label: t('catalogApp.state.connected'), variant: 'pos' }
-        : { label: t('catalogApp.state.disabled'), variant: 'warn' };
+      return activeState(app);
     case Zeus.ProviderAppSubscriptionStatus.EXPIRED:
       return { label: t('catalogApp.state.unpaid'), variant: 'neg' };
     default:

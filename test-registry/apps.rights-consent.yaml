@@ -25,6 +25,7 @@ sources:
     - components/controller/src/extensions/apps-catalog-proxy/application/services/app-rights-notifier.service.ts
     - components/notifications/src/workflows/app-rights-requested/**
     - components/controller/src/extensions/apps-catalog-proxy/application/dto/catalog-app-rights.dto.ts
+    - components/controller/src/extensions/apps-catalog-proxy/application/services/node-apps.service.ts
     - components/controller/src/extensions/apps-catalog-proxy/infrastructure/records/app-rights-consent.record.ts
     - components/controller/src/extensions/apps-catalog-proxy/migrations/database/1795780000000-create-apps-rights-consents.ts
     - components/orchestrator/src/orchestrator/app-grants.impl.ts
@@ -36,6 +37,7 @@ sources:
   ui:
     - components/desktop/src/widgets/CatalogApp/**
     - components/desktop/src/entities/CatalogApp/**
+    - components/desktop/src/pages/ExtensionStore/ExtensionPage/**
 
 cases:
   # ── Согласие и допуск версии ─────────────────────────────────────────────
@@ -331,12 +333,31 @@ cases:
     external: unreachable
     external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора: согласие на права проверено на стенде разработки 4"
 
+  # 28.11.2026, слово владельца: «согласие — это вообще за пределами установки,
+  # это до установки». Согласие даётся на экране подписки шагом «Права ядра» до
+  # оформления; шаг согласия из хода установки убран.
+  - id: apps.consent.happy.30
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель открывает экран подписки на приложение, на которое кооператив ещё не подписан:
+      оркестратор версии не знает.
+    expect: >
+      Узел отдаёт права действующей версии из каталога (запрос по токену кооператива, без подписки):
+      версия, порты и действия цепи; согласованного нет. После подписки права берутся у оркестратора,
+      каталог не спрашивается
+    test: components/controller/tests/unit/apps-catalog-proxy/node-apps.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора"
+
   - id: apps.consent.side.04
     level: ui
     kind: side
     scenario: >
-      Председатель подписывается на приложение, отвечает на шаг «Согласие на права ядра» в ходе установки,
-      видит блок «Права ядра» на странице приложения и отвечает на запрос новых прав при обновлении.
+      Председатель нажимает «Подписаться»: экран приложения сменяется шагами «Права ядра» → «Итог»;
+      «Разрешить» ведёт к итогу со стоимостью, «Подписаться» записывает согласие и оформляет подписку;
+      ход установки шага согласия не имеет; запрос новых прав при обновлении — на странице приложения.
     expect: >
       Не решено: сценарий через интерфейс требует стенда с каталогом приложений и оркестратором, которых
       у набора UI нет — вносить ли каталог в стенд набора UI

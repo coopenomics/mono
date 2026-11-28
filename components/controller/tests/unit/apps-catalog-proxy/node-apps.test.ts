@@ -48,6 +48,9 @@ function harness(
     hasOperatorAccess: opts.operatorNode ?? true,
     listPublicPackages: jest.fn(async () => (opts.operatorNode === false ? [] : [PUBLIC_PKG])),
     listInstalledFrontends: jest.fn(async () => (opts.installed ?? [PKG]).map((packageId) => ({ packageId }))),
+    // Права версии: оркестратор знает их после подписки, каталог — до неё.
+    fetchAppRights: jest.fn(async (): Promise<any> => null),
+    fetchCatalogRights: jest.fn(async (): Promise<any> => null),
   };
   const state = {
     disabledPackageIds: jest.fn(async () => new Set(opts.disabled ?? [])),
@@ -79,6 +82,7 @@ function harness(
   const consents = {
     pendingPackageIds: jest.fn(async () => new Set<string>(opts.rightsPending ?? [])),
     forget: jest.fn(async () => undefined),
+    byPackage: jest.fn(async () => null),
   };
   const service = new NodeAppsService(catalog as any, state as any, consents as any, chain as any, port);
   return { service, catalog, state, consents, chain, port };
@@ -116,6 +120,54 @@ describe('subscribePackage → провайдер', () => {
     const subscribe = jest.fn(async () => ({ status: 'notOffered' as const, error: 'не предлагается' }));
     const r = await harness({ port: { subscribe } }).service.subscribe(PKG);
     expect(r).toEqual(expect.objectContaining({ status: SubscribePackageStatus.FAILED, error: 'не предлагается' }));
+  });
+
+  // Оплата вперёд (слово владельца 28.11.2026): без пробного срока первый
+  // месяц списывается сразу — подписка без остатка не оформляется.
+  const PAID_OFFER = [{ package_id: PKG, price: 360, period_days: 30, trial_days: 0 }];
+
+  it('happy: без пробного срока и с остатком на кошельке — подписка оформляется', async () => {
+    const h = harness({ port: { listOffers: jest.fn(async () => PAID_OFFER) } });
+    const r = await h.service.subscribe(PKG);
+    expect(r.status).toBe(SubscribePackageStatus.ACTIVATED);
+    expect(h.port!.subscribe).toHaveBeenCalledWith('romashka', PKG);
+  });
+
+  it('break: без пробного срока остатка меньше цены месяца — отказ с суммами, провайдер не вызывается', async () => {
+    const h = harness({ port: { listOffers: jest.fn(async () => PAID_OFFER) } });
+    h.chain.getSingleRow.mockImplementation(async (code: string) =>
+      code === 'ledger2' ? { available: '100.0000 RUB' } : { parent_username: 'voskhod', announce: 'voskhod.coop' },
+    );
+    const r = await h.service.subscribe(PKG);
+    expect(r.status).toBe(SubscribePackageStatus.FAILED);
+    expect(r.error).toContain('100.00');
+    expect(r.error).toContain('360.00');
+    expect(h.port!.subscribe).not.toHaveBeenCalled();
+    expect(h.state.markSubscribed).not.toHaveBeenCalled();
+  });
+
+  it('side: остаток покрывает цену, но не вместе с наступившими позициями счёта — отказ', async () => {
+    const h = harness({
+      port: {
+        listOffers: jest.fn(async () => PAID_OFFER),
+        billingSummary: jest.fn(async (): Promise<any> => ({ items: [{ amount: 1200, is_due: true }], next_payment_due: null })),
+      },
+    });
+    const r = await h.service.subscribe(PKG);
+    expect(r.status).toBe(SubscribePackageStatus.FAILED);
+    expect(r.error).toContain('1560.00');
+    expect(h.port!.subscribe).not.toHaveBeenCalled();
+  });
+
+  it('side: пробный срок есть или остаток не прочитан — проверка остатка не мешает подписке', async () => {
+    const trial = harness();
+    trial.chain.getSingleRow.mockImplementation(async (code: string) =>
+      code === 'ledger2' ? { available: '0.0000 RUB' } : { parent_username: 'voskhod', announce: 'voskhod.coop' },
+    );
+    expect((await trial.service.subscribe(PKG)).status).toBe(SubscribePackageStatus.ACTIVATED);
+    const blind = harness({ port: { listOffers: jest.fn(async () => PAID_OFFER) } });
+    blind.chain.getSingleRow.mockRejectedValue(new Error('chain down'));
+    expect((await blind.service.subscribe(PKG)).status).toBe(SubscribePackageStatus.ACTIVATED);
   });
 
   it('break: провайдер не подключён или не ответил — unavailable с причиной, без отсылки куда-либо', async () => {
@@ -292,6 +344,24 @@ describe('права ядра приложения на узле', () => {
   it('side: запрос новых прав ждёт ответа — витрина помечает приложение', async () => {
     const [item] = await harness({ rightsPending: [PKG] }).service.listCatalogApps(1, 50);
     expect(item.rightsPending).toBe(true);
+  });
+
+  it('happy: до подписки права версии отдаёт каталог — председатель соглашается до оформления', async () => {
+    const h = harness();
+    h.catalog.fetchCatalogRights.mockResolvedValue({ version: '0.2.0', ports: ['document'], chainActions: ['eosio::refund'] });
+    const r = await h.service.rights(PKG);
+    expect(h.catalog.fetchCatalogRights).toHaveBeenCalledWith(PKG);
+    expect(r.version).toBe('0.2.0');
+    expect(r.requested).toEqual({ ports: ['document'], chainActions: ['eosio::refund'] });
+    expect(r.granted).toEqual({ ports: [], chainActions: [] });
+  });
+
+  it('side: после подписки права берутся у оркестратора — каталог не спрашивается', async () => {
+    const h = harness();
+    h.catalog.fetchAppRights.mockResolvedValue({ version: '0.3.0', ports: ['chain'], chainActions: [] });
+    const r = await h.service.rights(PKG);
+    expect(r.version).toBe('0.3.0');
+    expect(h.catalog.fetchCatalogRights).not.toHaveBeenCalled();
   });
 
   it('side: отмена подписки стирает согласие — при новой подписке председатель отвечает заново', async () => {

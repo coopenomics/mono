@@ -3,7 +3,9 @@
 //- подписаться → (настройки) → включить/выключить, отписаться.
 .catalog-app-actions
   template(v-if='!live')
-    BaseButton.full-width(variant='primary', type='button', :disabled='!canManage', @click='subscribeOpen = true')
+    //- Подписка — экраном шагов вместо страницы приложения: права ядра →
+    //- итог со стоимостью → «Подписаться» (слово владельца 28.11.2026).
+    BaseButton.full-width(variant='primary', type='button', :disabled='!canManage', @click='openSubscribe')
       | {{ app.trialDays > 0 && !app.subscription ? $t('catalogApp.actions.tryFree', { days: app.trialDays }) : $t('catalogApp.actions.subscribe') }}
     p.catalog-app-actions__hint(v-if='!canManage') {{ $t('catalogApp.actions.chairmanOnly') }}
 
@@ -40,36 +42,19 @@
     //- Столы пакета — тем же блоком, что у встроенного приложения.
     DesktopsList(v-if='deskReady', :desktops='packageDesktops')
 
-  BaseDialog(v-model='subscribeOpen', :title="$t('catalogApp.subscribe.title', { title: app.title })", size='sm')
-    .catalog-app-actions__dialog
-      p(v-if='app.trialDays > 0') {{ $t('catalogApp.subscribe.trialLine', { days: app.trialDays, date: trialEndsOn, amount: priceAmount }) }}
-      p(v-else) {{ $t('catalogApp.subscribe.paidLine', { amount: priceAmount }) }}
-      p {{ $t('catalogApp.subscribe.walletLine', { operator: operatorLabel }) }}
-      BaseBanner(v-if='resultBanner', :variant='resultBanner.variant') {{ resultBanner.text }}
-    template(#footer)
-      BaseButton(variant='ghost', type='button', :disabled='busy === "subscribe"', @click='closeSubscribe') {{ $t('common.action.close') }}
-      BaseButton(
-        v-if='!subscribeDone',
-        variant='primary',
-        type='button',
-        :loading='busy === "subscribe"',
-        @click='confirmSubscribe'
-      ) {{ $t('catalogApp.actions.subscribe') }}
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { BaseBanner, BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { BaseButton } from 'src/shared/ui/base';
 import { useConfirm } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { t } from 'src/shared/i18n';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { api as extensionApi } from 'src/entities/Extension/api';
 import { type CatalogApp, isLiveSubscription, useCatalogAppStore } from 'src/entities/CatalogApp';
 import { runRemotePass } from 'src/processes/init-installed-extensions/remote-pass';
-import { formatDay, formatRub } from '../lib/presentation';
 import CatalogAppInstallProgress from './CatalogAppInstallProgress.vue';
 import { DesktopsList, type IDesktopConfig } from 'src/widgets/ExtensionDesktopsList';
 
@@ -95,67 +80,11 @@ const packageDesktops = computed<IDesktopConfig[]>(() =>
 // Действия — по праву `Apps:manage`; совет видит страницу, но кнопки закрыты.
 const canManage = computed(() => desktop.hasGrant('apps', 'Apps:manage'));
 
-const busy = ref<'subscribe' | 'toggle' | 'unsubscribe' | null>(null);
-const subscribeOpen = ref(false);
-const subscribeDone = ref(false);
-const resultBanner = ref<{ variant: 'pos' | 'warn' | 'neg'; text: string } | null>(null);
+const busy = ref<'toggle' | 'unsubscribe' | null>(null);
 
-const priceAmount = computed(() => formatRub(props.app.rubPerMonth));
-const trialEndsOn = computed(() => {
-  const end = new Date();
-  end.setDate(end.getDate() + props.app.trialDays);
-  return formatDay(end.toISOString());
-});
-
-// Имя оператора, у которого ведётся кошелёк: узел узнаёт его из сводки
-// подписок. Пока не загружено — общая формулировка.
-// realtime: нет источника — оператора кооператива называет провайдер подключения (другой узел), в ленте кооператива его нет.
-const operator = ref<string | null>(null);
-const operatorLabel = computed(() => operator.value || t('catalogApp.subscribe.operatorFallback'));
-onMounted(async () => {
-  try {
-    const billing = await extensionApi.loadAppsNodeBilling();
-    operator.value = billing.operator ?? null;
-  } catch {
-    operator.value = null;
-  }
-});
-
-const closeSubscribe = () => {
-  subscribeOpen.value = false;
-  resultBanner.value = null;
-  subscribeDone.value = false;
+const openSubscribe = () => {
+  void router.push({ name: 'extension-install', params: { name: props.app.packageId } });
 };
-
-async function confirmSubscribe(): Promise<void> {
-  busy.value = 'subscribe';
-  resultBanner.value = null;
-  try {
-    const result = await store.subscribe(props.app.packageId);
-    switch (result.status) {
-      case Zeus.SubscribePackageStatus.ACTIVATED:
-        // Окно закрывается сразу: ход установки виден на странице приложения.
-        closeSubscribe();
-        SuccessAlert(
-          result.state === Zeus.SubscriptionStateEnum.TRIAL
-            ? t('catalogApp.subscribe.doneTrial', { date: formatDay(result.endAt) })
-            : t('catalogApp.subscribe.donePaid', { date: formatDay(result.endAt) }),
-        );
-        void runRemotePass(router);
-        break;
-      case Zeus.SubscribePackageStatus.ALREADY_ACTIVE:
-        subscribeDone.value = true;
-        resultBanner.value = { variant: 'warn', text: t('catalogApp.subscribe.alreadyActive') };
-        break;
-      default:
-        resultBanner.value = { variant: 'neg', text: result.error || t('catalogApp.subscribe.failed') };
-    }
-  } catch (e) {
-    resultBanner.value = { variant: 'neg', text: e instanceof Error ? e.message : String(e) };
-  } finally {
-    busy.value = null;
-  }
-}
 
 async function toggle(enabled: boolean): Promise<void> {
   busy.value = 'toggle';
@@ -222,17 +151,5 @@ const openSettings = () => {
   font-size: var(--p-fs-body-sm);
   line-height: 1.5;
   color: var(--p-ink-2);
-}
-
-.catalog-app-actions__dialog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
-  font-size: var(--p-fs-body-sm);
-  line-height: 1.5;
-  color: var(--p-ink-2);
-  p {
-    margin: 0;
-  }
 }
 </style>

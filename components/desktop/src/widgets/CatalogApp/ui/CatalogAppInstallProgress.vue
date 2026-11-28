@@ -1,10 +1,11 @@
 <template lang="pug">
 //- Ход установки приложения из каталога после подписки. Установка идёт на
 //- узле (оркестратор получает фронт пакета), поэтому председатель видит
-//- шаги, а не «вернитесь позже»: подписка оформлена → согласие на права ядра
-//- → приложение получено узлом → стол добавлен в меню. Шаг согласия есть
-//- только у приложения, которое просит права. Пока шаг не закрыт, страница
-//- опрашивает узел.
+//- шаги, а не «вернитесь позже»: подписка оформлена → первый месяц оплачен
+//- → приложение получено узлом → стол добавлен в меню. Согласие на права
+//- ядра председатель даёт до подписки, на экране подписки (28.11.2026).
+//- Шаг оплаты есть только у подписки без пробного срока. Пока шаг не закрыт,
+//- страница опрашивает узел.
 BaseCard(:title="$t('catalogApp.progress.title')")
   q-linear-progress.catalog-app-progress__bar(
     v-if='!done',
@@ -13,29 +14,21 @@ BaseCard(:title="$t('catalogApp.progress.title')")
     size='3px'
   )
   VerticalStepper(:steps='steps', :active-key='activeKey', :completed='completedKeys')
-    //- Шаг согласия: приложение просит права ядра, без ответа председателя узел его не ставит.
-    template(#active='{ step }')
-      .catalog-app-progress__consent(v-if="step.key === 'rights'")
-        CoreRightsList(:ports='needed.ports', :chain-actions='needed.chainActions')
-        BaseButton.full-width(variant='primary', type='button', :loading='allowing', :disabled='!canManage', @click='allow')
-          | {{ $t('catalogApp.rights.allowInstall') }}
-        p.catalog-app-progress__note(v-if='!canManage') {{ $t('catalogApp.rights.chairmanOnly') }}
   p.catalog-app-progress__note(v-if='!done') {{ $t('catalogApp.progress.note') }}
   template(v-if='done', #footer)
     BaseButton(variant='primary', type='button', @click='openDesk') {{ $t('catalogApp.progress.openDesk') }}
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { BaseButton, BaseCard } from 'src/shared/ui/base';
 import { VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { type CatalogApp, awaitsConsent, isLiveSubscription, neededRights, useCatalogAppStore } from 'src/entities/CatalogApp';
-import { FailAlert } from 'src/shared/api/alerts';
+import { type CatalogApp, awaitsFirstPayment, isLiveSubscription, useCatalogAppStore } from 'src/entities/CatalogApp';
 import { runRemotePass } from 'src/processes/init-installed-extensions/remote-pass';
 import { t } from 'src/shared/i18n';
-import CoreRightsList from './CoreRightsList.vue';
+import { formatRub } from '../lib/presentation';
 
 const props = defineProps<{ app: CatalogApp }>();
 const emit = defineEmits<{ done: [] }>();
@@ -45,7 +38,6 @@ const desktop = useDesktopStore();
 const catalog = useCatalogAppStore();
 
 const SUBSCRIBED: StepperStep = { key: 'subscribed', label: t('catalogApp.progress.subscribed'), description: t('catalogApp.progress.subscribedHint') };
-const RIGHTS: StepperStep = { key: 'rights', label: t('catalogApp.progress.rights'), description: t('catalogApp.progress.rightsHint') };
 const FRONTEND: StepperStep = { key: 'frontend', label: t('catalogApp.progress.frontend'), description: t('catalogApp.progress.frontendHint') };
 const DESK: StepperStep = { key: 'desk', label: t('catalogApp.progress.desk'), description: t('catalogApp.progress.deskHint') };
 
@@ -58,48 +50,32 @@ const deskReady = computed(() =>
   (desktop.currentDesktop?.workspaces ?? []).some((w) => (w as { extension_name?: string }).extension_name === props.app.packageId),
 );
 
-// Права ядра: что приложение просит и на что председатель ещё не ответил.
-const rights = computed(() => catalog.rightsOf(props.app.packageId));
-const needed = computed(() => neededRights(rights.value));
-/** Приложение просит права ядра либо уже получило их: шаг согласия показывается. */
-const asksRights = computed(() => {
-  const r = rights.value;
-  if (!r) return false;
-  const asked = r.requested ?? r.granted;
-  return asked.ports.length + asked.chainActions.length > 0 || awaitsConsent(r);
-});
-const consentGiven = computed(() => subscribed.value && asksRights.value && !awaitsConsent(rights.value));
-const steps = computed<StepperStep[]>(() => (asksRights.value ? [SUBSCRIBED, RIGHTS, FRONTEND, DESK] : [SUBSCRIBED, FRONTEND, DESK]));
-// Согласие — по праву `Apps:manage`; совет видит шаг, но кнопка закрыта.
-const canManage = computed(() => desktop.hasGrant('apps', 'Apps:manage'));
+// Оплата вперёд: подписка без пробного срока ставится после первого списания
+// с кошелька членских взносов у оператора (28.11.2026).
+const sub = computed(() => props.app.subscription);
+const paysUpfront = computed(() => !!sub.value && !sub.value.isTrial);
+const paid = computed(() => subscribed.value && !awaitsFirstPayment(sub.value));
+const PAYMENT = computed<StepperStep>(() => ({
+  key: 'payment',
+  label: t('catalogApp.progress.payment'),
+  description: t('catalogApp.progress.paymentHint', { amount: formatRub(sub.value?.amountPerPeriod ?? props.app.rubPerMonth) }),
+}));
+const steps = computed<StepperStep[]>(() => (paysUpfront.value ? [SUBSCRIBED, PAYMENT.value, FRONTEND, DESK] : [SUBSCRIBED, FRONTEND, DESK]));
 
 const completedKeys = computed(() => {
   const keys: string[] = [];
   if (subscribed.value) keys.push('subscribed');
-  if (consentGiven.value) keys.push('rights');
+  if (paysUpfront.value && paid.value) keys.push('payment');
   if (frontendReady.value) keys.push('frontend');
   if (deskReady.value) keys.push('desk');
   return keys;
 });
 const activeKey = computed(() => {
   if (!subscribed.value) return 'subscribed';
-  if (asksRights.value && !consentGiven.value) return 'rights';
+  if (paysUpfront.value && !paid.value) return 'payment';
   return frontendReady.value ? 'desk' : 'frontend';
 });
 const done = computed(() => deskReady.value);
-
-const allowing = ref(false);
-/** Председатель согласился с правами: ядро выдаёт ключ, узел ставит приложение ближайшим опросом. */
-async function allow(): Promise<void> {
-  allowing.value = true;
-  try {
-    await catalog.grantRights(props.app.packageId, needed.value);
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    allowing.value = false;
-  }
-}
 
 // Узел ставит приложение сам, лента цепи кооператива об этом не сообщает:
 // пока установка идёт, витрина перечитывается и стол подхватывается опросом.
@@ -110,9 +86,6 @@ let timer: ReturnType<typeof setInterval> | null = null;
 async function tick(): Promise<void> {
   if (done.value) return;
   await catalog.load();
-  // Права перечитываются, пока приложение не получено узлом: перечень версии
-  // каталог отдаёт после оформления подписки, не мгновенно.
-  if (subscribed.value && !frontendReady.value) await catalog.loadRights(props.app.packageId).catch(() => undefined);
   if (frontendReady.value) await runRemotePass(router);
 }
 
@@ -150,11 +123,6 @@ const openDesk = () => {
 .catalog-app-progress__bar {
   margin-bottom: var(--p-4, 16px);
   border-radius: var(--p-r-pill, 999px);
-}
-.catalog-app-progress__consent {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
 }
 .catalog-app-progress__note {
   margin: var(--p-4, 16px) 0 0;
