@@ -4,3 +4,4 @@ export { default as CatalogAppInstallProgress } from './CatalogAppInstallProgres
 export { default as CatalogAppRights } from './CatalogAppRights.vue'
 export { default as CoreRightsList } from './CoreRightsList.vue'
 export { default as CatalogAppSubscribeFlow } from './CatalogAppSubscribeFlow.vue'
+export { default as OperatorWalletButton } from './OperatorWalletButton.vue'

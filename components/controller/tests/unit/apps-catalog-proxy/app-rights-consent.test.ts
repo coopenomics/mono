@@ -200,7 +200,12 @@ describe('переключатель «Принимать новые права�
 describe('права приложения для стола', () => {
   function appsHarness(requested: { version: string | null; ports: string[]; chainActions: string[] } | null) {
     const { consents } = harness();
-    const catalog = { fetchAppRights: jest.fn(async () => requested), recheckApp: jest.fn(async () => undefined) };
+    const catalog = {
+      fetchAppRights: jest.fn(async () => requested),
+      // До подписки права отдаёт каталог (28.11.2026); в этом наборе он не отвечает.
+      fetchCatalogRights: jest.fn(async () => null),
+      recheckApp: jest.fn(async () => undefined),
+    };
     const service = new NodeAppsService(catalog as any, {} as any, consents, {} as any, undefined);
     return { service, consents, catalog };
   }
@@ -224,7 +229,7 @@ describe('права приложения для стола', () => {
     );
   });
 
-  it('side: оркестратор недоступен — перечень запрошенных прав пуст, согласие отдаётся', async () => {
+  it('side: оркестратор и каталог недоступны — перечень запрошенных прав пуст, согласие отдаётся', async () => {
     const h = appsHarness(null);
     await h.consents.grant(PKG, { ports: ['document'], chainActions: [] }, 'ant');
     expect(await h.service.rights(PKG)).toEqual(

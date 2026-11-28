@@ -58,7 +58,7 @@
     p.subscribe-flow__note(v-if='paid') {{ chargeNote }}
     BaseBanner(v-if='shortage', variant='neg')
       | {{ $t('catalogApp.subscribe.shortage', { need: formatRub(need), available: formatRub(balance ?? 0) }) }}
-      template(v-if='operatorSite', #action)
+      template(v-if='operatorCabinet', #action)
         BaseButton(variant='secondary', size='sm', type='button', @click='openOperatorSite') {{ $t('catalogApp.subscribe.topUp') }}
     BaseBanner(v-if='error', variant='neg') {{ error }}
     p.subscribe-flow__note(v-if='!canManage') {{ $t('catalogApp.actions.chairmanOnly') }}
@@ -99,6 +99,7 @@ import { api as extensionApi } from 'src/entities/Extension/api';
 import { type CatalogApp, type CatalogAppRightsSet, useCatalogAppStore } from 'src/entities/CatalogApp';
 import { runRemotePass } from 'src/processes/init-installed-extensions/remote-pass';
 import { formatDay, formatRub } from '../lib/presentation';
+import { operatorCabinetUrl, rubOfAsset } from '../lib/operatorWallet';
 import CoreRightsList from './CoreRightsList.vue';
 
 const props = defineProps<{ app: CatalogApp }>();
@@ -125,6 +126,9 @@ const asksRights = computed(() => rightsUnknown.value || requested.value.ports.l
 const balance = ref<number | null>(null);
 const dueAmount = ref(0);
 const operatorSite = ref<string | null>(null);
+const operator = ref<string | null>(null);
+/** Кабинет кооператива у оператора: пополнение кошелька проводится там. */
+const operatorCabinet = computed(() => operatorCabinetUrl(operatorSite.value, operator.value));
 
 const steps = computed(() => [
   ...(asksRights.value ? [{ key: 'rights' as StepKey, label: t('catalogApp.subscribe.stepRights') }] : []),
@@ -177,10 +181,10 @@ async function load(): Promise<void> {
       ports: rights?.requested?.ports ?? [],
       chainActions: rights?.requested?.chainActions ?? [],
     };
-    const available = billing?.wallet ? Number.parseFloat(billing.wallet.membershipAvailable) : Number.NaN;
-    balance.value = Number.isFinite(available) ? available : null;
+    balance.value = rubOfAsset(billing?.wallet?.membershipAvailable);
     dueAmount.value = billing?.dueAmount ?? 0;
     operatorSite.value = billing?.operatorSite ?? null;
+    operator.value = billing?.operator ?? null;
   } finally {
     loading.value = false;
   }
@@ -201,9 +205,7 @@ function next(): void {
 }
 
 function openOperatorSite(): void {
-  if (!operatorSite.value) return;
-  const site = /^https?:\/\//.test(operatorSite.value) ? operatorSite.value : `https://${operatorSite.value}`;
-  window.open(site, '_blank', 'noopener');
+  if (operatorCabinet.value) window.open(operatorCabinet.value, '_blank', 'noopener');
 }
 
 /**

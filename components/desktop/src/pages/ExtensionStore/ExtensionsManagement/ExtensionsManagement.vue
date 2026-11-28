@@ -6,9 +6,14 @@
 .catalog-shell
   .catalog-shell__content
     router-view
+  //- Кошелёк членских взносов у оператора — в шапке всех страниц стола
+  //- (28.11.2026): подписки оплачиваются из него, остаток виден сразу.
+  Teleport(to='#header-actions-host', defer)
+    OperatorWalletButton
 </template>
 
 <script lang="ts" setup>
+import { OperatorWalletButton } from 'src/widgets/CatalogApp';
 </script>
 
 <style scoped lang="scss">
