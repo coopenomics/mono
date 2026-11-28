@@ -54,7 +54,7 @@
     "CARDCOOP_SOURCE_ENDORSEMENT_EXPIRED": "заверение кооператива {coopname} истекло",
     "CARDCOOP_SOURCE_RESPONDED_WITH_STATUS": "источник ответил {status}",
     "CARDCOOP_SOURCE_RESPONSE_NOT_SIGNED_ENVELOPE": "ответ источника не является подписанным конвертом",
-    "CARDCOOP_SOURCE_SIGNER_MISMATCH": "анкету подписал не тот кооператив, у которого просили",
+    "CARDCOOP_SOURCE_SIGNER_MISMATCH": "анкету подписал не тот кооператив, у которого она запрошена",
     "CARDCOOP_SOURCE_WRONG_DOCUMENT_TYPE": "источник прислал документ другого вида"
   }
 }

@@ -195,24 +195,38 @@ export class NodeAppsService {
    * Оплата вперёд (слово владельца 28.11.2026): подписка без пробного срока
    * списывает первый месяц сразу, поэтому без остатка на кошельке членских
    * взносов она не оформляется. Остаток покрывает цену месяца и то, что уже ждёт
-   * списания: хаб оператора платит счёт целиком. Текст отказа — для экрана;
-   * `null` — денег хватает, пробный срок есть либо остаток не прочитан
-   * (тогда доступ всё равно закрыт до списания у провайдера).
+   * списания по другим подпискам: хаб оператора платит счёт целиком. Текст
+   * отказа — для экрана; `null` — денег хватает, пробный срок есть либо остаток
+   * не прочитан (тогда доступ всё равно закрыт до списания у провайдера).
+   *
+   * Подписка на этот пакет у провайдера уже есть (не оплачена в срок):
+   * провайдер новой строки не заводит, месяц пакета уже стоит в счёте. Отказа
+   * здесь нет — председатель подтверждает права, приложение устанавливается после
+   * списания. Прежде цена пакета считалась дважды: в долге и сверху
+   * (28.11.2026 экран требовал 3 700 ₽ при цене 100 ₽ и долге 3 600 ₽).
    */
   private async fundsShortage(packageId: string): Promise<string | null> {
     const offers = await this.providerApps?.listOffers(this.coopname);
     const offer = offers?.find((o) => o.package_id === packageId);
     if (!offer || offer.trial_days > 0 || offer.price <= 0) return null;
     const billing = await this.nodeBilling();
+    if (billing.subscriptions.some((s) => s.packageId === packageId)) return null;
     if (!billing.wallet) return null;
     const available = Number.parseFloat(billing.wallet.membershipAvailable);
     if (!Number.isFinite(available)) return null;
     const need = Math.round((offer.price + billing.dueAmount) * 100) / 100;
     if (available + 1e-9 >= need) return null;
-    return t('appsCatalogProxy.catalog.insufficientFunds', {
-      need: need.toFixed(2),
-      available: available.toFixed(2),
-    });
+    return billing.dueAmount > 0
+      ? t('appsCatalogProxy.catalog.insufficientFundsWithDebt', {
+          need: need.toFixed(2),
+          available: available.toFixed(2),
+          price: offer.price.toFixed(2),
+          debt: billing.dueAmount.toFixed(2),
+        })
+      : t('appsCatalogProxy.catalog.insufficientFunds', {
+          need: need.toFixed(2),
+          available: available.toFixed(2),
+        });
   }
 
   /** Отменить подписку: провайдер снимает строку счёта, каталог закрывает пакет. */

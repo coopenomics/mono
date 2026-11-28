@@ -93,7 +93,6 @@ const state = computed(() => catalogAppState(props.app));
   display: flex;
   flex-direction: column;
   gap: var(--p-2, 8px);
-  max-width: 520px;
   padding: var(--p-4, 16px) 0;
   border-top: 1px solid var(--p-line);
   border-bottom: 1px solid var(--p-line);
@@ -101,7 +100,6 @@ const state = computed(() => catalogAppState(props.app));
 
 .catalog-app-info__note {
   margin: var(--p-4, 16px) 0 0;
-  max-width: 520px;
   font-size: var(--p-fs-body-sm);
   line-height: 1.5;
   color: var(--p-ink-2);

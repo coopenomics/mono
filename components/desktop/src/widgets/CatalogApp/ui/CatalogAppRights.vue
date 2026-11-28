@@ -17,7 +17,9 @@ section.catalog-app-rights(v-if='rights')
         | {{ app.installed ? $t('catalogApp.rights.allowUpdate') : $t('catalogApp.rights.allowInstall') }}
     p.catalog-app-rights__hint(v-if='!canManage') {{ $t('catalogApp.rights.chairmanOnly') }}
 
-  .catalog-app-rights__section
+  //- Пока председатель не ответил на первый запрос, разрешённых прав нет:
+  //- строка «Приложение не имеет прав ядра» под запросом читалась как ответ.
+  .catalog-app-rights__section(v-if='hasGranted || !awaiting')
     .t-eyebrow.q-mb-sm {{ $t('catalogApp.rights.grantedTitle') }}
     CoreRightsList(v-if='hasGranted', :ports='rights.granted.ports', :chain-actions='rights.granted.chainActions')
     p.catalog-app-rights__hint(v-else) {{ $t('catalogApp.rights.none') }}
@@ -94,7 +96,6 @@ watch(() => [props.app.packageId, live.value], load);
 
 <style scoped>
 .catalog-app-rights {
-  max-width: 520px;
   margin-top: var(--p-6);
 }
 .catalog-app-rights__title {

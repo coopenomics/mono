@@ -4,17 +4,20 @@
 //- шаги, а не «вернитесь позже»: подписка оформлена → первый месяц оплачен
 //- → приложение получено узлом → стол добавлен в меню. Согласие на права
 //- ядра председатель даёт до подписки, на экране подписки (28.11.2026).
+//- Подписка без согласия (оплачена позже, каталог не ответил на экране
+//- подписки) получает шаг «Согласие на права»: установка стоит на нём, а
+//- полоса хода не движется — узел ждёт председателя, а не работает.
 //- Шаг оплаты есть только у подписки без пробного срока. Пока шаг не закрыт,
 //- страница опрашивает узел.
 BaseCard(:title="$t('catalogApp.progress.title')")
   q-linear-progress.catalog-app-progress__bar(
-    v-if='!done',
+    v-if='!done && !waitsConsent',
     indeterminate,
     color='primary',
     size='3px'
   )
   VerticalStepper(:steps='steps', :active-key='activeKey', :completed='completedKeys')
-  p.catalog-app-progress__note(v-if='!done') {{ $t('catalogApp.progress.note') }}
+  p.catalog-app-progress__note(v-if='!done') {{ waitsConsent ? $t('catalogApp.progress.noteConsent') : $t('catalogApp.progress.note') }}
   template(v-if='done', #footer)
     BaseButton(variant='primary', type='button', @click='openDesk') {{ $t('catalogApp.progress.openDesk') }}
 </template>
@@ -60,7 +63,17 @@ const PAYMENT = computed<StepperStep>(() => ({
   label: t('catalogApp.progress.payment'),
   description: t('catalogApp.progress.paymentHint', { amount: formatRub(sub.value?.amountPerPeriod ?? props.app.rubPerMonth) }),
 }));
-const steps = computed<StepperStep[]>(() => (paysUpfront.value ? [SUBSCRIBED, PAYMENT.value, FRONTEND, DESK] : [SUBSCRIBED, FRONTEND, DESK]));
+// Согласие председателя на права ядра: без него ядро не выпускает приложению
+// ключ, и узел приложение не устанавливает. Шаг виден, только пока согласия нет.
+const CONSENT: StepperStep = { key: 'consent', label: t('catalogApp.progress.consent'), description: t('catalogApp.progress.consentHint') };
+const waitsConsent = computed(() => props.app.rightsPending && !frontendReady.value && (!paysUpfront.value || paid.value));
+const steps = computed<StepperStep[]>(() => [
+  SUBSCRIBED,
+  ...(paysUpfront.value ? [PAYMENT.value] : []),
+  ...(props.app.rightsPending && !frontendReady.value ? [CONSENT] : []),
+  FRONTEND,
+  DESK,
+]);
 
 const completedKeys = computed(() => {
   const keys: string[] = [];
@@ -73,6 +86,7 @@ const completedKeys = computed(() => {
 const activeKey = computed(() => {
   if (!subscribed.value) return 'subscribed';
   if (paysUpfront.value && !paid.value) return 'payment';
+  if (waitsConsent.value) return 'consent';
   return frontendReady.value ? 'desk' : 'frontend';
 });
 const done = computed(() => deskReady.value);

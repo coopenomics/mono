@@ -6,7 +6,18 @@
     //- Подписка — экраном шагов вместо страницы приложения: права ядра →
     //- итог со стоимостью → «Подписаться» (слово владельца 28.11.2026).
     BaseButton.full-width(variant='primary', type='button', :disabled='!canManage', @click='openSubscribe')
-      | {{ app.trialDays > 0 && !app.subscription ? $t('catalogApp.actions.tryFree', { days: app.trialDays }) : $t('catalogApp.actions.subscribe') }}
+      | {{ subscribeLabel }}
+    //- Подписка не оплачена в срок: она остаётся в счёте оператора, и хаб
+    //- спишет её вместе со счётом при пополнении кошелька. Отказаться от
+    //- приложения председатель может здесь же (28.11.2026).
+    BaseButton.full-width(
+      v-if='app.subscription',
+      variant='danger',
+      type='button',
+      :loading='busy === "unsubscribe"',
+      :disabled='!canManage || !!busy',
+      @click='unsubscribe'
+    ) {{ $t('catalogApp.actions.unsubscribe') }}
     p.catalog-app-actions__hint(v-if='!canManage') {{ $t('catalogApp.actions.chairmanOnly') }}
 
   template(v-else)
@@ -82,6 +93,13 @@ const canManage = computed(() => desktop.hasGrant('apps', 'Apps:manage'));
 
 const busy = ref<'toggle' | 'unsubscribe' | null>(null);
 
+/** Кнопка подписки: пробный срок, возобновление неоплаченной подписки либо новая подписка. */
+const subscribeLabel = computed(() => {
+  if (props.app.subscription) return t('catalogApp.actions.resume');
+  return props.app.trialDays > 0
+    ? t('catalogApp.actions.tryFree', { days: props.app.trialDays })
+    : t('catalogApp.actions.subscribe');
+});
 const openSubscribe = () => {
   void router.push({ name: 'extension-install', params: { name: props.app.packageId } });
 };

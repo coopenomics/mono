@@ -61,6 +61,9 @@ title: Реквизиты пайщика в подтверждении член�
 # в каталоге приложений для председателя и совета, человеческими словами
 # (README остаётся документацией для разработчиков). Поведение не менялось.
 
+
+# Правка 28.11.2026: в словаре расширения заменён бытовой глагол в тексте отказа
+# CARDCOOP_SOURCE_SIGNER_MISMATCH (словарь запрещённых слов). Поведение прежнее.
 sources:
   backend:
     - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts

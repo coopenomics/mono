@@ -45,8 +45,23 @@
       )
       DataRow(
         v-if='paid',
-        :label="$t('catalogApp.subscribe.firstCharge')",
+        :label="renewing ? $t('catalogApp.subscribe.renewCharge') : $t('catalogApp.subscribe.firstCharge')",
         :value='firstCharge',
+        align='spread'
+      )
+      //- Оператор списывает счёт кооператива целиком: долг по другим
+      //- подпискам стоит в итоге отдельной строкой, иначе сумма к списанию
+      //- расходится с ценой приложения без объяснения (28.11.2026).
+      DataRow(
+        v-if='paid && otherDue > 0',
+        :label="$t('catalogApp.subscribe.otherDue')",
+        :value="$t('catalogApp.subscribe.rub', { amount: formatRub(otherDue) })",
+        align='spread'
+      )
+      DataRow(
+        v-if='paid && otherDue > 0',
+        :label="$t('catalogApp.subscribe.totalDue')",
+        :value="$t('catalogApp.subscribe.rub', { amount: formatRub(need) })",
         align='spread'
       )
       DataRow(
@@ -57,7 +72,7 @@
       )
     p.subscribe-flow__note(v-if='paid') {{ chargeNote }}
     BaseBanner(v-if='shortage', variant='neg')
-      | {{ $t('catalogApp.subscribe.shortage', { need: formatRub(need), available: formatRub(balance ?? 0) }) }}
+      | {{ shortageText }}
       template(v-if='operatorCabinet', #action)
         BaseButton(variant='secondary', size='sm', type='button', @click='openOperatorSite') {{ $t('catalogApp.subscribe.topUp') }}
     BaseBanner(v-if='error', variant='neg') {{ error }}
@@ -78,9 +93,9 @@
       variant='primary',
       type='button',
       :loading='busy',
-      :disabled='firstLoad || !canManage || shortage',
+      :disabled='firstLoad || !canManage || (shortage && !renewing)',
       @click='confirm'
-    ) {{ $t('catalogApp.actions.subscribe') }}
+    ) {{ renewing ? $t('catalogApp.actions.resume') : $t('catalogApp.actions.subscribe') }}
 </template>
 
 <script lang="ts" setup>
@@ -150,22 +165,55 @@ const trialEndsOn = computed(() => {
   end.setDate(end.getDate() + props.app.trialDays);
   return formatDay(end.toISOString());
 });
-const firstCharge = computed(() =>
-  hasTrial.value
+/**
+ * Подписка на приложение у провайдера уже есть и не оплачена в срок: экран
+ * открыт со страницы «Не оплачено». Новая подписка не оформляется — месяц
+ * приложения уже стоит в счёте оператора, председатель подтверждает права.
+ */
+const renewing = computed(() => !!props.app.subscription);
+/** Месяц приложения: у прежней подписки — её сумма в счёте, у новой — цена каталога. */
+const ownPrice = computed(() =>
+  renewing.value ? (props.app.subscription?.amountPerPeriod ?? props.app.rubPerMonth) : props.app.rubPerMonth,
+);
+const firstCharge = computed(() => {
+  if (renewing.value) return t('catalogApp.subscribe.rub', { amount: formatRub(ownPrice.value) });
+  return hasTrial.value
     ? t('catalogApp.subscribe.chargeOn', { date: trialEndsOn.value, amount: formatRub(props.app.rubPerMonth) })
-    : t('catalogApp.subscribe.chargeNow', { amount: formatRub(props.app.rubPerMonth) }),
-);
-const chargeNote = computed(() =>
-  hasTrial.value ? t('catalogApp.subscribe.noteTrial') : t('catalogApp.subscribe.notePaid'),
-);
+    : t('catalogApp.subscribe.chargeNow', { amount: formatRub(props.app.rubPerMonth) });
+});
+const chargeNote = computed(() => {
+  if (renewing.value) return t('catalogApp.subscribe.noteRenew');
+  return hasTrial.value ? t('catalogApp.subscribe.noteTrial') : t('catalogApp.subscribe.notePaid');
+});
 const rightsSummary = computed(() => {
   if (rightsUnknown.value) return t('catalogApp.subscribe.rightsLater');
   const count = requested.value.ports.length + requested.value.chainActions.length;
   return count > 0 ? t('catalogApp.subscribe.rightsGiven', { count }) : t('catalogApp.subscribe.rightsNone');
 });
 
-/** Сумма, которую хаб оператора списывает сразу: месяц приложения и наступившие позиции счёта. */
-const need = computed(() => Math.round((props.app.rubPerMonth + dueAmount.value) * 100) / 100);
+/**
+ * Долг кооператива по другим подпискам. Счёт оператора уже содержит месяц
+ * прежней подписки на это приложение — он вычитается, иначе цена приложения
+ * считается дважды (28.11.2026: 3 700 ₽ вместо 3 600 ₽).
+ */
+const otherDue = computed(() =>
+  Math.max(0, Math.round((dueAmount.value - (renewing.value ? ownPrice.value : 0)) * 100) / 100),
+);
+/** Сумма, которую хаб оператора списывает сразу: месяц приложения и долг по другим подпискам. */
+const need = computed(() => Math.round((ownPrice.value + otherDue.value) * 100) / 100);
+const shortageText = computed(() => {
+  const available = formatRub(balance.value ?? 0);
+  const base =
+    otherDue.value > 0
+      ? t('catalogApp.subscribe.shortageWithDebt', {
+          available,
+          need: formatRub(need.value),
+          price: formatRub(ownPrice.value),
+          debt: formatRub(otherDue.value),
+        })
+      : t('catalogApp.subscribe.shortage', { need: formatRub(need.value), available });
+  return renewing.value ? `${base} ${t('catalogApp.subscribe.shortageRenew')}` : base;
+});
 // Правило держит и узел: без остатка подписка без пробного срока не оформляется.
 const shortage = computed(() => paid.value && !hasTrial.value && balance.value !== null && balance.value + 1e-9 < need.value);
 
@@ -222,11 +270,7 @@ async function confirm(): Promise<void> {
     }
     const result = await store.subscribe(props.app.packageId);
     if (result.status === Zeus.SubscribePackageStatus.ACTIVATED || result.status === Zeus.SubscribePackageStatus.ALREADY_ACTIVE) {
-      SuccessAlert(
-        hasTrial.value && result.state === Zeus.SubscriptionStateEnum.TRIAL
-          ? t('catalogApp.subscribe.doneTrial', { date: formatDay(result.endAt) })
-          : t('catalogApp.subscribe.donePaid'),
-      );
+      SuccessAlert(doneText(result));
       void runRemotePass(router);
       toApp();
       return;
@@ -237,6 +281,14 @@ async function confirm(): Promise<void> {
   } finally {
     busy.value = false;
   }
+}
+
+/** Итог для председателя: прежняя подписка ждёт пополнения кошелька либо списания. */
+function doneText(result: { state?: Zeus.SubscriptionStateEnum | null; endAt?: string | null }): string {
+  if (renewing.value) return shortage.value ? t('catalogApp.subscribe.doneRenewWait') : t('catalogApp.subscribe.doneRenew');
+  return hasTrial.value && result.state === Zeus.SubscriptionStateEnum.TRIAL
+    ? t('catalogApp.subscribe.doneTrial', { date: formatDay(result.endAt) })
+    : t('catalogApp.subscribe.donePaid');
 }
 
 // Живое обновление: остаток кошелька членских взносов (пополнение на сайте

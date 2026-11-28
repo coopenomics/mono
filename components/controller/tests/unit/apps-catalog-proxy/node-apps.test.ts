@@ -156,7 +156,28 @@ describe('subscribePackage → провайдер', () => {
     const r = await h.service.subscribe(PKG);
     expect(r.status).toBe(SubscribePackageStatus.FAILED);
     expect(r.error).toContain('1560.00');
+    // Отказ называет обе части суммы: месяц приложения и долг по счёту.
+    expect(r.error).toContain('360.00');
+    expect(r.error).toContain('1200.00');
     expect(h.port!.subscribe).not.toHaveBeenCalled();
+  });
+
+  // 28.11.2026: подписка на приложение за 100 ₽ просрочена, в счёте долг
+  // 3 600 ₽ вместе с ней. Экран требовал 3 700 ₽ — цена считалась дважды, а
+  // согласие председателя на права терялось вместе с отказом.
+  it('break: подписка на пакет уже есть и не оплачена — цена второй раз не считается, отказа нет, провайдер отдаёт прежнюю подписку', async () => {
+    const own = { id: 42, name: PKG, code: `catalog:${PKG}`, kind: 'time', package_id: PKG, status: InnerAppSubscriptionStatus.EXPIRED, is_trial: false, price: 360, period_days: 30, started_at: 's', expires_at: 'e', next_payment_due: null };
+    const h = harness({
+      port: {
+        listOffers: jest.fn(async () => PAID_OFFER),
+        listSubscriptions: jest.fn(async (): Promise<any> => [own]),
+        billingSummary: jest.fn(async (): Promise<any> => ({ items: [{ subscription_id: 42, amount: 360, is_due: true }, { subscription_id: 1, amount: 3500, is_due: true }], next_payment_due: null })),
+        subscribe: jest.fn(async (): Promise<any> => ({ status: 'subscribed', created: false, subscription: SUB })),
+      },
+    });
+    const r = await h.service.subscribe(PKG);
+    expect(r.status).toBe(SubscribePackageStatus.ALREADY_ACTIVE);
+    expect(h.port!.subscribe).toHaveBeenCalledWith('romashka', PKG);
   });
 
   it('side: пробный срок есть или остаток не прочитан — проверка остатка не мешает подписке', async () => {
