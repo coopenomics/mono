@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { registerCoopInSubnet } from '../init/subnet-coop'
@@ -52,6 +52,15 @@ const candidate = generateRandomUsername()
 beforeAll(async () => {
   await registerCoopInSubnet({ coopname: coop })
   await registerCoopInSubnet({ coopname: candidate })
+})
+
+// Тестовые кооперативы убираются из реестра: провайдер стенда читает реестр
+// цепи и завёл бы каждому запись на аренду сервера (28.11.2026 после первых
+// запусков теста в реестре осталось четыре таких кооператива).
+afterAll(async () => {
+  for (const coopname of [coop, candidate]) {
+    await act('delcoop', [lead], { registrator: lead, coopname }).catch(() => undefined)
+  }
 })
 
 describe('ведущий сети', () => {
