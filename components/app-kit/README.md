@@ -42,3 +42,21 @@ Node.js 18+, npm, bash, curl и запущенный Docker. На Windows ком
 Права ядра приложение перечисляет в манифесте: `coopenomics.ports` — порты
 ядра, `coopenomics.chainActions` — действия цепи. Обновление с новыми правами
 ждёт согласия председателя кооператива-подписчика.
+
+## Запуск из чекаута mono
+
+До выпуска в npm набор работает прямо из чекаута mono. Команда `create` из
+чекаута кладёт в каркас SDK приложений этого же чекаута (`backend/vendor`):
+в npm такая версия SDK ещё не вышла. Переменная `APP_KIT_SDK=npm` отключает
+это.
+
+```bash
+cd <чекаут mono>/components/app-kit
+npm link                       # команда app-kit во всех папках
+mkdir -p ~/node_modules/@coopenomics
+ln -sfn "$PWD" ~/node_modules/@coopenomics/app-kit   # npx @coopenomics/app-kit вне проектов
+```
+
+Правка набора в чекауте действует сразу, пересборка не требуется. Перед
+`create` соберите SDK приложений в чекауте: `pnpm -F @coopenomics/extension-sdk
+run build` и `pnpm -F @coopenomics/innercoop run build`.
