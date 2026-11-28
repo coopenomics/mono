@@ -90,8 +90,11 @@ export const rawSystemInfoSelector = {
   coopname: true,
   blockchain_account: rawBlockchainAccountSelector,
   system_status: true,
+  has_provider: true,
+  // Устаревшее имя признака has_provider: поле остаётся в схеме на один выпуск.
   is_providered: true,
-  platform_provider: true,
+  network_lead: true,
+  is_operator: true,
   contacts: rawContactsSelector,
   vars: rawVarsSelector,
   symbols: rawSymbolsSelector,

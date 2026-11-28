@@ -66,7 +66,7 @@ const { subscriptions, loadSubscriptions } = useProviderSubscriptions()
 // системе приходят позже монтирования, и запрос без признака молча отказывал.
 // realtime: нет источника — подписки ведёт сервер провайдера (другой узел), в ленте кооператива их нет.
 watch(
-  () => system.info.is_providered,
+  () => system.info.has_provider,
   (providered) => {
     if (providered) void loadSubscriptions()
   },

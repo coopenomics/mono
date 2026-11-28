@@ -15,6 +15,14 @@ import { BoardMemberDTO } from './board-member.dto';
 import { SystemFeaturesDTO } from './system-features.dto';
 import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
 
+/** Роли сети для узла: кто ведущий и назначен ли кооператив узла оператором. */
+export interface NetworkRoles {
+  lead: string;
+  isOperator: boolean;
+}
+
+const NO_NETWORK_ROLES: NetworkRoles = { lead: '', isOperator: false };
+
 @ObjectType('SystemInfo')
 export class SystemInfoDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
@@ -54,14 +62,28 @@ export class SystemInfoDTO {
   @ValidateNested()
   public readonly settings: SettingsDTO;
 
-  @Field(() => Boolean, { description: 'Доступен ли функционал провайдера для подписок и запуска ПО' })
+  @Field(() => Boolean, {
+    description: 'Узел подключён к провайдеру: доступны каталог приложений, облачный хостинг и подписки',
+  })
+  public readonly has_provider: boolean;
+
+  // Прежнее имя признака `has_provider`. Оставлено на один выпуск: стол,
+  // загруженный до выкатки, запрашивает его; следующим выпуском — удалить.
+  @Field(() => Boolean, {
+    description: 'Устарело: то же, что has_provider',
+    deprecationReason: 'Признак переименован в has_provider; поле будет удалено',
+  })
   public readonly is_providered: boolean;
 
   @Field(() => String, {
-    description:
-      'Имя аккаунта провайдера платформы — главного администратора сети: он регистрирует кооперативы и берёт их на обслуживание',
+    description: 'Ведущий сети — кооператив, который запустил цепь и ведёт сеть: назначает операторов, регистрирует кооперативы',
   })
-  public readonly platform_provider: string;
+  public readonly network_lead: string;
+
+  @Field(() => Boolean, {
+    description: 'Кооператив узла назначен оператором сети: он подключает другие кооперативы и обслуживает их',
+  })
+  public readonly is_operator: boolean;
 
   // Требование членства в союзе снято 20.10.2026: подключение начинается с тарифа,
   // мессенджер не обязателен. Поля оставлены на один выпуск постоянными, чтобы стол,
@@ -87,7 +109,7 @@ export class SystemInfoDTO {
   @ValidateNested()
   public readonly features!: SystemFeaturesDTO;
 
-  constructor(entity: SystemInfoDomainEntity, isProvidered = false, platformProvider = '') {
+  constructor(entity: SystemInfoDomainEntity, hasProvider = false, roles: NetworkRoles = NO_NETWORK_ROLES) {
     this.coopname = entity.coopname;
     this.contacts = entity.contacts;
     this.vars = entity.vars;
@@ -101,8 +123,10 @@ export class SystemInfoDTO {
       ...entity.user_account,
       active_participants_count: Number(entity.cooperator_account.active_participants_count),
     });
-    this.is_providered = isProvidered;
-    this.platform_provider = platformProvider;
+    this.has_provider = hasProvider;
+    this.is_providered = hasProvider;
+    this.network_lead = roles.lead;
+    this.is_operator = roles.isOperator;
     this.board_members = entity.board_members?.map((member) => new BoardMemberDTO(member));
     this.features = entity.features || { search: false };
   }

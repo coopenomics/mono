@@ -10,7 +10,7 @@
  * @note Авторизация требуется от аккаунта: @p provider или @p administrator
  */
 [[eosio::action]] void registrator::stcoopstatus(eosio::name coopname, eosio::name administrator, eosio::name status) {
-    check_auth_or_fail(_registrator, _provider, administrator, "stcoopstatus"_n); //ожидаем разрешений от оператора
+    check_auth_or_fail(_registrator, network_lead(), administrator, "stcoopstatus"_n); // действие подписывает ведущий сети либо его уполномоченный
     
     cooperatives2_index coops(_registrator, _registrator.value);
     
@@ -35,7 +35,7 @@
           _soviet,
           "newresolved"_n,
           _registrator,
-          _provider,
+          network_lead(),
           coopname,
           "regcoop"_n,
           hash,

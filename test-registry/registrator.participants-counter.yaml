@@ -22,6 +22,10 @@ title: Счётчик активных пайщиков и минимальны�
 # (enabranches/disbranches). Проверка мягкая: действие не отклоняется. Тестовая
 # сборка порога пайщиков не имеет — флаг следует числу участков.
 
+#
+# 28.11.2026: миграция реестра (migrate.cpp) дополнена записью ролей сети —
+# строка network и список operators. Счётчик пайщиков она не трогает; случаи
+# ролей сети — test-registry/network.roles.yaml.
 sources:
   contract:
     - components/contracts/cpp/registrator/src/coop/incparticpnt.cpp

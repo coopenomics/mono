@@ -46,7 +46,7 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
     this.blockchainService.initialize(coopname, wif);
   }
 
-  /** Подпись оператором платформы — аккаунтом узла-хаба (см. docstring класса). */
+  /** Подпись ведущим сети — аккаунтом узла-хаба (см. docstring класса). */
   private async initForOperator(): Promise<string> {
     const operator = config.coopname;
     const wif = await this.vaultDomainService.getWif(operator);

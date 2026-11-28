@@ -274,7 +274,7 @@ export class EndorsementService implements OnApplicationBootstrap {
   }
 
   /**
-   * Провайдер платформы: кооператив активирован (`registrator::stcoopstatus → active`)
+   * Ведущий сети: кооператив активирован (`registrator::stcoopstatus → active`)
    * — назначаем себя его оператором, если оператора нет, и сразу пробуем заверить.
    *
    * Оператора раньше проставлял только `migrate` реестра при выкатке контрактов:
@@ -286,8 +286,8 @@ export class EndorsementService implements OnApplicationBootstrap {
   @OnEvent(`action::${RegistratorContract.contractName.production}::${RegistratorContract.Actions.SetCoopStatus.actionName}`)
   async onCoopActivated(actionData: { data?: { coopname?: string; status?: CooperativeStatus } }): Promise<void> {
     const coopname = actionData?.data?.coopname;
-    // Кооперативы на обслуживание берёт провайдер платформы — настройка узла, не имя в коде.
-    if (config.coopname !== config.platform_provider || !coopname || actionData.data?.status !== CooperativeStatus.Active) return;
+    if (!coopname || actionData.data?.status !== CooperativeStatus.Active) return;
+    if (!(await this.isLeadOperator())) return;
     if (coopname === config.coopname) return;
     try {
       const coop = await this.blockchainPort.getCooperative(coopname);
@@ -305,6 +305,21 @@ export class EndorsementService implements OnApplicationBootstrap {
   }
 
   /** Ключ заверения оператора, если оператор вправе заверять (своё заверение действует); иначе null. */
+  /**
+   * Узел ведущего сети, назначенного оператором. Кооператив без оператора берёт
+   * на обслуживание ведущий, и только если он сам оператор: ведущий без роли
+   * оператора кооперативы не подключает. Обе роли узел читает из цепи.
+   */
+  private async isLeadOperator(): Promise<boolean> {
+    try {
+      if ((await this.blockchainPort.getNetworkLead()) !== config.coopname) return false;
+      return await this.blockchainPort.isNetworkOperator(config.coopname);
+    } catch (e) {
+      this.logger.warn(`Роли сети не прочитаны из цепи: ${e instanceof Error ? e.message : String(e)}`, 'EndorsementService');
+      return false;
+    }
+  }
+
   private async readyOperatorKey(operator: string): Promise<string | null> {
     const own = await this.blockchainPort.getEndorsement(operator);
     if (!own || this.secondsLeft(own) <= 0) return null;
@@ -333,7 +348,7 @@ export class EndorsementService implements OnApplicationBootstrap {
   }
 
   /**
-   * Провайдер платформы: берёт на обслуживание активные кооперативы без оператора.
+   * Ведущий сети: берёт на обслуживание активные кооперативы без оператора.
    *
    * Резерв к {@link onCoopActivated}: событие активации могло прийти, пока узел
    * лежал или выкатывался, или до выпуска, где назначение появилось (тестнет,
@@ -341,7 +356,7 @@ export class EndorsementService implements OnApplicationBootstrap {
    * придёт, и без прохода кооператив навсегда остался бы без заверения.
    */
   private async adoptUnserved(): Promise<void> {
-    if (config.coopname !== config.platform_provider) return;
+    if (!(await this.isLeadOperator())) return;
     let unserved: string[];
     try {
       unserved = await this.blockchainPort.getUnservedActiveCooperatives(config.coopname);

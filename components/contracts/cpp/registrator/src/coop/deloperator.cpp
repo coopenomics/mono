@@ -17,7 +17,7 @@
  * @ingroup public_actions
  * @ingroup public_registrator_actions
  *
- * @note Авторизация: @p coopname, его нынешний оператор либо провайдер.
+ * @note Авторизация: @p coopname, его нынешний оператор либо ведущий сети.
  */
 [[eosio::action]] void registrator::deloperator(eosio::name coopname)
 {
@@ -29,8 +29,8 @@
   const eosio::name current = coop->parent_username;
   eosio::check(current != eosio::name(), "У кооператива и так нет оператора");
 
-  eosio::check(has_auth(coopname) || has_auth(current) || has_auth(_provider),
-               "Снять оператора может сам кооператив, его оператор либо провайдер");
+  eosio::check(has_auth(coopname) || has_auth(current) || has_auth(network_lead()),
+               "Снять оператора может сам кооператив, его оператор либо ведущий сети");
 
   coops.modify(coop, RamPayer::of(coops, coopname), [&](auto &row) {
     row.parent_username = eosio::name();

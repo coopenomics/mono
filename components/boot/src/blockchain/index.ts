@@ -620,6 +620,29 @@ export default class Blockchain {
     console.log('Аренда ресурсов: ', params)
   }
 
+  /**
+   * Ведущий сети назначает оператора (`registrator::appoint`). Оператор
+   * подключает кооперативы и обслуживает их; только оператора из списка
+   * `setoperator` записывает кооперативу. На стенде ведущий назначает себя.
+   */
+  async appointOperator(params: RegistratorContract.Actions.Appoint.IAppoint) {
+    await this.update_pass_instance()
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: RegistratorContract.contractName.production,
+            name: RegistratorContract.Actions.Appoint.actionName,
+            authorization: [{ actor: config.provider, permission: 'active' }],
+            data: { ...params },
+          },
+        ],
+      },
+      { blocksBehind: 3, expireSeconds: 30 },
+    )
+    console.log('Оператор сети назначен: ', params.operator_name)
+  }
+
   async preInit(
     params: RegistratorContract.Actions.SetCoopStatus.ISetCoopStatus,
   ) {

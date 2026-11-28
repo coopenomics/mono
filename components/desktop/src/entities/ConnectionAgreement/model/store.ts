@@ -106,9 +106,10 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
     const params: any = {
       registry_id: Registry.CoopenomicsAgreement.registry_id,
-      // Соглашение о подключении заключается с провайдером платформы: его имя
-      // сообщает узел, в коде стола имени нет (28.11.2026).
-      coopname: system.info.platform_provider || system.info.coopname,
+      // Соглашение о подключении кооператив заключает с оператором, на чьём
+      // узле он оформляет подключение: это кооператив узла. В коде стола имени
+      // нет (28.11.2026).
+      coopname: system.info.coopname,
       username: session.username
     }
 

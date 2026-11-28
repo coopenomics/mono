@@ -20,6 +20,7 @@
 #include "table_registrator_candidates_legacy.hpp"
 #include "table_registrator_exits.hpp"
 #include "table_registrator_platforms.hpp"
+#include "table_registrator_network.hpp"
 
 // coops (soviet)
 #include "coops_access_helpers.hpp"

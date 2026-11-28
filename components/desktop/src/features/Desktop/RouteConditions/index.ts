@@ -13,16 +13,17 @@ import { useNetworkMode, useSystemStore } from 'src/entities/System/model';
  *  - `userRole` — роль пайщика на узле;
  *  - `userAccount` — личные данные вошедшего;
  *  - `coopname` — кооператив узла;
- *  - `isPlatformProvider` — узел провайдера платформы: реестр кооперативов и
- *    страницы подключения кооператива к платформе живут на нём;
- *  - `isNetworked` — узел связан с провайдером подключения; у одиночного
- *    запуска подписок на приложения каталога нет;
+ *  - `isOperator` — кооператив узла назначен оператором сети: оператор
+ *    подключает кооперативы, поэтому реестр кооперативов и страницы
+ *    подключения есть только на его узле;
+ *  - `hasProvider` — узел подключён к провайдеру (каталог приложений, хостинг,
+ *    подписки); без провайдера подписок на приложения каталога нет;
  *  - `isOnboardingHidden` — председатель завершил онбординг.
  */
 export function useRouteConditions() {
   const session = useSessionStore();
   const system = useSystemStore();
-  const { isPlatformProvider, isNetworked } = useNetworkMode();
+  const { isOperator, hasProvider } = useNetworkMode();
 
   const userRole = computed<'chairman' | 'member' | 'user'>(() =>
     session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user',
@@ -40,8 +41,8 @@ export function useRouteConditions() {
       userRole: userRole.value,
       userAccount: acc,
       coopname: system.info.coopname,
-      isPlatformProvider: isPlatformProvider.value,
-      isNetworked: isNetworked.value,
+      isOperator: isOperator.value,
+      hasProvider: hasProvider.value,
       // Онбординг завершает председатель — отметка в настройках кооператива,
       // одна на все устройства.
       isOnboardingHidden: !!system.info.settings?.onboarding_completed_at,

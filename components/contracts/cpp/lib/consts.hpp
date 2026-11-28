@@ -181,7 +181,11 @@ static constexpr uint64_t _eduteacher_program_id = 6;
 * @ingroup public_consts
 * @{ 
 */
-    static constexpr eosio::name _provider = "voskhod"_n;
+    // Ведущий сети по умолчанию. Действующего ведущего хранит строка `network`
+    // реестра (lib/domain/table_registrator_network.hpp, функция network_lead());
+    // эта константа — значение для цепи, где строки ещё нет. Раньше имя
+    // называлось `_provider` и было вкомпилировано в каждый контракт.
+    static constexpr eosio::name _default_lead = "voskhod"_n;
     static constexpr eosio::name _provider_chairman = "ant"_n;
     
     static constexpr eosio::name _capital = "capital"_n;
@@ -244,8 +248,9 @@ static constexpr uint64_t _eduteacher_program_id = 6;
         "eosio.saving"_n,
         "eosio.power"_n,
         "eosio.ram"_n,
-        "eosio.stake"_n,
-        _provider
+        "eosio.stake"_n
+        // Ведущий сети в список не входит: его имя хранит цепь, перевод
+        // токена сверяет его отдельно (eosio.token, is_can_transfer).
         // Добавьте другие аккаунты в список по мере необходимости
       };    
 

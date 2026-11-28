@@ -11,11 +11,11 @@
   require_auth(_system);
 
   accounts_index accounts(_registrator, _registrator.value);
-  auto account = accounts.find(_provider.value);
+  auto account = accounts.find(network_lead().value);
   eosio::check(account == accounts.end(), "Контракт регистратора уже инициализирован для указанного провайдера");
 
   std::vector<eosio::name> storages;
-  storages.push_back(_provider);
+  storages.push_back(network_lead());
 
   // accounts.emplace(_system, [&](auto &n)
   // {
@@ -32,7 +32,7 @@
   {
       n.type = "organization"_n;
       n.storages = storages;
-      n.username = _provider;
+      n.username = network_lead();
       n.status = "active"_n;
       n.registrator = _system;
       n.referer = ""_n;
@@ -48,7 +48,7 @@
 
   coops.emplace(RamPayer::of(coops), [&](auto &org)
   {
-    org.username = _provider;
+    org.username = network_lead();
     org.is_cooperative = true;
     org.coop_type = "conscoop"_n;
     org.initial = _provider_initial;

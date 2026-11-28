@@ -1,5 +1,7 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { SystemInfoDTO } from '../dto/system.dto';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { SystemInfoDTO, type NetworkRoles } from '../dto/system.dto';
+import type { SystemInfoDomainEntity } from '~/domain/system/entities/systeminfo-domain.entity';
+import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { SystemInteractor } from '../interactors/system.interactor';
 import { ProviderService } from '~/application/provider/services/provider.service';
 import type { InstallDTO } from '../dto/install.dto';
@@ -27,13 +29,34 @@ export class SystemService {
     private readonly systemInteractor: SystemInteractor,
     private readonly providerService: ProviderService,
     @Inject(AGREEMENT_CONFIGURATION_SERVICE)
-    private readonly agreementConfigService: AgreementConfigurationService
+    private readonly agreementConfigService: AgreementConfigurationService,
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
   ) {}
+
+  private readonly logger = new Logger(SystemService.name);
+
+  /**
+   * Сведения о системе с ролями сети. Ведущего и признак оператора узел читает
+   * из цепи; цепь не ответила (установка, обрыв связи) — роли пусты, сведения
+   * отдаются без них.
+   */
+  private async toInfoDTO(info: SystemInfoDomainEntity): Promise<SystemInfoDTO> {
+    let roles: NetworkRoles | undefined;
+    try {
+      roles = {
+        lead: await this.blockchainPort.getNetworkLead(),
+        isOperator: await this.blockchainPort.isNetworkOperator(config.coopname),
+      };
+    } catch (e) {
+      this.logger.warn(`Роли сети не прочитаны из цепи: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), roles);
+  }
 
   public async getInfo(): Promise<SystemInfoDTO> {
     const info = await this.systemInteractor.getInfo();
 
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
+    return await this.toInfoDTO(info);
   }
 
   public async startInstall(data: StartInstallInputDTO): Promise<StartInstallResultDTO> {
@@ -74,7 +97,7 @@ export class SystemService {
       ...data,
       vars: data.vars as any, // SetVarsInputDTO совместим с VarsDomainInterface по полям
     });
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
+    return await this.toInfoDTO(info);
   }
 
   public async update(data: UpdateDTO): Promise<SystemInfoDTO> {
@@ -84,7 +107,7 @@ export class SystemService {
         ? new OrganizationDomainEntity({ ...data.organization_data, username: config.coopname })
         : undefined, // Не передаем поле, если оно отсутствует
     });
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
+    return await this.toInfoDTO(info);
   }
 
   public async init(data: InitDTO, trusted = false): Promise<SystemInfoDTO> {
@@ -93,7 +116,7 @@ export class SystemService {
     // секретом: иначе любой клиент пометил бы данные организации как
     // «установленные администратором» и запер бы их от правки.
     const info = await this.systemInteractor.init({ ...data, is_server_init: trusted && data.is_server_init === true });
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
+    return await this.toInfoDTO(info);
   }
 
   public async setWif(data: SetWifInputDTO): Promise<void> {

@@ -48,6 +48,18 @@ interface EndorsementRow {
   credential: unknown;
 }
 
+/** Срок памяти ответов о ролях сети (ведущий, оператор), мс. */
+const NETWORK_ROLES_TTL_MS = 60_000;
+
+/**
+ * Таблицы нет в ABI контракта: цепь работает на контрактах до появления
+ * таблицы. Узел отвечает отказом разбора таблицы, а не пустым списком.
+ */
+function isMissingTable(e: unknown): boolean {
+  const message = String((e as { message?: string })?.message ?? e ?? '');
+  return /table .*not (found|specified)|not specified in the ABI|unknown table|no table/i.test(message);
+}
+
 function isMissingAccount(e: unknown): boolean {
   const err = e as { error?: { name?: string; code?: number }; message?: string };
   if (err?.error?.name === 'account_query_exception' || err?.error?.code === 3060002) return true;
@@ -699,6 +711,67 @@ export class BlockchainService implements BlockchainPort {
       Name.from(coopname)
     );
     return cooperative;
+  }
+
+  /**
+   * Ведущий сети из строки `network` реестра. Строки или самой таблицы нет
+   * (цепь с контрактами до 28.11.2026) — ведущий по умолчанию. Ответ помнится
+   * минуту: ведущий меняется раз в жизни сети, а спрашивают его на каждом
+   * запросе сведений о системе.
+   */
+  public async getNetworkLead(): Promise<string> {
+    return this.remember('lead', async () => {
+      const contract = RegistratorContract.contractName.production;
+      const fallback = RegistratorContract.Tables.Network.defaultLead;
+      try {
+        const rows = await this.query<RegistratorContract.Tables.Network.INetworkState>(
+          contract,
+          contract,
+          RegistratorContract.Tables.Network.tableName,
+          { maxRows: 1 },
+        );
+        return String(rows[0]?.lead || fallback);
+      }
+      catch (e) {
+        if (isMissingTable(e) || isMissingAccount(e)) return fallback;
+        throw e;
+      }
+    });
+  }
+
+  /**
+   * Кооператив в списке операторов сети. Таблицы нет (цепь с контрактами до
+   * 28.11.2026) — оператором считается ведущий: до списка кооперативы подключал
+   * только он. Ответ помнится минуту.
+   */
+  public async isNetworkOperator(coopname: string): Promise<boolean> {
+    return this.remember(`operator:${coopname}`, async () => {
+      const contract = RegistratorContract.contractName.production;
+      try {
+        const row = await this.getSingleRow<RegistratorContract.Tables.Operators.INetworkOperator>(
+          contract,
+          contract,
+          RegistratorContract.Tables.Operators.tableName,
+          Name.from(coopname),
+        );
+        return row != null;
+      }
+      catch (e) {
+        if (isMissingTable(e) || isMissingAccount(e)) return coopname === (await this.getNetworkLead());
+        throw e;
+      }
+    });
+  }
+
+  /** Короткая память ответов о ролях сети: ключ → значение и срок. */
+  private readonly rolesMemo = new Map<string, { at: number; value: unknown }>();
+
+  private async remember<T>(key: string, read: () => Promise<T>): Promise<T> {
+    const hit = this.rolesMemo.get(key);
+    if (hit && Date.now() - hit.at < NETWORK_ROLES_TTL_MS) return hit.value as T;
+    const value = await read();
+    this.rolesMemo.set(key, { at: Date.now(), value });
+    return value;
   }
 
   public async changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void> {

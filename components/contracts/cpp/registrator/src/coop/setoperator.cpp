@@ -23,21 +23,24 @@
  * оператор ещё не указан, а кооператив в одиночку — навязал бы себя оператору,
  * который о нём не знает, и тот принялся бы его заверять.
  *
- * Провайдер платформы может назначить оператора один — он и так администрирует
- * реестр, и через него проходит перевод уже подключённых кооперативов, у которых
- * оператор не был указан никогда.
+ * Ведущий сети может записать оператора один — он и так ведёт реестр, и через
+ * него проходит перевод уже подключённых кооперативов, у которых оператор не
+ * был указан никогда.
+ *
+ * Оператором записывается только кооператив из списка операторов сети: список
+ * ведёт ведущий действиями `appoint` и `dismiss`.
  *
  * @param coopname Кооператив, которому назначается оператор
  * @param operator_name Оператор, берущий кооператив на обслуживание
  * @ingroup public_actions
  * @ingroup public_registrator_actions
  *
- * @note Авторизация: @p coopname и @p operator_name вместе, либо провайдер один.
+ * @note Авторизация: @p coopname и @p operator_name вместе, либо ведущий сети один.
  *       При смене оператора — дополнительно прежний оператор.
  */
 [[eosio::action]] void registrator::setoperator(eosio::name coopname, eosio::name operator_name)
 {
-  if (!has_auth(_provider)) {
+  if (!has_auth(network_lead())) {
     require_auth(coopname);
     require_auth(operator_name);
   }
@@ -59,9 +62,15 @@
   eosio::check(oper->status.has_value() && oper->status.value() == "active"_n,
                "Оператор не действует — обслуживать кооперативы он не может");
 
+  // Оператор — не любой действующий кооператив, а назначенный ведущим сети:
+  // список операторов ведёт действие `appoint`. Без этой проверки запись
+  // кооператива указывала бы на кооператив, который подключений не ведёт.
+  eosio::check(is_network_operator(operator_name),
+               "REGISTRATOR_NOT_OPERATOR: Кооператив не назначен оператором сети — оператора назначает ведущий сети");
+
   const eosio::name current = coop->parent_username;
   if (current != eosio::name() && current != operator_name)
-    eosio::check(has_auth(current) || has_auth(_provider),
+    eosio::check(has_auth(current) || has_auth(network_lead()),
                  "Кооператив обслуживает другой оператор: передачу подписывают оба");
 
   if (current == operator_name)

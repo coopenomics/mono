@@ -80,16 +80,38 @@ public:
    * собственную установку.
    *
    * \note Авторизация: @p operator_name; при смене оператора — дополнительно
-   *       прежний оператор либо провайдер.
+   *       прежний оператор либо ведущий сети. Оператором записывается только
+   *       кооператив из списка операторов сети (`appoint`).
    */
   [[eosio::action]] void setoperator(eosio::name coopname, eosio::name operator_name);
 
   /**
    * \brief Снять оператора с кооператива: он снова держит установку сам.
    *
-   * \note Авторизация: сам кооператив, его оператор либо провайдер.
+   * \note Авторизация: сам кооператив, его оператор либо ведущий сети.
    */
   [[eosio::action]] void deloperator(eosio::name coopname);
+
+  /**
+   * \brief Записать ведущего сети — кооператив, который запустил цепь и ведёт сеть.
+   *
+   * \note Авторизация: системный аккаунт цепи.
+   */
+  [[eosio::action]] void setlead(eosio::name lead);
+
+  /**
+   * \brief Назначить оператора сети: он подключает кооперативы и обслуживает их.
+   *
+   * \note Авторизация: ведущий сети.
+   */
+  [[eosio::action]] void appoint(eosio::name operator_name);
+
+  /**
+   * \brief Снять оператора сети: новые кооперативы он не подключает.
+   *
+   * \note Авторизация: ведущий сети.
+   */
+  [[eosio::action]] void dismiss(eosio::name operator_name);
   
   [[eosio::action]] void verificate(eosio::name username, eosio::name procedure);
 

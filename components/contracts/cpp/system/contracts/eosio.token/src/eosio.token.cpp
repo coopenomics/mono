@@ -34,17 +34,21 @@ void token::create( const name&   issuer,
 }
 
 void token::is_can_transfer(const name& from, const name& to) {
-  bool from_exist_in_provider = is_valid_participant_of_program_by_type(_provider, from, "wallet"_n);
-  bool to_exist_in_provider = is_valid_participant_of_program_by_type(_provider, to, "wallet"_n);
+  // Ведущий сети: участники его программы кошелька вправе переводить токен.
+  // Имя читается из цепи один раз на перевод; сам ведущий в списке системных
+  // аккаунтов больше не прописан и сверяется отдельно.
+  const eosio::name lead = network_lead();
+  bool from_in_lead_program = from == lead || is_valid_participant_of_program_by_type(lead, from, "wallet"_n);
+  bool to_in_lead_program = to == lead || is_valid_participant_of_program_by_type(lead, to, "wallet"_n);
   
-  if (!from_exist_in_provider && std::find(token_whitelist.begin(), token_whitelist.end(), from) == token_whitelist.end()) {
+  if (!from_in_lead_program && std::find(token_whitelist.begin(), token_whitelist.end(), from) == token_whitelist.end()) {
       check(false, "Отправитель не является участником целевой потребительской программы кошелька");
   }
   
   print("from: ", from);
   print("to: ", to);
   
-  if (!to_exist_in_provider && std::find(token_whitelist.begin(), token_whitelist.end(), to) == token_whitelist.end()) {
+  if (!to_in_lead_program && std::find(token_whitelist.begin(), token_whitelist.end(), to) == token_whitelist.end()) {
       check(false, "Получатель не является участником целевой потребительской программы кошелька");
   }
 }

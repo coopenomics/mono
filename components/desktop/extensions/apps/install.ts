@@ -92,7 +92,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               icon: 'receipt_long',
               requires: READ,
               requiresAuth: true,
-              conditions: 'isNetworked === true',
+              conditions: 'hasProvider === true',
             },
           },
           appPageRoute(),

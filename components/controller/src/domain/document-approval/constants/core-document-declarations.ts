@@ -1,6 +1,5 @@
 import type { InnerDocumentDeclaration } from '@coopenomics/innercoop';
 import { Registry } from '@coopenomics/docs-templates';
-import config from '~/config/config';
 
 /** Имя, под которым ядро объявляет базовый набор документов кооператива. */
 export const CORE_DOCUMENTS_OWNER = 'core';
@@ -19,13 +18,6 @@ export const onboardingExtensionOf = (owner: string): string =>
 
 const R = Registry;
 
-/**
- * Провайдер платформы. Оферту о присоединении к платформе (50) утверждает его
- * совет, остальные кооперативы её только принимают при подключении — в их
- * реестре шаблонов её нет. Имя задаёт настройка узла `PLATFORM_PROVIDER_COOPNAME`
- * и обязано совпадать с константой `_provider` контрактов сети.
- */
-export const platformProviderCoopname = (): string => config.platform_provider;
 
 const core = (
   registry_id: number,
@@ -81,10 +73,15 @@ export const CORE_DOCUMENT_DECLARATIONS: InnerDocumentDeclaration[] = [
   core(R.ReturnByMoneyDecision.registry_id, 'service', 99),
 ];
 
-const PROVIDER_ONLY_DOCUMENTS = new Set<number>([R.CoopenomicsAgreement.registry_id]);
+const LEAD_ONLY_DOCUMENTS = new Set<number>([R.CoopenomicsAgreement.registry_id]);
 
-/** Базовый набор для конкретного кооператива: документы оператора платформы видит только он сам. */
-export const coreDocumentDeclarationsFor = (coopname: string): InnerDocumentDeclaration[] =>
-  coopname === platformProviderCoopname()
+/**
+ * Базовый набор для конкретного кооператива. Оферту о присоединении к
+ * платформе (50) утверждает совет ведущего сети, остальные кооперативы её
+ * только принимают при подключении — в их реестре шаблонов её нет. Ведущего
+ * называет цепь (реестр, строка `network`), вызывающий передаёт его имя.
+ */
+export const coreDocumentDeclarationsFor = (coopname: string, lead: string): InnerDocumentDeclaration[] =>
+  coopname === lead
     ? CORE_DOCUMENT_DECLARATIONS
-    : CORE_DOCUMENT_DECLARATIONS.filter((d) => !PROVIDER_ONLY_DOCUMENTS.has(d.registry_id));
+    : CORE_DOCUMENT_DECLARATIONS.filter((d) => !LEAD_ONLY_DOCUMENTS.has(d.registry_id));

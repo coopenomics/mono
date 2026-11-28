@@ -18,7 +18,7 @@
 [[eosio::action]] void registrator::updatecoop(eosio::name coopname, eosio::name username, eosio::asset initial, eosio::asset minimum, eosio::asset org_initial, eosio::asset org_minimum, std::string announce, std::string description)
 {
   
-  if (!has_auth(_provider)){
+  if (!has_auth(network_lead())){
     check_auth_or_fail(_registrator, coopname, username, "updatecoop"_n);  
   };
   

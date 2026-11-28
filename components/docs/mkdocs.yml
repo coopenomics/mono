@@ -130,6 +130,7 @@ nav:
 
   - Блокчейн:
     - new/blockchain/index.md
+    - Роли сети: new/blockchain/roles.md
     
   - Смарт-контракты:
     - new/contracts/index.md

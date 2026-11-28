@@ -1,5 +1,5 @@
 void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 statement, checksum256 process_hash) {
-  require_auth(_provider);
+  require_auth(network_lead());
 
   // Проверяем заявление
   verify_document_or_fail(statement, {coopname});
@@ -26,11 +26,11 @@ void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 s
   // ВНИМАНИЕ по наименованию параметров этого action: поле `coopname` в
   // action-сигнатуре семантически содержит **username** пайщика-инициатора
   // (backend: system.adapter.ts → `coopname: data.username`; см. memo ниже:
-  // «от пайщика с username=...»). Реальный кооператив — `_provider`
-  // (action выполняется под `require_auth(_provider)`).
+  // «от пайщика с username=...»). Реальный кооператив — `network_lead()`
+  // (action выполняется под `require_auth(network_lead())`).
   //
   // Поэтому для ledger2::apply:
-  //   - 2-й аргумент (coopname-scope wallets2/accounts2) = `_provider`
+  //   - 2-й аргумент (coopname-scope wallets2/accounts2) = `network_lead()`
   //     (реальный кооп, совпадает со scope legacy-кошелька в строке 21).
   //   - 5-й аргумент (username-инициатор для истории) = `coopname`-параметр
   //     (то есть username пайщика).
@@ -39,7 +39,7 @@ void soviet::converttoaxn(eosio::name coopname, eosio::asset amount, document2 s
   //
   // process_hash формируется бэкендом явно (допустимо совпадение с
   // statement.hash — одноактовый процесс p.sov.axncnv).
-  Ledger2::apply(_soviet, _provider, operations::soviet::CONVERT_AXN, processes::soviet::AXN_CONVERT, amount, coopname, process_hash, memo);
+  Ledger2::apply(_soviet, network_lead(), operations::soviet::CONVERT_AXN, processes::soviet::AXN_CONVERT, amount, coopname, process_hash, memo);
 
   // Вызываем инъекцию AXON токенов на кооператив
   action(

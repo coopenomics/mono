@@ -85,6 +85,21 @@ export * as SetOperator from './setOperator'
 export * as DelOperator from './delOperator'
 
 /**
+ * Запись ведущего сети — кооператива, который запустил цепь и ведёт сеть.
+ */
+export * as SetLead from './setLead'
+
+/**
+ * Назначение оператора сети: он подключает кооперативы и обслуживает их.
+ */
+export * as Appoint from './appoint'
+
+/**
+ * Снятие оператора сети: новые кооперативы он не подключает.
+ */
+export * as Dismiss from './dismiss'
+
+/**
  * Удаление кооператива из реестра подключений
  * @private
  */

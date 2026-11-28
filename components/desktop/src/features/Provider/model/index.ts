@@ -80,7 +80,7 @@ export function useProviderSubscriptions() {
   const loadSubscriptions = async () => {
     // Проверяем доступность провайдера
     console.log('system.info', system.info);
-    if (!system.info.is_providered) {
+    if (!system.info.has_provider) {
       error.value = t('provider.providerModel.notAvailableError');
       return;
     }

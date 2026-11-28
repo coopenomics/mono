@@ -104,10 +104,10 @@ export const useCatalogAppStore = defineStore('catalogAppStore', () => {
   // Одиночный запуск: связи с провайдером подключения нет — каталога
   // приложений у узла нет, доступны встроенные приложения. Запрос к узлу не
   // делается: он ответил бы отказом «цены недоступны» (28.11.2026).
-  const { isNetworked } = useNetworkMode();
+  const { hasProvider } = useNetworkMode();
 
   async function load(): Promise<void> {
-    if (!isNetworked.value) {
+    if (!hasProvider.value) {
       apps.value = [];
       error.value = null;
       loaded.value = true;

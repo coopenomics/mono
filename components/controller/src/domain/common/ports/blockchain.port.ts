@@ -154,7 +154,7 @@ export interface BlockchainPort {
 
   /**
    * Назначить кооперативу обслуживающего оператора (`registrator::setoperator`).
-   * Подписывает оператор — провайдер платформы, которому контракт разрешает это
+   * Подписывает оператор — ведущий сети, которому контракт разрешает это
    * одному. Без оператора кооператив не попадает в обход заверений и остаётся с
    * «Удостоверение не утверждено».
    */
@@ -173,6 +173,17 @@ export interface BlockchainPort {
    */
   canManageAccount(account: string, steward: string): Promise<boolean>;
   getCooperative(coopname: string): Promise<any>;
+  /**
+   * Ведущий сети — кооператив, который запустил цепь и ведёт сеть: назначает
+   * операторов, регистрирует кооперативы. Имя хранит строка `network` реестра;
+   * цепь без строки отвечает ведущим по умолчанию.
+   */
+  getNetworkLead(): Promise<string>;
+  /**
+   * Кооператив назначен оператором сети: он подключает другие кооперативы и
+   * обслуживает их. Список операторов ведёт ведущий (таблица `operators`).
+   */
+  isNetworkOperator(coopname: string): Promise<boolean>;
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
   // Powerup related methods

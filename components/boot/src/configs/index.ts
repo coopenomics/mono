@@ -32,6 +32,8 @@ const network = {
 
 export const SYMBOL = 'AXON'
 export const GOVERN_SYMBOL = 'RUB'
+// Ведущий сети стенда — кооператив, который запускает цепь. Имя переменной
+// историческое: провайдер — другая сторона (каталог приложений, хостинг, подписки).
 export const provider = 'voskhod'
 export const provider_chairman = 'ant'
 

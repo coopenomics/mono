@@ -283,6 +283,32 @@ export interface ISetoperator {
   operator_name: IName
 }
 
+/** Состояние сети: ведущий — кооператив, который запустил цепь и ведёт сеть. */
+export interface INetworkState {
+  lead: IName
+}
+
+/** Оператор сети: кооператив, которого ведущий назначил подключать кооперативы. */
+export interface INetworkOperator {
+  username: IName
+  appointed_at: ITimePointSec
+}
+
+/** Запись ведущего сети; подписывает системный аккаунт цепи. */
+export interface ISetlead {
+  lead: IName
+}
+
+/** Назначение оператора сети; подписывает ведущий. */
+export interface IAppoint {
+  operator_name: IName
+}
+
+/** Снятие оператора сети; подписывает ведущий. */
+export interface IDismiss {
+  operator_name: IName
+}
+
 /**
  * Снятие оператора: кооператив снова держит установку сам. Выданное заверение не
  * отзывается — продлевать его будет некому, и оно погаснет в пределах своего срока.

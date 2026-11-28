@@ -188,6 +188,14 @@ export class CooperativeClass {
       document,
     })
 
+    // Ведущий сети на стенде подключает кооперативы сам: он назначает себя
+    // оператором. Без записи в списке операторов `setoperator` его не примет,
+    // и узел ведущего не возьмёт новый кооператив на обслуживание.
+    if (account.username === config.provider) {
+      console.log('Назначаем ведущего сети оператором')
+      await this.blockchain.appointOperator({ operator_name: account.username })
+    }
+
     console.log('Переводим инициализационные токены')
     await this.blockchain.transfer({ from: 'eosio', to: account.username, quantity: `100.0000 ${SYMBOL}`, memo: '' })
 

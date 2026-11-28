@@ -9,7 +9,7 @@
 [[eosio::action]] void soviet::init() {
   require_auth(_system);
   
-  // participants_index participants(_soviet, _provider.value);
+  // participants_index participants(_soviet, network_lead().value);
     
   // participants.emplace(_system, [&](auto &m){
   //     m.username = _provider_chairman;
@@ -35,7 +35,7 @@
   //   std::vector<board_member> members;
   //   members.push_back(member);    
 
-  //   boards_index boards(_soviet, _provider.value);
+  //   boards_index boards(_soviet, network_lead().value);
     
   //   boards.emplace(_system, [&](auto &b) {
   //     b.id = boards.available_primary_key();
@@ -47,24 +47,24 @@
   //     b.last_update = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   //   });
 
-    // addresses_index addresses(_soviet, _provider.value);
+    // addresses_index addresses(_soviet, network_lead().value);
     // address_data data;
 
     // addresses.emplace(_system, [&](auto &a) {
     //   a.id = 0;
-    //   a.coopname = _provider;
+    //   a.coopname = network_lead();
     //   a.data = data;
     // });
     
     //создаём базовые кооперативые соглашения
-    // soviet::make_base_coagreements(_provider, _root_govern_symbol);
+    // soviet::make_base_coagreements(network_lead(), _root_govern_symbol);
     
     //инициализируем фонды
     action(
       permission_level{ _soviet, "active"_n},
       _fund,
       "init"_n,
-      std::make_tuple(_provider, _provider_initial)
+      std::make_tuple(network_lead(), _provider_initial)
     ).send();
 
 }

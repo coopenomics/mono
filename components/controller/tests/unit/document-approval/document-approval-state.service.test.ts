@@ -12,7 +12,7 @@ function makeService(opts: {
   approvals: Array<{ registry_id: number; version: number; decision_id: number; approved_at?: string }>;
   rules?: Array<{ hash: string; metadata: Record<string, unknown> }>;
 }) {
-  const declarations = new DocumentDeclarationsRegistryService(logger);
+  const declarations = new DocumentDeclarationsRegistryService(logger, { getNetworkLead: jest.fn(async () => 'voskhod') } as any);
   const blockchain = {
     getAllRows: jest.fn(async (_code: string, scope: string, table: string) => {
       if (table === 'drafts') return opts.drafts;

@@ -1,0 +1,186 @@
+feature: network.roles
+title: Роли сети — ведущий, оператор, кооператив, провайдер
+
+# 28.11.2026, решение владельца после двух часов путаницы: «я хочу, чтобы ты вот
+# эти роли явно разделил, выделил и зафиксировал».
+#
+#   - ведущий — кооператив, который запустил цепь и ведёт сеть: назначает и
+#     снимает операторов, регистрирует кооперативы. В сети один;
+#   - оператор — кооператив, которого ведущий назначил подключать другие
+#     кооперативы и обслуживать их. Операторов несколько, ведущий назначает и себя;
+#   - кооператив — у оператора (parent_username в registrator::coops) либо на
+#     своей платформе (поле пусто);
+#   - провайдер — внешний сервис каталога приложений, облачного хостинга и
+#     подписок (настройка узла PROVIDER_BASE_URL). Кооперативы к сети не подключает;
+#   - АНО — межсистемная цепочка доверия подписей; роли сети от неё не зависят.
+#
+# Прежде ведущий был константой `_provider`, вкомпилированной в четыре контракта,
+# и назывался «провайдером»; списка операторов не было — оператором записывался
+# любой действующий кооператив; экраны оператора на столе были привязаны к имени
+# voskhod в коде. Теперь ведущего хранит строка registrator::network (без строки —
+# ведущий по умолчанию), операторов — таблица registrator::operators, узел читает
+# обе роли из цепи и сообщает столу.
+#
+# Публичное описание — components/docs/docs/new/blockchain/roles.md.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/domain/table_registrator_network.hpp
+    - components/contracts/cpp/registrator/src/network/**
+    - components/contracts/cpp/registrator/src/coop/setoperator.cpp
+    - components/contracts/cpp/registrator/src/coop/deloperator.cpp
+    - components/contracts/cpp/registrator/src/system/migrate.cpp
+  backend:
+    - components/controller/src/application/system/dto/system.dto.ts
+    - components/controller/src/application/system/services/system.service.ts
+    - components/controller/src/domain/document-approval/constants/core-document-declarations.ts
+    - components/boot/src/init/cooperative.ts
+  ui:
+    - components/desktop/src/entities/System/model/networkMode.ts
+    - components/desktop/src/features/Desktop/RouteConditions/**
+
+cases:
+  # ── Цепь ─────────────────────────────────────────────────────────────────
+  - id: net.roles.contract.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Системный аккаунт цепи записывает ведущего сети.
+    expect: >
+      строка network реестра называет ведущего; без строки контракты считают ведущим имя по умолчанию
+    test: components/boot/src/tests/network-roles.test.ts
+    status: written
+
+  - id: net.roles.contract.break.01
+    level: contract
+    kind: break
+    scenario: >
+      Ведущего пытается записать не системный аккаунт; ведущим называют имя без аккаунта в цепи.
+    expect: >
+      оба действия отклонены: ведущий меняет управляющего всей сетью, записать себя он сам не вправе
+    test: components/boot/src/tests/network-roles.test.ts
+    status: written
+
+  - id: net.roles.contract.happy.02
+    level: contract
+    kind: happy
+    scenario: >
+      Загрузка цепи назначает ведущего оператором; ведущий назначает оператором другой действующий кооператив.
+    expect: >
+      оба кооператива в списке операторов; повторное назначение ничего не меняет; кооперативу
+      оператором записывается назначенный оператор
+    test: components/boot/src/tests/network-roles.test.ts
+    status: written
+
+  - id: net.roles.contract.break.02
+    level: contract
+    kind: break
+    scenario: >
+      Оператора назначает не ведущий; оператором назначают аккаунт вне реестра кооперативов;
+      кооперативу записывают оператором кооператив вне списка операторов.
+    expect: >
+      все три действия отклонены; запись кооператива об операторе не меняется
+    test: components/boot/src/tests/network-roles.test.ts
+    status: written
+
+  - id: net.roles.contract.side.01
+    level: contract
+    kind: side
+    scenario: >
+      Ведущий снимает оператора, у которого есть подключённый кооператив.
+    expect: >
+      оператор выбывает из списка и новых кооперативов не подключает; подключённый кооператив запись
+      об операторе сохраняет и переходит к другому оператору действием setoperator
+    test: components/boot/src/tests/network-roles.test.ts
+    status: written
+
+  - id: net.roles.contract.side.02
+    level: contract
+    kind: side
+    scenario: >
+      Выкатка контрактов в сеть, запущенную до появления таблиц: миграция реестра.
+    expect: >
+      Не решено: миграция записывает ведущего по умолчанию строкой network и вносит его в список
+      операторов — проверяется на тестовой сети при выкатке, отдельного теста на стенде нет
+    test: ~
+    status: missing
+    decision_needed: true
+
+  # ── Узел ─────────────────────────────────────────────────────────────────
+  - id: net.roles.backend.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Узел читает ведущего и признак оператора из цепи.
+    expect: >
+      ведущий — из строки network, оператор — кооператив из таблицы operators; ответ помнится минуту
+    test: components/controller/tests/unit/blockchain/network-roles.test.ts
+    status: written
+    external: unreachable
+    external_reason: "роли читаются из таблиц цепи, через API стенда их не сменить"
+
+  - id: net.roles.backend.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Цепь работает на контрактах до появления таблиц либо строки network нет.
+    expect: >
+      ведущий — имя по умолчанию, оператором считается только ведущий: узел новой версии работает
+      с прежними контрактами
+    test: components/controller/tests/unit/blockchain/network-roles.test.ts
+    status: written
+    external: unreachable
+    external_reason: "состояние цепи на прежних контрактах через API стенда не воспроизвести"
+
+  - id: net.roles.backend.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Цепь не ответила на чтение ведущего.
+    expect: >
+      отказ выходит наружу, ведущий по умолчанию не подставляется; сведения о системе отдаются без ролей,
+      реестр шаблонов поднимается с ведущим по умолчанию
+    test: components/controller/tests/unit/blockchain/network-roles.test.ts
+    status: written
+    external: unreachable
+    external_reason: "обрыв связи с цепью через API стенда не воспроизвести"
+
+  - id: net.roles.backend.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Кооператив стал действующим; узел ведущего, назначенного оператором, получает событие.
+    expect: >
+      ведущий записывает себя оператором кооператива; узел не ведущего, а также ведущий без роли
+      оператора кооператив на обслуживание не берут
+    test: components/controller/src/application/auth-v2/certificate/endorsement-newly-served.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "назначение идёт по событию цепи на узле ведущего, через API стенда его не вызвать"
+
+  - id: net.roles.backend.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Узел поднимает реестр шаблонов кооператива.
+    expect: >
+      оферту о присоединении к платформе объявляет только узел ведущего сети; кооператив при другом
+      ведущем стартует без неё
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+    external: unreachable
+    external_reason: "ведущего называет цепь, через API стенда его не сменить"
+
+  # ── Стол ─────────────────────────────────────────────────────────────────
+  - id: net.roles.ui.01
+    level: ui
+    kind: side
+    scenario: >
+      Совет и учётная запись кооператива открывают стол на узле оператора и на узле кооператива.
+    expect: >
+      Не решено: реестр кооперативов и страницы «Подключение» видны только на узле оператора
+      (is_operator из сведений о системе), вкладка «Подписки» — только при подключённом провайдере;
+      сценарий через интерфейс требует двух стендов с разными ролями, которых у набора UI нет
+    test: ~
+    status: missing
+    decision_needed: true

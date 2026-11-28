@@ -18,3 +18,13 @@ export * as Exits from './exits'
  * Таблица содержит выпущенные разрешения `platform` — ключи узлов кооперативов.
  */
 export * as Platforms from './platforms'
+
+/**
+ * Таблица из одной строки называет ведущего сети.
+ */
+export * as Network from './network'
+
+/**
+ * Таблица содержит операторов сети, назначенных ведущим.
+ */
+export * as Operators from './operators'

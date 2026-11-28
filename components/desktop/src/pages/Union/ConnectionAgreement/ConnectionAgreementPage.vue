@@ -10,7 +10,7 @@ div.row.q-pa-md
 
     // Основной контент после загрузки (не показываем при технических работах у провайдера)
     div(v-else-if="!connectionAgreement.isBadGateway")
-      div(v-if="system.info.is_providered")
+      div(v-if="system.info.has_provider")
         //- Установка завершена: разделы подключения — вкладками по канону
         //- (поднятые в каркас под заголовком): подключение, подписки, ключ
         //- установки. Девять карточек одной страницей не читались (26.10.2026).
@@ -138,7 +138,7 @@ const openProviderWebsite = () => {
 
 const init = async () => {
   // Инициализация имеет смысл только если провайдер доступен
-  if (!system.info.is_providered) {
+  if (!system.info.has_provider) {
     isLoading.value = false;
     return;
   }

@@ -9,7 +9,7 @@ import { EndorsementService } from './endorsement.service';
  * Частый проход заверяет его, как только ключ опубликован, и молчит на узлах без
  * своего заверения — предупреждает об этом только ночной.
  */
-function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }) {
+function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null; lead?: string; leadIsOperator?: boolean }) {
   const future = new Date(Date.now() + 365 * 86400 * 1000).toISOString().slice(0, 19);
   const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'secp256k1' });
   const cooperatives: Record<string, any> = {
@@ -20,6 +20,10 @@ function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null }
     getCooperative: jest.fn(async (who: string) => cooperatives[who] ?? null),
     assignOperator: jest.fn(async () => undefined),
     getUnservedActiveCooperatives: jest.fn(async () => [] as string[]),
+    // Роли сети из цепи: ведущий и список операторов. По умолчанию узел —
+    // узел ведущего, и ведущий назначен оператором, как в действующей сети.
+    getNetworkLead: jest.fn(async () => opts.lead ?? config.coopname),
+    isNetworkOperator: jest.fn(async () => opts.leadIsOperator ?? true),
     getEndorsement: jest.fn(async (who: string) =>
       who === config.coopname && opts.operatorEndorsed ? { cert_key: 'OPKEY', expires_at: future } : null,
     ),
@@ -208,41 +212,47 @@ describe('EndorsementService — активация кооператива на 
     expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
   });
 
-  // 28.11.2026: провайдера платформы называет настройка узла, а не имя в коде.
-  it('side: провайдер платформы задан настройкой под другим именем — кооперативы берёт его узел', async () => {
-    const provider = (config as any).platform_provider;
-    (config as any).platform_provider = 'hubcoop';
+  // 28.11.2026: ведущего сети и операторов называет цепь, а не имя в коде.
+  it('side: ведущий сети в цепи — другой кооператив: кооперативы берёт его узел', async () => {
     (config as any).coopname = 'hubcoop';
-    try {
-      const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null });
-      cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
+    const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null, lead: 'hubcoop' });
+    cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
 
-      await service.onCoopActivated(activated('fresh'));
+    await service.onCoopActivated(activated('fresh'));
 
-      expect(blockchainPort.assignOperator).toHaveBeenCalledWith('fresh', 'hubcoop');
-    } finally {
-      (config as any).platform_provider = provider;
-    }
+    expect(blockchainPort.assignOperator).toHaveBeenCalledWith('fresh', 'hubcoop');
   });
 
-  it('break: узел с прежним именем voskhod при другом провайдере в настройке кооперативы не берёт', async () => {
-    const provider = (config as any).platform_provider;
-    (config as any).platform_provider = 'hubcoop';
-    try {
-      const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null });
-      cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
+  it('break: узел с именем voskhod при другом ведущем сети кооперативы не берёт', async () => {
+    const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null, lead: 'hubcoop' });
+    cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
 
-      await service.onCoopActivated(activated('fresh'));
+    await service.onCoopActivated(activated('fresh'));
 
-      expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
-    } finally {
-      (config as any).platform_provider = provider;
-    }
+    expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
   });
 
-  it('узел не провайдер платформы — событие пропускается', async () => {
-    (config as any).coopname = 'partnercoop';
+  it('break: ведущий сети без роли оператора кооперативы не берёт', async () => {
+    const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null, leadIsOperator: false });
+    cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
+
+    await service.onCoopActivated(activated('fresh'));
+
+    expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
+  });
+
+  it('side: роли сети из цепи не прочитаны — событие пропускается, проход оператора доберёт кооператив', async () => {
     const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
+    blockchainPort.getNetworkLead.mockRejectedValue(new Error('chain down'));
+
+    await service.onCoopActivated(activated('fresh'));
+
+    expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
+  });
+
+  it('узел не ведущий сети — событие пропускается', async () => {
+    (config as any).coopname = 'partnercoop';
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null, lead: 'voskhod' });
 
     await service.onCoopActivated(activated('fresh'));
 
@@ -278,9 +288,9 @@ describe('EndorsementService — резервный проход берёт ни
     expect(blockchainPort.assignOperator).toHaveBeenCalledWith('missed', 'voskhod');
   });
 
-  it('узел не провайдер — реестр не обходит', async () => {
+  it('узел не ведущий сети — реестр не обходит', async () => {
     (config as any).coopname = 'partnercoop';
-    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });
+    const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null, lead: 'voskhod' });
 
     await service.endorseNewlyServed();
 

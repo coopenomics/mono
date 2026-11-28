@@ -68,8 +68,8 @@
   // перестают подтверждаться. Обходить их по расписанию он может, только зная,
   // кто это.
   //
-  // Все подключённые кооперативы обслуживает провайдер платформы: их установки
-  // разворачивал он. Сам провайдер держит свою установку сам, и родитель у него
+  // Все подключённые кооперативы обслуживает ведущий сети: их установки
+  // разворачивал он. Сам ведущий держит свою установку сам, и родитель у него
   // остаётся пустым — пустой родитель это и означает.
   //
   // Заблокированные и ожидающие мигрируются наравне с действующими: статус
@@ -80,19 +80,40 @@
   // меняет.
   //
   // Оговорка, о которой лучше знать: кооперативу, у которого оператора сняли
-  // намеренно, следующий деплой проставит провайдера обратно — миграция ведь
+  // намеренно, следующий деплой проставит ведущего обратно — миграция ведь
   // отличает «не заполнено» от «снято» только по пустоте, а другого признака в
-  // записи нет. Пока собственных установок ни у кого, кроме провайдера, нет, это
+  // записи нет. Пока собственных установок ни у кого, кроме ведущего, нет, это
   // безвредно; когда появятся, признак придётся завести явный.
   cooperatives2_index coops2(_registrator, _registrator.value);
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Роли сети (28.11.2026): ведущий и список операторов хранятся в цепи.
+  //
+  // Раньше ведущий был константой `_provider`, вкомпилированной в контракты, а
+  // списка операторов не было вовсе: оператором записывался любой действующий
+  // кооператив. Миграция записывает действующего ведущего строкой `network` и
+  // вносит его в список операторов: до сих пор все кооперативы подключал он.
+  // Идемпотентно: записанная строка и назначенный оператор не трогаются.
+  const eosio::name lead = network_lead();
+  Registrator::network_singleton network(_registrator, _registrator.value);
+  if (!network.exists()) network.set(Registrator::network_state{lead}, _registrator);
+
+  Registrator::operators_index operators(_registrator, _registrator.value);
+  auto lead_coop = coops2.find(lead.value);
+  if (lead_coop != coops2.end() && lead_coop->is_cooperative && operators.find(lead.value) == operators.end()) {
+    operators.emplace(RamPayer::of(operators), [&](auto &row) {
+      row.username = lead;
+      row.appointed_at = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+    });
+  }
+
   for (auto it = coops2.begin(); it != coops2.end(); ++it) {
     if (!it->is_cooperative) continue;
-    if (it->username == _provider) continue;
+    if (it->username == lead) continue;
     if (it->parent_username != eosio::name()) continue;
 
     coops2.modify(it, RamPayer::of(coops2), [&](auto& coop) {
-      coop.parent_username = _provider;
+      coop.parent_username = lead;
     });
   }
 

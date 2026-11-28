@@ -35,7 +35,7 @@ export interface BillingPayBlockchainDomainInterface {
  * Параметры докупки пакета документооборота — действие `billing::converttoaxn`
  * (operation `o.bil.axn`): BURN членского с `w.wal.bill[username]` в леджере
  * оператора + инъекция AXON на счёт кооператива-пайщика (10₽ = 1 AXON).
- * Подписывает оператор платформы (`_provider`); идемпотентно по `paymentHash`
+ * Подписывает ведущий сети (в контрактах — `network_lead()`); идемпотентно по `paymentHash`
  * (журнал PG хаба).
  */
 export interface BillingConvertToAxnBlockchainDomainInterface {
@@ -50,7 +50,7 @@ export interface BillingConvertToAxnBlockchainDomainInterface {
 /**
  * Порт billing для записи в блокчейн. `convert` подписывает кооператив
  * (`coopname@active`, согласие пайщика несёт `document`); `pay` и
- * `convertToAxn` — оператор платформы (`_provider`).
+ * `convertToAxn` — ведущий сети (в контрактах — `network_lead()`).
  */
 export interface BillingBlockchainPort {
   convert(data: BillingConvertBlockchainDomainInterface): Promise<TransactionResult>;

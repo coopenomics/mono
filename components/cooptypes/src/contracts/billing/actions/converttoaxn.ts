@@ -6,7 +6,7 @@ import { Actors } from '../../../common'
  * Требуется авторизация {@link Actors._coopname | аккаунта кооператива}
  * (coopname@active). Бездокументарная конвертация членского взноса в AXON:
  * PowerupPlugin coopback'а пайщика подписывает действие сам, без relay через
- * оператора платформы. Второй шаг двухшаговой модели (после `convert`).
+ * ведущего сети. Второй шаг двухшаговой модели (после `convert`).
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 

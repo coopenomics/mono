@@ -5,7 +5,7 @@ import { Registry } from '@coopenomics/docs-templates';
 
 const R = Registry;
 
-jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod', platform_provider: 'voskhod' } }));
+jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
 const template = (registry_id: number, over: Partial<DocumentTemplateView> = {}): DocumentTemplateView => ({
   registry_id,

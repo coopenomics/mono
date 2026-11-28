@@ -10,11 +10,11 @@
  */
 [[eosio::action]] void registrator::delcoop(eosio::name administrator, eosio::name coopname)
 {
-  check_auth_or_fail(_registrator, _provider, administrator, "delcoop"_n);
+  check_auth_or_fail(_registrator, network_lead(), administrator, "delcoop"_n);
 
-  get_cooperative_or_fail(_provider);
+  get_cooperative_or_fail(network_lead());
   
-  eosio::check(_provider != coopname, "Провайдер не может быть удален");
+  eosio::check(network_lead() != coopname, "REGISTRATOR_LEAD_UNDELETABLE: Ведущий сети не может быть удалён");
     
   cooperatives2_index coops(_registrator, _registrator.value);
   auto coop = coops.find(coopname.value);

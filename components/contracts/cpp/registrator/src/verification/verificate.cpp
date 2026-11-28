@@ -10,7 +10,7 @@
  */
 [[eosio::action]] void registrator::verificate(eosio::name username, eosio::name procedure)
 {
-  require_auth(_provider);
+  require_auth(network_lead());
   eosio::check(procedure == "online"_n, "Только онлайн-верификация доступна сейчас");
 
   accounts_index accounts(_registrator, _registrator.value);

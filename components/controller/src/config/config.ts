@@ -102,12 +102,6 @@ const envVarsSchema = z.object({
   EMAIL_RELAY_TOKEN: z.string().default(''),
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'), // Задаём дефолтное значение, пустая строка невалидна
-  // Провайдер платформы — главный администратор сети: регистрирует кооперативы,
-  // берёт их на обслуживание, ведёт счёт подписок. Имя обязано совпадать с
-  // константой `_provider` контрактов сети; сеть со своим провайдером задаёт
-  // его здесь и при сборке контрактов.
-  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
-  PLATFORM_PROVIDER_COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'),
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   TIMEZONE: z.string().min(1, { message: 'Не должно быть пустым' }).default('Europe/Moscow'), // Пустая строка невалидна
   GRAPHQL_SERVICE: z
@@ -117,6 +111,11 @@ const envVarsSchema = z.object({
     .default('http://localhost:4090')
     // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('адрес сервиса GRAPHQL'),
+  // ПРОВАЙДЕР — внешний сервис каталога приложений, облачного хостинга и
+  // подписок. Подключается по желанию: пустой адрес — узел работает без
+  // провайдера, доступны встроенные приложения. Кооперативы к сети провайдер
+  // не подключает: это роль оператора. Ведущего сети и операторов узел читает
+  // из цепи (реестр, таблицы `network` и `operators`), настройки для них нет.
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   PROVIDER_BASE_URL: z.string().default('').describe('базовый URL сервиса провайдера'),
   PROVIDER_BEARER_TOKEN: z
@@ -711,7 +710,6 @@ export default {
     },
   },
   coopname: envVars.data.COOPNAME,
-  platform_provider: envVars.data.PLATFORM_PROVIDER_COOPNAME,
   min_soviet_members_count: envVars.data.MIN_SOVIET_MEMBERS_COUNT
     ? parseInt(envVars.data.MIN_SOVIET_MEMBERS_COUNT, 10)
     : envVars.data.NODE_ENV === 'production'
@@ -731,7 +729,7 @@ export default {
     package_low_water_axon: envVars.data.BILLING_PACKAGE_LOW_WATER_AXON,
     // Список коопов — из on-chain `registrator.coops` через ProviderService
     // (см. BillingCronService.activeCoopnames). Env-override отсутствует.
-    // Подписант списаний — оператор платформы (аккаунт узла, config.coopname);
+    // Подписант списаний — ведущий сети (аккаунт узла, config.coopname);
     // отдельного BILLING_CRON_PAYER больше нет: пайщик-плательщик = сам
     // кооператив, владелец w.wal.bill.
   },

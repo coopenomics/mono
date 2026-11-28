@@ -4,13 +4,13 @@ using namespace eosio;
  * @brief Epic 13 v5.1 — бездокументарная конвертация членского взноса в AXON.
  *
  * Списывает с биллинг-кошелька кооператива-пайщика `w.wal.bill` (USER_SHARED,
- * L3-разрез по @p coopname в леджере оператора `_provider`) сумму членского
+ * L3-разрез по @p coopname в леджере ведущего сети `network_lead()`) сумму членского
  * взноса в RUB и эмитирует кооперативу эквивалент в AXON по курсу 10 ₽ = 1 AXON
  * (`eosio::injection` из фонда eosio.saving). Это второй шаг двухшаговой модели:
  *   1) паевой → членский — `billing::convert` (документарно, по заявлению пайщика);
  *   2) членский → AXON    — этот action (бездокументарно, автономно).
  *
- * Авторизация — ОПЕРАТОР платформы (`_provider`): операция расходует членские
+ * Авторизация — ВЕДУЩИЙ сети (`network_lead()`): операция расходует членские
  * взносы, которые учитываются в леджере оператора, а транзакции по своему
  * леджеру подписывает сам кооператив-оператор (решение @ant 2026-06-11).
  * Кооперативы-спицы своими ключами управляют ТОЛЬКО полученным AXON
@@ -34,10 +34,10 @@ using namespace eosio;
  *                     RAM чейна на платежи не тратится).
  *
  * @ingroup public_billing_actions
- * @note Авторизация требуется от аккаунта: @p _provider
+ * @note Авторизация требуется от аккаунта: @p network_lead()
  */
 void billing::converttoaxn(name coopname, asset amount, checksum256 payment_hash) {
-  require_auth(_provider);
+  require_auth(network_lead());
 
   Billing::assert_payer_is_cooperative(coopname);
 
@@ -54,14 +54,14 @@ void billing::converttoaxn(name coopname, asset amount, checksum256 payment_hash
       "Конвертация членского взноса в AXON, кооператив " + coopname.to_string();
 
   // BURN членского с биллинг-кошелька пайщика (USER_SHARED, разрез по
-  // кооперативу-пайщику) В ЛЕДЖЕРЕ ОПЕРАТОРА (_provider): биллинг живёт у
+  // кооперативу-пайщику) В ЛЕДЖЕРЕ ВЕДУЩЕГО СЕТИ (network_lead()): биллинг живёт у
   // оператора, где каждый кооператив-пайщик — обычный username (решение @ant
   // 2026-06-11) — там же, куда средства положил billing::convert. Без
   // destination — реальный токен AXON эмитируется отдельной инъекцией ниже
   // (L1 eosio.token).
   Ledger2::apply(
     _billing,
-    _provider,
+    network_lead(),
     operations::billing::CONVERT_TO_AXON,
     processes::billing::PAY,
     amount,

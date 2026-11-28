@@ -16,7 +16,7 @@
   
   eosio::name payer = username;
 
-  get_cooperative_or_fail(_provider);
+  get_cooperative_or_fail(network_lead());
 
   accounts_index accounts(_registrator, _registrator.value);
   auto account = accounts.find(coopname.value);
@@ -80,7 +80,7 @@
 
   Soviet::make_complete_document(
     _registrator,
-    _provider,
+    network_lead(),
     coopname,
     "regcoop"_n,
     hash,

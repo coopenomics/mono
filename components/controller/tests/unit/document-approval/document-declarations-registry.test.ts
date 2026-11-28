@@ -9,7 +9,7 @@ import { Registry } from '@coopenomics/docs-templates';
 
 const R = Registry;
 
-jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod', platform_provider: 'voskhod' } }));
+jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn() } as any;
 
@@ -25,8 +25,12 @@ const decl = (extension_name: string, registry_id: number, order = 10, extra: Pa
 describe('DocumentDeclarationsRegistryService', () => {
   let registry: DocumentDeclarationsRegistryService;
 
+  // Ведущего сети реестр читает из цепи; в этом наборе узел — узел ведущего.
+  const chain = { getNetworkLead: jest.fn(async () => 'voskhod') } as any;
+
   beforeEach(() => {
-    registry = new DocumentDeclarationsRegistryService(logger);
+    chain.getNetworkLead.mockReset().mockResolvedValue('voskhod');
+    registry = new DocumentDeclarationsRegistryService(logger, chain);
   });
 
   it('при старте объявляет базовый набор ядра', async () => {
@@ -80,23 +84,30 @@ describe('DocumentDeclarationsRegistryService', () => {
     expect(forms).toEqual([R.ParticipantApplication.registry_id, R.SelectBranchStatement.registry_id]);
   });
 
-  it('оферту о присоединении к платформе объявляет только оператор платформы', () => {
+  it('оферту о присоединении к платформе объявляет только ведущий сети', () => {
     const offer = Registry.CoopenomicsAgreement.registry_id;
-    expect(coreDocumentDeclarationsFor('voskhod').some((d) => d.registry_id === offer)).toBe(true);
-    expect(coreDocumentDeclarationsFor('sosedi').some((d) => d.registry_id === offer)).toBe(false);
-    expect(coreDocumentDeclarationsFor('sosedi')).toHaveLength(CORE_DOCUMENT_DECLARATIONS.length - 1);
+    expect(coreDocumentDeclarationsFor('voskhod', 'voskhod').some((d) => d.registry_id === offer)).toBe(true);
+    expect(coreDocumentDeclarationsFor('sosedi', 'voskhod').some((d) => d.registry_id === offer)).toBe(false);
+    expect(coreDocumentDeclarationsFor('sosedi', 'voskhod')).toHaveLength(CORE_DOCUMENT_DECLARATIONS.length - 1);
   });
 
-  // 28.11.2026: провайдера платформы называет настройка узла, а не имя в коде.
-  it('side: провайдер платформы задан настройкой под другим именем — оферту объявляет он, voskhod её теряет', () => {
+  // 28.11.2026: ведущего сети называет цепь (реестр, строка network), а не имя в коде.
+  it('side: ведущий сети в цепи — другой кооператив: оферту объявляет он, voskhod её теряет', () => {
     const offer = Registry.CoopenomicsAgreement.registry_id;
-    const mocked = jest.requireMock('~/config/config').default as { platform_provider: string };
-    mocked.platform_provider = 'hubcoop';
-    try {
-      expect(coreDocumentDeclarationsFor('hubcoop').some((d) => d.registry_id === offer)).toBe(true);
-      expect(coreDocumentDeclarationsFor('voskhod').some((d) => d.registry_id === offer)).toBe(false);
-    } finally {
-      mocked.platform_provider = 'voskhod';
-    }
+    expect(coreDocumentDeclarationsFor('hubcoop', 'hubcoop').some((d) => d.registry_id === offer)).toBe(true);
+    expect(coreDocumentDeclarationsFor('voskhod', 'hubcoop').some((d) => d.registry_id === offer)).toBe(false);
+  });
+
+  it('side: узел кооператива при ведущем-другом стартует без оферты о присоединении', async () => {
+    chain.getNetworkLead.mockResolvedValue('hubcoop');
+    await registry.onModuleInit();
+    expect(registry.getByRegistryId(Registry.CoopenomicsAgreement.registry_id)).toBeNull();
+  });
+
+  it('break: цепь при старте не ответила — реестр поднимается с ведущим по умолчанию', async () => {
+    chain.getNetworkLead.mockRejectedValue(new Error('chain down'));
+    await registry.onModuleInit();
+    expect(registry.getByRegistryId(Registry.CoopenomicsAgreement.registry_id)).not.toBeNull();
+    expect(logger.warn).toHaveBeenCalled();
   });
 });

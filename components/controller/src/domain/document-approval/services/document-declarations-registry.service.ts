@@ -1,10 +1,12 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { RegistratorContract } from 'cooptypes';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EXTENSION_APP_TERMINATE_EVENT, type ExtensionAppTerminatePayload } from '@coopenomics/extension-kit';
 import type { IDocumentDeclarationPort, InnerDocumentDeclaration } from '@coopenomics/innercoop';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { DocumentDeclarationQueryPort } from '../ports/document-declaration-query.port';
 import config from '~/config/config';
+import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { CORE_DOCUMENTS_OWNER, coreDocumentDeclarationsFor } from '../constants/core-document-declarations';
 
 /**
@@ -28,12 +30,28 @@ export class DocumentDeclarationsRegistryService
 {
   private readonly declarations = new Map<number, InnerDocumentDeclaration>();
 
-  constructor(private readonly logger: WinstonLoggerService) {
+  constructor(
+    private readonly logger: WinstonLoggerService,
+    @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
+  ) {
     this.logger.setContext(DocumentDeclarationsRegistryService.name);
   }
 
   async onModuleInit(): Promise<void> {
-    await this.registerDocuments(coreDocumentDeclarationsFor(config.coopname));
+    await this.registerDocuments(coreDocumentDeclarationsFor(config.coopname, await this.networkLead()));
+  }
+
+  /**
+   * Ведущий сети из цепи. Цепь при старте не ответила (установка узла, обрыв
+   * связи) — берётся ведущий по умолчанию: реестр шаблонов обязан подняться.
+   */
+  private async networkLead(): Promise<string> {
+    try {
+      return await this.blockchainPort.getNetworkLead();
+    } catch (e) {
+      this.logger.warn(`network lead not read from chain, default is used: ${e instanceof Error ? e.message : String(e)}`);
+      return RegistratorContract.Tables.Network.defaultLead;
+    }
   }
 
   public async registerDocuments(declarations: InnerDocumentDeclaration[]): Promise<void> {

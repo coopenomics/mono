@@ -607,7 +607,7 @@ namespace eosiosystem {
           * @ingroup public_actions
           * @ingroup public_system_actions
           *
-          * @note Авторизация требуется от аккаунта: @p _provider
+          * @note Авторизация требуется от аккаунта: @p network_lead()
           */
          [[eosio::action]]
          void injection(const name& coopname, const asset& quantity);

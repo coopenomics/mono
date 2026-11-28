@@ -188,7 +188,7 @@ const { info } = useSystemStore()
 // тариф, с именем кооператива провайдер отдаёт и его тариф сетки.
 // realtime: нет источника — подписки кооператива ведёт сервер провайдера (другой узел), в ленте кооператива их нет.
 watch(
-  () => info.is_providered,
+  () => info.has_provider,
   async (providered) => {
     if (!providered) return
     await loadSubscriptions()
