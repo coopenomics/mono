@@ -178,7 +178,8 @@ export class CooperativeClass {
       params: {
         is_cooperative: true,
         coop_type: 'conscoop',
-        announce: 'voskhod-dev.coopenomics.world',
+        // Сайт кооператива стенда — из окружения стенда (COOP_SITE_DOMAIN).
+        announce: config.site,
         description: 'Восход — тестовый кооператив-оператор (dev-стенд)',
         initial: `100.0000 ${config.token.govern_symbol}`,
         minimum: `300.0000 ${config.token.govern_symbol}`,

@@ -30,6 +30,7 @@
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
     "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
     "create-coop": "esno src/index.ts create-coop",
+    "coop:site": "esno src/index.ts coop-site",
     "clear": "./scripts/clear.sh",
     "start": "./scripts/restart.sh",
     "stop": "./scripts/stop.sh",

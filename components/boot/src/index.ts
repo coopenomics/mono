@@ -304,6 +304,25 @@ program
     }
   })
 
+// Сайт кооператива стенда в реестре цепи — без перезапуска стенда. Домен
+// берётся из окружения стенда (COOP_SITE_DOMAIN) либо из аргумента.
+program
+  .command('coop-site')
+  .description('Write the cooperative site domain of this stand to the chain registry (announce)')
+  .argument('[domain]', 'site domain; default — COOP_SITE_DOMAIN of the stand')
+  .option('--coopname <name>', 'cooperative account; default — the network lead of the stand')
+  .action(async (domain: string | undefined, options: { coopname?: string }) => {
+    try {
+      const { writeCoopSite } = await import('./init/coop-site')
+      await writeCoopSite({ coopname: options.coopname, site: domain })
+      process.exit(0)
+    }
+    catch (error) {
+      console.error('Failed to write cooperative site:', error)
+      process.exit(1)
+    }
+  })
+
 // Команда для получения списка контейнеров
 program
   .command('clear')

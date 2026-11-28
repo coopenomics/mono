@@ -37,6 +37,20 @@ export const GOVERN_SYMBOL = 'RUB'
 export const provider = 'voskhod'
 export const provider_chairman = 'ant'
 
+/** Домен без схемы и хвостового слэша; пусто — сайт не задан. */
+export function siteDomainOf(raw: string | undefined): string {
+  return String(raw ?? '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase()
+}
+
+// Сайт кооператива этого стенда: домен, по которому открывают его кабинет и
+// зовут его узел (https://<домен>/backend/v1/graphql — заверение, запрос о
+// баке AXON). boot пишет домен в реестр цепи, поле announce строки
+// кооператива. У каждого стенда значение своё, оно задаётся в корневом .env
+// стенда переменной COOP_SITE_DOMAIN (стенды mono-ai-N —
+// voskhod-test-N.int.coopenomics.world). Без переменной действует прежний
+// адрес контура разработки.
+export const coop_site = siteDomainOf(process.env.COOP_SITE_DOMAIN) || 'voskhod-dev.coopenomics.world'
+
 export const public_key = process.env.EOSIO_PUB_KEY as string
 
 export const private_key = process.env.EOSIO_PRV_KEY as string
@@ -47,6 +61,7 @@ export default {
   system: 'eosio',
   provider,
   provider_chairman,
+  site: coop_site,
   private_keys: [private_key],
   emission: {
     left_border: `1000.0000 ${SYMBOL}`,
