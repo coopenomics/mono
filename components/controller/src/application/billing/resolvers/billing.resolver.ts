@@ -12,6 +12,7 @@ import {
 import { BillingService } from '../services/billing.service';
 import { BillingConvertInputDTO } from '../dto/billing-convert-input.dto';
 import { BillingPayInputDTO } from '../dto/billing-pay-input.dto';
+import { RequestTankTopupInputDTO } from '../dto/request-tank-topup-input.dto';
 import { BillingResultDTO } from '../dto/billing-result.dto';
 import { BillingSummaryDTO } from '../dto/billing-summary.dto';
 import { BillingConversionStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/billing-conversion-statement-document.dto';
@@ -90,5 +91,19 @@ export class BillingResolver {
     @Args('input', { type: () => BillingPayInputDTO }) input: BillingPayInputDTO,
   ): Promise<BillingResultDTO> {
     return this.service.pay(input);
+  }
+
+  @Mutation(() => Boolean, {
+    name: 'requestTankTopup',
+    description: 'Пополнить бак AXON кооператива сразу, без ожидания планового такта оператора',
+  })
+  async requestTankTopup(
+    @Args('data', { type: () => RequestTankTopupInputDTO }) data: RequestTankTopupInputDTO,
+  ): Promise<boolean> {
+    // Без авторизации: зовёт узел кооператива, у которого опустел бак. Решают
+    // только цепь и провайдер: бак действующего кооператива пополняется, если
+    // остаток ниже кванта и пауза между квантами вышла; повтор ничего не меняет,
+    // частые запросы одного кооператива отсекает сервис.
+    return this.service.requestTankTopup(data.coopname);
   }
 }

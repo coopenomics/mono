@@ -96,4 +96,12 @@ export class BillingService {
       paymentHash: input.paymentHash,
     };
   }
+
+  /**
+   * Запрос узла кооператива: пополнить бак AXON сразу. Решение принимает тот
+   * же путь, что у планового такта хаба (`BillingCronService.topUpTankNow`).
+   */
+  async requestTankTopup(coopname: string): Promise<boolean> {
+    return this.cron.topUpTankNow(coopname);
+  }
 }

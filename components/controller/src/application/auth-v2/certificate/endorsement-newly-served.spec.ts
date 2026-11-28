@@ -18,6 +18,14 @@ function makeService(opts: { operatorEndorsed: boolean; coopKey: string | null; 
   };
   const blockchainPort = {
     getCooperative: jest.fn(async (who: string) => cooperatives[who] ?? null),
+    // Узел оператора: оператор кооператива и адрес его узла из реестра сети.
+    getOperatorNode: jest.fn(async (who: string) => {
+      const operator = String(cooperatives[who]?.parent_username ?? '');
+      const domain = String(cooperatives[operator]?.announce ?? '')
+        .replace(/^https?:\/\//, '')
+        .replace(/\/+$/, '');
+      return operator && domain ? { operator, url: `https://${domain}` } : null;
+    }),
     assignOperator: jest.fn(async () => undefined),
     getUnservedActiveCooperatives: jest.fn(async () => [] as string[]),
     // Роли сети из цепи: ведущий и список операторов. По умолчанию узел —

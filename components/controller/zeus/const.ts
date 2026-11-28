@@ -3062,6 +3062,9 @@ export const AllTypesProps: Record<string,any> = {
 		requestForceRecoveryConsent:{
 			data:"RequestForceRecoveryConsentInput"
 		},
+		requestTankTopup:{
+			data:"RequestTankTopupInput"
+		},
 		resendNotification:{
 
 		},
@@ -4385,6 +4388,9 @@ export const AllTypesProps: Record<string,any> = {
 	RequestKuTrustedInput:{
 		application:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
+	},
+	RequestTankTopupInput:{
+
 	},
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
@@ -9562,6 +9568,7 @@ export const ReturnTypes: Record<string,any> = {
 		requestCooperativeEndorsement:"Boolean",
 		requestEmailVerification:"EmailVerificationRequestDTO",
 		requestForceRecoveryConsent:"Boolean",
+		requestTankTopup:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
 		resetParticipantTwoFactor:"Boolean",

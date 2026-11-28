@@ -17,6 +17,11 @@
  * Повторяются только те коды, которыми узел говорит «не влезли»: группа
  * `resource_exhausted_exception` по CPU и NET. RAM-исчерпание (3080001) сюда не
  * входит — это настоящая нехватка ресурса аккаунта, её повтор не лечит.
+ *
+ * Нехватку ресурсов самого аккаунта (в том числе памяти) лечит аренда: если
+ * вызывающий дал `replenish`, она идёт один раз до повтора, и транзакция
+ * повторяется сразу (28.11.2026). Раньше кооператив ждал плановой проверки
+ * ресурсов, а пайщик получал отказ.
  */
 
 /**
@@ -125,12 +130,56 @@ export function isChainExhaustionError(e: unknown): boolean {
   return chainExhaustionReason(e) !== null;
 }
 
+/** Вид ресурса аккаунта, которого не хватило транзакции. */
+export type AccountResourceKind = 'cpu' | 'net' | 'ram';
+
+/**
+ * Тексты отказа, по которым видно, что не хватило ресурсов САМОГО аккаунта, а
+ * не места в блоке и не времени на пике нагрузки: аренда ресурсов такой отказ
+ * лечит, ожидание — нет. Образцы взяты дословно из COOPOS:
+ * `transaction_context.cpp` (`validate_account_cpu_usage`, `check_net_usage`) и
+ * `apply_context.cpp`. Общих имён исключений (`tx_cpu_usage_exceeded`) в списке
+ * нет намеренно: ими узел называет и пик нагрузки, а аренда на пике только
+ * тратила бы AXON кооператива впустую.
+ */
+const ACCOUNT_SHORTAGE_PATTERNS: Array<{ kind: AccountResourceKind; pattern: RegExp }> = [
+  // account <n> has insufficient ram; needs <N> bytes has <M> bytes
+  { kind: 'ram', pattern: /insufficient ram/i },
+  // authorizing account '<n>' has insufficient objective cpu resources for this transaction
+  { kind: 'cpu', pattern: /insufficient objective cpu resources/i },
+  // billed CPU time (… us) is greater than … reached account cpu limit <N>us (и greylisted-вариант)
+  { kind: 'cpu', pattern: /reached (greylisted )?account cpu limit/i },
+  // authorizing account '<n>' has insufficient net resources for this transaction
+  { kind: 'net', pattern: /insufficient net resources/i },
+];
+
+/** Код узла «аккаунту не хватило памяти»: в повтор по лимитам блока он не входит. */
+const RAM_USAGE_EXCEEDED_CODE = 3080001;
+
+/**
+ * Какого ресурса аккаунта не хватило транзакции — или `null`, если отказ не про
+ * ресурсы аккаунта (ассерт контракта, права, нехватка места в блоке).
+ */
+export function accountShortageKind(e: unknown): AccountResourceKind | null {
+  const err = nodeosError(e);
+  if (err?.code === RAM_USAGE_EXCEEDED_CODE) return 'ram';
+  const text = errorText(e);
+  return ACCOUNT_SHORTAGE_PATTERNS.find((p) => p.pattern.test(text))?.kind ?? null;
+}
+
 export interface ChainRetryOptions {
   /** Сколько повторов делать после первой отправки. */
   attempts: number;
   /** Пауза перед первым повтором; перед каждым следующим удваивается. */
   delayMs: number;
   onRetry?: (info: { attempt: number; attempts: number; delayMs: number; reason: string }) => void;
+  /**
+   * Аренда ресурсов при нехватке у аккаунта: вызывается один раз на отправку,
+   * до повтора. `true` — ресурсы арендованы, транзакция повторяется сразу, без
+   * паузы. `false` — арендовать не удалось: нехватка процессорного времени и
+   * полосы идёт обычным повтором с паузой, нехватку памяти получает вызывающий.
+   */
+  replenish?: (info: { kind: AccountResourceKind; reason: string }) => Promise<boolean>;
   /** Источник пауз — вынесен для детерминизма тестов. */
   sleep?: (ms: number) => Promise<void>;
 }
@@ -146,10 +195,26 @@ export interface ChainRetryOptions {
 export async function retryOnChainExhaustion<T>(send: () => Promise<T>, options: ChainRetryOptions): Promise<T> {
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
+  // Аренда ресурсов — одна на отправку: вторая подряд значила бы, что первая
+  // не помогла, и повторять её незачем.
+  let replenished = false;
+
   for (let retry = 0; ; retry++) {
     try {
       return await send();
     } catch (e) {
+      // Нехватка ресурсов аккаунта: сначала аренда, затем повтор сразу. Такая
+      // транзакция в блок не попала, поэтому повтор дублей не даёт.
+      const kind = accountShortageKind(e);
+      if (kind !== null && options.replenish && !replenished) {
+        replenished = true;
+        if (await options.replenish({ kind, reason: errorText(e).slice(0, 300) })) {
+          // Повтор после аренды в счёт попыток не идёт: отказ был не про блок.
+          retry -= 1;
+          continue;
+        }
+      }
+
       const reason = chainExhaustionReason(e);
       if (reason === null || retry >= options.attempts) throw e;
 

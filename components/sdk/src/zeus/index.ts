@@ -16229,6 +16229,7 @@ reportsEditFund?: [{	input: ValueTypes["ReportsEditFundInput"] | Variable<any, s
 requestCooperativeEndorsement?: [{	data: ValueTypes["RequestCooperativeEndorsementInput"] | Variable<any, string>},boolean | `@${string}`],
 requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO"] | Variable<any, string>},ValueTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ValueTypes["RequestForceRecoveryConsentInput"] | Variable<any, string>},boolean | `@${string}`],
+requestTankTopup?: [{	data: ValueTypes["RequestTankTopupInput"] | Variable<any, string>},boolean | `@${string}`],
 resendNotification?: [{	id: string | Variable<any, string>},ValueTypes["Notification"]],
 resetKey?: [{	data: ValueTypes["ResetKeyInput"] | Variable<any, string>},boolean | `@${string}`],
 resetParticipantTwoFactor?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -19440,6 +19441,10 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	hash: string | Variable<any, string>,
 	/** Пайщик-заявитель */
 	username: string | Variable<any, string>
+};
+	["RequestTankTopupInput"]: {
+	/** Имя аккаунта кооператива, чей бак AXON опустел */
+	coopname: string | Variable<any, string>
 };
 	["RequisiteFieldView"]: AliasType<{
 	source?:boolean | `@${string}`,
@@ -36291,6 +36296,7 @@ reportsEditFund?: [{	input: ResolverInputTypes["ReportsEditFundInput"]},Resolver
 requestCooperativeEndorsement?: [{	data: ResolverInputTypes["RequestCooperativeEndorsementInput"]},boolean | `@${string}`],
 requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerificationInputDTO"]},ResolverInputTypes["EmailVerificationRequestDTO"]],
 requestForceRecoveryConsent?: [{	data: ResolverInputTypes["RequestForceRecoveryConsentInput"]},boolean | `@${string}`],
+requestTankTopup?: [{	data: ResolverInputTypes["RequestTankTopupInput"]},boolean | `@${string}`],
 resendNotification?: [{	id: string},ResolverInputTypes["Notification"]],
 resetKey?: [{	data: ResolverInputTypes["ResetKeyInput"]},boolean | `@${string}`],
 resetParticipantTwoFactor?: [{	data: ResolverInputTypes["ResetParticipantTwoFactorInput"]},boolean | `@${string}`],
@@ -39372,6 +39378,10 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	hash: string,
 	/** Пайщик-заявитель */
 	username: string
+};
+	["RequestTankTopupInput"]: {
+	/** Имя аккаунта кооператива, чей бак AXON опустел */
+	coopname: string
 };
 	["RequisiteFieldView"]: AliasType<{
 	source?:boolean | `@${string}`,
@@ -56012,6 +56022,8 @@ export type ModelTypes = {
 	requestEmailVerification: ModelTypes["EmailVerificationRequestDTO"],
 	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
 	requestForceRecoveryConsent: boolean,
+	/** Пополнить бак AXON кооператива сразу, без ожидания планового такта оператора */
+	requestTankTopup: boolean,
 	/** Переотправить уведомление (force-постановка новой строки в очередь доставки) */
 	resendNotification: ModelTypes["Notification"],
 	/** Заменить приватный ключ аккаунта */
@@ -59253,6 +59265,10 @@ export type ModelTypes = {
 	hash: string,
 	/** Пайщик-заявитель */
 	username: string
+};
+	["RequestTankTopupInput"]: {
+	/** Имя аккаунта кооператива, чей бак AXON опустел */
+	coopname: string
 };
 	["RequisiteFieldView"]: {
 		source: ModelTypes["RequisiteSource"],
@@ -76785,6 +76801,8 @@ export type GraphQLTypes = {
 	requestEmailVerification: GraphQLTypes["EmailVerificationRequestDTO"],
 	/** Запросить согласие пайщика на принудительное восстановление (председатель) */
 	requestForceRecoveryConsent: boolean,
+	/** Пополнить бак AXON кооператива сразу, без ожидания планового такта оператора */
+	requestTankTopup: boolean,
 	/** Переотправить уведомление (force-постановка новой строки в очередь доставки) */
 	resendNotification: GraphQLTypes["Notification"],
 	/** Заменить приватный ключ аккаунта */
@@ -80329,6 +80347,10 @@ export type GraphQLTypes = {
 	hash: string,
 	/** Пайщик-заявитель */
 	username: string
+};
+	["RequestTankTopupInput"]: {
+		/** Имя аккаунта кооператива, чей бак AXON опустел */
+	coopname: string
 };
 	["RequisiteFieldView"]: {
 	__typename: "RequisiteFieldView",
@@ -84622,6 +84644,7 @@ type ZEUS_VARIABLES = {
 	["RequestEmailVerificationInputDTO"]: ValueTypes["RequestEmailVerificationInputDTO"];
 	["RequestForceRecoveryConsentInput"]: ValueTypes["RequestForceRecoveryConsentInput"];
 	["RequestKuTrustedInput"]: ValueTypes["RequestKuTrustedInput"];
+	["RequestTankTopupInput"]: ValueTypes["RequestTankTopupInput"];
 	["RequisiteSource"]: ValueTypes["RequisiteSource"];
 	["ResetKeyInput"]: ValueTypes["ResetKeyInput"];
 	["ResetParticipantTwoFactorInput"]: ValueTypes["ResetParticipantTwoFactorInput"];

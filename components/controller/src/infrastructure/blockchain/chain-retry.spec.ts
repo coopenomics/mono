@@ -1,4 +1,4 @@
-import { chainExhaustionReason, isChainExhaustionError, retryOnChainExhaustion } from './chain-retry';
+import { accountShortageKind, chainExhaustionReason, isChainExhaustionError, retryOnChainExhaustion } from './chain-retry';
 
 /** Ошибка узла, как её отдаёт APIError @wharfkit/antelope: код на месте. */
 function apiError(code: number, name: string, what: string, detail: string) {
@@ -122,5 +122,102 @@ describe('retryOnChainExhaustion — переотправка до исчерп�
     expect(onRetry).toHaveBeenCalledWith(
       expect.objectContaining({ attempt: 1, attempts: 3, delayMs: 500, reason: expect.stringContaining('deadline exceeded') })
     );
+  });
+});
+
+// 28.11.2026: нехватку ресурсов самого аккаунта лечит аренда — ядро просит её
+// до повтора, и транзакция повторяется сразу. Раньше кооператив ждал плановой
+// проверки ресурсов раз в минуту, а пайщик получал отказ.
+describe('accountShortageKind — нехватка ресурсов самого аккаунта', () => {
+  it.each([
+    ["authorizing account 'partner1' has insufficient objective cpu resources for this transaction", 'cpu'],
+    [
+      'billed CPU time (812 us) is greater than the maximum billable CPU time for the transaction (500 us) reached account cpu limit 500us',
+      'cpu',
+    ],
+    ["authorizing account 'partner1' has insufficient net resources for this transaction", 'net'],
+    ['account partner1 has insufficient ram; needs 1200 bytes has 800 bytes', 'ram'],
+  ])('«%s» → %s', (text, kind) => {
+    expect(accountShortageKind(new Error(text))).toBe(kind);
+  });
+
+  it('код 3080001 (ram_usage_exceeded) — память аккаунта', () => {
+    expect(accountShortageKind(apiError(3080001, 'ram_usage_exceeded', 'x', 'y'))).toBe('ram');
+  });
+
+  it('break: пик нагрузки и ассерт контракта арендой не лечатся', () => {
+    expect(
+      accountShortageKind(new Error('billed CPU time (812 us) is greater than the billable CPU time left in the block (300 us)'))
+    ).toBeNull();
+    expect(accountShortageKind(apiError(3080004, 'tx_cpu_usage_exceeded', 'x', 'transaction was executing for too long'))).toBeNull();
+    expect(accountShortageKind(new Error('assertion failure with message: REGISTRATOR_NOT_OPERATOR: ...'))).toBeNull();
+  });
+});
+
+describe('retryOnChainExhaustion — аренда ресурсов перед повтором', () => {
+  const cpuShortage = () => new Error("authorizing account 'partner1' has insufficient objective cpu resources for this transaction");
+  const ramShortage = () =>
+    apiError(3080001, 'ram_usage_exceeded', 'x', 'account partner1 has insufficient ram; needs 1200 bytes has 800 bytes');
+
+  it('happy: не хватило ресурсов аккаунта — аренда и повтор сразу, без паузы', async () => {
+    const send = jest.fn().mockRejectedValueOnce(cpuShortage()).mockResolvedValue('ok');
+    const replenish = jest.fn(async () => true);
+    const sleep = jest.fn(async () => undefined);
+
+    expect(await retryOnChainExhaustion(send, { attempts: 3, delayMs: 500, replenish, sleep })).toBe('ok');
+    expect(replenish).toHaveBeenCalledWith(expect.objectContaining({ kind: 'cpu' }));
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('happy: не хватило памяти — после аренды транзакция проходит, хотя память в обычный повтор не входит', async () => {
+    const send = jest.fn().mockRejectedValueOnce(ramShortage()).mockResolvedValue('ok');
+    const replenish = jest.fn(async () => true);
+
+    expect(await retryOnChainExhaustion(send, { attempts: 0, delayMs: 500, replenish })).toBe('ok');
+    expect(replenish).toHaveBeenCalledWith(expect.objectContaining({ kind: 'ram' }));
+  });
+
+  it('side: повтор после аренды попытку не расходует', async () => {
+    const send = jest
+      .fn()
+      .mockRejectedValueOnce(cpuShortage())
+      .mockRejectedValueOnce(apiError(3080005, 'block_cpu_usage_exceeded', 'x', 'y'))
+      .mockResolvedValue('ok');
+    const sleep = jest.fn(async () => undefined);
+
+    expect(await retryOnChainExhaustion(send, { attempts: 1, delayMs: 500, replenish: async () => true, sleep })).toBe('ok');
+    expect(send).toHaveBeenCalledTimes(3);
+    expect(sleep).toHaveBeenCalledTimes(1);
+  });
+
+  it('break: аренда идёт один раз на отправку — вторая нехватка подряд идёт обычным путём', async () => {
+    const send = jest.fn().mockRejectedValue(ramShortage());
+    const replenish = jest.fn(async () => true);
+
+    await expect(
+      retryOnChainExhaustion(send, { attempts: 3, delayMs: 500, replenish, sleep: async () => undefined })
+    ).rejects.toBeDefined();
+    expect(replenish).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
+  it('break: арендовать не удалось — отказ по памяти получает вызывающий, время и полоса повторяются с паузой', async () => {
+    const ram = jest.fn().mockRejectedValue(ramShortage());
+    await expect(retryOnChainExhaustion(ram, { attempts: 3, delayMs: 500, replenish: async () => false })).rejects.toBeDefined();
+    expect(ram).toHaveBeenCalledTimes(1);
+
+    const cpu = jest.fn().mockRejectedValueOnce(cpuShortage()).mockResolvedValue('ok');
+    const sleep = jest.fn(async () => undefined);
+    expect(await retryOnChainExhaustion(cpu, { attempts: 3, delayMs: 500, replenish: async () => false, sleep })).toBe('ok');
+    expect(sleep).toHaveBeenCalledTimes(1);
+  });
+
+  it('break: отказ другого рода аренду не вызывает', async () => {
+    const replenish = jest.fn(async () => true);
+    const send = jest.fn().mockRejectedValue(new Error('assertion failure with message: недостаточно средств'));
+
+    await expect(retryOnChainExhaustion(send, { attempts: 3, delayMs: 500, replenish })).rejects.toBeDefined();
+    expect(replenish).not.toHaveBeenCalled();
   });
 });

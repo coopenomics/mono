@@ -13,6 +13,7 @@ import { ForkRegistryService } from '~/shared/sync/fork';
 import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
 import { isDeltaOwnedByCoop } from './delta-ownership';
+import { BILLING_TANK_BALANCE_EVENT, tankBalanceOf } from '~/domain/billing/events/tank-balance.event';
 import { runInChainDispatch } from './chain-dispatch-context';
 import { ChainChangesService } from './chain-changes.service';
 import { config } from '~/config';
@@ -315,6 +316,12 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     // либо в scope, реестр шаблонов принадлежит платформе целиком, а реестр
     // кооперативов сети — полю username.
     if (!isDeltaOwnedByCoop(delta, config.coopname)) {
+      // Узел-хаб следит за баками AXON кооперативов (28.11.2026). Остаток
+      // токена лежит в области самого аккаунта и под правило принадлежности не
+      // подходит. Дельта не сохраняется: это чужое состояние. Хабу объявляется
+      // только событие остатка, пополнение бака он решает сам.
+      const tank = config.billing.hub_mode ? tankBalanceOf(delta, config.blockchain.root_symbol) : null;
+      if (tank) this.eventsService.emit(BILLING_TANK_BALANCE_EVENT, tank);
       return;
     }
 

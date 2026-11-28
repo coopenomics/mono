@@ -57,6 +57,11 @@ import { t } from '~/i18n';
  * же PG-журнал идемпотентности. Скорость расхода ограничена самой спицей:
  * узел жжёт бак на D в день и ещё 5 AXON при загрузке 70 %.
  */
+/** Бак одного кооператива вне планового такта проверяется не чаще этого промежутка, мс. */
+const TANK_CHECK_MIN_INTERVAL_MS = 15_000;
+/** Срок памяти списка действующих кооперативов сети, мс. */
+const ACTIVE_COOPS_TTL_MS = 60_000;
+
 @Injectable()
 export class BillingCronService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BillingCronService.name);
@@ -270,7 +275,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
    * (подпись оператора) → подтверждение провайдеру (реактивный
    * BillingConversionListener дублирует).
    */
-  private async processPackageTopup(coopname: string): Promise<void> {
+  private async processPackageTopup(coopname: string): Promise<boolean> {
     try {
       // Сначала счёт за подписки, потом бак (слово владельца 27.10.2026):
       // оба такта идут раз в минуту, и бак забирал пополнение первым — счёт
@@ -279,14 +284,14 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       const summary = await this.providerClient.getBillingSummary(coopname);
       if (this.dueItems(summary).length) {
         this.logger.log(`Бак ${coopname} ждёт: есть неоплаченный счёт за подписки`);
-        return;
+        return false;
       }
       // Решает провайдер — у него тариф, дата оплаты и размер кванта. Хаб
       // передаёт ему честный сигнал: баланс бака, который узел жжёт сам.
       const balance = await this.blockchainPort.getAxonBalance(coopname);
       const invoice = await this.providerClient.createPackageInvoice(coopname, balance);
       if (!this.isPendingPackageInvoice(invoice, coopname, balance)) {
-        return;
+        return false;
       }
       const paymentHash = invoice.payment_hash;
       const amountRub = invoice.total_amount;
@@ -301,7 +306,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       );
       if (!begin.started) {
         await this.handleExistingPackageTopup(coopname, paymentHash, amountRub, begin.existing?.status, begin.existing?.tx_id);
-        return;
+        return false;
       }
 
       const transactionId = await this.submitToChain(paymentHash, () =>
@@ -321,11 +326,66 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `Бак ${coopname} пополнен: ${what}, ${quantity} (payment_hash=${paymentHash}, AXON был ${balance})`,
       );
+      return true;
     } catch (error: any) {
       this.logger.error(
         `BillingCronService: пополнение бака ${coopname} не выполнено: ${error?.message ?? error}`,
       );
+      return false;
     }
+  }
+
+  /** Внеочередные проверки бака в работе, по кооперативу. */
+  private readonly tankInFlight = new Map<string, Promise<boolean>>();
+  /** Время последней внеочередной проверки бака, по кооперативу. */
+  private readonly tankCheckedAt = new Map<string, number>();
+  /** Действующие кооперативы сети с короткой памятью: событие остатка объявляется на каждый перевод токена. */
+  private activeCoops: { at: number; names: Set<string> } | null = null;
+
+  private async isActiveCoop(coopname: string): Promise<boolean> {
+    if (!this.activeCoops || Date.now() - this.activeCoops.at > ACTIVE_COOPS_TTL_MS) {
+      this.activeCoops = { at: Date.now(), names: new Set(await this.activeCoopnames()) };
+    }
+    return this.activeCoops.names.has(coopname);
+  }
+
+  /**
+   * Внеочередное пополнение бака (28.11.2026): по запросу узла кооператива и
+   * по изменению остатка AXON в цепи. Идёт тем же путём, что плановый такт:
+   * сначала счёт за подписки, решение о кванте и пауза между квантами — у
+   * провайдера, повтор списания закрывает журнал платежей. Раньше кооператив с
+   * пустым баком ждал планового такта — до пяти минут.
+   *
+   * Запрос узла открыт, а событие остатка объявляется на каждый перевод
+   * токена, поэтому бак одного кооператива проверяется не чаще раза в
+   * `TANK_CHECK_MIN_INTERVAL_MS`, и только у действующего кооператива сети.
+   */
+  async topUpTankNow(coopname: string): Promise<boolean> {
+    if (!coopname || coopname === config.coopname || !this.providerClient.isConfigured()) return false;
+    const pending = this.tankInFlight.get(coopname);
+    if (pending) return pending;
+    if (Date.now() - (this.tankCheckedAt.get(coopname) ?? 0) < TANK_CHECK_MIN_INTERVAL_MS) return false;
+    this.tankCheckedAt.set(coopname, Date.now());
+    const run = (async () => {
+      try {
+        if (!(await this.isActiveCoop(coopname))) return false;
+        return await this.processPackageTopup(coopname);
+      } catch (error: any) {
+        this.logger.error(`BillingCronService: внеочередная проверка бака ${coopname} не выполнена: ${error?.message ?? error}`);
+        return false;
+      }
+    })().finally(() => this.tankInFlight.delete(coopname));
+    this.tankInFlight.set(coopname, run);
+    return run;
+  }
+
+  /**
+   * Остаток AXON аккаунта изменился. Остаток ниже порога у действующего
+   * кооператива — бак пополняется сразу; выше порога проверка не идёт вовсе.
+   */
+  async onTankBalance(coopname: string, balance: number): Promise<void> {
+    if (!(balance < config.billing.package_low_water_axon)) return;
+    await this.topUpTankNow(coopname);
   }
 
   /**

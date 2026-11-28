@@ -21,6 +21,34 @@ export interface IChainResourcesPort {
    * расширение обязано его увидеть, а не считать пополнение выполненным.
    */
   powerUp(username: string, quantity: string): Promise<string>;
+  /**
+   * Попросить оператора кооператива пополнить бак AXON сразу, без ожидания его
+   * планового такта. Ядро находит узел оператора по цепи (оператор кооператива
+   * и адрес его узла в реестре сети) и передаёт ему имя кооператива; оператор
+   * сам сверяет остаток по цепи и решает, пополнять ли. `true` — бак пополнен;
+   * `false` — оператора нет, его узел не ответил либо пополнение не положено.
+   */
+  requestTankTopup(): Promise<boolean>;
+}
+
+/**
+ * Событие ядра: цепь отклонила транзакцию узла из-за нехватки ресурсов
+ * аккаунта (процессорное время, полоса, память). Ядро ждёт слушателей и
+ * повторяет транзакцию один раз, если хотя бы один ответил `true` — ресурсы
+ * арендованы. Раньше транзакция падала, а аренда шла только плановой проверкой
+ * раз в минуту.
+ */
+export const CHAIN_RESOURCE_SHORTAGE_EVENT = 'chain.resources.shortage';
+
+/** Вид ресурса, которого не хватило аккаунту. */
+export type ChainResourceKind = 'cpu' | 'net' | 'ram';
+
+export interface ChainResourceShortagePayload {
+  /** Аккаунт, чьих ресурсов не хватило, — подписант транзакции. */
+  account: string;
+  kind: ChainResourceKind;
+  /** Причина отказа, как её назвала цепь, — для журнала. */
+  reason: string;
 }
 
 export const CHAIN_RESOURCES_PORT = Symbol.for('Innercoop.CorePort.ChainResources');

@@ -217,16 +217,10 @@ export class EndorsementService implements OnApplicationBootstrap {
    */
   async requestOperatorEndorsement(): Promise<boolean> {
     try {
-      const self = await this.blockchainPort.getCooperative(config.coopname);
-      const operator = String(self?.parent_username ?? '');
-      if (!operator || operator === config.coopname) return false;
-      const operatorRow = await this.blockchainPort.getCooperative(operator);
-      const domain = String(operatorRow?.announce ?? '')
-        .trim()
-        .replace(/^https?:\/\//, '')
-        .replace(/\/+$/, '');
-      if (!domain) return false;
-      const response = await fetch(`https://${domain}/backend/v1/graphql`, {
+      const node = await this.blockchainPort.getOperatorNode(config.coopname);
+      if (!node) return false;
+      const { operator } = node;
+      const response = await fetch(`${node.url}/backend/v1/graphql`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

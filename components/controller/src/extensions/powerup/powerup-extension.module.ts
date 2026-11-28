@@ -4,10 +4,15 @@ import { Inject, Module, OnModuleDestroy, Optional } from '@nestjs/common';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   CHAIN_RESOURCES_PORT,
+  CHAIN_RESOURCE_SHORTAGE_EVENT,
+  type ChainResourceShortagePayload,
   type IChainResourcesPort,
   PROVIDER_TARIFF_PORT,
   type IProviderTariffPort,
 } from '@coopenomics/innercoop';
+import { OnEvent } from '@nestjs/event-emitter';
+import { TokenContract } from 'cooptypes';
+import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import { describeConfigField } from '@coopenomics/extension-kit';
@@ -136,6 +141,11 @@ export interface ILog {
   };
 }
 
+/** Событие разбора цепи: изменилась строка остатка токена аккаунта. */
+const TOKEN_BALANCE_DELTA_EVENT = `delta::${TokenContract.contractName.production}::${TokenContract.Tables.AccountBalance.tableName}`;
+/** Оператора о пустом баке узел просит не чаще этого промежутка, мс. */
+const OPERATOR_REQUEST_MIN_INTERVAL_MS = 60 * 1000;
+
 /** С какой паузы начинается отход после первого отказа пополнения. */
 const RETRY_BACKOFF_START_MS = 5 * 60 * 1000;
 /** Дальше пауза удваивается, но не растёт больше часа. */
@@ -154,6 +164,11 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
    */
   private failureStreak = 0;
   private nextAttemptAt = 0;
+
+  /** Аренда по порогу или по нехватке в работе: второй вызов ждёт ту же аренду. */
+  private rentInFlight: Promise<boolean> | null = null;
+  /** Когда узел последний раз просил оператора пополнить бак. */
+  private operatorAskedAt = 0;
 
   constructor(
     @Inject(EXTENSION_REPOSITORY) private readonly extensionRepository: ExtensionDomainRepository<IConfig>,
@@ -389,21 +404,32 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         needPowerUp = true;
       }
 
-      if (needPowerUp) {
-        // Выполняем пополнение ресурсов на сумму ежедневной аренды
+      if (needPowerUp) await this.rentNow(username);
+    } catch (error) {
+      this.onReplenishmentFailed(t('powerup.replenishment.kind.manual'), error);
+    }
+  }
+
+  /**
+   * Аренда ресурсов на сумму суточного пакета — сейчас. Общая для плановой
+   * проверки порогов и для аренды по нехватке; одновременные вызовы ждут одну
+   * аренду. `true` — цепь приняла транзакцию аренды.
+   *
+   * Отказ аренды чаще всего значит пустой бак AXON, поэтому узел сразу просит
+   * оператора пополнить бак и не ждёт его планового такта.
+   */
+  private rentNow(username: string): Promise<boolean> {
+    if (this.rentInFlight) return this.rentInFlight;
+    this.rentInFlight = (async () => {
+      try {
         const quantity = this.getQuantity(this.extension.config.dailyPackageSize);
         const trx_id = await this.blockchainPort.powerUp(username, quantity);
         this.onReplenishmentSucceeded();
 
-        // Получаем актуальные данные после пополнения для логирования
+        // Журнал аренды ведётся по факту: строка есть только после того, как
+        // цепь приняла транзакцию; ресурсы читаются после аренды.
         const updatedAccount = await this.blockchainPort.getAccount(username);
-
-        if (!updatedAccount) {
-          throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
-        }
-
-        // Журнал аренды ведётся по факту: строка появляется только после того,
-        // как цепь приняла транзакцию.
+        if (!updatedAccount) throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
         await this.log({
           type: 'now',
           amount: quantity,
@@ -416,10 +442,65 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
             cpu_limit: updatedAccount.cpu_limit,
           },
         });
+        return true;
+      } catch (error) {
+        this.onReplenishmentFailed(t('powerup.replenishment.kind.manual'), error);
+        this.askOperatorForTank(username);
+        return false;
       }
-    } catch (error) {
-      this.onReplenishmentFailed(t('powerup.replenishment.kind.manual'), error);
-    }
+    })().finally(() => {
+      this.rentInFlight = null;
+    });
+    return this.rentInFlight;
+  }
+
+  /**
+   * Попросить оператора пополнить бак AXON (28.11.2026). Узел не ждёт ответа:
+   * оператор сверяет остаток по цепи сам, а пополненный бак узел увидит по
+   * изменению своего остатка (`onOwnBalanceChanged`) и арендует ресурсы сразу.
+   * Раньше кооператив с пустым баком ждал планового такта оператора.
+   */
+  private askOperatorForTank(username: string): void {
+    if (Date.now() - this.operatorAskedAt < OPERATOR_REQUEST_MIN_INTERVAL_MS) return;
+    this.operatorAskedAt = Date.now();
+    void this.blockchainPort
+      .requestTankTopup()
+      .then((topped) => {
+        if (topped) this.logger.info(`Оператор пополнил бак AXON кооператива ${username} по запросу узла`);
+      })
+      .catch((err: unknown) => this.logger.warn(`Запрос оператору о баке не прошёл: ${String(err)}`));
+  }
+
+  /**
+   * Транзакция узла получила отказ по ресурсам аккаунта: ядро ждёт ответа и
+   * повторяет транзакцию, если ресурсы арендованы. Пока идёт пауза после
+   * отказов аренды, новая аренда не начинается: причина отказа прежняя.
+   */
+  @OnEvent(CHAIN_RESOURCE_SHORTAGE_EVENT)
+  async onResourceShortage(payload: ChainResourceShortagePayload): Promise<boolean> {
+    const username = platformSettings().coopname;
+    if (!this.extension || payload.account !== username) return false;
+    if (this.nextAttemptAt > Date.now()) return false;
+    this.logger.info(`Аренда ресурсов по нехватке (${payload.kind}): ${payload.reason}`);
+    return this.rentNow(username);
+  }
+
+  /**
+   * Остаток AXON кооператива изменился. Бак пополнен, а узел стоит в паузе
+   * после отказов аренды — пауза снимается, аренда идёт сразу. Разбор цепи
+   * ждёт слушателей дельты, поэтому аренда запускается без ожидания.
+   */
+  @OnEvent(TOKEN_BALANCE_DELTA_EVENT)
+  onOwnBalanceChanged(delta: IDelta): void {
+    if (!this.extension || this.failureStreak === 0) return;
+    if (delta.scope !== platformSettings().coopname || delta.present === false) return;
+    const raw = String((delta.value as { balance?: unknown } | undefined)?.balance ?? '');
+    if (!raw.endsWith(` ${this.extension.config.systemSymbol}`)) return;
+    if (!(Number.parseFloat(raw) >= this.extension.config.dailyPackageSize)) return;
+    this.logger.info(`Бак AXON пополнен (${raw}) — пауза аренды снята`);
+    this.failureStreak = 0;
+    this.nextAttemptAt = 0;
+    void this.runTask().catch((err) => this.logger.error('PowerupExtension: аренда после пополнения бака не прошла', err as Error));
   }
 }
 

@@ -3,6 +3,7 @@ import { BillingService } from './services/billing.service';
 import { BillingResolver } from './resolvers/billing.resolver';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
 import { BillingConversionListener } from '~/infrastructure/billing/billing-conversion.listener';
+import { BillingTankListener } from '~/infrastructure/billing/billing-tank.listener';
 import { BillingPaymentListener } from '~/infrastructure/billing/billing-payment.listener';
 import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
 import { BillingCronService } from '~/domain/billing/services/billing-cron.service';
@@ -33,6 +34,7 @@ import { CoreRightsModule } from '~/application/rights/core-rights.module';
     BillingResolver,
     BillingProviderClient,
     BillingConversionListener,
+    BillingTankListener,
     BillingPaymentListener,
     BillingPaymentLogService,
     BillingCronService,

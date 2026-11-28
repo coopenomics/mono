@@ -1,0 +1,196 @@
+feature: resources.realtime-topup
+title: Ресурсы цепи и бак AXON пополняются по событию, без ожидания планового такта
+
+# 28.11.2026, слово владельца: «если ресурсов не хватает, то весь кооператив
+# сидит пять минут ждёт, когда там что-то обновится, а надо сразу».
+#
+# Узел кооператива арендует ресурсы цепи (процессорное время, полоса, память)
+# за AXON из своего бака; бак пополняет узел оператора (хаб) квантом из
+# кошелька членских взносов. Прежде оба звена шли по расписанию: узел сверял
+# расход раз в минуту и после отказа аренды ждал от пяти минут, хаб сверял бак
+# раз в пять минут. Кооператив с пустым баком стоял дольше пяти минут.
+#
+# Теперь четыре звена идут по событию:
+#   1. транзакция получила отказ по ресурсам аккаунта — ядро ждёт аренду и
+#      повторяет транзакцию один раз;
+#   2. аренда не прошла — узел сразу просит оператора пополнить бак (адрес узла
+#      оператора — из реестра сети);
+#   3. хаб слушает остаток AXON кооперативов в цепи и пополняет бак ниже порога;
+#   4. бак пополнен — узел снимает паузу после отказов и арендует ресурсы сразу.
+#
+# Границы: решение о кванте и пауза между квантами остаются у провайдера; хаб
+# сначала закрывает счёт за подписки; плановые такты остаются страховкой;
+# аренда по нехватке идёт только при отказе про ресурсы самого аккаунта — пик
+# нагрузки цепи арендой не лечится и AXON не тратит.
+
+sources:
+  backend:
+    - components/controller/src/infrastructure/blockchain/chain-retry.ts
+    - components/controller/src/infrastructure/innercoop/chain-resources-innercoop.adapter.ts
+    - components/controller/src/domain/billing/events/tank-balance.event.ts
+    - components/controller/src/infrastructure/billing/billing-tank.listener.ts
+    - components/controller/src/application/billing/dto/request-tank-topup-input.dto.ts
+    - components/controller/src/extensions/powerup/powerup-extension.module.ts
+    - components/innercoop/src/core-ports/chain-resources.port.ts
+
+cases:
+  # ── Звено 1: аренда при отказе транзакции ────────────────────────────────
+  - id: res.rt.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Цепь отклонила транзакцию узла: аккаунту не хватило процессорного времени, полосы или памяти.
+    expect: >
+      ядро объявляет нехватку, ждёт аренду и повторяет транзакцию сразу, без паузы; повтор попытку
+      не расходует; нехватка памяти, которая в обычный повтор не входит, после аренды тоже проходит
+    test: components/controller/src/infrastructure/blockchain/chain-retry.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "нехватку ресурсов аккаунта в цепи стенда через API не воспроизвести"
+
+  - id: res.rt.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Отказ не про ресурсы аккаунта: пик нагрузки цепи, ассерт контракта.
+    expect: >
+      аренда не объявляется и AXON не тратится; пик нагрузки идёт прежним повтором с паузой
+    test: components/controller/src/infrastructure/blockchain/chain-retry.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "отказы цепи нужного рода через API стенда не воспроизвести"
+
+  - id: res.rt.break.02
+    level: backend
+    kind: break
+    scenario: >
+      Арендовать не удалось; транзакция самой аренды получила отказ по ресурсам; две транзакции
+      одного аккаунта получили отказ одновременно.
+    expect: >
+      без аренды отказ получает вызывающий, транзакция не повторяется; транзакция аренды повторную
+      аренду не объявляет; две транзакции ждут одну аренду; аренда идёт один раз на отправку
+    test: components/controller/tests/unit/blockchain/resource-replenish.test.ts
+    status: written
+    external: unreachable
+    external_reason: "нехватку ресурсов аккаунта в цепи стенда через API не воспроизвести"
+
+  - id: res.rt.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Расширение аренды ресурсов получает событие нехватки по аккаунту своего кооператива.
+    expect: >
+      арендует ресурсы суточным пакетом, пишет строку журнала аренды и отвечает ядру «арендовано»;
+      нехватку у чужого аккаунта не обслуживает; одновременные события ждут одну аренду
+    test: components/controller/tests/unit/powerup/powerup-realtime.test.ts
+    status: written
+    external: unreachable
+    external_reason: "событие нехватки объявляет ядро при отказе цепи, через API стенда его не вызвать"
+
+  # ── Звено 2: узел просит оператора ───────────────────────────────────────
+  - id: res.rt.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Аренда на узле кооператива не прошла.
+    expect: >
+      узел сразу называет оператору свой кооператив по адресу узла оператора из реестра сети;
+      в журнале аренды записи нет; повторно оператора узел просит не чаще раза в минуту
+    test: components/controller/tests/unit/powerup/powerup-realtime.test.ts
+    status: written
+    external: unreachable
+    external_reason: "пустой бак AXON кооператива через API стенда не воспроизвести"
+
+  - id: res.rt.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Кооператив на своей платформе либо оператор не объявил адрес узла; узел оператора отказал
+      или не ответил.
+    expect: >
+      запроса нет либо ответ «не пополнен»; отказ наружу не выходит, аренда ждёт планового такта
+    test: components/controller/tests/unit/blockchain/resource-replenish.test.ts
+    status: written
+    external: unreachable
+    external_reason: "недоступный узел оператора через API стенда не воспроизвести"
+
+  - id: res.rt.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Узел оператора (хаб) получил запрос кооператива о баке.
+    expect: >
+      бак действующего кооператива пополняется квантом тем же путём, что плановый такт: сначала счёт
+      за подписки, решение о кванте — у провайдера; ответ «пополнен» только после списания
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: "пополнение бака идёт на узле-хабе с провайдером и цепью, у стенда внешнего слоя их нет"
+
+  - id: res.rt.break.03
+    level: backend
+    kind: break
+    scenario: >
+      Запрос о баке называет ожидающий кооператив, посторонний аккаунт, сам хаб; запросы одного
+      кооператива идут часто; цепь не отвечает.
+    expect: >
+      бак не пополняется; проверка бака одного кооператива идёт не чаще раза в промежуток, провайдер
+      не опрашивается на каждый запрос; два одновременных запроса дают одно списание; отказ цепи
+      наружу не выходит
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: "пополнение бака идёт на узле-хабе с провайдером и цепью, у стенда внешнего слоя их нет"
+
+  # ── Звено 3: хаб слушает остаток ─────────────────────────────────────────
+  - id: res.rt.happy.05
+    level: backend
+    kind: happy
+    scenario: >
+      Остаток AXON кооператива в цепи изменился и стал ниже порога.
+    expect: >
+      хаб получает событие остатка из дельты таблицы остатков токена и пополняет бак сразу; остаток
+      не ниже порога проверку бака не запускает; стёртая строка остатка считается нулём; другая
+      таблица и другой токен остатком бака не считаются
+    test: components/controller/tests/unit/billing/billing-cron.service.test.ts
+    status: written
+    external: unreachable
+    external_reason: "событие остатка объявляет разбор цепи на узле-хабе, через API стенда его не вызвать"
+
+  # ── Звено 4: пауза аренды снимается ──────────────────────────────────────
+  - id: res.rt.happy.06
+    level: backend
+    kind: happy
+    scenario: >
+      Узел кооператива стоит в паузе после отказа аренды; его остаток AXON вырос до суточного пакета.
+    expect: >
+      пауза снимается, плановая проверка идёт сразу и арендует ресурсы
+    test: components/controller/tests/unit/powerup/powerup-realtime.test.ts
+    status: written
+    external: unreachable
+    external_reason: "пополнение бака и паузу аренды через API стенда не воспроизвести"
+
+  - id: res.rt.break.04
+    level: backend
+    kind: break
+    scenario: >
+      Изменился чужой остаток, остаток другого токена, остаток меньше пакета, строка остатка стёрта;
+      отказов аренды до этого не было.
+    expect: >
+      пауза не снимается, аренда не запускается
+    test: components/controller/tests/unit/powerup/powerup-realtime.test.ts
+    status: written
+    external: unreachable
+    external_reason: "изменения остатков в цепи через API стенда не воспроизвести"
+
+  - id: res.rt.e2e.01
+    level: ui
+    kind: happy
+    scenario: >
+      Кооператив на стенде расходует бак AXON до нуля и продолжает работать с документами.
+    expect: >
+      Не решено: полный путь (отказ транзакции → запрос оператору → квант → аренда → повтор транзакции)
+      проверяется на стенде с пустым баком; у набора UI такого состояния цепи нет
+    test: ~
+    status: missing
+    decision_needed: true

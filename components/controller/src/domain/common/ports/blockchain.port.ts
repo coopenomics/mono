@@ -174,6 +174,13 @@ export interface BlockchainPort {
   canManageAccount(account: string, steward: string): Promise<boolean>;
   getCooperative(coopname: string): Promise<any>;
   /**
+   * Узел оператора, подключившего кооператив: имя оператора (`parent_username`
+   * строки кооператива в реестре) и адрес его узла (`announce` строки
+   * оператора) с `https://`. `null` — кооператив на своей платформе либо
+   * оператор адрес не объявил.
+   */
+  getOperatorNode(coopname: string): Promise<{ operator: string; url: string } | null>;
+  /**
    * Ведущий сети — кооператив, который запустил цепь и ведёт сеть: назначает
    * операторов, регистрирует кооперативы. Имя хранит строка `network` реестра;
    * цепь без строки отвечает ведущим по умолчанию.

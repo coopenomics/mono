@@ -9,7 +9,10 @@ import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import type { ActiveKeysQuorum, EndorsementRecord, OwnPlatformKeyResult, ServedCooperative } from '~/domain/common/ports/blockchain.port';
 import { RpcPool, chainUnavailable, isChainUnreachable } from './rpc-pool.service';
-import { CHAIN_EXHAUSTION_CODES, retryOnChainExhaustion } from './chain-retry';
+import { CHAIN_EXHAUSTION_CODES, retryOnChainExhaustion, type AccountResourceKind } from './chain-retry';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CHAIN_RESOURCE_SHORTAGE_EVENT, type ChainResourceShortagePayload } from '@coopenomics/innercoop';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -47,6 +50,9 @@ interface EndorsementRow {
   expires_at: unknown;
   credential: unknown;
 }
+
+/** Метка «идёт аренда ресурсов по нехватке»: транзакция аренды повторную аренду не просит. */
+const resourceRecovery = new AsyncLocalStorage<true>();
 
 /** Срок памяти ответов о ролях сети (ведущий, оператор), мс. */
 const NETWORK_ROLES_TTL_MS = 60_000;
@@ -91,7 +97,10 @@ export class BlockchainService implements BlockchainPort {
     // Необязателен: мигратор собирает сервис руками, без потребителя цепи.
     // Токен явно: тип-объединение с null метаданные внедрения стирают до
     // Object, и Nest молча отдавал бы null — ожидание выключалось незаметно.
-    @Optional() @Inject(ActionReleaseGate) private readonly blockProgress: ActionReleaseGate | null = null
+    @Optional() @Inject(ActionReleaseGate) private readonly blockProgress: ActionReleaseGate | null = null,
+    // Шина событий узла: по ней ядро объявляет нехватку ресурсов аккаунта и
+    // ждёт аренду. Необязательна по той же причине, что и гейт выше.
+    @Optional() @Inject(EventEmitter2) private readonly events: EventEmitter2 | null = null
   ) {
     this.logger.setContext(BlockchainService.name);
     // Видно при старте, включён ли ответ после разбора блока: без гейта
@@ -243,6 +252,9 @@ export class BlockchainService implements BlockchainPort {
             this.logger.warn(
               `Транзакция не уложилась в лимит цепи (${reason}) — повтор ${attempt}/${attempts} через ${delayMs}мс`
             ),
+          // Аккаунту не хватило своих ресурсов — аренда сразу, не дожидаясь
+          // плановой проверки. Чужая отправка (broadcast=false) аренду не ждёт.
+          replenish: broadcast ? ({ kind, reason }) => this.replenishResources(String(session?.actor ?? ''), kind, reason) : undefined,
         }
       );
     } catch (error) {
@@ -252,6 +264,42 @@ export class BlockchainService implements BlockchainPort {
     }
     if (broadcast) await this.awaitBlockProcessed(result);
     return result;
+  }
+
+  /** Аренды ресурсов в работе, по аккаунту: вторая транзакция ждёт ту же аренду. */
+  private readonly replenishInFlight = new Map<string, Promise<boolean>>();
+
+  /**
+   * Аренда ресурсов по нехватке (28.11.2026). Ядро объявляет событие
+   * `CHAIN_RESOURCE_SHORTAGE_EVENT` и ждёт слушателей; расширение аренды
+   * ресурсов арендует их и отвечает `true`. Раньше транзакция падала, а аренда
+   * шла только плановой проверкой раз в минуту.
+   *
+   * Транзакция самой аренды в этот путь не входит: иначе нехватка ресурсов на
+   * неё вызывала бы аренду снова, по кругу. Несколько транзакций одного
+   * аккаунта ждут одну аренду.
+   */
+  private async replenishResources(account: string, kind: AccountResourceKind, reason: string): Promise<boolean> {
+    if (!this.events || !account || resourceRecovery.getStore()) return false;
+    let pending = this.replenishInFlight.get(account);
+    if (!pending) {
+      const events = this.events;
+      const payload: ChainResourceShortagePayload = { account, kind, reason };
+      pending = resourceRecovery
+        .run(true, async () => {
+          try {
+            this.logger.warn(`Аккаунту ${account} не хватило ресурсов цепи (${kind}) — аренда до повтора транзакции`);
+            const answers = await events.emitAsync(CHAIN_RESOURCE_SHORTAGE_EVENT, payload);
+            return answers.some((answer) => answer === true);
+          } catch (e) {
+            this.logger.warn(`Аренда ресурсов по нехватке не прошла: ${e instanceof Error ? e.message : String(e)}`);
+            return false;
+          }
+        })
+        .finally(() => this.replenishInFlight.delete(account));
+      this.replenishInFlight.set(account, pending);
+    }
+    return pending;
   }
 
   /**
@@ -711,6 +759,18 @@ export class BlockchainService implements BlockchainPort {
       Name.from(coopname)
     );
     return cooperative;
+  }
+
+  public async getOperatorNode(coopname: string): Promise<{ operator: string; url: string } | null> {
+    const self = await this.getCooperative(coopname);
+    const operator = String(self?.parent_username ?? '');
+    if (!operator || operator === coopname) return null;
+    const operatorRow = await this.getCooperative(operator);
+    const domain = String(operatorRow?.announce ?? '')
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/+$/, '');
+    return domain ? { operator, url: `https://${domain}` } : null;
   }
 
   /**

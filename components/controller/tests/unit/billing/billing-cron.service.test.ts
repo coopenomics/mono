@@ -373,3 +373,74 @@ describe('BillingCronService — бак AXON: объём месяца и ква�
     }
   });
 });
+
+// 28.11.2026, слово владельца: «если ресурсов не хватает, весь кооператив сидит
+// пять минут ждёт… надо сразу». Бак пополняется вне планового такта: по запросу
+// узла кооператива и по изменению остатка AXON в цепи.
+describe('BillingCronService — внеочередное пополнение бака', () => {
+  const QUANT = { status: 'PENDING', kind: 'quant', payment_hash: HASH, coopname: 'partner1', total_amount: 50, expires_at: '' };
+  const tank = (over: Partial<Parameters<typeof build>[0]> = {}) =>
+    build({ summary: summary({ total_amount: 0 }), axon: 2, packageInvoice: QUANT, ...over });
+
+  it('happy: запрос узла кооператива — бак пополняется квантом сразу, тем же путём, что плановый такт', async () => {
+    const h = tank();
+    expect(await h.svc.topUpTankNow('partner1')).toBe(true);
+    expect(h.providerClient.createPackageInvoice).toHaveBeenCalledWith('partner1', 2);
+    expect(h.blockchainPort.convertToAxn).toHaveBeenCalledWith({ username: 'partner1', quantity: '50.0000 RUB', paymentHash: HASH });
+    expect(h.providerClient.confirmTopupAxon).toHaveBeenCalledTimes(1);
+  });
+
+  it('happy: остаток AXON кооператива в цепи ниже порога — бак пополняется по событию', async () => {
+    const h = tank();
+    await h.svc.onTankBalance('partner1', 1.5);
+    expect(h.blockchainPort.convertToAxn).toHaveBeenCalledTimes(1);
+  });
+
+  it('side: остаток не ниже порога — проверка бака не идёт вовсе', async () => {
+    const h = tank();
+    await h.svc.onTankBalance('partner1', 5);
+    await h.svc.onTankBalance('partner1', 140);
+    expect(h.providerClient.getBillingSummary).not.toHaveBeenCalled();
+    expect(h.providerService.getCooperativesRegistry).not.toHaveBeenCalled();
+  });
+
+  it('break: бак пополняется только действующему кооперативу сети — ожидающий, посторонний аккаунт и сам хаб не пополняются', async () => {
+    const h = tank();
+    expect(await h.svc.topUpTankNow('pending1')).toBe(false);
+    expect(await h.svc.topUpTankNow('stranger')).toBe(false);
+    expect(await h.svc.topUpTankNow('voskhod')).toBe(false);
+    expect(await h.svc.topUpTankNow('')).toBe(false);
+    expect(h.blockchainPort.convertToAxn).not.toHaveBeenCalled();
+  });
+
+  it('break: частые запросы одного кооператива — проверка бака одна на промежуток, провайдер не опрашивается на каждый', async () => {
+    const h = tank({ packageInvoice: { status: 'BLOCKED', reason: 'cooldown' } });
+    expect(await h.svc.topUpTankNow('partner1')).toBe(false);
+    expect(await h.svc.topUpTankNow('partner1')).toBe(false);
+    await h.svc.onTankBalance('partner1', 0);
+    expect(h.providerClient.createPackageInvoice).toHaveBeenCalledTimes(1);
+  });
+
+  it('side: два одновременных запроса ждут одну проверку — второго списания нет', async () => {
+    const h = tank();
+    const [a, b] = await Promise.all([h.svc.topUpTankNow('partner1'), h.svc.topUpTankNow('partner1')]);
+    expect([a, b]).toEqual([true, true]);
+    expect(h.blockchainPort.convertToAxn).toHaveBeenCalledTimes(1);
+  });
+
+  it('break: счёт за подписки не оплачен либо провайдер отказал — бак не пополняется, запрос отвечает отказом', async () => {
+    const due = tank({ summary: summary() });
+    expect(await due.svc.topUpTankNow('partner1')).toBe(false);
+    expect(due.providerClient.createPackageInvoice).not.toHaveBeenCalled();
+
+    const blocked = tank({ packageInvoice: { status: 'NOT_DUE' } });
+    expect(await blocked.svc.topUpTankNow('partner1')).toBe(false);
+    expect(blocked.blockchainPort.convertToAxn).not.toHaveBeenCalled();
+  });
+
+  it('break: цепь не ответила при чтении реестра кооперативов — запрос отвечает отказом, отказ наружу не выходит', async () => {
+    const h = tank();
+    h.providerService.getCooperativesRegistry.mockRejectedValue(new Error('rpc timeout'));
+    await expect(h.svc.topUpTankNow('partner1')).resolves.toBe(false);
+  });
+});

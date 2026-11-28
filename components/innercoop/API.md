@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 365.
+Всего экспортов: 368.
 
 ## ACCESS_TOKEN_PORT
 
@@ -75,11 +75,31 @@
 
 - `Symbol.for('Innercoop.CorePort.Chain')`
 
+## CHAIN_RESOURCE_SHORTAGE_EVENT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ChainResources')`
+
 ## CHAIN_RESOURCES_PORT
 
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.ChainResources')`
+
+## ChainResourceKind
+
+`type` · core-ports
+
+- `'cpu' | 'net' | 'ram'`
+
+## ChainResourceShortagePayload
+
+`interface` · core-ports
+
+- `account: string`
+- `kind: ChainResourceKind`
+- `reason: string`
 
 ## CHAIRMAN_APPROVALS_PORT
 
@@ -376,6 +396,7 @@
 
 - `getAccount(username: string): Promise<InnerChainAccountResources | null>`
 - `powerUp(username: string, quantity: string): Promise<string>`
+- `requestTankTopup(): Promise<boolean>`
 
 ## IChairmanApprovalsPort
 
