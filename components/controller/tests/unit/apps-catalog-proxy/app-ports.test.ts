@@ -311,9 +311,10 @@ describe('маршруты входа портов', () => {
     );
   });
 
-  it('break: обновление просит новое право — отказ, прежний ключ продолжает действовать', async () => {
+  it('break: приём новых прав выключен, обновление просит новое право — отказ, прежний ключ продолжает действовать', async () => {
     const c = controllers();
     await c.consents.grant(PKG, { ports: ['cooperativeVars'], chainActions: [] }, 'ant');
+    await c.consents.setAutoAccept(PKG, false, 'ant');
     const first = await c.admin.issue('node-secret', 'voskhod', 'exampleapp', { ports: ['cooperativeVars'], chain_actions: [], version: '0.1.0' });
     const update = { ports: ['cooperativeVars', 'document'], chain_actions: [], version: '0.2.0' };
     expect(await code(() => c.admin.issue('node-secret', 'voskhod', 'exampleapp', update))).toBe('APPS_CATALOG_PROXY_APP_CONSENT_REQUIRED');
@@ -322,6 +323,16 @@ describe('маршруты входа портов', () => {
     expect(await code(() => c.ports.call(`Bearer ${first.token}`, 'document', 'getByHash', { args: ['H'] }))).toBe(
       'APPS_CATALOG_PROXY_APP_PORT_NOT_GRANTED',
     );
+  });
+
+  // 487-37, слово владельца 28.11.2026: новые права принимаются без подтверждения председателя.
+  it('happy: после согласия председателя обновление с новым правом сразу получает ключ', async () => {
+    const c = controllers();
+    await c.consents.grant(PKG, { ports: ['cooperativeVars'], chainActions: [] }, 'ant');
+    const update = { ports: ['cooperativeVars', 'document'], chain_actions: [], version: '0.2.0' };
+    const issued = await c.admin.issue('node-secret', 'voskhod', 'exampleapp', update);
+    expect(issued.ports).toEqual(['cooperativeVars', 'document']);
+    expect(await c.consents.byPackage(PKG)).toEqual(expect.objectContaining({ pendingVersion: null, pendingPorts: [] }));
   });
 
   it('happy: после согласия председателя то же обновление получает ключ с новым правом', async () => {
