@@ -65,6 +65,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
+import { useRouteConditions } from 'src/features/Desktop/RouteConditions';
 import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
@@ -98,40 +99,8 @@ const cartStore = useMarketplaceCartStore();
 
 // --- Адаптер: activeSecondLevelRoutes → RailItem[] -------------------------
 
-const userRole = computed<'chairman' | 'member' | 'user'>(() =>
-  session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user',
-);
-
-const filterContext = computed(() => {
-  const acc = session.currentUserAccount?.private_account;
-  const isCoop =
-    acc?.type === Zeus.AccountType.organization &&
-    acc.organization_data &&
-    'type' in acc.organization_data &&
-    acc.organization_data.type.toUpperCase() === Zeus.OrganizationType.COOP;
-  return {
-    isCoop,
-    userRole: userRole.value,
-    userAccount: acc,
-    coopname: systemStore.info.coopname,
-    // Онбординг завершает председатель — отметка в настройках кооператива.
-    isOnboardingHidden: !!systemStore.info.settings?.onboarding_completed_at,
-  };
-});
-
-function evalCondition(
-  condition: string | undefined,
-  ctx: Record<string, unknown>,
-): boolean {
-  if (!condition) return true;
-  try {
-    const fn = new Function(...Object.keys(ctx), `return ${condition};`);
-    return Boolean(fn(...Object.values(ctx)));
-  } catch (e) {
-    console.error('Error evaluating route condition:', e);
-    return false;
-  }
-}
+// Условия показа страниц — общий контекст и вычислитель (meta.conditions).
+const { allows: conditionAllows, userRole } = useRouteConditions();
 
 interface MenuMeta {
   title?: string;
@@ -150,13 +119,12 @@ interface MenuMeta {
 }
 
 const filteredRoutes = computed<RouteRecordRaw[]>(() => {
-  const ctx = filterContext.value;
   const wsName = desktop.activeWorkspaceName;
   if (!wsName) return [];
   return (desktop.activeSecondLevelRoutes as RouteRecordRaw[]).filter((r) => {
     const meta = (r.meta ?? {}) as MenuMeta;
     if (meta.hidden) return false;
-    if (!evalCondition(meta.conditions, ctx)) return false;
+    if (!conditionAllows(meta.conditions)) return false;
     // Требование страницы meta.requires сверяется с выданными бэкендом правами.
     return desktop.isPageVisible(r.meta, wsName);
   });

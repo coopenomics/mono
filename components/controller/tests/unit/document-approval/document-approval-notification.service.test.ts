@@ -8,7 +8,7 @@ const R = Registry;
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
-  default: { coopname: 'voskhod', document_approval: { reminder_enabled: true, reminder_cron: '0 9 * * 1' } },
+  default: { coopname: 'voskhod', platform_provider: 'voskhod', document_approval: { reminder_enabled: true, reminder_cron: '0 9 * * 1' } },
 }));
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),

@@ -57,3 +57,18 @@ cases:
       звенья без названий показывают имя аккаунта
     test: null
     status: missing
+
+  # 28.11.2026: кооперативы берёт на обслуживание узел провайдера платформы —
+  # по настройке PLATFORM_PROVIDER_COOPNAME, а не по имени в коде.
+  - id: trust.side.30
+    level: backend
+    kind: side
+    scenario: >
+      Кооператив стал действующим; провайдер платформы задан настройкой узла под другим именем.
+    expect: >
+      Оператором себя назначает узел провайдера из настройки; узел с прежним именем voskhod
+      при другом провайдере в настройке кооператив на обслуживание не берёт
+    test: components/controller/src/application/auth-v2/certificate/endorsement-newly-served.spec.ts
+    status: written
+    external: unreachable
+    external_reason: "назначение идёт по событию цепи на узле провайдера, через API стенда его не вызвать"

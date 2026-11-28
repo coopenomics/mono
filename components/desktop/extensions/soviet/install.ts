@@ -221,7 +221,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: t('soviet.install.cooperativesRegistryTitle'),
               icon: 'fa-solid fa-handshake',
               requires: 'Union:read',
-              conditions: 'coopname === "voskhod"',
+              conditions: 'isPlatformProvider === true',
               requiresAuth: true,
             },
           },
@@ -234,7 +234,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: i18nT('soviet.install.cooperativeDetailTitle'),
               requires: 'Union:read',
-              conditions: 'coopname === "voskhod"',
+              conditions: 'isPlatformProvider === true',
               requiresAuth: true,
               hidden: true,
               menuKey: 'union-cooperatives',

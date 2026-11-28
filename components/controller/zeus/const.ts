@@ -11209,6 +11209,7 @@ export const ReturnTypes: Record<string,any> = {
 		features:"SystemFeatures",
 		is_providered:"Boolean",
 		is_unioned:"Boolean",
+		platform_provider:"String",
 		settings:"Settings",
 		symbols:"Symbols",
 		system_status:"SystemStatus",

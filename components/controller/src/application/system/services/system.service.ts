@@ -33,7 +33,7 @@ export class SystemService {
   public async getInfo(): Promise<SystemInfoDTO> {
     const info = await this.systemInteractor.getInfo();
 
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable());
+    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
   }
 
   public async startInstall(data: StartInstallInputDTO): Promise<StartInstallResultDTO> {
@@ -74,7 +74,7 @@ export class SystemService {
       ...data,
       vars: data.vars as any, // SetVarsInputDTO совместим с VarsDomainInterface по полям
     });
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable());
+    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
   }
 
   public async update(data: UpdateDTO): Promise<SystemInfoDTO> {
@@ -84,7 +84,7 @@ export class SystemService {
         ? new OrganizationDomainEntity({ ...data.organization_data, username: config.coopname })
         : undefined, // Не передаем поле, если оно отсутствует
     });
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable());
+    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
   }
 
   public async init(data: InitDTO, trusted = false): Promise<SystemInfoDTO> {
@@ -93,7 +93,7 @@ export class SystemService {
     // секретом: иначе любой клиент пометил бы данные организации как
     // «установленные администратором» и запер бы их от правки.
     const info = await this.systemInteractor.init({ ...data, is_server_init: trusted && data.is_server_init === true });
-    return new SystemInfoDTO(info, this.providerService.isProviderAvailable());
+    return new SystemInfoDTO(info, this.providerService.isProviderAvailable(), config.platform_provider);
   }
 
   public async setWif(data: SetWifInputDTO): Promise<void> {

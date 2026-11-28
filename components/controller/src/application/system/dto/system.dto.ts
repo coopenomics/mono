@@ -57,6 +57,12 @@ export class SystemInfoDTO {
   @Field(() => Boolean, { description: 'Доступен ли функционал провайдера для подписок и запуска ПО' })
   public readonly is_providered: boolean;
 
+  @Field(() => String, {
+    description:
+      'Имя аккаунта провайдера платформы — главного администратора сети: он регистрирует кооперативы и берёт их на обслуживание',
+  })
+  public readonly platform_provider: string;
+
   // Требование членства в союзе снято 20.10.2026: подключение начинается с тарифа,
   // мессенджер не обязателен. Поля оставлены на один выпуск постоянными, чтобы стол,
   // загруженный до выкатки, не падал на запросе системной информации; следующим
@@ -81,7 +87,7 @@ export class SystemInfoDTO {
   @ValidateNested()
   public readonly features!: SystemFeaturesDTO;
 
-  constructor(entity: SystemInfoDomainEntity, isProvidered = false) {
+  constructor(entity: SystemInfoDomainEntity, isProvidered = false, platformProvider = '') {
     this.coopname = entity.coopname;
     this.contacts = entity.contacts;
     this.vars = entity.vars;
@@ -96,6 +102,7 @@ export class SystemInfoDTO {
       active_participants_count: Number(entity.cooperator_account.active_participants_count),
     });
     this.is_providered = isProvidered;
+    this.platform_provider = platformProvider;
     this.board_members = entity.board_members?.map((member) => new BoardMemberDTO(member));
     this.features = entity.features || { search: false };
   }

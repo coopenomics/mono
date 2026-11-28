@@ -208,6 +208,38 @@ describe('EndorsementService — активация кооператива на 
     expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
   });
 
+  // 28.11.2026: провайдера платформы называет настройка узла, а не имя в коде.
+  it('side: провайдер платформы задан настройкой под другим именем — кооперативы берёт его узел', async () => {
+    const provider = (config as any).platform_provider;
+    (config as any).platform_provider = 'hubcoop';
+    (config as any).coopname = 'hubcoop';
+    try {
+      const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null });
+      cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
+
+      await service.onCoopActivated(activated('fresh'));
+
+      expect(blockchainPort.assignOperator).toHaveBeenCalledWith('fresh', 'hubcoop');
+    } finally {
+      (config as any).platform_provider = provider;
+    }
+  });
+
+  it('break: узел с прежним именем voskhod при другом провайдере в настройке кооперативы не берёт', async () => {
+    const provider = (config as any).platform_provider;
+    (config as any).platform_provider = 'hubcoop';
+    try {
+      const { service, blockchainPort, cooperatives } = makeService({ operatorEndorsed: true, coopKey: null });
+      cooperatives.fresh = { username: 'fresh', parent_username: '', status: 'active' };
+
+      await service.onCoopActivated(activated('fresh'));
+
+      expect(blockchainPort.assignOperator).not.toHaveBeenCalled();
+    } finally {
+      (config as any).platform_provider = provider;
+    }
+  });
+
   it('узел не провайдер платформы — событие пропускается', async () => {
     (config as any).coopname = 'partnercoop';
     const { service, blockchainPort } = makeService({ operatorEndorsed: true, coopKey: null });

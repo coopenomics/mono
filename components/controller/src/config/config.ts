@@ -102,6 +102,12 @@ const envVarsSchema = z.object({
   EMAIL_RELAY_TOKEN: z.string().default(''),
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'), // Задаём дефолтное значение, пустая строка невалидна
+  // Провайдер платформы — главный администратор сети: регистрирует кооперативы,
+  // берёт их на обслуживание, ведёт счёт подписок. Имя обязано совпадать с
+  // константой `_provider` контрактов сети; сеть со своим провайдером задаёт
+  // его здесь и при сборке контрактов.
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+  PLATFORM_PROVIDER_COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'),
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   TIMEZONE: z.string().min(1, { message: 'Не должно быть пустым' }).default('Europe/Moscow'), // Пустая строка невалидна
   GRAPHQL_SERVICE: z
@@ -705,6 +711,7 @@ export default {
     },
   },
   coopname: envVars.data.COOPNAME,
+  platform_provider: envVars.data.PLATFORM_PROVIDER_COOPNAME,
   min_soviet_members_count: envVars.data.MIN_SOVIET_MEMBERS_COUNT
     ? parseInt(envVars.data.MIN_SOVIET_MEMBERS_COUNT, 10)
     : envVars.data.NODE_ENV === 'production'

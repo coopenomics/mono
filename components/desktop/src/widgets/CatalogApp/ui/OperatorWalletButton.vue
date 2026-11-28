@@ -43,6 +43,7 @@ import { BaseButton } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { api as extensionApi } from 'src/entities/Extension/api';
+import { useNetworkMode } from 'src/entities/System/model';
 import { formatRub } from '../lib/presentation';
 import { operatorCabinetUrl, rubOfAsset } from '../lib/operatorWallet';
 
@@ -57,11 +58,18 @@ const monthlyTotal = ref(0);
 const operator = ref<string | null>(null);
 const site = ref<string | null>(null);
 
-const visible = computed(() => balance.value !== null && !!operator.value);
+const { operator: chainOperator } = useNetworkMode();
+const hasOperator = computed(() => !!chainOperator.value);
+const visible = computed(() => hasOperator.value && balance.value !== null && !!operator.value);
 const operatorName = computed(() => (operator.value ?? '').toUpperCase());
 const cabinetUrl = computed(() => operatorCabinetUrl(site.value, operator.value));
 
 async function load(): Promise<void> {
+  // Кооператив без оператора держит установку сам: кошелька у оператора нет.
+  if (!hasOperator.value) {
+    balance.value = null;
+    return;
+  }
   try {
     const billing = await extensionApi.loadAppsNodeBilling();
     balance.value = billing.available ? rubOfAsset(billing.wallet?.membershipAvailable) : null;

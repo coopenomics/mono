@@ -9,7 +9,7 @@ import { Registry } from '@coopenomics/docs-templates';
 
 const R = Registry;
 
-jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
+jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod', platform_provider: 'voskhod' } }));
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn() } as any;
 
@@ -85,5 +85,18 @@ describe('DocumentDeclarationsRegistryService', () => {
     expect(coreDocumentDeclarationsFor('voskhod').some((d) => d.registry_id === offer)).toBe(true);
     expect(coreDocumentDeclarationsFor('sosedi').some((d) => d.registry_id === offer)).toBe(false);
     expect(coreDocumentDeclarationsFor('sosedi')).toHaveLength(CORE_DOCUMENT_DECLARATIONS.length - 1);
+  });
+
+  // 28.11.2026: провайдера платформы называет настройка узла, а не имя в коде.
+  it('side: провайдер платформы задан настройкой под другим именем — оферту объявляет он, voskhod её теряет', () => {
+    const offer = Registry.CoopenomicsAgreement.registry_id;
+    const mocked = jest.requireMock('~/config/config').default as { platform_provider: string };
+    mocked.platform_provider = 'hubcoop';
+    try {
+      expect(coreDocumentDeclarationsFor('hubcoop').some((d) => d.registry_id === offer)).toBe(true);
+      expect(coreDocumentDeclarationsFor('voskhod').some((d) => d.registry_id === offer)).toBe(false);
+    } finally {
+      mocked.platform_provider = 'voskhod';
+    }
   });
 });

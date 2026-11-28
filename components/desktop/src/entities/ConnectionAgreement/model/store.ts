@@ -3,6 +3,7 @@ import { Registry } from '@coopenomics/docs-templates'
 import { computed, ref } from 'vue'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { useSessionStore } from 'src/entities/Session'
+import { useSystemStore } from 'src/entities/System/model'
 import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
 import { getCurrentInstance, type CurrentInstance } from '../api'
 import { extractGraphQLErrorMessages } from 'src/shared/api/errors'
@@ -94,6 +95,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const generateDocument = async () => {
     console.log('🔄 Начинаем генерацию документа')
     const session = useSessionStore()
+    const system = useSystemStore()
     const formDataValue = formData.value
     console.log('📋 Данные формы:', formDataValue)
 
@@ -104,7 +106,9 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
 
     const params: any = {
       registry_id: Registry.CoopenomicsAgreement.registry_id,
-      coopname: 'voskhod',
+      // Соглашение о подключении заключается с провайдером платформы: его имя
+      // сообщает узел, в коде стола имени нет (28.11.2026).
+      coopname: system.info.platform_provider || system.info.coopname,
       username: session.username
     }
 

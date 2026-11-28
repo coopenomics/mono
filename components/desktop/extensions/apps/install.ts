@@ -85,7 +85,15 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'subscriptions',
             name: 'apps-subscriptions',
             component: markRaw(NodeSubscriptionsPage),
-            meta: { title: t('apps.install.subscriptionsTitle'), icon: 'receipt_long', requires: READ, requiresAuth: true },
+            // Подписки на приложения каталога ведёт провайдер подключения: у
+            // одиночного запуска их нет, вкладка скрыта (28.11.2026).
+            meta: {
+              title: t('apps.install.subscriptionsTitle'),
+              icon: 'receipt_long',
+              requires: READ,
+              requiresAuth: true,
+              conditions: 'isNetworked === true',
+            },
           },
           appPageRoute(),
         ],

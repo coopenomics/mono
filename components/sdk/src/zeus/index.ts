@@ -20628,6 +20628,8 @@ walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>
 	is_providered?:boolean | `@${string}`,
 	/** Устарело: всегда false */
 	is_unioned?:boolean | `@${string}`,
+	/** Имя аккаунта провайдера платформы — главного администратора сети: он регистрирует кооперативы и берёт их на обслуживание */
+	platform_provider?:boolean | `@${string}`,
 	/** Настройки системы */
 	settings?:ValueTypes["Settings"],
 	/** Символы и их точности блокчейна */
@@ -40523,6 +40525,8 @@ walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputT
 	is_providered?:boolean | `@${string}`,
 	/** Устарело: всегда false */
 	is_unioned?:boolean | `@${string}`,
+	/** Имя аккаунта провайдера платформы — главного администратора сети: он регистрирует кооперативы и берёт их на обслуживание */
+	platform_provider?:boolean | `@${string}`,
 	/** Настройки системы */
 	settings?:ResolverInputTypes["Settings"],
 	/** Символы и их точности блокчейна */
@@ -60360,6 +60364,8 @@ export type ModelTypes = {
 	is_providered: boolean,
 	/** Устарело: всегда false */
 	is_unioned: boolean,
+	/** Имя аккаунта провайдера платформы — главного администратора сети: он регистрирует кооперативы и берёт их на обслуживание */
+	platform_provider: string,
 	/** Настройки системы */
 	settings: ModelTypes["Settings"],
 	/** Символы и их точности блокчейна */
@@ -81502,6 +81508,8 @@ export type GraphQLTypes = {
 	is_providered: boolean,
 	/** Устарело: всегда false */
 	is_unioned: boolean,
+	/** Имя аккаунта провайдера платформы — главного администратора сети: он регистрирует кооперативы и берёт их на обслуживание */
+	platform_provider: string,
 	/** Настройки системы */
 	settings: GraphQLTypes["Settings"],
 	/** Символы и их точности блокчейна */

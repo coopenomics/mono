@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { Queries, Zeus } from '@coopenomics/sdk';
 import { api } from 'src/entities/Extension/api';
+import { useNetworkMode } from 'src/entities/System/model';
 
 export type CatalogApp = Queries.Extensions.AppsCatalogRemotePackages.IOutput[
   typeof Queries.Extensions.AppsCatalogRemotePackages.name
@@ -100,7 +101,18 @@ export const useCatalogAppStore = defineStore('catalogAppStore', () => {
   const loaded = ref(false);
   const error = ref<string | null>(null);
 
+  // Одиночный запуск: оператора и провайдера подключения нет — каталога
+  // приложений у узла нет, доступны встроенные приложения. Запрос к узлу не
+  // делается: он ответил бы отказом «цены недоступны» (28.11.2026).
+  const { isNetworked } = useNetworkMode();
+
   async function load(): Promise<void> {
+    if (!isNetworked.value) {
+      apps.value = [];
+      error.value = null;
+      loaded.value = true;
+      return;
+    }
     loading.value = true;
     error.value = null;
     try {

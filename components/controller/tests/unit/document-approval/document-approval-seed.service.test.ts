@@ -8,7 +8,7 @@ const R = Registry;
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
-  default: { coopname: 'voskhod', document_approval: { reminder_enabled: true, reminder_cron: '0 9 * * 1', seed_on_start: true } },
+  default: { coopname: 'voskhod', platform_provider: 'voskhod', document_approval: { reminder_enabled: true, reminder_cron: '0 9 * * 1', seed_on_start: true } },
 }));
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;

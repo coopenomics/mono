@@ -1,5 +1,6 @@
 import type { InnerDocumentDeclaration } from '@coopenomics/innercoop';
 import { Registry } from '@coopenomics/docs-templates';
+import config from '~/config/config';
 
 /** Имя, под которым ядро объявляет базовый набор документов кооператива. */
 export const CORE_DOCUMENTS_OWNER = 'core';
@@ -19,11 +20,12 @@ export const onboardingExtensionOf = (owner: string): string =>
 const R = Registry;
 
 /**
- * Оператор платформы. Оферту о присоединении к платформе (50) утверждает его
+ * Провайдер платформы. Оферту о присоединении к платформе (50) утверждает его
  * совет, остальные кооперативы её только принимают при подключении — в их
- * реестре шаблонов её нет. Имя задано в контрактах (`_provider`).
+ * реестре шаблонов её нет. Имя задаёт настройка узла `PLATFORM_PROVIDER_COOPNAME`
+ * и обязано совпадать с константой `_provider` контрактов сети.
  */
-export const PLATFORM_PROVIDER_COOPNAME = 'voskhod';
+export const platformProviderCoopname = (): string => config.platform_provider;
 
 const core = (
   registry_id: number,
@@ -83,6 +85,6 @@ const PROVIDER_ONLY_DOCUMENTS = new Set<number>([R.CoopenomicsAgreement.registry
 
 /** Базовый набор для конкретного кооператива: документы оператора платформы видит только он сам. */
 export const coreDocumentDeclarationsFor = (coopname: string): InnerDocumentDeclaration[] =>
-  coopname === PLATFORM_PROVIDER_COOPNAME
+  coopname === platformProviderCoopname()
     ? CORE_DOCUMENT_DECLARATIONS
     : CORE_DOCUMENT_DECLARATIONS.filter((d) => !PROVIDER_ONLY_DOCUMENTS.has(d.registry_id));

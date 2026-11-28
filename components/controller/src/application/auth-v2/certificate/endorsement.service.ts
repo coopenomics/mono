@@ -286,7 +286,8 @@ export class EndorsementService implements OnApplicationBootstrap {
   @OnEvent(`action::${RegistratorContract.contractName.production}::${RegistratorContract.Actions.SetCoopStatus.actionName}`)
   async onCoopActivated(actionData: { data?: { coopname?: string; status?: CooperativeStatus } }): Promise<void> {
     const coopname = actionData?.data?.coopname;
-    if (config.coopname !== TRUST_ANCHOR_STEWARD || !coopname || actionData.data?.status !== CooperativeStatus.Active) return;
+    // Кооперативы на обслуживание берёт провайдер платформы — настройка узла, не имя в коде.
+    if (config.coopname !== config.platform_provider || !coopname || actionData.data?.status !== CooperativeStatus.Active) return;
     if (coopname === config.coopname) return;
     try {
       const coop = await this.blockchainPort.getCooperative(coopname);
@@ -340,7 +341,7 @@ export class EndorsementService implements OnApplicationBootstrap {
    * придёт, и без прохода кооператив навсегда остался бы без заверения.
    */
   private async adoptUnserved(): Promise<void> {
-    if (config.coopname !== TRUST_ANCHOR_STEWARD) return;
+    if (config.coopname !== config.platform_provider) return;
     let unserved: string[];
     try {
       unserved = await this.blockchainPort.getUnservedActiveCooperatives(config.coopname);

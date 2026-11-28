@@ -507,3 +507,18 @@ cases:
     test: components/controller/tests/unit/decision-tracking/protocol-date.test.ts
     api: components/api-tests/src/edubridge/links.test.ts
     status: passing
+
+  # 28.11.2026: имя провайдера платформы — настройка узла PLATFORM_PROVIDER_COOPNAME
+  # (умолчание voskhod), в коде имени нет.
+  - id: doc.appr.side.30
+    level: backend
+    kind: side
+    scenario: >
+      провайдер платформы задан настройкой узла под другим именем
+    expect: >
+      оферту о присоединении к платформе объявляет кооператив из настройки;
+      кооператив с прежним именем voskhod её в своём реестре шаблонов не имеет
+    test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    status: written
+    external: unreachable
+    external_reason: "имя провайдера платформы — настройка узла при запуске, через API стенда её не сменить"

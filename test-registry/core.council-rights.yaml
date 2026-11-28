@@ -201,3 +201,17 @@ cases:
       (expenses.counterparties)
     test: components/docs-harness/scenarios/expenses/counterparties.mjs
     status: written
+
+  # 28.11.2026: страницы провайдера платформы показываются по признаку из
+  # сведений о системе (platform_provider), а не по имени voskhod в коде стола.
+  - id: core.rights.ui.provider-pages
+    level: ui
+    kind: side
+    scenario: >
+      Совет открывает свой стол на узле провайдера платформы и на узле обычного кооператива
+    expect: >
+      реестр кооперативов и карточка кооператива видны только на узле, чей кооператив
+      совпадает с провайдером платформы из сведений о системе; на узле кооператива их нет.
+      Условия показа страниц считает один вычислитель для меню стола и палитры команд
+    test: ~
+    status: missing

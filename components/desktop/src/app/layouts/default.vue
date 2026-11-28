@@ -112,6 +112,7 @@ import { IssuanceCloserHost } from 'src/widgets/Marketplace/IssuanceCloserHost';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
+import { useRouteConditions } from 'src/features/Desktop/RouteConditions';
 import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { useDefaultLayoutLogic } from './useDefaultLayoutLogic';
@@ -171,47 +172,11 @@ interface RouteMetaShape {
   conditions?: string;
 }
 
-const userRole = computed<'chairman' | 'member' | 'user'>(() =>
-  session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user',
-);
-
-// Контекст для meta.conditions — те же ключи, что и в LeftDrawerMenu
-// (chairman/install.ts использует isOnboardingHidden, participant/soviet —
-// isCoop + coopname).
-const filterContext = computed(() => {
-  const acc = session.currentUserAccount?.private_account;
-  const isCoop =
-    acc?.type === Zeus.AccountType.organization &&
-    !!acc.organization_data &&
-    'type' in acc.organization_data &&
-    (acc.organization_data as { type: string }).type.toUpperCase() ===
-      Zeus.OrganizationType.COOP;
-  return {
-    isCoop: Boolean(isCoop),
-    userRole: userRole.value,
-    coopname: system.info.coopname,
-    // Онбординг завершает председатель — отметка в настройках кооператива,
-    // одна на все устройства (до 19.10.2026 жила в localStorage браузера).
-    isOnboardingHidden: !!system.info.settings?.onboarding_completed_at,
-  };
-});
-
-function evalCondition(
-  condition: string | undefined,
-  ctx: Record<string, unknown>,
-): boolean {
-  if (!condition) return true;
-  try {
-    const fn = new Function(...Object.keys(ctx), `return ${condition};`);
-    return Boolean(fn(...Object.values(ctx)));
-  } catch (e) {
-    console.error('Error evaluating route condition:', e);
-    return false;
-  }
-}
+// Условия показа страниц — общий контекст и вычислитель (meta.conditions),
+// те же, что у меню стола.
+const { allows: conditionAllows } = useRouteConditions();
 
 const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
-  const ctx = filterContext.value;
   return desktop.workspaceMenus
     // Стол виден, когда пайщику доступна по правам хотя бы одна его страница.
     .filter((ws) => desktop.isWorkspaceVisible(ws))
@@ -221,7 +186,7 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
       .filter((r) => {
         const meta = (r.meta ?? {}) as RouteMetaShape;
         if (meta.hidden) return false;
-        if (!evalCondition(meta.conditions, ctx)) return false;
+        if (!conditionAllows(meta.conditions)) return false;
         // Требование страницы meta.requires сверяется с выданными бэкендом правами.
         return desktop.isPageVisible(r.meta, ws.workspaceName);
       })

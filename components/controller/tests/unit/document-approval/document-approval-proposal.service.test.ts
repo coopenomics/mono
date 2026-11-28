@@ -12,7 +12,7 @@ import { Registry } from '@coopenomics/docs-templates';
 
 const R = Registry;
 
-jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod' } }));
+jest.mock('~/config/config', () => ({ __esModule: true, default: { coopname: 'voskhod', platform_provider: 'voskhod' } }));
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 

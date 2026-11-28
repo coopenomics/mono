@@ -91,6 +91,7 @@ export const rawSystemInfoSelector = {
   blockchain_account: rawBlockchainAccountSelector,
   system_status: true,
   is_providered: true,
+  platform_provider: true,
   contacts: rawContactsSelector,
   vars: rawVarsSelector,
   symbols: rawSymbolsSelector,
