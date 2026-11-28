@@ -7,6 +7,7 @@ export * from './CommandPalette';
 export * from './ContactSheet';
 export * from './ConfirmDialog';
 export * from './DataRow';
+export * from './CodeBlock';
 export * from './DetailsDrawer';
 export * from './DocumentPreview';
 export * from './DocumentRow';

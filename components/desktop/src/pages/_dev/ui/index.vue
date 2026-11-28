@@ -1435,6 +1435,34 @@
       </div>
     </section>
 
+    <!-- ============ 40 CODE BLOCK ============ -->
+    <section class="dev-ui__sect">
+      <div class="dev-ui__sect-head">
+        <span class="dev-ui__sect-num">40</span>
+        <h2 class="dev-ui__sect-title">Блок кода (CodeBlock)</h2>
+        <p class="dev-ui__sect-sub">
+          Команда терминала либо фрагмент файла: тёмная плашка, моноширинный
+          текст с переносом длинных строк, копирование значком в правом верхнем
+          углу, подпись над блоком и пояснение под ним. Короткое значение в
+          строке карточки — <code>DataRow mono copyable</code>.
+        </p>
+      </div>
+      <div class="dev-ui__stage">
+        <div class="dev-ui__data-stack">
+          <CodeBlock
+            label="Команда"
+            value='npx @coopenomics/app-kit create @voskhod/myapp "Моё приложение" --catalog https://catalog.example'
+            note="Каркас создаётся в папке myapp текущего каталога."
+          />
+          <CodeBlock
+            label="Фрагмент package.json"
+            :value='codeBlockSample'
+            :copyable="false"
+          />
+        </div>
+      </div>
+    </section>
+
   </main>
 </template>
 
@@ -1461,11 +1489,14 @@ import { NotificationCenter } from 'src/shared/ui/domain/NotificationCenter';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
 import { PageHint } from 'src/shared/ui/domain/PageHint';
 import { DetailsDrawer } from 'src/shared/ui/domain/DetailsDrawer';
+import { CodeBlock } from 'src/shared/ui/domain/CodeBlock';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { LostKey } from 'src/widgets/Registrator/LostKey';
 import { ResetKeyForm } from 'src/widgets/Registrator/ResetKey';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import type { RailItem, RailSection } from 'src/shared/ui/layout/AppDrawer';
+
+const codeBlockSample = ['"coopenomics": {', '  "ports": ["document", "accessToken"]', '}'].join('\n');
 
 const authSplitSteps = [
   { key: 'email', label: 'Электронная почта' },

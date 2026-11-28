@@ -769,6 +769,10 @@
       "titlePlaceholder": "Например, электроэнергия пункта выдачи",
       "paymentPurposeLabel": "Назначение платежа",
       "paymentPurposeHint": "Указывается в служебной записке и платёжном поручении"
+    },
+    "codeBlock": {
+      "copyAriaLabel": "Скопировать",
+      "copyErrorText": "Не удалось скопировать"
     }
   }
 }

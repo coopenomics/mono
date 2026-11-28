@@ -5,7 +5,7 @@
 // становится любой пайщик, зарегистрировав пакет на странице «Мои пакеты».
 // Ключи API для команды выпуска — отдельная страница (487-37): ключ действует
 // на отмеченные пакеты либо на все пакеты издателя. Выпуск версии идёт из
-// терминала набором издателя — третья страница стола даёт инструкцию. Стол
+// терминала набором издателя — третья страница стола, «Справка». Стол
 // администратора каталога — `admin/install.ts`.
 
 import './i18n';
@@ -20,7 +20,7 @@ import { DeveloperReleaseGuidePage } from './pages/DeveloperReleaseGuidePage';
 const PAGES = [
   { path: 'packages', name: 'developer-my-packages', component: DeveloperMyPackagesPage, title: 'developer.install.myPackages', icon: 'inventory_2' },
   { path: 'api-keys', name: 'developer-api-keys', component: DeveloperApiKeysPage, title: 'developer.install.apiKeys', icon: 'key' },
-  { path: 'release-guide', name: 'developer-release-guide', component: DeveloperReleaseGuidePage, title: 'developer.install.releaseGuide', icon: 'terminal' },
+  { path: 'release-guide', name: 'developer-release-guide', component: DeveloperReleaseGuidePage, title: 'developer.install.releaseGuide', icon: 'help_outline' },
 ] as const;
 
 const REQUIRES = 'Publisher:manage';
