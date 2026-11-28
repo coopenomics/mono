@@ -12,9 +12,11 @@ import { useSystemStore } from './store';
  * Оператор кооператива — `parent_username` его строки в реестре сети. Пустое
  * поле значит, что кооператив держит установку сам.
  *
- * Одиночный запуск — у кооператива нет оператора и узел не связан с
- * провайдером подключения: каталога приложений, подписок и кошелька у
- * оператора у такого узла нет, доступны встроенные приложения.
+ * Одиночный запуск — узел не связан с провайдером подключения
+ * (`is_providered`, настройка `PROVIDER_BASE_URL`): каталога приложений и
+ * подписок у такого узла нет, доступны встроенные приложения. Оператор в
+ * реестре связи с провайдером не даёт: кооперативу со своей установкой сеть
+ * тоже записывает оператора, а каталог узел строит по предложениям провайдера.
  */
 export function useNetworkMode() {
   const system = useSystemStore();
@@ -24,8 +26,8 @@ export function useNetworkMode() {
   const isPlatformProvider = computed(() => !!platformProvider.value && system.info.coopname === platformProvider.value);
   /** Оператор кооператива узла; `null` — кооператив держит установку сам. */
   const operator = computed(() => system.info.cooperator_account?.parent_username || null);
-  /** Узел работает в сети: есть оператор либо связь с провайдером подключения. */
-  const isNetworked = computed(() => !!operator.value || !!system.info.is_providered);
+  /** Узел связан с провайдером подключения: у него есть каталог приложений и подписки. */
+  const isNetworked = computed(() => !!system.info.is_providered);
 
   return { platformProvider, isPlatformProvider, operator, isNetworked };
 }

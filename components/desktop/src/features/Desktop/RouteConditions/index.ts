@@ -15,8 +15,8 @@ import { useNetworkMode, useSystemStore } from 'src/entities/System/model';
  *  - `coopname` — кооператив узла;
  *  - `isPlatformProvider` — узел провайдера платформы: реестр кооперативов и
  *    страницы подключения кооператива к платформе живут на нём;
- *  - `isNetworked` — узел работает в сети; у одиночного запуска подписок на
- *    приложения каталога нет;
+ *  - `isNetworked` — узел связан с провайдером подключения; у одиночного
+ *    запуска подписок на приложения каталога нет;
  *  - `isOnboardingHidden` — председатель завершил онбординг.
  */
 export function useRouteConditions() {

@@ -101,7 +101,7 @@ export const useCatalogAppStore = defineStore('catalogAppStore', () => {
   const loaded = ref(false);
   const error = ref<string | null>(null);
 
-  // Одиночный запуск: оператора и провайдера подключения нет — каталога
+  // Одиночный запуск: связи с провайдером подключения нет — каталога
   // приложений у узла нет, доступны встроенные приложения. Запрос к узлу не
   // делается: он ответил бы отказом «цены недоступны» (28.11.2026).
   const { isNetworked } = useNetworkMode();
