@@ -281,6 +281,56 @@ cases:
     decision_needed: true
 
   # ── Не решено ────────────────────────────────────────────────────────────
+  # ── Новые права без подтверждения председателя (слово владельца 28.11.2026:
+  #    «поставим всем… и в интерфейсе скроем») ─────────────────────────────
+  - id: apps.consent.happy.20
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель согласился на права; обновление просит новый порт и новое действие цепи.
+    expect: >
+      Обновление допущено само, права добавлены к согласованным, запроса нет
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора: согласие на права проверено на стенде разработки 4"
+
+  - id: apps.consent.break.20
+    level: backend
+    kind: break
+    scenario: >
+      Первая установка без согласия председателя; оркестратор повторяет установку.
+    expect: >
+      Установка не допущена и на повторе: строка первой установки приём новых прав не включает
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора: согласие на права проверено на стенде разработки 4"
+
+  - id: apps.consent.happy.21
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель согласился на весь запрос первой установки.
+    expect: >
+      Приём новых прав включается; следующее обновление с новым правом допущено само
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора: согласие на права проверено на стенде разработки 4"
+
+  - id: apps.consent.side.20
+    level: backend
+    kind: side
+    scenario: >
+      Председатель согласился на часть запроса первой установки.
+    expect: >
+      Приём новых прав не включается, остаток запроса ждёт председателя
+    test: components/controller/tests/unit/apps-catalog-proxy/app-rights-consent.test.ts
+    status: written
+    external: unreachable
+    external_reason: "у стенда внешнего слоя нет каталога приложений и оркестратора: согласие на права проверено на стенде разработки 4"
+
   - id: apps.consent.side.04
     level: ui
     kind: side

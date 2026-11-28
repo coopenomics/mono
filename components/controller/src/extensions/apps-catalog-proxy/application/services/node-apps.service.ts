@@ -32,7 +32,7 @@ import {
 } from '../../infrastructure/apps-catalog-http.service';
 import type { AppRightsConsentRecord } from '../../infrastructure/records/app-rights-consent.record';
 import { CatalogAppsStateService } from './catalog-apps-state.service';
-import { AppRightsConsentService } from './app-rights-consent.service';
+import { AppRightsConsentService, AUTO_ACCEPT_DEFAULT } from './app-rights-consent.service';
 import type { AppPortDeclaration } from './app-port-grants.service';
 import type { CatalogAppRightsDTO } from '../dto/catalog-app-rights.dto';
 import { AppsCatalogRemotePackageDTO, AppsCatalogSubscriptionDTO } from '../dto/apps-catalog-remote-package.dto';
@@ -74,7 +74,7 @@ const NO_CONSENT = {
   pendingPorts: [] as string[],
   pendingChainActions: [] as string[],
   pendingVersion: null as string | null,
-  autoAccept: false,
+  autoAccept: AUTO_ACCEPT_DEFAULT,
   consentedBy: null as string | null,
   consentedAt: null as Date | null,
 };

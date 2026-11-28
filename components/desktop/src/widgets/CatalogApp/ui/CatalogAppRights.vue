@@ -20,15 +20,9 @@ section.catalog-app-rights(v-if='rights')
     CoreRightsList(v-if='hasGranted', :ports='rights.granted.ports', :chain-actions='rights.granted.chainActions')
     p.catalog-app-rights__hint(v-else) {{ $t('catalogApp.rights.none') }}
 
-  .catalog-app-rights__section
-    q-toggle(
-      :model-value='rights.autoAccept',
-      :label="$t('catalogApp.rights.autoAccept')",
-      :disable='!canManage || busy',
-      color='primary',
-      @update:model-value='setAutoAccept'
-    )
-    p.catalog-app-rights__hint {{ $t('catalogApp.rights.autoAcceptHint') }}
+  //- Переключатель «Принимать новые права» скрыт: признак включён всем
+  //- приложениям, обновление с новыми правами ставится без подтверждения
+  //- председателя (487-37, слово владельца 28.11.2026).
 </template>
 
 <script lang="ts" setup>
@@ -79,7 +73,6 @@ async function run(action: () => Promise<void>, done?: string): Promise<void> {
 }
 
 const allow = () => run(() => store.grantRights(props.app.packageId, needed.value), t('catalogApp.rights.allowed'));
-const setAutoAccept = (enabled: boolean) => run(() => store.setRightsAutoAccept(props.app.packageId, enabled));
 
 async function load(): Promise<void> {
   if (!live.value) return;

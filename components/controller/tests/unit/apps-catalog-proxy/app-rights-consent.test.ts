@@ -83,18 +83,20 @@ describe('согласие на права ядра приложения', () =>
     expect(await consents.pendingPackageIds()).toEqual(new Set([PKG]));
   });
 
-  it('break: обновление просит новый порт и новое действие цепи — в запросе только новое, согласованное не трогается', async () => {
+  it('break: приём новых прав выключен, обновление просит новый порт и новое действие цепи — в запросе только новое, согласованное не трогается', async () => {
     const { consents } = harness();
     await consents.grant(PKG, { ports: ['document'], chainActions: [] }, 'ant');
+    await consents.setAutoAccept(PKG, false, 'ant');
     expect(await consents.admit(PKG, { ports: ['document', 'chain'], chainActions: ['eosio::refund'] }, '0.2.0')).toBe(false);
     expect(await consents.byPackage(PKG)).toEqual(
       expect.objectContaining({ ports: ['document'], pendingPorts: ['chain'], pendingChainActions: ['eosio::refund'], pendingVersion: '0.2.0' }),
     );
   });
 
-  it('happy: согласие на запрос — запрос закрыт, та же версия допущена', async () => {
+  it('happy: приём новых прав выключен, согласие на запрос — запрос закрыт, та же версия допущена', async () => {
     const { consents } = harness();
     await consents.grant(PKG, { ports: ['document'], chainActions: [] }, 'ant');
+    await consents.setAutoAccept(PKG, false, 'ant');
     await consents.admit(PKG, { ports: ['document', 'chain'], chainActions: [] }, '0.2.0');
     const row = await consents.grant(PKG, { ports: ['chain'], chainActions: [] }, 'ant');
     expect(row).toEqual(expect.objectContaining({ ports: ['chain', 'document'], pendingVersion: null, pendingPorts: [] }));
@@ -113,6 +115,7 @@ describe('согласие на права ядра приложения', () =>
   it('side: издатель выпустил версию без новых прав, пока запрос ждал — запрос устарел и снят', async () => {
     const { consents } = harness();
     await consents.grant(PKG, { ports: ['document'], chainActions: [] }, 'ant');
+    await consents.setAutoAccept(PKG, false, 'ant');
     await consents.admit(PKG, { ports: ['document', 'chain'], chainActions: [] }, '0.2.0');
     expect(await consents.admit(PKG, { ports: ['document'], chainActions: [] }, '0.2.1')).toBe(true);
     expect(await consents.byPackage(PKG)).toEqual(expect.objectContaining({ pendingVersion: null, pendingPorts: [] }));
@@ -159,6 +162,33 @@ describe('переключатель «Принимать новые права�
     expect(row).toEqual(expect.objectContaining({ autoAccept: true, ports: ['accessToken', 'document'], consentedBy: 'ant', pendingVersion: null }));
   });
 
+  // 487-37, слово владельца 28.11.2026: новые права принимаются без
+  // подтверждения председателя — признак включён всем, переключатель скрыт.
+  it('happy: после согласия председателя обновление с новым портом и действием цепи допущено само', async () => {
+    const { consents } = harness();
+    const first = await consents.grant(PKG, { ports: ['document'], chainActions: [] }, 'ant');
+    expect(first.autoAccept).toBe(true);
+    expect(await consents.admit(PKG, { ports: ['document', 'chain'], chainActions: ['eosio::refund'] }, '0.2.0')).toBe(true);
+    expect(await consents.byPackage(PKG)).toEqual(
+      expect.objectContaining({ ports: ['chain', 'document'], chainActions: ['eosio::refund'], pendingVersion: null }),
+    );
+  });
+
+  it('break: первая установка без согласия председателя сама не принимается и на повторе', async () => {
+    const { consents } = harness();
+    expect(await consents.admit(PKG, RIGHTS, '0.1.0')).toBe(false);
+    expect(await consents.admit(PKG, RIGHTS, '0.1.0')).toBe(false);
+    expect(await consents.byPackage(PKG)).toEqual(expect.objectContaining({ autoAccept: false, consentedBy: null, pendingVersion: '0.1.0' }));
+  });
+
+  it('happy: председатель согласился на запрос первой установки — приём новых прав включается', async () => {
+    const { consents } = harness();
+    await consents.admit(PKG, RIGHTS, '0.1.0');
+    const row = await consents.grant(PKG, RIGHTS, 'ant');
+    expect(row).toEqual(expect.objectContaining({ autoAccept: true, consentedBy: 'ant', pendingVersion: null }));
+    expect(await consents.admit(PKG, { ports: [...RIGHTS.ports, 'chain'], chainActions: RIGHTS.chainActions }, '0.2.0')).toBe(true);
+  });
+
   it('break: переключатель выключен обратно — следующее новое право снова ждёт согласия', async () => {
     const { consents } = harness();
     await consents.setAutoAccept(PKG, true, 'ant');
@@ -178,6 +208,7 @@ describe('права приложения для стола', () => {
   it('happy: стол получает, что просит версия, что разрешено и что ждёт согласия', async () => {
     const h = appsHarness({ version: '0.2.0', ports: ['document', 'chain'], chainActions: [] });
     await h.consents.grant(PKG, { ports: ['document'], chainActions: [] }, 'ant');
+    await h.consents.setAutoAccept(PKG, false, 'ant');
     await h.consents.admit(PKG, { ports: ['document', 'chain'], chainActions: [] }, '0.2.0');
     expect(await h.service.rights(PKG)).toEqual(
       expect.objectContaining({

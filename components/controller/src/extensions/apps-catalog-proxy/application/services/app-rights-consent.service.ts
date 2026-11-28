@@ -32,6 +32,13 @@ function union(a: string[], b: string[]): string[] {
  * Новое право — только новый порт ядра или новое действие цепи: новые методы
  * разрешённого порта и правки кода согласия не требуют.
  */
+/**
+ * Новые права ядра принимаются без подтверждения председателя: признак
+ * включён всем приложениям (487-37, слово владельца 28.11.2026). Переключатель
+ * на странице приложения скрыт; первая установка проходит шаг согласия.
+ */
+export const AUTO_ACCEPT_DEFAULT = true;
+
 @Injectable()
 export class AppRightsConsentService {
   private readonly logger = new Logger(AppRightsConsentService.name);
@@ -95,7 +102,7 @@ export class AppRightsConsentService {
       packageId,
       ports: given.ports,
       chainActions: given.chainActions,
-      autoAccept: false,
+      autoAccept: AUTO_ACCEPT_DEFAULT,
       consentedBy: username,
       consentedAt: now,
       ...this.noPending(),
@@ -149,6 +156,10 @@ export class AppRightsConsentService {
       chainActions,
       consentedBy: by,
       consentedAt: now,
+      // Полное первое согласие председателя включает приём новых прав
+      // (AUTO_ACCEPT_DEFAULT). До него строка — запрос первой установки, и
+      // признак выключен; частичное согласие остаток запроса не открывает.
+      ...(row.consentedBy === null && answered ? { autoAccept: AUTO_ACCEPT_DEFAULT } : {}),
       ...(answered ? this.noPending() : { pendingPorts, pendingChainActions }),
       updatedAt: now,
     };
@@ -177,6 +188,7 @@ export class AppRightsConsentService {
         packageId,
         ports: [],
         chainActions: [],
+        // Запрос первой установки: согласия ещё не было, новые права сами не принимаются.
         autoAccept: false,
         consentedBy: null,
         consentedAt: null,
