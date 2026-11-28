@@ -100,7 +100,7 @@ const cartStore = useMarketplaceCartStore();
 // --- Адаптер: activeSecondLevelRoutes → RailItem[] -------------------------
 
 // Условия показа страниц — общий контекст и вычислитель (meta.conditions).
-const { allows: conditionAllows, userRole } = useRouteConditions();
+const { allows: conditionAllows } = useRouteConditions();
 
 interface MenuMeta {
   title?: string;

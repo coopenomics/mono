@@ -111,7 +111,6 @@ import { IssuanceCloserHost } from 'src/widgets/Marketplace/IssuanceCloserHost';
 
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { useRouteConditions } from 'src/features/Desktop/RouteConditions';
 import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
@@ -132,7 +131,6 @@ const router = useRouter();
 const route = useRoute();
 const desktop = useDesktopStore();
 const system = useSystemStore();
-const session = useSessionStore();
 const palette = useCommandPaletteStore();
 const actionsStore = useActionsStore();
 const { isOpen: paletteOpen } = storeToRefs(palette);
